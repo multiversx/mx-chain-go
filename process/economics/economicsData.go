@@ -25,6 +25,7 @@ type EconomicsData struct {
 	stakeValue           *big.Int
 	unBoundPeriod        uint64
 	ratingsData          *RatingsData
+	developerPercentage  float64
 }
 
 const float64EqualityThreshold = 1e-9
@@ -71,6 +72,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
 		ratingsData:          rd,
+		developerPercentage:  economics.RewardsSettings.DeveloperPercentage,
 	}, nil
 }
 
@@ -135,7 +137,8 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 func checkValues(economics *config.ConfigEconomics) error {
 	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
+		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -215,19 +218,17 @@ func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
 	return ed.maxGasLimitPerBlock
 }
 
+// DeveloperPercentage will return the developer percentage value
+func (ed *EconomicsData) DeveloperPercentage() float64 {
+	return ed.developerPercentage
+}
+
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
 func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
-	//TODO reevaluate the formula or delete
-	/* if dataLen < ed.dataLimitForBaseCalc || core.IsEmptyAddress(tx.GetRecvAddress()) {
-		return gasLimit
-	}
-
-	overDataLimit := dataLen - ed.dataLimitForBaseCalc
-	gasLimit += overDataLimit * overDataLimit * ed.gasPerDataByte */
 
 	return gasLimit
 }

@@ -8,6 +8,7 @@
     CommunityPercentage = 0.10
     LeaderPercentage = 0.50
     BurnPercentage = 0.40
+    DeveloperPercentage = 0.30
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]

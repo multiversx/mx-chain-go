@@ -12,6 +12,7 @@ type RewardsSettings struct {
 	CommunityPercentage            float64
 	LeaderPercentage               float64
 	BurnPercentage                 float64
+	DeveloperPercentage            float64
 	DenominationCoefficientForView string
 }
 

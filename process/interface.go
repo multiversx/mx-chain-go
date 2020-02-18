@@ -133,8 +133,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -488,10 +488,12 @@ type ValidatorSettingsHandler interface {
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
+	DeveloperPercentage() float64
 	MaxGasLimitPerBlock() uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
 	IsInterfaceNil() bool
 }
 
@@ -641,5 +643,15 @@ type ValidityAttester interface {
 type MiniBlocksResolver interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// BuiltinFunction defines the methods for the built-in protocol smart contract functions
+type BuiltinFunction interface {
+	ProcessBuiltinFunction(
+		tx data.TransactionHandler,
+		acntSnd, acntDst state.UserAccountHandler,
+		vmInput *vmcommon.ContractCallInput,
+	) (*big.Int, error)
 	IsInterfaceNil() bool
 }

@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"math/big"
 )
 
 // HashLength defines how many bytes are used in a hash
@@ -77,6 +78,19 @@ type PeerAccountHandler interface {
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+}
+
+// UserAccountHandler models a user account, which can journalize account's data with some extra features
+// like balance, developer rewards, owner
+type UserAccountHandler interface {
+	AccountHandler
+	ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error)
+	ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error
+	AddToDeveloperReward(value *big.Int) error
+	AddToBalance(value *big.Int) error
+	GetBalance() *big.Int
+	SetOwnerAddressWithJournal(ownerAddress []byte) error
+	GetOwnerAddress() []byte
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
