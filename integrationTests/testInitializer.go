@@ -249,6 +249,8 @@ func CreateMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+	genesisHeaderM, _ := TestMarshalizer.Marshal(metaChain.GenesisBlock)
+	metaChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
 	return metaChain
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -95,8 +94,8 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 		nCopy := n
 		n.blkProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.blkProcessor.NrCommitBlockCalled++
-			_ = n.blkc.SetCurrentBlockHeader(header)
-			_ = n.blkc.SetCurrentBlockBody(body)
+			_ = nCopy.blkc.SetCurrentBlockHeader(header)
+			_ = nCopy.blkc.SetCurrentBlockBody(body)
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -156,8 +155,6 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint64(10)
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 

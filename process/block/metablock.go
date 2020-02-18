@@ -1525,7 +1525,7 @@ func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBl
 	}
 
 	if computedTotalFees.Cmp(metaHdr.AccumulatedFeesInEpoch) != 0 {
-		return process.ErrAccumulatedFeesDoNotMatch
+		return fmt.Errorf("%w, got %v, computed %v", process.ErrAccumulatedFeesInEpochDoNotMatch, metaHdr.AccumulatedFeesInEpoch, computedTotalFees)
 	}
 
 	return nil
