@@ -1849,23 +1849,24 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]state.ValidatorInfo) ([]*block.MiniBlock, error) {
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	for _, validators := range list {
-		miniBlock := &block.MiniBlock{}
-		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
-		miniBlock.ReceiverShardID = mp.shardCoordinator.SelfId()
-		miniBlock.TxHashes = make([][]byte, len(validators))
-		miniBlock.Type = block.PeerBlock
+	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		for _, validators := range list {
+			miniBlock := &block.MiniBlock{}
+			miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
+			miniBlock.ReceiverShardID = shardId
+			miniBlock.TxHashes = make([][]byte, len(validators))
+			miniBlock.Type = block.PeerBlock
 
-		for index, validator := range validators {
-			marshalizedValidator, err := mp.marshalizer.Marshal(validator)
-			if err != nil {
-				return nil, err
+			for index, validator := range validators {
+				marshalizedValidator, err := mp.marshalizer.Marshal(validator)
+				if err != nil {
+					return nil, err
+				}
+				miniBlock.TxHashes[index] = marshalizedValidator
 			}
-			miniBlock.TxHashes[index] = marshalizedValidator
 
+			miniblocks = append(miniblocks, miniBlock)
 		}
-
-		miniblocks = append(miniblocks, miniBlock)
 	}
 
 	return miniblocks, nil

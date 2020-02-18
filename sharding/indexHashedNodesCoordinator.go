@@ -189,7 +189,7 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uin
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
+		return nil, fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -226,7 +226,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
+		return nil, fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
@@ -260,7 +260,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, 0, ErrEpochNodesConfigDesNotExist
+		return nil, 0, fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -333,7 +333,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
+		return nil, fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 
 	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
@@ -386,7 +386,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
+		return nil, fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()

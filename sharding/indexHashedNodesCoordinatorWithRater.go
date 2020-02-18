@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -69,7 +70,8 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandAllLists(epoch uint32) e
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
-		return ErrEpochNodesConfigDesNotExist
+		log.Warn(fmt.Sprintf("Nodes config for epoch %v does not exist", epoch))
+		return fmt.Errorf("For epoch %v there was err: %w", epoch, ErrEpochNodesConfigDesNotExist)
 	}
 
 	shardsExpanded := make(map[uint32][]Validator)

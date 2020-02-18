@@ -1510,7 +1510,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	if metaBlock.IsStartOfEpochBlock() {
 		peerMiniBlocks := make([][]byte, 0)
 		for _, mb := range metaBlock.MiniBlockHeaders {
-			if mb.Type == block.PeerBlock {
+			if mb.Type == block.PeerBlock && mb.ReceiverShardID == sp.shardCoordinator.SelfId() {
 				peerMiniBlocks = append(peerMiniBlocks, mb.Hash)
 			}
 		}

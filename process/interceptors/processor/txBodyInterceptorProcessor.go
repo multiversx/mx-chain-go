@@ -54,6 +54,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
 func (tbip *TxBodyInterceptorProcessor) Validate(data process.InterceptedData) error {
+	log.Trace("Validating miniblock", "hash", data.Hash(), "type", data.Type())
 	return nil
 }
 
@@ -97,7 +98,7 @@ func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBloc
 
 	isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
 	isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
-	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender
+	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender || miniblock.Type == block.PeerBlock
 	if !isForCurrentShard {
 		return process.ErrMiniblockNotForCurrentShard
 	}

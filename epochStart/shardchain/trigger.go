@@ -221,31 +221,37 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	var mbHash []byte
+	if !metaHdr.IsStartOfEpochBlock() {
+		t.updateTriggerFromMeta(metaHdr, hdrHash)
+	}
+
+	mbHashes := make([][]byte, 0)
 
 	for _, miniblock := range metaHdr.MiniBlockHeaders {
 		if miniblock.Type == block.PeerBlock {
-			mbHash = miniblock.Hash
-			log.Debug("Searching for peerminiblock", "hash", mbHash)
+			mbHashes = append(mbHashes, miniblock.Hash)
+			log.Debug("Searching for peerminiblock", "hash", miniblock.Hash)
 		}
 	}
 
-	if len(mbHash) == 0 {
+	if len(mbHashes) == 0 {
 		t.updateTriggerFromMeta(metaHdr, hdrHash)
 		return
 	}
 
-	mb, found := t.miniblocksPool.Get(mbHash)
+	for _, mbHash := range mbHashes {
+		mb, found := t.miniblocksPool.Get(mbHash)
 
-	if !found {
-		mb, err = t.miniblocksStorage.Get(mbHash)
-		if err != nil {
+		if !found {
+			mb, err = t.miniblocksStorage.Get(mbHash)
+		}
+
+		_, ok := mb.(*block.MiniBlock)
+
+		if ok {
+			t.updateTriggerFromMeta(metaHdr, hdrHash)
 			return
 		}
-	}
-
-	if mb != nil {
-		t.updateTriggerFromMeta(metaHdr, hdrHash)
 	}
 }
 

@@ -30,6 +30,8 @@ type ValidatorApiResponse struct {
 	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
 	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
 	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
+	Rating             uint32 `json:"rating"`
+	TempRating         uint32 `json:"tempRating"`
 }
 
 // PeerAccount is the struct used in serialization/deserialization

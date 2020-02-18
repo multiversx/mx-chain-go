@@ -739,6 +739,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.DataPool,
 		TestAddressConverter,
 		tpn.AccntState,
+		tpn.PeerState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,
@@ -749,6 +750,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
 		tpn.BlockTracker,
+		TestAddressConverterBLS,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
