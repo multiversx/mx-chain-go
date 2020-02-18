@@ -1002,6 +1002,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	randSeed := []byte("rand seed")
 	lastHdr := blkc.GetCurrentBlockHeader()
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, lastHdr)
+	blkc.SetCurrentBlockHeaderHash(prevHash)
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
@@ -1104,6 +1105,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 
 	currHdr := blkc.GetCurrentBlockHeader()
 	preHash, _ := core.CalculateHash(marshalizer, hasher, currHdr)
+	blkc.SetCurrentBlockHeaderHash(preHash)
 	hdr := block.Header{
 		Round:            2,
 		Nonce:            2,
@@ -1141,6 +1143,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	randSeed := []byte("rand seed")
 	lastHdr := blkc.GetCurrentBlockHeader()
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, lastHdr)
+	blkc.SetCurrentBlockHeaderHash(prevHash)
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
@@ -1278,6 +1281,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 
 	lastHdr := blkc.GetCurrentBlockHeader()
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, lastHdr)
+	blkc.SetCurrentBlockHeaderHash(prevHash)
 	randSeed := []byte("rand seed")
 
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)

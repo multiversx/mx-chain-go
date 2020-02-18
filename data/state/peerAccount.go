@@ -338,7 +338,7 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 }
 
 // IncreaseLeaderAccumulatedFees increases the account's accumulated fees
-func (pa *PeerAccount) IncreaseAccumulatedFees(value *big.Int) error {
+func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
 	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
 
 	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)

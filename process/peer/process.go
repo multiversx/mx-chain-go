@@ -585,7 +585,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			}
 
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
-			err = peerAcc.IncreaseAccumulatedFees(leaderAccumulatedFees)
+			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case leaderFail:
 			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())

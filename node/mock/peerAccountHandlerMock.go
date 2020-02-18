@@ -31,13 +31,13 @@ type PeerAccountHandlerMock struct {
 	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
-	IncreaseAccumulatedFeesCalled                 func(value *big.Int) error
+	AddToAccumulatedFeesCalled                    func(value *big.Int) error
 }
 
-// IncreaseAccumulatedFees -
-func (pahm *PeerAccountHandlerMock) IncreaseAccumulatedFees(value *big.Int) error {
-	if pahm.IncreaseAccumulatedFeesCalled != nil {
-		return pahm.IncreaseAccumulatedFeesCalled(value)
+// AddToAccumulatedFees -
+func (pahm *PeerAccountHandlerMock) AddToAccumulatedFees(value *big.Int) error {
+	if pahm.AddToAccumulatedFeesCalled != nil {
+		return pahm.AddToAccumulatedFeesCalled(value)
 	}
 	return nil
 }

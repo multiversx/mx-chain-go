@@ -2484,6 +2484,9 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0)}
 		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return hash
+		},
 	}
 	arguments.BlockChain = blkc
 
