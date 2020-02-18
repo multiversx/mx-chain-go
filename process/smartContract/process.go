@@ -31,7 +31,8 @@ type scProcessor struct {
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
-	isCallBack       bool
+	isAsyncCall      bool
+	isAsyncCallBack  bool
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -239,14 +240,19 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	sc.isCallBack = false
+	sc.isAsyncCall = false
+	sc.isAsyncCallBack = false
 	dataToParse := tx.GetData()
 
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
-	if isSCRResultFromCrossShardCall {
+	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
+	hasTxData := len(scr.Data) > 0
+	hasTxDataWithIncompleteSCCall := scr.Data[0] == '@'
+	if isSCR && hasTxData && !hasTxDataWithIncompleteSCCall {
+		sc.isAsyncCall = true
+	}
+	if sc.isAsyncCall && hasTxDataWithIncompleteSCCall {
 		dataToParse = append([]byte("callBack"), tx.GetData()...)
-		sc.isCallBack = true
+		sc.isAsyncCallBack = true
 	}
 
 	err := sc.argsParser.ParseData(string(dataToParse))
@@ -434,6 +440,15 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 
 	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
 
+	if !sc.isAsyncCall {
+		vmInput.CallType = vmcommon.DirectCall
+	} else {
+		vmInput.CallType = vmcommon.AsynchronousCall
+		if sc.isAsyncCallBack {
+			vmInput.CallType = vmcommon.AsynchronousCallBack
+		}
+	}
+
 	return vmInput, nil
 }
 
@@ -605,7 +620,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	rcvAddress := tx.GetSndAddress()
-	if sc.isCallBack {
+	if sc.isAsyncCallBack {
 		rcvAddress = tx.GetRecvAddress()
 	}
 
@@ -679,7 +694,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddress()
-	if sc.isCallBack {
+	if sc.isAsyncCallBack {
 		rcvAddress = tx.GetRecvAddress()
 	}
 
