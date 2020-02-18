@@ -39,7 +39,7 @@ type StakedData struct {
 	JailedRound   uint64   `json:"JailedRound"`
 }
 
-// ArgsNewStakingSmartContract is used to store all components that are needed to create staking smart contract
+// ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
 	MinStakeValue            *big.Int
 	UnBondPeriod             uint64
@@ -144,10 +144,10 @@ func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64,
 
 	totalRoundsToBleed := endRound - startRound - r.numRoundsWithoutBleed
 	totalPercentageToBleed := float64(totalRoundsToBleed) * r.bleedPercentagePerRound
-	totalPercentageToBleed = math.Max(totalPercentageToBleed, r.maximumPercentageToBleed)
+	totalPercentageToBleed = math.Min(totalPercentageToBleed, r.maximumPercentageToBleed)
 
-	bleedValue := big.NewInt(0).Neg(getPercentageOfValue(stake, totalPercentageToBleed))
-	stakeAfterBleed := big.NewInt(0).Add(stake, bleedValue)
+	bleedValue := getPercentageOfValue(stake, totalPercentageToBleed)
+	stakeAfterBleed := big.NewInt(0).Sub(stake, bleedValue)
 
 	if stakeAfterBleed.Cmp(big.NewInt(0)) < 0 {
 		stakeAfterBleed = big.NewInt(0)
