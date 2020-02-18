@@ -341,7 +341,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = CreateTestDataPool(nil)
+	tpn.DataPool = CreateTestDataPool(nil, tpn.ShardCoordinator.SelfId())
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -761,6 +761,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
 		tpn.BlockTracker,
+		TestAddressConverter,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

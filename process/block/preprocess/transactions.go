@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 	"time"
@@ -495,6 +496,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, error) {
 
+	var err error
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	timeBefore := time.Now()
@@ -519,22 +521,22 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	)
 
 	txSpaceRemained := int(maxTxSpaceRemained)
+
 	orderedTxsForShard, orderedTxHashesForShard := txs.getTxsForShard(
 		sharding.MetachainShardId,
 		orderedTxs,
 		orderedTxHashes)
 
-	miniBlock, err := txs.createAndProcessMiniBlock(
+	miniBlockForShard, err := txs.createAndProcessMiniBlock(
 		txs.shardCoordinator.SelfId(),
 		sharding.MetachainShardId,
 		txSpaceRemained,
 		haveTime,
 		orderedTxsForShard,
 		orderedTxHashesForShard)
-
-	if err == nil && len(miniBlock.TxHashes) > 0 {
-		txSpaceRemained -= len(miniBlock.TxHashes)
-		miniBlocks = append(miniBlocks, miniBlock)
+	if err == nil && len(miniBlockForShard.TxHashes) > 0 {
+		txSpaceRemained -= len(miniBlockForShard.TxHashes)
+		miniBlocks = append(miniBlocks, miniBlockForShard)
 	}
 
 	newMBAdded := true
@@ -563,7 +565,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				orderedTxs,
 				orderedTxHashes)
 
-			var miniBlockForShard *block.MiniBlock
 			miniBlockForShard, err = txs.createAndProcessMiniBlock(
 				txs.shardCoordinator.SelfId(),
 				shardID,
@@ -607,13 +608,12 @@ func (txs *transactions) getTxsForShard(
 			continue
 		}
 
-		rcvAddr, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(txHandler.GetRecvAddress())
+		shardForRcvAddr, err := txs.getShardForAddress(txHandler.GetRecvAddress())
 		if err != nil {
-			log.Debug("getTxsForShard.CreateAddressFromPublicKeyBytes", "error", err.Error())
+			log.Debug("getTxsForShard.getShardForAddress", "error", err.Error())
 			continue
 		}
 
-		shardForRcvAddr := txs.shardCoordinator.ComputeId(rcvAddr)
 		if shardForRcvAddr == shardID {
 			txsForShard = append(txsForShard, txHandler)
 			txHashesForShard = append(txHashesForShard, txHash)
@@ -621,6 +621,20 @@ func (txs *transactions) getTxsForShard(
 	}
 
 	return txsForShard, txHashesForShard
+}
+
+func (txs *transactions) getShardForAddress(address []byte) (uint32, error) {
+	isEmptyAddress := bytes.Equal(address, make([]byte, txs.addressConverter.AddressLen()))
+	if isEmptyAddress {
+		return txs.shardCoordinator.SelfId(), nil
+	}
+
+	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return 0, err
+	}
+
+	return txs.shardCoordinator.ComputeId(addressContainer), nil
 }
 
 func (txs *transactions) isBadTx(txHash []byte) bool {
@@ -671,9 +685,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 		}
 
 		snapshot := txs.accounts.JournalLen()
+
 		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
 		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-
 		err := txs.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
@@ -681,7 +695,6 @@ func (txs *transactions) createAndProcessMiniBlock(
 			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
-
 		if err != nil {
 			continue
 		}
@@ -723,8 +736,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 		if !errors.Is(err, process.ErrFailedTransaction) {
 			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		}
-		addedTxs++
 
+		addedTxs++
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Debug("max txs accepted in one block is reached",
 				"num added txs", len(miniBlock.TxHashes),

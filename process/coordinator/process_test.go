@@ -1244,7 +1244,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, 3, len(mbs))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
@@ -1253,7 +1253,6 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	numTxsPerBulk := 100
 	numTxsToAdd := 20
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
-	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
 	txPool, _ := createTxPool()
@@ -1315,7 +1314,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, numMiniBlocks, uint64(len(mbs)))
+	assert.Equal(t, uint64(1), uint64(len(mbs)))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {

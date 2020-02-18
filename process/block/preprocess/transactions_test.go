@@ -213,6 +213,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -238,6 +239,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -263,6 +265,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -288,6 +291,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -313,6 +317,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -338,6 +343,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -363,6 +369,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -387,6 +394,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -412,6 +420,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -437,6 +446,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMiniBlocksCompacter(t *tes
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -462,6 +472,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		nil,
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -487,10 +498,37 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&mock.GasHandlerMock{},
 		nil,
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilAddressConverter(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewTransactionPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		miniBlocksCompacterMock(),
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		nil,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T) {
@@ -512,6 +550,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	assert.Nil(t, err)
@@ -537,6 +576,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	txHash := []byte("tx1_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions(), false)
@@ -563,6 +603,7 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -595,6 +636,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	shardId := uint32(1)
@@ -642,6 +684,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -720,6 +763,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	mb := &block.MiniBlock{
@@ -759,6 +803,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
 	assert.NotNil(t, err)
@@ -783,6 +828,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -837,6 +883,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -854,7 +901,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -899,6 +947,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -918,7 +967,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -971,6 +1021,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -989,7 +1040,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
 	assert.Nil(t, err)
 
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))
@@ -1036,6 +1088,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
@@ -1151,6 +1204,7 @@ func TestTransactions_IsDataPrepared_NumMissingTxsZeroShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	err := txs.IsDataPrepared(0, haveTime)
@@ -1176,6 +1230,7 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroTxNotReceivedSh
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	haveTimeShorter := func() time.Duration {
@@ -1204,6 +1259,7 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
+		&mock.AddressConverterMock{},
 	)
 
 	go func() {
