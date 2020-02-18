@@ -2,7 +2,7 @@ package atomic
 
 import "sync/atomic"
 
-// Uint64 is a wrapper for atomic operations on uint32
+// Uint64 is a wrapper for atomic operations on uint64
 type Uint64 struct {
 	value uint64
 }
