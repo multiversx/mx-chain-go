@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -925,6 +926,7 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
 		node.WithMarshalizer(TestMarshalizer, 100),
@@ -953,6 +955,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
 		node.WithDataPool(tpn.DataPool),
+		node.WithTxAccumulator(txAccumulator),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
@@ -961,17 +964,26 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	txHash, err := tpn.Node.SendTransaction(
+	tx, txHash, err := tpn.Node.CreateTransaction(
 		tx.Nonce,
-		hex.EncodeToString(tx.SndAddr),
-		hex.EncodeToString(tx.RcvAddr),
 		tx.Value.String(),
+		hex.EncodeToString(tx.RcvAddr),
+		hex.EncodeToString(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,
-		tx.Signature,
+		hex.EncodeToString(tx.Signature),
 	)
-	return txHash, err
+	if err != nil {
+		return "", err
+	}
+
+	_, err = tpn.Node.SendBulkTransactions([]*dataTransaction.Transaction{tx})
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(txHash), err
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {

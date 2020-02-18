@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/core"
+	corePackage "github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -106,10 +106,6 @@ const (
 //TODO remove this
 var log = logger.GetOrCreate("main")
 
-// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
-// in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 15000
-
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
 var ErrCreateForkDetector = errors.New("could not create fork detector")
@@ -129,7 +125,7 @@ type Core struct {
 	Marshalizer              marshal.Marshalizer
 	TriesContainer           state.TriesHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
+	StatusHandler            corePackage.AppStatusHandler
 	ChainID                  []byte
 }
 
@@ -796,7 +792,7 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return errors.New("genesis block does not exists")
 	}
 
-	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	genesisBlockHash, err := corePackage.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
 	if err != nil {
 		return err
 	}
@@ -954,7 +950,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
-func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
+func CreateSoftwareVersionChecker(statusHandler corePackage.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
 	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
 	if err != nil {
 		return nil, err
@@ -988,7 +984,7 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
+func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash corePackage.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
 		config.BadBlocksCache.Size,
@@ -1324,7 +1320,7 @@ func newShardInterceptorContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
-		MaxTxNonceDeltaAllowed,
+		corePackage.MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
 		headerSigVerifier,
@@ -1371,7 +1367,7 @@ func newMetaInterceptorContainerFactory(
 		crypto.SingleSigner,
 		crypto.TxSignKeyGen,
 		crypto.BlockSignKeyGen,
-		MaxTxNonceDeltaAllowed,
+		corePackage.MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
 		headerSigVerifier,
@@ -2431,7 +2427,7 @@ func getSk(
 	}
 
 	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, skIndex)
+	encodedSk, err := corePackage.LoadSkFromPemFile(skPemFileName, skIndex)
 	if err != nil {
 		return nil, err
 	}

@@ -1106,3 +1106,14 @@ func TestWithAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
 	assert.True(t, node.antifloodHandler == antifloodHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxAccumulator(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTxAccumulator, err)
+}
