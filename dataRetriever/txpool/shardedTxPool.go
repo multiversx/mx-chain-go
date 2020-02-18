@@ -22,6 +22,7 @@ type shardedTxPool struct {
 	onAddCallbacks       []func(key []byte)
 	cacheConfigPrototype txcache.CacheConfig
 	selfShardID          uint32
+	numberOfShards       uint32
 }
 
 type txPoolShard struct {
@@ -60,6 +61,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		onAddCallbacks:       make([]func(key []byte), 0),
 		cacheConfigPrototype: cacheConfigPrototype,
 		selfShardID:          args.SelfShardID,
+		numberOfShards:       args.NumberOfShards,
 	}
 
 	return shardedTxPoolObject, nil
@@ -101,6 +103,12 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 		// Here we clone the config structure
 		cacheConfig := txPool.cacheConfigPrototype
 		cacheConfig.Name = cacheID
+
+		if txPool.isCacheForSelfShard(cacheID) {
+			cacheConfig.CountThreshold *= txPool.numberOfShards
+			cacheConfig.NumBytesThreshold *= txPool.numberOfShards
+		}
+
 		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
@@ -272,4 +280,13 @@ func (txPool *shardedTxPool) routeToCache(cacheID string) string {
 	}
 
 	return cacheID
+}
+
+func (txPool *shardedTxPool) isCacheForSelfShard(cacheID string) bool {
+	shardID, err := strconv.ParseUint(cacheID, 10, 64)
+	if err != nil {
+		return false
+	}
+
+	return uint32(shardID) == txPool.selfShardID
 }
