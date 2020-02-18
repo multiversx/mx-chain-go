@@ -40,7 +40,9 @@ type transactions struct {
 	miniBlocksCompacter  process.MiniBlocksCompacter
 	blockTracker         BlockTracker
 	blockType            block.Type
-	addrConverter        state.AddressConverter
+	addressConverter     state.AddressConverter
+	badTxs               map[string]struct{}
+	mutBadTxs            sync.RWMutex
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -58,7 +60,7 @@ func NewTransactionPreprocessor(
 	gasHandler process.GasHandler,
 	blockTracker BlockTracker,
 	blockType block.Type,
-	addrConverter state.AddressConverter,
+	addressConverter state.AddressConverter,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -97,7 +99,7 @@ func NewTransactionPreprocessor(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
-	if check.IfNil(addrConverter) {
+	if check.IfNil(addressConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
 
@@ -119,7 +121,7 @@ func NewTransactionPreprocessor(
 		miniBlocksCompacter:  miniBlocksCompacter,
 		blockTracker:         blockTracker,
 		blockType:            blockType,
-		addrConverter:        addrConverter,
+		addressConverter:     addressConverter,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -128,6 +130,7 @@ func NewTransactionPreprocessor(
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
+	txs.badTxs = make(map[string]struct{})
 
 	return &txs, nil
 }
@@ -330,6 +333,10 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
+
+	txs.mutBadTxs.Lock()
+	txs.badTxs = make(map[string]struct{})
+	txs.mutBadTxs.Unlock()
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
@@ -387,6 +394,10 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
+
+		txs.mutBadTxs.Lock()
+		txs.badTxs[string(transactionHash)] = struct{}{}
+		txs.mutBadTxs.Unlock()
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
@@ -506,9 +517,9 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		"num txs", len(orderedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
-	txSpaceRemained := int(maxTxSpaceRemained)
 
-	orderedTxsPerShard, orderedTxHashesPerShard := txs.getOrderedTxsForShard(
+	txSpaceRemained := int(maxTxSpaceRemained)
+	orderedTxsForShard, orderedTxHashesForShard := txs.getTxsForShard(
 		sharding.MetachainShardId,
 		orderedTxs,
 		orderedTxHashes)
@@ -518,8 +529,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		sharding.MetachainShardId,
 		txSpaceRemained,
 		haveTime,
-		orderedTxsPerShard,
-		orderedTxHashesPerShard)
+		orderedTxsForShard,
+		orderedTxHashesForShard)
 
 	if err == nil && len(miniBlock.TxHashes) > 0 {
 		txSpaceRemained -= len(miniBlock.TxHashes)
@@ -547,7 +558,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				continue
 			}
 
-			orderedTxsPerShard, orderedTxHashesPerShard = txs.getOrderedTxsForShard(
+			orderedTxsForShard, orderedTxHashesForShard = txs.getTxsForShard(
 				shardID,
 				orderedTxs,
 				orderedTxHashes)
@@ -558,8 +569,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				shardID,
 				txSpaceRemained,
 				haveTime,
-				orderedTxsPerShard,
-				orderedTxHashesPerShard)
+				orderedTxsForShard,
+				orderedTxHashesForShard)
 			if err != nil {
 				continue
 			}
@@ -578,29 +589,46 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	return compactedMiniBlocks, nil
 }
 
-func (txs *transactions) getOrderedTxsForShard(
+func (txs *transactions) getTxsForShard(
 	shardID uint32,
-	orderedTxs []data.TransactionHandler,
-	orderedTxHashes [][]byte,
+	txHandlers []data.TransactionHandler,
+	txHashes [][]byte,
 ) ([]data.TransactionHandler, [][]byte) {
 
-	orderedTxsPerShard := make([]data.TransactionHandler, 0)
-	orderedTxHashesPerShard := make([][]byte, 0)
+	txsForShard := make([]data.TransactionHandler, 0)
+	txHashesForShard := make([][]byte, 0)
 
-	for index, tx := range orderedTxs {
-		rcvAddr, err := txs.addrConverter.CreateAddressFromPublicKeyBytes(tx.GetRecvAddress())
+	for index, txHandler := range txHandlers {
+		txHash := txHashes[index]
+		if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
+			continue
+		}
+		if txs.isBadTx(txHash) {
+			continue
+		}
+
+		rcvAddr, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(txHandler.GetRecvAddress())
 		if err != nil {
+			log.Debug("getTxsForShard.CreateAddressFromPublicKeyBytes", "error", err.Error())
 			continue
 		}
 
 		shardForRcvAddr := txs.shardCoordinator.ComputeId(rcvAddr)
 		if shardForRcvAddr == shardID {
-			orderedTxsPerShard = append(orderedTxsPerShard, tx)
-			orderedTxHashesPerShard = append(orderedTxHashesPerShard, orderedTxHashes[index])
+			txsForShard = append(txsForShard, txHandler)
+			txHashesForShard = append(txHashesForShard, txHash)
 		}
 	}
 
-	return orderedTxsPerShard, orderedTxHashesPerShard
+	return txsForShard, txHashesForShard
+}
+
+func (txs *transactions) isBadTx(txHash []byte) bool {
+	txs.mutBadTxs.RLock()
+	_, isBadTx := txs.badTxs[string(txHash)]
+	txs.mutBadTxs.RUnlock()
+
+	return isBadTx
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
@@ -627,15 +655,18 @@ func (txs *transactions) createAndProcessMiniBlock(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 
 	for index := range orderedTxs {
-		txHandler := orderedTxs[index]
-		tx := txHandler.(*transaction.Transaction)
-		txHash := orderedTxHashes[index]
-
 		if !haveTime() {
 			break
 		}
 
+		txHandler := orderedTxs[index]
+		tx := txHandler.(*transaction.Transaction)
+		txHash := orderedTxHashes[index]
+
 		if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
+			continue
+		}
+		if txs.isBadTx(txHash) {
 			continue
 		}
 
