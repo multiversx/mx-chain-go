@@ -96,6 +96,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
 	}
+	if check.IfNil(arguments.RewardsHandler) {
+		return nil, process.ErrNilRewardsHandler
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:         arguments.PeerAdapter,

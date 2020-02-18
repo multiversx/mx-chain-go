@@ -10,15 +10,15 @@ import (
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(blockChain data.ChainHandler, hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	ApplyBodyToHeaderCalled          func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -45,13 +45,13 @@ func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 }
 
 // ProcessBlock mocks pocessing a block
-func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
+func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bpm.ProcessBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block
-func (bpm *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-	return bpm.CommitBlockCalled(blockChain, header, body)
+func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
+	return bpm.CommitBlockCalled(header, body)
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
@@ -79,8 +79,8 @@ func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, 
 }
 
 // ApplyBodyToHeader -
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(blockChain data.ChainHandler, hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bpm.ApplyBodyToHeaderCalled(blockChain, hdr, body)
+func (bpm *BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	return bpm.ApplyBodyToHeaderCalled(hdr, body)
 }
 
 // MarshalizedDataToBroadcast -

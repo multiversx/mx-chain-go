@@ -81,6 +81,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		bootStorer:         arguments.BootStorer,
 		blockTracker:       arguments.BlockTracker,
 		dataPool:           arguments.DataPool,
+		blockChain:         arguments.BlockChain,
 	}
 
 	if check.IfNil(arguments.TxsPoolsCleaner) {
@@ -122,7 +123,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlock(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
@@ -132,7 +132,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
+	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
 			log.Debug("requested missing shard header",
@@ -234,7 +234,7 @@ func (sp *shardProcessor) ProcessBlock(
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
-	err = sp.checkEpochCorrectness(header, chainHandler)
+	err = sp.checkEpochCorrectness(header)
 	if err != nil {
 		return err
 	}
@@ -324,9 +324,8 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 
 func (sp *shardProcessor) checkEpochCorrectness(
 	header *block.Header,
-	chainHandler data.ChainHandler,
 ) error {
-	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	currentBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 	if currentBlockHeader == nil {
 		return nil
 	}
@@ -606,7 +605,6 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
 func (sp *shardProcessor) CommitBlock(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
@@ -618,7 +616,7 @@ func (sp *shardProcessor) CommitBlock(
 		}
 	}()
 
-	err = checkForNils(chainHandler, headerHandler, bodyHandler)
+	err = checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -629,7 +627,7 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", headerHandler.GetNonce(),
 	)
 
-	err = sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
+	err = sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -693,7 +691,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		err = sp.checkEpochCorrectnessCrossChain()
 		sp.epochStartTrigger.SetProcessed(header)
 	}
 
@@ -719,7 +717,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
+	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), sp.blockChain.GetCurrentBlockHeader(), sp.blockChain.GetCurrentBlockHeaderHash())
 
 	selfNotarizedHeader, selfNotarizedHeaderHash := sp.getLastSelfNotarizedHeader()
 	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
@@ -732,19 +730,19 @@ func (sp *shardProcessor) CommitBlock(
 		"shard", sp.shardCoordinator.SelfId(),
 	)
 
-	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
+	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	err = chainHandler.SetCurrentBlockBody(body)
+	err = sp.blockChain.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
 	}
 
-	err = chainHandler.SetCurrentBlockHeader(header)
+	err = sp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
 	}
 
-	chainHandler.SetCurrentBlockHeaderHash(headerHash)
+	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
@@ -862,8 +860,8 @@ func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	}
 }
 
-func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
-	currentHeader := blockChain.GetCurrentBlockHeader()
+func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
+	currentHeader := sp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
 		return nil
 	}
@@ -1594,7 +1592,7 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) ApplyBodyToHeader(_ data.ChainHandler, hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
 	sw.Start("ApplyBodyToHeader")
 	defer func() {

@@ -89,7 +89,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	body, err = sr.BlockProcessor().ApplyBodyToHeader(sr.Blockchain(), header, body)
+	body, err = sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	if err != nil {
 		log.Debug("doBlockJob.ApplyBodyToHeader", "error", err.Error())
 		return false
@@ -438,7 +438,6 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
-		sr.Blockchain(),
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,

@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"math/big"
 )
 
 // HashLength defines how many bytes are used in a hash

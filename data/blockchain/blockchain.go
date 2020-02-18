@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -29,7 +30,7 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
-	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
+	if check.IfNil(badBlocksCache) {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -47,7 +48,7 @@ func NewBlockChain(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler
 	}
 
@@ -65,7 +66,7 @@ func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader sets the genesis block header pointer
 func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
-	if genesisBlock == nil || genesisBlock.IsInterfaceNil() {
+	if check.IfNil(genesisBlock) {
 		bc.GenesisHeader = nil
 		return nil
 	}
@@ -98,7 +99,7 @@ func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		bc.CurrentBlockHeader = nil
 		return nil
 	}
@@ -127,7 +128,7 @@ func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 
 // GetCurrentBlockBody returns the tx block body pointer
 func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
-	if bc.CurrentBlockBody == nil {
+	if check.IfNil(bc.CurrentBlockBody) {
 		return nil
 	}
 	return bc.CurrentBlockBody
@@ -135,7 +136,7 @@ func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
 
 // SetCurrentBlockBody sets the tx block body pointer
 func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	if body == nil || body.IsInterfaceNil() {
+	if check.IfNil(body) {
 		bc.CurrentBlockBody = nil
 		return nil
 	}

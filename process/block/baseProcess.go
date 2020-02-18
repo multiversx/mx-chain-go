@@ -70,6 +70,7 @@ type baseProcessor struct {
 	blockTracker                 process.BlockTracker
 	dataPool                     dataRetriever.PoolsHolder
 	feeHandler                   process.TransactionFeeHandler
+	blockChain                   data.ChainHandler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -78,14 +79,9 @@ type baseProcessor struct {
 }
 
 func checkForNils(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-
-	if check.IfNil(chainHandler) {
-		return process.ErrNilBlockChain
-	}
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
@@ -107,27 +103,26 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
 
-	err := checkForNils(chainHandler, headerHandler, bodyHandler)
+	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
 
 	if check.IfNil(currentBlockHeader) {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
-			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
+			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
 				return nil
 			}
 
 			log.Debug("hash does not match",
-				"local block hash", chainHandler.GetGenesisHeaderHash(),
+				"local block hash", bp.blockChain.GetGenesisHeaderHash(),
 				"received previous hash", headerHandler.GetPrevHash())
 
 			return process.ErrBlockHashDoesNotMatch
@@ -380,6 +375,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(arguments.BlockChain) {
+		return process.ErrNilBlockChain
 	}
 
 	return nil

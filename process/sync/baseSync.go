@@ -501,7 +501,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -511,7 +511,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,

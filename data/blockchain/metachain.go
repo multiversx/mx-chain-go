@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -17,6 +18,7 @@ type MetaChain struct {
 	genesisBlockHash []byte                // Genesis Block hash
 	CurrentBlock     *block.MetaBlock      // Current Block pointer
 	currentBlockHash []byte                // Current Block hash
+	CurrentBlockBody block.Body            // Current Block Body pointer
 	localHeight      int64                 // Height of the local chain
 	networkHeight    int64                 // Perceived height of the network chain
 	badBlocks        storage.Cacher        // Bad blocks cache
@@ -27,7 +29,7 @@ type MetaChain struct {
 func NewMetaChain(
 	badBlocksCache storage.Cacher,
 ) (*MetaChain, error) {
-	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
+	if check.IfNil(badBlocksCache) {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -39,7 +41,7 @@ func NewMetaChain(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (mc *MetaChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler
 	}
 
@@ -49,7 +51,7 @@ func (mc *MetaChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // GetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
-	if mc.GenesisBlock == nil {
+	if check.IfNil(mc.GenesisBlock) {
 		return nil
 	}
 	return mc.GenesisBlock
@@ -57,7 +59,7 @@ func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) SetGenesisHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		mc.GenesisBlock = nil
 		return nil
 	}
@@ -90,7 +92,7 @@ func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		mc.CurrentBlock = nil
 		return nil
 	}
@@ -120,12 +122,24 @@ func (mc *MetaChain) SetCurrentBlockHeaderHash(hash []byte) {
 
 // GetCurrentBlockBody returns the block body pointer
 func (mc *MetaChain) GetCurrentBlockBody() data.BodyHandler {
-	return nil
+	if check.IfNil(mc.CurrentBlockBody) {
+		return nil
+	}
+	return mc.CurrentBlockBody
 }
 
 // SetCurrentBlockBody sets the block body pointer
 func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	// not needed to be implemented in metachain.
+	if check.IfNil(body) {
+		mc.CurrentBlockBody = nil
+		return nil
+	}
+
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return data.ErrInvalidBodyType
+	}
+	mc.CurrentBlockBody = blockBody
 	return nil
 }
 

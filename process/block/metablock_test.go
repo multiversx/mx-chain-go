@@ -58,6 +58,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			},
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			DataPool:     mdp,
+			BlockChain:   createTestBlockchain(),
 		},
 		SCDataGetter:             &mock.ScQueryMock{},
 		SCToProtocol:             &mock.SCToProtocolStub{},
@@ -306,17 +307,6 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 
 //------- ProcessBlock
 
-func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	blk := block.Body{}
-
-	err := mp.ProcessBlock(nil, &block.MetaBlock{}, blk, haveTime)
-	assert.Equal(t, process.ErrNilBlockChain, err)
-}
-
 func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -325,7 +315,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := block.Body{}
 
-	err := mp.ProcessBlock(&blockchain.MetaChain{}, nil, blk, haveTime)
+	err := mp.ProcessBlock(nil, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
@@ -335,7 +325,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
+	err := mp.ProcessBlock(&block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -346,7 +336,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := block.Body{}
 
-	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, blk, nil)
+	err := mp.ProcessBlock(&block.MetaBlock{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
@@ -356,7 +346,6 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	// set accounts dirty
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
-	blkc := &blockchain.MetaChain{}
 	hdr := block.MetaBlock{
 		Nonce:         1,
 		PubKeysBitmap: []byte("0100101"),
@@ -373,7 +362,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
+	err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
 }
@@ -384,12 +373,11 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	blkc := &blockchain.MetaChain{}
 	hdr := &block.MetaBlock{
 		Nonce: 2,
 	}
 	body := block.Body{}
-	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
+	err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -397,20 +385,21 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	mp, _ := blproc.NewMetaProcessor(arguments)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
 	}
+	arguments.BlockChain = blkc
+	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
 		Round: 3,
 		Nonce: 3,
 	}
 	body := block.Body{}
 
-	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
+	err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -418,13 +407,14 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	mp, _ := blproc.NewMetaProcessor(arguments)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
 	}
+	arguments.BlockChain = blkc
+	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
 		Round:    2,
 		Nonce:    2,
@@ -433,7 +423,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 
 	body := block.Body{}
 
-	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
+	err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
@@ -464,6 +454,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
+	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	go func() {
@@ -473,7 +464,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	// should return err
 	mp.SetShardBlockFinality(0)
 	hdr.ShardInfo = make([]block.ShardData, 0)
-	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
+	err := mp.ProcessBlock(hdr, body, haveTime)
 
 	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
@@ -543,21 +534,6 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 
 //------- CommitBlock
 
-func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.Accounts = &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
-		},
-	}
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	blk := block.Body{}
-	err := mp.CommitBlock(nil, &block.MetaBlock{}, blk)
-	assert.Equal(t, process.ErrNilBlockChain, err)
-}
-
 func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -585,8 +561,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 	arguments.Accounts = accounts
 	arguments.Marshalizer = marshalizer
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	blkc := createTestBlockchain()
-	err := mp.CommitBlock(blkc, hdr, body)
+	err := mp.CommitBlock(hdr, body)
 	assert.Equal(t, errMarshalizer, err)
 }
 
@@ -637,14 +612,14 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
 	arguments.BlockTracker = blockTrackerMock
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
 	blkc, _ := blockchain.NewMetaChain(
 		generateTestCache(),
 	)
+	arguments.BlockChain = blkc
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.CommitBlock(blkc, hdr, body)
+	err := mp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
@@ -681,8 +656,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		}
 	}
 
-	blkc := createTestBlockchain()
-	err := mp.CommitBlock(blkc, hdr, body)
+	err := mp.CommitBlock(hdr, body)
 	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
@@ -764,10 +738,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return cs
 	}
 
-	blkc := createTestBlockchain()
-
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.CommitBlock(blkc, hdr, body)
+	err := mp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, removeHdrWasCalled)
 	assert.True(t, forkDetectorAddCalled)
@@ -847,7 +819,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := &block.MetaBlock{}
-	_, err := mp.ApplyBodyToHeader(&mock.BlockChainMock{}, hdr, block.Body{})
+	_, err := mp.ApplyBodyToHeader(hdr, block.Body{})
 	assert.Nil(t, err)
 }
 
@@ -869,7 +841,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
 	bodyHandler := block.Body{&block.MiniBlock{Type: 0}}
-	_, err := mp.ApplyBodyToHeader(&mock.BlockChainMock{}, metaBlk, bodyHandler)
+	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
 
@@ -891,7 +863,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.CommitBlock(nil, nil, nil)
+	err := mp.CommitBlock(nil, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
 }
@@ -2278,7 +2250,6 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 
 	journalLen := func() int { return 0 }
 	revToSnapshot := func(snapshot int) error { return nil }
-	blkc := &blockchain.MetaChain{}
 	hdr := block.MetaBlock{
 		Nonce:         1,
 		PubKeysBitmap: []byte("0100101"),
@@ -2310,7 +2281,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
+	err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
@@ -2325,7 +2296,6 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	journalLen := func() int { return 0 }
 	revToSnapshot := func(snapshot int) error { return nil }
-	blkc := &blockchain.MetaChain{}
 	hdr := block.MetaBlock{
 		Nonce:         1,
 		PubKeysBitmap: []byte("0100101"),
@@ -2360,7 +2330,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	arguments.Hasher = hasher
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
+	err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -2510,6 +2480,12 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	arguments.DataPool = dPool
 	arguments.TxCoordinator = txCoordinator
 	arguments.Hasher = hasher
+	blkc := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0)}
+		},
+	}
+	arguments.BlockChain = blkc
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
@@ -2524,11 +2500,6 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	headerHandler.SetPrevHash(hash)
 	headerHandler.SetAccumulatedFees(big.NewInt(0))
 
-	blkc := &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0)}
-		},
-	}
-	err = mp.ProcessBlock(blkc, headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }

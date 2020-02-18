@@ -91,7 +91,7 @@ func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
 	err := m.SetCurrentBlockBody(block.Body{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, nil, m.GetCurrentBlockBody())
+	assert.Equal(t, block.Body{}, m.GetCurrentBlockBody())
 }
 
 func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {

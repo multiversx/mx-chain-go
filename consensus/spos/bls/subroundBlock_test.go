@@ -423,7 +423,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	sr := *initSubroundBlock(nil, container)
 	blProcMock := mock.InitBlockProcessorMock()
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(data.ChainHandler, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 	container.SetBlockProcessor(blProcMock)
@@ -469,7 +469,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr.Header = hdr
 	sr.Body = blk
 	blockProcessorMock := mock.InitBlockProcessorMock()
-	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
 	}
 	container.SetBlockProcessor(blockProcessorMock)
@@ -674,7 +674,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	_ = sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(blockChain, header, body)
+	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -706,7 +706,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(sr.Blockchain(), header, body)
+	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -743,7 +743,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		},
 	}
 	bp := mock.InitBlockProcessorMock()
-	bp.ApplyBodyToHeaderCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	bp.ApplyBodyToHeaderCalled = func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 		shardHeader, _ := header.(*block.Header)
 		shardHeader.MiniBlockHeaders = mbHeaders
 		shardHeader.RootHash = []byte{}
@@ -756,7 +756,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(sr.Blockchain(), header, body)
+	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -781,7 +781,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
 	bp := mock.InitBlockProcessorMock()
-	bp.ApplyBodyToHeaderCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	bp.ApplyBodyToHeaderCalled = func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 		return body, expectedErr
 	}
 	container := mock.InitConsensusCore()
@@ -792,7 +792,7 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
 
-	_, err := sr.BlockProcessor().ApplyBodyToHeader(sr.Blockchain(), header, body)
+	_, err := sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -845,7 +845,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	container.SetBlockProcessor(&mock.BlockProcessorMock{
-		ProcessBlockCalled: func(_ data.ChainHandler, _ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
+		ProcessBlockCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
 			time.Sleep(time.Duration(delay))
 			return nil
 		},

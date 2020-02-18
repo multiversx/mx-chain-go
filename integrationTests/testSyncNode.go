@@ -137,6 +137,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 		BlockTracker: tpn.BlockTracker,
 		DataPool:     tpn.DataPool,
+		BlockChain:   tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

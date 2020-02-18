@@ -800,6 +800,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
+		RewardsHandler:      tpn.EconomicsData,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -853,6 +854,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 		BlockTracker: tpn.BlockTracker,
 		DataPool:     tpn.DataPool,
+		BlockChain:   tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1035,7 +1037,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(tpn.BlockChain, blockHeader, blockBody)
+	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
@@ -1068,7 +1070,7 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 
 // CommitBlock commits the block and body
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	_ = tpn.BlockProcessor.CommitBlock(header, body)
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
@@ -1190,7 +1192,6 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.ProcessBlock(
-		tpn.BlockChain,
 		header,
 		body,
 		func() time.Duration {
@@ -1201,7 +1202,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	err = tpn.BlockProcessor.CommitBlock(header, body)
 	if err != nil {
 		return err
 	}
@@ -1221,7 +1222,6 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.ProcessBlock(
-		tpn.BlockChain,
 		header,
 		body,
 		func() time.Duration {
@@ -1232,7 +1232,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	err = tpn.BlockProcessor.CommitBlock(header, body)
 	if err != nil {
 		return err
 	}

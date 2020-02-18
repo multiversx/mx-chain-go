@@ -91,15 +91,15 @@ func createFullStore() dataRetriever.StorageService {
 	return store
 }
 
-func createBlockProcessor() *mock.BlockProcessorMock {
+func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blk data.ChainHandler, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CommitBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -152,14 +152,14 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 }
 
 func initRounder() consensus.Rounder {
-	round, _ := round.NewRound(
+	rnd, _ := round.NewRound(
 		time.Now(),
 		time.Now(),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 	)
 
-	return round
+	return rnd
 }
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
@@ -453,7 +453,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 	args.Rounder = initRounder()
-	args.BlockProcessor = createBlockProcessor()
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	r := bs.SyncBlock()
@@ -490,7 +490,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 	)
-	args.BlockProcessor = createBlockProcessor()
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	r := bs.SyncBlock()
@@ -559,14 +559,13 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	args.BlockProcessor = createBlockProcessor()
-
 	hdr := block.Header{Nonce: 1, Round: 0}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() *process.ForkInfo {
@@ -596,14 +595,13 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	args.BlockProcessor = createBlockProcessor()
-
 	hdr := block.Header{Nonce: 1, Round: 0}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	hash := []byte("aaa")
 
@@ -695,14 +693,13 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	args.BlockProcessor = createBlockProcessor()
-
 	hdr := block.Header{Nonce: 1}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	hash := []byte("aaa")
 	header := &block.Header{
@@ -769,18 +766,18 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	args := CreateShardBootstrapMockArguments()
 
-	blockProcessor := createBlockProcessor()
-	blockProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
-	}
-	args.BlockProcessor = blockProcessor
-
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+
+	blockProcessor := createBlockProcessor(args.ChainHandler)
+	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return process.ErrBlockHashDoesNotMatch
+	}
+	args.BlockProcessor = blockProcessor
 
 	hash := []byte("aaa")
 	header := &block.Header{
@@ -1686,7 +1683,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 	t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
-	args.BlockProcessor = createBlockProcessor()
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	f1 := func(bool) {}
@@ -1703,7 +1700,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
-	args.BlockProcessor = createBlockProcessor()
+	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
 

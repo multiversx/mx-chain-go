@@ -152,7 +152,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(node.BlockChain, blockHeader, blockBody)
+	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

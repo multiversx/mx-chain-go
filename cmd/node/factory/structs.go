@@ -2003,6 +2003,7 @@ func newShardBlockProcessor(
 		BlockTracker:      blockTracker,
 		DataPool:          data.Datapool,
 		FeeHandler:        txFeeHandler,
+		BlockChain:        data.Blkc,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor:       argumentsBaseProcessor,
@@ -2219,6 +2220,7 @@ func newMetaBlockProcessor(
 		BlockTracker:                 blockTracker,
 		DataPool:                     data.Datapool,
 		FeeHandler:                   txFeeHandler,
+		BlockChain:                   data.Blkc,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:         argumentsBaseProcessor,
@@ -2265,6 +2267,7 @@ func newValidatorStatisticsProcessor(
 		StakeValue:          processComponents.economicsData.StakeValue(),
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
+		RewardsHandler:      processComponents.economicsData,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
