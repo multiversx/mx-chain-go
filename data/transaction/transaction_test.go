@@ -14,71 +14,33 @@ import (
 func TestTransaction_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
-	data := "data"
-	tx := &transaction.Transaction{Data: data}
-
-	assert.Equal(t, data, tx.Data)
-}
-
-func TestTransaction_GetRecvAddr(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	tx := &transaction.Transaction{RcvAddr: data}
-
-	assert.Equal(t, data, tx.RcvAddr)
-}
-
-func TestTransaction_GetSndAddr(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	tx := &transaction.Transaction{SndAddr: data}
-
-	assert.Equal(t, data, tx.SndAddr)
-}
-
-func TestTransaction_GetValue(t *testing.T) {
-	t.Parallel()
-
-	value := big.NewInt(10)
-	tx := &transaction.Transaction{Value: value}
-
-	assert.Equal(t, value, tx.Value)
-}
-
-func TestTransaction_SetData(t *testing.T) {
-	t.Parallel()
-
-	data := "data"
-	tx := &transaction.Transaction{}
-	tx.SetData(data)
-
-	assert.Equal(t, data, tx.Data)
-}
-
-func TestTransaction_SetRecvAddr(t *testing.T) {
-	t.Parallel()
-
+	nonce := uint64(37)
 	txData := []byte("data")
-	tx := &transaction.Transaction{}
-	tx.SetRcvAddr(txData)
+	value := big.NewInt(12)
+	gasPrice := uint64(1)
+	gasLimit := uint64(5)
+	sender := []byte("sndr")
+	receiver := []byte("receiver")
 
-	assert.Equal(t, txData, tx.RcvAddr)
-}
+	tx := &transaction.Transaction{
+		Nonce:    nonce,
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+	assert.False(t, check.IfNil(tx))
 
-	tx.SetSndAddress(sender)
+	tx.SetSndAddr(sender)
 	tx.SetData(txData)
 	tx.SetValue(value)
-	tx.SetRecvAddress(receiver)
+	tx.SetRcvAddr(receiver)
 
 	assert.Equal(t, nonce, tx.GetNonce())
 	assert.Equal(t, value, tx.GetValue())
 	assert.Equal(t, txData, tx.GetData())
 	assert.Equal(t, gasPrice, tx.GetGasPrice())
 	assert.Equal(t, gasLimit, tx.GetGasLimit())
-	assert.Equal(t, sender, tx.GetSndAddress())
-	assert.Equal(t, receiver, tx.GetRecvAddress())
+	assert.Equal(t, sender, tx.GetSndAddr())
+	assert.Equal(t, receiver, tx.GetRcvAddr())
 }
 
 func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {

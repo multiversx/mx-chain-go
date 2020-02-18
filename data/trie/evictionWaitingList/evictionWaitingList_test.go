@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -96,13 +97,19 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 		assert.Equal(t, hashesMap, ec.cache[string(roots[i])])
 	}
 	for i := cacheSize; i < uint(len(roots)); i++ {
-		val := make(data.ModifiedHashes)
 		encVal, err := ec.db.Get(roots[i])
 		assert.Nil(t, err)
 
-		err = ec.marshalizer.Unmarshal(&val, encVal)
-
+		b := &batch.Batch{}
+		err = ec.marshalizer.Unmarshal(b, encVal)
 		assert.Nil(t, err)
+
+		val := make(data.ModifiedHashes, len(b.Data))
+
+		for _, h := range b.Data {
+			val[string(h)] = struct{}{}
+		}
+
 		assert.Equal(t, hashesMap, val)
 	}
 }

@@ -3,6 +3,7 @@ package evictionWaitingList
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -44,7 +45,13 @@ func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes)
 		return nil
 	}
 
-	marshalizedHashes, err := ewl.marshalizer.Marshal(hashes)
+	b := &batch.Batch{}
+
+	for h := range hashes {
+		b.Data = append(b.Data, []byte(h))
+	}
+
+	marshalizedHashes, err := ewl.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
@@ -76,9 +83,16 @@ func (ewl *evictionWaitingList) Evict(rootHash []byte) (data.ModifiedHashes, err
 		return nil, err
 	}
 
-	err = ewl.marshalizer.Unmarshal(&hashes, marshalizedHashes)
+	b := &batch.Batch{}
+
+	err = ewl.marshalizer.Unmarshal(b, marshalizedHashes)
 	if err != nil {
 		return nil, err
+	}
+
+	hashes = make(data.ModifiedHashes, len(b.Data))
+	for _, h := range b.Data {
+		hashes[string(h)] = struct{}{}
 	}
 
 	err = ewl.db.Remove(rootHash)
@@ -118,9 +132,16 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 				return false, err
 			}
 
-			err = ewl.marshalizer.Unmarshal(&hashes, marshalizedHashes)
+			b := &batch.Batch{}
+
+			err = ewl.marshalizer.Unmarshal(b, marshalizedHashes)
 			if err != nil {
 				return false, err
+			}
+
+			hashes = make(data.ModifiedHashes, len(b.Data))
+			for _, h := range b.Data {
+				hashes[string(h)] = struct{}{}
 			}
 		}
 		_, ok := hashes[hash]

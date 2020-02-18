@@ -16,11 +16,11 @@ func TestRewardTx_GettersAndSetters(t *testing.T) {
 	addr := []byte("address")
 	value := big.NewInt(37)
 
-	rwdTx.SetRecvAddress(addr)
+	rwdTx.SetRcvAddr(addr)
 	rwdTx.SetValue(value)
 
-	assert.Equal(t, []byte(nil), rwdTx.GetSndAddress())
-	assert.Equal(t, addr, rwdTx.GetRecvAddress())
+	assert.Equal(t, []byte(nil), rwdTx.GetSndAddr())
+	assert.Equal(t, addr, rwdTx.GetRcvAddr())
 	assert.Equal(t, value, rwdTx.GetValue())
 	assert.Equal(t, []byte(""), rwdTx.GetData())
 	assert.Equal(t, uint64(0), rwdTx.GetGasLimit())

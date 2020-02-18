@@ -123,7 +123,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	_ = tr.Commit()
 
 	key := []byte{7, 6, 15, 6, 4, 6, 16}
-	oldHashes := make([][]byte, 0)
+	oldHashes := make([][]byte, 0, 4)
 	n := tr.root
 	rootHash, _ := tr.Root()
 	oldHashes = append(oldHashes, rootHash)
