@@ -126,7 +126,7 @@ func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func(
 			continue
 		}
 
-		sndAddr := tx.GetSndAddress()
+		sndAddr := tx.GetSndAddr()
 		addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
 		if err != nil {
 			txsPool.Remove(key)

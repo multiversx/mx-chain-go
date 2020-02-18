@@ -733,7 +733,7 @@ func (sp *shardProcessor) CommitBlock(
 		"epoch", header.Epoch,
 		"round", header.Round,
 		"nonce", header.Nonce,
-		"shard id", header.ShardId,
+		"shard id", header.ShardID,
 		"hash", headerHash,
 	)
 
@@ -1737,7 +1737,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
 	sp.blockSizeThrottler.Add(
 		hdr.GetRound(),

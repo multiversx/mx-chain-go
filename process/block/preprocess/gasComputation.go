@@ -164,7 +164,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 
 	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	if core.IsSmartContractAddress(txHandler.GetRecvAddress()) {
+	if core.IsSmartContractAddress(txHandler.GetRcvAddr()) {
 		if txSenderShardId != txReceiverShardId {
 			gasConsumedByTxInSenderShard := txGasLimitConsumption
 			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - txGasLimitConsumption

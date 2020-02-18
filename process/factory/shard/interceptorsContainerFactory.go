@@ -80,7 +80,7 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilBlockChain
 	}
 	if sizeCheckDelta > 0 {
-		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
+		protoMarshalizer = marshal.NewSizeCheckUnmarshalizer(protoMarshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(protoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -668,7 +668,7 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		icf.protoMarshalizer,
 		trieNodesFactory,
 		trieNodesProcessor,
 		icf.globalTxThrottler,

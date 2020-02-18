@@ -19,14 +19,21 @@ message BootstrapHeaderInfo {
 	bytes  Hash    = 3;
 }
 
+//PendingMiniBlockInfo is used to store information about the number of pending miniblocks
+message PendingMiniBlockInfo  {
+	uint32 ShardID              = 1;
+	uint32 NumPendingMiniBlocks = 2; 
+}
+
 // BootstrapData is used to store information that are needed for bootstrap
 message BootstrapData {
-	BootstrapHeaderInfo          LastHeader           = 1 [(gogoproto.nullable) = false];
-	repeated BootstrapHeaderInfo LastNotarizedHeaders = 2 [(gogoproto.nullable) = false];
-	repeated BootstrapHeaderInfo LastFinals           = 3 [(gogoproto.nullable) = false];
-	repeated MiniBlocksInMeta    ProcessedMiniBlocks  = 4 [(gogoproto.nullable) = false];
-	uint64                       HighestFinalNonce    = 5;
-	int64                        LastRound            = 6;
+	BootstrapHeaderInfo            LastHeader                = 1 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastCrossNotarizedHeaders = 2 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastSelfNotarizedHeaders  = 7 [(gogoproto.nullable) = false];
+	repeated MiniBlocksInMeta      ProcessedMiniBlocks       = 4 [(gogoproto.nullable) = false];
+	repeated PendingMiniBlockInfo  PendingMiniBlocks         = 8 [(gogoproto.nullable) = false];
+	uint64                         HighestFinalBlockNonce    = 5;
+	int64                          LastRound                 = 6;
 }
 
 message RoundNum {

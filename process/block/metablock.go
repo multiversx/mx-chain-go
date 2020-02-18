@@ -588,7 +588,7 @@ func (mp *metaProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
-		return miniBlocks, nil
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	if mp.accounts.JournalLen() != 0 {
@@ -1146,8 +1146,8 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 			return process.ErrWrongTypeAssertion
 		}
 
-		if lastCrossNotarizedHeaderForShard[shardHeader.ShardId].hdr.GetNonce() < shardHeader.Nonce {
-			lastCrossNotarizedHeaderForShard[shardHeader.ShardId] = &hashAndHdr{hdr: shardHeader, hash: shardHeaderHash}
+		if lastCrossNotarizedHeaderForShard[shardHeader.ShardID].hdr.GetNonce() < shardHeader.Nonce {
+			lastCrossNotarizedHeaderForShard[shardHeader.ShardID] = &hashAndHdr{hdr: shardHeader, hash: shardHeaderHash}
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -1282,7 +1282,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 	}
 
 	log.Trace("received shard header from network",
-		"shard", shardHeader.ShardId,
+		"shard", shardHeader.ShardID,
 		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,
 		"hash", shardHeaderHash,

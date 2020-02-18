@@ -607,7 +607,7 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		icf.protoMarshalizer,
 		trieNodesFactory,
 		trieNodesProcessor,
 		icf.globalThrottler,

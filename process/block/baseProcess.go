@@ -836,9 +836,9 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 	return headerInfo
 }
 
-func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
-	for i := 0; i < len(body); {
-		mb := body[i]
+func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
+	for i := 0; i < len(body.MiniBlocks); {
+		mb := body.MiniBlocks[i]
 		if mb.ReceiverShardID != mb.SenderShardID {
 			i++
 			continue
@@ -849,9 +849,9 @@ func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
 			continue
 		}
 
-		body[i] = body[len(body)-1]
-		body = body[:len(body)-1]
-		if i == len(body)-1 {
+		body.MiniBlocks[i] = body.MiniBlocks[len(body.MiniBlocks)-1]
+		body.MiniBlocks = body.MiniBlocks[:len(body.MiniBlocks)-2]
+		if i == len(body.MiniBlocks)-1 {
 			break
 		}
 	}
@@ -880,9 +880,9 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	var body block.Body
+	var body *block.Body
 
-	err := bp.marshalizer.Unmarshal(&body, dta)
+	err := bp.marshalizer.Unmarshal(body, dta)
 	if err != nil {
 		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
 		return nil
@@ -927,14 +927,14 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 	return body, header
 }
 
-func (bp *baseProcessor) saveBody(body block.Body) {
+func (bp *baseProcessor) saveBody(body *block.Body) {
 	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
 	if errNotCritical != nil {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
 
-	for i := 0; i < len(body); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body[i])
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue

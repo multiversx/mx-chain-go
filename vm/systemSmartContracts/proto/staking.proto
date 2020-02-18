@@ -10,6 +10,6 @@ message StakingData {
 	uint64   StartNonce    = 1 [(gogoproto.jsontag) = "StartNonce"];
 	bool     Staked        = 2 [(gogoproto.jsontag) = "Staked"];
 	uint64   UnStakedNonce = 3 [(gogoproto.jsontag) = "UnStakedNonce"];
-	bytes    BlsPubKey     = 4 [(gogoproto.jsontag) = "BlsPubKey"];
+	bytes    Address       = 4 [(gogoproto.jsontag) = "Address"];
 	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }

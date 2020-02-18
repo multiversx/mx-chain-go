@@ -428,7 +428,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	for _, tx := range rtxh.rewardTxsForBlock {
 		log.Trace("rewardTxsForBlock",
-			"shard", tx.ShardId,
+			"shard", tx.ShardID,
 			"epoch", tx.Epoch,
 			"round", tx.Round,
 			"rcvAddr", tx.RcvAddr,
@@ -512,7 +512,7 @@ func (rtxh *rewardsHandler) displayTxs(message string, txs []data.TransactionHan
 		}
 
 		log.Trace(message,
-			"shard", rtx.ShardId,
+			"shard", rtx.ShardID,
 			"epoch", rtx.Epoch,
 			"round", rtx.Round,
 			"rcvAddr", rtx.RcvAddr,

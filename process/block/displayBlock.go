@@ -135,7 +135,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.ShardId)}),
+			fmt.Sprintf("%d", header.ShardID)}),
 	}
 
 	lines := displayHeader(header)

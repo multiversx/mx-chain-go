@@ -39,13 +39,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              	hdr,
-		hasher:           	arg.Hasher,
-		sigVerifier:      	arg.HeaderSigVerifier,
-		shardCoordinator: 	arg.ShardCoordinator,
-		chainID:          	arg.ChainID,
-		validityAttester: 	arg.ValidityAttester,
-		epochStartTrigger:	arg.EpochStartTrigger,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -122,7 +122,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
 			core.ToHex(inHdr.hash),
-			inHdr.hdr.ShardId,
+			inHdr.hdr.ShardID,
 			inHdr.epochStartTrigger.Epoch(),
 			inHdr.hdr.Epoch,
 			inHdr.hdr.Round,

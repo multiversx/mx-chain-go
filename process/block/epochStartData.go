@@ -106,7 +106,7 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 func displayEpochStartData(startData *block.EpochStart) {
 	for _, shardData := range startData.LastFinalizedHeaders {
 		log.Debug("epoch start shard data",
-			"shardID", shardData.ShardId,
+			"shardID", shardData.ShardID,
 			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
 			"first pending meta", shardData.FirstPendingMetaBlock,
 			"last finished meta", shardData.LastFinishedMetaBlock,
@@ -169,7 +169,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 		}
 
 		finalHeader := block.EpochStartShardData{
-			ShardId:               lastCrossNotarizedHeaderForShard.GetShardID(),
+			ShardID:               lastCrossNotarizedHeaderForShard.GetShardID(),
 			HeaderHash:            hdrHash,
 			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
 			FirstPendingMetaBlock: lastMetaHash,
@@ -233,7 +233,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		currentHdr = prevShardHdr
 	}
 
-	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.Epoch, shardHdr.ShardId, lastMetaHash)
+	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.Epoch, shardHdr.ShardID, lastMetaHash)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -262,7 +262,7 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 	}
 
 	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		if shardData.ShardId != shId {
+		if shardData.ShardID != shId {
 			continue
 		}
 
