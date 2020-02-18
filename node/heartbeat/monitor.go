@@ -242,7 +242,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
-	isInEligibleList := m.isIsEligibleList(hb.Pubkey, computedShardID)
+	isInEligibleList := m.isInEligibleList(hb.Pubkey, computedShardID)
 
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, isInEligibleList)
 	hbDTO := m.convertToExportedStruct(hbmi)
@@ -293,7 +293,7 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 
-func (m *Monitor) isIsEligibleList(pubkey []byte, shardID uint32) bool {
+func (m *Monitor) isInEligibleList(pubkey []byte, shardID uint32) bool {
 	nodesMap, err := m.eligibleListProvider.GetNodesPerShard(m.epochHandler.Epoch())
 	if err != nil {
 		return false

@@ -352,6 +352,39 @@ func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
 	return pjer == nil
 }
 
+// PeerJournalEntryListIndex is used to revert a list and index change
+type PeerJournalEntryListIndex struct {
+	account *PeerAccount
+	list    string
+	index   int
+}
+
+// NewPeerJournalEntryListIndex outputs a new PeerJournalEntryListIndex implementation used to revert a state change
+func NewPeerJournalEntryListIndex(account *PeerAccount, list string, index int) (*PeerJournalEntryListIndex, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryListIndex{
+		account: account,
+		list:    list,
+		index:   index,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjeli *PeerJournalEntryListIndex) Revert() (AccountHandler, error) {
+	pjeli.account.List = pjeli.list
+	pjeli.account.IndexInList = pjeli.index
+
+	return pjeli.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjeli *PeerJournalEntryListIndex) IsInterfaceNil() bool {
+	return pjeli == nil
+}
+
 // PeerJournalEntryTempRating is used to revert a rating change
 type PeerJournalEntryTempRating struct {
 	account       *PeerAccount

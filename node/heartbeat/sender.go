@@ -131,13 +131,13 @@ func (s *Sender) SendHeartbeat() error {
 
 func (s *Sender) updateMetrics(hb *Heartbeat) {
 	result := "in waiting list"
-	if s.isIsEligibleList(hb.Pubkey, hb.ShardID) {
+	if s.isInEligibleList(hb.Pubkey, hb.ShardID) {
 		result = "in eligible list"
 	}
 	s.statusHandler.SetStringValue(core.MetricValidatorType, result)
 }
 
-func (s *Sender) isIsEligibleList(pubkey []byte, shardID uint32) bool {
+func (s *Sender) isInEligibleList(pubkey []byte, shardID uint32) bool {
 	nodesMap, err := s.eligibleListProvider.GetNodesPerShard(s.epochHandler.Epoch())
 	if err != nil {
 		return false

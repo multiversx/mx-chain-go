@@ -25,7 +25,8 @@ type PeerAccountHandlerMock struct {
 	GetTempRatingCalled            func() uint32
 	SetTempRatingWithJournalCalled func(rating uint32) error
 
-	SetListAndIndexCalled func(list string, index int)
+	SetListAndIndexCalled            func(list string, index int)
+	SetListAndIndexWithJournalCalled func(list string, index int) error
 
 	IncreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
@@ -178,6 +179,15 @@ func (pahm *PeerAccountHandlerMock) SetListAndIndex(list string, index int) {
 	if pahm.SetListAndIndexCalled != nil {
 		pahm.SetListAndIndexCalled(list, index)
 	}
+}
+
+// SetListAndIndexWithJournal -
+func (pahm *PeerAccountHandlerMock) SetListAndIndexWithJournal(list string, index int) error {
+	if pahm.SetListAndIndexWithJournalCalled != nil {
+		return pahm.SetListAndIndexWithJournalCalled(list, index)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

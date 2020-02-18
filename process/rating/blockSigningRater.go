@@ -37,8 +37,8 @@ func NewBlockSigningRaterAndListIndexer(ratingsData *economics.RatingsData) (*Bl
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                &NilRatingReader{},
-		ListIndexUpdaterHandler:     &NilListIndexUpdater{},
+		RatingReader:                &DisabledRatingReader{},
+		ListIndexUpdaterHandler:     &DisabledListIndexUpdater{},
 	}, nil
 }
 

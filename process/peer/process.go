@@ -706,8 +706,7 @@ func (vs *validatorStatistics) updateListAndIndex(pubKey string, list string, in
 		return err
 	}
 
-	peer.SetListAndIndex(list, index)
-	return nil
+	return peer.SetListAndIndexWithJournal(list, index)
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {

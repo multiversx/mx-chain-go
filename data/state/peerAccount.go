@@ -377,6 +377,20 @@ func (pa *PeerAccount) SetListAndIndex(list string, index int) {
 	pa.IndexInList = index
 }
 
+// SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
+func (pa *PeerAccount) SetListAndIndexWithJournal(list string, index int) error {
+	entry, err := NewPeerJournalEntryListIndex(pa, pa.List, pa.IndexInList)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.List = list
+	pa.IndexInList = index
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
 // SetRatingWithJournal sets the account's rating id, saving the old state before changing
 func (pa *PeerAccount) SetRatingWithJournal(rating uint32) error {
 	entry, err := NewPeerJournalEntryRating(pa, pa.Rating)
