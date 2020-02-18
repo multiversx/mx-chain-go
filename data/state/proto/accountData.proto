@@ -17,4 +17,5 @@ message AccountData {
 	bytes  Balance  = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
 	bytes  CodeHash = 3;
 	bytes  RootHash = 4;
+	bytes  Address  = 5;
 }

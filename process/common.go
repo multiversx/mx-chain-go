@@ -629,7 +629,7 @@ func DisplayProcessTxDetails(
 			"gas limit", txHandler.GetGasLimit(),
 			"gas price", txHandler.GetGasPrice(),
 			"data", hex.EncodeToString(txHandler.GetData()),
-			"sender", hex.EncodeToString(txHandler.GetSndAddress()),
-			"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
+			"sender", hex.EncodeToString(txHandler.GetSndAddr()),
+			"receiver", hex.EncodeToString(txHandler.GetRcvAddr()))
 	}
 }

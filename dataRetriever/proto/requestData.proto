@@ -14,11 +14,14 @@ enum RequestDataType {
 	HashArrayType  = 1;
 	// NonceType indicates that the request data object is of type nonce (uint64)
 	NonceType  = 2;
+	// EpochType indicates that the request data object is of type epoch
+	EpochType  = 3;
 }
 
 // RequestData holds the requested data
 // This struct will be serialized and sent to the other peers
 message RequestData {
-	RequestDataType Type = 1 [(gogoproto.jsontag) = "type,omitempty"];
-	bytes Value          = 2 [(gogoproto.jsontag) = "value,omitempty"];
+	bytes           Value = 2 [(gogoproto.jsontag) = "value,omitempty"];
+	RequestDataType Type  = 1 [(gogoproto.jsontag) = "type,omitempty"];
+	uint32          Epoch = 3;
 }

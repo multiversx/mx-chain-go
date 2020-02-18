@@ -3,8 +3,6 @@ package transaction
 
 import (
 	"encoding/json"
-	io "io"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"

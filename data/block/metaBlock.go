@@ -2,12 +2,11 @@
 package block
 
 import (
-	io "io"
-	"io/ioutil"
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
+	io "io"
+	"io/ioutil"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -89,6 +88,10 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 // SetTxCount sets the transaction count of the current meta block
 func (m *MetaBlock) SetTxCount(txCount uint32) {
 	m.TxCount = txCount
+}
+
+// SetShardID sets header shard ID
+func (m *MetaBlock) SetShardID(_ uint32) {
 }
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs

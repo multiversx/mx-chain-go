@@ -47,7 +47,7 @@ func (_ *RewardTx) GetGasPrice() uint64 {
 }
 
 // SetData sets the data of the reward transaction
-func (_ *RewardTx) SetData(data string) {
+func (_ *RewardTx) SetData(data []byte) {
 }
 
 // SetRcvAddr sets the receiver address of the reward transaction

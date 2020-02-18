@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -36,7 +35,6 @@ func (en *extensionNode) Load(r io.Reader) error {
 	return en.Unmarshal(b)
 }
 
-
 func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*extensionNode, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -44,7 +42,6 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
-
 
 	return &extensionNode{
 		CollapsedEn: CollapsedEn{

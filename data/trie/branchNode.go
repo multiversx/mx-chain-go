@@ -1,10 +1,9 @@
 package trie
 
 import (
-
+	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -27,7 +26,7 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
+		CollapsedBn: CollapsedBn{
 			EncodedChildren: encChildren,
 		},
 		children: children,
@@ -44,7 +43,7 @@ func emptyDirtyBranchNode() *branchNode {
 	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
+		CollapsedBn: CollapsedBn{
 			EncodedChildren: encChildren,
 		},
 		children: children,

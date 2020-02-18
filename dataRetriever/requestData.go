@@ -2,8 +2,6 @@
 package dataRetriever
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"

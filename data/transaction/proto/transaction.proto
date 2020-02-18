@@ -20,6 +20,6 @@ message Transaction {
 	bytes    SndAddr   = 4 [(gogoproto.jsontag) = "sender"];
 	uint64   GasPrice  = 5 [(gogoproto.jsontag) = "gasPrice,omitempty"];
 	uint64   GasLimit  = 6 [(gogoproto.jsontag) = "gasLimit,omitempty"];
-	string   Data      = 7 [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    Data      = 7 [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    Signature = 8 [(gogoproto.jsontag) = "signature,omitempty"];
 }

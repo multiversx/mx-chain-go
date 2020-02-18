@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +17,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	en, _ := newExtensionNode([]byte("d"), child, child.marsh, child.hasher)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild)
-	collapsedEn := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte("d"), EncodedChild: childHash}, baseNode: &baseNode{}}
+	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), EncodedChild: childHash}, baseNode: &baseNode{}}
 	collapsedEn.marsh = child.marsh
 	collapsedEn.hasher = child.hasher
 	return en, collapsedEn
@@ -710,7 +709,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	en, _ := newExtensionNode([]byte{100, 111, 103}, nil, marsh, hasher)
 
-	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, baseNode: &baseNode{dirty: true}}
+	expected := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{2, 100, 111, 103}}, baseNode: &baseNode{dirty: true}}
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
 

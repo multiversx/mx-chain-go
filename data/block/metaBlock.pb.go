@@ -217,16 +217,17 @@ func (m *ShardMiniBlockHeader) GetTxCount() uint32 {
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardID               uint32                 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
 	HeaderHash            []byte                 `protobuf:"bytes,2,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `protobuf:"bytes,3,rep,name=ShardMiniBlockHeaders,proto3" json:"ShardMiniBlockHeaders"`
 	PrevRandSeed          []byte                 `protobuf:"bytes,4,opt,name=PrevRandSeed,proto3" json:"PrevRandSeed,omitempty"`
 	PubKeysBitmap         []byte                 `protobuf:"bytes,5,opt,name=PubKeysBitmap,proto3" json:"PubKeysBitmap,omitempty"`
 	Signature             []byte                 `protobuf:"bytes,6,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	TxCount               uint32                 `protobuf:"varint,7,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 	Round                 uint64                 `protobuf:"varint,8,opt,name=Round,proto3" json:"Round,omitempty"`
 	PrevHash              []byte                 `protobuf:"bytes,9,opt,name=PrevHash,proto3" json:"PrevHash,omitempty"`
 	Nonce                 uint64                 `protobuf:"varint,10,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	NumPendingMiniBlocks  uint32                 `protobuf:"varint,11,opt,name=NumPendingMiniBlocks,proto3" json:"NumPendingMiniBlocks,omitempty"`
+	ShardID               uint32                 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	TxCount               uint32                 `protobuf:"varint,7,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 }
 
 func (m *ShardData) Reset()      { *m = ShardData{} }
@@ -260,13 +261,6 @@ func (m *ShardData) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_ShardData proto.InternalMessageInfo
-
-func (m *ShardData) GetShardID() uint32 {
-	if m != nil {
-		return m.ShardID
-	}
-	return 0
-}
 
 func (m *ShardData) GetHeaderHash() []byte {
 	if m != nil {
@@ -303,13 +297,6 @@ func (m *ShardData) GetSignature() []byte {
 	return nil
 }
 
-func (m *ShardData) GetTxCount() uint32 {
-	if m != nil {
-		return m.TxCount
-	}
-	return 0
-}
-
 func (m *ShardData) GetRound() uint64 {
 	if m != nil {
 		return m.Round
@@ -331,10 +318,158 @@ func (m *ShardData) GetNonce() uint64 {
 	return 0
 }
 
+func (m *ShardData) GetNumPendingMiniBlocks() uint32 {
+	if m != nil {
+		return m.NumPendingMiniBlocks
+	}
+	return 0
+}
+
+func (m *ShardData) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *ShardData) GetTxCount() uint32 {
+	if m != nil {
+		return m.TxCount
+	}
+	return 0
+}
+
+// EpochStartShardData hold the last finalized headers hash and state root hash
+type EpochStartShardData struct {
+	ShardId                 uint32                 `protobuf:"varint,1,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
+	HeaderHash              []byte                 `protobuf:"bytes,2,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
+	RootHash                []byte                 `protobuf:"bytes,3,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	FirstPendingMetaBlock   []byte                 `protobuf:"bytes,4,opt,name=FirstPendingMetaBlock,proto3" json:"FirstPendingMetaBlock,omitempty"`
+	LastFinishedMetaBlock   []byte                 `protobuf:"bytes,5,opt,name=LastFinishedMetaBlock,proto3" json:"LastFinishedMetaBlock,omitempty"`
+	PendingMiniBlockHeaders []ShardMiniBlockHeader `protobuf:"bytes,6,rep,name=PendingMiniBlockHeaders,proto3" json:"PendingMiniBlockHeaders"`
+}
+
+func (m *EpochStartShardData) Reset()      { *m = EpochStartShardData{} }
+func (*EpochStartShardData) ProtoMessage() {}
+func (*EpochStartShardData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_87b91ab531130b2b, []int{3}
+}
+func (m *EpochStartShardData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EpochStartShardData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EpochStartShardData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EpochStartShardData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EpochStartShardData.Merge(m, src)
+}
+func (m *EpochStartShardData) XXX_Size() int {
+	return m.Size()
+}
+func (m *EpochStartShardData) XXX_DiscardUnknown() {
+	xxx_messageInfo_EpochStartShardData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EpochStartShardData proto.InternalMessageInfo
+
+func (m *EpochStartShardData) GetShardId() uint32 {
+	if m != nil {
+		return m.ShardId
+	}
+	return 0
+}
+
+func (m *EpochStartShardData) GetHeaderHash() []byte {
+	if m != nil {
+		return m.HeaderHash
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetRootHash() []byte {
+	if m != nil {
+		return m.RootHash
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetFirstPendingMetaBlock() []byte {
+	if m != nil {
+		return m.FirstPendingMetaBlock
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetLastFinishedMetaBlock() []byte {
+	if m != nil {
+		return m.LastFinishedMetaBlock
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetPendingMiniBlockHeaders() []ShardMiniBlockHeader {
+	if m != nil {
+		return m.PendingMiniBlockHeaders
+	}
+	return nil
+}
+
+// EpochStart holds the block information for end-of-epoch
+type EpochStart struct {
+	LastFinalizedHeaders []EpochStartShardData `protobuf:"bytes,1,rep,name=LastFinalizedHeaders,proto3" json:"LastFinalizedHeaders"`
+}
+
+func (m *EpochStart) Reset()      { *m = EpochStart{} }
+func (*EpochStart) ProtoMessage() {}
+func (*EpochStart) Descriptor() ([]byte, []int) {
+	return fileDescriptor_87b91ab531130b2b, []int{4}
+}
+func (m *EpochStart) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EpochStart) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EpochStart.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EpochStart) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EpochStart.Merge(m, src)
+}
+func (m *EpochStart) XXX_Size() int {
+	return m.Size()
+}
+func (m *EpochStart) XXX_DiscardUnknown() {
+	xxx_messageInfo_EpochStart.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EpochStart proto.InternalMessageInfo
+
+func (m *EpochStart) GetLastFinalizedHeaders() []EpochStartShardData {
+	if m != nil {
+		return m.LastFinalizedHeaders
+	}
+	return nil
+}
+
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
 	Nonce                  uint64            `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	Epoch                  uint32            `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
 	Round                  uint64            `protobuf:"varint,3,opt,name=Round,proto3" json:"Round,omitempty"`
 	TimeStamp              uint64            `protobuf:"varint,4,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
 	ShardInfo              []ShardData       `protobuf:"bytes,5,rep,name=ShardInfo,proto3" json:"ShardInfo"`
@@ -347,14 +482,18 @@ type MetaBlock struct {
 	RandSeed               []byte            `protobuf:"bytes,12,opt,name=RandSeed,proto3" json:"RandSeed,omitempty"`
 	RootHash               []byte            `protobuf:"bytes,13,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
 	ValidatorStatsRootHash []byte            `protobuf:"bytes,14,opt,name=ValidatorStatsRootHash,proto3" json:"ValidatorStatsRootHash,omitempty"`
-	TxCount                uint32            `protobuf:"varint,15,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 	MiniBlockHeaders       []MiniBlockHeader `protobuf:"bytes,16,rep,name=MiniBlockHeaders,proto3" json:"MiniBlockHeaders"`
+	ReceiptsHash           []byte            `protobuf:"bytes,17,opt,name=ReceiptsHash,proto3" json:"ReceiptsHash,omitempty"`
+	EpochStart             EpochStart        `protobuf:"bytes,18,opt,name=EpochStart,proto3" json:"EpochStart"`
+	ChainID                []byte            `protobuf:"bytes,19,opt,name=ChainID,proto3" json:"ChainID,omitempty"`
+	Epoch                  uint32            `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
+	TxCount                uint32            `protobuf:"varint,15,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 }
 
 func (m *MetaBlock) Reset()      { *m = MetaBlock{} }
 func (*MetaBlock) ProtoMessage() {}
 func (*MetaBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_87b91ab531130b2b, []int{3}
+	return fileDescriptor_87b91ab531130b2b, []int{5}
 }
 func (m *MetaBlock) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -386,13 +525,6 @@ var xxx_messageInfo_MetaBlock proto.InternalMessageInfo
 func (m *MetaBlock) GetNonce() uint64 {
 	if m != nil {
 		return m.Nonce
-	}
-	return 0
-}
-
-func (m *MetaBlock) GetEpoch() uint32 {
-	if m != nil {
-		return m.Epoch
 	}
 	return 0
 }
@@ -481,13 +613,6 @@ func (m *MetaBlock) GetValidatorStatsRootHash() []byte {
 	return nil
 }
 
-func (m *MetaBlock) GetTxCount() uint32 {
-	if m != nil {
-		return m.TxCount
-	}
-	return 0
-}
-
 func (m *MetaBlock) GetMiniBlockHeaders() []MiniBlockHeader {
 	if m != nil {
 		return m.MiniBlockHeaders
@@ -495,68 +620,116 @@ func (m *MetaBlock) GetMiniBlockHeaders() []MiniBlockHeader {
 	return nil
 }
 
+func (m *MetaBlock) GetReceiptsHash() []byte {
+	if m != nil {
+		return m.ReceiptsHash
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetEpochStart() EpochStart {
+	if m != nil {
+		return m.EpochStart
+	}
+	return EpochStart{}
+}
+
+func (m *MetaBlock) GetChainID() []byte {
+	if m != nil {
+		return m.ChainID
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetEpoch() uint32 {
+	if m != nil {
+		return m.Epoch
+	}
+	return 0
+}
+
+func (m *MetaBlock) GetTxCount() uint32 {
+	if m != nil {
+		return m.TxCount
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterEnum("proto.PeerAction", PeerAction_name, PeerAction_value)
 	proto.RegisterType((*PeerData)(nil), "proto.PeerData")
 	proto.RegisterType((*ShardMiniBlockHeader)(nil), "proto.ShardMiniBlockHeader")
 	proto.RegisterType((*ShardData)(nil), "proto.ShardData")
+	proto.RegisterType((*EpochStartShardData)(nil), "proto.EpochStartShardData")
+	proto.RegisterType((*EpochStart)(nil), "proto.EpochStart")
 	proto.RegisterType((*MetaBlock)(nil), "proto.MetaBlock")
 }
 
 func init() { proto.RegisterFile("metaBlock.proto", fileDescriptor_87b91ab531130b2b) }
 
 var fileDescriptor_87b91ab531130b2b = []byte{
-	// 798 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x55, 0xcd, 0x6e, 0xeb, 0x44,
-	0x14, 0xf6, 0x34, 0xff, 0x93, 0xa4, 0xf1, 0x1d, 0x95, 0xca, 0x0a, 0xc8, 0x37, 0x8a, 0x58, 0x04,
-	0xa4, 0x9b, 0x88, 0x0b, 0x62, 0xd3, 0x55, 0xd3, 0x56, 0x6a, 0x28, 0xad, 0x22, 0xa7, 0x14, 0x89,
-	0xdd, 0x24, 0x9e, 0x3a, 0x56, 0x92, 0x99, 0xc8, 0x1e, 0x17, 0xba, 0xe3, 0x11, 0x58, 0xf0, 0x08,
-	0x2c, 0x10, 0x4f, 0xd2, 0x65, 0x57, 0xa8, 0x2b, 0xa0, 0xe9, 0xa6, 0xcb, 0x2e, 0x78, 0x00, 0x34,
-	0x67, 0x9c, 0xd8, 0x49, 0xc3, 0x5d, 0xc5, 0xe7, 0x3b, 0xdf, 0x39, 0x3e, 0xf3, 0x7d, 0x67, 0x62,
-	0x5c, 0x9b, 0x31, 0x49, 0xbb, 0x53, 0x31, 0x9a, 0xb4, 0xe7, 0x81, 0x90, 0x82, 0xe4, 0xe0, 0xa7,
-	0xfe, 0xce, 0xf3, 0xe5, 0x38, 0x1a, 0xb6, 0x47, 0x62, 0xd6, 0xf1, 0x84, 0x27, 0x3a, 0x00, 0x0f,
-	0xa3, 0x6b, 0x88, 0x20, 0x80, 0x27, 0x5d, 0x55, 0x2f, 0x0f, 0x93, 0x16, 0xcd, 0x7f, 0x11, 0x2e,
-	0xf6, 0x19, 0x0b, 0x8e, 0xa9, 0xa4, 0xc4, 0xc2, 0x85, 0x43, 0xd7, 0x0d, 0x58, 0x18, 0x5a, 0xa8,
-	0x81, 0x5a, 0x15, 0x67, 0x19, 0x92, 0x4f, 0x70, 0xa9, 0x1f, 0x0d, 0xa7, 0xfe, 0xe8, 0x8c, 0xdd,
-	0x5a, 0x3b, 0x90, 0x4b, 0x00, 0xf2, 0x19, 0xce, 0x1f, 0x8e, 0xa4, 0x2f, 0xb8, 0x95, 0x69, 0xa0,
-	0xd6, 0xee, 0xfb, 0x37, 0xba, 0x79, 0x5b, 0x35, 0xd6, 0x09, 0x27, 0x26, 0xa8, 0x46, 0x97, 0xfe,
-	0x8c, 0x0d, 0x24, 0x9d, 0xcd, 0xad, 0x6c, 0x03, 0xb5, 0xb2, 0x4e, 0x02, 0x10, 0x0f, 0x97, 0xaf,
-	0xe8, 0x34, 0x62, 0x47, 0x63, 0xca, 0x3d, 0x66, 0xe5, 0xd4, 0x8b, 0xba, 0x27, 0x7f, 0xfc, 0xfd,
-	0xf6, 0x70, 0x46, 0xe5, 0xb8, 0x33, 0xf4, 0xbd, 0x76, 0x8f, 0xcb, 0x83, 0xd4, 0x79, 0x4f, 0xa6,
-	0x81, 0xe0, 0xee, 0x05, 0x93, 0x3f, 0x8a, 0x60, 0xd2, 0x61, 0x10, 0xbd, 0xf3, 0x44, 0xc7, 0xa5,
-	0x92, 0xb6, 0xbb, 0xbe, 0xd7, 0xe3, 0xf2, 0x88, 0x86, 0x92, 0x05, 0x4e, 0xba, 0x73, 0xf3, 0x57,
-	0x84, 0xf7, 0x06, 0x63, 0x1a, 0xb8, 0xe7, 0x3e, 0xf7, 0x41, 0xd2, 0x53, 0x46, 0x5d, 0x16, 0x10,
-	0x82, 0xb3, 0xa7, 0x34, 0x1c, 0xc7, 0xe7, 0x87, 0x67, 0xd2, 0xc2, 0x35, 0x87, 0x8d, 0x98, 0x7f,
-	0xc3, 0x02, 0xa8, 0xe9, 0x1d, 0x83, 0x04, 0x55, 0x67, 0x13, 0x26, 0x9f, 0xe2, 0xea, 0x80, 0x71,
-	0x37, 0xe1, 0x65, 0x80, 0xb7, 0x0e, 0x2a, 0x99, 0x2f, 0x7f, 0x3a, 0x12, 0x11, 0x97, 0xa0, 0x40,
-	0xd5, 0x59, 0x86, 0xcd, 0xe7, 0x1d, 0x5c, 0x02, 0xd6, 0xd2, 0x8e, 0x65, 0x1f, 0xa4, 0x79, 0xcb,
-	0x0e, 0x36, 0xc6, 0x7a, 0x5e, 0x98, 0x55, 0xfb, 0x91, 0x42, 0xc8, 0xf7, 0xf8, 0xa3, 0x6d, 0xa7,
-	0x0b, 0xad, 0x4c, 0x23, 0xd3, 0x2a, 0xbf, 0xff, 0x38, 0xf6, 0x67, 0x1b, 0xa7, 0x9b, 0xbd, 0xfb,
-	0xeb, 0xad, 0xe1, 0x6c, 0xaf, 0x27, 0x4d, 0x5c, 0xe9, 0x07, 0xec, 0xc6, 0xa1, 0xdc, 0x1d, 0x30,
-	0xe6, 0xc2, 0xfc, 0x15, 0x67, 0x0d, 0x53, 0x22, 0xf4, 0xa3, 0xe1, 0x19, 0xbb, 0x0d, 0xbb, 0xbe,
-	0x9c, 0xd1, 0xb9, 0xb6, 0xd1, 0x59, 0x07, 0xd5, 0x22, 0x0c, 0x7c, 0x8f, 0x53, 0x19, 0x05, 0xcc,
-	0xca, 0xeb, 0x8d, 0x5a, 0x01, 0x69, 0x89, 0x0a, 0x6b, 0x12, 0x91, 0x3d, 0x9c, 0x73, 0x44, 0xc4,
-	0x5d, 0xab, 0x08, 0xcb, 0xa3, 0x03, 0x52, 0xc7, 0x45, 0x35, 0x03, 0xc8, 0x51, 0x82, 0x66, 0xab,
-	0x58, 0x55, 0x5c, 0x08, 0x3e, 0x62, 0x16, 0xd6, 0x15, 0x10, 0x34, 0xff, 0xcc, 0xe2, 0xd2, 0xf9,
-	0xf2, 0x3e, 0x25, 0x1c, 0x94, 0xe2, 0x28, 0xf4, 0x64, 0x2e, 0x46, 0xe3, 0xd8, 0x6e, 0x1d, 0x24,
-	0x13, 0x64, 0xd2, 0x13, 0x7c, 0x78, 0xb1, 0xbf, 0x8a, 0x7d, 0xed, 0xf1, 0x6b, 0x61, 0xe5, 0xc0,
-	0x04, 0x33, 0x6d, 0x82, 0xf2, 0x3b, 0x56, 0x3e, 0x21, 0x92, 0x2f, 0xf4, 0xdd, 0x84, 0xa2, 0x3c,
-	0x14, 0xd5, 0x52, 0x37, 0x2b, 0x55, 0xb3, 0xa2, 0xad, 0xcb, 0x5a, 0xd8, 0x94, 0xb5, 0x85, 0x6b,
-	0xdf, 0x82, 0x93, 0x09, 0xa7, 0x08, 0x9c, 0x4d, 0xf8, 0xb5, 0x89, 0xa5, 0x6d, 0x26, 0xa6, 0x65,
-	0xc7, 0x1b, 0xb2, 0x6f, 0xae, 0x4a, 0x79, 0xcb, 0xaa, 0xd4, 0x71, 0x71, 0x95, 0xaf, 0xe8, 0xfa,
-	0xb5, 0x9c, 0x10, 0x12, 0x7a, 0x57, 0xe3, 0x5c, 0x1c, 0x93, 0xaf, 0xf1, 0xfe, 0x15, 0x9d, 0xfa,
-	0x2e, 0x95, 0x22, 0x18, 0x48, 0x2a, 0xc3, 0x15, 0x73, 0x17, 0x98, 0xff, 0x93, 0x4d, 0xaf, 0x55,
-	0x6d, 0x7d, 0xad, 0x4e, 0xb1, 0xf9, 0xea, 0xb2, 0x98, 0x20, 0xf9, 0x7e, 0x2c, 0xf9, 0xf6, 0x7b,
-	0xf2, 0xaa, 0xea, 0xf3, 0xdf, 0x10, 0xc6, 0xc9, 0x1f, 0x1f, 0x79, 0x83, 0xab, 0x3d, 0x7e, 0xa3,
-	0xc6, 0xd1, 0x80, 0x69, 0x90, 0x3d, 0x6c, 0x2a, 0x82, 0xc3, 0x3c, 0x3f, 0x94, 0x01, 0x05, 0x14,
-	0x29, 0xa2, 0x42, 0xbf, 0xe3, 0xa1, 0xa4, 0x13, 0x9f, 0x7b, 0xe6, 0x0e, 0xd9, 0xc7, 0x04, 0x8c,
-	0x66, 0x41, 0x9a, 0x9a, 0x21, 0xbb, 0xfa, 0x0d, 0xdf, 0x50, 0x7f, 0xca, 0x5c, 0x33, 0x4b, 0x4c,
-	0x5c, 0xd1, 0xa5, 0x31, 0x92, 0x23, 0x35, 0x5c, 0x56, 0xc8, 0x60, 0x4a, 0xc3, 0x31, 0x73, 0xcd,
-	0xfc, 0x12, 0x70, 0xd4, 0x3e, 0x4e, 0x98, 0x59, 0xe8, 0x1e, 0xdc, 0x3f, 0xda, 0xc6, 0xc3, 0xa3,
-	0x6d, 0xbc, 0x3c, 0xda, 0xe8, 0xe7, 0x85, 0x8d, 0x7e, 0x5f, 0xd8, 0xe8, 0x6e, 0x61, 0xa3, 0xfb,
-	0x85, 0x8d, 0xfe, 0x59, 0xd8, 0xe8, 0x79, 0x61, 0x1b, 0x2f, 0x0b, 0x1b, 0xfd, 0xf2, 0x64, 0x1b,
-	0xf7, 0x4f, 0xb6, 0xf1, 0xf0, 0x64, 0x1b, 0x3f, 0xe4, 0xe0, 0xdb, 0x31, 0xcc, 0x83, 0x24, 0x5f,
-	0xfe, 0x17, 0x00, 0x00, 0xff, 0xff, 0x06, 0xee, 0x3f, 0xcd, 0x92, 0x06, 0x00, 0x00,
+	// 974 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x56, 0x4f, 0x6f, 0x1b, 0x45,
+	0x14, 0xf7, 0xc4, 0xf1, 0xbf, 0x67, 0x3b, 0xde, 0x4c, 0xdd, 0xb0, 0x32, 0x68, 0x6b, 0x59, 0x1c,
+	0x0c, 0x52, 0x6d, 0x11, 0x2a, 0x38, 0xf4, 0x14, 0x27, 0xa9, 0x62, 0x5a, 0x22, 0x6b, 0x1d, 0x8a,
+	0x04, 0xa7, 0xb1, 0x77, 0xba, 0x1e, 0xc5, 0x9e, 0xb5, 0x76, 0xc7, 0x81, 0x72, 0xe2, 0x23, 0x70,
+	0xe0, 0xc8, 0x91, 0x03, 0xe2, 0xcc, 0x87, 0xe8, 0x05, 0x29, 0xc7, 0x9e, 0x80, 0x38, 0x17, 0x8e,
+	0x3d, 0xf0, 0x01, 0xd0, 0xcc, 0xec, 0x3f, 0xbb, 0x5b, 0xe8, 0x29, 0x7e, 0xbf, 0xf7, 0x6f, 0xde,
+	0x7b, 0xbf, 0xf7, 0x36, 0xd0, 0x58, 0x50, 0x41, 0x06, 0x73, 0x6f, 0x7a, 0xd9, 0x5b, 0xfa, 0x9e,
+	0xf0, 0x70, 0x41, 0xfd, 0x69, 0xdd, 0x77, 0x99, 0x98, 0xad, 0x26, 0xbd, 0xa9, 0xb7, 0xe8, 0xbb,
+	0x9e, 0xeb, 0xf5, 0x15, 0x3c, 0x59, 0x3d, 0x53, 0x92, 0x12, 0xd4, 0x2f, 0xed, 0xd5, 0xaa, 0x4e,
+	0x92, 0x10, 0x9d, 0x7f, 0x10, 0x94, 0x47, 0x94, 0xfa, 0x27, 0x44, 0x10, 0x6c, 0x42, 0xe9, 0xc8,
+	0x71, 0x7c, 0x1a, 0x04, 0x26, 0x6a, 0xa3, 0x6e, 0xcd, 0x8e, 0x44, 0xfc, 0x1e, 0x54, 0x46, 0xab,
+	0xc9, 0x9c, 0x4d, 0x1f, 0xd3, 0xe7, 0xe6, 0x8e, 0xd2, 0x25, 0x00, 0xfe, 0x00, 0x8a, 0x47, 0x53,
+	0xc1, 0x3c, 0x6e, 0xe6, 0xdb, 0xa8, 0xbb, 0x77, 0xb8, 0xaf, 0x83, 0xf7, 0x64, 0x60, 0xad, 0xb0,
+	0x43, 0x03, 0x19, 0xe8, 0x82, 0x2d, 0xe8, 0x58, 0x90, 0xc5, 0xd2, 0xdc, 0x6d, 0xa3, 0xee, 0xae,
+	0x9d, 0x00, 0xd8, 0x85, 0xea, 0x53, 0x32, 0x5f, 0xd1, 0xe3, 0x19, 0xe1, 0x2e, 0x35, 0x0b, 0x32,
+	0xd1, 0xe0, 0xf4, 0xd7, 0x3f, 0xef, 0x1d, 0x2d, 0x88, 0x98, 0xf5, 0x27, 0xcc, 0xed, 0x0d, 0xb9,
+	0x78, 0x98, 0xaa, 0xf7, 0x74, 0xee, 0x7b, 0xdc, 0x39, 0xa7, 0xe2, 0x1b, 0xcf, 0xbf, 0xec, 0x53,
+	0x25, 0xdd, 0x77, 0xbd, 0xbe, 0x43, 0x04, 0xe9, 0x0d, 0x98, 0x3b, 0xe4, 0xe2, 0x98, 0x04, 0x82,
+	0xfa, 0x76, 0x3a, 0x72, 0xe7, 0x47, 0x04, 0xcd, 0xf1, 0x8c, 0xf8, 0xce, 0xe7, 0x8c, 0x33, 0xd5,
+	0xd2, 0x33, 0x4a, 0x1c, 0xea, 0x63, 0x0c, 0xbb, 0x67, 0x24, 0x98, 0x85, 0xf5, 0xab, 0xdf, 0xb8,
+	0x0b, 0x0d, 0x9b, 0x4e, 0x29, 0xbb, 0xa2, 0xbe, 0xf2, 0x19, 0x9e, 0xa8, 0x16, 0xd4, 0xed, 0x6d,
+	0x18, 0xbf, 0x0f, 0xf5, 0x31, 0xe5, 0x4e, 0x62, 0x97, 0x57, 0x76, 0x9b, 0xa0, 0x6c, 0xf3, 0xc5,
+	0xb7, 0xc7, 0xde, 0x8a, 0x0b, 0xd5, 0x81, 0xba, 0x1d, 0x89, 0x9d, 0x9f, 0xf2, 0x50, 0x51, 0x56,
+	0x6a, 0x1c, 0x16, 0x80, 0x7e, 0x95, 0x7a, 0x91, 0xee, 0x7a, 0x0a, 0xc1, 0x5f, 0xc2, 0xdd, 0xac,
+	0x1a, 0x02, 0x33, 0xdf, 0xce, 0x77, 0xab, 0x87, 0xef, 0x86, 0x53, 0xc8, 0xb2, 0x19, 0xec, 0xbe,
+	0xf8, 0xe3, 0x5e, 0xce, 0xce, 0xf6, 0xc7, 0x1d, 0xa8, 0x8d, 0x7c, 0x7a, 0x65, 0x13, 0xee, 0x8c,
+	0x29, 0x75, 0xd4, 0x2b, 0x6b, 0xf6, 0x06, 0x26, 0x4b, 0x1d, 0xad, 0x26, 0x8f, 0xe9, 0xf3, 0x60,
+	0xc0, 0xc4, 0x82, 0x2c, 0xf5, 0xb0, 0xec, 0x4d, 0x50, 0x8e, 0x7b, 0xcc, 0x5c, 0x4e, 0xc4, 0xca,
+	0xa7, 0x66, 0x51, 0xf3, 0x26, 0x06, 0x70, 0x13, 0x0a, 0xb6, 0xb7, 0xe2, 0x8e, 0x59, 0x56, 0x44,
+	0xd0, 0x02, 0x6e, 0x41, 0x59, 0x66, 0x52, 0x45, 0x57, 0x94, 0x4b, 0x2c, 0x4b, 0x8f, 0x73, 0x8f,
+	0x4f, 0xa9, 0x09, 0xda, 0x43, 0x09, 0xf8, 0x10, 0x9a, 0xe7, 0xab, 0xc5, 0x88, 0x72, 0x87, 0x71,
+	0x37, 0xae, 0x26, 0x30, 0xab, 0xaa, 0xbb, 0x99, 0x3a, 0x39, 0x84, 0x68, 0x48, 0x48, 0x0f, 0x21,
+	0x63, 0x3c, 0xa5, 0xcd, 0xf1, 0xfc, 0xb6, 0x03, 0x77, 0x4e, 0x97, 0xde, 0x74, 0x36, 0x16, 0xc4,
+	0x17, 0xc9, 0xa0, 0xe2, 0x58, 0xce, 0x66, 0x2c, 0xe7, 0x7f, 0x47, 0xd8, 0x82, 0xb2, 0xed, 0x79,
+	0x42, 0x69, 0xf3, 0xba, 0xd6, 0x48, 0xc6, 0x0f, 0xe0, 0xee, 0x23, 0xe6, 0x07, 0x22, 0x7a, 0x7b,
+	0xb4, 0xfc, 0xe1, 0x38, 0xb2, 0x95, 0xd2, 0xeb, 0x09, 0x09, 0xc4, 0x23, 0xc6, 0x59, 0x30, 0xa3,
+	0x4e, 0xe2, 0xa5, 0xe7, 0x93, 0xad, 0xc4, 0x5f, 0xc3, 0x3b, 0xdb, 0x2d, 0x8a, 0xc8, 0x54, 0x7c,
+	0x5b, 0x32, 0xbd, 0x29, 0x42, 0x67, 0x02, 0x90, 0x74, 0x0d, 0x5f, 0x40, 0x33, 0x7c, 0x03, 0x99,
+	0xb3, 0xef, 0xa8, 0x13, 0xe5, 0x41, 0x2a, 0x4f, 0x2b, 0xcc, 0x93, 0xd1, 0xe6, 0x30, 0x4d, 0xa6,
+	0x77, 0xe7, 0xf7, 0x02, 0x54, 0x92, 0x72, 0x62, 0x9a, 0xa0, 0x34, 0x4d, 0x62, 0xba, 0xe5, 0xd3,
+	0x74, 0xfb, 0xef, 0x8b, 0xf4, 0x20, 0x5c, 0xc8, 0x21, 0x7f, 0xe6, 0x99, 0x05, 0xf5, 0x44, 0x23,
+	0xdd, 0x8a, 0xd4, 0xc3, 0x12, 0x43, 0xfc, 0x91, 0x3e, 0xaa, 0xca, 0x49, 0xf7, 0xaf, 0x91, 0x3a,
+	0x89, 0x29, 0x9f, 0xd8, 0x6c, 0x73, 0x53, 0x4a, 0xdb, 0x9b, 0xd2, 0x85, 0xc6, 0x13, 0x55, 0x69,
+	0x62, 0x53, 0x56, 0x36, 0xdb, 0xf0, 0xeb, 0x7b, 0x59, 0xc9, 0xda, 0xcb, 0xf4, 0x8e, 0xc1, 0xd6,
+	0x8e, 0x6d, 0x6f, 0x7f, 0x35, 0x63, 0xfb, 0x25, 0x6f, 0x23, 0x7d, 0x2d, 0xe4, 0x6d, 0x5a, 0x17,
+	0x71, 0xba, 0xbe, 0xc5, 0xe9, 0x4f, 0xe0, 0xe0, 0x29, 0x99, 0x33, 0x87, 0x08, 0xcf, 0x1f, 0x0b,
+	0x22, 0x82, 0xd8, 0x72, 0x4f, 0x59, 0xbe, 0x41, 0x8b, 0xcf, 0xc0, 0x78, 0x8d, 0x98, 0x86, 0x6a,
+	0xec, 0x41, 0xd8, 0xd8, 0x6c, 0x4e, 0x1a, 0x59, 0xb7, 0x4d, 0x5d, 0xed, 0xa5, 0x08, 0x54, 0xde,
+	0x7d, 0x5d, 0x5d, 0x1a, 0xc3, 0x9f, 0xa6, 0x09, 0x6b, 0xe2, 0x36, 0xea, 0x56, 0xe3, 0x6f, 0x5a,
+	0xa2, 0x08, 0x53, 0xa4, 0xb9, 0x6d, 0x42, 0xe9, 0x78, 0x46, 0x18, 0x1f, 0x9e, 0x98, 0x77, 0xf4,
+	0x07, 0x34, 0x14, 0x25, 0xf7, 0x94, 0x5d, 0xf8, 0xe5, 0xd0, 0x42, 0xfa, 0xd4, 0x34, 0x36, 0x4e,
+	0xcd, 0x87, 0x3f, 0x23, 0x80, 0xe4, 0xf3, 0x89, 0xf7, 0xa1, 0x3e, 0xe4, 0x57, 0xb2, 0x37, 0x1a,
+	0x30, 0x72, 0xb8, 0x09, 0x86, 0x34, 0xb0, 0xa9, 0xcb, 0x02, 0xe1, 0x13, 0x85, 0x22, 0x69, 0x28,
+	0xd1, 0x2f, 0x78, 0x20, 0xc8, 0x25, 0xe3, 0xae, 0xb1, 0x83, 0x0f, 0x00, 0x2b, 0xd6, 0x51, 0x3f,
+	0x6d, 0x9a, 0xc7, 0x7b, 0x3a, 0xc3, 0x67, 0x84, 0xcd, 0xa9, 0x63, 0xec, 0x62, 0x03, 0x6a, 0xda,
+	0x35, 0x44, 0x0a, 0xb8, 0x01, 0x55, 0x89, 0x8c, 0xe7, 0x44, 0x5e, 0x0b, 0xa3, 0x18, 0x01, 0xb6,
+	0x5c, 0x8e, 0x4b, 0x6a, 0x94, 0x06, 0x0f, 0xaf, 0x6f, 0xac, 0xdc, 0xcb, 0x1b, 0x2b, 0xf7, 0xea,
+	0xc6, 0x42, 0xdf, 0xaf, 0x2d, 0xf4, 0xcb, 0xda, 0x42, 0x2f, 0xd6, 0x16, 0xba, 0x5e, 0x5b, 0xe8,
+	0xaf, 0xb5, 0x85, 0xfe, 0x5e, 0x5b, 0xb9, 0x57, 0x6b, 0x0b, 0xfd, 0x70, 0x6b, 0xe5, 0xae, 0x6f,
+	0xad, 0xdc, 0xcb, 0x5b, 0x2b, 0xf7, 0x55, 0x41, 0xfd, 0x07, 0x32, 0x29, 0xaa, 0x8e, 0x7e, 0xfc,
+	0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x9a, 0x4b, 0xff, 0xc5, 0xd8, 0x08, 0x00, 0x00,
 }
 
 func (x PeerAction) String() string {
@@ -657,9 +830,6 @@ func (this *ShardData) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.ShardID != that1.ShardID {
-		return false
-	}
 	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
 		return false
 	}
@@ -680,9 +850,6 @@ func (this *ShardData) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Signature, that1.Signature) {
 		return false
 	}
-	if this.TxCount != that1.TxCount {
-		return false
-	}
 	if this.Round != that1.Round {
 		return false
 	}
@@ -691,6 +858,88 @@ func (this *ShardData) Equal(that interface{}) bool {
 	}
 	if this.Nonce != that1.Nonce {
 		return false
+	}
+	if this.NumPendingMiniBlocks != that1.NumPendingMiniBlocks {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if this.TxCount != that1.TxCount {
+		return false
+	}
+	return true
+}
+func (this *EpochStartShardData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*EpochStartShardData)
+	if !ok {
+		that2, ok := that.(EpochStartShardData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ShardId != that1.ShardId {
+		return false
+	}
+	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
+		return false
+	}
+	if !bytes.Equal(this.RootHash, that1.RootHash) {
+		return false
+	}
+	if !bytes.Equal(this.FirstPendingMetaBlock, that1.FirstPendingMetaBlock) {
+		return false
+	}
+	if !bytes.Equal(this.LastFinishedMetaBlock, that1.LastFinishedMetaBlock) {
+		return false
+	}
+	if len(this.PendingMiniBlockHeaders) != len(that1.PendingMiniBlockHeaders) {
+		return false
+	}
+	for i := range this.PendingMiniBlockHeaders {
+		if !this.PendingMiniBlockHeaders[i].Equal(&that1.PendingMiniBlockHeaders[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *EpochStart) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*EpochStart)
+	if !ok {
+		that2, ok := that.(EpochStart)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.LastFinalizedHeaders) != len(that1.LastFinalizedHeaders) {
+		return false
+	}
+	for i := range this.LastFinalizedHeaders {
+		if !this.LastFinalizedHeaders[i].Equal(&that1.LastFinalizedHeaders[i]) {
+			return false
+		}
 	}
 	return true
 }
@@ -714,9 +963,6 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Nonce != that1.Nonce {
-		return false
-	}
-	if this.Epoch != that1.Epoch {
 		return false
 	}
 	if this.Round != that1.Round {
@@ -765,9 +1011,6 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 	if !bytes.Equal(this.ValidatorStatsRootHash, that1.ValidatorStatsRootHash) {
 		return false
 	}
-	if this.TxCount != that1.TxCount {
-		return false
-	}
 	if len(this.MiniBlockHeaders) != len(that1.MiniBlockHeaders) {
 		return false
 	}
@@ -775,6 +1018,21 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 		if !this.MiniBlockHeaders[i].Equal(&that1.MiniBlockHeaders[i]) {
 			return false
 		}
+	}
+	if !bytes.Equal(this.ReceiptsHash, that1.ReceiptsHash) {
+		return false
+	}
+	if !this.EpochStart.Equal(&that1.EpochStart) {
+		return false
+	}
+	if !bytes.Equal(this.ChainID, that1.ChainID) {
+		return false
+	}
+	if this.Epoch != that1.Epoch {
+		return false
+	}
+	if this.TxCount != that1.TxCount {
+		return false
 	}
 	return true
 }
@@ -809,9 +1067,8 @@ func (this *ShardData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 14)
+	s := make([]string, 0, 15)
 	s = append(s, "&block.ShardData{")
-	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
 	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
 	if this.ShardMiniBlockHeaders != nil {
 		vs := make([]ShardMiniBlockHeader, len(this.ShardMiniBlockHeaders))
@@ -823,10 +1080,49 @@ func (this *ShardData) GoString() string {
 	s = append(s, "PrevRandSeed: "+fmt.Sprintf("%#v", this.PrevRandSeed)+",\n")
 	s = append(s, "PubKeysBitmap: "+fmt.Sprintf("%#v", this.PubKeysBitmap)+",\n")
 	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
-	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
 	s = append(s, "PrevHash: "+fmt.Sprintf("%#v", this.PrevHash)+",\n")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "NumPendingMiniBlocks: "+fmt.Sprintf("%#v", this.NumPendingMiniBlocks)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *EpochStartShardData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&block.EpochStartShardData{")
+	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
+	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
+	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
+	s = append(s, "FirstPendingMetaBlock: "+fmt.Sprintf("%#v", this.FirstPendingMetaBlock)+",\n")
+	s = append(s, "LastFinishedMetaBlock: "+fmt.Sprintf("%#v", this.LastFinishedMetaBlock)+",\n")
+	if this.PendingMiniBlockHeaders != nil {
+		vs := make([]ShardMiniBlockHeader, len(this.PendingMiniBlockHeaders))
+		for i := range vs {
+			vs[i] = this.PendingMiniBlockHeaders[i]
+		}
+		s = append(s, "PendingMiniBlockHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *EpochStart) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&block.EpochStart{")
+	if this.LastFinalizedHeaders != nil {
+		vs := make([]EpochStartShardData, len(this.LastFinalizedHeaders))
+		for i := range vs {
+			vs[i] = this.LastFinalizedHeaders[i]
+		}
+		s = append(s, "LastFinalizedHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -834,10 +1130,9 @@ func (this *MetaBlock) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 20)
+	s := make([]string, 0, 23)
 	s = append(s, "&block.MetaBlock{")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
-	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
 	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
 	s = append(s, "TimeStamp: "+fmt.Sprintf("%#v", this.TimeStamp)+",\n")
 	if this.ShardInfo != nil {
@@ -862,7 +1157,6 @@ func (this *MetaBlock) GoString() string {
 	s = append(s, "RandSeed: "+fmt.Sprintf("%#v", this.RandSeed)+",\n")
 	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
 	s = append(s, "ValidatorStatsRootHash: "+fmt.Sprintf("%#v", this.ValidatorStatsRootHash)+",\n")
-	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	if this.MiniBlockHeaders != nil {
 		vs := make([]MiniBlockHeader, len(this.MiniBlockHeaders))
 		for i := range vs {
@@ -870,6 +1164,11 @@ func (this *MetaBlock) GoString() string {
 		}
 		s = append(s, "MiniBlockHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
+	s = append(s, "ReceiptsHash: "+fmt.Sprintf("%#v", this.ReceiptsHash)+",\n")
+	s = append(s, "EpochStart: "+strings.Replace(this.EpochStart.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "ChainID: "+fmt.Sprintf("%#v", this.ChainID)+",\n")
+	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
+	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1004,6 +1303,11 @@ func (m *ShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.NumPendingMiniBlocks != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.NumPendingMiniBlocks))
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.Nonce != 0 {
 		i = encodeVarintMetaBlock(dAtA, i, uint64(m.Nonce))
 		i--
@@ -1076,6 +1380,113 @@ func (m *ShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *EpochStartShardData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EpochStartShardData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EpochStartShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.PendingMiniBlockHeaders) > 0 {
+		for iNdEx := len(m.PendingMiniBlockHeaders) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.PendingMiniBlockHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.LastFinishedMetaBlock) > 0 {
+		i -= len(m.LastFinishedMetaBlock)
+		copy(dAtA[i:], m.LastFinishedMetaBlock)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.LastFinishedMetaBlock)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.FirstPendingMetaBlock) > 0 {
+		i -= len(m.FirstPendingMetaBlock)
+		copy(dAtA[i:], m.FirstPendingMetaBlock)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.FirstPendingMetaBlock)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.RootHash) > 0 {
+		i -= len(m.RootHash)
+		copy(dAtA[i:], m.RootHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.RootHash)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.HeaderHash) > 0 {
+		i -= len(m.HeaderHash)
+		copy(dAtA[i:], m.HeaderHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.HeaderHash)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ShardId != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.ShardId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EpochStart) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EpochStart) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EpochStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.LastFinalizedHeaders) > 0 {
+		for iNdEx := len(m.LastFinalizedHeaders) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.LastFinalizedHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MetaBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1096,6 +1507,36 @@ func (m *MetaBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.ChainID) > 0 {
+		i -= len(m.ChainID)
+		copy(dAtA[i:], m.ChainID)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.ChainID)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
+	{
+		size, err := m.EpochStart.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x92
+	if len(m.ReceiptsHash) > 0 {
+		i -= len(m.ReceiptsHash)
+		copy(dAtA[i:], m.ReceiptsHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.ReceiptsHash)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
 	if len(m.MiniBlockHeaders) > 0 {
 		for iNdEx := len(m.MiniBlockHeaders) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -1329,6 +1770,58 @@ func (m *ShardData) Size() (n int) {
 	if m.Nonce != 0 {
 		n += 1 + sovMetaBlock(uint64(m.Nonce))
 	}
+	if m.NumPendingMiniBlocks != 0 {
+		n += 1 + sovMetaBlock(uint64(m.NumPendingMiniBlocks))
+	}
+	return n
+}
+
+func (m *EpochStartShardData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ShardId != 0 {
+		n += 1 + sovMetaBlock(uint64(m.ShardId))
+	}
+	l = len(m.HeaderHash)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.RootHash)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.FirstPendingMetaBlock)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.LastFinishedMetaBlock)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	if len(m.PendingMiniBlockHeaders) > 0 {
+		for _, e := range m.PendingMiniBlockHeaders {
+			l = e.Size()
+			n += 1 + l + sovMetaBlock(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *EpochStart) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.LastFinalizedHeaders) > 0 {
+		for _, e := range m.LastFinalizedHeaders {
+			l = e.Size()
+			n += 1 + l + sovMetaBlock(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -1403,6 +1896,16 @@ func (m *MetaBlock) Size() (n int) {
 			n += 2 + l + sovMetaBlock(uint64(l))
 		}
 	}
+	l = len(m.ReceiptsHash)
+	if l > 0 {
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
+	l = m.EpochStart.Size()
+	n += 2 + l + sovMetaBlock(uint64(l))
+	l = len(m.ChainID)
+	if l > 0 {
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
 	return n
 }
 
@@ -1459,6 +1962,42 @@ func (this *ShardData) String() string {
 		`Round:` + fmt.Sprintf("%v", this.Round) + `,`,
 		`PrevHash:` + fmt.Sprintf("%v", this.PrevHash) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`NumPendingMiniBlocks:` + fmt.Sprintf("%v", this.NumPendingMiniBlocks) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EpochStartShardData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForPendingMiniBlockHeaders := "[]ShardMiniBlockHeader{"
+	for _, f := range this.PendingMiniBlockHeaders {
+		repeatedStringForPendingMiniBlockHeaders += strings.Replace(strings.Replace(f.String(), "ShardMiniBlockHeader", "ShardMiniBlockHeader", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForPendingMiniBlockHeaders += "}"
+	s := strings.Join([]string{`&EpochStartShardData{`,
+		`ShardId:` + fmt.Sprintf("%v", this.ShardId) + `,`,
+		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
+		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
+		`FirstPendingMetaBlock:` + fmt.Sprintf("%v", this.FirstPendingMetaBlock) + `,`,
+		`LastFinishedMetaBlock:` + fmt.Sprintf("%v", this.LastFinishedMetaBlock) + `,`,
+		`PendingMiniBlockHeaders:` + repeatedStringForPendingMiniBlockHeaders + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EpochStart) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForLastFinalizedHeaders := "[]EpochStartShardData{"
+	for _, f := range this.LastFinalizedHeaders {
+		repeatedStringForLastFinalizedHeaders += strings.Replace(strings.Replace(f.String(), "EpochStartShardData", "EpochStartShardData", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForLastFinalizedHeaders += "}"
+	s := strings.Join([]string{`&EpochStart{`,
+		`LastFinalizedHeaders:` + repeatedStringForLastFinalizedHeaders + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1499,6 +2038,9 @@ func (this *MetaBlock) String() string {
 		`ValidatorStatsRootHash:` + fmt.Sprintf("%v", this.ValidatorStatsRootHash) + `,`,
 		`TxCount:` + fmt.Sprintf("%v", this.TxCount) + `,`,
 		`MiniBlockHeaders:` + repeatedStringForMiniBlockHeaders + `,`,
+		`ReceiptsHash:` + fmt.Sprintf("%v", this.ReceiptsHash) + `,`,
+		`EpochStart:` + strings.Replace(strings.Replace(this.EpochStart.String(), "EpochStart", "EpochStart", 1), `&`, ``, 1) + `,`,
+		`ChainID:` + fmt.Sprintf("%v", this.ChainID) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2161,6 +2703,354 @@ func (m *ShardData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumPendingMiniBlocks", wireType)
+			}
+			m.NumPendingMiniBlocks = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumPendingMiniBlocks |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetaBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EpochStartShardData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetaBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EpochStartShardData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EpochStartShardData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardId", wireType)
+			}
+			m.ShardId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HeaderHash = append(m.HeaderHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.HeaderHash == nil {
+				m.HeaderHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.RootHash == nil {
+				m.RootHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FirstPendingMetaBlock", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FirstPendingMetaBlock = append(m.FirstPendingMetaBlock[:0], dAtA[iNdEx:postIndex]...)
+			if m.FirstPendingMetaBlock == nil {
+				m.FirstPendingMetaBlock = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFinishedMetaBlock", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastFinishedMetaBlock = append(m.LastFinishedMetaBlock[:0], dAtA[iNdEx:postIndex]...)
+			if m.LastFinishedMetaBlock == nil {
+				m.LastFinishedMetaBlock = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingMiniBlockHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PendingMiniBlockHeaders = append(m.PendingMiniBlockHeaders, ShardMiniBlockHeader{})
+			if err := m.PendingMiniBlockHeaders[len(m.PendingMiniBlockHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetaBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EpochStart) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetaBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EpochStart: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EpochStart: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFinalizedHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastFinalizedHeaders = append(m.LastFinalizedHeaders, EpochStartShardData{})
+			if err := m.LastFinalizedHeaders[len(m.LastFinalizedHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMetaBlock(dAtA[iNdEx:])
@@ -2681,6 +3571,107 @@ func (m *MetaBlock) Unmarshal(dAtA []byte) error {
 			m.MiniBlockHeaders = append(m.MiniBlockHeaders, MiniBlockHeader{})
 			if err := m.MiniBlockHeaders[len(m.MiniBlockHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptsHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReceiptsHash = append(m.ReceiptsHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.ReceiptsHash == nil {
+				m.ReceiptsHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EpochStart", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.EpochStart.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChainID = append(m.ChainID[:0], dAtA[iNdEx:postIndex]...)
+			if m.ChainID == nil {
+				m.ChainID = []byte{}
 			}
 			iNdEx = postIndex
 		default:

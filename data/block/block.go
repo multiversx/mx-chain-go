@@ -2,8 +2,6 @@
 package block
 
 import (
-	io "io"
-	"io/ioutil"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -85,6 +83,11 @@ func (h *Header) SetTxCount(txCount uint32) {
 	h.TxCount = txCount
 }
 
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardID = shId
+}
+
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	hashDst := make(map[string]uint32)
@@ -154,75 +157,6 @@ func (h *Header) ItemsInHeader() uint32 {
 func (h *Header) ItemsInBody() uint32 {
 	return h.TxCount
 }
-
-// ----- for compatibility only ----
-
-func (h *Header) Save(w io.Writer) error {
-	b, err := h.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (h *Header) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return h.Unmarshal(b)
-}
-
-func (m *MiniBlock) Save(w io.Writer) error {
-	b, err := m.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (m *MiniBlock) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return m.Unmarshal(b)
-}
-
-func (m *MiniBlockHeader) Save(w io.Writer) error {
-	b, err := m.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (m *MiniBlockHeader) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return m.Unmarshal(b)
-}
-
-func (pc *PeerChange) Save(w io.Writer) error {
-	b, err := pc.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (pc *PeerChange) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return pc.Unmarshal(b)
 
 // CheckChainID returns nil if the header's chain ID matches the one provided
 // otherwise, it will error

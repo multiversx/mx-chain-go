@@ -2,8 +2,6 @@ package marshal
 
 import (
 	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // GogoProtoMarshalizer implements marshaling with protobuf
@@ -13,7 +11,7 @@ type GogoProtoMarshalizer struct {
 // Marshal does the actual serialization of an object
 // The object to be serialized must implement the gogoProtoObj interface
 func (x *GogoProtoMarshalizer) Marshal(obj interface{}) ([]byte, error) {
-	if msg, ok := obj.(data.GogoProtoObj); ok {
+	if msg, ok := obj.(GogoProtoObj); ok {
 		return msg.Marshal()
 	}
 	return nil, fmt.Errorf("%T, %w", obj, ErrMarshallingProto)
@@ -22,7 +20,7 @@ func (x *GogoProtoMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 // Unmarshal does the actual deserialization of an object
 // The object to be deserialized must implement the gogoProtoObj interface
 func (x *GogoProtoMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
-	if msg, ok := obj.(data.GogoProtoObj); ok {
+	if msg, ok := obj.(GogoProtoObj); ok {
 		msg.Reset()
 		return msg.Unmarshal(buff)
 	}

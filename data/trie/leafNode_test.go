@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
 

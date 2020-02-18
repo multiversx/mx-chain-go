@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"

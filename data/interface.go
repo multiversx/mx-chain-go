@@ -3,21 +3,11 @@ package data
 import (
 	"math/big"
 
-
-	gproto "github.com/gogo/protobuf/proto"
-	proto "github.com/golang/protobuf/proto"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-// GogoProtoObj groups the necessary of a gogo protobuf marshalizeble object
-type GogoProtoObj interface {
-	gproto.Marshaler
-	gproto.Unmarshaler
-	proto.Message
-}
 // TriePruningIdentifier is the type for trie pruning identifiers
 type TriePruningIdentifier byte
 

@@ -31,9 +31,9 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 	return &MetaAccount{
 		MetaAccountData: MetaAccountData{
 			TxCount: big.NewInt(0),
+			Address: addressBytes,
 		},
 		addressContainer: addressContainer,
-		Address:          addressBytes,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil
@@ -70,7 +70,7 @@ func (ma *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
 	}
 
 	ma.accountTracker.Journalize(entry)
-	ma.TxCount.Set = txCount
+	ma.TxCount = txCount
 
 	return ma.accountTracker.SaveAccount(ma)
 }

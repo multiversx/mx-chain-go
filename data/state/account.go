@@ -31,9 +31,9 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	return &Account{
 		AccountData: AccountData{
 			Balance: big.NewInt(0),
+			Address: addressBytes,
 		},
 		addressContainer: addressContainer,
-		Address:          addressBytes,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil

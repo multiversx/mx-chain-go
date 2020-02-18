@@ -51,19 +51,22 @@ message Header  {
 	bytes                    PrevRandSeed           = 3;
 	bytes                    RandSeed               = 4;
 	bytes                    PubKeysBitmap          = 5;
-	uint32                   ShardID                = 6;
 	uint64                   TimeStamp              = 7;
 	uint64                   Round                  = 8;
-	uint32                   Epoch                  = 9;
-	Type                     BlockBodyType          = 10;
 	bytes                    Signature              = 11;
 	bytes                    LeaderSignature        = 12;
-	repeated MiniBlockHeader MiniBlockHeaders       = 13 [(gogoproto.nullable) = false];
-	repeated PeerChange      PeerChanges            = 14 [(gogoproto.nullable) = false];
 	bytes                    RootHash               = 15;
 	bytes                    ValidatorStatsRootHash = 16;
 	repeated bytes           MetaBlockHashes        = 17;
+	bytes                    EpochStartMetaHash     = 19;
+	bytes                    ReceiptsHash           = 20;
+	bytes                    ChainID                = 21;
+	repeated MiniBlockHeader MiniBlockHeaders       = 13 [(gogoproto.nullable) = false];
+	repeated PeerChange      PeerChanges            = 14 [(gogoproto.nullable) = false];
+	uint32                   Epoch                  = 9;
 	uint32                   TxCount                = 18;
+	uint32                   ShardID                = 6;
+	Type                     BlockBodyType          = 10;
 }
 
 message Body {
