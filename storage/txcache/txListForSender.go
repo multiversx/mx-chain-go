@@ -69,7 +69,6 @@ func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHand
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
-	listForSender.updateInitialGapPenalty()
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -173,7 +172,7 @@ func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []
 	if withReset {
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
-		listForSender.copyDetectedGap = false
+		listForSender.copyDetectedGap = listForSender.hasInitialGap()
 	}
 
 	element := listForSender.copyBatchIndex
