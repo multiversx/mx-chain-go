@@ -7,6 +7,9 @@ import (
 // ErrInvalidAppContext signals an invalid context passed to the routing system
 var ErrInvalidAppContext = errors.New("invalid app context")
 
+// ErrInvalidJSONRequest signals an error in json request formatting
+var ErrInvalidJSONRequest = errors.New("invalid json request")
+
 // ErrCouldNotGetAccount signals that a requested account could not be retrieved
 var ErrCouldNotGetAccount = errors.New("could not get requested account")
 

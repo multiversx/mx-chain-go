@@ -1,8 +1,6 @@
 package sharding
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -19,8 +17,6 @@ type Coordinator interface {
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
 // or block proposer
 type Validator interface {
-	Stake() *big.Int
-	Rating() int32
 	PubKey() []byte
 	Address() []byte
 }
@@ -31,6 +27,11 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
+	LoadState(key []byte) error
+	GetSavedStateKey() []byte
+	ShardIdForEpoch(epoch uint32) (uint32, error)
+	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
+	ConsensusGroupSize(uint32) int
 	IsInterfaceNil() bool
 }
 
@@ -58,6 +59,7 @@ type ArgsUpdateNodes struct {
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
+	IsInterfaceNil() bool
 }
 
 // NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
@@ -116,6 +118,14 @@ type RatingReaderSetter interface {
 	SetRatingReader(RatingReader)
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
+}
+
+//Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
+type Cacher interface {
+	// Put adds a value to the cache.  Returns true if an eviction occurred.
+	Put(key []byte, value interface{}) (evicted bool)
+	// Get looks up a key's value from the cache.
+	Get(key []byte) (value interface{}, ok bool)
 }
 
 //RatingChance provides the methods needed for the computation of chances from the Rating

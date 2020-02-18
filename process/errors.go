@@ -59,6 +59,9 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
+// ErrNilBootStorer signals that the provided boot storer is bil
+var ErrNilBootStorer = errors.New("nil boot storer")
+
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -238,9 +241,6 @@ var ErrInvalidContainerKey = errors.New("element does not exist in container")
 
 // ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
 var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
-
-// ErrNilResolverContainer signals that a nil resolver container was provided
-var ErrNilResolverContainer = errors.New("nil resolver container")
 
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
@@ -561,6 +561,9 @@ var ErrHeaderIsBlackListed = errors.New("header is black listed")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
+// ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
+var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
+
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
@@ -581,15 +584,6 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
-
-// ErrMissingPrevShardData signals that a required shard data information is missing
-var ErrMissingPrevShardData = errors.New("shard data is missing")
-
-// ErrNilMediator signals that a mediator implementation is needed, but it is nil
-var ErrNilMediator = errors.New("nil mediator")
-
-// ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
-var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")

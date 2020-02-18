@@ -143,12 +143,16 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	IsInterfaceNil() bool
+}
+
+// DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
+type DataMarshalizer interface {
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 }
 
 // InternalTransactionProducer creates system transactions (e.g. rewards)
@@ -198,8 +202,6 @@ type PreProcessor interface {
 	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
-
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
@@ -220,6 +222,7 @@ type BlockProcessor interface {
 	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
@@ -393,9 +396,12 @@ type EpochStartTriggerHandler interface {
 	SetProcessed(header data.HeaderHandler)
 	Revert(round uint64)
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 }
 
 // EpochBootstrapper defines the actions needed by bootstrapper
@@ -454,6 +460,7 @@ type RequestHandler interface {
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestStartOfEpochMetaBlock(epoch uint32)
 	IsInterfaceNil() bool
 }
 

@@ -311,56 +311,56 @@ func (pa *PeerAccount) SetNodeInWaitingListWithJournal(nodeInWaitingList bool) e
 
 // IncreaseValidatorSuccessRateWithJournal increases the account's number of successful signing,
 // saving the old state before changing
-func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal() error {
+func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
 	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
-	pa.ValidatorSuccessRate.NrSuccess++
+	pa.ValidatorSuccessRate.NrSuccess += value
 
 	return pa.accountTracker.SaveAccount(pa)
 }
 
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
-func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal() error {
+func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
 	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
-	pa.ValidatorSuccessRate.NrFailure++
+	pa.ValidatorSuccessRate.NrFailure += value
 
 	return pa.accountTracker.SaveAccount(pa)
 }
 
 // IncreaseLeaderSuccessRateWithJournal increases the account's number of successful signing,
 // saving the old state before changing
-func (pa *PeerAccount) IncreaseLeaderSuccessRateWithJournal() error {
+func (pa *PeerAccount) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
 	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrSuccess++
+	pa.LeaderSuccessRate.NrSuccess += value
 
 	return pa.accountTracker.SaveAccount(pa)
 }
 
 // DecreaseLeaderSuccessRateWithJournal increases the account's number of missing signing,
 // saving the old state before changing
-func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
+func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
 	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrFailure++
+	pa.LeaderSuccessRate.NrFailure += value
 
 	return pa.accountTracker.SaveAccount(pa)
 }

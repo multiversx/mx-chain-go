@@ -7,14 +7,21 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
+
+const (
+	keyFormat = "%s_%v_%v_%v"
 )
 
 // TODO: move this to config parameters
 const nodeCoordinatorStoredEpochs = 2
 
+// TODO: add a parameter for shardId  when acting as observer
 type epochNodesConfig struct {
 	nbShards            uint32
 	shardId             uint32
@@ -35,12 +42,16 @@ type indexHashedNodesCoordinator struct {
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
+	bootStorer              storage.Storer
 	selfPubKey              []byte
 	nodesConfig             map[uint32]*epochNodesConfig
 	mutNodesConfig          sync.RWMutex
 	currentEpoch            uint32
+	savedStateKey           []byte
+	mutSavedStateKey        sync.RWMutex
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	consensusGroupCacher    Cacher
 	nodesPerShardSetter     NodesPerShardSetter
 }
 
@@ -61,21 +72,32 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		mutNodesMaps: sync.RWMutex{},
 	}
 
+	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
+
 	ihgs := &indexHashedNodesCoordinator{
 		hasher:                  arguments.Hasher,
 		shuffler:                arguments.Shuffler,
 		epochStartSubscriber:    arguments.EpochStartSubscriber,
+		bootStorer:              arguments.BootStorer,
 		selfPubKey:              arguments.SelfPublicKey,
 		nodesConfig:             nodesConfig,
 		currentEpoch:            arguments.Epoch,
+		savedStateKey:           savedKey,
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
 	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
+	}
+
+	err = ihgs.saveState(ihgs.savedStateKey)
+	if err != nil {
+		log.Error("saving initial nodes coordinator config failed",
+			"error", err.Error())
 	}
 
 	ihgs.epochStartSubscriber.RegisterHandler(ihgs)
@@ -101,6 +123,12 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.Shuffler == nil {
 		return ErrNilShuffler
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return ErrNilBootStorer
+	}
+	if arguments.ConsensusGroupCache == nil {
+		return ErrNilCacher
 	}
 
 	return nil
@@ -132,6 +160,10 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesList, ok := eligible[core.MetachainShardId]
 	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
+	}
+
+	if _, ok := eligible[core.MetachainShardId]; !ok || len(eligible[core.MetachainShardId]) == 0 {
+		return ErrMissingMetachainNodes
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
@@ -215,6 +247,12 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 ) (validatorsGroup []Validator, err error) {
 	var expandedList []Validator
 
+	log.Trace("computing consensus group for",
+		"epoch", epoch,
+		"shardId", shardId,
+		"randomness", randomness,
+		"round", round)
+
 	if randomness == nil {
 		return nil, ErrNilRandomness
 	}
@@ -232,8 +270,18 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, ErrInvalidShardId
 	}
 
+	if ihgs == nil {
+		return nil, ErrNilRandomness
+	}
+
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
+	validators := ihgs.searchConsensusForKey(key)
+	if validators != nil {
+		return validators, nil
+	}
+
 	tempList := make([]Validator, 0)
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	lenExpandedList := len(expandedList)
@@ -244,7 +292,21 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
 
+	ihgs.consensusGroupCacher.Put(key, tempList)
+
 	return tempList, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+	value, ok := ihgs.consensusGroupCacher.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup
+		}
+
+	}
+	return nil
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key
@@ -351,7 +413,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	publicKeys = make([]string, consensusSize)
 	cnt := 0
 
@@ -461,6 +523,13 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
 	_ = ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	err := ihgs.saveState(randomness)
+	if err != nil {
+		log.Error("saving nodes coordinator config failed", "error", err.Error())
+	}
+	ihgs.mutSavedStateKey.Lock()
+	ihgs.savedStateKey = randomness
+	ihgs.mutSavedStateKey.Unlock()
 }
 
 // EpochStartAction is called upon a start of epoch event.
@@ -482,9 +551,84 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	ihgs.mutNodesConfig.Unlock()
 }
 
+// GetSavedStateKey returns the key for the last nodes coordinator saved state
+func (ihgs *indexHashedNodesCoordinator) GetSavedStateKey() []byte {
+	ihgs.mutSavedStateKey.RLock()
+	key := ihgs.savedStateKey
+	ihgs.mutSavedStateKey.RUnlock()
+
+	return key
+}
+
+// ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
+// otherwise error
+func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, error) {
+	ihgs.mutNodesConfig.RLock()
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return 0, ErrEpochNodesConfigDesNotExist
+	}
+
+	return nodesConfig.shardId, nil
+}
+
+// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
+func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
+	epoch uint32,
+) (map[string]struct{}, error) {
+	publicKeysPrevEpoch := make(map[uint32][][]byte)
+	var err error
+
+	if epoch > 0 {
+		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
+	shardEligible := make(map[string]struct{}, estimatedMapSize)
+
+	prevEpochShardId, err := ihgs.ShardIdForEpoch(epoch - 1)
+	if err == nil {
+		for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
+			shardEligible[string(pubKey)] = struct{}{}
+		}
+	} else {
+		log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
+	}
+
+	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pubKey := range publicKeysNewEpoch[epochShardId] {
+		shardEligible[string(pubKey)] = struct{}{}
+	}
+
+	return shardEligible, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
+	//TODO implement an expand eligible list variant
+	return validators
+}
+
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
-	selfShard := ihgs.nodesConfig[ihgs.currentEpoch].shardId
+	selfShard := uint32(0)
+	epochNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	if ok {
+		selfShard = epochNodesConfig.shardId
+	}
 
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
@@ -550,7 +694,7 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	return false
 }
 
-func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(
+func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(
 	shardId uint32,
 ) int {
 	if shardId == core.MetachainShardId {

@@ -222,7 +222,7 @@ func NewTestProcessorNode(
 	address[0] = 1
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -294,30 +294,6 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 	var peerTrie data.Trie
 	tpn.PeerState, peerTrie, _ = CreateAccountsDB(factory2.ValidatorAccount)
 	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
-}
-
-func (tpn *TestProcessorNode) initValidatorStatistics() {
-	nodesWithRater, ok := tpn.NodesCoordinator.(*NodesWithRater)
-	if ok {
-		tpn.Rater = nodesWithRater.RaterHandler
-	} else {
-		tpn.Rater, _ = rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-	}
-
-	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     tpn.InitialNodes,
-		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverterBLS,
-		NodesCoordinator: tpn.NodesCoordinator,
-		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         tpn.DataPool,
-		StorageService:   tpn.Storage,
-		Marshalizer:      TestMarshalizer,
-		StakeValue:       big.NewInt(500),
-		Rater:            tpn.Rater,
-	}
-
-	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
@@ -528,7 +504,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
@@ -857,6 +833,44 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 }
 
+func (tpn *TestProcessorNode) initValidatorStatistics() {
+	initialNodes := make([]*sharding.InitialNode, 0)
+	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
+			n := &sharding.InitialNode{
+				PubKey:   core.ToHex(validator.PubKey()),
+				Address:  core.ToHex(validator.Address()),
+				NodeInfo: sharding.NodeInfo{},
+			}
+			initialNodes = append(initialNodes, n)
+		}
+	}
+
+	sort.Slice(initialNodes, func(i, j int) bool {
+		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
+	})
+
+	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		InitialNodes:        initialNodes,
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
+	}
+
+	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
+}
+
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {
 	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
@@ -1121,7 +1135,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
 	}
 	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)

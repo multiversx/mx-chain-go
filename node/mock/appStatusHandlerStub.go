@@ -11,6 +11,7 @@ type AppStatusHandlerStub struct {
 	CloseHandler          func()
 }
 
+// IsInterfaceNil -
 func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
 	return ashs == nil
 }

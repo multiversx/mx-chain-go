@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
+// IntermediateTransactionHandlerMock -
 type IntermediateTransactionHandlerMock struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocksCalled           func() map[uint32]*block.MiniBlock
@@ -15,10 +16,12 @@ type IntermediateTransactionHandlerMock struct {
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 }
 
+// GetCreatedInShardMiniBlock -
 func (ith *IntermediateTransactionHandlerMock) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	return &block.MiniBlock{}
 }
 
+// GetAllCurrentFinishedTxs -
 func (ith *IntermediateTransactionHandlerMock) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
 	if ith.GetAllCurrentFinishedTxsCalled != nil {
 		return ith.GetAllCurrentFinishedTxsCalled()
@@ -26,12 +29,15 @@ func (ith *IntermediateTransactionHandlerMock) GetAllCurrentFinishedTxs() map[st
 	return nil
 }
 
+// CreateMarshalizedData -
 func (ith *IntermediateTransactionHandlerMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
 	if ith.CreateMarshalizedDataCalled == nil {
 		return nil, nil
 	}
 	return ith.CreateMarshalizedDataCalled(txHashes)
 }
+
+// AddIntermediateTransactions -
 func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs []data.TransactionHandler) error {
 	if ith.AddIntermediateTransactionsCalled == nil {
 		return nil
@@ -39,6 +45,7 @@ func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs [
 	return ith.AddIntermediateTransactionsCalled(txs)
 }
 
+// CreateAllInterMiniBlocks -
 func (ith *IntermediateTransactionHandlerMock) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	if ith.CreateAllInterMiniBlocksCalled == nil {
 		return nil
@@ -46,6 +53,7 @@ func (ith *IntermediateTransactionHandlerMock) CreateAllInterMiniBlocks() map[ui
 	return ith.CreateAllInterMiniBlocksCalled()
 }
 
+// VerifyInterMiniBlocks -
 func (ith *IntermediateTransactionHandlerMock) VerifyInterMiniBlocks(body block.Body) error {
 	if ith.VerifyInterMiniBlocksCalled == nil {
 		return nil
@@ -53,6 +61,7 @@ func (ith *IntermediateTransactionHandlerMock) VerifyInterMiniBlocks(body block.
 	return ith.VerifyInterMiniBlocksCalled(body)
 }
 
+// SaveCurrentIntermediateTxToStorage -
 func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorage() error {
 	if ith.SaveCurrentIntermediateTxToStorageCalled == nil {
 		return nil
@@ -60,6 +69,7 @@ func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorag
 	return ith.SaveCurrentIntermediateTxToStorageCalled()
 }
 
+// CreateBlockStarted -
 func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
 	if ith.CreateBlockStartedCalled != nil {
 		ith.CreateBlockStarted()

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// SuiteMock -
 type SuiteMock struct {
 	StringStub             func() string
 	ScalarLenStub          func() int
@@ -17,35 +18,43 @@ type SuiteMock struct {
 	GetUnderlyingSuiteStub func() interface{}
 }
 
+// String -
 func (s *SuiteMock) String() string {
 	return s.StringStub()
 }
 
+// ScalarLen -
 func (s *SuiteMock) ScalarLen() int {
 	return s.ScalarLenStub()
 }
 
+// CreateScalar -
 func (s *SuiteMock) CreateScalar() crypto.Scalar {
 	return s.CreateScalarStub()
 }
 
+// PointLen -
 func (s *SuiteMock) PointLen() int {
 	return s.PointLenStub()
 }
 
+// CreatePoint -
 func (s *SuiteMock) CreatePoint() crypto.Point {
 	return s.CreatePointStub()
 }
 
+// RandomStream -
 func (s *SuiteMock) RandomStream() cipher.Stream {
 	stream := NewStreamer()
 	return stream
 }
 
+// GetUnderlyingSuite -
 func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 	return s.GetUnderlyingSuiteStub()
 }
 
+// CreateKeyPair -
 func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
 	return s.CreateKeyPairStub(c)
 }

@@ -74,6 +74,18 @@ type baseProcessor struct {
 	hdrsForCurrBlock hdrForBlock
 
 	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
+}
+
+type bootStorerDataArgs struct {
+	headerInfo                 bootstrapStorage.BootstrapHeaderInfo
+	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
+	round                      uint64
+	highestFinalBlockNonce     uint64
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
+	nodesCoordinatorConfigKey  []byte
+	epochStartTriggerConfigKey []byte
 }
 
 func checkForNils(
@@ -214,10 +226,9 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
 	maxRound uint64,
-	cacherMaxSize int,
 ) error {
 
-	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
 
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {
@@ -225,6 +236,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
+	lastNotarizedHdrRound := prevHdr.GetRound()
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -233,13 +245,14 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			continue
 		}
 
-		if i > 0 {
-			prevHdr = sortedHdrs[i-1]
+		hdrTooOld := currHdr.GetRound() <= lastNotarizedHdrRound
+		if hdrTooOld {
+			continue
 		}
 
-		hdrTooNew := currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound
+		hdrTooNew := currHdr.GetRound() > maxRound
 		if hdrTooNew {
-			continue
+			break
 		}
 
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
@@ -247,6 +260,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 				missingNonces = append(missingNonces, j)
 			}
 		}
+
+		prevHdr = currHdr
 	}
 
 	requested := 0
@@ -534,16 +549,20 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 	return nil
 }
 
-func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacherMaxSize int) bool {
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler) bool {
+	if check.IfNil(header) {
+		return false
+	}
+
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
 	if err != nil {
-		log.Debug("isHeaderOutOfRange",
+		log.Debug("isHeaderOutOfRange.GetLastCrossNotarizedHeader",
 			"shard", header.GetShardID(),
 			"error", err.Error())
 		return false
 	}
 
-	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
 	isHeaderOutOfRange := header.GetNonce() > lastCrossNotarizedHeader.GetNonce()+allowedSize
 
 	return isHeaderOutOfRange
@@ -609,15 +628,11 @@ func (bp *baseProcessor) cleanupPools(
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		if bp.shardCoordinator.SelfId() == shardID {
-			continue
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
-
-		bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
-	}
-
-	if bp.shardCoordinator.SelfId() != core.MetachainShardId {
+	} else {
 		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
@@ -708,11 +723,15 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
-	}
+	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToFinal)
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
+		}
+	} else {
+		bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToFinal)
+	}
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
@@ -739,28 +758,21 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	)
 }
 
-func (bp *baseProcessor) prepareDataForBootStorer(
-	headerInfo bootstrapStorage.BootstrapHeaderInfo,
-	round uint64,
-	lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
-	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
-	highestFinalBlockNonce uint64,
-	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
-) {
-	//TODO add end of epoch stuff
-
+func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:                headerInfo,
-		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
-		PendingMiniBlocks:         pendingMiniBlocks,
-		HighestFinalBlockNonce:    highestFinalBlockNonce,
-		ProcessedMiniBlocks:       processedMiniBlocks,
+		LastHeader:                 args.headerInfo,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
+		LastSelfNotarizedHeaders:   args.lastSelfNotarizedHeaders,
+		PendingMiniBlocks:          args.pendingMiniBlocks,
+		ProcessedMiniBlocks:        args.processedMiniBlocks,
+		HighestFinalBlockNonce:     args.highestFinalBlockNonce,
+		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
+		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	err := bp.bootStorer.Put(int64(round), bootData)
+	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
 			"error", err.Error())
@@ -843,4 +855,109 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	return noncesToFinal
+}
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var body block.Body
+
+	err := bp.marshalizer.Unmarshal(&body, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return body
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	header := bp.blockProcessor.CreateNewHeader(0)
+
+	err := bp.marshalizer.Unmarshal(&header, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return header
+}
+
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	body := bp.DecodeBlockBody(marshalizedBodyAndHeader.Body)
+	header := bp.DecodeBlockHeader(marshalizedBodyAndHeader.Header)
+
+	return body, header
+}
+
+func (bp *baseProcessor) saveBody(body block.Body) {
+	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
+	if errNotCritical != nil {
+		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
+	}
+
+	for i := 0; i < len(body); i++ {
+		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body[i])
+		if errNotCritical != nil {
+			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
+			continue
+		}
+
+		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
+		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
+		if errNotCritical != nil {
+			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.GetShardID())
+
+	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	if errNotCritical != nil {
+		log.Warn(fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
+			"error", errNotCritical.Error(),
+		)
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader)
+	if errNotCritical != nil {
+		log.Warn("saveHeader.Put -> BlockHeaderUnit", "error", errNotCritical.Error())
+	}
+}
+
+func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
+
+	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	if errNotCritical != nil {
+		log.Warn("saveMetaHeader.Put -> MetaHdrNonceHashDataUnit", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
+	if errNotCritical != nil {
+		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
+	}
 }

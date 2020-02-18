@@ -61,9 +61,10 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Type   CacheType
-	Size   uint32
-	Shards uint32
+	Type        CacheType
+	SizeInBytes uint32
+	Size        uint32
+	Shards      uint32
 }
 
 // DBConfig holds the configurable elements of a database
@@ -283,6 +284,10 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 			_ = db.Destroy()
 		}
 	}()
+
+	if dbConf.MaxBatchSize > int(cacheConf.Size) {
+		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
+	}
 
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {

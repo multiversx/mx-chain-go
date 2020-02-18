@@ -24,7 +24,8 @@ export NODE="$NODEDIR/node"     # Leave unchanged
 export SEEDNODEDIR="$ELRONDDIR/cmd/seednode"
 export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
-# Niceness value of the Seednode, Observer Nodes and Validator Nodes.
+# Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
+# blank to not adjust niceness.
 export NODE_NICENESS=10
 
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
@@ -44,10 +45,10 @@ export SEEDNODE_DELAY=5
 export NODE_DELAY=10
 
 # Shard structure
-export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=0
-export SHARD_CONSENSUS_SIZE=2
+export SHARDCOUNT=2
+export SHARD_VALIDATORCOUNT=4
+export SHARD_OBSERVERCOUNT=1
+export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=1

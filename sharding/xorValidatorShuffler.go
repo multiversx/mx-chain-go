@@ -110,6 +110,11 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 	return shuffleNodesIntraShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
 }
 
+// IsInterfaceNil verifies if the underlying object is nil
+func (rxs *randXORShuffler) IsInterfaceNil() bool {
+	return rxs == nil
+}
+
 // shuffleNodesInterShards shuffles the nodes: shards eligible -> common pool, shard waiting -> shard eligible list,
 // common pool -> shards waiting
 func shuffleNodesInterShards(

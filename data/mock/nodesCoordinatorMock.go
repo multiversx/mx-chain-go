@@ -3,7 +3,6 @@ package mock
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,6 +24,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 }
 
+// NewNodesCoordinatorMock -
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	nbShards := uint32(1)
 	nodesPerShard := 2
@@ -40,8 +40,6 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList := make([]sharding.Validator, nodesPerShard)
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = sharding.NewValidator(
-				big.NewInt(10),
-				1,
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				[]byte(fmt.Sprintf("address%d%d", sh, v)),
 			)
@@ -58,14 +56,17 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+// GetValidatorsIndexes -
 func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
 	return nil, nil
 }
 
-func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+// GetAllValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
+// GetSelectedPublicKeys -
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error) {
 	if ncm.GetSelectedPublicKeysCalled != nil {
 		return ncm.GetSelectedPublicKeysCalled(selection, shardId, epoch)
@@ -84,6 +85,7 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId
 	return pubKeys, nil
 }
 
+// GetConsensusValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
 	round uint64,
@@ -108,6 +110,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	return valGrStr, nil
 }
 
+// GetConsensusValidatorsRewardsAddresses -
 func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 	randomness []byte,
 	round uint64,
@@ -131,6 +134,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
+// SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	waiting map[uint32][]sharding.Validator,
@@ -149,6 +153,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	return nil
 }
 
+// ComputeConsensusGroup -
 func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	randomess []byte,
 	round uint64,
@@ -180,6 +185,12 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return validatorsGroup, nil
 }
 
+// ConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
+	return 1
+}
+
+// GetValidatorWithPublicKey -
 func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (sharding.Validator, uint32, error) {
 	if ncm.GetValidatorWithPublicKeyCalled != nil {
 		return ncm.GetValidatorWithPublicKeyCalled(publicKey, epoch)
@@ -200,6 +211,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte, epo
 	return nil, 0, sharding.ErrValidatorNotFound
 }
 
+// GetOwnPublicKey -
 func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	if ncm.GetOwnPublicKeyCalled != nil {
 		return ncm.GetOwnPublicKeyCalled()
@@ -208,9 +220,30 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	return []byte("key")
 }
 
+// LoadState -
+func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
+	return nil
+}
+
+// GetSavedStateKey -
+func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
+	return []byte("key")
+}
+
+// ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
+// otherwise error
+func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
+	panic("not implemented")
+}
+
+// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
+func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
+	_ uint32,
+) (map[string]struct{}, error) {
+	panic("not implemented")
+}
+
+// IsInterfaceNil -
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
-	if ncm == nil {
-		return true
-	}
-	return false
+	return ncm == nil
 }

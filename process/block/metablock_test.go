@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -599,9 +600,12 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	hdr := createMetaBlockHeader()
 	body := block.Body{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
+			wg.Done()
 			return errPersister
 		},
 		GetCalled: func(key []byte) (i []byte, e error) {
@@ -638,6 +642,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	)
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
 	err := mp.CommitBlock(blkc, hdr, body)
+	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
 }
@@ -2013,6 +2018,47 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body := block.Body{}
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+
+	marshalizedBody, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	assert.Nil(t, err)
+
+	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
+	assert.Nil(t, dcdBlk)
+	assert.Nil(t, dcdHdr)
+
+	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }
 
 func TestMetaProcessor_DecodeBlockBody(t *testing.T) {

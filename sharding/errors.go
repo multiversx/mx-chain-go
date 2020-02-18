@@ -4,6 +4,9 @@ import (
 	"errors"
 )
 
+// ErrMissingMetachainNodes signals that metachain nodes were not configured
+var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
+
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -85,14 +88,11 @@ var ErrNilRandomness = errors.New("nil randomness source")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
-// ErrNilStake signals that a nil stake structure has been provided
-var ErrNilStake = errors.New("nil stake")
-
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
-// ErrNegativeStake signals that the stake is negative
-var ErrNegativeStake = errors.New("negative stake")
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer provided")
 
 // ErrNilAddress signals that the address is nil
 var ErrNilAddress = errors.New("nil address")
@@ -102,3 +102,6 @@ var ErrValidatorNotFound = errors.New("validator not found")
 
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
+
+// ErrNilCacher signals that the cacher is nil
+var ErrNilCacher = errors.New("nil cacher")

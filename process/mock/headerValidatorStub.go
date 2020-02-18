@@ -4,10 +4,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// HeaderValidatorStub -
 type HeaderValidatorStub struct {
 	HeaderValidForProcessingCalled func(headerHandler process.HdrValidatorHandler) error
 }
 
+// HeaderValidForProcessing -
 func (h *HeaderValidatorStub) HeaderValidForProcessing(headerHandler process.HdrValidatorHandler) error {
 	return h.HeaderValidForProcessingCalled(headerHandler)
 }

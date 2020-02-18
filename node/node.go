@@ -233,7 +233,7 @@ func (n *Node) CreateShardedStores() error {
 }
 
 // StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus() error {
+func (n *Node) StartConsensus(epoch uint32) error {
 	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
 		n.blkc.GetGenesisHeader() == nil
 	if isGenesisBlockNotInitialized {
@@ -257,7 +257,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSync()
 
-	consensusState, err := n.createConsensusState()
+	consensusState, err := n.createConsensusState(epoch)
 	if err != nil {
 		return err
 	}
@@ -436,6 +436,8 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -508,6 +510,8 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -567,16 +571,15 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 }
 
 // createConsensusState method creates a consensusState object
-func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
+func (n *Node) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
-	eligibleNodesPubKeys := make(map[string]struct{})
-
-	for _, v := range n.initialNodesPubkeys[n.shardCoordinator.SelfId()] {
-		eligibleNodesPubKeys[v] = struct{}{}
+	eligibleNodesPubKeys, err := n.nodesCoordinator.GetConsensusWhitelistedNodes(epoch)
+	if err != nil {
+		return nil, err
 	}
 
 	roundConsensus := spos.NewRoundConsensus(
@@ -950,6 +953,10 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	timer := &heartbeat.RealTimer{}
 	netInputMarshalizer := n.marshalizer
 	if n.sizeCheckDelta > 0 {

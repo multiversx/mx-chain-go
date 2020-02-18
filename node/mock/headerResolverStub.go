@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// HeaderResolverStub -
 type HeaderResolverStub struct {
 	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
@@ -13,6 +14,7 @@ type HeaderResolverStub struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// RequestDataFromEpoch -
 func (hrm *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	if hrm.RequestDataFromEpochCalled != nil {
 		return hrm.RequestDataFromEpochCalled(identifier)
@@ -20,6 +22,7 @@ func (hrm *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	return nil
 }
 
+// SetEpochHandler -
 func (hrm *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if hrm.SetEpochHandlerCalled != nil {
 		return hrm.SetEpochHandlerCalled(epochHandler)
@@ -27,6 +30,7 @@ func (hrm *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 	return nil
 }
 
+// RequestDataFromHash -
 func (hrm *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hrm.RequestDataFromHashCalled == nil {
 		return nil
@@ -34,6 +38,7 @@ func (hrm *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) er
 	return hrm.RequestDataFromHashCalled(hash, epoch)
 }
 
+// ProcessReceivedMessage -
 func (hrm *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if hrm.ProcessReceivedMessageCalled == nil {
 		return nil
@@ -41,6 +46,7 @@ func (hrm *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 
+// RequestDataFromNonce -
 func (hrm *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	if hrm.RequestDataFromNonceCalled == nil {
 		return nil

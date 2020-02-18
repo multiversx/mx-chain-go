@@ -297,6 +297,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		"header hash", cnsDta.BlockHeaderHash,
 		"round", cnsDta.RoundIndex,
+		"size", len(message.Data()),
 	)
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
@@ -324,9 +325,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			sigVerifErr.Error())
 	}
 
-	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
+	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
+	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
 		headerHash := cnsDta.BlockHeaderHash
-		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		var header data.HeaderHandler
+		if isMessageWithBlockHeader {
+			header = wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		} else {
+			_, header = wrk.blockProcessor.DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
+		}
 
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
@@ -340,6 +348,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
+			"nbTxs", header.GetTxCount(),
+			"val stats root hash", header.GetValidatorStatsRootHash(),
 		)
 
 		err = header.CheckChainID(wrk.chainID)

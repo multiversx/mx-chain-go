@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 
@@ -93,7 +92,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 	}
 
 	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
-		return bytes.Compare(shardMiniBlockHeaders[i].Hash, shardMiniBlockHeaders[j].Hash) < 0
+		return string(shardMiniBlockHeaders[i].Hash) < string(shardMiniBlockHeaders[j].Hash)
 	})
 
 	return shardMiniBlockHeaders, nil
