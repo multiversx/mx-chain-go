@@ -194,7 +194,7 @@ func createNode(
 	cache sharding.Cacher,
 	coordinatorFactory NodesCoordinatorFactory,
 ) *TestProcessorNode {
-
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	initialNodes := createInitialNodes(validatorsMap, waitingMap)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}

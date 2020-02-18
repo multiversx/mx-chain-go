@@ -1,10 +1,12 @@
 package integrationTests
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -835,7 +837,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
 	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
+	nodesMap, _ := tpn.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(0)
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
 			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
