@@ -1,7 +1,6 @@
 package node
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -111,17 +110,6 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithTxSignPrivKey sets up the single sign private key option for the Node
-func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
-	return func(n *Node) error {
-		if sk == nil || sk.IsInterfaceNil() {
-			return ErrNilPrivateKey
-		}
-		n.txSignPrivKey = sk
-		return nil
-	}
-}
-
 // WithPubKey sets up the multi sign pub key option for the Node
 func WithPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
@@ -170,18 +158,6 @@ func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
 func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
-		return nil
-	}
-}
-
-// WithTxSignPubKey sets up the single sign public key option for the Node
-func WithTxSignPubKey(pk crypto.PublicKey) Option {
-	return func(n *Node) error {
-		if pk == nil || pk.IsInterfaceNil() {
-			return ErrNilPublicKey
-		}
-
-		n.txSignPubKey = pk
 		return nil
 	}
 }
@@ -289,17 +265,6 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
-		return nil
-	}
-}
-
-// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]*big.Int) Option {
-	return func(n *Node) error {
-		if balances == nil {
-			return ErrNilBalances
-		}
-		n.initialNodesBalances = balances
 		return nil
 	}
 }

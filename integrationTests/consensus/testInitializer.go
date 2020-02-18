@@ -55,7 +55,6 @@ import (
 )
 
 const blsConsensusType = "bls"
-const bnConsensusType = "bn"
 
 var r *rand.Rand
 var consensusChainID = []byte("consensus chain ID")
@@ -453,7 +452,6 @@ func createConsensusOnlyNode(
 		node.WithBlockChain(blockChain),
 		node.WithMultiSigner(testMultiSig),
 		node.WithTxSingleSigner(singlesigner),
-		node.WithTxSignPrivKey(privKey),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(createTestShardDataPool()),
