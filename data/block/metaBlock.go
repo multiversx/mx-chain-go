@@ -83,6 +83,8 @@ type ShardData struct {
 // EpochStartShardData hold the last finalized headers hash and state root hash
 type EpochStartShardData struct {
 	ShardId                 uint32
+	Round                   uint64
+	Nonce                   uint64
 	HeaderHash              []byte
 	RootHash                []byte
 	FirstPendingMetaBlock   []byte

@@ -576,6 +576,10 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 		"nonce", initialHdrData.GetNonce(),
 	)
 
+	if mp.epochStartTrigger.IsEpochStart() {
+		mp.epochStartCreator.IsInterfaceNil()
+	}
+
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
 		return nil, err

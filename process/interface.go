@@ -626,6 +626,9 @@ type BlockTracker interface {
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
 	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	ComputeRewardsPerBlock(round uint64) error
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
+	GetRewardsPerBlock() *big.Int
 	IsInterfaceNil() bool
 }
 
