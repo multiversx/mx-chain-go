@@ -146,7 +146,7 @@ func TestStart_CannotApplyOptions(t *testing.T) {
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -755,7 +755,7 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	hasher := &mock.HasherFake{}
 	adrConverter := mock.NewAddressConverterFake(32, "0x")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithVmMarshalizer(marshalizer),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithAddressConverter(adrConverter),
@@ -1460,7 +1460,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 		node.WithProtoMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return make([]byte, 0), nil
-			},}, testSizeCheckDelta),
+			}}, testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithKeyGen(&mock.KeyGenMock{}),
@@ -1519,7 +1519,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 		node.WithProtoMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return make([]byte, 0), nil
-			}, 
+			},
 		}, testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
@@ -1901,7 +1901,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
@@ -1990,7 +1990,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
@@ -2079,7 +2079,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{
 			CheckForkCalled: func() *process.ForkInfo {
 				return &process.ForkInfo{}

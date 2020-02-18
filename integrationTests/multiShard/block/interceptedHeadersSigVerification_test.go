@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"

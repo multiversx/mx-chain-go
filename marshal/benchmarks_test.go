@@ -261,7 +261,7 @@ func (tx *Transaction) GenerateDummyArray() []interface{} {
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),
 				GasLimit:  uint64(rand.Int63n(10000)),
-				Data:      RandomStr(32),
+				Data:      []byte(RandomStr(32)),
 				Signature: []byte(RandomStr(32)),
 			},
 		})

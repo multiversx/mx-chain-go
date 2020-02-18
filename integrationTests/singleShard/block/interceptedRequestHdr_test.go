@@ -148,7 +148,7 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
 		Epoch:            2,
-		ShardId:          0,
+		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
 		PrevRandSeed:     make([]byte, 0),
@@ -165,7 +165,7 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
 		Epoch:            2,
-		ShardId:          0,
+		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
 		PrevRandSeed:     make([]byte, 0),
@@ -198,9 +198,6 @@ func wireUpHandler(
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			chanDone2 <- struct{}{}
 		}
-
-		assert.Failf(t, "Unknown header ", "%#v\nh1:\n%#v\nh2:\n%#v", hdrStored, &hdr1, &hdr2)
-
 	})
 
 	return chanDone1, chanDone2

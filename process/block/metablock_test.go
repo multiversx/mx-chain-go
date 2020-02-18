@@ -839,7 +839,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := &block.MetaBlock{}
-	_, err := mp.ApplyBodyToHeader(hdr, block.Body{})
+	_, err := mp.ApplyBodyToHeader(hdr, &block.Body{})
 	assert.Nil(t, err)
 }
 
@@ -860,7 +860,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
-	bodyHandler := block.Body{&block.MiniBlock{Type: 0}}
+	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: 0}}}
 	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
@@ -1582,7 +1582,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// test header not in pool and defer called
 	err := mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrMissingHeader, err)
-	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
+	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardID).GetNonce())
 
 	// wrong header type in pool and defer called
 	pool.Headers().AddHeader(currHash, metaHdr)
@@ -1592,7 +1592,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
+	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardID).GetNonce())
 
 	// put headers in pool
 	pool.Headers().AddHeader(currHash, currHdr)
@@ -1603,7 +1603,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
-	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))
+	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardID))
 }
 
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
@@ -1791,7 +1791,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	currHdr := &block.Header{
 		Round:        1,
 		Nonce:        1,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -2021,8 +2021,8 @@ func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	body := block.Body{}
-	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
 
 	hdr := &block.MetaBlock{}
 	hdr.Nonce = 1
@@ -2049,7 +2049,7 @@ func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 
 	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
 	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, uint32(69), body.MiniBlocks[0].ReceiverShardID)
 	assert.Equal(t, hdr, dcdHdr)
 	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }

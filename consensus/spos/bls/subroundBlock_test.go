@@ -854,7 +854,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 	})
 	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := consensus.NewConsensusMessage(

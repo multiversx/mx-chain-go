@@ -2095,14 +2095,25 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{
-		Type:            block.SmartContractResultBlock,
-		ReceiverShardID: shardCoordinator.SelfId(),
-		SenderShardID:   shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId(),
+				SenderShardID:   shardCoordinator.SelfId() + 1},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId() + 1,
+			},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }

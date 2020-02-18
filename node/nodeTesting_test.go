@@ -42,7 +42,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(marshalizerr, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),

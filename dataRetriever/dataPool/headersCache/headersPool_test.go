@@ -30,8 +30,8 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 
 	headerHash1 := []byte("hash1")
 	headerHash2 := []byte("hash2")
-	testHdr1 := &block.Header{Nonce: nonce, ShardId: shardId}
-	testHdr2 := &block.Header{Nonce: nonce, ShardId: shardId, Round: 100}
+	testHdr1 := &block.Header{Nonce: nonce, ShardID: shardId}
+	testHdr2 := &block.Header{Nonce: nonce, ShardID: shardId, Round: 100}
 
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
@@ -64,8 +64,8 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 
 	headerHash1 := []byte("hash1")
 	headerHash2 := []byte("hash2")
-	testHdr1 := &block.Header{Nonce: nonce, ShardId: shardId}
-	testHdr2 := &block.Header{Nonce: nonce, ShardId: shardId, Round: 100}
+	testHdr1 := &block.Header{Nonce: nonce, ShardID: shardId}
+	testHdr2 := &block.Header{Nonce: nonce, ShardID: shardId, Round: 100}
 
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
@@ -95,8 +95,8 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T)
 
 	headerHash1 := []byte("hash1")
 	headerHash2 := []byte("hash2")
-	testHdr1 := &block.Header{Nonce: nonce, ShardId: shardId}
-	testHdr2 := &block.Header{Nonce: nonce, ShardId: shardId, Round: 100}
+	testHdr1 := &block.Header{Nonce: nonce, ShardID: shardId}
+	testHdr2 := &block.Header{Nonce: nonce, ShardID: shardId, Round: 100}
 
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
@@ -607,7 +607,7 @@ func createASliceOfHeaders(numHeaders int, shardId uint32) ([]block.Header, [][]
 	headers := make([]block.Header, 0)
 	headersHashes := make([][]byte, 0)
 	for i := 0; i < numHeaders; i++ {
-		headers = append(headers, block.Header{Nonce: uint64(i), ShardId: shardId})
+		headers = append(headers, block.Header{Nonce: uint64(i), ShardID: shardId})
 		headersHashes = append(headersHashes, []byte(fmt.Sprintf("%d_%d", shardId, i)))
 	}
 
@@ -618,7 +618,7 @@ func createASliceOfHeadersNonce0(numHeaders int, shardId uint32) ([]block.Header
 	headers := make([]block.Header, 0)
 	headersHashes := make([][]byte, 0)
 	for i := 0; i < numHeaders; i++ {
-		headers = append(headers, block.Header{Nonce: 0, ShardId: shardId})
+		headers = append(headers, block.Header{Nonce: 0, ShardID: shardId})
 		headersHashes = append(headersHashes, []byte(fmt.Sprintf("%d_%d", shardId, i)))
 	}
 

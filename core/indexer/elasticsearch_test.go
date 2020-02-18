@@ -70,13 +70,13 @@ func newTestBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			&block.MiniBlock{
-				TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, 
-				ReceiverShardID: 2, 
-				SenderShardID: 2},,
+				TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+				ReceiverShardID: 2,
+				SenderShardID:   2},
 			&block.MiniBlock{
-				TxHashes: [][]byte{[]byte("tx3")}, 
-				ReceiverShardID: 4, 
-				SenderShardID: 1},
+				TxHashes:        [][]byte{[]byte("tx3")},
+				ReceiverShardID: 4,
+				SenderShardID:   1},
 		},
 	}
 }

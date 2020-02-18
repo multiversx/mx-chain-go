@@ -61,7 +61,7 @@ func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(nil, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(nil, &mock.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
@@ -70,7 +70,7 @@ func TestRequestData_UnmarshalNilMessageP2P(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerMock{}, nil)
+	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, nil)
 	require.Equal(t, dataRetriever.ErrNilMessage, err)
 }
 
@@ -79,7 +79,7 @@ func TestRequestData_UnmarshalNilMessageData(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerMock{}, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, &mock.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilDataToProcess, err)
 }
 
@@ -89,7 +89,7 @@ func TestRequestData_CannotUnmarshal(t *testing.T) {
 	localErr := errors.New("err")
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerStub{
+	err := requestData.UnmarshalWith(&mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return localErr
 		},
@@ -104,7 +104,7 @@ func TestRequestData_UnmarshalOk(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerStub{
+	err := requestData.UnmarshalWith(&mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},

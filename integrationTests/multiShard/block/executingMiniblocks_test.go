@@ -298,9 +298,9 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		}
 
 		bodyHandler := node.BlockChain.GetCurrentBlockBody()
-		body, _ := bodyHandler.(block.Body)
+		body, _ := bodyHandler.(*block.Body)
 		numInvalid := 0
-		for _, mb := range body {
+		for _, mb := range body.MiniBlocks {
 			if mb.Type == block.InvalidBlock {
 				numInvalid++
 			}

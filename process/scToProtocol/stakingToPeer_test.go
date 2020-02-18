@@ -265,9 +265,9 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &state.PeerAccount{
 			PeerAccountData: state.PeerAccountData{
-				Address:      []byte("addr"),
-				RewardAddress: []byte("BlsAddr"),
-				Stake:        big.NewInt(100),
+				RewardAddress: []byte("addr"),
+				BLSPublicKey:  []byte("BlsAddr"),
+				Stake:         big.NewInt(100),
 			},
 		}, nil
 	}

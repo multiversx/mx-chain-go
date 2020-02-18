@@ -42,7 +42,7 @@ func createGenesisShardHeader(ShardID uint32) *block.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       ShardID,
+		ShardID:       ShardID,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
@@ -616,7 +616,7 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -636,13 +636,13 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	hdr1 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	hdr1Hash := []byte("hash1")
 
 	hdr2 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   2,
 	}
 	hdr2Hash := []byte("hash2")
@@ -679,7 +679,7 @@ func TestAddSelfNotarizedHeader_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -713,7 +713,7 @@ func TestCleanupHeadersBehindNonce_ShouldCleanSelfNotarizedHeaders(t *testing.T)
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -748,7 +748,7 @@ func TestCleanupHeadersBehindNonce_ShouldCleanCrossNotarizedHeaders(t *testing.T
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -781,7 +781,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldReturnWhenNonceIsZeroOrShardNotE
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -804,7 +804,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldNotCleanupWhenNonceIsGreaterOrEq
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -823,7 +823,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -954,7 +954,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	startHeaderShard0Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard0)
 
 	hdr1Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        1,
 		Nonce:        1,
 		PrevHash:     startHeaderShard0Hash,
@@ -963,7 +963,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard0)
 
 	hdr2Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        2,
 		Nonce:        2,
 		PrevHash:     hdr1Hash,
@@ -972,7 +972,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard0)
 
 	hdr3Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        3,
 		Nonce:        3,
 		PrevHash:     hdr2Hash,
@@ -988,7 +988,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	startHeaderShard1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard1)
 
 	hdr1Shard1 := &block.Header{
-		ShardId:      1,
+		ShardID:      1,
 		Round:        1,
 		Nonce:        1,
 		PrevHash:     startHeaderShard1Hash,
@@ -997,7 +997,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	hdr1Hash, _ = core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard1)
 
 	hdr2Shard1 := &block.Header{
-		ShardId:      1,
+		ShardID:      1,
 		Round:        2,
 		Nonce:        2,
 		PrevHash:     hdr1Hash,
@@ -1030,7 +1030,7 @@ func TestDisplayTrackedHeaders_ShouldNotPanic(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -1077,7 +1077,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotPanicWhenTheOnlyTrackedHeaderHas
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   0,
 	}
 	headerHash := []byte("hash")
@@ -1100,7 +1100,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotPanic(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -1164,14 +1164,14 @@ func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	shardHeader1Shard0 := &block.Header{
-		ShardId: 0,
+		ShardID: 0,
 		Nonce:   1,
 	}
 	shardHeaderHash1Shard0 := []byte("hash")
 	mbt.AddCrossNotarizedHeader(0, shardHeader1Shard0, shardHeaderHash1Shard0)
 
 	shardHeader1Shard1 := &block.Header{
-		ShardId: 1,
+		ShardID: 1,
 		Nonce:   1,
 	}
 	shardHeaderHash1Shard1 := []byte("hash")
@@ -1189,14 +1189,14 @@ func TestGetLastSelfNotarizedHeader_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header1 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash1 := []byte("hash")
 	sbt.AddSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), header1, headerHash1)
 
 	header2 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   2,
 	}
 	headerHash2 := []byte("hash")
@@ -1212,13 +1212,13 @@ func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	header1 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash1 := []byte("hash")
 
 	header2 := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   2,
 	}
 	headerHash2 := []byte("hash")
@@ -1239,13 +1239,13 @@ func TestGetTrackedHeadersForAllShards_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	shardHeader1Shard0 := &block.Header{
-		ShardId: 0,
+		ShardID: 0,
 		Nonce:   1,
 	}
 	shardHeaderHash1Shard0 := []byte("hash")
 
 	shardHeader1Shard1 := &block.Header{
-		ShardId: 1,
+		ShardID: 1,
 		Nonce:   1,
 	}
 	shardHeaderHash1Shard1 := []byte("hash")
@@ -1503,7 +1503,7 @@ func TestRemoveLastNotarizedHeaders_ShouldWork(t *testing.T) {
 	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -1537,7 +1537,7 @@ func TestRestoreToGenesis_ShouldWork(t *testing.T) {
 	sbt.AddTrackedHeader(metaBlock, metaBlockHash)
 
 	header := &block.Header{
-		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
 		Nonce:   1,
 	}
 	headerHash := []byte("hash")
@@ -1791,7 +1791,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCurrentShardGetFinalFailsShouldErr
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard,
+		ShardID: crtShard,
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
 
@@ -1813,7 +1813,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShould
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard + 1,
+		ShardID: crtShard + 1,
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
 
@@ -1831,7 +1831,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerRoundInBlockShouldErr(t *test
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
 				hdr := &block.Header{
-					ShardId: crtShard,
+					ShardID: crtShard,
 					Round:   finalRound,
 				}
 
@@ -1840,7 +1840,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerRoundInBlockShouldErr(t *test
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard,
+		ShardID: crtShard,
 		Round:   finalRound - 1,
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
@@ -1860,7 +1860,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerNonceInBlockShouldErr(t *test
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
 				hdr := &block.Header{
-					ShardId: crtShard,
+					ShardID: crtShard,
 					Round:   finalRound,
 					Nonce:   finalNonce,
 				}
@@ -1870,7 +1870,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerNonceInBlockShouldErr(t *test
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard,
+		ShardID: crtShard,
 		Round:   finalRound,
 		Nonce:   finalNonce - 1,
 	}
@@ -1891,7 +1891,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalHigherNonceInBlockShouldErr(t *tes
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
 				hdr := &block.Header{
-					ShardId: crtShard,
+					ShardID: crtShard,
 					Round:   finalRound,
 					Nonce:   finalNonce,
 				}
@@ -1901,7 +1901,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalHigherNonceInBlockShouldErr(t *tes
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard,
+		ShardID: crtShard,
 		Round:   finalRound + 1,
 		Nonce:   finalNonce + 2,
 	}
@@ -1922,7 +1922,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
 				hdr := &block.Header{
-					ShardId: crtShard,
+					ShardID: crtShard,
 					Round:   finalRound,
 					Nonce:   finalNonce,
 				}
@@ -1932,7 +1932,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 		},
 	)
 	hdr := &block.Header{
-		ShardId: crtShard,
+		ShardID: crtShard,
 		Round:   finalRound + 2,
 		Nonce:   finalNonce + 2,
 	}

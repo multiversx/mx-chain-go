@@ -162,13 +162,13 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 		fmt.Println(err.Error())
 	}
 
-	shardBlockBody, ok := blockBody.(block.Body)
+	shardBlockBody, ok := blockBody.(*block.Body)
 	txHashes := make([][]byte, 0)
 	if !ok {
 		return blockBody, blockHeader, txHashes
 	}
 
-	for _, mb := range shardBlockBody {
+	for _, mb := range shardBlockBody.MiniBlocks {
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)

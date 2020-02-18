@@ -20,7 +20,7 @@ func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T)
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
 
 	itn, err := NewInterceptedTrieNodeDataFactory(arg)
 	assert.Nil(t, itn)

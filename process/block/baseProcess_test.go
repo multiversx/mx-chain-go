@@ -421,7 +421,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	removeFromDataPoolWasCalled := false
 	arguments := CreateMockArguments()
 	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		RemoveBlockDataFromPoolCalled: func(body block.Body) error {
+		RemoveBlockDataFromPoolCalled: func(body *block.Body) error {
 			removeFromDataPoolWasCalled = true
 			return nil
 		},
@@ -663,7 +663,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	}
 	header := &block.Header{Round: 10, Nonce: 1}
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -691,7 +691,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	}
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -722,7 +722,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	}
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)

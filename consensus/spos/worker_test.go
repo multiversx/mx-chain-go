@@ -851,7 +851,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 			return roundStartTimeStamp
 		},
 	})
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -888,7 +888,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 	t.Parallel()
 
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1069,7 +1069,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		},
 	)
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,

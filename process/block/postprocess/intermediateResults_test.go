@@ -414,7 +414,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{
 		Type:            block.SmartContractResultBlock,
 		ReceiverShardID: shardCoordinator.SelfId(),

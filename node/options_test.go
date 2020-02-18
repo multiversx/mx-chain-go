@@ -85,7 +85,7 @@ func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
 	opt := WithProtoMarshalizer(marshalizer, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.True(t, node.marshalizer == marshalizer)
+	assert.True(t, node.protoMarshalizer == marshalizer)
 	assert.True(t, node.sizeCheckDelta == testSizeCheckDelta)
 	assert.Nil(t, err)
 }

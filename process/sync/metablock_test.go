@@ -1121,7 +1121,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		return nil
 	}
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
 		return body
 	}

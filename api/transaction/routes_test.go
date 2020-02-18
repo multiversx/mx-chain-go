@@ -45,7 +45,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
-	data := []byte("data")
+	txData := []byte("data")
 	hash := "hash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
@@ -90,7 +90,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    []byte(txData),
 				Value:   value,
 			}, nil
 		},

@@ -160,7 +160,7 @@ func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	header := &block2.Header{
-		ShardId: blockProcessorArguments.ShardCoordinator.SelfId(),
+		ShardID: blockProcessorArguments.ShardCoordinator.SelfId(),
 	}
 
 	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
@@ -195,7 +195,7 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	header := &block2.Header{
 		Round:   1,
 		Nonce:   1,
-		ShardId: blockProcessorArguments.ShardCoordinator.SelfId(),
+		ShardID: blockProcessorArguments.ShardCoordinator.SelfId(),
 	}
 	headerMarshalized, _ := marshalizerMock.Marshal(header)
 	headerHash := hasherMock.Compute(string(headerMarshalized))

@@ -132,8 +132,8 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 
 	expectedDownDuration := 1 * time.Second
 	expectedUpDuration := 1 * time.Second
-	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime().Duration)
-	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime().Duration)
+	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime())
+	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime())
 	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
@@ -161,8 +161,8 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 
 	expectedDownDuration := 1500 * time.Millisecond
 	expectedUpDuration := maxUnresponsiveTime
-	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime().Duration)
-	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime().Duration)
+	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime())
+	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime())
 	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }

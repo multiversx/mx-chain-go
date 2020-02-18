@@ -2124,7 +2124,7 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, block.Body{})
+	_, err := bp.ApplyBodyToHeader(hdr, &block.Body{})
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }
@@ -3030,8 +3030,8 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 
-	body := make(block.Body, 0)
-	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -3058,7 +3058,7 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 
 	dcdBlk, dcdHdr = sp.DecodeBlockBodyAndHeader(message)
 	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, uint32(69), body.MiniBlocks[0].ReceiverShardID)
 	assert.Equal(t, hdr, dcdHdr)
 	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }
@@ -3871,7 +3871,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
-	datapool.Headers().AddHeader([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
+	datapool.Headers().AddHeader([]byte("hash"), &block.Header{ShardID: 0, Nonce: 1})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
