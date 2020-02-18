@@ -129,7 +129,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 		return remainingTime > 0
 	}
 
-	blockHeader := &block.Header{}
+	blockHeader := node.BlockProcessor.CreateNewHeader()
 
 	blockHeader.SetShardID(0)
 	blockHeader.SetRound(round)
@@ -148,11 +148,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(node.ChainID)
 
-	blockBody, err := node.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockHeader, blockBody, err := node.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

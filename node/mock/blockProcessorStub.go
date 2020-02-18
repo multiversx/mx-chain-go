@@ -14,10 +14,9 @@ type BlockProcessorStub struct {
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -64,18 +63,13 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) err
 }
 
 // CreateBlockBody mocks the creation of a transaction block body
-func (bps *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	return bps.CreateBlockBodyCalled(initialHdrData, haveTime)
+func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	return bps.CreateBlockCalled(initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bps.RestoreBlockIntoPoolsCalled(header, body)
-}
-
-// ApplyBodyToHeader -
-func (bps *BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bps.ApplyBodyToHeaderCalled(header, body)
 }
 
 // MarshalizedDataToBroadcast -

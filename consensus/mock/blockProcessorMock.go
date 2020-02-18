@@ -15,10 +15,9 @@ type BlockProcessorMock struct {
 	RevertAccountStateCalled         func()
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -69,18 +68,13 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateBlockBody mocks the creation of a transaction block body
-func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
-}
-
-// ApplyBodyToHeader -
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bpm.ApplyBodyToHeaderCalled(hdr, body)
 }
 
 // MarshalizedDataToBroadcast -

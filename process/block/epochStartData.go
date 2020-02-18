@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"math/big"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -23,6 +22,7 @@ type epochStartData struct {
 	blockTracker      process.BlockTracker
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
+	startData         *block.EpochStart
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
@@ -354,71 +354,6 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block
 
 func (e *epochStartData) getMetaBlockByHash(metaHash []byte) (*block.MetaBlock, error) {
 	return process.GetMetaHeader(metaHash, e.dataPool.Headers(), e.marshalizer, e.store)
-}
-
-// ComputeRewardsPerBlock calculates the rewards per block value for the current epoch
-func (e *epochStartData) ComputeRewardsPerBlock(round uint64) error {
-	if !e.epochStartTrigger.IsEpochStart() || e.epochStartTrigger.Epoch() < 0 {
-		return process.ErrNotEpochStartBlock
-	}
-
-	maxPossibleRounds := e.epochStartTrigger
-
-	panic("implement me")
-}
-
-func (e *epochStartData) startNoncePerShardFromPreviousEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = 0
-	}
-	mapShardIdNonce[sharding.MetachainShardId] = 0
-
-	if epoch == 0 {
-		return mapShardIdNonce, nil, nil
-	}
-
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mapShardIdNonce[sharding.MetachainShardId] = previousEpochStartMeta.GetNonce()
-	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardId] = shardData.Nonce
-	}
-
-	return mapShardIdNonce, previousEpochStartMeta, nil
-}
-
-func (e *epochStartData) startNoncePerShardFromLastCrossNotarized(metaNonce uint64) (map[uint32]uint64, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = 0
-	}
-	mapShardIdNonce[sharding.MetachainShardId] = metaNonce
-
-	for shardID := uint32(0); shardID < e.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, _, err := e.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if err != nil {
-			return nil, err
-		}
-
-		mapShardIdNonce[shardID] = lastCrossNotarizedHeaderForShard.GetNonce()
-	}
-
-	return mapShardIdNonce, nil
-}
-
-// GetRewardsPerBlock returns the calculated rewards per block value
-func (e *epochStartData) GetRewardsPerBlock() *big.Int {
-	return big.NewInt(0)
-}
-
-// VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (e *epochStartData) VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error {
-	panic("implement me")
 }
 
 // IsInterfaceNil returns true if underlying object is nil

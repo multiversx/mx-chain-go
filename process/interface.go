@@ -201,9 +201,8 @@ type BlockProcessor interface {
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader() data.HeaderHandler
-	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
@@ -473,6 +472,7 @@ type PoolsCleaner interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
+	InflationRate() float64
 	IsInterfaceNil() bool
 }
 
@@ -626,9 +626,6 @@ type BlockTracker interface {
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
 	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
-	ComputeRewardsPerBlock(round uint64) error
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
-	GetRewardsPerBlock() *big.Int
 	IsInterfaceNil() bool
 }
 

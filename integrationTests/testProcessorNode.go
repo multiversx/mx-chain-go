@@ -1035,12 +1035,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
 
-	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, nil, nil
-	}
-	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil

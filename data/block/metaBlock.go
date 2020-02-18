@@ -95,6 +95,10 @@ type EpochStartShardData struct {
 // EpochStart holds the block information for end-of-epoch
 type EpochStart struct {
 	LastFinalizedHeaders []EpochStartShardData
+	TotalSupply          *big.Int
+	TotalDistributed     *big.Int
+	TotalNewlyMinted     *big.Int
+	RewardsPerBlock      *big.Int
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round

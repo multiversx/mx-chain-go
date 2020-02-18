@@ -114,7 +114,7 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 
 func checkValues(economics *config.ConfigEconomics) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage){
+		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -132,6 +132,11 @@ func isPercentageInvalid(percentage float64) bool {
 
 // LeaderPercentage will return leader reward percentage
 func (ed *EconomicsData) LeaderPercentage() float64 {
+	return ed.leaderPercentage
+}
+
+// InflationRate will return the inflation rate
+func (ed *EconomicsData) InflationRate() float64 {
 	return ed.leaderPercentage
 }
 

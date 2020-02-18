@@ -14,10 +14,9 @@ type BlockProcessorMock struct {
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -65,18 +64,13 @@ func (bpm *BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) 
 }
 
 // CreateBlockBody -
-func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
-}
-
-// ApplyBodyToHeader -
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bpm.ApplyBodyToHeaderCalled(header, body)
 }
 
 // MarshalizedDataToBroadcast -
