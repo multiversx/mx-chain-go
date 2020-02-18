@@ -14,6 +14,8 @@ type txListForSender struct {
 	items                 *list.List
 	mutex                 sync.Mutex
 	copyBatchIndex        *list.Element
+	copyPreviousNonce     uint64
+	copyDetectedGap       bool
 	totalBytes            atomic.Counter
 	totalGas              atomic.Counter
 	totalFee              atomic.Counter
@@ -22,6 +24,8 @@ type txListForSender struct {
 	scoreChangeInProgress atomic.Flag
 	lastComputedScore     atomic.Uint32
 	cacheConfig           *CacheConfig
+	// TODO accountNonce
+	// TODO gapPenalty
 }
 
 // txListForSenderNode is a node of the linked list
@@ -165,12 +169,17 @@ func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []
 	// Reset the internal state used for copy operations
 	if withReset {
 		listForSender.copyBatchIndex = listForSender.items.Front()
+		listForSender.copyPreviousNonce = 0
+		listForSender.copyDetectedGap = false
 	}
 
 	element := listForSender.copyBatchIndex
 	availableSpace := len(destination)
+	detectedGap := listForSender.copyDetectedGap
+	shouldSkipCopy := element == nil || detectedGap
+	previousNonce := listForSender.copyPreviousNonce
 
-	if element == nil {
+	if shouldSkipCopy {
 		return 0
 	}
 
@@ -181,12 +190,22 @@ func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []
 		}
 
 		value := element.Value.(txListForSenderNode)
-		destination[copied] = value.tx
+		tx := value.tx
+		txNonce := tx.GetNonce()
+
+		if previousNonce > 0 && txNonce > previousNonce+1 {
+			listForSender.copyDetectedGap = true
+			break
+		}
+
+		destination[copied] = tx
 		destinationHashes[copied] = value.txHash
 		element = element.Next()
+		previousNonce = txNonce
 	}
 
 	listForSender.copyBatchIndex = element
+	listForSender.copyPreviousNonce = previousNonce
 	return copied
 }
 

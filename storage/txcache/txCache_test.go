@@ -156,6 +156,27 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 	require.Len(t, sorted, 8)
 }
 
+func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
+	cache := newCacheToTest()
+
+	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
+	cache.AddTx([]byte("hash-alice-2"), createTx("alice", 2))
+	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
+	cache.AddTx([]byte("hash-alice-5"), createTx("alice", 5))
+	cache.AddTx([]byte("hash-bob-42"), createTx("bob", 42))
+	cache.AddTx([]byte("hash-bob-44"), createTx("bob", 44))
+	cache.AddTx([]byte("hash-bob-45"), createTx("bob", 45))
+	cache.AddTx([]byte("hash-carol-7"), createTx("carol", 7))
+	cache.AddTx([]byte("hash-carol-8"), createTx("carol", 8))
+	cache.AddTx([]byte("hash-carol-10"), createTx("carol", 10))
+	cache.AddTx([]byte("hash-carol-11"), createTx("carol", 11))
+
+	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+
+	sorted, _ := cache.SelectTransactions(10, 2)
+	require.Len(t, sorted, numSelected)
+}
+
 func Test_SelectTransactions(t *testing.T) {
 	cache := newCacheToTest()
 
