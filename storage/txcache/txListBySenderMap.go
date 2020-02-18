@@ -108,6 +108,17 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
+func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
+	sender := string(accountKey)
+	listForSender, ok := txMap.getListForSender(sender)
+	if !ok {
+		// Discard the notification
+		return
+	}
+
+	listForSender.notifyAccountNonce(nonce)
+}
+
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
 	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))

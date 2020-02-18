@@ -219,6 +219,12 @@ func (cache *TxCache) RegisterHandler(func(key []byte)) {
 	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
+// NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
+// in order to inform the cache about initial nonce gap phenomena
+func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil

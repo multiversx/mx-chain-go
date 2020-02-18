@@ -24,8 +24,8 @@ type txListForSender struct {
 	scoreChangeInProgress atomic.Flag
 	lastComputedScore     atomic.Uint32
 	cacheConfig           *CacheConfig
-	// TODO accountNonce
-	// TODO gapPenalty
+	accountNonce          atomic.Uint64
+	gapPenalty            atomic.Uint32
 }
 
 // txListForSenderNode is a node of the linked list
@@ -250,4 +250,8 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	}
 
 	return count
+}
+
+func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
+	listForSender.accountNonce.Set(nonce)
 }
