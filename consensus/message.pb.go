@@ -28,13 +28,16 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 type Message struct {
-	BlockHeaderHash []byte `protobuf:"bytes,1,opt,name=BlockHeaderHash,proto3" json:"BlockHeaderHash,omitempty"`
-	SubRoundData    []byte `protobuf:"bytes,2,opt,name=SubRoundData,proto3" json:"SubRoundData,omitempty"`
-	PubKey          []byte `protobuf:"bytes,3,opt,name=PubKey,proto3" json:"PubKey,omitempty"`
-	Signature       []byte `protobuf:"bytes,4,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	MsgType         int64  `protobuf:"varint,5,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
-	TimeStamp       uint64 `protobuf:"varint,6,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
-	RoundIndex      int64  `protobuf:"varint,7,opt,name=RoundIndex,proto3" json:"RoundIndex,omitempty"`
+	BlockHeaderHash    []byte `protobuf:"bytes,1,opt,name=BlockHeaderHash,proto3" json:"BlockHeaderHash,omitempty"`
+	SubRoundData       []byte `protobuf:"bytes,2,opt,name=SubRoundData,proto3" json:"SubRoundData,omitempty"`
+	PubKey             []byte `protobuf:"bytes,3,opt,name=PubKey,proto3" json:"PubKey,omitempty"`
+	Signature          []byte `protobuf:"bytes,4,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	MsgType            int64  `protobuf:"varint,5,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
+	RoundIndex         int64  `protobuf:"varint,7,opt,name=RoundIndex,proto3" json:"RoundIndex,omitempty"`
+	ChainID            []byte `protobuf:"bytes,8,opt,name=ChainID,proto3" json:"ChainID,omitempty"`
+	PubKeysBitmap      []byte `protobuf:"bytes,9,opt,name=PubKeysBitmap,proto3" json:"PubKeysBitmap,omitempty"`
+	AggregateSignature []byte `protobuf:"bytes,10,opt,name=AggregateSignature,proto3" json:"AggregateSignature,omitempty"`
+	LeaderSignature    []byte `protobuf:"bytes,11,opt,name=LeaderSignature,proto3" json:"LeaderSignature,omitempty"`
 }
 
 func (m *Message) Reset()      { *m = Message{} }
@@ -104,18 +107,39 @@ func (m *Message) GetMsgType() int64 {
 	return 0
 }
 
-func (m *Message) GetTimeStamp() uint64 {
-	if m != nil {
-		return m.TimeStamp
-	}
-	return 0
-}
-
 func (m *Message) GetRoundIndex() int64 {
 	if m != nil {
 		return m.RoundIndex
 	}
 	return 0
+}
+
+func (m *Message) GetChainID() []byte {
+	if m != nil {
+		return m.ChainID
+	}
+	return nil
+}
+
+func (m *Message) GetPubKeysBitmap() []byte {
+	if m != nil {
+		return m.PubKeysBitmap
+	}
+	return nil
+}
+
+func (m *Message) GetAggregateSignature() []byte {
+	if m != nil {
+		return m.AggregateSignature
+	}
+	return nil
+}
+
+func (m *Message) GetLeaderSignature() []byte {
+	if m != nil {
+		return m.LeaderSignature
+	}
+	return nil
 }
 
 func init() {
@@ -125,26 +149,28 @@ func init() {
 func init() { proto.RegisterFile("message.proto", fileDescriptor_33c57e4bae7b9afd) }
 
 var fileDescriptor_33c57e4bae7b9afd = []byte{
-	// 292 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x90, 0x4f, 0x4a, 0x03, 0x31,
-	0x14, 0xc6, 0xf3, 0xec, 0x3f, 0x1a, 0x2a, 0x42, 0x16, 0x12, 0x44, 0x1e, 0xa5, 0xab, 0xd9, 0xd8,
-	0x2e, 0x3c, 0x80, 0x50, 0x5c, 0x54, 0xa4, 0x20, 0xd3, 0xae, 0xdc, 0x65, 0xda, 0x98, 0x0e, 0x3a,
-	0x93, 0x61, 0x32, 0x01, 0xbb, 0xf3, 0x08, 0x1e, 0xc3, 0xa3, 0xb8, 0x9c, 0x65, 0x97, 0x4e, 0x06,
-	0xc1, 0x65, 0x8f, 0x20, 0xa6, 0x4a, 0xd5, 0x55, 0xf2, 0xfb, 0x7d, 0xf9, 0xf2, 0xe0, 0xd1, 0xc3,
-	0x44, 0x1a, 0x23, 0x94, 0x1c, 0x66, 0xb9, 0x2e, 0x34, 0x6b, 0xf9, 0xe3, 0xe4, 0x4c, 0xc5, 0xc5,
-	0xca, 0x46, 0xc3, 0x85, 0x4e, 0x46, 0x4a, 0x2b, 0x3d, 0xf2, 0x3a, 0xb2, 0x77, 0x9e, 0x3c, 0xf8,
-	0xdb, 0xae, 0x35, 0x78, 0x07, 0xda, 0x99, 0xee, 0xfe, 0x61, 0x01, 0x3d, 0x1a, 0x3f, 0xe8, 0xc5,
-	0xfd, 0x44, 0x8a, 0xa5, 0xcc, 0x27, 0xc2, 0xac, 0x38, 0xf4, 0x21, 0xe8, 0x85, 0xff, 0x35, 0x1b,
-	0xd0, 0xde, 0xcc, 0x46, 0xa1, 0xb6, 0xe9, 0xf2, 0x52, 0x14, 0x82, 0x1f, 0xf8, 0x67, 0x7f, 0x1c,
-	0x3b, 0xa6, 0xed, 0x1b, 0x1b, 0x5d, 0xcb, 0x35, 0x6f, 0xf8, 0xf4, 0x9b, 0xd8, 0x29, 0xed, 0xce,
-	0x62, 0x95, 0x8a, 0xc2, 0xe6, 0x92, 0x37, 0x7d, 0xb4, 0x17, 0x8c, 0xd3, 0xce, 0xd4, 0xa8, 0xf9,
-	0x3a, 0x93, 0xbc, 0xd5, 0x87, 0xa0, 0x11, 0xfe, 0xe0, 0x57, 0x6f, 0x1e, 0x27, 0x72, 0x56, 0x88,
-	0x24, 0xe3, 0xed, 0x3e, 0x04, 0xcd, 0x70, 0x2f, 0x18, 0x52, 0xea, 0x47, 0x5f, 0xa5, 0x4b, 0xf9,
-	0xc8, 0x3b, 0xbe, 0xfa, 0xcb, 0x8c, 0x2f, 0xca, 0x0a, 0xc9, 0xa6, 0x42, 0xb2, 0xad, 0x10, 0x9e,
-	0x1c, 0xc2, 0x8b, 0x43, 0x78, 0x75, 0x08, 0xa5, 0x43, 0x78, 0x73, 0x08, 0x1f, 0x0e, 0xc9, 0xd6,
-	0x21, 0x3c, 0xd7, 0x48, 0xca, 0x1a, 0xc9, 0xa6, 0x46, 0x72, 0xdb, 0x5d, 0xe8, 0xd4, 0xc8, 0xd4,
-	0x58, 0x13, 0xb5, 0xfd, 0xbe, 0xce, 0x3f, 0x03, 0x00, 0x00, 0xff, 0xff, 0xdc, 0x84, 0x8c, 0xc9,
-	0x76, 0x01, 0x00, 0x00,
+	// 333 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x91, 0xb1, 0x4e, 0x02, 0x31,
+	0x18, 0xc7, 0xaf, 0x20, 0x20, 0x15, 0x62, 0xd2, 0xc1, 0x34, 0xc6, 0x7c, 0x21, 0xc4, 0x81, 0x45,
+	0x18, 0x7c, 0x00, 0x23, 0x32, 0x40, 0x94, 0xc4, 0x80, 0x93, 0x5b, 0x0f, 0x6a, 0xb9, 0x28, 0x57,
+	0x72, 0xbd, 0x26, 0xb2, 0xf9, 0x08, 0x3e, 0x86, 0x8f, 0xe2, 0xc8, 0xc8, 0xe8, 0x95, 0xc5, 0x91,
+	0x47, 0x30, 0x7c, 0x27, 0x39, 0x21, 0x4e, 0x77, 0xff, 0xdf, 0xff, 0xfb, 0xfe, 0x6d, 0xfe, 0xa5,
+	0xd5, 0xa9, 0x34, 0x46, 0x28, 0xd9, 0x9c, 0x45, 0x3a, 0xd6, 0xac, 0x80, 0x9f, 0xd3, 0x0b, 0x15,
+	0xc4, 0x13, 0xeb, 0x37, 0x47, 0x7a, 0xda, 0x52, 0x5a, 0xe9, 0x16, 0x62, 0xdf, 0x3e, 0xa1, 0x42,
+	0x81, 0x7f, 0xe9, 0x56, 0x3d, 0xc9, 0xd1, 0x52, 0x3f, 0xcd, 0x61, 0x0d, 0x7a, 0xdc, 0x7e, 0xd1,
+	0xa3, 0xe7, 0xae, 0x14, 0x63, 0x19, 0x75, 0x85, 0x99, 0x70, 0x52, 0x23, 0x8d, 0xca, 0x60, 0x1f,
+	0xb3, 0x3a, 0xad, 0x0c, 0xad, 0x3f, 0xd0, 0x36, 0x1c, 0x77, 0x44, 0x2c, 0x78, 0x0e, 0xc7, 0x76,
+	0x18, 0x3b, 0xa1, 0xc5, 0x7b, 0xeb, 0xdf, 0xca, 0x39, 0xcf, 0xa3, 0xfb, 0xab, 0xd8, 0x19, 0x2d,
+	0x0f, 0x03, 0x15, 0x8a, 0xd8, 0x46, 0x92, 0x1f, 0xa0, 0x95, 0x01, 0xc6, 0x69, 0xa9, 0x6f, 0xd4,
+	0xc3, 0x7c, 0x26, 0x79, 0xa1, 0x46, 0x1a, 0xf9, 0xc1, 0x56, 0x32, 0xa0, 0x14, 0xc3, 0x7b, 0xe1,
+	0x58, 0xbe, 0xf2, 0x12, 0x9a, 0x7f, 0xc8, 0x66, 0xf3, 0x66, 0x22, 0x82, 0xb0, 0xd7, 0xe1, 0x87,
+	0x98, 0xba, 0x95, 0xec, 0x9c, 0x56, 0xd3, 0xb3, 0x4d, 0x3b, 0x88, 0xa7, 0x62, 0xc6, 0xcb, 0xe8,
+	0xef, 0x42, 0xd6, 0xa4, 0xec, 0x5a, 0xa9, 0x48, 0x2a, 0x11, 0xcb, 0xec, 0x82, 0x14, 0x47, 0xff,
+	0x71, 0x36, 0x6d, 0xdd, 0x61, 0x23, 0xd9, 0xf0, 0x51, 0xda, 0xd6, 0x1e, 0x6e, 0x5f, 0x2d, 0x12,
+	0xf0, 0x96, 0x09, 0x78, 0xeb, 0x04, 0xc8, 0x9b, 0x03, 0xf2, 0xe1, 0x80, 0x7c, 0x3a, 0x20, 0x0b,
+	0x07, 0xe4, 0xcb, 0x01, 0xf9, 0x76, 0xe0, 0xad, 0x1d, 0x90, 0xf7, 0x15, 0x78, 0x8b, 0x15, 0x78,
+	0xcb, 0x15, 0x78, 0x8f, 0xe5, 0x91, 0x0e, 0x8d, 0x0c, 0x8d, 0x35, 0x7e, 0x11, 0xdf, 0xea, 0xf2,
+	0x27, 0x00, 0x00, 0xff, 0xff, 0x32, 0x8e, 0xf0, 0xf3, 0xf2, 0x01, 0x00, 0x00,
 }
 
 func (this *Message) Equal(that interface{}) bool {
@@ -181,10 +207,19 @@ func (this *Message) Equal(that interface{}) bool {
 	if this.MsgType != that1.MsgType {
 		return false
 	}
-	if this.TimeStamp != that1.TimeStamp {
+	if this.RoundIndex != that1.RoundIndex {
 		return false
 	}
-	if this.RoundIndex != that1.RoundIndex {
+	if !bytes.Equal(this.ChainID, that1.ChainID) {
+		return false
+	}
+	if !bytes.Equal(this.PubKeysBitmap, that1.PubKeysBitmap) {
+		return false
+	}
+	if !bytes.Equal(this.AggregateSignature, that1.AggregateSignature) {
+		return false
+	}
+	if !bytes.Equal(this.LeaderSignature, that1.LeaderSignature) {
 		return false
 	}
 	return true
@@ -193,15 +228,18 @@ func (this *Message) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 11)
+	s := make([]string, 0, 14)
 	s = append(s, "&consensus.Message{")
 	s = append(s, "BlockHeaderHash: "+fmt.Sprintf("%#v", this.BlockHeaderHash)+",\n")
 	s = append(s, "SubRoundData: "+fmt.Sprintf("%#v", this.SubRoundData)+",\n")
 	s = append(s, "PubKey: "+fmt.Sprintf("%#v", this.PubKey)+",\n")
 	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
 	s = append(s, "MsgType: "+fmt.Sprintf("%#v", this.MsgType)+",\n")
-	s = append(s, "TimeStamp: "+fmt.Sprintf("%#v", this.TimeStamp)+",\n")
 	s = append(s, "RoundIndex: "+fmt.Sprintf("%#v", this.RoundIndex)+",\n")
+	s = append(s, "ChainID: "+fmt.Sprintf("%#v", this.ChainID)+",\n")
+	s = append(s, "PubKeysBitmap: "+fmt.Sprintf("%#v", this.PubKeysBitmap)+",\n")
+	s = append(s, "AggregateSignature: "+fmt.Sprintf("%#v", this.AggregateSignature)+",\n")
+	s = append(s, "LeaderSignature: "+fmt.Sprintf("%#v", this.LeaderSignature)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -233,15 +271,38 @@ func (m *Message) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.LeaderSignature) > 0 {
+		i -= len(m.LeaderSignature)
+		copy(dAtA[i:], m.LeaderSignature)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.LeaderSignature)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.AggregateSignature) > 0 {
+		i -= len(m.AggregateSignature)
+		copy(dAtA[i:], m.AggregateSignature)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.AggregateSignature)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.PubKeysBitmap) > 0 {
+		i -= len(m.PubKeysBitmap)
+		copy(dAtA[i:], m.PubKeysBitmap)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.PubKeysBitmap)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.ChainID) > 0 {
+		i -= len(m.ChainID)
+		copy(dAtA[i:], m.ChainID)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.ChainID)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.RoundIndex != 0 {
 		i = encodeVarintMessage(dAtA, i, uint64(m.RoundIndex))
 		i--
 		dAtA[i] = 0x38
-	}
-	if m.TimeStamp != 0 {
-		i = encodeVarintMessage(dAtA, i, uint64(m.TimeStamp))
-		i--
-		dAtA[i] = 0x30
 	}
 	if m.MsgType != 0 {
 		i = encodeVarintMessage(dAtA, i, uint64(m.MsgType))
@@ -315,11 +376,24 @@ func (m *Message) Size() (n int) {
 	if m.MsgType != 0 {
 		n += 1 + sovMessage(uint64(m.MsgType))
 	}
-	if m.TimeStamp != 0 {
-		n += 1 + sovMessage(uint64(m.TimeStamp))
-	}
 	if m.RoundIndex != 0 {
 		n += 1 + sovMessage(uint64(m.RoundIndex))
+	}
+	l = len(m.ChainID)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	l = len(m.PubKeysBitmap)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	l = len(m.AggregateSignature)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	l = len(m.LeaderSignature)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
 	}
 	return n
 }
@@ -340,8 +414,11 @@ func (this *Message) String() string {
 		`PubKey:` + fmt.Sprintf("%v", this.PubKey) + `,`,
 		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
 		`MsgType:` + fmt.Sprintf("%v", this.MsgType) + `,`,
-		`TimeStamp:` + fmt.Sprintf("%v", this.TimeStamp) + `,`,
 		`RoundIndex:` + fmt.Sprintf("%v", this.RoundIndex) + `,`,
+		`ChainID:` + fmt.Sprintf("%v", this.ChainID) + `,`,
+		`PubKeysBitmap:` + fmt.Sprintf("%v", this.PubKeysBitmap) + `,`,
+		`AggregateSignature:` + fmt.Sprintf("%v", this.AggregateSignature) + `,`,
+		`LeaderSignature:` + fmt.Sprintf("%v", this.LeaderSignature) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -538,25 +615,6 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TimeStamp", wireType)
-			}
-			m.TimeStamp = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowMessage
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TimeStamp |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RoundIndex", wireType)
@@ -576,6 +634,142 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChainID = append(m.ChainID[:0], dAtA[iNdEx:postIndex]...)
+			if m.ChainID == nil {
+				m.ChainID = []byte{}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PubKeysBitmap", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PubKeysBitmap = append(m.PubKeysBitmap[:0], dAtA[iNdEx:postIndex]...)
+			if m.PubKeysBitmap == nil {
+				m.PubKeysBitmap = []byte{}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AggregateSignature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AggregateSignature = append(m.AggregateSignature[:0], dAtA[iNdEx:postIndex]...)
+			if m.AggregateSignature == nil {
+				m.AggregateSignature = []byte{}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaderSignature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaderSignature = append(m.LeaderSignature[:0], dAtA[iNdEx:postIndex]...)
+			if m.LeaderSignature == nil {
+				m.LeaderSignature = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMessage(dAtA[iNdEx:])

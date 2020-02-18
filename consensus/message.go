@@ -22,7 +22,7 @@ func NewConsensusMessage(
 		SubRoundData:       subRoundData,
 		PubKey:             pubKey,
 		Signature:          sig,
-		MsgType:            msg,
+		MsgType:            int64(msg),
 		RoundIndex:         roundIndex,
 		ChainID:            chainID,
 		PubKeysBitmap:      pubKeysBitmap,
