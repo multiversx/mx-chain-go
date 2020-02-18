@@ -60,5 +60,5 @@
 [Sharding]
     # Number of ptiority bits used
     PrioBits = 4
-    MaxIntraShard = 15
-    MaxCrossShard = 15
+    MaxIntraShard = 24
+    MaxCrossShard = 8
