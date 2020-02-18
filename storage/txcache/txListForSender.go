@@ -11,6 +11,7 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
+	// TODO: RWMutex for some operations?
 	items                 *list.List
 	mutex                 sync.Mutex
 	copyBatchIndex        *list.Element
@@ -25,7 +26,8 @@ type txListForSender struct {
 	lastComputedScore     atomic.Uint32
 	cacheConfig           *CacheConfig
 	accountNonce          atomic.Uint64
-	gapPenalty            atomic.Uint32
+	accountNonceKnown     atomic.Flag
+	initialGapPenalty     atomic.Counter
 }
 
 // txListForSenderNode is a node of the linked list
@@ -67,6 +69,7 @@ func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHand
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
+	listForSender.updateInitialGapPenalty()
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -229,7 +232,6 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 	defer listForSender.mutex.Unlock()
 
 	back := listForSender.items.Back()
-
 	if back == nil {
 		return nil
 	}
@@ -238,7 +240,19 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 	return value.tx
 }
 
+func (listForSender *txListForSender) getLowestNonceTx() data.TransactionHandler {
+	// TODO / comment: Only called within lock.
+	front := listForSender.items.Front()
+	if front == nil {
+		return nil
+	}
+
+	value := front.Value.(txListForSenderNode)
+	return value.tx
+}
+
 func (listForSender *txListForSender) countTx() uint64 {
+	// TODO: check why no data race here? Write unit test.
 	return uint64(listForSender.items.Len())
 }
 
@@ -253,5 +267,33 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 }
 
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
+	// TODO: RWmutex?
 	listForSender.accountNonce.Set(nonce)
+	listForSender.accountNonceKnown.Set()
+	listForSender.updateInitialGapPenalty()
+}
+
+func (listForSender *txListForSender) updateInitialGapPenalty() {
+	if listForSender.hasInitialGap() {
+		listForSender.initialGapPenalty.Increment()
+	} else {
+		listForSender.initialGapPenalty.Reset()
+	}
+}
+
+func (listForSender *txListForSender) hasInitialGap() bool {
+	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
+	if !accountNonceKnown {
+		return false
+	}
+
+	firstTx := listForSender.getLowestNonceTx()
+	if firstTx == nil {
+		return false
+	}
+
+	firstTxNonce := firstTx.GetNonce()
+	accountNonce := listForSender.accountNonce.Get()
+	hasGap := firstTxNonce > accountNonce
+	return hasGap
 }
