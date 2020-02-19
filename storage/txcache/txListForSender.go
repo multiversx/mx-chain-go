@@ -27,7 +27,7 @@ type txListForSender struct {
 	cacheConfig           *CacheConfig
 	accountNonce          atomic.Uint64
 	accountNonceKnown     atomic.Flag
-	initialGapPenalty     atomic.Counter
+	initialGapPenalty     atomic.Counter // TODO: count failed selections instead?
 }
 
 // txListForSenderNode is a node of the linked list
