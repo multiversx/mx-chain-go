@@ -252,7 +252,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.doExpandEligibleList(shardId)
+	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
 
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,

@@ -31,3 +31,7 @@ func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
 
 	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
 }
+
+func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
+	return vs.updateMissedBlocksCounters()
+}

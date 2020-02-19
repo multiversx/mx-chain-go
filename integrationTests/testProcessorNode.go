@@ -525,7 +525,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		SizeCheckDelta:           100,
 	}
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()

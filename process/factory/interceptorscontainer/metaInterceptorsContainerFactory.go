@@ -1,6 +1,7 @@
 package interceptorscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -11,7 +12,6 @@ import (
 	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ process.InterceptorsContainerFactory = (*metaInterceptorsContainerFactory)(nil)
@@ -286,7 +286,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err
@@ -295,7 +295,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err

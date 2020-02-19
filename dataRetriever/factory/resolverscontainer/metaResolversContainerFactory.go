@@ -1,6 +1,7 @@
 package resolverscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*metaResolversContainerFactory)(nil)
@@ -164,7 +164,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic strin
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic
-	resolver, err := mrcf.createMetaChainHeaderResolver(identifierHeader, sharding.MetachainShardId)
+	resolver, err := mrcf.createMetaChainHeaderResolver(identifierHeader, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return err

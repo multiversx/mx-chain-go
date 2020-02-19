@@ -772,8 +772,8 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 
 func (bp *baseProcessor) getShardForSelfNotarized(shardID uint32) uint32 {
 	isSelfShard := shardID == bp.shardCoordinator.SelfId()
-	if isSelfShard && bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		return sharding.MetachainShardId
+	if isSelfShard && bp.shardCoordinator.SelfId() != core.MetachainShardId {
+		return core.MetachainShardId
 	}
 
 	return shardID

@@ -954,7 +954,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0, 0)
+	_ = validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0, 0)
+	err := validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Equal(t, decreaseErr, err)
 }
 
@@ -964,13 +965,13 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	currentHeaderRound := 10
 	previousHeaderRound := 4
 	decreaseCount := 0
-
+	pubKey := []byte("pubKey")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
 	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateWithJournalCalled: func(value uint32) error {
-				decreaseCount++
+				decreaseCount += 5
 				return nil
 			},
 		}, nil
@@ -980,7 +981,11 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
-				&mock.ValidatorMock{},
+				&mock.ValidatorMock{
+					PubKeyCalled: func() []byte {
+						return pubKey
+					},
+				},
 			}, nil
 		},
 	}
@@ -995,6 +1000,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
 	counters := validatorStatistics.GetLeaderDecreaseCount(pubKey)
+	_ = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Equal(t, uint32(currentHeaderRound-previousHeaderRound-1), counters)
 }
 

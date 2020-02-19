@@ -188,8 +188,8 @@ func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2MetaRequester, node3MetaResolver}
 	//update to a "safe" round number
@@ -282,7 +282,7 @@ func requestAndRetrieveMetaHeadersByNonce(
 
 	node.RequestHandler.RequestMetaHeaderByNonce(nonce)
 	time.Sleep(time.Second * 2)
-	retrievedObject, _, _ := node.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	retrievedObject, _, _ := node.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 
 	return retrievedObject
 }

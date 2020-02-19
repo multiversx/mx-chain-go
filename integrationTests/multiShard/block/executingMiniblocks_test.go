@@ -423,7 +423,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 //	roundDifference := 10
 //	nonce := uint64(1)
 //
-//	firstNodeOnMeta := nodesMap[sharding.MetachainShardId][0]
+//	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
 //	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
 //
 //	// set bitmap for all consensus nodes signing
