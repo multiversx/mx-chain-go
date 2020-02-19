@@ -1001,6 +1001,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
+	if lastMetaBlock.IsStartOfEpochBlock() {
+		mp.blockTracker.CleanupInvalidHeaders(header)
+	}
+
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)
 	}

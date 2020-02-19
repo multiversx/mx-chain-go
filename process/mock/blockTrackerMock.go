@@ -163,6 +163,10 @@ func (btm *BlockTrackerMock) CleanupHeadersBehindNonce(shardID uint32, selfNotar
 	}
 }
 
+func (btm *BlockTrackerMock) CleanupInvalidHeaders(header data.HeaderHandler) {
+
+}
+
 // ComputeLongestChain -
 func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	if btm.ComputeLongestChainCalled != nil {

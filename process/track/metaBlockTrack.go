@@ -120,6 +120,57 @@ func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*H
 	return selfMetaBlocksInfo
 }
 
+// CleanupInvalidHeaders cleans headers added to the block tracker that have become invalid after processing
+// For metachain some shard headers may become invalid if the attesting header for a start of epoch block changes
+// due to a rollback
+func (mbt *metaBlockTrack) CleanupInvalidHeaders(header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	metaNewEpoch := header.GetEpoch()
+	metaRoundAttestingEpoch := header.GetRound()
+
+	for shardID := uint32(0); shardID < mbt.shardCoordinator.NumberOfShards(); shardID++ {
+		shardHeader, _, err := mbt.crossNotarizer.GetLastNotarizedHeader(shardID)
+		if err != nil {
+			log.Warn("get last notarized headers", "error", err.Error())
+			continue
+		}
+
+		mbt.removeInvalidShardHeadersDueToEpochChange(shardID, shardHeader.GetNonce(), metaRoundAttestingEpoch, metaNewEpoch)
+	}
+}
+
+func (mbt *metaBlockTrack) removeInvalidShardHeadersDueToEpochChange(
+	shardID uint32,
+	shardNotarizedNonce uint64,
+	metaRoundAttestingEpoch uint64,
+	metaNewEpoch uint32,
+) {
+	mbt.mutHeaders.Lock()
+	defer mbt.mutHeaders.Unlock()
+
+	for nonce, headersInfo := range mbt.headers[shardID] {
+		if nonce <= shardNotarizedNonce {
+			continue
+		}
+
+		newHeadersInfo := make([]*HeaderInfo, 0, len(headersInfo))
+
+		for _, headerInfo := range headersInfo {
+			round := headerInfo.Header.GetRound()
+			epoch := headerInfo.Header.GetEpoch()
+			isInvalidHeader := round > metaRoundAttestingEpoch+process.EpochChangeGracePeriod && epoch < metaNewEpoch
+			if !isInvalidHeader {
+				newHeadersInfo = append(newHeadersInfo, headerInfo)
+			}
+		}
+
+		mbt.headers[shardID][nonce] = newHeadersInfo
+	}
+}
+
 // ComputeLongestSelfChain computes the longest chain from self shard
 func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := mbt.selfNotarizer.GetLastNotarizedHeader(mbt.shardCoordinator.SelfId())
