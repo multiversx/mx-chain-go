@@ -47,7 +47,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: factory.BlsHashSize}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 

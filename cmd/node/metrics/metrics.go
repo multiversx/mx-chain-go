@@ -53,7 +53,6 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
@@ -86,9 +85,8 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
-// SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
-func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, txSignPk string, nodeName string) {
-	ash.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+// SaveCurrentNodeName will save metric in status handler with nodeName
+func SaveCurrentNodeName(ash core.AppStatusHandler, nodeName string) {
 	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
 }
 

@@ -939,8 +939,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithUint64ByteSliceConverter(TestUint64Converter),
 		node.WithMultiSigner(tpn.MultiSigner),
 		node.WithSingleSigner(tpn.OwnAccount.SingleSigner),
-		node.WithTxSignPrivKey(tpn.OwnAccount.SkTxSign),
-		node.WithTxSignPubKey(tpn.OwnAccount.PkTxSign),
 		node.WithPrivKey(tpn.NodeKeys.Sk),
 		node.WithPubKey(tpn.NodeKeys.Pk),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
