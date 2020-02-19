@@ -292,12 +292,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		currentValidatorStatisticsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
-		if err != nil {
-			return err
-		}
-
-		_, err = mp.validatorStatisticsProcessor.GetValidatorInfosForHash(currentValidatorStatisticsRootHash)
+		_, err = mp.getValidatorInfosAndUpdateRating()
 		if err != nil {
 			return err
 		}
@@ -686,6 +681,15 @@ func (mp *metaProcessor) createMiniBlocks(
 }
 
 func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
+	validatorInfoDataList, err2 := mp.getValidatorInfosAndUpdateRating()
+	if err2 != nil {
+		return nil, err2
+	}
+
+	return mp.createValidatorMiniBlocks(validatorInfoDataList)
+}
+
+func (mp *metaProcessor) getValidatorInfosAndUpdateRating() (map[uint32][]state.ValidatorInfo, error) {
 	validatorStatsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return nil, err
@@ -696,7 +700,20 @@ func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
 		return nil, err
 	}
 
-	return mp.createValidatorMiniBlocks(validatorInfoDataList)
+	pks := make([]string, 0)
+	for _, validators := range validatorInfoDataList {
+		shardPks := make([]string, len(validators))
+		for i, validator := range validators {
+			shardPks[i] = string(validator.GetPublicKey())
+		}
+		pks = append(pks, shardPks...)
+	}
+
+	err = mp.validatorStatisticsProcessor.UpdateRatingFromTempRating(pks)
+	if err != nil {
+		return nil, err
+	}
+	return validatorInfoDataList, nil
 }
 
 // full verification through metachain header

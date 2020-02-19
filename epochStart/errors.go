@@ -41,6 +41,9 @@ var ErrNilStorage = errors.New("nil storage")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
+// ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
+var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
+
 // ErrNilArgsPendingMiniblocks signals that nil argument was passed
 var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
 
@@ -64,6 +67,9 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrNilMetaBlockStorage signals that nil metablocks storage has been provided
 var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
+
+// ErrNilMiniBlocksStorage signals that nil miniblocks storage has been provided
+var ErrNilMiniBlocksStorage = errors.New("nil miniblocks storage")
 
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")

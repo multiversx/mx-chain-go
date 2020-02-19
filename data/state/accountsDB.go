@@ -493,35 +493,40 @@ func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32
 	i := uint32(0)
 
 	for _, pa := range peerAccounts {
-		deserializedPa := &PeerAccount{}
-		err := adb.marshalizer.Unmarshal(deserializedPa, pa)
+		validatorInfoData, err := adb.unmarshalToValidatorInfoData(pa, i)
 		if err != nil {
 			return nil, err
 		}
-		currentShardId := deserializedPa.CurrentShardId
-		if validators[currentShardId] == nil {
-			validators[currentShardId] = make([]ValidatorInfo, 0)
-		}
-		pk128, err := hex.DecodeString(string(deserializedPa.BLSPublicKey))
-		validatorInfoData, err := NewValidatorInfoData(
-			pk128,
-			deserializedPa.CurrentShardId,
-			"list",
-			i,
-			deserializedPa.TempRating,
-			deserializedPa.Rating,
-		)
-
-		if err != nil {
-			return nil, err
+		shardId := validatorInfoData.ShardId
+		if validators[shardId] == nil {
+			validators[shardId] = make([]ValidatorInfo, 0)
 		}
 		log.Debug("ValidatorInfoData", "pk", validatorInfoData.PublicKey, "rating", validatorInfoData.Rating, "tempRating", validatorInfoData.TempRating)
-		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+		validators[shardId] = append(validators[shardId], validatorInfoData)
 
 		i++
 	}
 
 	return validators, nil
+}
+
+func (adb *AccountsDB) unmarshalToValidatorInfoData(pa []byte, i uint32) (*ValidatorInfoData, error) {
+	deserializedPa := &PeerAccount{}
+	err := adb.marshalizer.Unmarshal(deserializedPa, pa)
+	if err != nil {
+		return nil, err
+	}
+
+	pk128, err := hex.DecodeString(string(deserializedPa.BLSPublicKey))
+	validatorInfoData, err := NewValidatorInfoData(
+		pk128,
+		deserializedPa.CurrentShardId,
+		"list",
+		i,
+		deserializedPa.TempRating,
+		deserializedPa.Rating,
+	)
+	return validatorInfoData, err
 }
 
 // Journalize adds a new object to entries list. Concurrent safe.

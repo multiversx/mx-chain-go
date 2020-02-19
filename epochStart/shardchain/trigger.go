@@ -102,6 +102,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
+	if check.IfNil(args.DataPool.MiniBlocks()) {
+		return nil, epochStart.ErrNilMiniblocksPool
+	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
 	}
@@ -122,6 +125,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if check.IfNil(metaHdrNoncesStorage) {
 		return nil, epochStart.ErrNilMetaNonceHashStorage
+	}
+
+	miniblocksUnit := args.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+	if check.IfNil(miniblocksUnit) {
+		return nil, epochStart.ErrNilMiniBlocksStorage
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
@@ -152,7 +160,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
 		miniblocksPool:              args.DataPool.MiniBlocks(),
-		miniblocksStorage:           args.Storage.GetStorer(dataRetriever.MiniBlockUnit),
+		miniblocksStorage:           miniblocksUnit,
 	}
 
 	err := newTrigger.saveState(newTrigger.triggerStateKey)

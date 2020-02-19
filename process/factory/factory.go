@@ -11,6 +11,8 @@ const (
 	ShardBlocksTopic = "shardBlocks"
 	// MiniBlocksTopic is the topic used for sharing mini blocks
 	MiniBlocksTopic = "txBlockBodies"
+	// PeerMiniblockTopic is the topic used for sharing peer miniblocks
+	PeerMiniblockTopic = "peerMiniBlock"
 	// PeerChBodyTopic is the topic used for sharing peer change block bodies
 	PeerChBodyTopic = "peerChangeBlockBodies"
 	// MetachainBlocksTopic is the topic used for sharing metachain block headers

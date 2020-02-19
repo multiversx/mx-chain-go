@@ -118,7 +118,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	rr := &RatingReader{
 		getRating:                  vs.getRating,
-		updateRatingFromTempRating: vs.updateRatingFromTempRating,
+		updateRatingFromTempRating: vs.UpdateRatingFromTempRating,
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
@@ -352,20 +352,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
-	vinfos, err := vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
-
-	for _, validators := range vinfos {
-		for _, validator := range validators {
-			addrContainer, _ := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
-			account, _ := vs.peerAdapter.GetAccountWithJournal(addrContainer)
-			peerAccount, ok := account.(*state.PeerAccount)
-			if ok {
-				peerAccount.SetRatingWithJournal(validator.GetTempRating())
-			}
-		}
-	}
-
-	return vinfos, err
+	return vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(
@@ -808,14 +795,12 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 	return nil
 }
 
-func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
-	//rootHash, _ := vs.RootHash()
-	//log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
+func (vs *validatorStatistics) UpdateRatingFromTempRating(pks []string) error {
 	for _, pk := range pks {
 		peer, err := vs.GetPeerAccount([]byte(pk))
 
 		if err != nil {
-			log.Debug("Error getting peer account", "error", err)
+			return err
 		}
 		tempRating := vs.getTempRating(pk)
 		rating := vs.getRating(pk)
@@ -823,9 +808,8 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
 		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
 
 		if err != nil {
-			log.Debug("Error setting rating with journal on peer account", "error", err)
+			return err
 		}
 	}
-	//rootHash, _ = vs.RootHash()
-	//log.Trace("UpdateRatingFromTempRating after", "rootHash", rootHash)
+	return nil
 }

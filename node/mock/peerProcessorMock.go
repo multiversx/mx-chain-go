@@ -7,14 +7,15 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled           func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled           func(header data.HeaderHandler) error
-	IsInterfaceNilCalled            func() bool
-	RevertPeerStateToSnapshotCalled func(snapshot int) error
-	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
-	GetTrieFromRootHashCalled       func(rootHash []byte) (map[uint32][]state.ValidatorInfo, error)
-	CommitCalled                    func() ([]byte, error)
-	RootHashCalled                  func() ([]byte, error)
+	UpdatePeerStateCalled            func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled            func(header data.HeaderHandler) error
+	IsInterfaceNilCalled             func() bool
+	RevertPeerStateToSnapshotCalled  func(snapshot int) error
+	GetPeerAccountCalled             func(address []byte) (state.PeerAccountHandler, error)
+	GetTrieFromRootHashCalled        func(rootHash []byte) (map[uint32][]state.ValidatorInfo, error)
+	UpdateRatingFromTempRatingCalled func([]string)
+	CommitCalled                     func() ([]byte, error)
+	RootHashCalled                   func() ([]byte, error)
 }
 
 // UpdatePeerState -
@@ -73,6 +74,15 @@ func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfosForHash(rootHash [
 	}
 
 	return nil, nil
+}
+
+// UpdateRatingFromTempRating -
+func (vsp *ValidatorStatisticsProcessorMock) UpdateRatingFromTempRating(pks []string) error {
+	if vsp.UpdateRatingFromTempRatingCalled != nil {
+		vsp.UpdateRatingFromTempRatingCalled(pks)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -
