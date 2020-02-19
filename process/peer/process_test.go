@@ -994,7 +994,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
-	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
+	counters := validatorStatistics.GetLeaderDecreaseCount(pubKey)
+	assert.Equal(t, uint32(currentHeaderRound-previousHeaderRound-1), counters)
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGreaterThanMaxComputableCallsDecreaseOnlyOnce(t *testing.T) {

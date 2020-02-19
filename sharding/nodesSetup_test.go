@@ -95,21 +95,21 @@ func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 }
 
 func TestNodesSetup_NewNodesSetupWrongFile(t *testing.T) {
-	ns, err := NewNodesSetup("", 0xFFFFFFFFFFFFFFFF)
+	ns, err := sharding.NewNodesSetup("", 0xFFFFFFFFFFFFFFFF)
 
 	assert.Nil(t, ns)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
-	ns, err := NewNodesSetup("mock/invalidNodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
+	ns, err := sharding.NewNodesSetup("mock/invalidNodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
 
 	assert.Nil(t, ns)
 	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
-	ns, err := NewNodesSetup("mock/nodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
+	ns, err := sharding.NewNodesSetup("mock/nodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
@@ -117,7 +117,7 @@ func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
 }
 
 func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
-	ns, err := NewNodesSetup("mock/nodesSetupMock.json", 2)
+	ns, err := sharding.NewNodesSetup("mock/nodesSetupMock.json", 2)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
@@ -125,7 +125,7 @@ func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
-	ns := NodesSetup{}
+	ns := sharding.NodesSetup{}
 	eligible, waiting := ns.InitialNodesInfo()
 
 	assert.NotNil(t, ns)
@@ -135,12 +135,12 @@ func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
 
 func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{}
+	ns := sharding.NodesSetup{}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
-	ns.InitialNodes[0] = &InitialNode{}
-	ns.InitialNodes[1] = &InitialNode{}
+	ns.InitialNodes[0] = &sharding.InitialNode{}
+	ns.InitialNodes[1] = &sharding.InitialNode{}
 
 	ns.InitialNodes[0].PubKey = PubKeys[0]
 	ns.InitialNodes[0].Address = Address[0]
@@ -148,20 +148,20 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrCouldNotParsePubKey, err)
+	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize: 0,
 		MinNodesPerShard:   0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -169,22 +169,22 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
+	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 0,
 		MetaChainMinNodes:           0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -192,20 +192,20 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
+	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize: 2,
 		MinNodesPerShard:   0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -213,22 +213,22 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, 2)
+	ns.InitialNodes = make([]*sharding.InitialNode, 2)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -236,20 +236,20 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize: 2,
 		MinNodesPerShard:   0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -257,22 +257,22 @@ func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) 
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing.T) {
 	noOfInitialNodes := 1
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -280,20 +280,20 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
 	noOfInitialNodes := 2
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize: 2,
 		MinNodesPerShard:   3,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -301,12 +301,12 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)
+	assert.Equal(t, sharding.ErrNodesSizeSmallerThanMinNoOfNodes, err)
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
 	noOfInitialNodes := 3
-	ns := NodesSetup{
+	ns := sharding.NodesSetup{
 		ConsensusGroupSize: 1,
 		MinNodesPerShard:   1,
 
@@ -314,10 +314,10 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 		MetaChainMinNodes:           3,
 	}
 
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i] = &sharding.InitialNode{}
 		ns.InitialNodes[i].PubKey = PubKeys[i]
 		ns.InitialNodes[i].Address = Address[i]
 	}
@@ -325,12 +325,12 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)
+	assert.Equal(t, sharding.ErrNodesSizeSmallerThanMinNoOfNodes, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
-	ns := NodesSetup{}
-	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(0)
+	ns := sharding.NodesSetup{}
+	inPK, err := ns.InitialNodesInfoForShard(0)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, eligiblePK)
@@ -434,7 +434,7 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
-	metaId := core.MetachainShardId
+	metaId := sharding.MetachainShardId
 	publicKey, err := hex.DecodeString(PubKeys[0])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
