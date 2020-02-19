@@ -55,7 +55,7 @@ func TestHostWithConnectionManagement_ConnectWithNilSharderShouldWork(t *testing
 		nil,
 	)
 
-	_ = hwcm.Connect(nil, peer.AddrInfo{})
+	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.True(t, connectCalled)
 }
@@ -84,7 +84,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConn
 		},
 	)
 
-	_ = hwcm.Connect(nil, peer.AddrInfo{})
+	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.True(t, connectCalled)
 }
@@ -113,7 +113,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConn
 		},
 	)
 
-	_ = hwcm.Connect(nil, peer.AddrInfo{})
+	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.False(t, connectCalled)
 }
