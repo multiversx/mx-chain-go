@@ -155,12 +155,12 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind data.Transa
 
 // HasMoreThan checks whether the list has more items than specified
 func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
-	return uint32(listForSender.countTx()) > count
+	return uint32(listForSender.countTxWithLock()) > count
 }
 
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
-	return listForSender.countTx() == 0
+	return listForSender.countTxWithLock() == 0
 }
 
 // selectBatchTo copies a batch (usually small) of transactions to a destination slice
@@ -221,8 +221,8 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 // getTxHashes returns the hashes of transactions in the list
 func (listForSender *txListForSender) getTxHashes() [][]byte {
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
 
 	result := make([][]byte, 0, listForSender.countTx())
 

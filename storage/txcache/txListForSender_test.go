@@ -301,8 +301,10 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	list := newListToTest()
 
 	go func() {
-		// This is called during eviction
+		// These are called concurrently with addition: during eviction, during removal etc.
 		approximatelyCountTxInLists([]*txListForSender{list})
+		list.HasMoreThan(42)
+		list.IsEmpty()
 	}()
 
 	go func() {
