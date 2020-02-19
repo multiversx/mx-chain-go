@@ -1365,8 +1365,6 @@ func generateValidTx(
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
 		node.WithTxSingleSigner(&singlesig.SchnorrSigner{}),
-		node.WithTxSignPrivKey(skSender),
-		node.WithTxSignPubKey(pkSender),
 		node.WithAccountsAdapter(accnts),
 	)
 
@@ -1375,6 +1373,7 @@ func generateValidTx(
 		hex.EncodeToString(pkRecvBuff),
 		big.NewInt(1),
 		"",
+		skSender,
 	)
 	assert.Nil(t, err)
 

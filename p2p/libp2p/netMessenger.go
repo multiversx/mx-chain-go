@@ -33,8 +33,8 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-const refreshPeersOnTopic = time.Second * 60
-const ttlPeersOnTopic = time.Second * 120
+const refreshPeersOnTopic = time.Second * 5
+const ttlPeersOnTopic = time.Second * 30
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 const durationBetweenPeersPrints = time.Second * 20

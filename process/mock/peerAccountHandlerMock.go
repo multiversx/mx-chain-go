@@ -173,8 +173,5 @@ func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) erro
 
 // IsInterfaceNil -
 func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	if pahm == nil {
-		return true
-	}
-	return false
+	return pahm == nil
 }

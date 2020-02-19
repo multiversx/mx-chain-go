@@ -59,7 +59,7 @@ func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 func NewDefaultFilter() *Bloom {
 	return &Bloom{
 		filter:   make([]byte, 2048),
-		hashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+		hashFunc: []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}},
 	}
 }
 
