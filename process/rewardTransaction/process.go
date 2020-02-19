@@ -83,6 +83,8 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return process.ErrWrongTypeAssertion
 	}
 
+	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
+
 	operation := big.NewInt(0)
 	operation = operation.Add(rTx.Value, rewardAcc.Balance)
 	err = rewardAcc.SetBalanceWithJournal(operation)
