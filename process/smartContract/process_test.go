@@ -869,7 +869,8 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
-	assert.NotNil(t, vmInput)
+	require.NotNil(t, vmInput)
+	assert.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 	assert.True(t, bytes.Equal(vmArg, vmType))
 	assert.Nil(t, err)
 }
@@ -1040,31 +1041,59 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 func TestScProcessor_DetermineCallType(t *testing.T) {
 	t.Parallel()
 
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.TemporaryAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
+		&mock.GasHandlerMock{},
+	)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
 	// DirectCall
 	tx := &transaction.Transaction{}
 	tx.Nonce = 54
 	tx.Data = []byte("sc function")
-	callType := determineCallType(tx)
-	require.Equal(t, vmcommon.DirectCall, callType)
+	vmInput, err := sc.createVMCallInput(tx)
+	require.Nil(t, err)
+	require.NotNil(t, vmInput)
+	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 
 	// DirectCall
 	tx = &transaction.Transaction{}
 	tx.Nonce = 54
 	tx.Data = nil
-	callType = determineCallType(tx)
-	require.Equal(t, vmcommon.DirectCall, callType)
+	vmInput, err = sc.createVMCallInput(tx)
+	require.Nil(t, err)
+	require.NotNil(t, vmInput)
+	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 
 	// AsynchronousCall
 	scr := &smartContractResult.SmartContractResult{}
 	scr.Data = []byte("call async@argument")
-	callType = determineCallType(scr)
-	require.Equal(t, vmcommon.AsynchronousCall, callType)
+	vmInput, err = sc.createVMCallInput(scr)
+	require.Nil(t, err)
+	require.NotNil(t, vmInput)
+	require.Equal(t, vmcommon.AsynchronousCall, vmInput.CallType)
 
 	// AsynchronousCallBack
 	scr = &smartContractResult.SmartContractResult{}
 	scr.Data = []byte("@argument")
-	callType = determineCallType(scr)
-	require.Equal(t, vmcommon.AsynchronousCallBack, callType)
+	vmInput, err = sc.createVMCallInput(scr)
+	require.Nil(t, err)
+	require.NotNil(t, vmInput)
+	require.Equal(t, vmcommon.AsynchronousCallBack, vmInput.CallType)
 }
 
 func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
