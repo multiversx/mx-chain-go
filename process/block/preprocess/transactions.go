@@ -401,6 +401,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.mutBadTxs.Unlock()
 	}
 
+	txs.notifyTransactionProviderIfNeeded(sndShardId, dstShardId, transaction.GetSndAddress())
+
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		return err
 	}
@@ -411,6 +413,48 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return err
+}
+
+func (txs *transactions) notifyTransactionProviderIfNeeded(sndShardId uint32, dstShardId uint32, address []byte) {
+	if sndShardId != txs.shardCoordinator.SelfId() {
+		return
+	}
+
+	account, err := txs.getAccountForAddress(address)
+	if err != nil {
+		log.Debug("notifyTransactionProviderIfNeeded.getAccountForAddress", "error", err)
+		return
+	}
+
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txShardPool := txs.txPool.ShardDataStore(strCache)
+
+	if txShardPool == nil {
+		log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
+		return
+	}
+
+	if txShardPool.Len() == 0 {
+		log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrEmptyTxDataPool)
+		return
+	}
+
+	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
+	sortedTransactionsProvider.NotifyAccountNonce(address, account.GetNonce())
+}
+
+func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHandler, error) {
+	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := txs.accounts.GetAccountWithJournal(addressContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
@@ -503,7 +547,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
 	timeAfter := time.Now()
 	if err != nil {
-		log.Trace("computeOrderedTxs", "error", err.Error())
+		log.Debug("computeOrderedTxs", "error", err.Error())
 		return miniBlocks, nil
 	}
 
@@ -515,7 +559,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	log.Trace("time elapsed to ordered txs",
+	log.Debug("time elapsed to ordered txs",
 		"num txs", len(orderedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
@@ -745,9 +789,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 			)
 
 			log.Debug("mini block info",
-				"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
-				"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
-				"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+				"sender shard", senderShardId,
+				"gas consumed", gasConsumedByMiniBlockInSenderShard,
+				"receiver shard", receiverShardId,
+				"gas consumed", gasConsumedByMiniBlockInReceiverShard,
+				"self shard", txs.shardCoordinator.SelfId(),
+				"gas consumed", txs.gasHandler.TotalGasConsumed(),
 				"txs ordered", len(orderedTxs),
 				"txs added", len(miniBlock.TxHashes))
 
@@ -757,9 +804,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 	if addedTxs > 0 {
 		log.Debug("mini block info",
-			"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
-			"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
-			"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+			"sender shard", senderShardId,
+			"gas consumed", gasConsumedByMiniBlockInSenderShard,
+			"receiver shard", receiverShardId,
+			"gas consumed", gasConsumedByMiniBlockInReceiverShard,
+			"self shard", txs.shardCoordinator.SelfId(),
+			"gas consumed", txs.gasHandler.TotalGasConsumed(),
 			"txs ordered", len(orderedTxs),
 			"txs added", len(miniBlock.TxHashes))
 	}

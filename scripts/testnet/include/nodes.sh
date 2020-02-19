@@ -128,7 +128,7 @@ assembleCommand_startObserverNode() {
 
   local nodeCommand="./node \
         -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
-        -num-of-nodes $TOTAL_NODECOUNT -destination-shard-as-observer $SHARD \
+        -destination-shard-as-observer $SHARD \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR"
 
@@ -154,7 +154,6 @@ assembleCommand_startValidatorNode() {
 
   local nodeCommand="./node \
         -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
-        -num-of-nodes $TOTAL_NODECOUNT \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR"
 
