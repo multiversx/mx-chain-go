@@ -14,9 +14,8 @@ const gracePeriodUpperBound = 7
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	// TODO: RWMutex for some operations?
 	items                 *list.List
-	mutex                 sync.Mutex
+	mutex                 sync.RWMutex
 	copyBatchIndex        *list.Element
 	copyPreviousNonce     uint64
 	copyDetectedGap       bool
@@ -235,33 +234,14 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	return result
 }
 
-func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandler {
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
-	back := listForSender.items.Back()
-	if back == nil {
-		return nil
-	}
-
-	value := back.Value.(txListForSenderNode)
-	return value.tx
-}
-
-func (listForSender *txListForSender) getLowestNonceTx() data.TransactionHandler {
-	// TODO: RWmutex?
-	// TODO / comment: Only called within lock.
-	front := listForSender.items.Front()
-	if front == nil {
-		return nil
-	}
-
-	value := front.Value.(txListForSenderNode)
-	return value.tx
-}
-
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
-	// TODO: check why no data race here? Write unit test.
+	return uint64(listForSender.items.Len())
+}
+
+func (listForSender *txListForSender) countTxWithLock() uint64 {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
 	return uint64(listForSender.items.Len())
 }
 
@@ -269,7 +249,7 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	count := uint64(0)
 
 	for _, listForSender := range lists {
-		count += listForSender.countTx()
+		count += listForSender.countTxWithLock()
 	}
 
 	return count
@@ -282,6 +262,7 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonceKnown.Set()
 }
 
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 	hasInitialGap := listForSender.hasInitialGap()
 
@@ -300,6 +281,7 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 }
 
 // hasInitialGap should only be called at tx selection time, since only then we can detect initial gaps with certainty
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
 	if !accountNonceKnown {
@@ -315,6 +297,17 @@ func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonce := listForSender.accountNonce.Get()
 	hasGap := firstTxNonce > accountNonce
 	return hasGap
+}
+
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) getLowestNonceTx() data.TransactionHandler {
+	front := listForSender.items.Front()
+	if front == nil {
+		return nil
+	}
+
+	value := front.Value.(txListForSenderNode)
+	return value.tx
 }
 
 // isInGracePeriod returns whether the sender is grace period due to a number of failed selections

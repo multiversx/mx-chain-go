@@ -166,25 +166,3 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
-
-// func (cache *TxCache) doEvictPenalizedSenders() {
-// 	const maxAcceptedPenalty = 100
-
-// 	maxSendersToEvict := int(cache.config.NumSendersToEvictInOneStep)
-// 	sendersToEvict := make([]*txListForSender, 0, maxSendersToEvict)
-// 	snapshot := cache.txListBySender.getSnapshotAscending()
-
-// 	for _, item := range snapshot {
-// 		item.penalizeInitialGap()
-
-// 		if item.initialGapPenalty.Get() > maxAcceptedPenalty {
-// 			sendersToEvict = append(sendersToEvict, item)
-// 		}
-
-// 		if len(sendersToEvict) > maxSendersToEvict {
-// 			break
-// 		}
-// 	}
-
-// 	cache.evictSendersAndTheirTxs(sendersToEvict)
-// }

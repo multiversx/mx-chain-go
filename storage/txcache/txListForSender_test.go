@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_AddTx_Sorts(t *testing.T) {
+func TestListForSender_AddTx_Sorts(t *testing.T) {
 	list := newListToTest()
 
 	list.AddTx([]byte("a"), createTx(".", 1))
@@ -27,7 +27,7 @@ func Test_AddTx_Sorts(t *testing.T) {
 	require.Equal(t, []byte("d"), txHashes[3])
 }
 
-func Test_findTx(t *testing.T) {
+func TestListForSender_findTx(t *testing.T) {
 	list := newListToTest()
 
 	txA := createTx(".", 41)
@@ -49,7 +49,7 @@ func Test_findTx(t *testing.T) {
 	require.Nil(t, noElementWithD)
 }
 
-func Test_findTx_CoverNonceComparisonOptimization(t *testing.T) {
+func TestListForSender_findTx_CoverNonceComparisonOptimization(t *testing.T) {
 	list := newListToTest()
 	list.AddTx([]byte("A"), createTx(".", 42))
 
@@ -58,7 +58,7 @@ func Test_findTx_CoverNonceComparisonOptimization(t *testing.T) {
 	require.Nil(t, noElement)
 }
 
-func Test_RemoveTransaction(t *testing.T) {
+func TestListForSender_RemoveTransaction(t *testing.T) {
 	list := newListToTest()
 	tx := createTx(".", 1)
 
@@ -69,7 +69,7 @@ func Test_RemoveTransaction(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func Test_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
+func TestListForSender_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 	list := newListToTest()
 	tx := createTx(".", 1)
 
@@ -77,7 +77,7 @@ func Test_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func Test_RemoveHighNonceTransactions(t *testing.T) {
+func TestListForSender_RemoveHighNonceTransactions(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -86,18 +86,15 @@ func Test_RemoveHighNonceTransactions(t *testing.T) {
 
 	list.RemoveHighNonceTxs(50)
 	require.Equal(t, 50, list.items.Len())
-	require.Equal(t, uint64(49), list.getHighestNonceTx().GetNonce())
 
 	list.RemoveHighNonceTxs(20)
 	require.Equal(t, 30, list.items.Len())
-	require.Equal(t, uint64(29), list.getHighestNonceTx().GetNonce())
 
 	list.RemoveHighNonceTxs(30)
 	require.Equal(t, 0, list.items.Len())
-	require.Nil(t, list.getHighestNonceTx())
 }
 
-func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
+func TestListForSender_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -111,7 +108,7 @@ func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func Test_SelectBatchTo(t *testing.T) {
+func TestListForSender_SelectBatchTo(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -141,7 +138,7 @@ func Test_SelectBatchTo(t *testing.T) {
 	require.Equal(t, 100, copied)
 }
 
-func Test_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
+func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -161,7 +158,7 @@ func Test_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	require.Equal(t, 5, copied)
 }
 
-func Test_SelectBatchTo_WhenInitialGap(t *testing.T) {
+func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 	list := newListToTest()
 
 	list.notifyAccountNonce(1)
@@ -192,7 +189,7 @@ func Test_SelectBatchTo_WhenInitialGap(t *testing.T) {
 	require.Equal(t, int64(2), list.numFailedSelections.Get())
 }
 
-func Test_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T) {
+func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T) {
 	list := newListToTest()
 
 	list.notifyAccountNonce(1)
@@ -229,7 +226,7 @@ func Test_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T) {
 	require.Equal(t, int64(0), list.numFailedSelections.Get())
 }
 
-func Test_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
+func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
 	list := newListToTest()
 
 	list.notifyAccountNonce(1)
@@ -262,7 +259,7 @@ func Test_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
 	require.True(t, list.sweepable.IsSet())
 }
 
-func Test_NotifyAccountNonce(t *testing.T) {
+func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	list := newListToTest()
 
 	require.Equal(t, uint64(0), list.accountNonce.Get())
@@ -274,7 +271,7 @@ func Test_NotifyAccountNonce(t *testing.T) {
 	require.True(t, list.accountNonceKnown.IsSet())
 }
 
-func Test_hasInitialGap(t *testing.T) {
+func TestListForSender_hasInitialGap(t *testing.T) {
 	list := newListToTest()
 	list.notifyAccountNonce(42)
 
@@ -288,7 +285,7 @@ func Test_hasInitialGap(t *testing.T) {
 	require.False(t, list.hasInitialGap())
 }
 
-func Test_getTxHashes(t *testing.T) {
+func TestListForSender_getTxHashes(t *testing.T) {
 	list := newListToTest()
 	require.Len(t, list.getTxHashes(), 0)
 
@@ -298,6 +295,19 @@ func Test_getTxHashes(t *testing.T) {
 	list.AddTx([]byte("B"), createTx(".", 2))
 	list.AddTx([]byte("C"), createTx(".", 3))
 	require.Len(t, list.getTxHashes(), 3)
+}
+
+func TestListForSender_DetectRaceConditions(t *testing.T) {
+	list := newListToTest()
+
+	go func() {
+		// This is called during eviction
+		approximatelyCountTxInLists([]*txListForSender{list})
+	}()
+
+	go func() {
+		list.AddTx([]byte("test"), createTx(".", 42))
+	}()
 }
 
 func newListToTest() *txListForSender {
