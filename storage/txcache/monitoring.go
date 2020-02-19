@@ -137,7 +137,7 @@ type gapJournal struct {
 }
 
 func (cache *TxCache) displayNonceGaps() {
-	gaps := make(map[string]gapJournal, 0)
+	gaps := make(map[string]gapJournal)
 
 	cache.forEachSenderDescending(func(key string, txList *txListForSender) {
 		if !txList.copyDetectedGap {
