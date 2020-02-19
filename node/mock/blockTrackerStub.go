@@ -76,8 +76,8 @@ func (bts *BlockTrackerStub) CleanupHeadersBehindNonce(shardID uint32, selfNotar
 	}
 }
 
+// CleanupInvalidHeaders -
 func (bts *BlockTrackerStub) CleanupInvalidHeaders(header data.HeaderHandler) {
-
 }
 
 // ComputeLongestChain -

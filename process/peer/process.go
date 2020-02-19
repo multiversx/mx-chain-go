@@ -266,9 +266,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	vsrh, _ := vs.RootHash()
-	log.Debug("UpdatePeerState with", "initial vsrh 1.", vsrh, "expected final vsrh", header.GetValidatorStatsRootHash())
-
 	err := vs.processPeerChanges(header)
 	if err != nil {
 		return nil, err
@@ -292,9 +289,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vsrh, _ = vs.RootHash()
-	log.Debug("UpdatePeerState with", "initial vsrh 2.", vsrh, "expected final vsrh", header.GetValidatorStatsRootHash())
-
 	err = vs.checkForMissedBlocks(
 		header.GetRound(),
 		previousHeader.GetRound(),
@@ -311,9 +305,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vsrh, _ = vs.RootHash()
-	log.Debug("UpdatePeerState with", "initial vsrh 3.", vsrh, "expected final vsrh", header.GetValidatorStatsRootHash())
-
 	if header.GetNonce() == 1 {
 		return vs.peerAdapter.RootHash()
 	}
@@ -327,9 +318,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	if err != nil {
 		return nil, err
 	}
-
-	vsrh, _ = vs.RootHash()
-	log.Debug("UpdatePeerState with", "initial vsrh 4.", vsrh, "expected final vsrh", header.GetValidatorStatsRootHash())
 
 	vs.displayRatings()
 
