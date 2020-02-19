@@ -412,9 +412,9 @@ func (pjec *PeerJournalEntryUnStakedNonce) IsInterfaceNil() bool {
 	return pjec == nil
 }
 
-//------- PeerJournalEntryStake
+//------- PeerJournalEntryAccumulatedFee
 
-// PeerJournalEntryAccumulatedFee is used to revert a stake change
+// PeerJournalEntryAccumulatedFee is used to revert an accumulated fee change
 type PeerJournalEntryAccumulatedFee struct {
 	account            *PeerAccount
 	oldAccumulatedFees *big.Int
@@ -433,13 +433,13 @@ func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees
 }
 
 // Revert applies undo operation
-func (pjes *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
-	pjes.account.AccumulatedFees = pjes.oldAccumulatedFees
+func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
+	pjeaf.account.AccumulatedFees = pjeaf.oldAccumulatedFees
 
-	return pjes.account, nil
+	return pjeaf.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (pjes *PeerJournalEntryAccumulatedFee) IsInterfaceNil() bool {
-	return pjes == nil
+func (pjeaf *PeerJournalEntryAccumulatedFee) IsInterfaceNil() bool {
+	return pjeaf == nil
 }

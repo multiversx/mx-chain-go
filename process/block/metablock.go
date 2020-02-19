@@ -327,7 +327,7 @@ func (mp *metaProcessor) checkEpochCorrectness(
 	headerHandler data.HeaderHandler,
 ) error {
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
-	if currentBlockHeader == nil {
+	if check.IfNil(currentBlockHeader) {
 		return nil
 	}
 
@@ -1076,7 +1076,7 @@ func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler) {
 		mp.epochStartTrigger.SetProcessed(header)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
-		if currentHeader != nil && currentHeader.IsStartOfEpochBlock() {
+		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
 		}
 	}
@@ -1530,7 +1530,7 @@ func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBl
 }
 
 func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr *block.MetaBlock) (*big.Int, error) {
-	currentlyAccumulated := big.NewInt(0)
+	currentlyAccumulatedFeesInEpoch := big.NewInt(0)
 
 	lastHdr := mp.blockChain.GetCurrentBlockHeader()
 	if !check.IfNil(lastHdr) {
@@ -1540,16 +1540,16 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr *block.MetaBlock)
 		}
 
 		if !lastHdr.IsStartOfEpochBlock() {
-			currentlyAccumulated = lastMeta.AccumulatedFeesInEpoch
+			currentlyAccumulatedFeesInEpoch = lastMeta.AccumulatedFeesInEpoch
 		}
 	}
 
-	currentlyAccumulated.Add(currentlyAccumulated, metaHdr.GetAccumulatedFees())
+	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	for _, shardData := range metaHdr.ShardInfo {
-		currentlyAccumulated.Add(currentlyAccumulated, shardData.AccumulatedFees)
+		currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, shardData.AccumulatedFees)
 	}
 
-	return currentlyAccumulated, nil
+	return currentlyAccumulatedFeesInEpoch, nil
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body

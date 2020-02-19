@@ -51,9 +51,6 @@ func (mc *MetaChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // GetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
-	if check.IfNil(mc.GenesisBlock) {
-		return nil
-	}
 	return mc.GenesisBlock
 }
 
@@ -84,9 +81,6 @@ func (mc *MetaChain) SetGenesisHeaderHash(headerHash []byte) {
 
 // GetCurrentBlockHeader returns current block header pointer
 func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
-	if mc.CurrentBlock == nil {
-		return nil
-	}
 	return mc.CurrentBlock
 }
 
@@ -122,9 +116,6 @@ func (mc *MetaChain) SetCurrentBlockHeaderHash(hash []byte) {
 
 // GetCurrentBlockBody returns the block body pointer
 func (mc *MetaChain) GetCurrentBlockBody() data.BodyHandler {
-	if check.IfNil(mc.CurrentBlockBody) {
-		return nil
-	}
 	return mc.CurrentBlockBody
 }
 

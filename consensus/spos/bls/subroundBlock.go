@@ -274,7 +274,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr := sr.BlockProcessor().CreateNewHeader()
 
 	var prevRandSeed []byte
-	if sr.Blockchain().GetCurrentBlockHeader() == nil {
+	if check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
 
@@ -525,7 +525,7 @@ func (sr *subroundBlock) isBlockReceived(threshold int) bool {
 
 func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 	roundInLastCommittedBlock := int64(0)
-	if sr.Blockchain().GetCurrentBlockHeader() != nil {
+	if !check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
 		roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
 	}
 

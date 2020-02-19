@@ -63,7 +63,7 @@ func TestMetaChain_GetCurrentBlockBody(t *testing.T) {
 
 	m := blockchain.MetaChain{}
 
-	assert.Equal(t, nil, m.GetCurrentBlockBody())
+	assert.True(t, check.IfNil(m.GetCurrentBlockBody()))
 }
 
 func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
