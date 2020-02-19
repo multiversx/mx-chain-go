@@ -1186,6 +1186,7 @@ func createElasticIndexer(
 		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 	}
 
+	var err error
 	dbIndexer, err = indexer.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
