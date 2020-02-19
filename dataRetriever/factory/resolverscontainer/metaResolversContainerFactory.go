@@ -2,9 +2,7 @@ package resolverscontainer
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/random"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -22,32 +20,24 @@ type metaResolversContainerFactory struct {
 
 // NewMetaResolversContainerFactory creates a new container filled with topic resolvers for metachain
 func NewMetaResolversContainerFactory(
-	shardCoordinator sharding.Coordinator,
-	messenger dataRetriever.TopicMessageHandler,
-	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.PoolsHolder,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-	dataPacker dataRetriever.DataPacker,
-	triesContainer state.TriesHolder,
-	sizeCheckDelta uint32,
+	args FactoryArgs,
 ) (*metaResolversContainerFactory, error) {
-	if sizeCheckDelta > 0 {
-		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
+	if args.SizeCheckDelta > 0 {
+		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
 
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
 		container:                container,
-		shardCoordinator:         shardCoordinator,
-		messenger:                messenger,
-		store:                    store,
-		marshalizer:              marshalizer,
-		dataPools:                dataPools,
-		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		marshalizer:              args.Marshalizer,
+		dataPools:                args.DataPools,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:               dataPacker,
-		triesContainer:           triesContainer,
+		dataPacker:               args.DataPacker,
+		triesContainer:           args.TriesContainer,
 	}
 
 	err := base.checkParams()

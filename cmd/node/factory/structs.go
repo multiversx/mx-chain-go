@@ -1267,30 +1267,31 @@ func newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
-		state.AccountsAdapter,
-		shardCoordinator,
-		nodesCoordinator,
-		network.NetMessenger,
-		data.Store,
-		dataCore.Marshalizer,
-		dataCore.Hasher,
-		crypto.TxSignKeyGen,
-		crypto.BlockSignKeyGen,
-		crypto.TxSingleSigner,
-		crypto.SingleSigner,
-		crypto.MultiSigner,
-		data.Datapool,
-		state.AddressConverter,
-		core.MaxTxNonceDeltaAllowed,
-		economics,
-		headerBlackList,
-		headerSigVerifier,
-		dataCore.ChainID,
-		sizeCheckDelta,
-		validityAttester,
-		epochStartTrigger,
-	)
+	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+		Accounts:               state.AccountsAdapter,
+		ShardCoordinator:       shardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Messenger:              network.NetMessenger,
+		Store:                  data.Store,
+		Marshalizer:            dataCore.Marshalizer,
+		Hasher:                 dataCore.Hasher,
+		KeyGen:                 crypto.TxSignKeyGen,
+		BlockSignKeyGen:        crypto.BlockSignKeyGen,
+		SingleSigner:           crypto.TxSingleSigner,
+		BlockSingleSigner:      crypto.SingleSigner,
+		MultiSigner:            crypto.MultiSigner,
+		DataPool:               data.Datapool,
+		AddrConverter:          state.AddressConverter,
+		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:           economics,
+		BlackList:              headerBlackList,
+		HeaderSigVerifier:      headerSigVerifier,
+		ChainID:                dataCore.ChainID,
+		SizeCheckDelta:         sizeCheckDelta,
+		ValidityAttester:       validityAttester,
+		EpochStartTrigger:      epochStartTrigger,
+	}
+	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1313,30 +1314,31 @@ func newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(
-		shardCoordinator,
-		nodesCoordinator,
-		network.NetMessenger,
-		data.Store,
-		dataCore.Marshalizer,
-		dataCore.Hasher,
-		crypto.MultiSigner,
-		data.Datapool,
-		state.AccountsAdapter,
-		state.AddressConverter,
-		crypto.TxSingleSigner,
-		crypto.SingleSigner,
-		crypto.TxSignKeyGen,
-		crypto.BlockSignKeyGen,
-		core.MaxTxNonceDeltaAllowed,
-		economics,
-		headerBlackList,
-		headerSigVerifier,
-		dataCore.ChainID,
-		sizeCheckDelta,
-		validityAttester,
-		epochStartTrigger,
-	)
+	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+		ShardCoordinator:       shardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Messenger:              network.NetMessenger,
+		Store:                  data.Store,
+		Marshalizer:            dataCore.Marshalizer,
+		Hasher:                 dataCore.Hasher,
+		MultiSigner:            crypto.MultiSigner,
+		DataPool:               data.Datapool,
+		Accounts:               state.AccountsAdapter,
+		AddrConverter:          state.AddressConverter,
+		SingleSigner:           crypto.TxSingleSigner,
+		BlockSingleSigner:      crypto.SingleSigner,
+		KeyGen:                 crypto.TxSignKeyGen,
+		BlockKeyGen:            crypto.BlockSignKeyGen,
+		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:           economics,
+		BlackList:              headerBlackList,
+		HeaderSigVerifier:      headerSigVerifier,
+		ChainID:                dataCore.ChainID,
+		SizeCheckDelta:         sizeCheckDelta,
+		ValidityAttester:       validityAttester,
+		EpochStartTrigger:      epochStartTrigger,
+	}
+	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1357,17 +1359,18 @@ func newShardResolverContainerFactory(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(
-		shardCoordinator,
-		network.NetMessenger,
-		data.Store,
-		core.Marshalizer,
-		data.Datapool,
-		core.Uint64ByteSliceConverter,
-		dataPacker,
-		core.TriesContainer,
-		sizeCheckDelta,
-	)
+	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetMessenger,
+		Store:                    data.Store,
+		Marshalizer:              core.Marshalizer,
+		DataPools:                data.Datapool,
+		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
+		DataPacker:               dataPacker,
+		TriesContainer:           core.TriesContainer,
+		SizeCheckDelta:           sizeCheckDelta,
+	}
+	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1387,17 +1390,18 @@ func newMetaResolverContainerFactory(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(
-		shardCoordinator,
-		network.NetMessenger,
-		data.Store,
-		core.Marshalizer,
-		data.Datapool,
-		core.Uint64ByteSliceConverter,
-		dataPacker,
-		core.TriesContainer,
-		sizeCheckDelta,
-	)
+	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetMessenger,
+		Store:                    data.Store,
+		Marshalizer:              core.Marshalizer,
+		DataPools:                data.Datapool,
+		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
+		DataPacker:               dataPacker,
+		TriesContainer:           core.TriesContainer,
+		SizeCheckDelta:           sizeCheckDelta,
+	}
+	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}

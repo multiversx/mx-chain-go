@@ -426,30 +426,31 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			TestHasher,
-			TestMultiSig,
-			tpn.DataPool,
-			tpn.AccntState,
-			TestAddressConverter,
-			tpn.OwnAccount.SingleSigner,
-			tpn.OwnAccount.BlockSingleSigner,
-			tpn.OwnAccount.KeygenTxSign,
-			tpn.OwnAccount.KeygenBlockSign,
-			maxTxNonceDeltaAllowed,
-			tpn.EconomicsData,
-			tpn.BlackListHandler,
-			tpn.HeaderSigVerifier,
-			tpn.ChainID,
-			sizeCheckDelta,
-			tpn.BlockTracker,
-			tpn.EpochStartTrigger,
-		)
+		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+			ShardCoordinator:       tpn.ShardCoordinator,
+			NodesCoordinator:       tpn.NodesCoordinator,
+			Messenger:              tpn.Messenger,
+			Store:                  tpn.Storage,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			MultiSigner:            TestMultiSig,
+			DataPool:               tpn.DataPool,
+			Accounts:               tpn.AccntState,
+			AddrConverter:          TestAddressConverter,
+			SingleSigner:           tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
+			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
+			BlockKeyGen:            tpn.OwnAccount.KeygenBlockSign,
+			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+			TxFeeHandler:           tpn.EconomicsData,
+			BlackList:              tpn.BlackListHandler,
+			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			ChainID:                tpn.ChainID,
+			SizeCheckDelta:         sizeCheckDelta,
+			ValidityAttester:       tpn.BlockTracker,
+			EpochStartTrigger:      tpn.EpochStartTrigger,
+		}
+		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
@@ -473,30 +474,31 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			TestHasher,
-			tpn.OwnAccount.KeygenTxSign,
-			tpn.OwnAccount.KeygenBlockSign,
-			tpn.OwnAccount.SingleSigner,
-			tpn.OwnAccount.BlockSingleSigner,
-			TestMultiSig,
-			tpn.DataPool,
-			TestAddressConverter,
-			maxTxNonceDeltaAllowed,
-			tpn.EconomicsData,
-			tpn.BlackListHandler,
-			tpn.HeaderSigVerifier,
-			tpn.ChainID,
-			sizeCheckDelta,
-			tpn.BlockTracker,
-			tpn.EpochStartTrigger,
-		)
+		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+			Accounts:               tpn.AccntState,
+			ShardCoordinator:       tpn.ShardCoordinator,
+			NodesCoordinator:       tpn.NodesCoordinator,
+			Messenger:              tpn.Messenger,
+			Store:                  tpn.Storage,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
+			BlockSignKeyGen:        tpn.OwnAccount.KeygenBlockSign,
+			SingleSigner:           tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
+			MultiSigner:            TestMultiSig,
+			DataPool:               tpn.DataPool,
+			AddrConverter:          TestAddressConverter,
+			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+			TxFeeHandler:           tpn.EconomicsData,
+			BlackList:              tpn.BlackListHandler,
+			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			ChainID:                tpn.ChainID,
+			SizeCheckDelta:         sizeCheckDelta,
+			ValidityAttester:       tpn.BlockTracker,
+			EpochStartTrigger:      tpn.EpochStartTrigger,
+		}
+		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
@@ -508,18 +510,20 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
+	resolverContainerFactory := resolverscontainer.FactoryArgs{
+		ShardCoordinator:         tpn.ShardCoordinator,
+		Messenger:                tpn.Messenger,
+		Store:                    tpn.Storage,
+		Marshalizer:              TestMarshalizer,
+		DataPools:                tpn.DataPool,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		DataPacker:               dataPacker,
+		TriesContainer:           tpn.TrieContainer,
+		SizeCheckDelta:           100,
+	}
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			tpn.DataPool,
-			TestUint64Converter,
-			dataPacker,
-			tpn.TrieContainer,
-			100,
-		)
+		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
@@ -529,17 +533,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			100,
 		)
 	} else {
-		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			tpn.DataPool,
-			TestUint64Converter,
-			dataPacker,
-			tpn.TrieContainer,
-			100,
-		)
+		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)

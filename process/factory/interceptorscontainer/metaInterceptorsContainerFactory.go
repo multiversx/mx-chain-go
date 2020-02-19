@@ -3,10 +3,6 @@ package interceptorscontainer
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -27,111 +23,91 @@ type metaInterceptorsContainerFactory struct {
 
 // NewMetaInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewMetaInterceptorsContainerFactory(
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	messenger process.TopicHandler,
-	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	multiSigner crypto.MultiSigner,
-	dataPool dataRetriever.PoolsHolder,
-	accounts state.AccountsAdapter,
-	addrConverter state.AddressConverter,
-	singleSigner crypto.SingleSigner,
-	blockSingleSigner crypto.SingleSigner,
-	keyGen crypto.KeyGenerator,
-	blockKeyGen crypto.KeyGenerator,
-	maxTxNonceDeltaAllowed int,
-	txFeeHandler process.FeeHandler,
-	blackList process.BlackListHandler,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	chainID []byte,
-	sizeCheckDelta uint32,
-	validityAttester process.ValidityAttester,
-	epochStartTrigger process.EpochStartTriggerHandler,
+	args MetaInterceptorsContainerFactoryArgs,
 ) (*metaInterceptorsContainerFactory, error) {
-	if sizeCheckDelta > 0 {
-		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
+	if args.SizeCheckDelta > 0 {
+		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
+
 	err := checkBaseParams(
-		shardCoordinator,
-		accounts,
-		marshalizer,
-		hasher,
-		store,
-		dataPool,
-		messenger,
-		multiSigner,
-		nodesCoordinator,
-		blackList,
+		args.ShardCoordinator,
+		args.Accounts,
+		args.Marshalizer,
+		args.Hasher,
+		args.Store,
+		args.DataPool,
+		args.Messenger,
+		args.MultiSigner,
+		args.NodesCoordinator,
+		args.BlackList,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(addrConverter) {
+	if check.IfNil(args.AddrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if check.IfNil(singleSigner) {
+	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(keyGen) {
+	if check.IfNil(args.KeyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(txFeeHandler) {
+	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(blockKeyGen) {
+	if check.IfNil(args.BlockKeyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(blockSingleSigner) {
+	if check.IfNil(args.BlockSingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(headerSigVerifier) {
+	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(epochStartTrigger) {
+	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if len(chainID) == 0 {
+	if len(args.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if check.IfNil(validityAttester) {
+	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       marshalizer,
-		Hasher:            hasher,
-		ShardCoordinator:  shardCoordinator,
-		NodesCoordinator:  nodesCoordinator,
-		MultiSigVerifier:  multiSigner,
-		KeyGen:            keyGen,
-		BlockKeyGen:       blockKeyGen,
-		Signer:            singleSigner,
-		BlockSigner:       blockSingleSigner,
-		AddrConv:          addrConverter,
-		FeeHandler:        txFeeHandler,
-		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           chainID,
-		ValidityAttester:  validityAttester,
-		EpochStartTrigger: epochStartTrigger,
+		Marshalizer:       args.Marshalizer,
+		Hasher:            args.Hasher,
+		ShardCoordinator:  args.ShardCoordinator,
+		NodesCoordinator:  args.NodesCoordinator,
+		MultiSigVerifier:  args.MultiSigner,
+		KeyGen:            args.KeyGen,
+		BlockKeyGen:       args.BlockKeyGen,
+		Signer:            args.SingleSigner,
+		BlockSigner:       args.BlockSingleSigner,
+		AddrConv:          args.AddrConverter,
+		FeeHandler:        args.TxFeeHandler,
+		HeaderSigVerifier: args.HeaderSigVerifier,
+		ChainID:           args.ChainID,
+		ValidityAttester:  args.ValidityAttester,
+		EpochStartTrigger: args.EpochStartTrigger,
 	}
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
 		container:              container,
-		shardCoordinator:       shardCoordinator,
-		messenger:              messenger,
-		store:                  store,
-		marshalizer:            marshalizer,
-		hasher:                 hasher,
-		multiSigner:            multiSigner,
-		dataPool:               dataPool,
-		nodesCoordinator:       nodesCoordinator,
-		blackList:              blackList,
+		shardCoordinator:       args.ShardCoordinator,
+		messenger:              args.Messenger,
+		store:                  args.Store,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
+		multiSigner:            args.MultiSigner,
+		dataPool:               args.DataPool,
+		nodesCoordinator:       args.NodesCoordinator,
+		blackList:              args.BlackList,
 		argInterceptorFactory:  argInterceptorFactory,
-		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-		accounts:               accounts,
+		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
+		accounts:               args.Accounts,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
