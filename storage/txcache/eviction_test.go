@@ -302,18 +302,18 @@ func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEv
 	require.Equal(t, int64(240000), cache.CountTx())
 }
 
-func Test_EvictPenalizedSenders(t *testing.T) {
-	cache := newCacheToTest()
-	cache.NotifyAccountNonce([]byte("alice"), 1)
+// func Test_EvictPenalizedSenders(t *testing.T) {
+// 	cache := newCacheToTest()
+// 	cache.NotifyAccountNonce([]byte("alice"), 1)
 
-	for txNonce := 42; txNonce < 500; txNonce++ {
-		txHash := fmt.Sprintf("hash-alice:%d", txNonce)
-		tx := createTx("alice", uint64(txNonce))
-		cache.AddTx([]byte(txHash), tx)
-	}
+// 	for txNonce := 42; txNonce < 500; txNonce++ {
+// 		txHash := fmt.Sprintf("hash-alice:%d", txNonce)
+// 		tx := createTx("alice", uint64(txNonce))
+// 		cache.AddTx([]byte(txHash), tx)
+// 	}
 
-	alice, _ := cache.txListBySender.getListForSender("alice")
+// 	alice, _ := cache.txListBySender.getListForSender("alice")
 
-	require.Equal(t, int64(500-42), cache.CountTx())
-	require.Equal(t, int64(500-42), alice.initialGapPenalty.Get())
-}
+// 	require.Equal(t, int64(500-42), cache.CountTx())
+// 	require.Equal(t, int64(500-42), alice.initialGapPenalty.Get())
+// }

@@ -30,6 +30,8 @@ func (cache *TxCache) doEviction() {
 
 	stopWatch := cache.monitorEvictionStart()
 
+	// TODO: first phase, evict sweepable.
+
 	if tooManyTxs {
 		cache.makeSnapshotOfSenders()
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
@@ -165,24 +167,24 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-func (cache *TxCache) doEvictPenalizedSenders() {
-	const maxAcceptedPenalty = 100
+// func (cache *TxCache) doEvictPenalizedSenders() {
+// 	const maxAcceptedPenalty = 100
 
-	maxSendersToEvict := int(cache.config.NumSendersToEvictInOneStep)
-	sendersToEvict := make([]*txListForSender, 0, maxSendersToEvict)
-	snapshot := cache.txListBySender.getSnapshotAscending()
+// 	maxSendersToEvict := int(cache.config.NumSendersToEvictInOneStep)
+// 	sendersToEvict := make([]*txListForSender, 0, maxSendersToEvict)
+// 	snapshot := cache.txListBySender.getSnapshotAscending()
 
-	for _, item := range snapshot {
-		item.penalizeInitialGap()
+// 	for _, item := range snapshot {
+// 		item.penalizeInitialGap()
 
-		if item.initialGapPenalty.Get() > maxAcceptedPenalty {
-			sendersToEvict = append(sendersToEvict, item)
-		}
+// 		if item.initialGapPenalty.Get() > maxAcceptedPenalty {
+// 			sendersToEvict = append(sendersToEvict, item)
+// 		}
 
-		if len(sendersToEvict) > maxSendersToEvict {
-			break
-		}
-	}
+// 		if len(sendersToEvict) > maxSendersToEvict {
+// 			break
+// 		}
+// 	}
 
-	cache.evictSendersAndTheirTxs(sendersToEvict)
-}
+// 	cache.evictSendersAndTheirTxs(sendersToEvict)
+// }

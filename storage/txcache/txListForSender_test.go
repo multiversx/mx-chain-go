@@ -121,22 +121,22 @@ func Test_CopyBatchTo(t *testing.T) {
 	destinationHashes := make([][]byte, 1000)
 
 	// First batch
-	copied := list.copyBatchTo(true, destination, destinationHashes, 50)
+	copied := list.selectBatchTo(true, destination, destinationHashes, 50)
 	require.Equal(t, 50, copied)
 	require.NotNil(t, destination[49])
 	require.Nil(t, destination[50])
 
 	// Second batch
-	copied = list.copyBatchTo(false, destination[50:], destinationHashes[50:], 50)
+	copied = list.selectBatchTo(false, destination[50:], destinationHashes[50:], 50)
 	require.Equal(t, 50, copied)
 	require.NotNil(t, destination[99])
 
 	// No third batch
-	copied = list.copyBatchTo(false, destination, destinationHashes, 50)
+	copied = list.selectBatchTo(false, destination, destinationHashes, 50)
 	require.Equal(t, 0, copied)
 
 	// Restart copy
-	copied = list.copyBatchTo(true, destination, destinationHashes, 12345)
+	copied = list.selectBatchTo(true, destination, destinationHashes, 12345)
 	require.Equal(t, 100, copied)
 }
 
@@ -150,13 +150,13 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	// When empty destination
 	destination := make([]data.TransactionHandler, 0)
 	destinationHashes := make([][]byte, 0)
-	copied := list.copyBatchTo(true, destination, destinationHashes, 10)
+	copied := list.selectBatchTo(true, destination, destinationHashes, 10)
 	require.Equal(t, 0, copied)
 
 	// When small destination
 	destination = make([]data.TransactionHandler, 5)
 	destinationHashes = make([][]byte, 5)
-	copied = list.copyBatchTo(false, destination, destinationHashes, 10)
+	copied = list.selectBatchTo(false, destination, destinationHashes, 10)
 	require.Equal(t, 5, copied)
 }
 

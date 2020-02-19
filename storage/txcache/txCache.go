@@ -89,8 +89,8 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
-			shouldResetCopy := pass == 0
-			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizeWithScoreCoefficient)
+			isFirstBatch := pass == 0
+			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizeWithScoreCoefficient)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -225,10 +225,10 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
-// EvictPenalizedSenders should be called periodically in order to remove senders with unresolved, persistent initial gaps
-func (cache *TxCache) EvictPenalizedSenders() {
-	cache.doEvictPenalizedSenders()
-}
+// // EvictPenalizedSenders should be called periodically in order to remove senders with unresolved, persistent initial gaps
+// func (cache *TxCache) EvictPenalizedSenders() {
+// 	cache.doEvictPenalizedSenders()
+// }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {

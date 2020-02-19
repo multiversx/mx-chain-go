@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
+const gracePeriodLowerBound = 5
+const gracePeriodUpperBound = 7
+
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	// TODO: RWMutex for some operations?
@@ -27,7 +30,8 @@ type txListForSender struct {
 	cacheConfig           *CacheConfig
 	accountNonce          atomic.Uint64
 	accountNonceKnown     atomic.Flag
-	initialGapPenalty     atomic.Counter // TODO: count failed selections instead?
+	numFailedSelections   atomic.Counter
+	sweepable             atomic.Flag
 }
 
 // txListForSenderNode is a node of the linked list
@@ -162,27 +166,32 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // copyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []data.TransactionHandler, destinationHashes [][]byte, batchSize int) int {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []data.TransactionHandler, destinationHashes [][]byte, batchSize int) int {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
 	// Reset the internal state used for copy operations
-	if withReset {
+	if isFirstBatch {
+		hasInitialGap := listForSender.verifyInitialGapOnSelectionStart()
+
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
-		listForSender.copyDetectedGap = listForSender.hasInitialGap()
+		listForSender.copyDetectedGap = hasInitialGap
 	}
 
 	element := listForSender.copyBatchIndex
 	availableSpace := len(destination)
 	detectedGap := listForSender.copyDetectedGap
-	shouldSkipCopy := element == nil || detectedGap
 	previousNonce := listForSender.copyPreviousNonce
 
-	if shouldSkipCopy {
-		return 0
+	if detectedGap {
+		if isFirstBatch && listForSender.isInGracePeriod() {
+			batchSize = 1
+		} else {
+			batchSize = 0
+		}
 	}
 
 	copied := 0
@@ -240,6 +249,7 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 }
 
 func (listForSender *txListForSender) getLowestNonceTx() data.TransactionHandler {
+	// TODO: RWmutex?
 	// TODO / comment: Only called within lock.
 	front := listForSender.items.Front()
 	if front == nil {
@@ -265,21 +275,31 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	return count
 }
 
+// notifyAccountNonce does not update the "sweepable" flag, nor the "numFailedSelections" counter,
+// since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
-	// TODO: RWmutex?
 	listForSender.accountNonce.Set(nonce)
 	listForSender.accountNonceKnown.Set()
-	listForSender.penalizeInitialGap()
 }
 
-func (listForSender *txListForSender) penalizeInitialGap() {
-	if listForSender.hasInitialGap() {
-		listForSender.initialGapPenalty.Increment()
+func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
+	hasInitialGap := listForSender.hasInitialGap()
+
+	if hasInitialGap {
+		listForSender.numFailedSelections.Increment()
+
+		if listForSender.isGracePeriodExceeded() {
+			listForSender.sweepable.Set()
+		}
 	} else {
-		listForSender.initialGapPenalty.Reset()
+		listForSender.numFailedSelections.Reset()
+		listForSender.sweepable.Unset()
 	}
+
+	return hasInitialGap
 }
 
+// hasInitialGap should only be called at tx selection time, since only then we can detect initial gaps with certainty
 func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
 	if !accountNonceKnown {
@@ -295,4 +315,15 @@ func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonce := listForSender.accountNonce.Get()
 	hasGap := firstTxNonce > accountNonce
 	return hasGap
+}
+
+// isInGracePeriod returns whether the sender is grace period due to a number of failed selections
+func (listForSender *txListForSender) isInGracePeriod() bool {
+	numFailedSelections := listForSender.numFailedSelections.Get()
+	return numFailedSelections >= gracePeriodLowerBound && numFailedSelections <= gracePeriodUpperBound
+}
+
+func (listForSender *txListForSender) isGracePeriodExceeded() bool {
+	numFailedSelections := listForSender.numFailedSelections.Get()
+	return numFailedSelections > gracePeriodUpperBound
 }
