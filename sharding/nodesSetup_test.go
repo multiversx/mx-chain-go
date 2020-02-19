@@ -52,19 +52,22 @@ func createAndAssignNodes(ns sharding.NodesSetup, noOfInitialNodes int) *shardin
 }
 
 func createNodesSetupOneShardOneNodeWithOneMeta() *sharding.NodesSetup {
-	noOfInitialNodes := 2
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
 	ns.MetaChainConsensusGroupSize = 1
 	ns.MetaChainMinNodes = 1
-	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
-	ns.InitialNodes[0] = &sharding.InitialNode{}
-	ns.InitialNodes[0].PubKey = PubKeys[0]
-	ns.InitialNodes[0].Address = Address[0]
-	ns.InitialNodes[1] = &sharding.InitialNode{}
-	ns.InitialNodes[1].PubKey = PubKeys[1]
-	ns.InitialNodes[1].Address = Address[1]
+	ns.InitialNodes = []*sharding.InitialNode{
+		{
+			PubKey:  PubKeys[0],
+			Address: Address[0],
+		},
+		{
+			PubKey:  PubKeys[1],
+			Address: Address[1],
+		},
+	}
+
 	err := ns.ProcessConfig()
 	if err != nil {
 		return nil

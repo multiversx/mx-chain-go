@@ -48,8 +48,8 @@ func (enc *epochNodesConfig) WaitingMap() map[uint32][]Validator {
 	return enc.waitingMap
 }
 
-func (enc *epochNodesConfig) MutNodesMaps() sync.RWMutex {
-	return enc.mutNodesMaps
+func (enc *epochNodesConfig) MutNodesMaps() *sync.RWMutex {
+	return &enc.mutNodesMaps
 }
 
 func EpochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidators {

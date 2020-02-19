@@ -171,23 +171,6 @@ func generateSkAndPkInShard(
 	return sk, pk
 }
 
-func genValidators(ncp map[uint32][]*nodeKeys) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shardId, shardNodesKeys := range ncp {
-		shardValidators := make([]sharding.Validator, 0)
-		for i := 0; i < len(shardNodesKeys); i++ {
-			v, _ := sharding.NewValidator(
-				shardNodesKeys[i].BlockSignPkBytes,
-				shardNodesKeys[i].TxSignPkBytes)
-			shardValidators = append(shardValidators, v)
-		}
-		validatorsMap[shardId] = shardValidators
-	}
-
-	return validatorsMap
-}
-
 func newTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,

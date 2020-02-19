@@ -160,7 +160,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 
 	eligibleNodes := ihgs.NodesConfig()[0].EligibleMap()[0]
 	mutNodesMaps := ihgs.NodesConfig()[0].MutNodesMaps()
-	expandedList := ihgs.ExpandEligibleList(eligibleNodes, &mutNodesMaps)
+	expandedList := ihgs.ExpandEligibleList(eligibleNodes, mutNodesMaps)
 	assert.Equal(t, int(ratingPk0+ratingPk1), len(expandedList))
 
 	occurences := make(map[string]uint32, 2)
