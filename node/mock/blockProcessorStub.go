@@ -10,8 +10,8 @@ import (
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
@@ -32,17 +32,17 @@ func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 }
 
 // SetNumProcessedObj -
-func (bps *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
+func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
 }
 
 // ProcessBlock mocks pocessing a block
-func (bps *BlockProcessorStub) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bps.ProcessBlockCalled(blockChain, header, body, haveTime)
+func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bps.ProcessBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block
-func (bps *BlockProcessorStub) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-	return bps.CommitBlockCalled(blockChain, header, body)
+func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
+	return bps.CommitBlockCalled(header, body)
 }
 
 // RevertAccountState mocks revert of the accounts state
@@ -103,18 +103,13 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 	bps.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-// SetConsensusData -
-func (bps *BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	panic("implement me")
-}
-
 // CreateNewHeader creates a new header
 func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 
 // ApplyProcessedMiniBlocks -
-func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
+func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -408,10 +408,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	for _, nodes := range nodesMap {
 		integrationTests.DisplayAndStartNodes(nodes)
 		integrationTests.SetEconomicsParameters(nodes, integrationTests.MaxGasLimitPerBlock, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
-		//set rewards = 0 so we can easily test the balances taking into account only the tx fee
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0))
-		}
 	}
 
 	defer func() {

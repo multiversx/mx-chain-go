@@ -59,7 +59,6 @@ func initNodesAndTest(
 		for i := uint32(0); i < numInvalid; i++ {
 			iCopy := i
 			nodes[0][i].blkProcessor.ProcessBlockCalled = func(
-				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				body data.BodyHandler,
 				haveTime func() time.Duration,
@@ -93,10 +92,10 @@ func initNodesAndTest(
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
 	for _, n := range nodes {
 		nCopy := n
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+		n.blkProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
+			_ = nCopy.blkc.SetCurrentBlockHeader(header)
+			_ = nCopy.blkc.SetCurrentBlockBody(body)
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -156,6 +155,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint64(10)
+
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}

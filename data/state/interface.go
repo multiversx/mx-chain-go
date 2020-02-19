@@ -71,6 +71,7 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
+	AddToAccumulatedFees(value *big.Int) error
 	IncreaseLeaderSuccessRateWithJournal(value uint32) error
 	DecreaseLeaderSuccessRateWithJournal(value uint32) error
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error

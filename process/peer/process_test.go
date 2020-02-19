@@ -29,10 +29,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        "1000",
-				CommunityPercentage: 0.10,
-				LeaderPercentage:    0.50,
-				BurnPercentage:      0.40,
+				LeaderPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  "10000000",
@@ -72,6 +69,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		PeerAdapter:         getAccountsMock(),
 		StakeValue:          economicsData.StakeValue(),
 		Rater:               createMockRater(),
+		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
 	}
 	return arguments
@@ -741,10 +739,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		switch v := obj.(type) {
 		case *block.MetaBlock:
 			*v = block.MetaBlock{
-				PubKeysBitmap: []byte{255, 255},
+				PubKeysBitmap:   []byte{255, 255},
+				AccumulatedFees: big.NewInt(0),
 			}
 		case *block.Header:
-			*v = block.Header{}
+			*v = block.Header{
+				AccumulatedFees: big.NewInt(0),
+			}
 		default:
 			fmt.Println(v)
 		}
@@ -1403,10 +1404,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
-		Nonce:         2,
-		PrevRandSeed:  randSeed,
-		PrevHash:      randSeed,
-		PubKeysBitmap: randSeed,
+		Nonce:           2,
+		PrevRandSeed:    randSeed,
+		PrevHash:        randSeed,
+		PubKeysBitmap:   randSeed,
+		AccumulatedFees: big.NewInt(0),
 	}
 }
 

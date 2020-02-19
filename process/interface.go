@@ -196,8 +196,8 @@ type PreProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader() data.HeaderHandler
@@ -472,10 +472,7 @@ type PoolsCleaner interface {
 
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
-	RewardsValue() *big.Int
-	CommunityPercentage() float64
 	LeaderPercentage() float64
-	BurnPercentage() float64
 	IsInterfaceNil() bool
 }
 

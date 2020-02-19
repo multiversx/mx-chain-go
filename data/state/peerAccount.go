@@ -38,6 +38,7 @@ type PeerAccount struct {
 	SchnorrPublicKey []byte
 	RewardAddress    []byte
 	Stake            *big.Int
+	AccumulatedFees  *big.Int
 
 	JailTime      TimePeriod
 	PastJailTimes []TimePeriod
@@ -76,6 +77,7 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
+		AccumulatedFees:  big.NewInt(0),
 		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -331,6 +333,34 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 
 	pa.accountTracker.Journalize(entry)
 	pa.ValidatorSuccessRate.NrFailure += value
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
+// IncreaseLeaderAccumulatedFees increases the account's accumulated fees
+func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
+	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
+
+	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.AccumulatedFees = newAccumulatedFees
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
+// ResetAtNewEpoch will reset a set of values after changing epoch
+func (pa *PeerAccount) ResetAtNewEpoch() error {
+	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.AccumulatedFees = big.NewInt(0)
 
 	return pa.accountTracker.SaveAccount(pa)
 }

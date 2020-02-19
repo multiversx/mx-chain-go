@@ -620,3 +620,9 @@ var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come o
 
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
+
+// ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
+var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
+
+// ErrNilRewardsHandler signals that rewards handler is nil
+var ErrNilRewardsHandler = errors.New("rewards handler is nil")

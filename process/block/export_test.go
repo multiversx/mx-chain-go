@@ -26,11 +26,10 @@ func (bp *baseProcessor) VerifyStateRoot(rootHash []byte) bool {
 }
 
 func (bp *baseProcessor) CheckBlockValidity(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	return bp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
+	return bp.checkBlockValidity(headerHandler, bodyHandler)
 }
 
 func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
@@ -62,7 +61,11 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) 
 	sp.updateStateStorage(finalHeaders)
 }
 
-func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
+func NewShardProcessorEmptyWith3shards(
+	tdp dataRetriever.PoolsHolder,
+	genesisBlocks map[uint32]data.HeaderHandler,
+	blockChain data.ChainHandler,
+) (*shardProcessor, error) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 
@@ -98,6 +101,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			},
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
 			DataPool:     tdp,
+			BlockChain:   blockChain,
 		},
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
