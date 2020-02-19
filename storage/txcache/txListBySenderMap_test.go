@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_AddTx_IncrementsCounter(t *testing.T) {
+func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
@@ -19,7 +19,7 @@ func Test_AddTx_IncrementsCounter(t *testing.T) {
 	require.Equal(t, int64(2), myMap.counter.Get())
 }
 
-func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
+func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	txAlice1 := createTx("alice", uint64(1))
@@ -43,7 +43,7 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
-func Test_RemoveSender(t *testing.T) {
+func TestSendersMap_RemoveSender(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
@@ -57,7 +57,23 @@ func Test_RemoveSender(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
-func Benchmark_GetSnapshotAscending(b *testing.B) {
+func TestSendersMap_notifyAccountNonce(t *testing.T) {
+	myMap := newSendersMapToTest()
+
+	// Discarded notification, since sender not added yet
+	myMap.notifyAccountNonce([]byte("alice"), 42)
+
+	myMap.addTx([]byte("tx-42"), createTx("alice", uint64(42)))
+	alice, _ := myMap.getListForSender("alice")
+	require.Equal(t, uint64(0), alice.accountNonce.Get())
+	require.False(t, alice.accountNonceKnown.IsSet())
+
+	myMap.notifyAccountNonce([]byte("alice"), 42)
+	require.Equal(t, uint64(42), alice.accountNonce.Get())
+	require.True(t, alice.accountNonceKnown.IsSet())
+}
+
+func BenchmarkSendersMap_GetSnapshotAscending(b *testing.B) {
 	if b.N > 10 {
 		fmt.Println("impractical benchmark: b.N too high")
 		return
@@ -79,7 +95,7 @@ func Benchmark_GetSnapshotAscending(b *testing.B) {
 	}
 }
 
-func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
+func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	var wg sync.WaitGroup

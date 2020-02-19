@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -110,7 +111,7 @@ func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func Test_CopyBatchTo(t *testing.T) {
+func Test_SelectBatchTo(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -140,7 +141,7 @@ func Test_CopyBatchTo(t *testing.T) {
 	require.Equal(t, 100, copied)
 }
 
-func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
+func Test_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	list := newListToTest()
 
 	for index := 0; index < 100; index++ {
@@ -158,6 +159,133 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	destinationHashes = make([][]byte, 5)
 	copied = list.selectBatchTo(false, destination, destinationHashes, 10)
 	require.Equal(t, 5, copied)
+}
+
+func Test_SelectBatchTo_WhenInitialGap(t *testing.T) {
+	list := newListToTest()
+
+	list.notifyAccountNonce(1)
+
+	for index := 10; index < 20; index++ {
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
+	}
+
+	destination := make([]data.TransactionHandler, 1000)
+	destinationHashes := make([][]byte, 1000)
+
+	// First batch, first failure
+	copied := list.selectBatchTo(true, destination, destinationHashes, 50)
+	require.Equal(t, 0, copied)
+	require.Nil(t, destination[0])
+	require.Equal(t, int64(1), list.numFailedSelections.Get())
+
+	// Second batch, don't count failure again
+	copied = list.selectBatchTo(false, destination, destinationHashes, 50)
+	require.Equal(t, 0, copied)
+	require.Nil(t, destination[0])
+	require.Equal(t, int64(1), list.numFailedSelections.Get())
+
+	// First batch again, second failure
+	copied = list.selectBatchTo(true, destination, destinationHashes, 50)
+	require.Equal(t, 0, copied)
+	require.Nil(t, destination[0])
+	require.Equal(t, int64(2), list.numFailedSelections.Get())
+}
+
+func Test_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T) {
+	list := newListToTest()
+
+	list.notifyAccountNonce(1)
+
+	for index := 2; index < 20; index++ {
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
+	}
+
+	destination := make([]data.TransactionHandler, 1000)
+	destinationHashes := make([][]byte, 1000)
+
+	// Try a number of selections with failure, reach close to grace period
+	for i := 1; i < gracePeriodLowerBound; i++ {
+		copied := list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+		require.Equal(t, 0, copied)
+		require.Equal(t, int64(i), list.numFailedSelections.Get())
+	}
+
+	// Try selection again. Failure will move the sender to grace period and return 1 transaction
+	copied := list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+	require.Equal(t, 1, copied)
+	require.Equal(t, int64(gracePeriodLowerBound), list.numFailedSelections.Get())
+
+	// Try a new selection during the grace period
+	copied = list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+	require.Equal(t, 1, copied)
+	require.Equal(t, int64(gracePeriodLowerBound+1), list.numFailedSelections.Get())
+
+	// Now resolve the gap
+	list.AddTx([]byte("resolving-tx"), createTx(".", 1))
+	// Selection will be successful
+	copied = list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+	require.Equal(t, 19, copied)
+	require.Equal(t, int64(0), list.numFailedSelections.Get())
+}
+
+func Test_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
+	list := newListToTest()
+
+	list.notifyAccountNonce(1)
+
+	for index := 2; index < 20; index++ {
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
+	}
+
+	destination := make([]data.TransactionHandler, 1000)
+	destinationHashes := make([][]byte, 1000)
+
+	// Try a number of selections with failure, reach close to grace period
+	for i := 1; i < gracePeriodLowerBound; i++ {
+		copied := list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+		require.Equal(t, 0, copied)
+		require.Equal(t, int64(i), list.numFailedSelections.Get())
+	}
+
+	// Try a number of selections with failure, within the grace period
+	for i := gracePeriodLowerBound; i <= gracePeriodUpperBound; i++ {
+		copied := list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+		require.Equal(t, 1, copied)
+		require.Equal(t, int64(i), list.numFailedSelections.Get())
+	}
+
+	// Grace period exceeded now
+	copied := list.selectBatchTo(true, destination, destinationHashes, math.MaxInt32)
+	require.Equal(t, 0, copied)
+	require.Equal(t, int64(gracePeriodUpperBound+1), list.numFailedSelections.Get())
+	require.True(t, list.sweepable.IsSet())
+}
+
+func Test_NotifyAccountNonce(t *testing.T) {
+	list := newListToTest()
+
+	require.Equal(t, uint64(0), list.accountNonce.Get())
+	require.False(t, list.accountNonceKnown.IsSet())
+
+	list.notifyAccountNonce(42)
+
+	require.Equal(t, uint64(42), list.accountNonce.Get())
+	require.True(t, list.accountNonceKnown.IsSet())
+}
+
+func Test_hasInitialGap(t *testing.T) {
+	list := newListToTest()
+	list.notifyAccountNonce(42)
+
+	// No transaction, no gap
+	require.False(t, list.hasInitialGap())
+	// One gap
+	list.AddTx([]byte("tx-44"), createTx(".", 43))
+	require.True(t, list.hasInitialGap())
+	// Resolve gap
+	list.AddTx([]byte("tx-44"), createTx(".", 42))
+	require.False(t, list.hasInitialGap())
 }
 
 func Test_getTxHashes(t *testing.T) {

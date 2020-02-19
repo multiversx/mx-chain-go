@@ -164,7 +164,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTx() == 0
 }
 
-// copyBatchTo copies a batch (usually small) of transactions to a destination slice
+// selectBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
 func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []data.TransactionHandler, destinationHashes [][]byte, batchSize int) int {
 	// We can't read from multiple goroutines at the same time
