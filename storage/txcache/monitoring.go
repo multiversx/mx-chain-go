@@ -126,4 +126,42 @@ func (cache *TxCache) diagnose() {
 	logFunc("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
 	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
 	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+
+	cache.displayNonceGaps()
+}
+
+type gapJournal struct {
+	accountNonce        uint64
+	previousNonce       uint64
+	numFailedSelections int64
+}
+
+func (cache *TxCache) displayNonceGaps() {
+	gaps := make(map[string]gapJournal, 0)
+
+	cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+		if !txList.copyDetectedGap {
+			return
+		}
+
+		gaps[key] = gapJournal{
+			accountNonce:        txList.accountNonce.Get(),
+			previousNonce:       txList.copyPreviousNonce,
+			numFailedSelections: txList.numFailedSelections.Get(),
+		}
+	})
+
+	if len(gaps) > 0 {
+		log.Trace("Detected gaps", "count", len(gaps))
+
+		dumped := 0
+		for key, value := range gaps {
+			log.Trace("Gap", "sender", []byte(key), "info", value)
+
+			dumped++
+			if dumped > 100 {
+				break
+			}
+		}
+	}
 }
