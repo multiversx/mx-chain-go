@@ -452,7 +452,6 @@ func createConsensusOnlyNode(
 		node.WithBlockChain(blockChain),
 		node.WithMultiSigner(testMultiSig),
 		node.WithTxSingleSigner(singlesigner),
-		node.WithTxSignPrivKey(privKey),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(createTestShardDataPool()),

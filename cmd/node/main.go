@@ -91,15 +91,9 @@ VERSION:
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
-		Name:  "nodesSetup-file",
+		Name:  "nodes-setup-file",
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
 		Value: "./config/nodesSetup.json",
-	}
-	// txSignSk defines a flag for the path of the single sign private key used when starting the node
-	txSignSk = cli.StringFlag{
-		Name:  "tx-sign-sk",
-		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
-		Value: "",
 	}
 	// sk defines a flag for the path of the multi sign private key used when starting the node
 	sk = cli.StringFlag{
@@ -115,31 +109,31 @@ VERSION:
 	}
 	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
 	configurationEconomicsFile = cli.StringFlag{
-		Name:  "configEconomics",
+		Name:  "config-economics",
 		Usage: "The economics configuration file to load",
 		Value: "./config/economics.toml",
 	}
 	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
 	configurationPreferencesFile = cli.StringFlag{
-		Name:  "configPreferences",
+		Name:  "config-preferences",
 		Usage: "The preferences configuration file to load",
 		Value: "./config/prefs.toml",
 	}
+	// externalConfigFile defines a flag for the path to the external toml configuration file
+	externalConfigFile = cli.StringFlag{
+		Name:  "config-external",
+		Usage: "The external configuration file to load",
+		Value: "./config/external.toml",
+	}
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
-		Name:  "p2pconfig",
+		Name:  "p2p-config",
 		Usage: "The configuration file for P2P",
 		Value: "./config/p2p.toml",
 	}
-	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
-	serversConfigurationFile = cli.StringFlag{
-		Name:  "serversconfig",
-		Usage: "The configuration file for servers confidential data",
-		Value: "./config/server.toml",
-	}
 	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
 	gasScheduleConfigurationFile = cli.StringFlag{
-		Name:  "gasCostsConfig",
+		Name:  "gas-costs-config",
 		Usage: "The configuration file for gas costs used in SmartContract execution",
 		Value: "./config/gasSchedule.toml",
 	}
@@ -165,12 +159,6 @@ VERSION:
 		Name:  "profile-mode",
 		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
 	}
-	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
-	txSignSkIndex = cli.IntFlag{
-		Name:  "tx-sign-sk-index",
-		Usage: "Single sign private key index specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
-		Value: 0,
-	}
 	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
 		Name:  "sk-index",
@@ -181,12 +169,6 @@ VERSION:
 	gopsEn = cli.BoolFlag{
 		Name:  "gops-enable",
 		Usage: "Enables gops over the process. Stack can be viewed by calling 'gops stack <pid>'",
-	}
-	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
-	numOfNodes = cli.Uint64Flag{
-		Name:  "num-of-nodes",
-		Usage: "Number of nodes specifies the maximum number of nodes which will be used from initialNodes list exposed in nodesSetup.json file",
-		Value: math.MaxUint64,
 	}
 	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
 	// it starts from the last state stored on disk
@@ -223,16 +205,9 @@ VERSION:
 		Usage: "will not enable the user-friendly terminal view of the node",
 	}
 
-	// initialBalancesSkPemFile defines a flag for the path to the ...
-	initialBalancesSkPemFile = cli.StringFlag{
-		Name:  "initialBalancesSkPemFile",
-		Usage: "The file containing the secret keys which ...",
-		Value: "./config/initialBalancesSk.pem",
-	}
-
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
-		Name:  "initialNodesSkPemFile",
+		Name:  "initial-nodes-sk-pem-file",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
@@ -335,19 +310,15 @@ func main() {
 		configurationFile,
 		configurationEconomicsFile,
 		configurationPreferencesFile,
+		externalConfigFile,
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
-		txSignSk,
 		sk,
 		profileMode,
-		txSignSkIndex,
 		skIndex,
-		numOfNodes,
 		storageCleanup,
-		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
-		serversConfigurationFile,
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
@@ -457,6 +428,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", configurationPreferencesFileName)
 
+	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
+	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", externalConfigurationFileName)
+
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
 	if err != nil {
@@ -474,7 +452,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
+	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
 	if err != nil {
 		return err
 	}
@@ -517,14 +495,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
-		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
 	}
 
 	if ctx.IsSet(nodeDisplayName.Name) {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -597,7 +575,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
-		generalConfig.GeneralSettings,
+		preferencesConfig.Preferences,
 		pubKey,
 		coreComponents.Hasher,
 		rater)
@@ -624,7 +602,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -656,21 +634,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		keyGen,
 		privKey,
 		log,
-		initialBalancesSkPemFile.Name,
-		txSignSk.Name,
-		txSignSkIndex.Name,
 	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
 	}
 
-	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveCurrentNodeName(coreComponents.StatusHandler, preferencesConfig.Preferences.NodeDisplayName)
 
-	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
-		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
@@ -714,13 +687,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	if generalConfig.Explorer.Enabled {
+	if externalConfig.ElasticSearchConnector.Enabled {
 		log.Trace("creating elastic search components")
-		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = createElasticIndexer(
 			ctx,
-			serversConfigurationFileName,
-			generalConfig.Explorer.IndexerURL,
+			externalConfig.ElasticSearchConnector,
+			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
 			coreComponents.Marshalizer,
 			coreComponents.Hasher,
@@ -921,7 +893,7 @@ func copySingleFile(folder string, configFile string) {
 		return
 	}
 	defer func() {
-		err := source.Close()
+		err = source.Close()
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
 		}
@@ -933,7 +905,7 @@ func copySingleFile(folder string, configFile string) {
 		return
 	}
 	defer func() {
-		err := destination.Close()
+		err = destination.Close()
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
 		}
@@ -941,7 +913,7 @@ func copySingleFile(folder string, configFile string) {
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
 	}
 }
 
@@ -1035,8 +1007,18 @@ func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
 	return cfg, nil
 }
 
-func loadPreferencesConfig(filepath string) (*config.ConfigPreferences, error) {
-	cfg := &config.ConfigPreferences{}
+func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
+	cfg := &config.Preferences{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
+	cfg := &config.ExternalConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1066,7 +1048,7 @@ func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.Nod
 func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
-	settingsConfig config.GeneralSettingsConfig,
+	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1075,7 +1057,7 @@ func createShardCoordinator(
 		nodeType = core.NodeTypeObserver
 		log.Info("starting as observer node")
 
-		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
+		selfShardId, err = processDestinationShardAsObserver(prefsConfig)
 	}
 	if err != nil {
 		return nil, "", err
@@ -1099,7 +1081,7 @@ func createShardCoordinator(
 
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
-	settingsConfig config.GeneralSettingsConfig,
+	prefsConfig config.PreferencesConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 	_ sharding.RaterHandler,
@@ -1107,7 +1089,7 @@ func createNodesCoordinator(
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		shardId, err = processDestinationShardAsObserver(settingsConfig)
+		shardId, err = processDestinationShardAsObserver(prefsConfig)
 	}
 	if err != nil {
 		return nil, err
@@ -1167,8 +1149,8 @@ func createNodesCoordinator(
 	return baseNodesCoordinator, nil
 }
 
-func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
-	destShard := strings.ToLower(settingsConfig.DestinationShardAsObserver)
+func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
+	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
 		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
 	}
@@ -1188,21 +1170,16 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 // authentication for the server is using the username and password
 func createElasticIndexer(
 	ctx *cli.Context,
-	serversConfigurationFileName string,
+	elasticSearchConfig config.ElasticSearchConfig,
 	url string,
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (indexer.Indexer, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return nil, err
-	}
-
 	arguments := indexer.ElasticIndexerArgs{
 		Url:              url,
-		UserName:         serversConfig.ElasticSearch.Username,
-		Password:         serversConfig.ElasticSearch.Password,
+		UserName:         elasticSearchConfig.Username,
+		Password:         elasticSearchConfig.Password,
 		ShardCoordinator: coordinator,
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
@@ -1230,7 +1207,7 @@ func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sh
 
 func createNode(
 	config *config.Config,
-	preferencesConfig *config.ConfigPreferences,
+	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
 	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,
@@ -1278,8 +1255,6 @@ func createNode(
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
 		node.WithKeyGenForAccounts(crypto.TxSignKeyGen),
-		node.WithTxSignPubKey(crypto.TxSignPubKey),
-		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(process.ForkDetector),
@@ -1316,10 +1291,6 @@ func createNode(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
-		if err != nil {
-			return nil, errors.New("error creating node: " + err.Error())
-		}
 		err = nd.CreateShardedStores()
 		if err != nil {
 			return nil, err
