@@ -289,7 +289,7 @@ func CreateNodesWithTestP2PNodes(
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
-			fmt.Println("Error creating node coordinator")
+			fmt.Println("Error creating node coordinator " + err.Error())
 		}
 
 		nodesList := make([]*TestP2PNode, len(validatorList))

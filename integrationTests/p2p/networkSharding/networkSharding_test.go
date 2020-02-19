@@ -34,7 +34,7 @@ func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
 	}
 	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantPrioBits
 	p2pConfig.Sharding = config.ShardingConfig{
-		PrioBits: 64,
+		PrioBits: 4,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
@@ -77,7 +77,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 		nbMetaNodes,
 		nbShards,
 		consensusGroupSize,
-		consensusGroupSize,
+		nbMetaNodes,
 		p2pConfig,
 	)
 
