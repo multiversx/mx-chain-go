@@ -80,12 +80,12 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return err
 	}
 
-	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, metaBlock.EpochStart)
+	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, &metaBlock.EpochStart)
 	if err != nil {
 		return err
 	}
 
-	createdEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, *startData)
+	createdEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, startData)
 	if err != nil {
 		return err
 	}

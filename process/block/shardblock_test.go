@@ -3044,7 +3044,7 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
 	assert.Nil(t, err)
 
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+	marshalizedBodyAndHeader := block.BodyHeaderPair{
 		Body:   marshalizedBody,
 		Header: marshalizedHeader,
 	}
@@ -3074,7 +3074,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
-	message, err := marshalizerMock.Marshal(&body)
+	message, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
 
 	dcdBlk := sp.DecodeBlockBody(nil)

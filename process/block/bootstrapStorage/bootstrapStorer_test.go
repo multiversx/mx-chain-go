@@ -1,9 +1,7 @@
 package bootstrapStorage_test
 
 import (
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -87,21 +85,22 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 
 	putWasCalled := false
 	roundInStorage := int64(5)
+	marshalizer := &mock.MarshalizerMock{}
 	storer := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			putWasCalled = true
-			err := json.Unmarshal(data, &roundInStorage)
+			rn := bootstrapStorage.RoundNum{}
+			err := marshalizer.Unmarshal(&rn, data)
+			roundInStorage = rn.Num
 			if err != nil {
 				fmt.Println(err.Error())
 			}
 			return nil
 		},
 		GetCalled: func(key []byte) ([]byte, error) {
-			k := []byte(strconv.FormatInt(roundInStorage, 10))
-			return k, nil
+			return marshalizer.Marshal(&bootstrapStorage.RoundNum{Num: roundInStorage})
 		},
 	}
-	marshalizer := &mock.MarshalizerMock{}
 	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
 
 	assert.Equal(t, roundInStorage, bt.GetHighestRound())

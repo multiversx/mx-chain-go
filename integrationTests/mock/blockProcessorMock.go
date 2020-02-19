@@ -100,7 +100,7 @@ func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHa
 		return nil, nil
 	}
 
-	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	var marshalizedBodyAndHeader block.BodyHeaderPair
 	err := bpm.Marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
 	if err != nil {
 		return nil, nil

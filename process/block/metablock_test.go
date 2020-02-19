@@ -2035,7 +2035,7 @@ func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
 	assert.Nil(t, err)
 
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+	marshalizedBodyAndHeader := block.BodyHeaderPair{
 		Body:   marshalizedBody,
 		Header: marshalizedHeader,
 	}

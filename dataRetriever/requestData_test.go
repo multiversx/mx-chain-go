@@ -11,40 +11,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRequestDataType_StringHashType(t *testing.T) {
+func TestRequestDataType_StringVals(t *testing.T) {
 	t.Parallel()
 
-	requestDataType := dataRetriever.HashType
-	rd := requestDataType.String()
+	tcs := []struct {
+		r dataRetriever.RequestDataType
+		s string
+	}{
+		{dataRetriever.HashType, "HashType"},
+		{dataRetriever.HashArrayType, "HashArrayType"},
+		{dataRetriever.NonceType, "NonceType"},
+		{dataRetriever.EpochType, "EpochType"},
+	}
 
-	assert.Equal(t, "hash type", rd)
-}
-
-func TestRequestDataType_StringHashArrayType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.HashArrayType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "hash array type", rd)
-}
-
-func TestRequestDataType_StringNonceType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.NonceType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "nonce type", rd)
-}
-
-func TestRequestDataType_StringEpochType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.EpochType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "epoch type", rd)
+	for _, tc := range tcs {
+		t.Run(tc.s, func(t *testing.T) {
+			rd := tc.r.String()
+			assert.Equal(t, tc.s, rd)
+		})
+	}
 }
 
 func TestRequestDataType_UnknownType(t *testing.T) {
@@ -53,7 +38,7 @@ func TestRequestDataType_UnknownType(t *testing.T) {
 	var requestData dataRetriever.RequestDataType = 6
 	rd := requestData.String()
 
-	assert.Equal(t, fmt.Sprintf("unknown type %d", 6), rd)
+	assert.Equal(t, fmt.Sprintf("%d", 6), rd)
 }
 
 func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {

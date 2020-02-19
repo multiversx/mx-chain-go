@@ -73,3 +73,9 @@ message Header  {
 message Body {
 	repeated MiniBlock MiniBlocks = 1;
 }
+
+// BodyHeaderPair holds a body and header hash pair
+message BodyHeaderPair{
+	bytes Body   = 1;
+	bytes Header = 2;
+}

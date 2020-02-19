@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // subroundBlock defines the data needed by the subround Block
@@ -168,7 +169,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 	marshalizedHeader []byte,
 ) bool {
 
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+	marshalizedBodyAndHeader := block.BodyHeaderPair{
 		Body:   marshalizedBody,
 		Header: marshalizedHeader,
 	}

@@ -880,7 +880,7 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	var body *block.Body
+	body := &block.Body{}
 
 	err := bp.marshalizer.Unmarshal(body, dta)
 	if err != nil {
@@ -899,7 +899,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	header := bp.blockProcessor.CreateNewHeader()
 
-	err := bp.marshalizer.Unmarshal(&header, dta)
+	err := bp.marshalizer.Unmarshal(header, dta)
 	if err != nil {
 		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
 		return nil
@@ -914,7 +914,7 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 		return nil, nil
 	}
 
-	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	var marshalizedBodyAndHeader block.BodyHeaderPair
 	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
 	if err != nil {
 		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
