@@ -37,17 +37,15 @@ type statusHandlersInfo struct {
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
 func NewStatusHandlersFactoryArgs(
 	logViewName string,
-	serversConfigurationFileName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
-		LogViewName:                  logViewName,
-		ServersConfigurationFileName: serversConfigurationFileName,
-		Ctx:                          ctx,
-		Marshalizer:                  marshalizer,
-		Uint64ByteSliceConverter:     uint64ByteSliceConverter,
+		LogViewName:              logViewName,
+		Ctx:                      ctx,
+		Marshalizer:              marshalizer,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}
 }
 
