@@ -2,7 +2,6 @@ package networksharding
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -10,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p-core/peer"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const minAllowedConnectedPeers = 2
@@ -148,14 +148,14 @@ func (lks *listKadSharder) IsInterfaceNil() bool {
 }
 
 // computes the kademlia distance between 2 provided peer by doing byte xor operations
-func computeDistance(src peer.ID, dest peer.ID) *big.Int {
-	srcBuff := []byte(src)
-	destBuff := []byte(dest)
+func computeDistance(src peer.ID, dest peer.ID) []byte {
+	srcBuff := kbucket.ConvertPeerID(src)
+	destBuff := kbucket.ConvertPeerID(dest)
 
 	result := make([]byte, core.MinInt(len(srcBuff), len(destBuff)))
-	for i := 0; i < len(src) && i < len(dest); i++ {
+	for i := 0; i < len(srcBuff) && i < len(destBuff); i++ {
 		result[i] = srcBuff[i] ^ destBuff[i]
 	}
 
-	return big.NewInt(0).SetBytes(result)
+	return result
 }

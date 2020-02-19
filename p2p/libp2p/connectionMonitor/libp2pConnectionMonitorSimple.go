@@ -65,6 +65,11 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn 
 		evicted := lcms.sharder.ComputeEvictList(allPeers)
 		for _, pid := range evicted {
 			_ = netw.ClosePeer(pid)
+
+			//crtShardID := lcms.sharder.PeerShardResolver().ByID(p2p.PeerID(netw.LocalPeer()))
+			//closedShardID := lcms.sharder.PeerShardResolver().ByID(p2p.PeerID(pid))
+			//
+			//fmt.Printf("%s|%d: closing peer %s|%d\n", netw.LocalPeer().Pretty(), crtShardID, pid.Pretty(), closedShardID)
 		}
 	}
 }

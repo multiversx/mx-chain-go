@@ -46,11 +46,10 @@ func (hwcm *hostWithConnectionManagement) checkIfCanConnectToPeer(pid peer.ID) e
 	}
 
 	allPeers := hwcm.ConnectableHost.Network().Peers()
-	if hwcm.sharder.Has(pid, allPeers) {
-		return fmt.Errorf("%w, pid: %s", p2p.ErrPeerAlreadyConnected, pid.Pretty())
+	if !hwcm.sharder.Has(pid, allPeers) {
+		allPeers = append(allPeers, pid)
 	}
 
-	allPeers = append(allPeers, pid)
 	evicted := hwcm.sharder.ComputeEvictList(allPeers)
 	if hwcm.sharder.Has(pid, evicted) {
 		return fmt.Errorf("%w, pid: %s", p2p.ErrUnwantedPeer, pid.Pretty())
