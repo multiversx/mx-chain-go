@@ -92,13 +92,19 @@ type EpochStartShardData struct {
 	PendingMiniBlockHeaders []ShardMiniBlockHeader
 }
 
+// Economics holds the block information for total supply and rewards
+type Economics struct {
+	TotalSupply            *big.Int
+	TotalToDistribute      *big.Int
+	TotalNewlyMinted       *big.Int
+	RewardsPerBlockPerNode *big.Int
+	NodePrice              *big.Int
+}
+
 // EpochStart holds the block information for end-of-epoch
 type EpochStart struct {
 	LastFinalizedHeaders []EpochStartShardData
-	TotalSupply          *big.Int
-	TotalDistributed     *big.Int
-	TotalNewlyMinted     *big.Int
-	RewardsPerBlock      *big.Int
+	Economics            Economics
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round

@@ -22,7 +22,7 @@ func InitMetrics(
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
-	economicsConfig *config.ConfigEconomics,
+	economicsConfig *config.EconomicsConfig,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration

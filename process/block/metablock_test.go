@@ -64,6 +64,8 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		SCToProtocol:             &mock.SCToProtocolStub{},
 		PeerChangesHandler:       &mock.PeerChangesHandler{},
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+		EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
+		EpochEconomics:           &mock.EpochEconomicsStub{},
 	}
 	return arguments
 }
@@ -468,47 +470,6 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 
 	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
-}
-
-//------- processBlockHeader
-
-func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.Accounts = &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
-		},
-	}
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	txHash := []byte("txhash")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
-	miniblock1 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   1,
-		TxHashes:        txHashes,
-	}
-	miniblock2 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   2,
-		TxHashes:        txHashes,
-	}
-
-	miniBlocks := make([]block.MiniBlock, 0)
-	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
-
-	metaBlock := &block.MetaBlock{
-		Round:     10,
-		Nonce:     45,
-		RootHash:  []byte("prevRootHash"),
-		ShardInfo: createShardData(mock.HasherMock{}, &mock.MarshalizerMock{}, miniBlocks),
-	}
-
-	err := mp.ProcessBlockHeaders(metaBlock, 1, haveTime)
-	assert.Nil(t, err)
 }
 
 //------- requestFinalMissingHeader
@@ -1032,7 +993,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	round := uint64(10)
-	shardInfo, err := mp.CreateShardInfo(round)
+	shardInfo, err := mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
@@ -1041,7 +1002,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		return true
 	})
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo(round)
+	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 }
@@ -1135,14 +1096,14 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	mp.SetShardBlockFinality(0)
 	round := uint64(40)
-	shardInfo, err := mp.CreateShardInfo(round)
+	shardInfo, err := mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo(round)
+	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1286,14 +1247,14 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(15)
-	shardInfo, err := mp.CreateShardInfo(round)
+	shardInfo, err := mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo(round)
+	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1437,14 +1398,14 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(20)
-	shardInfo, err := mp.CreateShardInfo(round)
+	shardInfo, err := mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo(round)
+	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }

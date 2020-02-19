@@ -16,16 +16,17 @@ type EconomicsData struct {
 	dataLimitForBaseCalc uint64
 	minGasPrice          uint64
 	minGasLimit          uint64
-	communityAddress     string
-	burnAddress          string
-	stakeValue           *big.Int
+	genesisNodePrice     *big.Int
 	unBoundPeriod        uint64
 	ratingsData          *RatingsData
 	developerPercentage  float64
+	genesisTotalSupply   *big.Int
+	minInflation         float64
+	maxInflation         float64
 }
 
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
+func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	data, err := convertValues(economics)
 	if err != nil {
 		return nil, err
@@ -50,18 +51,19 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		maxGasLimitPerBlock:  data.maxGasLimitPerBlock,
 		minGasPrice:          data.minGasPrice,
 		minGasLimit:          data.minGasLimit,
-		communityAddress:     economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:          economics.EconomicsAddresses.BurnAddress,
-		stakeValue:           data.stakeValue,
+		genesisNodePrice:     data.genesisNodePrice,
 		unBoundPeriod:        data.unBoundPeriod,
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
 		ratingsData:          rd,
 		developerPercentage:  economics.RewardsSettings.DeveloperPercentage,
+		minInflation:         economics.GlobalSettings.MinimumInflation,
+		maxInflation:         economics.GlobalSettings.MaximumInflation,
+		genesisTotalSupply:   data.genesisTotalSupply,
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
+func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
@@ -75,8 +77,8 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	stakeValue := new(big.Int)
-	stakeValue, ok := stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
+	genesisNodePrice := new(big.Int)
+	genesisNodePrice, ok := genesisNodePrice.SetString(economics.ValidatorSettings.GenesisNodePrice, conversionBase)
 	if !ok {
 		return nil, process.ErrInvalidRewardsValue
 	}
@@ -101,20 +103,29 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidGasPerDataByte
 	}
 
+	genesisTotalSupply := new(big.Int)
+	genesisTotalSupply, ok = genesisTotalSupply.SetString(economics.GlobalSettings.TotalSupply, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidRewardsValue
+	}
+
 	return &EconomicsData{
 		minGasPrice:          minGasPrice,
 		minGasLimit:          minGasLimit,
-		stakeValue:           stakeValue,
+		genesisNodePrice:     genesisNodePrice,
 		unBoundPeriod:        unBoundPeriod,
 		maxGasLimitPerBlock:  maxGasLimitPerBlock,
 		gasPerDataByte:       gasPerDataByte,
 		dataLimitForBaseCalc: dataLimitForBaseCalc,
+		genesisTotalSupply:   genesisTotalSupply,
 	}, nil
 }
 
-func checkValues(economics *config.ConfigEconomics) error {
+func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) {
+		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
+		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) ||
+		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -135,9 +146,19 @@ func (ed *EconomicsData) LeaderPercentage() float64 {
 	return ed.leaderPercentage
 }
 
-// InflationRate will return the inflation rate
-func (ed *EconomicsData) InflationRate() float64 {
-	return ed.leaderPercentage
+// MinInflationRate will return the minimum inflation rate
+func (ed *EconomicsData) MinInflationRate() float64 {
+	return ed.minInflation
+}
+
+// MaxInflationRate will return the maximum inflation rate
+func (ed *EconomicsData) MaxInflationRate() float64 {
+	return ed.maxInflation
+}
+
+// GenesisTotalSupply will return the genesis total supply
+func (ed *EconomicsData) GenesisTotalSupply() *big.Int {
+	return ed.genesisTotalSupply
 }
 
 // MinGasPrice will return min gas price
@@ -191,19 +212,9 @@ func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 	return gasLimit
 }
 
-// CommunityAddress will return community address
-func (ed *EconomicsData) CommunityAddress() string {
-	return ed.communityAddress
-}
-
-// BurnAddress will return burn address
-func (ed *EconomicsData) BurnAddress() string {
-	return ed.burnAddress
-}
-
-// StakeValue will return the minimum stake value
-func (ed *EconomicsData) StakeValue() *big.Int {
-	return ed.stakeValue
+// GenesisNodePrice will return the minimum stake value
+func (ed *EconomicsData) GenesisNodePrice() *big.Int {
+	return ed.genesisNodePrice
 }
 
 // UnBoundPeriod will return the unbound period

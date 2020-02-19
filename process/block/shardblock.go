@@ -446,7 +446,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
-	if sp.core == nil || sp.core.Indexer() == nil {
+	if check.IfNil(sp.core) || check.IfNil(sp.core.Indexer()) {
 		return
 	}
 
@@ -578,6 +578,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	return nil
 }
 
+// CreateBlock creates the final block and header for the current round
 func (sp *shardProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,

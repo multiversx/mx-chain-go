@@ -20,11 +20,12 @@ const (
 	proposerDecreaseRatingStep  = uint32(2)
 )
 
-func createDummyEconomicsConfig() *config.ConfigEconomics {
-	return &config.ConfigEconomics{
-		EconomicsAddresses: config.EconomicsAddresses{
-			CommunityAddress: "addr1",
-			BurnAddress:      "addr2",
+func createDummyEconomicsConfig() *config.EconomicsConfig {
+	return &config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			TotalSupply:      "2000000000000000000000",
+			MinimumInflation: 0,
+			MaximumInflation: 0.5,
 		},
 		RewardsSettings: config.RewardsSettings{
 			LeaderPercentage: 0.1,
@@ -37,8 +38,8 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
-			StakeValue:    "500000000",
-			UnBoundPeriod: "100000",
+			GenesisNodePrice: "500000000",
+			UnBoundPeriod:    "100000",
 		},
 		RatingSettings: config.RatingSettings{
 			StartRating:                 50,
@@ -299,30 +300,6 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
-}
-
-func TestEconomicsData_CommunityAddress(t *testing.T) {
-	t.Parallel()
-
-	communityAddress := "addr1"
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.EconomicsAddresses.CommunityAddress = communityAddress
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.CommunityAddress()
-	assert.Equal(t, communityAddress, value)
-}
-
-func TestEconomicsData_BurnAddress(t *testing.T) {
-	t.Parallel()
-
-	burnAddress := "addr2"
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.EconomicsAddresses.BurnAddress = burnAddress
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.BurnAddress()
-	assert.Equal(t, burnAddress, value)
 }
 
 func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {

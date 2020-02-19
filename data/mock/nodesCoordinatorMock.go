@@ -2,8 +2,6 @@ package mock
 
 import (
 	"bytes"
-	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -24,42 +22,13 @@ type NodesCoordinatorMock struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 }
 
-// NewNodesCoordinatorMock -
-func NewNodesCoordinatorMock() *NodesCoordinatorMock {
-	nbShards := uint32(1)
-	nodesPerShard := 2
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	shards := make([]uint32, nbShards+1)
-	for i := uint32(0); i < nbShards; i++ {
-		shards[i] = i
-	}
-	shards[nbShards] = sharding.MetachainShardId
-
-	for _, sh := range shards {
-		validatorsList := make([]sharding.Validator, nodesPerShard)
-		for v := 0; v < nodesPerShard; v++ {
-			validatorsList[v], _ = sharding.NewValidator(
-				big.NewInt(10),
-				1,
-				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
-				[]byte(fmt.Sprintf("address%d%d", sh, v)),
-			)
-		}
-		validatorsMap[sh] = validatorsList
-	}
-
-	return &NodesCoordinatorMock{
-		ShardConsensusSize: 1,
-		MetaConsensusSize:  1,
-		ShardId:            0,
-		NbShards:           nbShards,
-		Validators:         validatorsMap,
-	}
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
 }
 
 // GetValidatorsIndexes -
-func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string) []uint64 {
 	return nil
 }
 

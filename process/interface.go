@@ -472,14 +472,22 @@ type PoolsCleaner interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
-	InflationRate() float64
+	MinInflationRate() float64
+	MaxInflationRate() float64
+	IsInterfaceNil() bool
+}
+
+// EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
+type EndOfEpochEconomics interface {
+	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
-	StakeValue() *big.Int
+	GenesisNodePrice() *big.Int
 	IsInterfaceNil() bool
 }
 

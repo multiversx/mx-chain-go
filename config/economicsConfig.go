@@ -1,9 +1,10 @@
 package config
 
-// EconomicsAddresses will hold economics addresses
-type EconomicsAddresses struct {
-	CommunityAddress string
-	BurnAddress      string
+// GlobalSettings will hold general economic values
+type GlobalSettings struct {
+	TotalSupply      string
+	MinimumInflation float64
+	MaximumInflation float64
 }
 
 // RewardsSettings will hold economics rewards settings
@@ -24,8 +25,8 @@ type FeeSettings struct {
 
 // ValidatorSettings will hold the validator settings
 type ValidatorSettings struct {
-	StakeValue    string
-	UnBoundPeriod string
+	GenesisNodePrice string
+	UnBoundPeriod    string
 }
 
 // RatingSettings will hold rating settings
@@ -39,17 +40,17 @@ type RatingSettings struct {
 	ValidatorDecreaseRatingStep uint32
 }
 
-//RatingValue will hold different rating options with increase and decresea steps
+//RatingValue will hold different rating options with increase and decrease steps
 type RatingValue struct {
 	Name  string
 	Value int32
 }
 
-// ConfigEconomics will hold economics config
-type ConfigEconomics struct {
-	EconomicsAddresses EconomicsAddresses
-	RewardsSettings    RewardsSettings
-	FeeSettings        FeeSettings
-	ValidatorSettings  ValidatorSettings
-	RatingSettings     RatingSettings
+// EconomicsConfig will hold economics config
+type EconomicsConfig struct {
+	GlobalSettings    GlobalSettings
+	RewardsSettings   RewardsSettings
+	FeeSettings       FeeSettings
+	ValidatorSettings ValidatorSettings
+	RatingSettings    RatingSettings
 }

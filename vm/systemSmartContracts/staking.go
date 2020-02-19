@@ -21,7 +21,7 @@ type StakingData struct {
 	Staked        bool     `json:"Staked"`
 	UnStakedNonce uint64   `json:"UnStakedNonce"`
 	Address       []byte   `json:"Address"`
-	StakeValue    *big.Int `json:"StakeValue"`
+	StakeValue    *big.Int `json:"GenesisNodePrice"`
 }
 
 type stakingSC struct {
@@ -316,7 +316,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 // ValueOf returns the value of a selected key
-func (r *stakingSC) ValueOf(key interface{}) interface{} {
+func (r *stakingSC) ValueOf(_ interface{}) interface{} {
 	return nil
 }
 
