@@ -22,7 +22,6 @@ type epochStartData struct {
 	blockTracker      process.BlockTracker
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
-	startData         *block.EpochStart
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator

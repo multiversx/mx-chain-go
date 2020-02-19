@@ -150,7 +150,7 @@ func (r *rewardsPerBlock) computeNumOfTotalCreatedBlocks(
 	for shardId := uint32(0); shardId < r.shardCoordinator.NumberOfShards(); shardId++ {
 		totalNumBlocks += mapEndNonce[shardId] - mapStartNonce[shardId]
 	}
-	totalNumBlocks += mapEndNonce[sharding.MetachainShardId] - mapEndNonce[sharding.MetachainShardId]
+	totalNumBlocks += mapEndNonce[sharding.MetachainShardId] - mapStartNonce[sharding.MetachainShardId]
 
 	return totalNumBlocks
 }
