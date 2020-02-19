@@ -1,0 +1,6 @@
+# ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
+[ElasticSearchConnector]
+    Enabled    = false
+    URL        = "http://localhost:9200"
+    Username   = "basic_auth_username"
+    Password   = "basic_auth_password"
