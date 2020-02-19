@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateEmptyByteSlice(size int) []byte {
@@ -1036,6 +1037,36 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 	return acntSrc.(*state.Account), acntDst.(*state.Account), tx
 }
 
+func TestScProcessor_DetermineCallType(t *testing.T) {
+	t.Parallel()
+
+	// DirectCall
+	tx := &transaction.Transaction{}
+	tx.Nonce = 54
+	tx.Data = []byte("sc function")
+	callType := determineCallType(tx)
+	require.Equal(t, vmcommon.DirectCall, callType)
+
+	// DirectCall
+	tx = &transaction.Transaction{}
+	tx.Nonce = 54
+	tx.Data = nil
+	callType = determineCallType(tx)
+	require.Equal(t, vmcommon.DirectCall, callType)
+
+	// AsynchronousCall
+	scr := &smartContractResult.SmartContractResult{}
+	scr.Data = []byte("call async@argument")
+	callType = determineCallType(scr)
+	require.Equal(t, vmcommon.AsynchronousCall, callType)
+
+	// AsynchronousCallBack
+	scr = &smartContractResult.SmartContractResult{}
+	scr.Data = []byte("@argument")
+	callType = determineCallType(scr)
+	require.Equal(t, vmcommon.AsynchronousCallBack, callType)
+}
+
 func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	t.Parallel()
 
@@ -1061,7 +1092,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 
 	acntSrc, _, tx := createAccountsAndTransaction()
 
-	_, _, err = sc.processVMOutput(nil, tx, acntSrc)
+	_, _, err = sc.processVMOutput(nil, tx, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -1091,7 +1122,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, acntSrc)
+	_, _, err = sc.processVMOutput(vmOutput, nil, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -1126,7 +1157,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: 0,
 	}
-	_, _, err = sc.processVMOutput(vmOutput, tx, nil)
+	_, _, err = sc.processVMOutput(vmOutput, tx, nil, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -1168,7 +1199,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(0)
-	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd)
+	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -1719,7 +1750,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1757,21 +1788,21 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err := sc.createSCRForSender(vmOutput, tx, txHash, nil)
+	sctx, consumed, err := sc.createSCRForSender(vmOutput, tx, txHash, nil, vmcommon.DirectCall)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 
 	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 
 	badAcc := &mock.AccountWrapMock{}
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	sctx, _, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
+	sctx, _, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, sctx)
 }
@@ -1812,7 +1843,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * tx.GasPrice

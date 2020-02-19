@@ -238,13 +238,6 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	dataToParse := tx.GetData()
-
-	err := sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return err
-	}
-
 	nonce := tx.GetNonce()
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()
@@ -408,6 +401,17 @@ func (sc *scProcessor) createVMDeployInput(
 func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
 	var err error
 	vmInput := &vmcommon.VMInput{}
+	vmInput.CallType = determineCallType(tx)
+
+	dataToParse := tx.GetData()
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
+		dataToParse = append([]byte("callBack"), tx.GetData()...)
+	}
+
+	err = sc.argsParser.ParseData(string(dataToParse))
+	if err != nil {
+		return nil, err
+	}
 
 	vmInput.CallerAddr = tx.GetSndAddress()
 	vmInput.Arguments, err = sc.argsParser.GetArguments()
@@ -424,12 +428,11 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	}
 
 	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
-	vmInput.CallType = sc.determineCallType(tx)
 
 	return vmInput, nil
 }
 
-func (sc *scProcessor) determineCallType(tx data.TransactionHandler) vmcommon.CallType {
+func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
 		if len(scr.Data) > 0 {
@@ -612,7 +615,7 @@ func (sc *scProcessor) createSCRsWhenError(
 
 	rcvAddress := tx.GetSndAddress()
 
-	callType := sc.determineCallType(tx)
+	callType := determineCallType(tx)
 	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRecvAddress()
 	}

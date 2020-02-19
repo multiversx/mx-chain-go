@@ -27,7 +27,7 @@ func (sc *scProcessor) ProcessVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 ) ([]data.TransactionHandler, *big.Int, error) {
-	return sc.processVMOutput(vmOutput, tx, acntSnd)
+	return sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
 }
 
 func (sc *scProcessor) CreateSCRForSender(
@@ -36,7 +36,7 @@ func (sc *scProcessor) CreateSCRForSender(
 	txHash []byte,
 	acntSnd state.AccountHandler,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
-	return sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
+	return sc.createSCRForSender(vmOutput, tx, txHash, acntSnd, vmcommon.DirectCall)
 }
 
 func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount,
