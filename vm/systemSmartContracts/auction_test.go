@@ -50,7 +50,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 	return data
 }
 
-func TestStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -61,7 +61,7 @@ func TestStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
 	require.Equal(t, vm.ErrNilValidatorSettings, err)
 }
 
-func TestStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -76,7 +76,7 @@ func TestStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
 	require.Equal(t, vm.ErrNilInitialStakeValue, err)
 }
 
-func TestStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -91,7 +91,7 @@ func TestStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
 	require.Equal(t, vm.ErrNegativeInitialStakeValue, err)
 }
 
-func TestStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -102,7 +102,7 @@ func TestStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing.T)
 	require.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
 }
 
-func TestStakingAuctionSmartContract_NilStakingSmartContractAddress(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NilStakingSmartContractAddress(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -113,7 +113,7 @@ func TestStakingAuctionSmartContract_NilStakingSmartContractAddress(t *testing.T
 	require.Equal(t, vm.ErrNilStakingSmartContractAddress, err)
 }
 
-func TestStakingAuctionSmartContract_NilAuctionSmartContractAddress(t *testing.T) {
+func TestNewStakingAuctionSmartContract_NilAuctionSmartContractAddress(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
@@ -1310,7 +1310,7 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	//change reward address should error nil arguments
 	changeRewardAddress(t, sc, stakerAddress, nil, vmcommon.UserError)
 	// change reward address should error wrong address
-	changeRewardAddress(t, sc, stakerAddress, []byte("a"), vmcommon.UserError)
+	changeRewardAddress(t, sc, stakerAddress, []byte("wrongAddress"), vmcommon.UserError)
 	// change reward address should error because address is not belongs to any validator
 	newRewardAddr := []byte("newAddr")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
