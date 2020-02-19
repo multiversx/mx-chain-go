@@ -2,9 +2,10 @@ package networksharding
 
 import (
 	"fmt"
+	"math/big"
+	"math/bits"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -107,7 +108,6 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDis
 			distance: computeDistance(p, lks.selfPeerId),
 		}
 		pid := p2p.PeerID(p)
-
 		shardId := lks.peerShardResolver.ByID(pid)
 
 		switch shardId {
@@ -148,14 +148,16 @@ func (lks *listKadSharder) IsInterfaceNil() bool {
 }
 
 // computes the kademlia distance between 2 provided peer by doing byte xor operations
-func computeDistance(src peer.ID, dest peer.ID) []byte {
+func computeDistance(src peer.ID, dest peer.ID) *big.Int {
 	srcBuff := kbucket.ConvertPeerID(src)
 	destBuff := kbucket.ConvertPeerID(dest)
 
-	result := make([]byte, core.MinInt(len(srcBuff), len(destBuff)))
-	for i := 0; i < len(srcBuff) && i < len(destBuff); i++ {
+	result := make([]byte, len(srcBuff))
+	cumulatedBits := 0
+	for i := 0; i < len(srcBuff); i++ {
 		result[i] = srcBuff[i] ^ destBuff[i]
+		cumulatedBits += bits.OnesCount8(result[i])
 	}
 
-	return result
+	return big.NewInt(0).SetInt64(int64(cumulatedBits))
 }

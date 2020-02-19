@@ -3,7 +3,6 @@ package networksharding
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 	"testing"
 
@@ -167,7 +166,7 @@ func TestListKadSharder_ComputeEvictListReachedIntraShardShouldSortAndEvict(t *t
 	evictList := lks.ComputeEvictList(pids)
 
 	assert.Equal(t, 1, len(evictList))
-	assert.Equal(t, pidCrtShard2, evictList[0])
+	assert.Equal(t, pidCrtShard1, evictList[0])
 }
 
 func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.T) {
@@ -200,11 +199,10 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 func TestComputeDistance(t *testing.T) {
 	t.Parallel()
 
+	//compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistance("", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistance("a", "").Uint64())
 	assert.Equal(t, uint64(0), computeDistance("a", "a").Uint64())
-	assert.Equal(t, uint64(1), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
-	assert.Equal(t, uint64(255), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
-	expectedResult := big.NewInt(0).SetBytes([]byte{255, 127})
-	assert.Equal(t, expectedResult.Uint64(), computeDistance(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+	assert.Equal(t, uint64(139), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(130), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(117), computeDistance(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }

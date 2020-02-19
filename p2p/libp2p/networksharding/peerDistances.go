@@ -1,7 +1,7 @@
 package networksharding
 
 import (
-	"bytes"
+	"math/big"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -10,7 +10,7 @@ import (
 // against the current peer and held as a big.Int
 type peerDistance struct {
 	peer.ID
-	distance []byte
+	distance *big.Int
 }
 
 // peerDistances represents a sortable peerDistance slice
@@ -23,7 +23,7 @@ func (pd peerDistances) Len() int {
 
 // Less is used in sorting and returns if i-th element is less than j-th element
 func (pd peerDistances) Less(i, j int) bool {
-	return bytes.Compare(pd[i].distance, pd[j].distance) < 0
+	return pd[i].distance.Cmp(pd[j].distance) < 0
 }
 
 // Swap is used in sorting and swaps the values between the i-th position with the one found on j-th position

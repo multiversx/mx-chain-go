@@ -2,6 +2,7 @@ package connectionMonitor
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,6 +15,7 @@ type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
+	mutSharder                 sync.RWMutex
 	sharder                    Sharder
 }
 
@@ -55,23 +57,19 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 }
 
 // Connected is called when a connection opened
-func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
+func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, _ network.Conn) {
+	lcms.mutSharder.RLock()
 	if !check.IfNil(lcms.sharder) {
 		allPeers := netw.Peers()
-		if !lcms.sharder.Has(conn.RemotePeer(), allPeers) {
-			allPeers = append(allPeers, conn.RemotePeer())
-		}
 
 		evicted := lcms.sharder.ComputeEvictList(allPeers)
+		lcms.mutSharder.RUnlock()
 		for _, pid := range evicted {
 			_ = netw.ClosePeer(pid)
-
-			//crtShardID := lcms.sharder.PeerShardResolver().ByID(p2p.PeerID(netw.LocalPeer()))
-			//closedShardID := lcms.sharder.PeerShardResolver().ByID(p2p.PeerID(pid))
-			//
-			//fmt.Printf("%s|%d: closing peer %s|%d\n", netw.LocalPeer().Pretty(), crtShardID, pid.Pretty(), closedShardID)
 		}
+		return
 	}
+	lcms.mutSharder.RUnlock()
 }
 
 // Disconnected is called when a connection closed
@@ -131,7 +129,9 @@ func (lcms *libp2pConnectionMonitorSimple) SetSharder(sharder interface{}) error
 		return p2p.ErrNilSharder
 	}
 
+	lcms.mutSharder.Lock()
 	lcms.sharder = sharderIntf
+	lcms.mutSharder.Unlock()
 
 	return nil
 }
