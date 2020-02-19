@@ -547,7 +547,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
 	timeAfter := time.Now()
 	if err != nil {
-		log.Trace("computeOrderedTxs", "error", err.Error())
+		log.Debug("computeOrderedTxs", "error", err.Error())
 		return miniBlocks, nil
 	}
 
@@ -559,7 +559,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	log.Trace("time elapsed to ordered txs",
+	log.Debug("time elapsed to ordered txs",
 		"num txs", len(orderedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
@@ -789,9 +789,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 			)
 
 			log.Debug("mini block info",
-				"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
-				"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
-				"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+				"sender shard", senderShardId,
+				"gas consumed", gasConsumedByMiniBlockInSenderShard,
+				"receiver shard", receiverShardId,
+				"gas consumed", gasConsumedByMiniBlockInReceiverShard,
+				"self shard", txs.shardCoordinator.SelfId(),
+				"gas consumed", txs.gasHandler.TotalGasConsumed(),
 				"txs ordered", len(orderedTxs),
 				"txs added", len(miniBlock.TxHashes))
 
@@ -801,9 +804,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 	if addedTxs > 0 {
 		log.Debug("mini block info",
-			"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
-			"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
-			"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+			"sender shard", senderShardId,
+			"gas consumed", gasConsumedByMiniBlockInSenderShard,
+			"receiver shard", receiverShardId,
+			"gas consumed", gasConsumedByMiniBlockInReceiverShard,
+			"self shard", txs.shardCoordinator.SelfId(),
+			"gas consumed", txs.gasHandler.TotalGasConsumed(),
 			"txs ordered", len(orderedTxs),
 			"txs added", len(miniBlock.TxHashes))
 	}
