@@ -170,12 +170,6 @@ VERSION:
 		Name:  "gops-enable",
 		Usage: "Enables gops over the process. Stack can be viewed by calling 'gops stack <pid>'",
 	}
-	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
-	numOfNodes = cli.Uint64Flag{
-		Name:  "num-of-nodes",
-		Usage: "Number of nodes specifies the maximum number of nodes which will be used from initialNodes list exposed in nodesSetup.json file",
-		Value: math.MaxUint64,
-	}
 	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
 	// it starts from the last state stored on disk
 	storageCleanup = cli.BoolFlag{
@@ -322,7 +316,6 @@ func main() {
 		sk,
 		profileMode,
 		skIndex,
-		numOfNodes,
 		storageCleanup,
 		initialNodesSkPemFile,
 		gopsEn,
@@ -459,7 +452,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
+	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
 	if err != nil {
 		return err
 	}
