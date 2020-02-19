@@ -31,8 +31,6 @@ type scProcessor struct {
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
-	isAsyncCall      bool
-	isAsyncCallBack  bool
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -188,7 +186,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
@@ -240,23 +238,7 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	sc.isAsyncCall = false
-	sc.isAsyncCallBack = false
 	dataToParse := tx.GetData()
-
-	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
-	if isSCR {
-		hasTxData := scr.Data != nil && len(scr.Data) > 0
-		hasTxDataWithIncompleteSCCall := hasTxData && scr.Data[0] == '@'
-
-		if isSCR && hasTxData && !hasTxDataWithIncompleteSCCall {
-			sc.isAsyncCall = true
-		}
-		if sc.isAsyncCall && hasTxDataWithIncompleteSCCall {
-			dataToParse = append([]byte("callBack"), tx.GetData()...)
-			sc.isAsyncCallBack = true
-		}
-	}
 
 	err := sc.argsParser.ParseData(string(dataToParse))
 	if err != nil {
@@ -352,7 +334,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Debug("Processing error", "error", err.Error())
 		return nil
@@ -442,17 +424,22 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	}
 
 	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
-
-	if !sc.isAsyncCall {
-		vmInput.CallType = vmcommon.DirectCall
-	} else {
-		vmInput.CallType = vmcommon.AsynchronousCall
-		if sc.isAsyncCallBack {
-			vmInput.CallType = vmcommon.AsynchronousCallBack
-		}
-	}
+	vmInput.CallType = sc.determineCallType(tx)
 
 	return vmInput, nil
+}
+
+func (sc *scProcessor) determineCallType(tx data.TransactionHandler) vmcommon.CallType {
+	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
+	if isSCR {
+		if len(scr.Data) > 0 {
+			if scr.Data[0] == '@' {
+				return vmcommon.AsynchronousCallBack
+			}
+			return vmcommon.AsynchronousCall
+		}
+	}
+	return vmcommon.DirectCall
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
@@ -511,6 +498,7 @@ func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	acntSnd state.AccountHandler,
+	callType vmcommon.CallType,
 ) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
@@ -552,7 +540,7 @@ func (sc *scProcessor) processVMOutput(
 		log.Trace("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
-	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
+	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd, callType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -623,7 +611,9 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	rcvAddress := tx.GetSndAddress()
-	if sc.isAsyncCallBack {
+
+	callType := sc.determineCallType(tx)
+	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRecvAddress()
 	}
 
@@ -686,6 +676,7 @@ func (sc *scProcessor) createSCRForSender(
 	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.AccountHandler,
+	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
 	gasRefund := big.NewInt(0).Add(vmOutput.GasRefund, big.NewInt(0).SetUint64(vmOutput.GasRemaining))
 
@@ -697,7 +688,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddress()
-	if sc.isAsyncCallBack {
+	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRecvAddress()
 	}
 
