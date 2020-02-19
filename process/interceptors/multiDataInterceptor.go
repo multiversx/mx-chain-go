@@ -102,6 +102,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			log.Trace("intercepted data is for other shards",
 				"pid", p2p.MessageOriginatorPid(message),
 				"seq no", p2p.MessageOriginatorSeq(message),
+				"topics", message.TopicIDs(),
+				"hash", interceptedData.Hash(),
 			)
 			wgProcess.Done()
 			continue
