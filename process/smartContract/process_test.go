@@ -1079,8 +1079,17 @@ func TestScProcessor_DetermineCallType(t *testing.T) {
 	require.NotNil(t, vmInput)
 	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 
-	// AsynchronousCall
+	// DirectCall
 	scr := &smartContractResult.SmartContractResult{}
+	tx.Nonce = 54
+	tx.Data = nil
+	vmInput, err = sc.createVMCallInput(scr)
+	require.Nil(t, err)
+	require.NotNil(t, vmInput)
+	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
+
+	// AsynchronousCall
+	scr = &smartContractResult.SmartContractResult{}
 	scr.Data = []byte("call async@argument")
 	vmInput, err = sc.createVMCallInput(scr)
 	require.Nil(t, err)
