@@ -11,6 +11,7 @@ import (
 	ntp2 "github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/beevik/ntp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var responseMock1 *ntp.Response
@@ -24,7 +25,7 @@ var errNtpMock = errors.New("NTP Mock generic error")
 var queryMock4Call = 0
 var mutex = sync.Mutex{}
 
-func queryMock1(options ntp2.NTPOptions) (*ntp.Response, error) {
+func queryMock1(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock1 {
@@ -34,7 +35,7 @@ func queryMock1(options ntp2.NTPOptions) (*ntp.Response, error) {
 	return responseMock1, nil
 }
 
-func queryMock2(options ntp2.NTPOptions) (*ntp.Response, error) {
+func queryMock2(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock2 {
@@ -44,7 +45,7 @@ func queryMock2(options ntp2.NTPOptions) (*ntp.Response, error) {
 	return responseMock2, nil
 }
 
-func queryMock3(options ntp2.NTPOptions) (*ntp.Response, error) {
+func queryMock3(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock3 {
@@ -54,7 +55,7 @@ func queryMock3(options ntp2.NTPOptions) (*ntp.Response, error) {
 	return responseMock3, nil
 }
 
-func queryMock4(options ntp2.NTPOptions) (*ntp.Response, error) {
+func queryMock4(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	mutex.Lock()
@@ -64,12 +65,21 @@ func queryMock4(options ntp2.NTPOptions) (*ntp.Response, error) {
 	return nil, errNtpMock
 }
 
-func queryMock5(options ntp2.NTPOptions) (*ntp.Response, error) {
-	switch options.HostIndex {
+func queryMock5(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+	switch hostIndex {
 	case 0:
 		return nil, errNtpMock
 	default:
 		return &ntp.Response{ClockOffset: time.Second}, nil
+	}
+}
+
+func queryMock6(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+	switch hostIndex {
+	case 0:
+		return &ntp.Response{ClockOffset: time.Second}, nil
+	default:
+		return nil, errNtpMock
 	}
 }
 
@@ -136,6 +146,30 @@ func TestCallQuery(t *testing.T) {
 	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
 }
 
+func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
+	t.Parallel()
+
+	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Hour, nil)
+	query := st.Query()
+	response, err := query(ntp2.NTPOptions{Hosts: []string{"host1", "host2", "host3"}}, 3)
+
+	assert.Nil(t, response)
+	assert.Equal(t, ntp2.ErrIndexOutOfBounds, err)
+}
+
+func TestCallQueryShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ntpConfig := ntp2.NewNTPGoogleConfig()
+	ntpOptions := ntp2.NewNTPOptions(ntpConfig)
+	st := ntp2.NewSyncTime(ntpConfig, time.Hour, nil)
+	query := st.Query()
+	response, err := query(ntpOptions, 0)
+
+	assert.NotNil(t, response)
+	assert.Nil(t, err)
+}
+
 func TestNtpHostIsChange(t *testing.T) {
 	t.Parallel()
 
@@ -145,4 +179,65 @@ func TestNtpHostIsChange(t *testing.T) {
 
 	//HostIndex will be equal with 1 and time offset will be a second
 	assert.Equal(t, time.Second, st.ClockOffset())
+}
+
+func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
+	t.Parallel()
+
+	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}}
+	st := ntp2.NewSyncTime(ntpConfig, time.Millisecond, queryMock6)
+	st.SetClockOffset(time.Millisecond)
+	st.Sync()
+
+	assert.Equal(t, time.Duration(time.Millisecond), st.ClockOffset())
+}
+
+func TestGetClockOffsetsWithoutEdges(t *testing.T) {
+	t.Parallel()
+
+	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Hour, nil)
+
+	clockOffsets := []time.Duration{}
+	clockOffsetsWithoutEdges := st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
+
+	clockOffsets = []time.Duration{100}
+	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
+
+	clockOffsets = []time.Duration{100, 54}
+	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 1, len(clockOffsetsWithoutEdges))
+	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[0])
+
+	clockOffsets = []time.Duration{100, 54, 2}
+	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
+	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
+	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
+
+	clockOffsets = []time.Duration{100, 54, 2, 52}
+	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
+	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[0])
+	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
+}
+
+func TestGetHarmonicMean(t *testing.T) {
+	t.Parallel()
+
+	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Hour, nil)
+
+	clockOffsets := []time.Duration{}
+	harmonicMean := st.GetHarmonicMean(clockOffsets)
+	assert.Equal(t, time.Duration(0), harmonicMean)
+
+	clockOffsets = []time.Duration{2, 0, 3}
+	harmonicMean = st.GetHarmonicMean(clockOffsets)
+	assert.Equal(t, time.Duration(0), harmonicMean)
+
+	// harmonic mean for 4, 1, 4 is equal with: 3 / (1/4 + 1/1 + 1/4) = 3 / 1.5 = 2
+	clockOffsets = []time.Duration{4, 1, 4}
+	harmonicMean = st.GetHarmonicMean(clockOffsets)
+	assert.Equal(t, time.Duration(2), harmonicMean)
 }
