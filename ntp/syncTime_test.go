@@ -203,24 +203,37 @@ func TestGetClockOffsetsWithoutEdges(t *testing.T) {
 
 	clockOffsets = []time.Duration{100}
 	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
+	require.Equal(t, 1, len(clockOffsetsWithoutEdges))
 
 	clockOffsets = []time.Duration{100, 54}
 	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 1, len(clockOffsetsWithoutEdges))
+	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
 	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[0])
+	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[1])
 
 	clockOffsets = []time.Duration{100, 54, 2}
 	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
+	require.Equal(t, 3, len(clockOffsetsWithoutEdges))
 	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
 	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
+	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[2])
 
 	clockOffsets = []time.Duration{100, 54, 2, 52}
 	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
+	require.Equal(t, 4, len(clockOffsetsWithoutEdges))
+	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
+	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[1])
+	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[2])
+	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[3])
+
+	clockOffsets = []time.Duration{100, 54, 12, 52, 16, 1, 70}
+	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
+	require.Equal(t, 5, len(clockOffsetsWithoutEdges))
+	assert.Equal(t, time.Duration(12), clockOffsetsWithoutEdges[0])
+	assert.Equal(t, time.Duration(16), clockOffsetsWithoutEdges[1])
+	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[2])
+	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[3])
+	assert.Equal(t, time.Duration(70), clockOffsetsWithoutEdges[4])
 }
 
 func TestGetHarmonicMean(t *testing.T) {

@@ -19,7 +19,7 @@ var log = logger.GetOrCreate("ntp")
 const numRequestsFromHost = 10
 
 // cuttingOutPercent [0, 1) represents the percent of received clock offsets to be removed from the edges (min and max)
-const cuttingOutPercent = 0.5
+const cuttingOutPercent = 0.3
 
 // minResponsesPercent (0, 1] represents the minimum percent of responses, from all requests done, needed to set a new clock offset
 const minResponsesPercent = 0.25
@@ -169,10 +169,10 @@ func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []t
 	})
 
 	cuttingOutPercentPerEdge := cuttingOutPercent / 2
-	startIndex := int(float64(len(clockOffsets)) * cuttingOutPercentPerEdge)
-	endIndex := int(float64(len(clockOffsets)) * (1 - cuttingOutPercentPerEdge))
+	startIndex := math.Floor(float64(len(clockOffsets)) * cuttingOutPercentPerEdge)
+	endIndex := math.Ceil(float64(len(clockOffsets)) * (1 - cuttingOutPercentPerEdge))
 
-	return clockOffsets[startIndex:endIndex]
+	return clockOffsets[int(startIndex):int(endIndex)]
 }
 
 func (s *syncTime) getHarmonicMean(clockOffsets []time.Duration) time.Duration {
