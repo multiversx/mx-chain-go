@@ -1573,12 +1573,11 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 			return nil
 		},
 	}
-	blockTrackerMock := &mock.BlockTrackerMock{
-		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-			return &block.Header{}, []byte("hash"), nil
-		},
+
+	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{}, []byte("hash"), nil
 	}
-	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	arguments.BlockTracker = blockTrackerMock
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
@@ -1651,12 +1650,10 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	blockTrackerMock := &mock.BlockTrackerMock{
-		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-			return &block.Header{}, []byte("hash"), nil
-		},
+	blockTrackerMock := mock.NewBlockTrackerMock(arguments.ShardCoordinator, createGenesisBlocks(arguments.ShardCoordinator))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{}, []byte("hash"), nil
 	}
-	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
 	arguments.BlockTracker = blockTrackerMock
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
@@ -1753,12 +1750,10 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.Hasher = hasher
 	arguments.Accounts = accounts
 	arguments.ForkDetector = fd
-	blockTrackerMock := &mock.BlockTrackerMock{
-		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-			return &block.Header{}, []byte("hash"), nil
-		},
+	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{}, []byte("hash"), nil
 	}
-	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	arguments.BlockTracker = blockTrackerMock
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1885,12 +1880,10 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 			}
 		},
 	}
-	blockTrackerMock := &mock.BlockTrackerMock{
-		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-			return &block.Header{}, []byte("hash"), nil
-		},
+	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{}, []byte("hash"), nil
 	}
-	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	arguments.BlockTracker = blockTrackerMock
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {

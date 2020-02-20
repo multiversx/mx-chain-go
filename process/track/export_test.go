@@ -26,10 +26,6 @@ func (bbt *baseBlockTrack) InitNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return bbt.initNotarizedHeaders(startHeaders)
 }
 
-func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
-}
-
 func (bbt *baseBlockTrack) ReceivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
 	bbt.receivedShardHeader(headerHandler, shardHeaderHash)
 }
