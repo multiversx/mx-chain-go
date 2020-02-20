@@ -369,7 +369,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage: 0.10,
+				LeaderPercentage:    0.10,
+				DeveloperPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  maxGasLimitPerBlock,

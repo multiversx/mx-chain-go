@@ -33,17 +33,16 @@ const builtInFunctionBaseCostMultiplier = 2
 var log = logger.GetOrCreate("process/smartcontract")
 
 type scProcessor struct {
-	accounts            state.AccountsAdapter
-	tempAccounts        process.TemporaryAccountsHandler
-	adrConv             state.AddressConverter
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	shardCoordinator    sharding.Coordinator
-	vmContainer         process.VirtualMachinesContainer
-	argsParser          process.ArgumentsParser
-	isCallBack          bool
-	developerPercentage float64
-	builtInFunctions    map[string]process.BuiltinFunction
+	accounts         state.AccountsAdapter
+	tempAccounts     process.TemporaryAccountsHandler
+	adrConv          state.AddressConverter
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	vmContainer      process.VirtualMachinesContainer
+	argsParser       process.ArgumentsParser
+	isCallBack       bool
+	builtInFunctions map[string]process.BuiltinFunction
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -234,7 +233,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.developerPercentage)
+	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	feeForValidators := big.NewInt(0).Sub(consumedFee, newDeveloperReward)
 
 	acntDst, err = sc.reloadLocalAccount(acntDst)
