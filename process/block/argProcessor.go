@@ -58,4 +58,5 @@ type ArgMetaProcessor struct {
 	SCToProtocol             process.SmartContractToProtocolHandler
 	EpochStartDataCreator    process.EpochStartDataCreator
 	EpochEconomics           process.EndOfEpochEconomics
+	EpochRewardsCreator      process.EpochStartRewardsCreator
 }

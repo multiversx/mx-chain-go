@@ -2199,7 +2199,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsEpochStartData := block.ArgsNewEpochStartData{
+	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       core.Marshalizer,
 		Hasher:            core.Hasher,
 		Store:             data.Store,
@@ -2208,19 +2208,19 @@ func newMetaBlockProcessor(
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
 	}
-	epochStartDataCreator, err := block.NewEpochStartData(argsEpochStartData)
+	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
 		return nil, err
 	}
 
-	argsEpochEconomics := economics.ArgsNewEpochEconomics{
+	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:      core.Marshalizer,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
 		RewardsHandler:   economicsData,
 	}
-	epochEconomics, err := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
 		return nil, err
 	}

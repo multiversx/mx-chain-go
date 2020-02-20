@@ -7,13 +7,31 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled           func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled           func(header data.HeaderHandler) error
-	IsInterfaceNilCalled            func() bool
-	RevertPeerStateToSnapshotCalled func(snapshot int) error
-	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
-	CommitCalled                    func() ([]byte, error)
-	RootHashCalled                  func() ([]byte, error)
+	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled                    func(header data.HeaderHandler) error
+	IsInterfaceNilCalled                     func() bool
+	RevertPeerStateToSnapshotCalled          func(snapshot int) error
+	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
+	CommitCalled                             func() ([]byte, error)
+	RootHashCalled                           func() ([]byte, error)
+	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
+	GetValidatorInfosForRootHashCalled       func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+}
+
+// ResetValidatorStatisticsAtNewEpoch -
+func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
+		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
+	}
+	return nil
+}
+
+// GetValidatorInfosForRootHash -
+func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+	if vsp.GetValidatorInfosForRootHashCalled != nil {
+		return vsp.GetValidatorInfosForRootHashCalled(rootHash)
+	}
+	return nil, nil
 }
 
 // UpdatePeerState -

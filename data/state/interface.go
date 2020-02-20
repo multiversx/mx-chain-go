@@ -128,6 +128,7 @@ type AccountsAdapter interface {
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	ClosePersister() error
+	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -144,4 +145,14 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
+}
+
+type ValidatorInfo interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
 }

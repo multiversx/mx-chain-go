@@ -2,9 +2,11 @@ package peer
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -331,6 +333,100 @@ func (vs *validatorStatistics) Commit() ([]byte, error) {
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) RootHash() ([]byte, error) {
 	return vs.peerAdapter.RootHash()
+}
+
+func (vs *validatorStatistics) getValidatorDataFromLeaves(
+	leaves map[string][]byte,
+) (map[uint32][]*state.ValidatorInfoData, error) {
+
+	validators := make(map[uint32][]*state.ValidatorInfoData, vs.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < vs.shardCoordinator.NumberOfShards(); i++ {
+		validators[i] = make([]*state.ValidatorInfoData, 0)
+	}
+	validators[sharding.MetachainShardId] = make([]*state.ValidatorInfoData, 0)
+
+	sortedLeaves := make([][]byte, len(leaves))
+	i := 0
+	for _, pa := range leaves {
+		sortedLeaves[i] = pa
+		i++
+	}
+
+	sort.Slice(sortedLeaves, func(i, j int) bool {
+		return bytes.Compare(sortedLeaves[i], sortedLeaves[j]) < 0
+	})
+
+	for _, pa := range sortedLeaves {
+		peerAccount := &state.PeerAccount{}
+		err := vs.marshalizer.Unmarshal(peerAccount, pa)
+		if err != nil {
+			return nil, err
+		}
+
+		currentShardId := peerAccount.CurrentShardId
+		pk128, err := hex.DecodeString(string(peerAccount.BLSPublicKey))
+		validatorInfoData := &state.ValidatorInfoData{
+			PublicKey:        pk128,
+			ShardId:          peerAccount.CurrentShardId,
+			List:             "",
+			Index:            0,
+			TempRating:       peerAccount.TempRating,
+			Rating:           peerAccount.Rating,
+			RewardAddress:    peerAccount.RewardAddress,
+			LeaderSuccess:    peerAccount.LeaderSuccessRate.NrSuccess,
+			LeaderFailure:    peerAccount.LeaderSuccessRate.NrFailure,
+			ValidatorSuccess: peerAccount.ValidatorSuccessRate.NrSuccess,
+			ValidatorFailure: peerAccount.ValidatorSuccessRate.NrFailure,
+			AccumulatedFees:  big.NewInt(0).Set(peerAccount.AccumulatedFees),
+		}
+
+		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+	}
+
+	return validators, nil
+}
+
+// GetValidatorInfosForRootHash returns all the peer accounts from the trie with the given rootHash
+func (vs *validatorStatistics) GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+	allLeaves, err := vs.peerAdapter.GetAllLeaves(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	vInfos, err := vs.getValidatorDataFromLeaves(allLeaves)
+	if err != nil {
+		return nil, err
+	}
+
+	return vInfos, err
+}
+
+// ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
+func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+	for _, validators := range vInfos {
+		for _, validator := range validators {
+			addrContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+			if err != nil {
+				return err
+			}
+			account, err := vs.peerAdapter.GetAccountWithJournal(addrContainer)
+			if err != nil {
+				return err
+			}
+
+			peerAccount, ok := account.(*state.PeerAccount)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
+			err = peerAccount.ResetAtNewEpoch()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(

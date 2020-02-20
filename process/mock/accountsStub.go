@@ -27,6 +27,15 @@ type AccountsStub struct {
 	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
 	IsPruningEnabledCalled      func() bool
+	GetAllLeavesCalled          func(rootHash []byte) (map[string][]byte, error)
+}
+
+// GetAllLeaves -
+func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+	if as.GetAllLeavesCalled != nil {
+		return as.GetAllLeavesCalled(rootHash)
+	}
+	return nil, nil
 }
 
 var errNotImplemented = errors.New("not implemented")

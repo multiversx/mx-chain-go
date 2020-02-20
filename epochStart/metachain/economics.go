@@ -1,4 +1,4 @@
-package economics
+package metachain
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type rewardsPerBlock struct {
+type economics struct {
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
@@ -31,7 +31,7 @@ type ArgsNewEpochEconomics struct {
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
-func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*rewardsPerBlock, error) {
+func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -48,18 +48,18 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*rewardsPerB
 		return nil, process.ErrNilRewardsHandler
 	}
 
-	r := &rewardsPerBlock{
+	e := &economics{
 		marshalizer:      args.Marshalizer,
 		store:            args.Store,
 		shardCoordinator: args.ShardCoordinator,
 		nodesCoordinator: args.NodesCoordinator,
 		rewardsHandler:   args.RewardsHandler,
 	}
-	return r, nil
+	return e, nil
 }
 
 // ComputeRewardsPerBlock calculates the rewards per block value for the current epoch
-func (r *rewardsPerBlock) ComputeEndOfEpochEconomics(
+func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
 	if check.IfNil(metaBlock) {
@@ -72,27 +72,27 @@ func (r *rewardsPerBlock) ComputeEndOfEpochEconomics(
 		return nil, process.ErrNotEpochStartBlock
 	}
 
-	noncePerShardPrevEpoch, prevEpochStart, err := r.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
+	noncePerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
 	if err != nil {
 		return nil, err
 	}
 	prevEpochEconomics := prevEpochStart.EpochStart.Economics
 
-	noncePerShardCurrEpoch, err := r.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
+	noncePerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
 	if err != nil {
 		return nil, err
 	}
 
 	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
-	maxBlocksInEpoch := roundsPassedInEpoch * uint64(r.shardCoordinator.NumberOfShards())
-	totalNumBlocksInEpoch := r.computeNumOfTotalCreatedBlocks(noncePerShardPrevEpoch, noncePerShardCurrEpoch)
+	maxBlocksInEpoch := roundsPassedInEpoch * uint64(e.shardCoordinator.NumberOfShards())
+	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncePerShardPrevEpoch, noncePerShardCurrEpoch)
 
-	inflationRate, err := r.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
+	inflationRate, err := e.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
 	if err != nil {
 		return nil, err
 	}
 
-	rwdPerBlock := r.computeRewardsPerBlock(prevEpochEconomics.TotalSupply, maxBlocksInEpoch, inflationRate)
+	rwdPerBlock := e.computeRewardsPerBlock(prevEpochEconomics.TotalSupply, maxBlocksInEpoch, inflationRate)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
 	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
@@ -103,7 +103,7 @@ func (r *rewardsPerBlock) ComputeEndOfEpochEconomics(
 	}
 
 	computedEconomics := block.Economics{
-		TotalSupply:            r.computeRewardsPerValidatorPerBlock(rwdPerBlock),
+		TotalSupply:            e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		TotalToDistribute:      big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: big.NewInt(0).Set(totalRewardsToBeDistributed),
@@ -115,22 +115,22 @@ func (r *rewardsPerBlock) ComputeEndOfEpochEconomics(
 }
 
 // compute rewards per node per block
-func (r *rewardsPerBlock) computeRewardsPerValidatorPerBlock(rwdPerBlock *big.Int) *big.Int {
-	numOfNodes := r.nodesCoordinator.GetNumTotalEligible()
+func (e *economics) computeRewardsPerValidatorPerBlock(rwdPerBlock *big.Int) *big.Int {
+	numOfNodes := e.nodesCoordinator.GetNumTotalEligible()
 	return big.NewInt(0).Div(rwdPerBlock, big.NewInt(0).SetUint64(numOfNodes))
 }
 
 // compute inflation rate from totalSupply and totalStaked
-func (r *rewardsPerBlock) computeInflationRate(_ *big.Int, _ *big.Int) (float64, error) {
+func (e *economics) computeInflationRate(_ *big.Int, _ *big.Int) (float64, error) {
 	//TODO: use prevTotalSupply and nodePrice (number of eligible + number of waiting)
 	// for epoch which ends now to compute inflation rate according to formula provided by L.
-	return r.rewardsHandler.MaxInflationRate(), nil
+	return e.rewardsHandler.MaxInflationRate(), nil
 }
 
 const numberOfDaysInYear = 365.0
 
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch
-func (r *rewardsPerBlock) computeRewardsPerBlock(
+func (e *economics) computeRewardsPerBlock(
 	prevTotalSupply *big.Int,
 	maxBlocksInEpoch uint64,
 	inflationRate float64,
@@ -142,12 +142,12 @@ func (r *rewardsPerBlock) computeRewardsPerBlock(
 	return rewardsPerBlock
 }
 
-func (r *rewardsPerBlock) computeNumOfTotalCreatedBlocks(
+func (e *economics) computeNumOfTotalCreatedBlocks(
 	mapStartNonce map[uint32]uint64,
 	mapEndNonce map[uint32]uint64,
 ) uint64 {
 	totalNumBlocks := uint64(0)
-	for shardId := uint32(0); shardId < r.shardCoordinator.NumberOfShards(); shardId++ {
+	for shardId := uint32(0); shardId < e.shardCoordinator.NumberOfShards(); shardId++ {
 		totalNumBlocks += mapEndNonce[shardId] - mapStartNonce[shardId]
 	}
 	totalNumBlocks += mapEndNonce[sharding.MetachainShardId] - mapStartNonce[sharding.MetachainShardId]
@@ -155,15 +155,15 @@ func (r *rewardsPerBlock) computeNumOfTotalCreatedBlocks(
 	return totalNumBlocks
 }
 
-func (r *rewardsPerBlock) startNoncePerShardFromPreviousEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
-	mapShardIdNonce := make(map[uint32]uint64, r.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+func (e *economics) startNoncePerShardFromPreviousEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = 0
 	}
 	mapShardIdNonce[sharding.MetachainShardId] = 0
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), r.marshalizer, r.store)
+	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,9 +180,9 @@ func (r *rewardsPerBlock) startNoncePerShardFromPreviousEpochStart(epoch uint32)
 	return mapShardIdNonce, previousEpochStartMeta, nil
 }
 
-func (r *rewardsPerBlock) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
-	mapShardIdNonce := make(map[uint32]uint64, r.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = 0
 	}
 	mapShardIdNonce[sharding.MetachainShardId] = metaNonce
@@ -195,13 +195,13 @@ func (r *rewardsPerBlock) startNoncePerShardFromLastCrossNotarized(metaNonce uin
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (r *rewardsPerBlock) VerifyRewardsPerBlock(
+func (e *economics) VerifyRewardsPerBlock(
 	metaBlock *block.MetaBlock,
 ) error {
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
-	computedEconomics, err := r.ComputeEndOfEpochEconomics(metaBlock)
+	computedEconomics, err := e.ComputeEndOfEpochEconomics(metaBlock)
 	if err != nil {
 		return err
 	}
@@ -228,6 +228,6 @@ func (r *rewardsPerBlock) VerifyRewardsPerBlock(
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (r *rewardsPerBlock) IsInterfaceNil() bool {
-	return r == nil
+func (e *economics) IsInterfaceNil() bool {
+	return e == nil
 }

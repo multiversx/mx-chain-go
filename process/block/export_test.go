@@ -327,10 +327,6 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return mp.verifyCrossShardMiniBlockDstMe(header)
 }
 
-func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
-	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
-}
-
 func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	return mp.applyBodyToHeader(metaHdr, bodyHandler)
 }

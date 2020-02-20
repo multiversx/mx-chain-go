@@ -32,6 +32,7 @@ type metaProcessor struct {
 	peerChanges              process.PeerChangesHandler
 	epochStartCreator        process.EpochStartDataCreator
 	epochEconomics           process.EndOfEpochEconomics
+	epochRewardsCreator      process.EpochStartRewardsCreator
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
@@ -69,6 +70,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.EpochEconomics) {
 		return nil, process.ErrNilEpochEconomics
+	}
+	if check.IfNil(arguments.EpochRewardsCreator) {
+		return nil, process.ErrNilEpochStartRewardsCreator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -111,6 +115,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		pendingMiniBlocksHandler: arguments.PendingMiniBlocksHandler,
 		epochStartCreator:        arguments.EpochStartDataCreator,
 		epochEconomics:           arguments.EpochEconomics,
+		epochRewardsCreator:      arguments.EpochRewardsCreator,
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
@@ -554,6 +559,7 @@ func (mp *metaProcessor) CreateBlock(
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}
+
 	metaHdr, ok := initialHdr.(*block.MetaBlock)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
@@ -563,14 +569,24 @@ func (mp *metaProcessor) CreateBlock(
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
-	err := mp.epochStartHeaderDataCreation(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
+	var body data.BodyHandler
+	var err error
 
-	body, err := mp.createBlockBody(metaHdr, haveTime)
-	if err != nil {
-		return nil, nil, err
+	if mp.epochStartTrigger.IsEpochStart() {
+		err = mp.createEpochStartHeader(metaHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		body, err = mp.createEpochStartBody(metaHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		body, err = mp.createBlockBody(metaHdr, haveTime)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	body, err = mp.applyBodyToHeader(metaHdr, body)
@@ -578,14 +594,12 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
+	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
+
 	return metaHdr, body, nil
 }
 
-func (mp *metaProcessor) epochStartHeaderDataCreation(metaHdr *block.MetaBlock) error {
-	if !mp.epochStartTrigger.IsEpochStart() {
-		return nil
-	}
-
+func (mp *metaProcessor) createEpochStartHeader(metaHdr *block.MetaBlock) error {
 	sw := core.NewStopWatch()
 	sw.Start("createEpochStartForMetablock")
 	defer func() {
@@ -619,6 +633,33 @@ func (mp *metaProcessor) epochStartHeaderDataCreation(metaHdr *block.MetaBlock) 
 	return nil
 }
 
+func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.BodyHandler, error) {
+	mp.createBlockStarted()
+
+	log.Debug("started creating epoch start block body",
+		"epoch", metaBlock.GetEpoch(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
+	)
+
+	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfosForRootHash(currentRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorInfos)
+	if err != nil {
+		return nil, err
+	}
+
+	return rewardMiniBlocks, nil
+}
+
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
@@ -640,8 +681,6 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		return nil, err
 	}
 
-	mp.requestHandler.SetEpoch(metaBlock.GetEpoch())
-
 	return miniBlocks, nil
 }
 
@@ -650,11 +689,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (block.Body, error) {
 
-	miniBlocks := make(block.Body, 0)
-	if mp.epochStartTrigger.IsEpochStart() {
-		return miniBlocks, nil
-	}
-
 	if mp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
@@ -662,11 +696,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	if !haveTime() {
 		log.Debug("time is up after entered in createMiniBlocks method")
 		return nil, process.ErrTimeIsOut
-	}
-
-	txPool := mp.dataPool.Transactions()
-	if txPool == nil {
-		return nil, process.ErrNilTransactionPool
 	}
 
 	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
@@ -679,6 +708,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		"num txs", nbTxs,
 	)
 
+	miniBlocks := make(block.Body, 0)
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}

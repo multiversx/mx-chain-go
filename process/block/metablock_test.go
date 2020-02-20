@@ -66,6 +66,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:           &mock.EpochEconomicsStub{},
+		EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 	}
 	return arguments
 }
@@ -2115,25 +2116,6 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrTimeIsOut, err)
-}
-
-func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	dPool := initDataPool([]byte("tx_hash"))
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return nil
-	}
-
-	arguments := createMockMetaArguments()
-	arguments.DataPool = dPool
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
-
-	metaHdr := &block.MetaBlock{Round: round}
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
 
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {

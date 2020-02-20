@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"math/big"
 	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -879,7 +880,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 
-		argsEpochStartData := block.ArgsNewEpochStartData{
+		argsEpochStartData := metachain.ArgsNewEpochStartData{
 			Marshalizer:       TestMarshalizer,
 			Hasher:            TestHasher,
 			Store:             tpn.Storage,
@@ -888,16 +889,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ShardCoordinator:  tpn.ShardCoordinator,
 			EpochStartTrigger: tpn.EpochStartTrigger,
 		}
-		epochStartDataCreator, _ := block.NewEpochStartData(argsEpochStartData)
+		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
-		argsEpochEconomics := economics.ArgsNewEpochEconomics{
+		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
 			Marshalizer:      TestMarshalizer,
 			Store:            tpn.Storage,
 			ShardCoordinator: tpn.ShardCoordinator,
 			NodesCoordinator: tpn.NodesCoordinator,
 			RewardsHandler:   tpn.EconomicsData,
 		}
-		epochEconomics, _ := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,

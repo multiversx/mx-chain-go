@@ -221,6 +221,8 @@ type ValidatorStatisticsProcessor interface {
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
+	GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -634,6 +636,17 @@ type BlockTracker interface {
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
 	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	IsInterfaceNil() bool
+}
+
+// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type EpochStartRewardsCreator interface {
+	CreateBlockStarted()
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
+	CreateMarshalizedData() map[string][][]byte
+	SaveTxBlockToStorage(body block.Body) error
+	DeleteTxsFromStorage(body block.Body) error
 	IsInterfaceNil() bool
 }
 
