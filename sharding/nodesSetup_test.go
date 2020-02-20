@@ -79,13 +79,7 @@ func createNodesSetupOneShardOneNodeWithOneMeta() *NodesSetup {
 	return ns
 }
 
-func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
-	noOfInitialNodes := 6
-	ns := &NodesSetup{}
-	ns.ConsensusGroupSize = 1
-	ns.MinNodesPerShard = 2
-	ns.MetaChainConsensusGroupSize = 1
-	ns.MetaChainMinNodes = 2
+func initNodesConfig(ns *NodesSetup, noOfInitialNodes int) bool {
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
@@ -96,12 +90,26 @@ func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
 
 	err := ns.processConfig()
 	if err != nil {
-		return nil
+		return false
 	}
 
 	ns.processMetaChainAssigment()
 	ns.processShardAssignment()
 	ns.createInitialNodesInfo()
+	return true
+}
+
+func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
+	noOfInitialNodes := 6
+	ns := &NodesSetup{}
+	ns.ConsensusGroupSize = 1
+	ns.MinNodesPerShard = 2
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 2
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
+		return nil
+	}
 
 	return ns
 }
@@ -113,22 +121,12 @@ func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 	ns.MinNodesPerShard = 2
 	ns.MetaChainConsensusGroupSize = 1
 	ns.MetaChainMinNodes = 1
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
-
-	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = pubKeys[i]
-		ns.InitialNodes[i].Address = address[i]
-	}
-
-	err := ns.processConfig()
-	if err != nil {
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
 		return nil
 	}
 
-	ns.processMetaChainAssigment()
-	ns.processShardAssignment()
-	ns.createInitialNodesInfo()
+	return ns
 
 	return ns
 }
@@ -140,22 +138,10 @@ func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 	ns.MinNodesPerShard = 2
 	ns.MetaChainMinNodes = 2
 	ns.MetaChainConsensusGroupSize = 2
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
-
-	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = pubKeys[i]
-		ns.InitialNodes[i].Address = address[i]
-	}
-
-	err := ns.processConfig()
-	if err != nil {
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
 		return nil
 	}
-
-	ns.processMetaChainAssigment()
-	ns.processShardAssignment()
-	ns.createInitialNodesInfo()
 
 	return ns
 }
@@ -471,7 +457,7 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
 	ns := createNodesSetupTwoShard5NodesWithMeta()
-	publicKey, err := hex.DecodeString(pubKeys[2])
+	publicKey, _ := hex.DecodeString(pubKeys[2])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 
@@ -482,7 +468,7 @@ func TestNodesSetup_PublicKeyGood(t *testing.T) {
 
 func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
-	publicKey, err := hex.DecodeString(pubKeys[2])
+	publicKey, _ := hex.DecodeString(pubKeys[2])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 
@@ -494,7 +480,7 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := core.MetachainShardId
-	publicKey, err := hex.DecodeString(pubKeys[0])
+	publicKey, _ := hex.DecodeString(pubKeys[0])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 
