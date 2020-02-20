@@ -24,7 +24,8 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	RevertStateCalled                func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error
+	RecreateStateTriesCalled         func(header data.HeaderHandler) error
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -55,10 +56,10 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bps.CreateGenesisBlockCalled(balances)
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
-	if bps.RevertStateToBlockCalled != nil {
-		return bps.RevertStateToBlockCalled(header)
+// RevertState recreates thee state tries to the root hashes indicated by the provided header
+func (bps *BlockProcessorStub) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+	if bps.RevertStateCalled != nil {
+		return bps.RevertStateCalled(currHeader, prevHeader)
 	}
 	return nil
 }
@@ -120,4 +121,13 @@ func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.
 // IsInterfaceNil returns true if there is no value under the interface
 func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
+}
+
+// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorStub) RecreateStateTries(header data.HeaderHandler) error {
+	if bpm.RecreateStateTriesCalled != nil {
+		return bpm.RecreateStateTriesCalled(header)
+	}
+
+	return nil
 }

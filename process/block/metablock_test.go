@@ -888,7 +888,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 	assert.Equal(t, 0, journalEntries)
 }
 
-func TestMetaProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testing.T) {
+func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	expectedErr := errors.New("err")
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{}
@@ -907,11 +907,11 @@ func TestMetaProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testin
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
+	err := mp.RecreateStateTries(&hdr)
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestMetaProcessor_RevertStateToBlockShouldWork(t *testing.T) {
+func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	recreateTrieWasCalled := false
 	revertePeerStateWasCalled := false
 
@@ -934,7 +934,7 @@ func TestMetaProcessor_RevertStateToBlockShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
+	err := mp.RecreateStateTries(&hdr)
 	assert.Nil(t, err)
 	assert.True(t, revertePeerStateWasCalled)
 	assert.True(t, recreateTrieWasCalled)

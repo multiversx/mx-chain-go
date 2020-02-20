@@ -1804,7 +1804,10 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+			RevertStateCalled: func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+				return nil
+			},
+			RecreateStateTriesCalled: func(header data.HeaderHandler) error {
 				return nil
 			},
 		}),
@@ -1893,7 +1896,10 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+			RevertStateCalled: func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+				return nil
+			},
+			RecreateStateTriesCalled: func(header data.HeaderHandler) error {
 				return nil
 			},
 		}),
@@ -1998,7 +2004,10 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+			RevertStateCalled: func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+				return nil
+			},
+			RecreateStateTriesCalled: func(header data.HeaderHandler) error {
 				return nil
 			},
 		}),

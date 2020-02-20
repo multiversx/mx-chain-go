@@ -1099,8 +1099,8 @@ func (mp *metaProcessor) RevertAccountState() {
 	}
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
+func (mp *metaProcessor) RecreateStateTries(header data.HeaderHandler) error {
 	err := mp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
@@ -1120,6 +1120,34 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 
 		return err
 	}
+
+	return nil
+}
+
+// RevertState recreates the state tries to the root hashes indicated by the provided header
+func (mp *metaProcessor) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+	err := mp.accounts.RecreateTrie(prevHeader.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", prevHeader.GetNonce(),
+			"hash", prevHeader.GetRootHash(),
+		)
+
+		return err
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerState(prevHeader)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", prevHeader.GetNonce(),
+			"validators root hash", prevHeader.GetValidatorStatsRootHash(),
+		)
+
+		return err
+	}
+
+	mp.pruneStateAccounts(currHeader, prevHeader)
+	mp.prunePeerAccounts(currHeader, prevHeader)
 
 	return nil
 }

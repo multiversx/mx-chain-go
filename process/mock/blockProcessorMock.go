@@ -24,7 +24,8 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	RevertStateCalled                func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error
+	RecreateStateTriesCalled         func(header data.HeaderHandler) error
 }
 
 // ApplyProcessedMiniBlocks -
@@ -109,10 +110,10 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 	panic("implement me")
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if bpm.RevertStateToBlockCalled != nil {
-		return bpm.RevertStateToBlockCalled(header)
+// RevertState recreates thee state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+	if bpm.RevertStateCalled != nil {
+		return bpm.RevertStateCalled(currHeader, prevHeader)
 	}
 
 	return nil
@@ -121,4 +122,13 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
+}
+
+// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RecreateStateTries(header data.HeaderHandler) error {
+	if bpm.RecreateStateTriesCalled != nil {
+		return bpm.RecreateStateTriesCalled(header)
+	}
+
+	return nil
 }

@@ -322,8 +322,8 @@ func (sp *shardProcessor) RevertAccountState() {
 	}
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
+func (sp *shardProcessor) RecreateStateTries(header data.HeaderHandler) error {
 	err := sp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
@@ -333,6 +333,24 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 
 		return err
 	}
+
+	return nil
+}
+
+// RevertState recreates the state tries to the root hashes indicated by the provided header
+func (sp *shardProcessor) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+	err := sp.accounts.RecreateTrie(prevHeader.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", prevHeader.GetNonce(),
+			"hash", prevHeader.GetRootHash(),
+		)
+
+		return err
+	}
+
+	sp.pruneStateAccounts(currHeader, prevHeader)
+	sp.prunePeerAccounts(currHeader, prevHeader)
 
 	return nil
 }

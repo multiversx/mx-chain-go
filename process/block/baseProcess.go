@@ -986,3 +986,42 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 
 	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
 }
+
+func (bp *baseProcessor) pruneStateAccounts(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if !bp.accounts.IsPruningEnabled() {
+		return
+	}
+
+	if bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
+		return
+	}
+
+	accountsWrapper, err := state.NewAccountsDbWrapperSync(bp.accounts)
+	if err != nil {
+		return
+	}
+
+	accountsWrapper.CancelPrune(prevHeader.GetRootHash())
+
+	errNotCritical := accountsWrapper.PruneTrie(currHeader.GetRootHash())
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+}
+
+func (bp *baseProcessor) prunePeerAccounts(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if !bp.validatorStatisticsProcessor.IsPruningEnabled() {
+		return
+	}
+
+	if bytes.Equal(currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()) {
+		return
+	}
+
+	bp.validatorStatisticsProcessor.CancelPrune(prevHeader.GetValidatorStatsRootHash())
+
+	errNotCritical := bp.validatorStatisticsProcessor.PruneTrie(currHeader.GetValidatorStatsRootHash())
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+}

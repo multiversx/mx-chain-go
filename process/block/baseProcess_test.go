@@ -395,8 +395,8 @@ func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- RevertStateToBlock
-func TestBaseProcessor_RevertStateToBlockRecreateTrieFailsShouldErr(t *testing.T) {
+//------- RevertStateT
+func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("err")
@@ -410,7 +410,7 @@ func TestBaseProcessor_RevertStateToBlockRecreateTrieFailsShouldErr(t *testing.T
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr := block.Header{Nonce: 37}
-	err := bp.RevertStateToBlock(&hdr)
+	err := bp.RecreateStateTries(&hdr)
 	assert.Equal(t, expectedErr, err)
 }
 
