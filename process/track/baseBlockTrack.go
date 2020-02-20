@@ -371,6 +371,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 	return lastCrossNotarizedHeaders, nil
 }
 
+// GetLastSelfNotarizedHeader returns last self notarized header for a given shard
+func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
+}
+
 // GetTrackedHeaders returns tracked headers for a given shard
 func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	return bbt.SortHeadersFromNonce(shardID, 0)

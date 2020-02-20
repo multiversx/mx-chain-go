@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -47,6 +46,7 @@ import (
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -292,9 +292,9 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return blake2b.Blake2b{HashSize: 16}
+		return &blake2b.Blake2b{HashSize: 16}
 	}
-	return blake2b.Blake2b{}
+	return &blake2b.Blake2b{}
 }
 
 func createConsensusOnlyNode(
@@ -449,7 +449,6 @@ func createConsensusOnlyNode(
 		node.WithBlockChain(blockChain),
 		node.WithMultiSigner(testMultiSig),
 		node.WithTxSingleSigner(singlesigner),
-		node.WithTxSignPrivKey(privKey),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(createTestShardDataPool()),

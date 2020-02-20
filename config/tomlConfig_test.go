@@ -156,22 +156,54 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 func TestTomlPreferencesParser(t *testing.T) {
 	nodeDisplayName := "test-name"
+	destinationShardAsObs := "3"
 
-	cfgPreferencesExpected := ConfigPreferences{
+	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
-			NodeDisplayName: nodeDisplayName,
+			NodeDisplayName:            nodeDisplayName,
+			DestinationShardAsObserver: destinationShardAsObs,
 		},
 	}
 
 	testString := `
 [Preferences]
 	NodeDisplayName = "` + nodeDisplayName + `"
+	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 `
 
-	cfg := ConfigPreferences{}
+	cfg := Preferences{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
 	assert.Nil(t, err)
 	assert.Equal(t, cfgPreferencesExpected, cfg)
+}
+
+func TestTomlExternalParser(t *testing.T) {
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
+
+	cfgExternalExpected := ExternalConfig{
+		ElasticSearchConnector: ElasticSearchConfig{
+			Enabled:  true,
+			URL:      indexerURL,
+			Username: elasticUsername,
+			Password: elasticPassword,
+		},
+	}
+
+	testString := `
+[ElasticSearchConnector]
+    Enabled = true
+    URL = "` + indexerURL + `"
+    Username = "` + elasticUsername + `"
+    Password = "` + elasticPassword + `"`
+
+	cfg := ExternalConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, cfgExternalExpected, cfg)
 }

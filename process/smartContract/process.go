@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // claimDeveloperRewardsFunctionName is a constant which defines the name for the claim developer rewards function
@@ -1014,6 +1014,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		err = process.ErrNilSCDestAccount
 		return nil
 	}
+
+	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {

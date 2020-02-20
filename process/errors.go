@@ -609,6 +609,9 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 // ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
 var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
+// ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
+var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
 
