@@ -366,18 +366,19 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		currentShardId := peerAccount.CurrentShardId
 		pk128, err := hex.DecodeString(string(peerAccount.BLSPublicKey))
 		validatorInfoData := &state.ValidatorInfoData{
-			PublicKey:        pk128,
-			ShardId:          peerAccount.CurrentShardId,
-			List:             "",
-			Index:            0,
-			TempRating:       peerAccount.TempRating,
-			Rating:           peerAccount.Rating,
-			RewardAddress:    peerAccount.RewardAddress,
-			LeaderSuccess:    peerAccount.LeaderSuccessRate.NrSuccess,
-			LeaderFailure:    peerAccount.LeaderSuccessRate.NrFailure,
-			ValidatorSuccess: peerAccount.ValidatorSuccessRate.NrSuccess,
-			ValidatorFailure: peerAccount.ValidatorSuccessRate.NrFailure,
-			AccumulatedFees:  big.NewInt(0).Set(peerAccount.AccumulatedFees),
+			PublicKey:                  pk128,
+			ShardId:                    peerAccount.CurrentShardId,
+			List:                       "",
+			Index:                      0,
+			TempRating:                 peerAccount.TempRating,
+			Rating:                     peerAccount.Rating,
+			RewardAddress:              peerAccount.RewardAddress,
+			LeaderSuccess:              peerAccount.LeaderSuccessRate.NrSuccess,
+			LeaderFailure:              peerAccount.LeaderSuccessRate.NrFailure,
+			ValidatorSuccess:           peerAccount.ValidatorSuccessRate.NrSuccess,
+			ValidatorFailure:           peerAccount.ValidatorSuccessRate.NrFailure,
+			NumSelectedInSuccessBlocks: peerAccount.NumSelectedInSuccessBlocks,
+			AccumulatedFees:            big.NewInt(0).Set(peerAccount.AccumulatedFees),
 		}
 
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
@@ -666,6 +667,11 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			return err
 		}
 
+		err = peerAcc.IncreaseNumSelectedInSuccessBlocks()
+		if err != nil {
+			return err
+		}
+
 		var newRating uint32
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
@@ -675,16 +681,12 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
-
 			if err != nil {
 				return err
 			}
 
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
-		case leaderFail:
-			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())
 		case validatorSuccess:
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())

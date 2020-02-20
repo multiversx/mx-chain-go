@@ -4,28 +4,13 @@ import (
 	"math/big"
 )
 
-const (
-	// LeaderTx identifies a leader reward tx type
-	LeaderTx byte = iota + 1
-	// BurnTx identifies a burn reward tx type
-	BurnTx
-	// CommunityTx identifies a community reward tx type
-	CommunityTx
-	// ProtocolRewardsTx identifies a protocol reward tx type
-	ProtocolRewardsTx
-	// ProtocolRewardsForMetaTx identifies a protocol reward for meta tx type
-	ProtocolRewardsForMetaTx
-)
-
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
-	Round    uint64   `json:"round"`
-	Value    *big.Int `json:"value"`
-	RcvAddr  []byte   `json:"receiver"`
-	ShardId  uint32   `json:"shardId"`
-	Epoch    uint32   `json:"epoch"`
-	CnsIndex uint16   `json:"cnsIndex"`
-	Type     byte     `json:"type"`
+	Round   uint64   `json:"round"`
+	Value   *big.Int `json:"value"`
+	RcvAddr []byte   `json:"receiver"`
+	ShardId uint32   `json:"shardId"`
+	Epoch   uint32   `json:"epoch"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil

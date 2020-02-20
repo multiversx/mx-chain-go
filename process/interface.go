@@ -122,8 +122,7 @@ type TransactionCoordinator interface {
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
-	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
-
+	CreateMarshalizedData(body block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	CreateReceiptsHash() ([]byte, error)
@@ -641,12 +640,11 @@ type EpochStartDataCreator interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateBlockStarted()
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
-	CreateMarshalizedData() map[string][][]byte
-	SaveTxBlockToStorage(body block.Body) error
-	DeleteTxsFromStorage(body block.Body) error
+	CreateMarshalizedData(body block.Body) map[string][][]byte
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body)
 	IsInterfaceNil() bool
 }
 

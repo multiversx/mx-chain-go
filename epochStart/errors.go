@@ -76,3 +76,12 @@ var ErrNilMetaHdrStorage = errors.New("nil meta header storage")
 
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
+
+// ErrRewardMiniBlockHashDoesNotMatch signals that created and received rewards miniblock hash does not match
+var ErrRewardMiniBlockHashDoesNotMatch = errors.New("reward miniblock hash does not match")
+
+// ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
+var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
+
+// ErrNilAddressConverter signals that nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

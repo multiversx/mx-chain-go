@@ -443,3 +443,33 @@ func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
 func (pjeaf *PeerJournalEntryAccumulatedFee) IsInterfaceNil() bool {
 	return pjeaf == nil
 }
+
+// PeerJournalEntryNumSelectedInSuccessBlocks is used to revert a num selected in success block change
+type PeerJournalEntryNumSelectedInSuccessBlocks struct {
+	account        *PeerAccount
+	oldNumSelected uint32
+}
+
+// NewPeerJournalEntryNumSelectedInSuccessBlocks outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+func NewPeerJournalEntryNumSelectedInSuccessBlocks(account *PeerAccount, oldNumSelected uint32) (*PeerJournalEntryNumSelectedInSuccessBlocks, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryNumSelectedInSuccessBlocks{
+		account:        account,
+		oldNumSelected: oldNumSelected,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) Revert() (AccountHandler, error) {
+	pjen.account.CurrentShardId = pjen.oldNumSelected
+
+	return pjen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) IsInterfaceNil() bool {
+	return pjen == nil
+}

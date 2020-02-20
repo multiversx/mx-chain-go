@@ -2252,7 +2252,6 @@ func newMetaBlockProcessor(
 		ArgBaseProcessor:         argumentsBaseProcessor,
 		SCDataGetter:             scDataGetter,
 		SCToProtocol:             smartContractToProtocol,
-		PeerChangesHandler:       smartContractToProtocol,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		EpochStartDataCreator:    epochStartDataCreator,
 		EpochEconomics:           epochEconomics,

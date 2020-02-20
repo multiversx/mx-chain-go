@@ -405,8 +405,5 @@ func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (stp *stakingToPeer) IsInterfaceNil() bool {
-	if stp == nil {
-		return true
-	}
-	return false
+	return stp == nil
 }

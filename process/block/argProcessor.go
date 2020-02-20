@@ -54,7 +54,6 @@ type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	SCDataGetter             external.SCQueryService
-	PeerChangesHandler       process.PeerChangesHandler
 	SCToProtocol             process.SmartContractToProtocolHandler
 	EpochStartDataCreator    process.EpochStartDataCreator
 	EpochEconomics           process.EndOfEpochEconomics

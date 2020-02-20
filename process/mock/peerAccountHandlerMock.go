@@ -32,6 +32,15 @@ type PeerAccountHandlerMock struct {
 	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 	AddToAccumulatedFeesCalled                    func(value *big.Int) error
+	IncreaseNumSelectedInSuccessBlocksCalled      func() error
+}
+
+// IncreaseNumSelectedInSuccessBlocks -
+func (pahm *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() error {
+	if pahm.IncreaseNumSelectedInSuccessBlocksCalled != nil {
+		return pahm.IncreaseNumSelectedInSuccessBlocks()
+	}
+	return nil
 }
 
 // AddToAccumulatedFees -

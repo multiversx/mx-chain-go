@@ -904,7 +904,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             tpn.SCQueryService,
 			SCToProtocol:             scToProtocol,
-			PeerChangesHandler:       scToProtocol,
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:           epochEconomics,
 			EpochStartDataCreator:    epochStartDataCreator,

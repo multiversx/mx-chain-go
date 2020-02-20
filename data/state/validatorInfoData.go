@@ -13,12 +13,13 @@ type ValidatorInfoData struct {
 	TempRating uint32
 	Rating     uint32
 
-	RewardAddress    []byte
-	LeaderSuccess    uint32
-	LeaderFailure    uint32
-	ValidatorSuccess uint32
-	ValidatorFailure uint32
-	AccumulatedFees  *big.Int
+	RewardAddress              []byte
+	LeaderSuccess              uint32
+	LeaderFailure              uint32
+	ValidatorSuccess           uint32
+	ValidatorFailure           uint32
+	NumSelectedInSuccessBlocks uint32
+	AccumulatedFees            *big.Int
 }
 
 func (vid *ValidatorInfoData) GetPublicKey() []byte {

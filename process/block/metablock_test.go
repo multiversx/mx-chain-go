@@ -62,7 +62,6 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		},
 		SCDataGetter:             &mock.ScQueryMock{},
 		SCToProtocol:             &mock.SCToProtocolStub{},
-		PeerChangesHandler:       &mock.PeerChangesHandler{},
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:           &mock.EpochEconomicsStub{},
