@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -111,7 +110,7 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDis
 		shardId := lks.peerShardResolver.ByID(pid)
 
 		switch shardId {
-		case sharding.UnknownShardId:
+		case core.UnknownShardId:
 			unknownShard = append(unknownShard, pd)
 		case selfId:
 			intraShard = append(intraShard, pd)

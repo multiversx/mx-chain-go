@@ -16,6 +16,12 @@ const NodeTypeValidator NodeType = "validator"
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
+
+// UnknownShardId will be used to identify an unknown shard ID
+const UnknownShardId = uint32(0xFFFFFFFE)
+
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
 
@@ -215,9 +221,6 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
-
-// MetachainShardId will be used to identify a shard ID as metachain
-const MetachainShardId = uint32(0xFFFFFFFF)
 
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024

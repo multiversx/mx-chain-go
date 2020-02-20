@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -667,7 +667,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 
 		shardId := netMes.peerShardResolver.ByID(p2p.PeerID(p))
 		switch shardId {
-		case sharding.UnknownShardId:
+		case core.UnknownShardId:
 			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
 		case selfShardId:
 			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)

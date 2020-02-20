@@ -102,3 +102,9 @@ type Cacher interface {
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
 }
+
+// EpochHandler defines a struct able to output current epoch
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
+}

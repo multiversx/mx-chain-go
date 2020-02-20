@@ -102,3 +102,6 @@ var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that a nil epoch handler has been provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")
