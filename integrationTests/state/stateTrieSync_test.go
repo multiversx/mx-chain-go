@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +51,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
-	trieNodesResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId)
+	trieNodesResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.AccountTrieNodesTopic, core.MetachainShardId)
 
 	waitTime := 5 * time.Second
 	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime)

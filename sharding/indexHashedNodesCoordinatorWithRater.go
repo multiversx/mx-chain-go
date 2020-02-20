@@ -1,6 +1,8 @@
 package sharding
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
@@ -31,10 +33,13 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	return ihncr, nil
 }
 
-func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(shardId uint32) []Validator {
+func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
+	mut.RLock()
+	defer mut.RUnlock()
+
 	validatorList := make([]Validator, 0)
 
-	for _, validatorInShard := range ihgs.nodesMap[shardId] {
+	for _, validatorInShard := range validators {
 		pk := validatorInShard.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		for i := uint32(0); i < rating; i++ {

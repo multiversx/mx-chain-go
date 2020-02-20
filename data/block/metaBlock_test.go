@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestMetaBlock_GetShard(t *testing.T) {
 
 	m := block.MetaBlock{}
 
-	assert.Equal(t, sharding.MetachainShardId, m.GetShardID())
+	assert.Equal(t, core.MetachainShardId, m.GetShardID())
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {

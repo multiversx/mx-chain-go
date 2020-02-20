@@ -59,6 +59,9 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
+// ErrNilBootStorer signals that the provided boot storer is bil
+var ErrNilBootStorer = errors.New("nil boot storer")
+
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
