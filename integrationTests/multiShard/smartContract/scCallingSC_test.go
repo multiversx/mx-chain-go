@@ -86,7 +86,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 7
+	nrRoundsToPropagateMultiShard := 15
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)

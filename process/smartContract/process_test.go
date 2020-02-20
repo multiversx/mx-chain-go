@@ -687,7 +687,11 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeAccumulatorStub{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+		},
 		&mock.TxTypeHandlerMock{},
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
