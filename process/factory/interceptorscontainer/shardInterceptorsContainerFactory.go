@@ -134,7 +134,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateUnsignedTxsInterceptorsForMeta()
+	err = sicf.generateUnsignedTxsInterceptorsForShard()
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 
 //------- Unsigned transactions interceptors
 
-func (sicf *shardInterceptorsContainerFactory) generateUnsignedTxsInterceptorsForMeta() error {
+func (sicf *shardInterceptorsContainerFactory) generateUnsignedTxsInterceptorsForShard() error {
 	err := sicf.generateUnsignedTxsInterceptors()
 	if err != nil {
 		return err
@@ -211,6 +211,26 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
 	return sicf.container.AddMultiple(keys, interceptorsSlice)
+}
+
+//------- Reward transactions interceptors
+
+func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptors() error {
+	shardC := sicf.shardCoordinator
+
+	keys := make([]string, 0)
+	interceptorSlice := make([]process.Interceptor, 0)
+
+	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	return sicf.container.AddMultiple(keys, interceptorSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
