@@ -171,11 +171,6 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	err = container.Add(block.PeerBlock, preproc)
-	if err != nil {
-		return nil, err
-	}
-
 	return container, nil
 }
 
