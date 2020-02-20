@@ -891,7 +891,7 @@ func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	}
 
 	// TODO generate checkpoint on a trigger
-	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+	if finalHeader.GetNonce()%uint64(sp.stateCheckpointModulus) == 0 {
 		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
 	}

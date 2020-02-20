@@ -1014,6 +1014,7 @@ func (mp *metaProcessor) CommitBlock(
 
 func (mp *metaProcessor) updatePeerStateStorage(metaHeader data.HeaderHandler) {
 	if check.IfNil(metaHeader) {
+		log.Error("updatePeerStateStorage nil metaheader")
 		return
 	}
 

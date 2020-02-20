@@ -81,7 +81,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
