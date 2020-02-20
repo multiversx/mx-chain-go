@@ -1576,15 +1576,66 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 			return &block.Header{}
 		},
 	}
+	rf := &mock.ResolversFinderStub{
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+			return &mock.MiniBlocksResolverStub{}, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			return &mock.HeaderResolverStub{}, nil
+		},
+	}
+
+	store := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return nil
+		},
+	}
 
 	n, _ := node.NewNode(
+		node.WithDataPool(&mock.PoolsHolderStub{
+			MiniBlocksCalled: func() storage.Cacher {
+				return &mock.CacherStub{
+					RegisterHandlerCalled: func(f func(key []byte)) {
+
+					},
+				}
+			},
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
+
+					},
+				}
+			},
+		}),
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
 		node.WithSyncer(&mock.SyncStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-	)
+		node.WithResolversFinder(rf),
+		node.WithDataStore(store),
+		node.WithHasher(&mock.HasherMock{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithForkDetector(&mock.ForkDetectorMock{
+			CheckForkCalled: func() *process.ForkInfo {
+				return &process.ForkInfo{}
+			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+		}),
 
+		node.WithBlockProcessor(&mock.BlockProcessorStub{
+			RevertStateCalled: func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
+				return nil
+			},
+			RecreateStateTriesCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+	)
 	err := n.StartConsensus()
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
 }

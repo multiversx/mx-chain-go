@@ -16,8 +16,8 @@ type ValidatorStatisticsProcessorMock struct {
 	RootHashCalled                  func() ([]byte, error)
 	IsPruningEnabledCalled          func() bool
 	SnapshotStateCalled             func([]byte)
-	PruneTrieCalled                 func([]byte) error
-	CancelPruneCalled               func([]byte)
+	PruneTrieCalled                 func([]byte, data.TriePruningIdentifier) error
+	CancelPruneCalled               func([]byte, data.TriePruningIdentifier)
 }
 
 // UpdatePeerState -
@@ -94,17 +94,17 @@ func (vsp *ValidatorStatisticsProcessorMock) SnapshotState(rootHash []byte) {
 }
 
 // PruneTrie -
-func (vsp *ValidatorStatisticsProcessorMock) PruneTrie(rootHash []byte) error {
+func (vsp *ValidatorStatisticsProcessorMock) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
 	if vsp.PruneTrieCalled != nil {
-		return vsp.PruneTrieCalled(rootHash)
+		return vsp.PruneTrieCalled(rootHash, identifier)
 	}
 
 	return nil
 }
 
 // CancelPrune -
-func (vsp *ValidatorStatisticsProcessorMock) CancelPrune(rootHash []byte) {
+func (vsp *ValidatorStatisticsProcessorMock) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	if vsp.CancelPruneCalled != nil {
-		vsp.CancelPruneCalled(rootHash)
+		vsp.CancelPruneCalled(rootHash, identifier)
 	}
 }

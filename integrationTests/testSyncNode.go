@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -178,11 +177,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
-	accountsStateWrapper, err := state.NewAccountsDbWrapperSync(tpn.AccntState)
-	if err != nil {
-		return nil, err
-	}
-
 	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -205,7 +199,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ForkDetector:        tpn.ForkDetector,
 		RequestHandler:      tpn.RequestHandler,
 		ShardCoordinator:    tpn.ShardCoordinator,
-		Accounts:            accountsStateWrapper,
+		Accounts:            tpn.AccntState,
 		BlackListHandler:    tpn.BlackListHandler,
 		NetworkWatcher:      tpn.Messenger,
 		BootStorer:          tpn.BootstrapStorer,

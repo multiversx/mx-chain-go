@@ -996,14 +996,9 @@ func (bp *baseProcessor) pruneStateAccounts(currHeader data.HeaderHandler, prevH
 		return
 	}
 
-	accountsWrapper, err := state.NewAccountsDbWrapperSync(bp.accounts)
-	if err != nil {
-		return
-	}
+	bp.accounts.CancelPrune(prevHeader.GetRootHash(), data.OldRoot)
 
-	accountsWrapper.CancelPrune(prevHeader.GetRootHash())
-
-	errNotCritical := accountsWrapper.PruneTrie(currHeader.GetRootHash())
+	errNotCritical := bp.accounts.PruneTrie(currHeader.GetRootHash(), data.NewRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -1018,9 +1013,9 @@ func (bp *baseProcessor) prunePeerAccounts(currHeader data.HeaderHandler, prevHe
 		return
 	}
 
-	bp.validatorStatisticsProcessor.CancelPrune(prevHeader.GetValidatorStatsRootHash())
+	bp.validatorStatisticsProcessor.CancelPrune(prevHeader.GetValidatorStatsRootHash(), data.OldRoot)
 
-	errNotCritical := bp.validatorStatisticsProcessor.PruneTrie(currHeader.GetValidatorStatsRootHash())
+	errNotCritical := bp.validatorStatisticsProcessor.PruneTrie(currHeader.GetValidatorStatsRootHash(), data.NewRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}

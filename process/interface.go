@@ -241,8 +241,8 @@ type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	IsPruningEnabled() bool
 	SnapshotState([]byte)
-	PruneTrie([]byte) error
-	CancelPrune([]byte)
+	PruneTrie([]byte, data.TriePruningIdentifier) error
+	CancelPrune([]byte, data.TriePruningIdentifier)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

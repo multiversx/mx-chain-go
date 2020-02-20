@@ -1044,12 +1044,12 @@ func (mp *metaProcessor) updatePeerStateStorage(metaHeader data.HeaderHandler) {
 		return
 	}
 
-	errNotCritical = mp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash)
+	errNotCritical = mp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
 
-	mp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash)
+	mp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
 }
 
 func (mp *metaProcessor) commitAll() error {

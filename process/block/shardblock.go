@@ -894,12 +894,12 @@ func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) 
 			continue
 		}
 
-		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
+		errNotCritical = sp.accounts.PruneTrie(prevRootHash, data.OldRoot)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 
-		sp.accounts.CancelPrune(rootHash)
+		sp.accounts.CancelPrune(rootHash, data.NewRoot)
 	}
 }
 
@@ -945,12 +945,12 @@ func (sp *shardProcessor) updatePeerStateStorage(finalHeaders []data.HeaderHandl
 			continue
 		}
 
-		errNotCritical = sp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash)
+		errNotCritical = sp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 
-		sp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash)
+		sp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
 	}
 }
 

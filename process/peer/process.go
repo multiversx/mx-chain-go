@@ -770,11 +770,11 @@ func (vs *validatorStatistics) SnapshotState(rootHash []byte) {
 }
 
 // PruneTrie removes values from storage
-func (vs *validatorStatistics) PruneTrie(rootHash []byte) error {
-	return vs.peerAdapter.PruneTrie(rootHash)
+func (vs *validatorStatistics) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
+	return vs.peerAdapter.PruneTrie(rootHash, identifier)
 }
 
 // CancelPrune removes values from the eviction waiting list
-func (vs *validatorStatistics) CancelPrune(rootHash []byte) {
-	vs.peerAdapter.CancelPrune(rootHash)
+func (vs *validatorStatistics) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	vs.peerAdapter.CancelPrune(rootHash, identifier)
 }
