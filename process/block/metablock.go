@@ -30,7 +30,7 @@ type metaProcessor struct {
 	scDataGetter             external.SCQueryService
 	scToProtocol             process.SmartContractToProtocolHandler
 	peerChanges              process.PeerChangesHandler
-	epochStartCreator        process.EpochStartDataCreator
+	epochStartDataCreator    process.EpochStartDataCreator
 	epochEconomics           process.EndOfEpochEconomics
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
@@ -109,7 +109,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		peerChanges:              arguments.PeerChangesHandler,
 		scToProtocol:             arguments.SCToProtocol,
 		pendingMiniBlocksHandler: arguments.PendingMiniBlocksHandler,
-		epochStartCreator:        arguments.EpochStartDataCreator,
+		epochStartDataCreator:    arguments.EpochStartDataCreator,
 		epochEconomics:           arguments.EpochEconomics,
 	}
 
@@ -244,7 +244,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.epochStartCreator.VerifyEpochStartDataForMetablock(header)
+	err = mp.epochStartDataCreator.VerifyEpochStartDataForMetablock(header)
 	if err != nil {
 		return err
 	}
@@ -592,7 +592,7 @@ func (mp *metaProcessor) epochStartHeaderDataCreation(metaHdr *block.MetaBlock) 
 		sw.Stop("createEpochStartForMetablock")
 	}()
 
-	epochStart, err := mp.epochStartCreator.CreateEpochStartData()
+	epochStart, err := mp.epochStartDataCreator.CreateEpochStartData()
 	if err != nil {
 		return err
 	}
@@ -1557,9 +1557,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 
 	if check.IfNil(bodyHandler) {
 		return nil, process.ErrNilBlockBody
-	}
-	if check.IfNil(mp.blockChain) {
-		return nil, process.ErrNilBlockChain
 	}
 
 	var err error

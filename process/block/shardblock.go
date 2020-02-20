@@ -605,7 +605,7 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
-	return initialHdr, body, nil
+	return shardHdr, body, nil
 }
 
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
