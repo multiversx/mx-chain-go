@@ -106,7 +106,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	genesisTotalSupply := new(big.Int)
 	genesisTotalSupply, ok = genesisTotalSupply.SetString(economics.GlobalSettings.TotalSupply, conversionBase)
 	if !ok {
-		return nil, process.ErrInvalidRewardsValue
+		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
 	return &EconomicsData{

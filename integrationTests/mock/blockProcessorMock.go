@@ -59,7 +59,7 @@ func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
 }
 
-// CreateBlockBody -
+// CreateBlock -
 func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }

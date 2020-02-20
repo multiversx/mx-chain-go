@@ -67,7 +67,7 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 	bpm.RevertAccountStateCalled()
 }
 
-// CreateBlockBody mocks the creation of a transaction block body
+// CreateBlock mocks the creation of a new block with header and body
 func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }

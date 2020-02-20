@@ -672,3 +672,9 @@ type BuiltinFunction interface {
 	) (*big.Int, error)
 	IsInterfaceNil() bool
 }
+
+// RoundTimeDurationHandler defines the methods to get the time duration of a round
+type RoundTimeDurationHandler interface {
+	TimeDuration() time.Duration
+	IsInterfaceNil() bool
+}
