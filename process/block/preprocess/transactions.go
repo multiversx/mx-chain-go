@@ -539,6 +539,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, error) {
+	log.Debug("CreateAndProcessMiniBlocks()")
 
 	var err error
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -841,6 +842,7 @@ func (txs *transactions) computeOrderedTxs(
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
+	log.Debug("sortedTransactionsProvider.GetSortedTransactions()")
 	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetSortedTransactions()
 	return sortedTxs, sortedTxsHashes, nil
 }
