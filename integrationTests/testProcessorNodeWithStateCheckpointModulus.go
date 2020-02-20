@@ -30,6 +30,12 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
+		GetAllEligibleValidatorsPublicKeysCalled: func(shardId uint32) (m map[uint32][][]byte, err error) {
+			ma := map[uint32][][]byte{
+				0: [][]byte{pkBytes},
+			}
+			return ma, nil
+		},
 	}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
