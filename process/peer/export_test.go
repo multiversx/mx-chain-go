@@ -24,8 +24,9 @@ func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.S
 	return vs.getMatchingPrevShardData(currentShardData, shardInfo)
 }
 
-func (vs *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
-	vs.mutPrevShardInfo.RLock()
-	defer vs.mutPrevShardInfo.RUnlock()
-	return vs.prevShardInfo
+func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
+	vs.mutMissedBlocksCounters.RLock()
+	defer vs.mutMissedBlocksCounters.RUnlock()
+
+	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
 }
