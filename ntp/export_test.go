@@ -29,3 +29,7 @@ func (s *syncTime) GetClockOffsetsWithoutEdges(clockOffsets []time.Duration) []t
 func (s *syncTime) GetHarmonicMean(clockOffsets []time.Duration) time.Duration {
 	return s.getHarmonicMean(clockOffsets)
 }
+
+func (s *syncTime) GetSleepTime() time.Duration {
+	return s.getSleepTime()
+}

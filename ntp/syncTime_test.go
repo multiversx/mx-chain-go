@@ -254,3 +254,20 @@ func TestGetHarmonicMean(t *testing.T) {
 	harmonicMean = st.GetHarmonicMean(clockOffsets)
 	assert.Equal(t, time.Duration(2), harmonicMean)
 }
+
+func TestGetSleepTime(t *testing.T) {
+	t.Parallel()
+
+	givenTime := time.Hour
+	st := ntp2.NewSyncTime(config.NTPConfig{}, givenTime, nil)
+	minSleepTime := time.Duration(float64(givenTime) - float64(givenTime)*0.2)
+	maxSleepTime := time.Duration(float64(givenTime) + float64(givenTime)*0.2)
+
+	fmt.Printf("given time = %d\nmin time = %d\nmax time = %d\n\n", givenTime, minSleepTime, maxSleepTime)
+
+	for i := 0; i < 1000; i++ {
+		sleepTime := st.GetSleepTime()
+		fmt.Printf("%d\n", sleepTime)
+		assert.True(t, sleepTime >= minSleepTime && sleepTime <= maxSleepTime)
+	}
+}

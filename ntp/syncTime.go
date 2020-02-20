@@ -3,6 +3,7 @@ package ntp
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -21,8 +22,13 @@ const numRequestsFromHost = 10
 // cuttingOutPercent [0, 1) represents the percent of received clock offsets to be removed from the edges (min and max)
 const cuttingOutPercent = 0.3
 
-// minResponsesPercent (0, 1] represents the minimum percent of responses, from all requests done, needed to set a new clock offset
+// minResponsesPercent (0, 1] represents the minimum percent of responses, from all requests done, needed to set a new
+// clock offset
 const minResponsesPercent = 0.25
+
+// maxOffsetPercent [0, 1) represents the maximum percent, from the initial sync period given, which could be added or
+// subtracted from it
+const maxOffsetPercent = 0.2
 
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
@@ -111,8 +117,15 @@ func NewSyncTime(
 func (s *syncTime) StartSync() {
 	for {
 		s.sync()
-		time.Sleep(s.syncPeriod)
+		time.Sleep(s.getSleepTime())
 	}
+}
+
+func (s *syncTime) getSleepTime() time.Duration {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	maxOffset := int64(float64(s.syncPeriod) * maxOffsetPercent)
+	offset := r.Int63n(maxOffset*2) - maxOffset
+	return s.syncPeriod + time.Duration(offset)
 }
 
 // sync method does the time synchronization and sets the harmonic mean offset difference between local time
