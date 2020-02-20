@@ -163,8 +163,8 @@ func (btm *BlockTrackerMock) CleanupHeadersBehindNonce(shardID uint32, selfNotar
 	}
 }
 
-// CleanupInvalidHeaders -
-func (btm *BlockTrackerMock) CleanupInvalidHeaders(header data.HeaderHandler) {
+// CleanupInvalidCrossHeaders -
+func (btm *BlockTrackerMock) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
 
 }
 

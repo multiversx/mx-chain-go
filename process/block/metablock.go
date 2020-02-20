@@ -990,7 +990,7 @@ func (mp *metaProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	if lastMetaBlock != nil && lastMetaBlock.IsStartOfEpochBlock() {
-		mp.blockTracker.CleanupInvalidHeaders(header)
+		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {

@@ -700,18 +700,18 @@ func (vs *validatorStatistics) display(s string) {
 	peerAcc, err := vs.GetPeerAccount([]byte(s))
 
 	if err != nil {
-		log.Debug("display peer acc", "error", err)
+		log.Trace("display peer acc", "error", err)
 		return
 	}
 
 	acc, ok := peerAcc.(*state.PeerAccount)
 
 	if !ok {
-		log.Debug("display", "error", "not a peeracc")
+		log.Trace("display", "error", "not a peeracc")
 		return
 	}
 
-	log.Debug("validator statistics",
+	log.Trace("validator statistics",
 		"pk", acc.BLSPublicKey,
 		"leader fail", acc.LeaderSuccessRate.NrFailure,
 		"leader success", acc.LeaderSuccessRate.NrSuccess,

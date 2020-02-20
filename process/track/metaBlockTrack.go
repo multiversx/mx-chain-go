@@ -120,17 +120,10 @@ func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*H
 	return selfMetaBlocksInfo
 }
 
-// CleanupInvalidHeaders cleans headers added to the block tracker that have become invalid after processing
+// CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing
 // For metachain some shard headers may become invalid if the attesting header for a start of epoch block changes
 // due to a rollback
-func (mbt *metaBlockTrack) CleanupInvalidHeaders(header data.HeaderHandler) {
-	if check.IfNil(header) {
-		return
-	}
-
-	metaNewEpoch := header.GetEpoch()
-	metaRoundAttestingEpoch := header.GetRound()
-
+func (mbt *metaBlockTrack) CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64) {
 	for shardID := uint32(0); shardID < mbt.shardCoordinator.NumberOfShards(); shardID++ {
 		shardHeader, _, err := mbt.crossNotarizer.GetLastNotarizedHeader(shardID)
 		if err != nil {
