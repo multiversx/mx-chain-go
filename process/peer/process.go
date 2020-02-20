@@ -328,15 +328,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vs.displayRatings()
-
 	return vs.peerAdapter.RootHash()
-}
-
-func (vs *validatorStatistics) displayRatings() {
-	for _, node := range vs.initialNodes {
-		log.Trace("ratings", "pk", node.Address, "tempRating", vs.getTempRating(node.PubKey))
-	}
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -416,6 +408,10 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 			return err
 		}
 		sw.Add(swInner)
+
+		for _, val := range consensusGroup {
+			vs.display(string(val.PubKey()))
+		}
 	}
 	return nil
 }
@@ -618,6 +614,8 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		if err != nil {
 			return err
 		}
+
+		vs.display(string(validatorList[i].PubKey()))
 	}
 
 	return nil
@@ -730,6 +728,32 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
+func (vs *validatorStatistics) display(validatorKey string) {
+	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
+
+	if err != nil {
+		log.Trace("display peer acc", "error", err)
+		return
+	}
+
+	acc, ok := peerAcc.(*state.PeerAccount)
+
+	if !ok {
+		log.Trace("display", "error", "not a peeracc")
+		return
+	}
+
+	log.Trace("validator statistics",
+		"pk", acc.BLSPublicKey,
+		"leader fail", acc.LeaderSuccessRate.NrFailure,
+		"leader success", acc.LeaderSuccessRate.NrSuccess,
+		"val fail", acc.ValidatorSuccessRate.NrFailure,
+		"val success", acc.ValidatorSuccessRate.NrSuccess,
+		"temp rating", acc.TempRating,
+		"rating", acc.Rating,
+	)
+}
+
 func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, epoch uint32) error {
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
@@ -776,6 +800,8 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 		if err != nil {
 			return err
 		}
+
+		vs.display(string(validator))
 	}
 
 	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))

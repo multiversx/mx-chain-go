@@ -775,6 +775,122 @@ func TestCleanupHeadersBehindNonce_ShouldCleanCrossNotarizedHeaders(t *testing.T
 	assert.Equal(t, 0, len(trackedHeadersForCrossShard))
 }
 
+func TestCleanupInvalidCrossHeaders_DoesntChangeAnythingIfNoInvalidHeaders(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+	startHeaderShard0 := metaArguments.StartHeaders[0]
+	startHeaderShard0Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard0)
+
+	hdr1Shard0 := &block.Header{
+		ShardId:      0,
+		Round:        1,
+		Nonce:        1,
+		PrevHash:     startHeaderShard0Hash,
+		PrevRandSeed: startHeaderShard0.GetRandSeed(),
+	}
+	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard0)
+
+	hdr2Shard0 := &block.Header{
+		ShardId:      0,
+		Round:        2,
+		Nonce:        2,
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1Shard0.GetRandSeed(),
+	}
+	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard0)
+
+	hdr3Shard0 := &block.Header{
+		ShardId:      0,
+		Round:        3,
+		Nonce:        3,
+		PrevHash:     hdr2Hash,
+		PrevRandSeed: hdr2Shard0.GetRandSeed(),
+	}
+	hdr3Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr3Shard0)
+
+	mbt.AddTrackedHeader(hdr1Shard0, hdr1Hash)
+	mbt.AddTrackedHeader(hdr2Shard0, hdr2Hash)
+	mbt.AddTrackedHeader(hdr3Shard0, hdr3Hash)
+
+	mbt.CleanupInvalidCrossHeaders(1, 3)
+
+	headers, _ := mbt.GetTrackedHeaders(0)
+
+	require.Equal(t, 3, len(headers))
+	assert.Equal(t, hdr1Shard0, headers[0])
+	assert.Equal(t, hdr2Shard0, headers[1])
+	assert.Equal(t, hdr3Shard0, headers[2])
+}
+
+func TestCleanupInvalidCrossHeaders_RemovesInvalidInvalidHeaders(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+	startHeaderShard0 := metaArguments.StartHeaders[0]
+	startHeaderShard0Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard0)
+
+	hdr1Shard0 := &block.Header{
+		Epoch:        0,
+		ShardId:      0,
+		Round:        1,
+		Nonce:        1,
+		PrevHash:     startHeaderShard0Hash,
+		PrevRandSeed: startHeaderShard0.GetRandSeed(),
+	}
+	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard0)
+
+	// should be last accepted round due to grace period
+	hdr2Shard0 := &block.Header{
+		Epoch:        0,
+		ShardId:      0,
+		Round:        4,
+		Nonce:        2,
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1Shard0.GetRandSeed(),
+	}
+	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard0)
+
+	// should be removed on cleanup
+	hdr3Shard0 := &block.Header{
+		Epoch:        0,
+		ShardId:      0,
+		Round:        6,
+		Nonce:        3,
+		PrevHash:     hdr2Hash,
+		PrevRandSeed: hdr2Shard0.GetRandSeed(),
+	}
+	hdr3Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr3Shard0)
+
+	mbt.AddTrackedHeader(hdr1Shard0, hdr1Hash)
+	mbt.AddTrackedHeader(hdr2Shard0, hdr2Hash)
+	mbt.AddTrackedHeader(hdr3Shard0, hdr3Hash)
+
+	mbt.CleanupInvalidCrossHeaders(1, 3)
+
+	headers, _ := mbt.GetTrackedHeaders(0)
+
+	require.Equal(t, 2, len(headers))
+	require.Equal(t, hdr1Shard0, headers[0])
+	require.Equal(t, hdr2Shard0, headers[1])
+}
+
 func TestCleanupTrackedHeadersBehindNonce_ShouldReturnWhenNonceIsZeroOrShardNotExist(t *testing.T) {
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
