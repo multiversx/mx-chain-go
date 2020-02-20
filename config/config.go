@@ -58,6 +58,7 @@ type NTPConfig struct {
 	Hosts               []string
 	Port                int
 	TimeoutMilliseconds int
+	SyncPeriodSeconds   int
 	Version             int
 }
 

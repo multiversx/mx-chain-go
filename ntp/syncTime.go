@@ -47,6 +47,7 @@ func NewNTPGoogleConfig() config.NTPConfig {
 		Port:                123,
 		Version:             0,
 		TimeoutMilliseconds: 100,
+		SyncPeriodSeconds:   3600,
 	}
 }
 
@@ -94,7 +95,6 @@ type syncTime struct {
 // callback, if desired. If set to nil, then the default queryNTP is used
 func NewSyncTime(
 	ntpConfig config.NTPConfig,
-	syncPeriod time.Duration,
 	customQueryFunc func(options NTPOptions, hostIndex int) (*ntp.Response, error),
 ) *syncTime {
 	queryFunc := customQueryFunc
@@ -104,7 +104,7 @@ func NewSyncTime(
 
 	s := syncTime{
 		clockOffset: 0,
-		syncPeriod:  syncPeriod,
+		syncPeriod:  time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
 		query:       queryFunc,
 		ntpOptions:  NewNTPOptions(ntpConfig),
 	}

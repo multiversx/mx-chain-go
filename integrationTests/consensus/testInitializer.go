@@ -374,7 +374,7 @@ func createConsensusOnlyNode(
 	singlesigner := &singlesig.SchnorrSigner{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), time.Hour, nil)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
 
 	rounder, err := round.NewRound(
