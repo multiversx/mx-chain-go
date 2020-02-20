@@ -128,6 +128,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
+	epochStartSubscriber := &EpochStartNotifierStub{}
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 
 	container := &ConsensusCoreMock{
@@ -145,6 +146,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		shardCoordinatorMock,
 		syncTimerMock,
 		validatorGroupSelector,
+		epochStartSubscriber,
 		antifloodHandler,
 	}
 
