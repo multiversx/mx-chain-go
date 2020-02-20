@@ -2,10 +2,8 @@ package sharding
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
@@ -108,11 +106,12 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard() map[uint32][]Validat
 // consensus group size and a randomness source
 // Steps:
 // 1. generate expanded eligible list by multiplying entries from shards' eligible list according to stake and rating -> TODO
-// 2. for each value in [0, consensusGroupSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % len(eligible list)
-// 3. if proposed index is already in the temp validator list, then proposedIndex++ (and then % len(eligible list) as to not
-//    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
-//    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
-// 4. the item at the checked index is appended in the temp validator list
+// 2. call the selection based consensus group provider which will build inside a sorted slice containing entries
+// which contain the start index in the expanded eligible list and the number of appearances for each validator which
+// is added to the validators group. Based on that slice, it will simulate a reslicing after each time a validator
+// is chosen. It has the same effect like removing all the appearances from the expanded eligible list (in order to avoid
+// choosing a validators twice), but has proven to be more efficient on smaller sets of data
+// 3. the returned slice will be saved into the temp validator list
 func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	randomness []byte,
 	round uint64,
@@ -136,19 +135,21 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return validators, nil
 	}
 
-	tempList := make([]Validator, 0)
 	consensusSize := ihgs.ConsensusGroupSize(shardId)
-	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
+	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
 
-	lenExpandedList := len(expandedList)
+	log.Debug("ComputeValidatorsGroup",
+		"randomness", randomness,
+		"consensus size", consensusSize,
+		"eligible list length", len(expandedList))
 
-	for startIdx := 0; startIdx < consensusSize; startIdx++ {
-		proposedIndex := ihgs.computeListIndex(startIdx, lenExpandedList, string(randomness))
-		checkedIndex := ihgs.checkIndex(proposedIndex, expandedList, tempList)
-		tempList = append(tempList, expandedList[checkedIndex])
+	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
+	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
+	if err != nil {
+		return nil, err
 	}
 
 	ihgs.consensusGroupCacher.Put(key, tempList)
@@ -159,8 +160,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
 	value, ok := ihgs.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, ok := value.([]Validator)
-		if ok {
+		consensusGroup, typeOk := value.([]Validator)
+		if typeOk {
 			return consensusGroup
 		}
 
@@ -299,41 +300,6 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(publicKeys []strin
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.nodesMap[shardId]
-}
-
-// computeListIndex computes a proposed index from expanded eligible list
-func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenList int, randomSource string) int {
-	buffCurrentIndex := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(currentIndex))
-
-	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
-
-	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
-	lenExpandedEligibleList := uint64(lenList)
-
-	computedListIndex := computedLargeIndex % lenExpandedEligibleList
-
-	return int(computedListIndex)
-}
-
-// checkIndex returns a checked index starting from a proposed index
-func (ihgs *indexHashedNodesCoordinator) checkIndex(
-	proposedIndex int,
-	eligibleList []Validator,
-	selectedList []Validator,
-) int {
-
-	for {
-		v := eligibleList[proposedIndex]
-
-		if ihgs.validatorIsInList(v, selectedList) {
-			proposedIndex++
-			proposedIndex %= len(eligibleList)
-			continue
-		}
-
-		return proposedIndex
-	}
 }
 
 // validatorIsInList returns true if a validator has been found in provided list
