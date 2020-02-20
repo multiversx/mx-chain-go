@@ -363,10 +363,11 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
 	economicsData, _ := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				CommunityAddress: "addr1",
-				BurnAddress:      "addr2",
+		&config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				TotalSupply:      "2000000000000000000000",
+				MinimumInflation: 0,
+				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage: 0.10,
@@ -379,8 +380,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "5",
+				GenesisNodePrice: "500",
+				UnBoundPeriod:    "5",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 500000,
@@ -871,12 +872,35 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ScQuery:     tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
+
+		argsEpochStartData := block.ArgsNewEpochStartData{
+			Marshalizer:       TestMarshalizer,
+			Hasher:            TestHasher,
+			Store:             tpn.Storage,
+			DataPool:          tpn.DataPool,
+			BlockTracker:      tpn.BlockTracker,
+			ShardCoordinator:  tpn.ShardCoordinator,
+			EpochStartTrigger: tpn.EpochStartTrigger,
+		}
+		epochStartDataCreator, _ := block.NewEpochStartData(argsEpochStartData)
+
+		argsEpochEconomics := economics.ArgsNewEpochEconomics{
+			Marshalizer:      TestMarshalizer,
+			Store:            tpn.Storage,
+			ShardCoordinator: tpn.ShardCoordinator,
+			NodesCoordinator: tpn.NodesCoordinator,
+			RewardsHandler:   tpn.EconomicsData,
+		}
+		epochEconomics, _ := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             tpn.SCQueryService,
 			SCToProtocol:             scToProtocol,
 			PeerChangesHandler:       scToProtocol,
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+			EpochEconomics:           epochEconomics,
+			EpochStartDataCreator:    epochStartDataCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1027,12 +1051,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
 
-	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, nil, nil
-	}
-	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil

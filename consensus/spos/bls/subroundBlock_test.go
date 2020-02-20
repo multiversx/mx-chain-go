@@ -288,8 +288,8 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	bpm := &mock.BlockProcessorMock{}
 	err := errors.New("error")
-	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.BodyHandler, error) {
-		return nil, err
+	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+		return header, nil, err
 	}
 	container.SetBlockProcessor(bpm)
 	r = sr.DoBlockJob()
@@ -673,8 +673,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock(blockChain, container)
 	_ = sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
-	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	header, body, _ := sr.CreateBlock(header)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -705,8 +704,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	})
 
 	header, _ := sr.CreateHeader()
-	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	header, body, _ := sr.CreateBlock(header)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -743,20 +741,19 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		},
 	}
 	bp := mock.InitBlockProcessorMock()
-	bp.ApplyBodyToHeaderCalled = func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		shardHeader, _ := header.(*block.Header)
 		shardHeader.MiniBlockHeaders = mbHeaders
 		shardHeader.RootHash = []byte{}
 
-		return body, nil
+		return shardHeader, &block.Body{}, nil
 	}
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlockWithBlockProcessor(bp, container)
 	container.SetBlockchain(&blockChainMock)
 
 	header, _ := sr.CreateHeader()
-	body, _ := sr.CreateBody(header)
-	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	header, body, _ := sr.CreateBlock(header)
 	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
 	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
 	_ = sr.SendBlockBody(body, marshalizedBody)
@@ -781,8 +778,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
 	bp := mock.InitBlockProcessorMock()
-	bp.ApplyBodyToHeaderCalled = func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-		return body, expectedErr
+	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, expectedErr
 	}
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlockWithBlockProcessor(bp, container)
@@ -790,9 +787,7 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 		Nonce: 1,
 	})
 	header, _ := sr.CreateHeader()
-	body, _ := sr.CreateBody(header)
-
-	_, err := sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	_, _, err := sr.CreateBlock(header)
 	assert.Equal(t, expectedErr, err)
 }
 

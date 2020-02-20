@@ -446,7 +446,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
-	if sp.core == nil || sp.core.Indexer() == nil {
+	if check.IfNil(sp.core) || check.IfNil(sp.core.Indexer()) {
 		return
 	}
 
@@ -578,19 +578,45 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	return nil
 }
 
-// CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
-// as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+// CreateBlock creates the final block and header for the current round
+func (sp *shardProcessor) CreateBlock(
+	initialHdr data.HeaderHandler,
+	haveTime func() bool,
+) (data.HeaderHandler, data.BodyHandler, error) {
+	if check.IfNil(initialHdr) {
+		return nil, nil, process.ErrNilBlockHeader
+	}
+	shardHdr, ok := initialHdr.(*block.Header)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
 	sp.createBlockStarted()
+	shardHdr.SetEpoch(sp.epochStartTrigger.Epoch())
+	sp.blockChainHook.SetCurrentHeader(shardHdr)
+
+	body, err := sp.createBlockBody(shardHdr, haveTime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err = sp.applyBodyToHeader(shardHdr, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return shardHdr, body, nil
+}
+
+// createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
+// as long as the transactions limit for the block has not been reached and there is still time to add transactions
+func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
 	sp.blockSizeThrottler.ComputeMaxItems()
 
-	initialHdrData.SetEpoch(sp.epochStartTrigger.Epoch())
-	sp.blockChainHook.SetCurrentHeader(initialHdrData)
-
 	log.Debug("started creating block body",
-		"epoch", initialHdrData.GetEpoch(),
-		"round", initialHdrData.GetRound(),
-		"nonce", initialHdrData.GetNonce(),
+		"epoch", shardHdr.GetEpoch(),
+		"round", shardHdr.GetRound(),
+		"nonce", shardHdr.GetNonce(),
 	)
 
 	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
@@ -598,7 +624,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		return nil, err
 	}
 
-	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
+	sp.requestHandler.SetEpoch(shardHdr.GetEpoch())
 
 	return miniBlocks, nil
 }
@@ -1589,25 +1615,20 @@ func (sp *shardProcessor) createMiniBlocks(
 	return miniBlocks, nil
 }
 
-// ApplyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+// applyBodyToHeader creates a miniblock header list given a block body
+func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
-	sw.Start("ApplyBodyToHeader")
+	sw.Start("applyBodyToHeader")
 	defer func() {
-		sw.Stop("ApplyBodyToHeader")
+		sw.Stop("applyBodyToHeader")
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
-
-	shardHeader, ok := hdr.(*block.Header)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
 
 	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
 	shardHeader.RootHash = sp.getRootHash()
 
 	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(hdr.GetRound())
+		go sp.checkAndRequestIfMetaHeadersMissing(shardHeader.GetRound())
 	}()
 
 	if check.IfNil(bodyHandler) {
@@ -1653,8 +1674,8 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
 
 	sp.blockSizeThrottler.Add(
-		hdr.GetRound(),
-		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
+		shardHeader.GetRound(),
+		core.MaxUint32(shardHeader.ItemsInBody(), shardHeader.ItemsInHeader()))
 
 	return newBody, nil
 }

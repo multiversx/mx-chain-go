@@ -83,6 +83,8 @@ type ShardData struct {
 // EpochStartShardData hold the last finalized headers hash and state root hash
 type EpochStartShardData struct {
 	ShardId                 uint32
+	Round                   uint64
+	Nonce                   uint64
 	HeaderHash              []byte
 	RootHash                []byte
 	FirstPendingMetaBlock   []byte
@@ -90,9 +92,19 @@ type EpochStartShardData struct {
 	PendingMiniBlockHeaders []ShardMiniBlockHeader
 }
 
+// Economics holds the block information for total supply and rewards
+type Economics struct {
+	TotalSupply            *big.Int
+	TotalToDistribute      *big.Int
+	TotalNewlyMinted       *big.Int
+	RewardsPerBlockPerNode *big.Int
+	NodePrice              *big.Int
+}
+
 // EpochStart holds the block information for end-of-epoch
 type EpochStart struct {
 	LastFinalizedHeaders []EpochStartShardData
+	Economics            Economics
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round

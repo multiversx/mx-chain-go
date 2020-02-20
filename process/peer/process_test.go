@@ -23,10 +23,11 @@ import (
 
 func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				CommunityAddress: "addr1",
-				BurnAddress:      "addr2",
+		&config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				TotalSupply:      "2000000000000000000000",
+				MinimumInflation: 0,
+				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage: 0.10,
@@ -39,8 +40,8 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "5",
+				GenesisNodePrice: "500",
+				UnBoundPeriod:    "5",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 5,
@@ -67,7 +68,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		AdrConv:             &mock.AddressConverterMock{},
 		PeerAdapter:         getAccountsMock(),
-		StakeValue:          economicsData.StakeValue(),
+		StakeValue:          economicsData.GenesisNodePrice(),
 		Rater:               createMockRater(),
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,

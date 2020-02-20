@@ -17,6 +17,7 @@ type indexHashedNodesCoordinator struct {
 	shardId                 uint32
 	hasher                  hashing.Hasher
 	nodesMap                map[uint32][]Validator
+	numTotalEligible        uint64
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
@@ -85,15 +86,17 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Va
 		return ErrSmallMetachainEligibleListSize
 	}
 
+	numTotalEligible := uint64(len(nodes[MetachainShardId]))
 	for shardId := uint32(0); shardId < ihgs.nbShards; shardId++ {
 		nbNodesShard := len(nodes[shardId])
 		if nbNodesShard < ihgs.shardConsensusGroupSize {
 			return ErrSmallShardEligibleListSize
 		}
+		numTotalEligible += uint64(nbNodesShard)
 	}
 
 	ihgs.nodesMap = nodes
-
+	ihgs.numTotalEligible = numTotalEligible
 	return nil
 }
 
@@ -313,12 +316,18 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	return false
 }
 
+// ConsensusGroupSize returns the consensus group size for a specific shard
 func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(shardId uint32) int {
 	if shardId == MetachainShardId {
 		return ihgs.metaConsensusGroupSize
 	}
 
 	return ihgs.shardConsensusGroupSize
+}
+
+// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
+func (ihgs *indexHashedNodesCoordinator) GetNumTotalEligible() uint64 {
+	return ihgs.numTotalEligible
 }
 
 // GetOwnPublicKey will return current node public key  for block sign
@@ -328,8 +337,5 @@ func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
-	if ihgs == nil {
-		return true
-	}
-	return false
+	return ihgs == nil
 }

@@ -2010,7 +2010,7 @@ func newMetaBlockProcessor(
 	state *State,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
-	economics *economics.EconomicsData,
+	economicsData *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
@@ -2029,7 +2029,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData)
 	if err != nil {
 		return nil, err
 	}
@@ -2071,7 +2071,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics)
+	gasHandler, err := preprocess.NewGasComputation(economicsData)
 	if err != nil {
 		return nil, err
 	}
@@ -2092,7 +2092,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		txFeeHandler,
-		economics,
+		economicsData,
 		txTypeHandler,
 		gasHandler,
 	)
@@ -2106,13 +2106,13 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
-		economics,
+		economicsData,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
+	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economicsData, shardCoordinator, gasHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -2127,7 +2127,7 @@ func newMetaBlockProcessor(
 		requestHandler,
 		transactionProcessor,
 		scProcessor,
-		economics,
+		economicsData,
 		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
@@ -2156,7 +2156,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}
@@ -2172,6 +2172,32 @@ func newMetaBlockProcessor(
 		ScQuery:     scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochStartData := block.ArgsNewEpochStartData{
+		Marshalizer:       core.Marshalizer,
+		Hasher:            core.Hasher,
+		Store:             data.Store,
+		DataPool:          data.Datapool,
+		BlockTracker:      blockTracker,
+		ShardCoordinator:  shardCoordinator,
+		EpochStartTrigger: epochStartTrigger,
+	}
+	epochStartDataCreator, err := block.NewEpochStartData(argsEpochStartData)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochEconomics := economics.ArgsNewEpochEconomics{
+		Marshalizer:      core.Marshalizer,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: nodesCoordinator,
+		RewardsHandler:   economicsData,
+	}
+	epochEconomics, err := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
 		return nil, err
 	}
@@ -2205,6 +2231,8 @@ func newMetaBlockProcessor(
 		SCToProtocol:             smartContractToProtocol,
 		PeerChangesHandler:       smartContractToProtocol,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
+		EpochStartDataCreator:    epochStartDataCreator,
+		EpochEconomics:           epochEconomics,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
@@ -2241,7 +2269,7 @@ func newValidatorStatisticsProcessor(
 		DataPool:            peerDataPool,
 		StorageService:      storageService,
 		Marshalizer:         processComponents.core.Marshalizer,
-		StakeValue:          processComponents.economicsData.StakeValue(),
+		StakeValue:          processComponents.economicsData.GenesisNodePrice(),
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,
