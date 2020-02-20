@@ -81,20 +81,20 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		return nil, process.ErrNotEpochStartBlock
 	}
 
-	noncesPerShardPrevEpoch, prevEpochStart, err := r.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
 	if err != nil {
 		return nil, err
 	}
 	prevEpochEconomics := prevEpochStart.EpochStart.Economics
 
-	noncesPerShardCurrEpoch, err := r.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
+	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
 	if err != nil {
 		return nil, err
 	}
 
 	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
-	maxBlocksInEpoch := roundsPassedInEpoch * uint64(r.shardCoordinator.NumberOfShards()+1)
-	totalNumBlocksInEpoch := r.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
+	maxBlocksInEpoch := roundsPassedInEpoch * uint64(e.shardCoordinator.NumberOfShards()+1)
+	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate, err := e.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
 	if err != nil {
@@ -144,8 +144,8 @@ func (e *economics) computeRewardsPerBlock(
 ) *big.Int {
 
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
-	roundsPerDay := numberOfSecondsInDay / uint64(r.roundTime.TimeDuration().Seconds())
-	maxBlocksInADay := roundsPerDay * uint64(r.shardCoordinator.NumberOfShards()+1)
+	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	maxBlocksInADay := roundsPerDay * uint64(e.shardCoordinator.NumberOfShards()+1)
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 

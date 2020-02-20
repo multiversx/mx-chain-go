@@ -891,6 +891,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ShardCoordinator: tpn.ShardCoordinator,
 			NodesCoordinator: tpn.NodesCoordinator,
 			RewardsHandler:   tpn.EconomicsData,
+			RoundTime:        tpn.Rounder,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1297,7 +1298,7 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 }
 
 func (tpn *TestProcessorNode) initRounder() {
-	tpn.Rounder = &mock.RounderMock{}
+	tpn.Rounder = &mock.RounderMock{TimeDurationField: 5 * time.Second}
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {

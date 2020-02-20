@@ -2197,6 +2197,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
 		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

@@ -311,7 +311,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	header *block.MetaBlock,
 	body block.Body,
 ) error {
-	err := mp.epochStartCreator.VerifyEpochStartDataForMetablock(header)
+	err := mp.epochStartDataCreator.VerifyEpochStartDataForMetablock(header)
 	if err != nil {
 		return err
 	}
