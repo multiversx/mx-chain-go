@@ -13,12 +13,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const numberOfDaysInYear = 365.0
+const numberOfSecondsInDay = 86400
+
 type rewardsPerBlock struct {
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
 	rewardsHandler   process.RewardsHandler
+	roundTime        process.RoundTimeDurationHandler
 }
 
 // ArgsNewEpochEconomics
@@ -28,6 +32,7 @@ type ArgsNewEpochEconomics struct {
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
 	RewardsHandler   process.RewardsHandler
+	RoundTime        process.RoundTimeDurationHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -47,6 +52,9 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*rewardsPerB
 	if check.IfNil(args.RewardsHandler) {
 		return nil, process.ErrNilRewardsHandler
 	}
+	if check.IfNil(args.RoundTime) {
+		return nil, process.ErrNilRounder
+	}
 
 	r := &rewardsPerBlock{
 		marshalizer:      args.Marshalizer,
@@ -54,6 +62,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*rewardsPerB
 		shardCoordinator: args.ShardCoordinator,
 		nodesCoordinator: args.NodesCoordinator,
 		rewardsHandler:   args.RewardsHandler,
+		roundTime:        args.RoundTime,
 	}
 	return r, nil
 }
@@ -72,20 +81,20 @@ func (r *rewardsPerBlock) ComputeEndOfEpochEconomics(
 		return nil, process.ErrNotEpochStartBlock
 	}
 
-	noncePerShardPrevEpoch, prevEpochStart, err := r.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := r.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
 	if err != nil {
 		return nil, err
 	}
 	prevEpochEconomics := prevEpochStart.EpochStart.Economics
 
-	noncePerShardCurrEpoch, err := r.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
+	noncesPerShardCurrEpoch, err := r.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
 	if err != nil {
 		return nil, err
 	}
 
 	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
-	maxBlocksInEpoch := roundsPassedInEpoch * uint64(r.shardCoordinator.NumberOfShards())
-	totalNumBlocksInEpoch := r.computeNumOfTotalCreatedBlocks(noncePerShardPrevEpoch, noncePerShardCurrEpoch)
+	maxBlocksInEpoch := roundsPassedInEpoch * uint64(r.shardCoordinator.NumberOfShards()+1)
+	totalNumBlocksInEpoch := r.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate, err := r.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
 	if err != nil {
@@ -127,17 +136,21 @@ func (r *rewardsPerBlock) computeInflationRate(_ *big.Int, _ *big.Int) (float64,
 	return r.rewardsHandler.MaxInflationRate(), nil
 }
 
-const numberOfDaysInYear = 365.0
-
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch
 func (r *rewardsPerBlock) computeRewardsPerBlock(
 	prevTotalSupply *big.Int,
 	maxBlocksInEpoch uint64,
 	inflationRate float64,
 ) *big.Int {
+
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
+	roundsPerDay := numberOfSecondsInDay / uint64(r.roundTime.TimeDuration().Seconds())
+	maxBlocksInADay := roundsPerDay * uint64(r.shardCoordinator.NumberOfShards()+1)
+
+	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
+
 	rewardsPerBlock := big.NewInt(0).Div(prevTotalSupply, big.NewInt(0).SetUint64(maxBlocksInEpoch))
-	rewardsPerBlock = core.GetPercentageOfValue(rewardsPerBlock, inflationRatePerDay)
+	rewardsPerBlock = core.GetPercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
 
 	return rewardsPerBlock
 }
