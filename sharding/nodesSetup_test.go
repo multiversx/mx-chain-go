@@ -127,8 +127,6 @@ func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 	}
 
 	return ns
-
-	return ns
 }
 
 func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
