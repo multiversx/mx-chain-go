@@ -1581,6 +1581,7 @@ func createInMemoryStoreBlkc(
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
@@ -2225,6 +2226,21 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
+	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
+		ShardCoordinator: shardCoordinator,
+		AddrConverter:    state.AddressConverter,
+		RewardsStorage:   rewardsStorage,
+		MiniBlockStorage: miniBlockStorage,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+	}
+	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2255,6 +2271,7 @@ func newMetaBlockProcessor(
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		EpochStartDataCreator:    epochStartDataCreator,
 		EpochEconomics:           epochEconomics,
+		EpochRewardsCreator:      epochRewards,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

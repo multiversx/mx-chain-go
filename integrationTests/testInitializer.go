@@ -194,6 +194,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 

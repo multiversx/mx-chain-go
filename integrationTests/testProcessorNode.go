@@ -900,6 +900,18 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
+		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
+		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+		argsEpochRewards := metachain.ArgsNewRewardsCreator{
+			ShardCoordinator: tpn.ShardCoordinator,
+			AddrConverter:    TestAddressConverter,
+			RewardsStorage:   rewardsStorage,
+			MiniBlockStorage: miniBlockStorage,
+			Hasher:           TestHasher,
+			Marshalizer:      TestMarshalizer,
+		}
+		_, _ = metachain.NewEpochStartRewardsCreator(argsEpochRewards)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             tpn.SCQueryService,
@@ -907,6 +919,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:           epochEconomics,
 			EpochStartDataCreator:    epochStartDataCreator,
+			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

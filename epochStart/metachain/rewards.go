@@ -102,6 +102,7 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 
 	miniBlocks := make(block.Body, r.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = sharding.MetachainShardId
 		miniBlocks[i].ReceiverShardID = i
 		miniBlocks[i].Type = block.RewardsBlock

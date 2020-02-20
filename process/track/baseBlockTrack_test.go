@@ -66,6 +66,7 @@ func createGenesisMetaBlock() *block.MetaBlock {
 func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateStorageUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateStorageUnit())

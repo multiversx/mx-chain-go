@@ -152,6 +152,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
 			EpochEconomics:           &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
