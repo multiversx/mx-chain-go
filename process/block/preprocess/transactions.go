@@ -712,6 +712,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 
+	num_isTxAlreadyProcessed := 0
+	num_isBadTx := 0
+
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -722,9 +725,11 @@ func (txs *transactions) createAndProcessMiniBlock(
 		txHash := orderedTxHashes[index]
 
 		if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
+			num_isTxAlreadyProcessed++
 			continue
 		}
 		if txs.isBadTx(txHash) {
+			num_isBadTx++
 			continue
 		}
 
@@ -740,6 +745,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 		if err != nil {
+			log.Debug("No! gas consumed.")
 			continue
 		}
 
@@ -752,7 +758,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 		)
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			log.Trace("bad tx",
+			log.Debug("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
 			)
@@ -813,6 +819,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 			"txs ordered", len(orderedTxs),
 			"txs added", len(miniBlock.TxHashes))
 	}
+
+	log.Debug("COUNTS", "num_isTxAlreadyProcessed", num_isTxAlreadyProcessed)
+	log.Debug("COUNTS", "num_isBadTx", num_isBadTx)
 
 	return miniBlock, nil
 }
