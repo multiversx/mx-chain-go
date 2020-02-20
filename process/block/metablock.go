@@ -982,7 +982,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
-	if lastMetaBlock != nil && lastMetaBlock.IsStartOfEpochBlock() {
+	if check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 

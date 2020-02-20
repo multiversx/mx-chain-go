@@ -328,12 +328,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vs.displayRatings()
-
 	return vs.peerAdapter.RootHash()
-}
-
-func (vs *validatorStatistics) displayRatings() {
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -733,8 +728,8 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
-func (vs *validatorStatistics) display(s string) {
-	peerAcc, err := vs.GetPeerAccount([]byte(s))
+func (vs *validatorStatistics) display(validatorKey string) {
+	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
 
 	if err != nil {
 		log.Trace("display peer acc", "error", err)
