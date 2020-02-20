@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -50,15 +52,41 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, selectionHashes [][]byte, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
 	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
-
+	go dumpSelection(selection, selectionHashes)
 	go cache.diagnose()
+}
+
+func dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte) {
+	if len(selection) == 0 {
+		return
+	}
+
+	log.Trace("dumpSelection")
+
+	sender := selection[0].GetSndAddress()
+	senderTxs := make([]uint64, 0)
+
+	for i := 0; i < len(selection); i++ {
+		tx := selection[i]
+		currentSender := tx.GetSndAddress()
+		currentNonce := tx.GetNonce()
+
+		if !bytes.Equal(sender, currentSender) {
+			log.Trace("sender", "addr", sender, "txs", senderTxs)
+
+			sender = currentSender
+			senderTxs = make([]uint64, 0)
+		}
+
+		senderTxs = append(senderTxs, currentNonce)
+	}
 }
 
 func (cache *TxCache) displaySendersHistogram() {

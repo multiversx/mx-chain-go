@@ -106,7 +106,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 	}
 
 	result = result[:resultFillIndex]
-	cache.monitorSelectionEnd(result, stopWatch)
+	cache.monitorSelectionEnd(result, resultHashes, stopWatch)
 	return result, resultHashes
 }
 
