@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -270,7 +271,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	vs.missedBlocksCounters.reset()
 	vs.mutMissedBlocksCounters.Unlock()
 
+	startTime := time.Now()
 	err := vs.processPeerChanges(header)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to processPeerChanges",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -281,22 +287,37 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
+	startTime = time.Now()
 	err = vs.checkForMissedBlocks(
 		header.GetRound(),
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
 	)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to checkForMissedBlocks",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}
 
+	startTime = time.Now()
 	err = vs.updateShardDataPeerState(header)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to updateShardDataPeerState",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}
 
+	startTime = time.Now()
 	err = vs.updateMissedBlocksCounters()
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to updateMissedBlocksCounters",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +331,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
+	startTime = time.Now()
 	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap())
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to updateValidatorInfo",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}

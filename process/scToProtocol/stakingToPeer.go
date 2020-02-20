@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
@@ -128,11 +132,19 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	stp.peerChanges = make(map[string]block.PeerData)
 	stp.mutPeerChanges.Unlock()
 
+	startTime := time.Now()
 	affectedStates, err := stp.getAllModifiedStates(body)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to getAllModifiedStates",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
 
+	log.Debug("UpdateProtocol", "affectedStates", len(affectedStates))
+
+	startTime = time.Now()
 	for _, key := range affectedStates {
 		blsPubKey := []byte(key)
 		var peerAcc *state.PeerAccount
@@ -193,6 +205,10 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 	}
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to iterates affectedStates",
+		"time [s]", elapsedTime,
+	)
 
 	return nil
 }

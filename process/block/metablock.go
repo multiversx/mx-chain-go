@@ -298,12 +298,22 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	startTime := time.Now()
 	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to UpdateProtocol",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
 
+	startTime = time.Now()
 	err = mp.peerChanges.VerifyPeerChanges(header.PeerInfo)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to VerifyPeerChanges",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -313,7 +323,12 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	startTime = time.Now()
 	err = mp.verifyValidatorStatisticsRootHash(header)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to verifyValidatorStatisticsRootHash",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
