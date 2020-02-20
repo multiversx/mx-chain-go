@@ -60,26 +60,27 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:              arguments.Accounts,
-		blockSizeThrottler:    blockSizeThrottler,
-		forkDetector:          arguments.ForkDetector,
-		hasher:                arguments.Hasher,
-		marshalizer:           arguments.Marshalizer,
-		store:                 arguments.Store,
-		shardCoordinator:      arguments.ShardCoordinator,
-		nodesCoordinator:      arguments.NodesCoordinator,
-		specialAddressHandler: arguments.SpecialAddressHandler,
-		uint64Converter:       arguments.Uint64Converter,
-		requestHandler:        arguments.RequestHandler,
-		appStatusHandler:      statusHandler.NewNilStatusHandler(),
-		blockChainHook:        arguments.BlockChainHook,
-		txCoordinator:         arguments.TxCoordinator,
-		rounder:               arguments.Rounder,
-		epochStartTrigger:     arguments.EpochStartTrigger,
-		headerValidator:       arguments.HeaderValidator,
-		bootStorer:            arguments.BootStorer,
-		blockTracker:          arguments.BlockTracker,
-		dataPool:              arguments.DataPool,
+		accounts:                     arguments.Accounts,
+		blockSizeThrottler:           blockSizeThrottler,
+		forkDetector:                 arguments.ForkDetector,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		specialAddressHandler:        arguments.SpecialAddressHandler,
+		uint64Converter:              arguments.Uint64Converter,
+		requestHandler:               arguments.RequestHandler,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		blockChainHook:               arguments.BlockChainHook,
+		txCoordinator:                arguments.TxCoordinator,
+		rounder:                      arguments.Rounder,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		headerValidator:              arguments.HeaderValidator,
+		bootStorer:                   arguments.BootStorer,
+		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
+		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -759,6 +760,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.updateStateStorage(selfNotarizedHeaders)
+	sp.updatePeerStateStorage(selfNotarizedHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -894,6 +896,43 @@ func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	if finalHeader.GetNonce()%uint64(sp.stateCheckpointModulus) == 0 {
 		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+	}
+}
+
+func (sp *shardProcessor) updatePeerStateStorage(finalHeaders []data.HeaderHandler) {
+	if !sp.validatorStatisticsProcessor.IsPruningEnabled() {
+		return
+	}
+
+	for i := range finalHeaders {
+		if finalHeaders[i].IsStartOfEpochBlock() {
+			log.Debug("trie snapshot", "validator stats rootHash", finalHeaders[i].GetValidatorStatsRootHash())
+			sp.validatorStatisticsProcessor.SnapshotState(finalHeaders[i].GetValidatorStatsRootHash())
+			return
+		}
+
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
+		if prevValidatorStatsRootHash == nil {
+			continue
+		}
+
+		validatorStatsRootHash := finalHeaders[i].GetValidatorStatsRootHash()
+		if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
+			continue
+		}
+
+		errNotCritical = sp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+
+		sp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash)
 	}
 }
 
