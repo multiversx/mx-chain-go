@@ -38,6 +38,7 @@ func NewShardResolversContainerFactory(
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               args.DataPacker,
 		triesContainer:           args.TriesContainer,
+		antifloodHandler:         args.AntifloodHandler,
 	}
 
 	err := base.checkParams()
@@ -142,6 +143,8 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		hdrNonceStore,
 		srcf.marshalizer,
 		srcf.uint64ByteSliceConverter,
+		srcf.shardCoordinator,
+		srcf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -189,6 +192,7 @@ func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolvers() e
 		srcf.dataPools.MiniBlocks(),
 		peerBlockBodyStorer,
 		srcf.marshalizer,
+		srcf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -243,6 +247,8 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		hdrNonceStore,
 		srcf.marshalizer,
 		srcf.uint64ByteSliceConverter,
+		srcf.shardCoordinator,
+		srcf.antifloodHandler,
 	)
 	if err != nil {
 		return err

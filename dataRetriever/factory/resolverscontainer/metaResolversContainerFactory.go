@@ -38,6 +38,7 @@ func NewMetaResolversContainerFactory(
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               args.DataPacker,
 		triesContainer:           args.TriesContainer,
+		antifloodHandler:         args.AntifloodHandler,
 	}
 
 	err := base.checkParams()
@@ -148,6 +149,8 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic strin
 		hdrNonceStore,
 		mrcf.marshalizer,
 		mrcf.uint64ByteSliceConverter,
+		mrcf.shardCoordinator,
+		mrcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -200,6 +203,8 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(identif
 		hdrNonceStore,
 		mrcf.marshalizer,
 		mrcf.uint64ByteSliceConverter,
+		mrcf.shardCoordinator,
+		mrcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

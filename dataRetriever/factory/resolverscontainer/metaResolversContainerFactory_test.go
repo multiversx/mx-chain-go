@@ -266,5 +266,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		TriesContainer:           createTriesHolderForMeta(),
 		SizeCheckDelta:           0,
+		AntifloodHandler:         &mock.P2PAntifloodHandlerStub{},
 	}
 }

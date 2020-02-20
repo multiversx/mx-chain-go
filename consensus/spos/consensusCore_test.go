@@ -27,6 +27,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		NodesCoordinator:     consensusCoreMock.NodesCoordinator(),
 		SyncTimer:            consensusCoreMock.SyncTimer(),
 		EpochStartSubscriber: consensusCoreMock.EpochStartSubscriber(),
+		AntifloodHandler:     consensusCoreMock.GetAntiFloodHandler(),
 	}
 	return args
 }
@@ -228,24 +229,11 @@ func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
 func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusCoreMock := mock.InitConsensusCore()
+	args := createDefaultConsensusCoreArgs()
+	args.AntifloodHandler = nil
 
 	consensusCore, err := spos.NewConsensusCore(
-		consensusCoreMock.Blockchain(),
-		consensusCoreMock.BlockProcessor(),
-		consensusCoreMock.BootStrapper(),
-		consensusCoreMock.BroadcastMessenger(),
-		consensusCoreMock.Chronology(),
-		consensusCoreMock.Hasher(),
-		consensusCoreMock.Marshalizer(),
-		consensusCoreMock.PrivateKey(),
-		consensusCoreMock.SingleSigner(),
-		consensusCoreMock.MultiSigner(),
-		consensusCoreMock.Rounder(),
-		consensusCoreMock.ShardCoordinator(),
-		consensusCoreMock.NodesCoordinator(),
-		consensusCoreMock.SyncTimer(),
-		nil,
+		args,
 	)
 
 	assert.Nil(t, consensusCore)

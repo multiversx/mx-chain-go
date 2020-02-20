@@ -26,6 +26,7 @@ type baseResolversContainerFactory struct {
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
 	triesContainer           state.TriesHolder
+	antifloodHandler         dataRetriever.P2PAntifloodHandler
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -52,6 +53,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.triesContainer) {
 		return dataRetriever.ErrNilTrieDataGetter
+	}
+	if check.IfNil(brcf.antifloodHandler) {
+		return dataRetriever.ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -130,6 +134,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		txStorer,
 		brcf.marshalizer,
 		brcf.dataPacker,
+		brcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -188,6 +193,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		brcf.dataPools.MiniBlocks(),
 		miniBlocksStorer,
 		brcf.marshalizer,
+		brcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

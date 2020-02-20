@@ -511,5 +511,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		SizeCheckDelta:         0,
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
+		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 	}
 }

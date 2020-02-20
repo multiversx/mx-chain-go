@@ -41,6 +41,7 @@ func NewShardInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -110,6 +111,7 @@ func NewShardInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		blackList:              args.BlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:       args.AntifloodHandler,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

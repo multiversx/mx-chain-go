@@ -372,5 +372,6 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		TriesContainer:           createTriesHolderForShard(),
 		SizeCheckDelta:           0,
+		AntifloodHandler:         &mock.P2PAntifloodHandlerStub{},
 	}
 }

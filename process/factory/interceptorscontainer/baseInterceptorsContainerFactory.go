@@ -35,6 +35,7 @@ type baseInterceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
+	antifloodHandler       process.P2PAntifloodHandler
 }
 
 func checkBaseParams(
@@ -48,6 +49,7 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	antifloodHandler process.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -78,6 +80,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(antifloodHandler) {
+		return process.ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -158,6 +163,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -192,6 +198,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -261,6 +268,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -300,6 +308,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		hdrFactory,
 		hdrProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -369,6 +378,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		txFactory,
 		txBlockBodyProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -408,6 +418,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		hdrFactory,
 		hdrProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -437,6 +448,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		trieNodesFactory,
 		trieNodesProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

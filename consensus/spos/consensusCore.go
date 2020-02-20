@@ -30,7 +30,7 @@ type ConsensusCore struct {
 	nodesCoordinator     sharding.NodesCoordinator
 	syncTimer            ntp.SyncTimer
 	epochStartSubscriber epochStart.EpochStartSubscriber
-	antifloodHandler   consensus.P2PAntifloodHandler
+	antifloodHandler     consensus.P2PAntifloodHandler
 }
 type ConsensusCoreArgs struct {
 	BlockChain           data.ChainHandler
@@ -88,8 +88,8 @@ func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cc.blockChain
 }
 
-// GetAntiFloodPreventer will return the antiflood handler which will be used in subrounds
-func (cc *ConsensusCore) GetAntiFloodPreventer() consensus.P2PAntifloodHandler {
+// GetAntiFloodHandler will return the antiflood handler which will be used in subrounds
+func (cc *ConsensusCore) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
 	return cc.antifloodHandler
 }
 

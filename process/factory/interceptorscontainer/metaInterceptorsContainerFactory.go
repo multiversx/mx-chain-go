@@ -40,6 +40,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -108,6 +109,7 @@ func NewMetaInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
+		antifloodHandler:       args.AntifloodHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -189,6 +191,7 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() er
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
+		micf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -252,6 +255,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
+		micf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

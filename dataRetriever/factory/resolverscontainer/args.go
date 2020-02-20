@@ -19,4 +19,5 @@ type FactoryArgs struct {
 	DataPacker               dataRetriever.DataPacker
 	TriesContainer           state.TriesHolder
 	SizeCheckDelta           uint32
+	AntifloodHandler         dataRetriever.P2PAntifloodHandler
 }

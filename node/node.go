@@ -327,6 +327,7 @@ func (n *Node) StartConsensus(epoch uint32) error {
 		NodesCoordinator:     n.nodesCoordinator,
 		SyncTimer:            n.syncTimer,
 		EpochStartSubscriber: n.epochStartSubscriber,
+		AntifloodHandler:     n.antifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

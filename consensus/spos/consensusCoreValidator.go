@@ -49,7 +49,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.SingleSigner() == nil || container.SingleSigner().IsInterfaceNil() {
 		return ErrNilBlsSingleSigner
 	}
-	if check.IfNil(container.GetAntiFloodPreventer()) {
+	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
 

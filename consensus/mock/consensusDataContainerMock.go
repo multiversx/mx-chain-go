@@ -32,7 +32,7 @@ type ConsensusCoreMock struct {
 	antifloodHandler       consensus.P2PAntifloodHandler
 }
 
-func (ccm *ConsensusCoreMock) GetAntiFloodPreventer() consensus.P2PAntifloodHandler {
+func (ccm *ConsensusCoreMock) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
 	return ccm.antifloodHandler
 }
 
