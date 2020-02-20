@@ -26,6 +26,10 @@ import (
 )
 
 func TestScDeployAndChangeScOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
@@ -124,6 +128,10 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 }
 
 func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
