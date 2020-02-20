@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -111,7 +112,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = createGenesisMetaBlock()
 
 	return genesisBlocks
 }
@@ -1805,6 +1806,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(highestNonceHdrs))
 	assert.Nil(t, err)
 
@@ -2502,7 +2504,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader()
+	headerHandler := mp.CreateNewHeader(round)
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)
