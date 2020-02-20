@@ -590,6 +590,7 @@ func (mp *metaProcessor) epochStartHeaderDataCreation(metaHdr *block.MetaBlock) 
 	sw.Start("createEpochStartForMetablock")
 	defer func() {
 		sw.Stop("createEpochStartForMetablock")
+		log.Debug("epochStartHeaderDataCreation", sw.GetMeasurements()...)
 	}()
 
 	epochStart, err := mp.epochStartDataCreator.CreateEpochStartData()
