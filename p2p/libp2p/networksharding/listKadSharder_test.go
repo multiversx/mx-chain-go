@@ -196,13 +196,24 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 
 //------- computeDistance
 
-func TestComputeDistance(t *testing.T) {
+func TestComputeDistanceByCountingBits(t *testing.T) {
 	t.Parallel()
 
 	//compute will be done on hashes. Impossible to predict the outcome in this test
-	assert.Equal(t, uint64(0), computeDistance("", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistance("a", "a").Uint64())
-	assert.Equal(t, uint64(139), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
-	assert.Equal(t, uint64(130), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
-	assert.Equal(t, uint64(117), computeDistance(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistanceByCountingBits("a", "a").Uint64())
+	assert.Equal(t, uint64(139), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(130), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(117), computeDistanceByCountingBits(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+}
+
+func TestComputeDistanceLog2Based(t *testing.T) {
+	t.Parallel()
+
+	//compute will be done on hashes. Impossible to predict the outcome in this test
+	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistanceLog2Based("a", "a").Uint64())
+	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(250), computeDistanceLog2Based(peer.ID([]byte{254}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(256), computeDistanceLog2Based(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }

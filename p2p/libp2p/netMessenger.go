@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p"
@@ -62,6 +63,7 @@ type networkMessenger struct {
 	ip                  *identityProvider
 	targetConnCount     int
 	peerShardResolver   p2p.PeerShardResolver
+	connsDisconnsMetric *metrics.ConnsDisconnsMetric
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -153,14 +155,16 @@ func createMessenger(
 	}
 
 	netMes := networkMessenger{
-		ctxProvider:       lctx,
-		pb:                pb,
-		topics:            make(map[string]p2p.MessageProcessor),
-		outgoingPLB:       outgoingPLB,
-		peerDiscoverer:    peerDiscoverer,
-		targetConnCount:   targetConnCount,
-		peerShardResolver: &unknownPeerShardResolver{},
+		ctxProvider:         lctx,
+		pb:                  pb,
+		topics:              make(map[string]p2p.MessageProcessor),
+		outgoingPLB:         outgoingPLB,
+		peerDiscoverer:      peerDiscoverer,
+		targetConnCount:     targetConnCount,
+		peerShardResolver:   &unknownPeerShardResolver{},
+		connsDisconnsMetric: metrics.NewConnsDisconnsMetric(),
 	}
+	lctx.Host().Network().Notify(netMes.connsDisconnsMetric)
 
 	err = netMes.createConnectionMonitor()
 	if err != nil {
@@ -200,6 +204,9 @@ func createMessenger(
 		for {
 			time.Sleep(durationBetweenPeersPrints)
 
+			conns := netMes.connsDisconnsMetric.ResetNumConnections()
+			disconns := netMes.connsDisconnsMetric.ResetNumDisconnections()
+
 			peersInfo := netMes.GetConnectedPeersInfo()
 			log.Debug("network connection status",
 				"known peers", len(netMes.Peers()),
@@ -207,6 +214,14 @@ func createMessenger(
 				"intra shard", len(peersInfo.IntraShardPeers),
 				"cross shard", len(peersInfo.CrossShardPeers),
 				"unknown", len(peersInfo.UnknownPeers),
+			)
+
+			connsPerSec := int64(conns) / int64(durationBetweenPeersPrints/time.Second)
+			disconnsPerSec := int64(disconns) / int64(durationBetweenPeersPrints/time.Second)
+
+			log.Debug("network connection metrics",
+				"connections/s", connsPerSec,
+				"disconnections/s", disconnsPerSec,
 			)
 		}
 	}()
