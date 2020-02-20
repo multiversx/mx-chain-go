@@ -80,6 +80,15 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
+	err = mrcf.generateRewardsResolvers(
+		factory.RewardsTransactionTopic,
+		dataRetriever.RewardTransactionUnit,
+		mrcf.dataPools.RewardTransactions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = mrcf.generateMiniBlocksResolvers()
 	if err != nil {
 		return nil, err
@@ -257,6 +266,34 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	return mrcf.container.AddMultiple(keys, resolversSlice)
+}
+
+func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) error {
+
+	shardC := mrcf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierTx := topic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+		resolver, err := mrcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+		if err != nil {
+			return err
+		}
+
+		resolverSlice[idx] = resolver
+		keys[idx] = identifierTx
+	}
+
+	return mrcf.container.AddMultiple(keys, resolverSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
