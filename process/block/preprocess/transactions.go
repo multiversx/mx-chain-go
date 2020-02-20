@@ -543,6 +543,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	var err error
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
+	if txs.blockType == block.InvalidBlock {
+		return miniBlocks, nil
+	}
+
 	timeBefore := time.Now()
 	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
 	timeAfter := time.Now()
@@ -589,6 +593,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		newMBAdded = false
 		for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
 			if !haveTime() {
+				log.Debug("time is out in CreateAndProcessMiniBlocks")
 				break
 			}
 
@@ -601,6 +606,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 			//miniblocks given by the last metablock notarized instead of pending miniblocks given by the last metablock
 			//received in block tracker (the current state of all shards)
 			if txs.blockTracker.IsShardStuck(shardID) {
+				log.Debug("shard is stuck", "shard", shardID)
 				continue
 			}
 
@@ -714,9 +720,16 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 	num_isTxAlreadyProcessed := 0
 	num_isBadTx := 0
+	num_badTxs := 0
+	num_sndAddressToSkip := 0
+
+	sndAddressToSkip := []byte("no skip")
 
 	for index := range orderedTxs {
 		if !haveTime() {
+			log.Debug("time is out in createAndProcessMiniBlock",
+				"sender shard", senderShardId,
+				"receiver shard", receiverShardId)
 			break
 		}
 
@@ -732,6 +745,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 			num_isBadTx++
 			continue
 		}
+		if bytes.Equal(sndAddressToSkip, tx.GetSndAddress()) {
+			num_sndAddressToSkip++
+			continue
+		}
 
 		snapshot := txs.accounts.JournalLen()
 
@@ -745,7 +762,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 		if err != nil {
-			log.Debug("No! gas consumed.")
+			log.Debug("createAndProcessMiniBlock.computeGasConsumed", "error", err)
 			continue
 		}
 
@@ -758,7 +775,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 		)
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			log.Debug("bad tx",
+			sndAddressToSkip = tx.GetSndAddress()
+			num_badTxs++
+			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
 			)
@@ -776,6 +795,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 			continue
 		}
+
+		sndAddressToSkip = []byte("no skip")
 
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
@@ -822,6 +843,11 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 	log.Debug("COUNTS", "num_isTxAlreadyProcessed", num_isTxAlreadyProcessed)
 	log.Debug("COUNTS", "num_isBadTx", num_isBadTx)
+	log.Debug("COUNTS", "num_badTxs", num_badTxs)
+	log.Debug("COUNTS", "num_sndAddressToSkip", num_sndAddressToSkip)
+	log.Debug("create and process mini block has been finished",
+		"sender shard", senderShardId,
+		"receiver shard", receiverShardId)
 
 	return miniBlock, nil
 }
