@@ -1194,7 +1194,7 @@ func collapseTrie(state state.AccountHandler, t *testing.T) {
 	state.DataTrieTracker().SetDataTrie(stateNewTrie)
 }
 
-func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
+func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

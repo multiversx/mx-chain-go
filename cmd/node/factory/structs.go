@@ -237,15 +237,14 @@ func createTries(
 		return nil, err
 	}
 
-	merkleTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTrieConfig.PruningEnabled)
+	merkleTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
 	if err != nil {
 		return nil, err
 	}
 
 	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
 
-	//TODO add pruning on peer accounts trie
-	peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, false)
+	peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
 	if err != nil {
 		return nil, err
 	}

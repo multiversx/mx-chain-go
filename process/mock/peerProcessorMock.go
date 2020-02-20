@@ -14,6 +14,10 @@ type ValidatorStatisticsProcessorMock struct {
 	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
 	CommitCalled                    func() ([]byte, error)
 	RootHashCalled                  func() ([]byte, error)
+	IsPruningEnabledCalled          func() bool
+	SnapshotStateCalled             func([]byte)
+	PruneTrieCalled                 func([]byte) error
+	CancelPruneCalled               func([]byte)
 }
 
 // UpdatePeerState -
@@ -71,4 +75,36 @@ func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
 		return vsp.IsInterfaceNilCalled()
 	}
 	return false
+}
+
+// IsPruningEnabled -
+func (vsp *ValidatorStatisticsProcessorMock) IsPruningEnabled() bool {
+	if vsp.IsPruningEnabledCalled != nil {
+		return vsp.IsPruningEnabledCalled()
+	}
+
+	return false
+}
+
+// SnapshotState -
+func (vsp *ValidatorStatisticsProcessorMock) SnapshotState(rootHash []byte) {
+	if vsp.SnapshotStateCalled != nil {
+		vsp.SnapshotStateCalled(rootHash)
+	}
+}
+
+// PruneTrie -
+func (vsp *ValidatorStatisticsProcessorMock) PruneTrie(rootHash []byte) error {
+	if vsp.PruneTrieCalled != nil {
+		return vsp.PruneTrieCalled(rootHash)
+	}
+
+	return nil
+}
+
+// CancelPrune -
+func (vsp *ValidatorStatisticsProcessorMock) CancelPrune(rootHash []byte) {
+	if vsp.CancelPruneCalled != nil {
+		vsp.CancelPruneCalled(rootHash)
+	}
 }

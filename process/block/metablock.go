@@ -888,7 +888,7 @@ func (mp *metaProcessor) CommitBlock(
 
 		mp.updateShardHeadersNonce(shardBlock.ShardId, shardBlock.Nonce)
 
-		marshalizedHeader, err := mp.marshalizer.Marshal(shardBlock)
+		marshalizedHeader, err = mp.marshalizer.Marshal(shardBlock)
 		if err != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return err
@@ -955,6 +955,7 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
+	mp.updatePeerStateStorage(lastMetaBlock)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1009,6 +1010,45 @@ func (mp *metaProcessor) CommitBlock(
 	go mp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (mp *metaProcessor) updatePeerStateStorage(metaHeader data.HeaderHandler) {
+	if check.IfNil(metaHeader) {
+		return
+	}
+
+	if !mp.validatorStatisticsProcessor.IsPruningEnabled() {
+		return
+	}
+
+	if metaHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "validator stats rootHash", metaHeader.GetValidatorStatsRootHash())
+		mp.validatorStatisticsProcessor.SnapshotState(metaHeader.GetValidatorStatsRootHash())
+		return
+	}
+
+	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(metaHeader.GetPrevHash(), mp.marshalizer, mp.store)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+		return
+	}
+
+	prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
+	if prevValidatorStatsRootHash == nil {
+		return
+	}
+
+	validatorStatsRootHash := metaHeader.GetValidatorStatsRootHash()
+	if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
+		return
+	}
+
+	errNotCritical = mp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	mp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash)
 }
 
 func (mp *metaProcessor) commitAll() error {

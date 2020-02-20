@@ -238,6 +238,10 @@ type ValidatorStatisticsProcessor interface {
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+	IsPruningEnabled() bool
+	SnapshotState([]byte)
+	PruneTrie([]byte) error
+	CancelPrune([]byte)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

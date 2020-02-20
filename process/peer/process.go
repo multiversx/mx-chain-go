@@ -758,3 +758,23 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64) 
 
 	return nil
 }
+
+// IsPruningEnabled returns true if pruning is enabled on the peer trie
+func (vs *validatorStatistics) IsPruningEnabled() bool {
+	return vs.peerAdapter.IsPruningEnabled()
+}
+
+// SnapshotState takes a snapshot of the peer state
+func (vs *validatorStatistics) SnapshotState(rootHash []byte) {
+	vs.peerAdapter.SnapshotState(rootHash)
+}
+
+// PruneTrie removes values from storage
+func (vs *validatorStatistics) PruneTrie(rootHash []byte) error {
+	return vs.peerAdapter.PruneTrie(rootHash)
+}
+
+// CancelPrune removes values from the eviction waiting list
+func (vs *validatorStatistics) CancelPrune(rootHash []byte) {
+	vs.peerAdapter.CancelPrune(rootHash)
+}
