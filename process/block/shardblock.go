@@ -360,7 +360,6 @@ func (sp *shardProcessor) RevertState(currHeader data.HeaderHandler, prevHeader 
 	}
 
 	sp.pruneStateAccountsOnRollback(currHeader, prevHeader)
-	sp.prunePeerAccountsOnRollback(currHeader, prevHeader)
 
 	return nil
 }
@@ -855,7 +854,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	for i := range selfNotarizedHeaders {
 		sp.updateAccountsStateStorage(selfNotarizedHeaders[i], sp.stateCheckpointModulus)
-		sp.updatePeerStateStorage(selfNotarizedHeaders[i], sp.stateCheckpointModulus)
 	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
