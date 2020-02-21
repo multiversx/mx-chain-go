@@ -59,11 +59,12 @@ func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, s
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
 	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
-	go dumpSelection(selection, selectionHashes)
+
 	go cache.diagnose()
+	go cache.dumpSelection(selection, selectionHashes)
 }
 
-func dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte) {
+func (cache *TxCache) dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte) {
 	if len(selection) == 0 {
 		return
 	}
@@ -72,6 +73,7 @@ func dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte
 
 	sender := selection[0].GetSndAddress()
 	senderTxs := make([]uint64, 0)
+	senderNonce := cache.getNonceOfSender(sender)
 
 	for i := 0; i < len(selection); i++ {
 		tx := selection[i]
@@ -79,14 +81,29 @@ func dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte
 		currentNonce := tx.GetNonce()
 
 		if !bytes.Equal(sender, currentSender) {
-			log.Trace("sender", "addr", sender, "txs", senderTxs)
+			log.Trace("sender", "addr", sender, "nonce", senderNonce, "txs", senderTxs)
 
 			sender = currentSender
 			senderTxs = make([]uint64, 0)
+			senderNonce = cache.getNonceOfSender(sender)
 		}
 
 		senderTxs = append(senderTxs, currentNonce)
 	}
+
+	log.Trace("sender", "addr", sender, "txs", senderTxs)
+}
+
+func (cache *TxCache) getNonceOfSender(sender []byte) int64 {
+	txList, ok := cache.txListBySender.getListForSender(string(sender))
+	if !ok {
+		return -2
+	}
+	if !txList.accountNonceKnown.IsSet() {
+		return -1
+	}
+
+	return int64(txList.accountNonce.Get())
 }
 
 func (cache *TxCache) displaySendersHistogram() {
