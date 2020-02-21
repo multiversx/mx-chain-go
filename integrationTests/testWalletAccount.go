@@ -6,8 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -43,22 +41,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 	blockSingleSigner crypto.SingleSigner,
 	keyGenBlockSign crypto.KeyGenerator,
 ) *TestWalletAccount {
-
-	twa := &TestWalletAccount{}
-
-	twa.SingleSigner = &singlesig.SchnorrSigner{}
-	sk, pk, _ := GenerateSkAndPkInShard(coordinator, shardId)
-
-	pkBuff, _ := pk.ToByteArray()
-	fmt.Printf("Found pk: %s in shard %d\n", hex.EncodeToString(pkBuff), shardId)
-
-	twa.SkTxSign = sk
-	twa.PkTxSign = pk
-	twa.PkTxSignBytes, _ = pk.ToByteArray()
-
-	twa.KeygenTxSign = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
-	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
-
+	twa := CreateTestWalletAccount(coordinator, shardId)
 	twa.KeygenBlockSign = keyGenBlockSign
 	twa.BlockSingleSigner = blockSingleSigner
 
