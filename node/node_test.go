@@ -1625,7 +1625,15 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 				return 0
 			},
 		}),
-
+		node.WithBootStorer(&mock.BoostrapStorerMock{
+			GetHighestRoundCalled: func() int64 {
+				return 0
+			},
+			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
+				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
+			},
+		}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{
 			RevertStateCalled: func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
 				return nil
@@ -1634,8 +1642,12 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 				return nil
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
+
 	err := n.StartConsensus(0)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
 }
