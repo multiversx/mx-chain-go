@@ -1,6 +1,8 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // GetCpuLoadPercent wil return cpu load
 func (psh *PresenterStatusHandler) GetCpuLoadPercent() uint64 {

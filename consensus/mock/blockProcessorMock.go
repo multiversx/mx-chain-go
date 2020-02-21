@@ -41,7 +41,7 @@ func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
+func (bpm *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
 }
 

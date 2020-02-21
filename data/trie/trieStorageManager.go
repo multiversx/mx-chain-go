@@ -261,9 +261,9 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, msh marshal.Marshal
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
-
 	tsm.snapshotsBuffer.add(rootHash, false)
 	if tsm.snapshotsBuffer.len() > 1 {
+
 		return
 	}
 
