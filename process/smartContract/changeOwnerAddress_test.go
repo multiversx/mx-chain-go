@@ -22,13 +22,13 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	}
 
 	addr := []byte("addr")
-	count := 0
+	journalizeWasCalled, saveAccountWasCalled := false, false
 	acc, _ := state.NewAccount(mock.NewAddressMock(addr), &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
-			count++
+			journalizeWasCalled = true
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			count++
+			saveAccountWasCalled = true
 			return nil
 		},
 	})
@@ -48,5 +48,6 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	acc.OwnerAddress = owner
 	_, err = coa.ProcessBuiltinFunction(tx, nil, acc, vmInput)
 	require.Nil(t, err)
-	require.Equal(t, 2, count)
+	require.True(t, journalizeWasCalled)
+	require.True(t, saveAccountWasCalled)
 }

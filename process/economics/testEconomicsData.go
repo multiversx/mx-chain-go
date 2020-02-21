@@ -22,7 +22,7 @@ func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64) {
 	ted.minGasLimit = minGasLimit
 }
 
-// GetMinGasLimit sets the minimum gas limit for a transaction to be accepted
+// GetMinGasLimit returns the minimum gas limit for a transaction to be accepted
 func (ted *TestEconomicsData) GetMinGasLimit() uint64 {
 	return ted.minGasLimit
 }

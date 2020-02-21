@@ -30,7 +30,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	sleepDuration := time.Second
+	numShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
@@ -38,17 +39,17 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
-		numOfShards,
+		numShards,
 		nodesPerShard,
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
+	idxProposers := make([]int, numShards+1)
+	for i := 0; i < numShards; i++ {
 		idxProposers[i] = i * nodesPerShard
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	idxProposers[numShards] = numShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -84,10 +85,10 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(sleepDuration)
 
-	nrRoundsToPropagateMultiShard := 15
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	numRoundsToPropagateMultiShard := 15
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -113,7 +114,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
 	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData)
 
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -132,7 +133,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
@@ -140,17 +141,17 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
-		numOfShards,
+		numShards,
 		nodesPerShard,
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
+	idxProposers := make([]int, numShards+1)
+	for i := 0; i < numShards; i++ {
 		idxProposers[i] = i * nodesPerShard
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	idxProposers[numShards] = numShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -188,8 +189,8 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 15
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	numRoundsToPropagateMultiShard := 15
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -225,7 +226,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	txData := "ClaimDeveloperRewards"
 	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData)
 
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)

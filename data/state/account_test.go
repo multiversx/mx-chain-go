@@ -247,13 +247,13 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 func TestAccount_SetOwnerAddressWithJournal(t *testing.T) {
 	t.Parallel()
 
-	count := 0
+	journalizeWasCalled, saveAccountWasCalled := false, false
 	tracker := &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
-			count++
+			journalizeWasCalled = true
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			count++
+			saveAccountWasCalled = true
 			return nil
 		},
 	}
@@ -263,21 +263,15 @@ func TestAccount_SetOwnerAddressWithJournal(t *testing.T) {
 	owner := []byte("owner")
 	err := acc.SetOwnerAddressWithJournal(owner)
 	require.Nil(t, err)
-	require.Equal(t, 2, count)
+	require.True(t, journalizeWasCalled)
+	require.True(t, saveAccountWasCalled)
 	require.Equal(t, acc.OwnerAddress, owner)
 }
 
-func TestAccount_AddAndClaimDeveloperRewards(t *testing.T) {
+func TestAccount_AddAndClaimDeveloperRewardsWrongAddress(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			return nil
-		},
-	}
-
+	tracker := &mock.AccountTrackerStub{}
 	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
 	owner := []byte("owner")
 	_ = acc.SetOwnerAddressWithJournal(owner)
@@ -290,7 +284,21 @@ func TestAccount_AddAndClaimDeveloperRewards(t *testing.T) {
 	require.Nil(t, rewards)
 	require.Equal(t, state.ErrOperationNotPermitted, err)
 
-	rewards, err = acc.ClaimDeveloperRewards(owner)
+}
+
+func TestAccount_AddAndClaimDeveloperRewardsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
+	owner := []byte("owner")
+	_ = acc.SetOwnerAddressWithJournal(owner)
+
+	devRewards := big.NewInt(100)
+	err := acc.AddToDeveloperReward(devRewards)
+	require.Nil(t, err)
+
+	rewards, err := acc.ClaimDeveloperRewards(owner)
 	require.Nil(t, err)
 	require.Equal(t, devRewards, rewards)
 	require.Equal(t, big.NewInt(0), acc.DeveloperReward)
@@ -299,13 +307,7 @@ func TestAccount_AddAndClaimDeveloperRewards(t *testing.T) {
 func TestAccount_ChangeOwnerAddress(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			return nil
-		},
-	}
+	tracker := &mock.AccountTrackerStub{}
 
 	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
 	owner := []byte("owner")
@@ -327,13 +329,7 @@ func TestAccount_ChangeOwnerAddress(t *testing.T) {
 func TestAccount_AddToBalance(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			return nil
-		},
-	}
+	tracker := &mock.AccountTrackerStub{}
 
 	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
 
@@ -343,4 +339,15 @@ func TestAccount_AddToBalance(t *testing.T) {
 
 	result := acc.GetBalance()
 	require.Equal(t, balance, result)
+
+	balance = big.NewInt(-500)
+	err = acc.AddToBalance(balance)
+	require.Nil(t, err)
+
+	result2 := acc.GetBalance()
+	require.Equal(t, result2.Sub(result, balance), result2)
+
+	balance = big.NewInt(-1000)
+	err = acc.AddToBalance(balance)
+	require.Equal(t, state.ErrInsufficientFunds, err)
 }
