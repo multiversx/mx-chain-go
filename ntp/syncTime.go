@@ -1,9 +1,10 @@
 package ntp
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -30,6 +31,9 @@ const minResponsesPercent = 0.25
 // subtracted from it
 const maxOffsetPercent = 0.2
 
+// minTimeout represents the minimum time in milliseconds to wait for a response from a host after a NTP request
+const minTimeout = 100
+
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
 	Hosts        []string
@@ -53,7 +57,7 @@ func NewNTPGoogleConfig() config.NTPConfig {
 
 // NewNTPOptions creates a new NTPOptions object
 func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
-	ntpConfig.TimeoutMilliseconds = core.MinInt(100, ntpConfig.TimeoutMilliseconds)
+	ntpConfig.TimeoutMilliseconds = core.MaxInt(minTimeout, ntpConfig.TimeoutMilliseconds)
 	timeout := time.Duration(ntpConfig.TimeoutMilliseconds) * time.Millisecond
 
 	return NTPOptions{
@@ -122,9 +126,14 @@ func (s *syncTime) StartSync() {
 }
 
 func (s *syncTime) getSleepTime() time.Duration {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	maxOffset := int64(float64(s.syncPeriod) * maxOffsetPercent)
-	offset := r.Int63n(maxOffset*2) - maxOffset
+	maxRandValueToGenerate := maxOffset * 2
+	randBigInt, err := rand.Int(rand.Reader, big.NewInt(maxRandValueToGenerate+1))
+	if err != nil {
+		return s.syncPeriod
+	}
+
+	offset := randBigInt.Int64() - maxOffset
 	return s.syncPeriod + time.Duration(offset)
 }
 
