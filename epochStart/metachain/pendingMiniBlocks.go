@@ -217,7 +217,7 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 		p.decrementNumMiniBlocks(mbHeader.ReceiverShardID)
 
 		var buff []byte
-		buff, err = p.marshalizer.Marshal(mbHeader)
+		buff, err = p.marshalizer.Marshal(&mbHeader)
 		if err != nil {
 			return err
 		}

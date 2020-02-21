@@ -216,7 +216,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 		ValueChange: account.Stake,
 	}
 
-	peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, actualPeerChange)
+	peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, &actualPeerChange)
 	if err != nil {
 		return err
 	}

@@ -265,7 +265,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	marshalizer := &mock.MarshalizerMock{}
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(miniBlockList)
+	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	wasResolved := false
 	wasSend := false
@@ -311,7 +311,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	marshalizer := &mock.MarshalizerMock{}
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(miniBlockList)
+	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	wasSent := false
 

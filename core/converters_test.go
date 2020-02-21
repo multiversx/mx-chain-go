@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,7 +58,7 @@ func TestCalculateHash_NilHasher(t *testing.T) {
 func TestCalculateHash_ErrMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	obj := []byte("object")
+	obj := &batch.Batch{Data: [][]byte{[]byte("object")}}
 	marshalizer := &mock.MarshalizerMock{
 		Fail: true,
 	}
@@ -123,11 +124,12 @@ func TestIsUnknownEpochIdentifier_OkIdentifierShouldReturnFalse(t *testing.T) {
 func TestCalculateHash_Good(t *testing.T) {
 	t.Parallel()
 
-	obj := []byte("object")
-	results := []byte{0x44, 0xa7, 0x94, 0xc0, 0x7e, 0x54, 0x30, 0x79, 0x7a, 0xb5, 0xc6, 0xf, 0xdc, 0x57, 0x9c, 0x44, 0xff, 0x8b, 0xdc, 0x3d, 0xa0, 0x64, 0xdd, 0xfb, 0x36, 0x19, 0xe4, 0x28, 0xfe, 0xaf, 0x35, 0x3b}
+	obj := &batch.Batch{Data: [][]byte{[]byte("object")}}
+	results := []byte{0x90, 0xe2, 0x17, 0x2c, 0xaa, 0xa5, 0x4c, 0xb2, 0xad, 0x55, 0xd4, 0xd1, 0x26, 0x91, 0x87, 0xa4, 0xe6, 0x6e, 0xcf, 0x12, 0xfd, 0xc2, 0x5b, 0xf8, 0x67, 0xb7, 0x7, 0x9, 0x6d, 0xe5, 0x43, 0xdd}
 	hash, err := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, obj)
 	assert.NotNil(t, hash)
 	assert.Nil(t, err)
+	assert.Equal(t, results, hash)
 	assert.True(t, bytes.Equal(results, hash))
 }
 
