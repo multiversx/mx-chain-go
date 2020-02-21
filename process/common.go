@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math"
 	"sort"
@@ -632,4 +633,37 @@ func DisplayProcessTxDetails(
 			"sender", hex.EncodeToString(txHandler.GetSndAddress()),
 			"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
 	}
+}
+
+// TransactionWithHash holds the transaction and its hash
+type TransactionWithHash struct {
+	Transaction data.TransactionHandler
+	Hash        []byte
+}
+
+// SortTransactionsByNonceAndSender sorts
+func SortTransactionsByNonceAndSender(transactions []data.TransactionHandler, hashes [][]byte) []TransactionWithHash {
+	if len(transactions) != len(hashes) {
+		return nil
+	}
+
+	items := make([]TransactionWithHash, len(transactions))
+	for i := 0; i < len(items); i++ {
+		items[i] = TransactionWithHash{Transaction: transactions[i], Hash: hashes[i]}
+	}
+
+	sorter := func(i, j int) bool {
+		txI := items[i].Transaction
+		txJ := items[j].Transaction
+
+		delta := int(txI.GetNonce()) - int(txJ.GetNonce())
+		if delta == 0 {
+			delta = bytes.Compare(txI.GetSndAddress(), txJ.GetSndAddress())
+		}
+
+		return delta < 0
+	}
+
+	sort.Slice(items, sorter)
+	return items
 }

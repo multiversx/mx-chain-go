@@ -61,7 +61,7 @@ func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, s
 	cache.displaySendersHistogram()
 
 	go cache.diagnose()
-	go cache.dumpSelection(selection, selectionHashes)
+	//go cache.dumpSelection(selection, selectionHashes)
 }
 
 func (cache *TxCache) dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte) {
@@ -172,7 +172,7 @@ func (cache *TxCache) diagnose() {
 	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
 	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 
-	cache.displayNonceGaps()
+	//cache.displayNonceGaps()
 }
 
 type gapJournal struct {
