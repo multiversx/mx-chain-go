@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -447,15 +446,21 @@ func (mp *metaProcessor) indexBlock(
 		txPool[hash] = tx
 	}
 
-	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), sharding.MetachainShardId)
+	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
+	)
 	if err != nil {
 		return
 	}
 
-	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+	if err != nil {
+		return
+	}
+
 	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes)
 
-	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, sharding.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -555,7 +560,6 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
-	mp.epochStartTrigger.Update(initialHdrData.GetRound())
 	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
@@ -628,6 +632,16 @@ func (mp *metaProcessor) createMiniBlocks(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
 		haveTime)
+
+	nbTxs = 0
+	for _, mb := range mbFromMe {
+		nbTxs += uint32(len(mb.TxHashes))
+	}
+
+	log.Debug("processed miniblocks and txs with from me",
+		"num miniblocks", len(mbFromMe),
+		"num txs", nbTxs,
+	)
 
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)
@@ -967,6 +981,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
+	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
+		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
+	}
+
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)
 	}
@@ -989,14 +1007,20 @@ func (mp *metaProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	go mp.prepareDataForBootStorer(
-		headerInfo,
-		header.Round,
-		nil,
-		mp.getPendingMiniBlocks(),
-		mp.forkDetector.GetHighestFinalBlockNonce(),
-		nil,
-	)
+	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
+	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
+
+	args := bootStorerDataArgs{
+		headerInfo:                 headerInfo,
+		round:                      header.Round,
+		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
+		epochStartTriggerConfigKey: epochStartKey,
+		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
+		processedMiniBlocks:        nil,
+		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
+	}
+
+	go mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
@@ -1576,14 +1600,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return nil, err
 	}
 
-	sw.Start("createEpochStartForMetablock")
-	epochStart, err := mp.epochStartCreator.CreateEpochStartData()
-	sw.Stop("createEpochStartForMetablock")
-	if err != nil {
-		return nil, err
-	}
-	metaHdr.EpochStart = *epochStart
-
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
@@ -1623,8 +1639,22 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
+func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
+	metaHeader := &block.MetaBlock{}
+
+	mp.epochStartTrigger.Update(round)
+
+	sw := core.NewStopWatch()
+	sw.Start("createEpochStartForMetablock")
+	epochStart, err := mp.epochStartCreator.CreateEpochStartData()
+	sw.Stop("createEpochStartForMetablock")
+	if err == nil {
+		metaHeader.EpochStart = *epochStart
+	} else {
+		log.Error(err.Error())
+	}
+
+	return metaHeader
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

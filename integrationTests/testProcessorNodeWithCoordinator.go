@@ -3,9 +3,8 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -52,8 +51,17 @@ func CreateProcessorNodesWithNodesCoordinator(
 	seedAddress string,
 ) (map[uint32][]*TestProcessorNode, uint32) {
 
+	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
+	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
+	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
+
+	cpWaiting := CreateCryptoParams(1, 1, nbShards)
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
+
 	ncp, numShards := createNodesCryptoParams(rewardsAddrsAssignments)
-	validatorsMap := genValidators(ncp)
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -65,7 +73,8 @@ func CreateProcessorNodesWithNodesCoordinator(
 				Hasher:                  TestHasher,
 				ShardId:                 shardId,
 				NbShards:                numShards,
-				Nodes:                   validatorsMap,
+				EligibleNodes:           validatorsMap,
+				WaitingNodes:            waitingMap,
 				SelfPublicKey:           v.Address(),
 				ConsensusGroupCache:     cache,
 			}
@@ -104,7 +113,7 @@ func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[u
 
 	//we need to first precompute the num shard ID
 	for shardID := range rewardsAddrsAssignments {
-		foundAHigherShardID := shardID != sharding.MetachainShardId && shardID > numShards
+		foundAHigherShardID := shardID != core.MetachainShardId && shardID > numShards
 		if foundAHigherShardID {
 			numShards = shardID
 		}
@@ -160,25 +169,6 @@ func generateSkAndPkInShard(
 	}
 
 	return sk, pk
-}
-
-func genValidators(ncp map[uint32][]*nodeKeys) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shardId, shardNodesKeys := range ncp {
-		shardValidators := make([]sharding.Validator, 0)
-		for i := 0; i < len(shardNodesKeys); i++ {
-			v, _ := sharding.NewValidator(
-				big.NewInt(0),
-				1,
-				shardNodesKeys[i].BlockSignPkBytes,
-				shardNodesKeys[i].TxSignPkBytes)
-			shardValidators = append(shardValidators, v)
-		}
-		validatorsMap[shardId] = shardValidators
-	}
-
-	return validatorsMap
 }
 
 func newTestProcessorNodeWithCustomNodesCoordinator(

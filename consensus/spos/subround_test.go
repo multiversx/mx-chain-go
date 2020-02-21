@@ -28,9 +28,15 @@ func createEligibleList(size int) []string {
 func initConsensusState() *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
+
+	eligibleNodesKeys := make(map[string]struct{}, len(eligibleList))
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
+
 	indexLeader := 1
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesKeys,
 		consensusGroupSize,
 		eligibleList[indexLeader])
 
@@ -440,7 +446,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
