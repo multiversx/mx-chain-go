@@ -73,8 +73,9 @@ type baseProcessor struct {
 
 	hdrsForCurrBlock hdrForBlock
 
-	appStatusHandler core.AppStatusHandler
-	blockProcessor   blockProcessor
+	appStatusHandler       core.AppStatusHandler
+	blockProcessor         blockProcessor
+	stateCheckpointModulus uint
 }
 
 func checkForNils(
@@ -987,7 +988,100 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
 }
 
-func (bp *baseProcessor) pruneStateAccounts(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+func (bp *baseProcessor) updateAccountsStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
+	if check.IfNil(finalHeader) {
+		log.Error("updateAccountsStateStorage nil metaheader")
+		return
+	}
+
+	if !bp.accounts.IsPruningEnabled() {
+		return
+	}
+
+	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "rootHash", finalHeader.GetRootHash())
+		bp.accounts.SnapshotState(finalHeader.GetRootHash())
+	}
+
+	// TODO generate checkpoint on a trigger
+	if checkpointModulus != 0 {
+		if finalHeader.GetNonce()%uint64(checkpointModulus) == 0 {
+			log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
+			bp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+		}
+	}
+	prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeader.GetPrevHash(), bp.marshalizer, bp.store)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+		return
+	}
+
+	prevRootHash := prevHeader.GetRootHash()
+	if prevRootHash == nil {
+		return
+	}
+
+	rootHash := finalHeader.GetRootHash()
+	if bytes.Equal(prevRootHash, rootHash) {
+		return
+	}
+
+	errNotCritical = bp.accounts.PruneTrie(prevRootHash, data.OldRoot)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	bp.accounts.CancelPrune(rootHash, data.NewRoot)
+}
+
+func (bp *baseProcessor) updatePeerStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
+	if check.IfNil(finalHeader) {
+		log.Error("updatePeerStateStorage nil metaheader")
+		return
+	}
+
+	if !bp.validatorStatisticsProcessor.IsPruningEnabled() {
+		return
+	}
+
+	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "validator stats rootHash", finalHeader.GetValidatorStatsRootHash())
+		bp.validatorStatisticsProcessor.SnapshotState(finalHeader.GetValidatorStatsRootHash())
+	}
+
+	// TODO generate checkpoint on a trigger
+	if checkpointModulus != 0 {
+		if finalHeader.GetNonce()%uint64(checkpointModulus) == 0 {
+			log.Debug("trie checkpoint", "validator stats rootHash", finalHeader.GetValidatorStatsRootHash())
+			bp.validatorStatisticsProcessor.SetStateCheckpoint(finalHeader.GetValidatorStatsRootHash())
+		}
+	}
+
+	prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeader.GetPrevHash(), bp.marshalizer, bp.store)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+		return
+	}
+
+	prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
+	if prevValidatorStatsRootHash == nil {
+		return
+	}
+
+	validatorStatsRootHash := finalHeader.GetValidatorStatsRootHash()
+	if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
+		return
+	}
+
+	errNotCritical = bp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	bp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
+}
+
+func (bp *baseProcessor) pruneStateAccountsOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	if !bp.accounts.IsPruningEnabled() {
 		return
 	}
@@ -1004,7 +1098,7 @@ func (bp *baseProcessor) pruneStateAccounts(currHeader data.HeaderHandler, prevH
 	}
 }
 
-func (bp *baseProcessor) prunePeerAccounts(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+func (bp *baseProcessor) prunePeerAccountsOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	if !bp.validatorStatisticsProcessor.IsPruningEnabled() {
 		return
 	}

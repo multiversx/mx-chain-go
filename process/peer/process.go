@@ -769,6 +769,11 @@ func (vs *validatorStatistics) SnapshotState(rootHash []byte) {
 	vs.peerAdapter.SnapshotState(rootHash)
 }
 
+// SetStateCheckpoint creates a state checkpoint
+func (vs *validatorStatistics) SetStateCheckpoint(rootHash []byte) {
+	vs.peerAdapter.SetStateCheckpoint(rootHash)
+}
+
 // PruneTrie removes values from storage
 func (vs *validatorStatistics) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
 	return vs.peerAdapter.PruneTrie(rootHash, identifier)

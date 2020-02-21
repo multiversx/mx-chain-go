@@ -90,6 +90,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataPool,
+		stateCheckpointModulus:       arguments.StateCheckpointModulus,
 	}
 
 	mp := metaProcessor{
@@ -955,7 +956,8 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
-	mp.updatePeerStateStorage(lastMetaBlock)
+	mp.updateAccountsStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
+	mp.updatePeerStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1010,46 +1012,6 @@ func (mp *metaProcessor) CommitBlock(
 	go mp.cleanupPools(headerHandler)
 
 	return nil
-}
-
-func (mp *metaProcessor) updatePeerStateStorage(metaHeader data.HeaderHandler) {
-	if check.IfNil(metaHeader) {
-		log.Error("updatePeerStateStorage nil metaheader")
-		return
-	}
-
-	if !mp.validatorStatisticsProcessor.IsPruningEnabled() {
-		return
-	}
-
-	if metaHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "validator stats rootHash", metaHeader.GetValidatorStatsRootHash())
-		mp.validatorStatisticsProcessor.SnapshotState(metaHeader.GetValidatorStatsRootHash())
-		return
-	}
-
-	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(metaHeader.GetPrevHash(), mp.marshalizer, mp.store)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-		return
-	}
-
-	prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
-	if prevValidatorStatsRootHash == nil {
-		return
-	}
-
-	validatorStatsRootHash := metaHeader.GetValidatorStatsRootHash()
-	if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
-		return
-	}
-
-	errNotCritical = mp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-
-	mp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
 }
 
 func (mp *metaProcessor) commitAll() error {
@@ -1146,8 +1108,8 @@ func (mp *metaProcessor) RevertState(currHeader data.HeaderHandler, prevHeader d
 		return err
 	}
 
-	mp.pruneStateAccounts(currHeader, prevHeader)
-	mp.prunePeerAccounts(currHeader, prevHeader)
+	mp.pruneStateAccountsOnRollback(currHeader, prevHeader)
+	mp.prunePeerAccountsOnRollback(currHeader, prevHeader)
 
 	return nil
 }

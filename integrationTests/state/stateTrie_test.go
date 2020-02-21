@@ -1517,7 +1517,7 @@ func collectSnapshotAndCheckpointHashes(
 			continue
 		}
 
-		checkpointRound := currentBlockHeader.GetRound()%stateCheckpointModulus == 0
+		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue

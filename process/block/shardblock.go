@@ -36,7 +36,6 @@ type shardProcessor struct {
 	txCounter           *transactionCounter
 	txsPoolsCleaner     process.PoolsCleaner
 
-	stateCheckpointModulus            uint
 	lowestNonceInSelfNotarizedHeaders uint64
 }
 
@@ -81,6 +80,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataPool,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
+		stateCheckpointModulus:       arguments.StateCheckpointModulus,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -88,11 +88,10 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp := shardProcessor{
-		core:                   arguments.Core,
-		baseProcessor:          base,
-		txCounter:              NewTransactionCounter(),
-		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
-		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		core:            arguments.Core,
+		baseProcessor:   base,
+		txCounter:       NewTransactionCounter(),
+		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
@@ -349,8 +348,8 @@ func (sp *shardProcessor) RevertState(currHeader data.HeaderHandler, prevHeader 
 		return err
 	}
 
-	sp.pruneStateAccounts(currHeader, prevHeader)
-	sp.prunePeerAccounts(currHeader, prevHeader)
+	sp.pruneStateAccountsOnRollback(currHeader, prevHeader)
+	sp.prunePeerAccountsOnRollback(currHeader, prevHeader)
 
 	return nil
 }
@@ -777,8 +776,10 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
 	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	sp.updateStateStorage(selfNotarizedHeaders)
-	sp.updatePeerStateStorage(selfNotarizedHeaders)
+	for i := range selfNotarizedHeaders {
+		sp.updateAccountsStateStorage(selfNotarizedHeaders[i], sp.stateCheckpointModulus)
+		sp.updatePeerStateStorage(selfNotarizedHeaders[i], sp.stateCheckpointModulus)
+	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -868,90 +869,6 @@ func (sp *shardProcessor) commitAll() error {
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	if !sp.accounts.IsPruningEnabled() {
-		return
-	}
-
-	for i := range finalHeaders {
-		sp.saveState(finalHeaders[i])
-
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
-		}
-
-		prevRootHash := prevHeader.GetRootHash()
-		if prevRootHash == nil {
-			continue
-		}
-
-		rootHash := finalHeaders[i].GetRootHash()
-		if bytes.Equal(prevRootHash, rootHash) {
-			continue
-		}
-
-		errNotCritical = sp.accounts.PruneTrie(prevRootHash, data.OldRoot)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
-
-		sp.accounts.CancelPrune(rootHash, data.NewRoot)
-	}
-}
-
-func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", finalHeader.GetRootHash())
-		sp.accounts.SnapshotState(finalHeader.GetRootHash())
-		return
-	}
-
-	// TODO generate checkpoint on a trigger
-	if finalHeader.GetNonce()%uint64(sp.stateCheckpointModulus) == 0 {
-		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
-		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
-	}
-}
-
-func (sp *shardProcessor) updatePeerStateStorage(finalHeaders []data.HeaderHandler) {
-	if !sp.validatorStatisticsProcessor.IsPruningEnabled() {
-		return
-	}
-
-	for i := range finalHeaders {
-		if finalHeaders[i].IsStartOfEpochBlock() {
-			log.Debug("trie snapshot", "validator stats rootHash", finalHeaders[i].GetValidatorStatsRootHash())
-			sp.validatorStatisticsProcessor.SnapshotState(finalHeaders[i].GetValidatorStatsRootHash())
-			return
-		}
-
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
-		}
-
-		prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
-		if prevValidatorStatsRootHash == nil {
-			continue
-		}
-
-		validatorStatsRootHash := finalHeaders[i].GetValidatorStatsRootHash()
-		if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
-			continue
-		}
-
-		errNotCritical = sp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
-
-		sp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
-	}
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {

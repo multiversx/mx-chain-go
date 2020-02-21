@@ -16,6 +16,7 @@ type ValidatorStatisticsProcessorMock struct {
 	RootHashCalled                  func() ([]byte, error)
 	IsPruningEnabledCalled          func() bool
 	SnapshotStateCalled             func([]byte)
+	SetStateCheckpointCalled        func([]byte)
 	PruneTrieCalled                 func([]byte, data.TriePruningIdentifier) error
 	CancelPruneCalled               func([]byte, data.TriePruningIdentifier)
 }
@@ -90,6 +91,13 @@ func (vsp *ValidatorStatisticsProcessorMock) IsPruningEnabled() bool {
 func (vsp *ValidatorStatisticsProcessorMock) SnapshotState(rootHash []byte) {
 	if vsp.SnapshotStateCalled != nil {
 		vsp.SnapshotStateCalled(rootHash)
+	}
+}
+
+// SetStateCheckpoint -
+func (vsp *ValidatorStatisticsProcessorMock) SetStateCheckpoint(rootHash []byte) {
+	if vsp.SetStateCheckpointCalled != nil {
+		vsp.SetStateCheckpointCalled(rootHash)
 	}
 }
 

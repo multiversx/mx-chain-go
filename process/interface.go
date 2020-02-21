@@ -241,6 +241,7 @@ type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	IsPruningEnabled() bool
 	SnapshotState([]byte)
+	SetStateCheckpoint([]byte)
 	PruneTrie([]byte, data.TriePruningIdentifier) error
 	CancelPrune([]byte, data.TriePruningIdentifier)
 }

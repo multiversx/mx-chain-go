@@ -58,8 +58,8 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
-	sp.updateStateStorage(finalHeaders)
+func (sp *shardProcessor) UpdateStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
+	sp.updateAccountsStateStorage(finalHeader, checkpointModulus)
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
