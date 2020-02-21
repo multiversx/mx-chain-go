@@ -125,6 +125,11 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 	return selfHeadersInfo
 }
 
+// CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing
+func (sbt *shardBlockTrack) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
+	// no rule for shard
+}
+
 // ComputeLongestSelfChain computes the longest chain from self shard
 func (sbt *shardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.GetLastNotarizedHeader(core.MetachainShardId)
