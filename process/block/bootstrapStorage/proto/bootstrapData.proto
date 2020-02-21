@@ -27,13 +27,15 @@ message PendingMiniBlockInfo  {
 
 // BootstrapData is used to store information that are needed for bootstrap
 message BootstrapData {
-	BootstrapHeaderInfo            LastHeader                = 1 [(gogoproto.nullable) = false];
-	repeated BootstrapHeaderInfo   LastCrossNotarizedHeaders = 2 [(gogoproto.nullable) = false];
-	repeated BootstrapHeaderInfo   LastSelfNotarizedHeaders  = 7 [(gogoproto.nullable) = false];
-	repeated MiniBlocksInMeta      ProcessedMiniBlocks       = 4 [(gogoproto.nullable) = false];
-	repeated PendingMiniBlockInfo  PendingMiniBlocks         = 8 [(gogoproto.nullable) = false];
-	uint64                         HighestFinalBlockNonce    = 5;
-	int64                          LastRound                 = 6;
+	BootstrapHeaderInfo            LastHeader                 = 1 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastCrossNotarizedHeaders  = 2 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastSelfNotarizedHeaders   = 7 [(gogoproto.nullable) = false];
+	repeated MiniBlocksInMeta      ProcessedMiniBlocks        = 4 [(gogoproto.nullable) = false];
+	repeated PendingMiniBlockInfo  PendingMiniBlocks          = 8 [(gogoproto.nullable) = false];
+	bytes                          NodesCoordinatorConfigKey  = 9;
+	bytes                          EpochStartTriggerConfigKey = 10;
+	uint64                         HighestFinalBlockNonce     = 5;
+	int64                          LastRound                  = 6;
 }
 
 message RoundNum {

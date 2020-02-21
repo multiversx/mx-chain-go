@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -188,7 +188,10 @@ func (n *Node) generateAndSignSingleTx(
 	dataField string,
 	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-	if check.IfNil(n.marshalizer) {
+	if check.IfNil(n.protoMarshalizer) {
+		return nil, nil, ErrNilMarshalizer
+	}
+	if check.IfNil(n.txSignMarshalizer) {
 		return nil, nil, ErrNilMarshalizer
 	}
 	if check.IfNil(sk) {

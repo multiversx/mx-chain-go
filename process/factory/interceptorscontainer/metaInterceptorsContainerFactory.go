@@ -76,7 +76,7 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       args.Marshalizer,
+		ProtoMarshalizer:  args.Marshalizer,
 		Hasher:            args.Hasher,
 		ShardCoordinator:  args.ShardCoordinator,
 		NodesCoordinator:  args.NodesCoordinator,

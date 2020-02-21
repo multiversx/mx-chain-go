@@ -78,7 +78,7 @@ func NewShardInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       args.Marshalizer,
+		ProtoMarshalizer:  args.Marshalizer,
 		Hasher:            args.Hasher,
 		ShardCoordinator:  args.ShardCoordinator,
 		MultiSigVerifier:  args.MultiSigner,
