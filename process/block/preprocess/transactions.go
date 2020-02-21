@@ -544,7 +544,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	var err error
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
-	if txs.blockType == block.InvalidBlock {
+	if txs.blockType != block.TxBlock {
 		return miniBlocks, nil
 	}
 
@@ -776,7 +776,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 		)
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			sndAddressToSkip = tx.GetSndAddress()
+			if err == process.ErrHigherNonceInTransaction {
+				sndAddressToSkip = tx.GetSndAddress()
+			}
+
 			num_badTxs++
 			log.Trace("bad tx",
 				"error", err.Error(),
