@@ -62,7 +62,7 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, _ net
 	if !check.IfNil(lcms.sharder) {
 		allPeers := netw.Peers()
 
-		evicted := lcms.sharder.ComputeEvictList(allPeers)
+		evicted := lcms.sharder.ComputeEvictionList(allPeers)
 		lcms.mutSharder.RUnlock()
 		for _, pid := range evicted {
 			_ = netw.ClosePeer(pid)
@@ -119,14 +119,14 @@ func (lcms *libp2pConnectionMonitorSimple) ThresholdMinConnectedPeers() int {
 }
 
 // SetSharder sets the sharder that is able to sort the peers by their distance
-// TODO(iulian) change this from interface{} to Sharder interface when all implementations will be uniformized
-func (lcms *libp2pConnectionMonitorSimple) SetSharder(sharder interface{}) error {
+func (lcms *libp2pConnectionMonitorSimple) SetSharder(sharder p2p.CommonSharder) error {
+	if check.IfNil(sharder) {
+		return p2p.ErrNilSharder
+	}
+
 	sharderIntf, ok := sharder.(Sharder)
 	if !ok {
 		return fmt.Errorf("%w when applying sharder: expected interface libp2p.Sharder", p2p.ErrWrongTypeAssertion)
-	}
-	if check.IfNil(sharderIntf) {
-		return p2p.ErrNilSharder
 	}
 
 	lcms.mutSharder.Lock()

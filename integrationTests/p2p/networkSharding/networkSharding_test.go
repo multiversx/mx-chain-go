@@ -60,8 +60,8 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	}
 
 	nodesPerShard := 10
-	nbMetaNodes := 10
-	nbShards := 2
+	numMetaNodes := 10
+	numShards := 2
 	consensusGroupSize := 2
 
 	p2pConfigSeeder := p2pConfig
@@ -74,10 +74,10 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithTestP2PNodes(
 		nodesPerShard,
-		nbMetaNodes,
-		nbShards,
+		numMetaNodes,
+		numShards,
 		consensusGroupSize,
-		nbMetaNodes,
+		numMetaNodes,
 		p2pConfig,
 	)
 
@@ -110,7 +110,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 		time.Sleep(time.Second)
 	}
 
-	testCounters(t, nodesMap, 1, 1, nbShards*2)
+	testCounters(t, nodesMap, 1, 1, numShards*2)
 }
 
 func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {

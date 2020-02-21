@@ -9,7 +9,7 @@ import (
 // ConnectionMonitor defines the behavior of a connection monitor
 type ConnectionMonitor interface {
 	network.Notifiee
-	SetSharder(sharder interface{}) error
+	SetSharder(sharder p2p.CommonSharder) error
 	IsConnectedToTheNetwork(netw network.Network) bool
 	SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeers() int
@@ -17,7 +17,7 @@ type ConnectionMonitor interface {
 
 // Sharder defines the eviction computing process of unwanted peers
 type Sharder interface {
-	ComputeEvictList(pidList []peer.ID) []peer.ID
+	ComputeEvictionList(pidList []peer.ID) []peer.ID
 	Has(pid peer.ID, list []peer.ID) bool
 	PeerShardResolver() p2p.PeerShardResolver
 	IsInterfaceNil() bool
@@ -26,5 +26,5 @@ type Sharder interface {
 // PeerDiscovererWithSharder extends the PeerDiscoverer with the possibility to set the sharder
 type PeerDiscovererWithSharder interface {
 	p2p.PeerDiscoverer
-	SetSharder(kadSharder interface{}) error
+	SetSharder(sharder Sharder) error
 }

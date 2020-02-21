@@ -98,8 +98,8 @@ func NewListKadSharder(
 	}, nil
 }
 
-// ComputeEvictList returns the eviction list
-func (lks *listKadSharder) ComputeEvictList(pidList []peer.ID) []peer.ID {
+// ComputeEvictionList returns the eviction list
+func (lks *listKadSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	evictionProposed := make([]peer.ID, 0)
 	intraShard, crossShard, unknownShard := lks.splitPeerIds(pidList)
 
@@ -135,6 +135,7 @@ func (lks *listKadSharder) PeerShardResolver() p2p.PeerShardResolver {
 	return lks.peerShardResolver
 }
 
+//TODO study if we need to hve a dedicated section for metanodes
 func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDistances, peerDistances) {
 	selfId := lks.peerShardResolver.ByID(p2p.PeerID(lks.selfPeerId))
 
@@ -187,7 +188,7 @@ func (lks *listKadSharder) IsInterfaceNil() bool {
 	return lks == nil
 }
 
-// computes the kademlia distance between 2 provided peer by doing byte xor operations and counting the resulting bits
+// computes the kademlia distance between 2 provided peers by doing byte xor operations and counting the resulting bits
 func computeDistanceByCountingBits(src peer.ID, dest peer.ID) *big.Int {
 	srcBuff := kbucket.ConvertPeerID(src)
 	destBuff := kbucket.ConvertPeerID(dest)
@@ -201,7 +202,7 @@ func computeDistanceByCountingBits(src peer.ID, dest peer.ID) *big.Int {
 	return big.NewInt(0).SetInt64(int64(cumulatedBits))
 }
 
-// computes the kademlia distance between 2 provided peer by doing byte xor operations and applying log2 on the result
+// computes the kademlia distance between 2 provided peers by doing byte xor operations and applying log2 on the result
 func computeDistanceLog2Based(src peer.ID, dest peer.ID) *big.Int {
 	srcBuff := kbucket.ConvertPeerID(src)
 	destBuff := kbucket.ConvertPeerID(dest)
@@ -209,10 +210,8 @@ func computeDistanceLog2Based(src peer.ID, dest peer.ID) *big.Int {
 	val := 0
 	for i := 0; i < len(srcBuff); i++ {
 		result := srcBuff[i] ^ destBuff[i]
-		if result == 0 {
-			val += 8
-		} else {
-			val += leadingZerosCount[result]
+		val += leadingZerosCount[result]
+		if result != 0 {
 			break
 		}
 	}

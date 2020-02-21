@@ -7,7 +7,7 @@ import (
 
 // Sharder defines the eviction computing process of unwanted peers
 type Sharder interface {
-	ComputeEvictList(pidList []peer.ID) []peer.ID
+	ComputeEvictionList(pidList []peer.ID) []peer.ID
 	Has(pid peer.ID, list []peer.ID) bool
 	PeerShardResolver() p2p.PeerShardResolver
 	IsInterfaceNil() bool

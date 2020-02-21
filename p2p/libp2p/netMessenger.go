@@ -38,7 +38,7 @@ const refreshPeersOnTopic = time.Second * 5
 const ttlPeersOnTopic = time.Second * 30
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
-const durationBetweenPeersPrints = time.Second * 20
+const secondsBetweenPeerPrints = 20
 const defaultThresholdMinConnectedPeers = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -63,7 +63,7 @@ type networkMessenger struct {
 	ip                  *identityProvider
 	targetConnCount     int
 	peerShardResolver   p2p.PeerShardResolver
-	connsDisconnsMetric *metrics.ConnsDisconnsMetric
+	connectionsMetric   *metrics.Connections
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -155,16 +155,16 @@ func createMessenger(
 	}
 
 	netMes := networkMessenger{
-		ctxProvider:         lctx,
-		pb:                  pb,
-		topics:              make(map[string]p2p.MessageProcessor),
-		outgoingPLB:         outgoingPLB,
-		peerDiscoverer:      peerDiscoverer,
-		targetConnCount:     targetConnCount,
-		peerShardResolver:   &unknownPeerShardResolver{},
-		connsDisconnsMetric: metrics.NewConnsDisconnsMetric(),
+		ctxProvider:       lctx,
+		pb:                pb,
+		topics:            make(map[string]p2p.MessageProcessor),
+		outgoingPLB:       outgoingPLB,
+		peerDiscoverer:    peerDiscoverer,
+		targetConnCount:   targetConnCount,
+		peerShardResolver: &unknownPeerShardResolver{},
+		connectionsMetric: metrics.NewConnections(),
 	}
-	lctx.Host().Network().Notify(netMes.connsDisconnsMetric)
+	lctx.Host().Network().Notify(netMes.connectionsMetric)
 
 	err = netMes.createConnectionMonitor()
 	if err != nil {
@@ -202,10 +202,10 @@ func createMessenger(
 
 	go func() {
 		for {
-			time.Sleep(durationBetweenPeersPrints)
+			time.Sleep(secondsBetweenPeerPrints * time.Second)
 
-			conns := netMes.connsDisconnsMetric.ResetNumConnections()
-			disconns := netMes.connsDisconnsMetric.ResetNumDisconnections()
+			conns := netMes.connectionsMetric.ResetNumConnections()
+			disconns := netMes.connectionsMetric.ResetNumDisconnections()
 
 			peersInfo := netMes.GetConnectedPeersInfo()
 			log.Debug("network connection status",
@@ -216,8 +216,8 @@ func createMessenger(
 				"unknown", len(peersInfo.UnknownPeers),
 			)
 
-			connsPerSec := int64(conns) / int64(durationBetweenPeersPrints/time.Second)
-			disconnsPerSec := int64(disconns) / int64(durationBetweenPeersPrints/time.Second)
+			connsPerSec := conns / secondsBetweenPeerPrints
+			disconnsPerSec := disconns / secondsBetweenPeerPrints
 
 			log.Debug("network connection metrics",
 				"connections/s", connsPerSec,
@@ -254,8 +254,12 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 func (netMes *networkMessenger) createConnectionMonitor() error {
 	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
 
-	cmf := connMonitorFactory.NewConnectionMonitorFactory(reconnecter, defaultThresholdMinConnectedPeers, netMes.targetConnCount)
-	connMonitor, err := cmf.Create()
+	arg := connMonitorFactory.ArgsConnectionMonitorFactory{
+		Reconnecter:                reconnecter,
+		ThresholdMinConnectedPeers: defaultThresholdMinConnectedPeers,
+		TargetCount:                netMes.targetConnCount,
+	}
+	connMonitor, err := connMonitorFactory.NewConnectionMonitor(arg)
 	if err != nil {
 		return err
 	}
@@ -639,17 +643,16 @@ func (netMes *networkMessenger) SetPeerShardResolver(
 
 	//TODO refctor this area, do not pass reconnecter as a variable
 	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
-	sharderFactory := factory.NewSharderFactory(
-		reconnecter,
-		peerShardResolver,
-		prioBits,
-		peer.ID(netMes.ID()),
-		netMes.targetConnCount,
-		int(maxIntraShard),
-		int(maxCrossShard),
-	)
-
-	kadSharder, err := sharderFactory.Create()
+	argSharder := factory.ArgsSharderFactory{
+		Reconnecter:        reconnecter,
+		PeerShardResolver:  peerShardResolver,
+		PrioBits:           prioBits,
+		Pid:                peer.ID(netMes.ID()),
+		MaxConnectionCount: netMes.targetConnCount,
+		MaxIntraShard:      int(maxIntraShard),
+		MaxCrossShard:      int(maxCrossShard),
+	}
+	kadSharder, err := factory.NewSharder(argSharder)
 	if err != nil {
 		return err
 	}
@@ -661,12 +664,19 @@ func (netMes *networkMessenger) SetPeerShardResolver(
 	netMes.peerShardResolver = peerShardResolver
 
 	peerDiscovererWithSharder, ok := netMes.peerDiscoverer.(PeerDiscovererWithSharder)
-	if ok {
-		log.Debug("peer discoverer supports sharding, setting component")
-		err = peerDiscovererWithSharder.SetSharder(kadSharder)
-		if err != nil {
-			return err
-		}
+	if !ok {
+		return nil
+	}
+
+	log.Debug("peer discoverer supports sharding, setting component")
+	sharder, isCorrectSharder := kadSharder.(Sharder)
+	if !isCorrectSharder {
+		return fmt.Errorf("%w when setting sharder", p2p.ErrWrongTypeAssertion)
+	}
+
+	err = peerDiscovererWithSharder.SetSharder(sharder)
+	if err != nil {
+		return err
 	}
 
 	return nil

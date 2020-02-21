@@ -1,12 +1,13 @@
-package metrics
+package metrics_test
 
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnsDisconnsMetric_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
+func TestConnections_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -16,7 +17,7 @@ func TestConnsDisconnsMetric_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 		}
 	}()
 
-	cdm := NewConnsDisconnsMetric()
+	cdm := metrics.NewConnections()
 
 	cdm.ClosedStream(nil, nil)
 	cdm.Listen(nil, nil)
@@ -24,10 +25,10 @@ func TestConnsDisconnsMetric_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 	cdm.OpenedStream(nil, nil)
 }
 
-func TestConnsDisconnsMetric_ResetNumConnectionsShouldWork(t *testing.T) {
+func TestConnections_ResetNumConnectionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cdm := NewConnsDisconnsMetric()
+	cdm := metrics.NewConnections()
 
 	cdm.Connected(nil, nil)
 	cdm.Connected(nil, nil)
@@ -42,7 +43,7 @@ func TestConnsDisconnsMetric_ResetNumConnectionsShouldWork(t *testing.T) {
 func TestConnsDisconnsMetric_ResetNumDisconnectionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cdm := NewConnsDisconnsMetric()
+	cdm := metrics.NewConnections()
 
 	cdm.Disconnected(nil, nil)
 	cdm.Disconnected(nil, nil)

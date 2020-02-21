@@ -6,17 +6,18 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type hostWithConnectionManagement struct {
-	sharder Sharder
+	sharder libp2p.Sharder
 	ConnectableHost
 }
 
 // NewHostWithConnectionManagement returns a host wrapper able to decide if connection initiated to a peer
 // will actually be kept or not
-func NewHostWithConnectionManagement(ch ConnectableHost, sharder Sharder) (*hostWithConnectionManagement, error) {
+func NewHostWithConnectionManagement(ch ConnectableHost, sharder libp2p.Sharder) (*hostWithConnectionManagement, error) {
 	if ch == nil {
 		return nil, p2p.ErrNilHost
 	}
@@ -27,10 +28,9 @@ func NewHostWithConnectionManagement(ch ConnectableHost, sharder Sharder) (*host
 	}, nil
 }
 
-// Connect tries to connect connect to pi if the Connections Per Second (hd.cps)
-// allows it.
+// Connect tries to connect to the provided address info if the sharder allows it
 func (hwcm *hostWithConnectionManagement) Connect(ctx context.Context, pi peer.AddrInfo) error {
-	err := hwcm.checkIfCanConnectToPeer(pi.ID)
+	err := hwcm.canConnectToPeer(pi.ID)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (hwcm *hostWithConnectionManagement) Connect(ctx context.Context, pi peer.A
 	return hwcm.ConnectableHost.Connect(ctx, pi)
 }
 
-func (hwcm *hostWithConnectionManagement) checkIfCanConnectToPeer(pid peer.ID) error {
+func (hwcm *hostWithConnectionManagement) canConnectToPeer(pid peer.ID) error {
 	sharder := hwcm.sharder
 	if check.IfNil(sharder) {
 		//no sharder in place, let them connect as usual
@@ -50,7 +50,7 @@ func (hwcm *hostWithConnectionManagement) checkIfCanConnectToPeer(pid peer.ID) e
 		allPeers = append(allPeers, pid)
 	}
 
-	evicted := hwcm.sharder.ComputeEvictList(allPeers)
+	evicted := hwcm.sharder.ComputeEvictionList(allPeers)
 	if hwcm.sharder.Has(pid, evicted) {
 		return fmt.Errorf("%w, pid: %s", p2p.ErrUnwantedPeer, pid.Pretty())
 	}
