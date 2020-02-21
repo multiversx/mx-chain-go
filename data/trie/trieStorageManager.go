@@ -120,13 +120,6 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	return tsm.db
 }
 
-// SetDatabase sets the provided database as the main database
-func (tsm *trieStorageManager) SetDatabase(db data.DBWriteCacher) {
-	tsm.storageOperationMutex.Lock()
-	tsm.db = db
-	tsm.storageOperationMutex.Unlock()
-}
-
 // Clone returns a new instance of trieStorageManager
 func (tsm *trieStorageManager) Clone() data.StorageManager {
 	tsm.storageOperationMutex.Lock()
@@ -284,6 +277,8 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		tsm.storageOperationMutex.Lock()
 
 		snapshot := tsm.snapshotsBuffer.getFirst()
+		log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
+
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
 			tsm.storageOperationMutex.Unlock()
