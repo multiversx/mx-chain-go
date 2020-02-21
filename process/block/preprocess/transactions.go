@@ -498,7 +498,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 	miniBlock, err := txs.createAndProcessMiniBlock(
 		txs.shardCoordinator.SelfId(),
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		txSpaceRemained,
 		haveTime)
 

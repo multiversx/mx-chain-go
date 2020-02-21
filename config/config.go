@@ -115,7 +115,6 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
-	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
 	NTPConfig         NTPConfig
@@ -170,26 +169,8 @@ type HeartbeatConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	DestinationShardAsObserver string
-	StatusPollingIntervalSec   int
-	MaxComputableRounds        uint64
-}
-
-// ExplorerConfig will hold the configuration for the explorer indexer
-type ExplorerConfig struct {
-	Enabled    bool
-	IndexerURL string
-}
-
-// ServersConfig will hold all the confidential settings for servers
-type ServersConfig struct {
-	ElasticSearch ElasticSearchConfig
-}
-
-// ElasticSearchConfig will hold the configuration for the elastic search
-type ElasticSearchConfig struct {
-	Username string
-	Password string
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

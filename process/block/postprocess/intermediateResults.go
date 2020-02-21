@@ -80,7 +80,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}
-	miniBlocks[sharding.MetachainShardId] = &block.MiniBlock{}
+	miniBlocks[core.MetachainShardId] = &block.MiniBlock{}
 
 	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()

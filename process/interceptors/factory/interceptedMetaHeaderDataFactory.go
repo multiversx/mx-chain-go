@@ -16,6 +16,7 @@ type interceptedMetaHeaderDataFactory struct {
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
 	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -38,6 +39,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
@@ -52,6 +56,7 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
 		validityAttester:  argument.ValidityAttester,
+		epochStartTrigger: argument.EpochStartTrigger,
 	}, nil
 }
 
@@ -65,7 +70,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		HeaderSigVerifier: imhdf.headerSigVerifier,
 		ChainID:           imhdf.chainID,
 		ValidityAttester:  imhdf.validityAttester,
-		EpochStartTrigger: &nilEpochTrigger{},
+		EpochStartTrigger: imhdf.epochStartTrigger,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

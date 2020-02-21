@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +56,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	for _, n := range nodes {
 		isSenderShard := n.ShardCoordinator.SelfId() == senderShard
 		isRecvShard := integrationTests.Uint32InSlice(n.ShardCoordinator.SelfId(), recvShards)
-		isRecvMetachain := n.ShardCoordinator.SelfId() == sharding.MetachainShardId
+		isRecvMetachain := n.ShardCoordinator.SelfId() == core.MetachainShardId
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterMetaRcv))
 
@@ -103,7 +102,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
-	node4Meta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2Shard0, node3Shard1, node4Meta}
 
@@ -156,7 +155,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 
 	for _, n := range nodes {
-		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
 			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
@@ -189,8 +188,8 @@ func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2MetaRequester, node3MetaResolver}
 	//update to a "safe" round number
@@ -283,7 +282,7 @@ func requestAndRetrieveMetaHeadersByNonce(
 
 	node.RequestHandler.RequestMetaHeaderByNonce(nonce)
 	time.Sleep(time.Second * 2)
-	retrievedObject, _, _ := node.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	retrievedObject, _, _ := node.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 
 	return retrievedObject
 }

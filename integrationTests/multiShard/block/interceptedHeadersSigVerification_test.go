@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,7 +65,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
 	header = fillHeaderFields(nodesMap[0][0], header, singleSigner)
 	nodesMap[0][0].BroadcastBlock(body, header)
 
@@ -75,7 +75,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
@@ -135,14 +135,15 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	nonce := uint64(1)
 
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		nodesMap,
 		round,
 		nonce,
 		randomness,
+		0,
 	)
 
-	nodesMap[sharding.MetachainShardId][0].BroadcastBlock(body, header)
+	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
 
@@ -151,7 +152,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	hmb := header.(*block.MetaBlock)
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.True(t, hmb.Equal(v))
@@ -214,9 +215,10 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	round := uint64(1)
 	nonce := uint64(1)
 
-	nodeToSendFrom := nodesMap[0][0]
+	// for current randomness, the first selected index will be 2
+	nodeToSendFrom := nodesMap[0][2]
 
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
 	header.SetPrevRandSeed(randomness)
 	header = fillHeaderFields(nodeToSendFrom, header, singleSigner)
 	nodeToSendFrom.BroadcastBlock(body, header)
@@ -227,7 +229,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
@@ -288,7 +290,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	wrongRandomness := []byte("wrong randomness")
 	round := uint64(2)
 	nonce := uint64(2)
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
@@ -298,7 +300,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		_, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Error(t, err)
 	}

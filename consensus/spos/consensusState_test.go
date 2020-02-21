@@ -16,8 +16,13 @@ import (
 func internalInitConsensusState() *spos.ConsensusState {
 	eligibleList := []string{"1", "2", "3"}
 
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesPubKeys,
 		3,
 		"2")
 
@@ -141,11 +146,12 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 		randomness []byte,
 		round uint64,
 		shardId uint32,
+		epoch uint32,
 	) ([]sharding.Validator, error) {
 		return nil, err
 	}
 
-	_, _, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator)
+	_, _, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator, 0)
 	assert.Equal(t, err, err2)
 }
 
@@ -156,7 +162,7 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
-	nextConsensusGroup, rewardAddresses, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator)
+	nextConsensusGroup, rewardAddresses, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator, 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
 	assert.NotNil(t, rewardAddresses)

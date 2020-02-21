@@ -1,17 +1,16 @@
 package metachain
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -93,7 +92,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 	}
 
 	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
-		return bytes.Compare(shardMiniBlockHeaders[i].Hash, shardMiniBlockHeaders[j].Hash) < 0
+		return string(shardMiniBlockHeaders[i].Hash) < string(shardMiniBlockHeaders[j].Hash)
 	})
 
 	return shardMiniBlockHeaders, nil
@@ -103,7 +102,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 	crossShard := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, miniBlockHeader := range metaHdr.MiniBlockHeaders {
-		if miniBlockHeader.ReceiverShardID != sharding.MetachainShardId {
+		if miniBlockHeader.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 
@@ -121,7 +120,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
-			if mbHeader.ReceiverShardID == sharding.MetachainShardId {
+			if mbHeader.ReceiverShardID == core.MetachainShardId {
 				continue
 			}
 

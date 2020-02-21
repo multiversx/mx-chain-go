@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -98,12 +99,12 @@ func (inTxBody *InterceptedTxBlockBody) IsForCurrentShard() bool {
 func (inTxBody *InterceptedTxBlockBody) integrity() error {
 	for _, miniBlock := range inTxBody.txBlockBody.MiniBlocks {
 		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.ReceiverShardID != sharding.MetachainShardId {
+			miniBlock.ReceiverShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
 		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.SenderShardID != sharding.MetachainShardId {
+			miniBlock.SenderShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 

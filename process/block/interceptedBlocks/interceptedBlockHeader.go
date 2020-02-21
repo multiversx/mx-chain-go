@@ -66,7 +66,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
 	isHeaderForCurrentShard := inHdr.shardCoordinator.SelfId() == inHdr.HeaderHandler().GetShardID()
-	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == sharding.MetachainShardId
+	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == core.MetachainShardId
 	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 
@@ -91,7 +91,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
-	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if inHdr.shardCoordinator.SelfId() != core.MetachainShardId {
 		return true
 	}
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {

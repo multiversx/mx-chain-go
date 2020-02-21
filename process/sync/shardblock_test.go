@@ -152,14 +152,14 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 }
 
 func initRounder() consensus.Rounder {
-	round, _ := round.NewRound(
+	roundNb, _ := round.NewRound(
 		time.Now(),
 		time.Now(),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 	)
 
-	return round
+	return roundNb
 }
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {

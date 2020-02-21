@@ -8,8 +8,10 @@ import (
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -24,7 +26,11 @@ var minTxGasLimit = uint64(1000)
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, numOfTxs uint64) error {
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, numOfTxs uint64, sk crypto.PrivateKey) error {
+	if sk == nil {
+		return ErrNilPrivateKey
+	}
+
 	if atomic.LoadInt32(&n.currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
 		return ErrSystemBusyGeneratingTransactions
 	}
@@ -34,7 +40,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
-	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)
+	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex, sk)
 	if err != nil {
 		return err
 	}
@@ -61,6 +67,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				recvAddressBytes,
 				senderAddressBytes,
 				"",
+				sk,
 			)
 
 			if errGenTx != nil {
@@ -120,9 +127,6 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	if numOfTxs == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
-	if n.txSignPubKey == nil {
-		return ErrNilPublicKey
-	}
 	if n.txSingleSigner == nil {
 		return ErrNilSingleSig
 	}
@@ -139,8 +143,8 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	return nil
 }
 
-func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64, []byte, []byte, uint32, error) {
-	senderAddressBytes, err := n.txSignPubKey.ToByteArray()
+func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk crypto.PrivateKey) (uint64, []byte, []byte, uint32, error) {
+	senderAddressBytes, err := sk.GeneratePublic().ToByteArray()
 	if err != nil {
 		return 0, nil, nil, 0, err
 	}
@@ -182,12 +186,12 @@ func (n *Node) generateAndSignSingleTx(
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
 	dataField string,
+	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-
-	if n.protoMarshalizer == nil {
+	if check.IfNil(n.marshalizer) {
 		return nil, nil, ErrNilMarshalizer
 	}
-	if n.txSignPrivKey == nil {
+	if check.IfNil(sk) {
 		return nil, nil, ErrNilPrivateKey
 	}
 
@@ -206,7 +210,7 @@ func (n *Node) generateAndSignSingleTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.txSingleSigner.Sign(n.txSignPrivKey, marshalizedTx)
+	sig, err := n.txSingleSigner.Sign(sk, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}
@@ -226,9 +230,9 @@ func (n *Node) generateAndSignTxBuffArray(
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
 	data string,
+	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-
-	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, data)
+	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, data, sk)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,14 +246,14 @@ func (n *Node) generateAndSignTxBuffArray(
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
 	if n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, ErrNilAccountsAdapter
 	}
-	if n.txSignPrivKey == nil {
+	if privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
@@ -278,7 +282,8 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		value,
 		receiverAddress.Bytes(),
 		senderAddress.Bytes(),
-		transactionData)
+		transactionData,
+		privateKey)
 
 	return tx, err
 }

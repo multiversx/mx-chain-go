@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +50,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
-	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
@@ -184,7 +184,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		0,
 		advertiserAddr,
 	)
@@ -192,7 +192,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		0,
 		advertiserAddr,
 	)
@@ -315,9 +315,9 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
-	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
-	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
@@ -477,8 +477,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasPrice,
 	)
 
-	randomness := generateInitialRandomness(uint32(maxShards))
-	_, _, consensusNodes, _ := integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 	shardId0 := uint32(0)
 	leaderPkBytes := consensusNodes[shardId0][0].SpecialAddressHandler.LeaderAddress()
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)

@@ -8,8 +8,8 @@ import (
 	io "io"
 	"io/ioutil"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // don't break the interface
@@ -17,7 +17,7 @@ var _ = data.HeaderHandler(&MetaBlock{})
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
-	return sharding.MetachainShardId
+	return core.MetachainShardId
 }
 
 // SetNonce sets header nonce

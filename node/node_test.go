@@ -251,7 +251,6 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -265,7 +264,6 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -284,7 +282,6 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
-	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -292,7 +289,6 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
 	_, err := n.GetBalance("address")
@@ -308,14 +304,12 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 	)
 	_, err := n.GetBalance(createDummyHexAddress(64))
 	assert.NotNil(t, err)
@@ -341,14 +335,12 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 	)
 	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
@@ -359,14 +351,12 @@ func TestGetBalance(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(100))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 	)
 	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
@@ -376,15 +366,14 @@ func TestGetBalance(t *testing.T) {
 //------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
-
+	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
 	assert.NotNil(t, err)
 }
 
@@ -395,9 +384,8 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", &mock.PrivateKeyStub{})
 	assert.NotNil(t, err)
 }
 
@@ -410,7 +398,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", nil)
 	assert.NotNil(t, err)
 }
 
@@ -425,9 +413,8 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
 	assert.NotNil(t, err)
 }
 
@@ -446,10 +433,9 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(&mock.SinglesignMock{}),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.NotNil(t, err)
 }
 
@@ -471,10 +457,9 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.Nil(t, err)
 }
 
@@ -492,10 +477,9 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.Nil(t, err)
 }
 
@@ -516,10 +500,9 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
 	assert.NotNil(t, err)
 }
 
@@ -537,10 +520,9 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.NotNil(t, err)
 }
 
@@ -559,11 +541,10 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.Nil(t, err)
 	assert.Equal(t, signature, tx.Signature)
 }
@@ -593,11 +574,10 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 }
@@ -616,10 +596,9 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(privateKey),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
 	assert.Nil(t, err)
 }
 
@@ -632,7 +611,6 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 
 	nonce := uint64(0)
@@ -662,7 +640,6 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 				return state.NewAddress([]byte(hexAddress)), nil
 			},
 		}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 
 	nonce := uint64(0)
@@ -694,7 +671,6 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 
 	nonce := uint64(0)
@@ -726,7 +702,6 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 			},
 		}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 	)
 
 	nonce := uint64(0)
@@ -1130,29 +1105,6 @@ func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
 	require.Equal(t, node.ErrNilMessenger, err)
 }
 
-func TestNode_GetCurrentPubKey(t *testing.T) {
-	t.Parallel()
-
-	publicKey := "publicKey"
-	n, _ := node.NewNode(node.WithTxSignPubKey(&mock.PublicKeyMock{ToByteArrayHandler: func() (i []byte, err error) {
-		return []byte(publicKey), nil
-	}}))
-
-	pubKey := n.GetCurrentPublicKey()
-
-	expectedKey := fmt.Sprintf("%x", []byte(publicKey))
-	require.Equal(t, expectedKey, pubKey)
-}
-
-func TestNode_GetCurrentPubKeyNilTxSignPubKey(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-
-	pubKey := n.GetCurrentPublicKey()
-	require.Equal(t, "", pubKey)
-}
-
 func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
@@ -1283,7 +1235,6 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -1324,7 +1275,6 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -1653,7 +1603,7 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 		}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 
 	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
 
@@ -1677,7 +1627,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithGenesisTime(time.Now().Local()),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, chronology.ErrNilSyncTimer, err)
 }
 
@@ -1701,7 +1651,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
 }
 
@@ -1733,9 +1683,18 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, localErr, err)
 }
 
@@ -1773,9 +1732,17 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1791,7 +1758,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		},
 	}
 	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = sharding.MetachainShardId
+	shardingCoordinator.CurrentShard = core.MetachainShardId
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return nil
@@ -1809,9 +1776,18 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 				return &mock.MiniBlocksResolverStub{}, nil
 			},
 		}),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1842,7 +1818,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(store),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, sharding.ErrShardIdOutOfRange, err)
 }
 
@@ -1930,9 +1906,12 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			},
 		}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, localErr, err)
 }
 
@@ -2019,9 +1998,12 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			},
 		}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
 
@@ -2132,10 +2114,14 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithMultiSigner(&mock.MultisignMock{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus()
+	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
+	err := n.StartConsensus(0)
 	assert.Nil(t, err)
 }
 
@@ -2487,7 +2473,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			return nil
 		},
 	}
-	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithVmMarshalizer(marshalizer),
@@ -2495,9 +2480,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(sk),
 		node.WithKeyGenForAccounts(keyGen),
-		node.WithTxSignPubKey(pk),
 		node.WithTxSingleSigner(signer),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithMessenger(mes),

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,13 +34,13 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	}
 }
 
-func createBlockBody() *block.Body {
+func createBlockBody() block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			&block.MiniBlock{
 				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
 				ReceiverShardID: 0,
-				SenderShardID:   sharding.MetachainShardId,
+				SenderShardID:   core.MetachainShardId,
 				Type:            block.SmartContractResultBlock,
 			},
 		},

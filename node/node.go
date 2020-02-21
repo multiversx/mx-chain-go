@@ -66,7 +66,6 @@ type Node struct {
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
 	initialNodesPubkeys      map[uint32][]string
-	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                P2PMessenger
@@ -75,6 +74,7 @@ type Node struct {
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
 	epochStartTrigger        epochStart.TriggerHandler
+	epochStartSubscriber     epochStart.EpochStartSubscriber
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -85,8 +85,6 @@ type Node struct {
 	appStatusHandler         core.AppStatusHandler
 	validatorStatistics      process.ValidatorStatisticsProcessor
 
-	txSignPrivKey     crypto.PrivateKey
-	txSignPubKey      crypto.PublicKey
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
 	keyGen            crypto.KeyGenerator
@@ -234,7 +232,7 @@ func (n *Node) CreateShardedStores() error {
 }
 
 // StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus() error {
+func (n *Node) StartConsensus(epoch uint32) error {
 	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
 		n.blkc.GetGenesisHeader() == nil
 	if isGenesisBlockNotInitialized {
@@ -258,7 +256,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSync()
 
-	consensusState, err := n.createConsensusState()
+	consensusState, err := n.createConsensusState(epoch)
 	if err != nil {
 		return err
 	}
@@ -312,21 +310,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	consensusArgs := &spos.ConsensusCoreArgs{
+		BlockChain:           n.blkc,
+		BlockProcessor:       n.blockProcessor,
+		Bootstrapper:         bootstrapper,
+		BroadcastMessenger:   broadcastMessenger,
+		ChronologyHandler:    chronologyHandler,
+		Hasher:               n.hasher,
+		Marshalizer:          n.protoMarshalizer,
+		BlsPrivateKey:        n.privKey,
+		BlsSingleSigner:      n.singleSigner,
+		MultiSigner:          n.multiSigner,
+		Rounder:              n.rounder,
+		ShardCoordinator:     n.shardCoordinator,
+		NodesCoordinator:     n.nodesCoordinator,
+		SyncTimer:            n.syncTimer,
+		EpochStartSubscriber: n.epochStartSubscriber,
+	}
+
 	consensusDataContainer, err := spos.NewConsensusCore(
-		n.blkc,
-		n.blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		chronologyHandler,
-		n.hasher,
-		n.protoMarshalizer,
-		n.privKey,
-		n.singleSigner,
-		n.multiSigner,
-		n.rounder,
-		n.shardCoordinator,
-		n.nodesCoordinator,
-		n.syncTimer,
+		consensusArgs,
 	)
 	if err != nil {
 		return err
@@ -408,7 +411,7 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 		return n.createShardBootstrapper(rounder)
 	}
 
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if n.shardCoordinator.SelfId() == core.MetachainShardId {
 		return n.createMetaChainBootstrapper(rounder)
 	}
 
@@ -432,6 +435,8 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -504,6 +509,8 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -563,14 +570,19 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 }
 
 // createConsensusState method creates a consensusState object
-func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
+func (n *Node) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
+	eligibleNodesPubKeys, err := n.nodesCoordinator.GetConsensusWhitelistedNodes(epoch)
+	if err != nil {
+		return nil, err
+	}
+
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
+		eligibleNodesPubKeys,
 		n.consensusGroupSize,
 		string(selfId))
 
@@ -848,15 +860,6 @@ func (n *Node) CreateTransaction(
 //GetTransaction gets the transaction
 func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
-}
-
-// GetCurrentPublicKey will return the current node's public key
-func (n *Node) GetCurrentPublicKey() string {
-	if n.txSignPubKey != nil {
-		pkey, _ := n.txSignPubKey.ToByteArray()
-		return fmt.Sprintf("%x", pkey)
-	}
-	return ""
 }
 
 // GetAccount will return acount details for a given address

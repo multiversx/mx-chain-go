@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -19,7 +20,6 @@ import (
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -641,12 +641,12 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 
 	highestNonce := uint64(10)
-	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[sharding.MetachainShardId], arguments.Hasher, arguments.Marshalizer)
+	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[core.MetachainShardId], arguments.Hasher, arguments.Marshalizer)
 
-	err := sp.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
+	err := sp.SaveLastNotarizedHeader(core.MetachainShardId, prHdrs)
 	assert.Nil(t, err)
 
-	assert.Equal(t, highestNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
+	assert.Equal(t, highestNonce, sp.LastNotarizedHdrForShard(core.MetachainShardId).GetNonce())
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
@@ -666,7 +666,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
@@ -694,7 +694,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
@@ -725,5 +725,69 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMatch(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	hasher := &mock.HasherStub{ComputeCalled: func(s string) []byte {
+		return nil
+	}}
+	arguments.Hasher = hasher
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 5
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 100
+		},
+	}
+
+	randSeed := []byte("randseed")
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch:    3,
+				RandSeed: randSeed,
+			}
+		},
+	}
+	rootHash, _ := arguments.Accounts.RootHash()
+	epochStartHash := []byte("epochStartHash")
+	header := &block.Header{
+		Round:              10,
+		Nonce:              1,
+		Epoch:              3,
+		RandSeed:           randSeed,
+		PrevRandSeed:       randSeed,
+		EpochStartMetaHash: epochStartHash,
+		RootHash:           rootHash,
+	}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
+
+	metaHdr := &block.MetaBlock{}
+	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
+
+	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+
+	hasher.ComputeCalled = func(s string) []byte {
+		if bytes.Equal([]byte(s), metaHdrData) {
+			return epochStartHash
+		}
+		return nil
+	}
+
+	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.Nil(t, err)
 }

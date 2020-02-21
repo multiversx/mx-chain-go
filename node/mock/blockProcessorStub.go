@@ -109,7 +109,7 @@ func (bps *BlockProcessorStub) SetConsensusData(randomness []byte, round uint64,
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 
