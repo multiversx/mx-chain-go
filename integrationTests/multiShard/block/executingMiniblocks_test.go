@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -344,110 +345,89 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	}
 }
 
-//func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
-//	//TODO fix this test
-//	t.Skip("TODO fix this test")
-//	if testing.Short() {
-//		t.Skip("this is not a short test")
-//	}
-//	nodesPerShard := 2
-//	shardConsensusGroupSize := 2
-//	nbMetaNodes := 400
-//	nbShards := 1
-//	consensusGroupSize := 400
-//
-//	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-//	_ = advertiser.Bootstrap()
-//
-//	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-//
-//	cacheMut := &sync.Mutex{}
-//
-//	getCounter := 0
-//	putCounter := 0
-//	cacheMap := make(map[string]interface{})
-//	cache := &mock.NodesCoordinatorCacheMock{
-//		PutCalled: func(key []byte, value interface{}) (evicted bool) {
-//			cacheMut.Lock()
-//			defer cacheMut.Unlock()
-//			putCounter++
-//			cacheMap[string(key)] = value
-//			return false
-//		},
-//		GetCalled: func(key []byte) (value interface{}, ok bool) {
-//			cacheMut.Lock()
-//			defer cacheMut.Unlock()
-//			getCounter++
-//			val, ok := cacheMap[string(key)]
-//			if ok {
-//				return val, true
-//			}
-//			return nil, false
-//		},
-//	}
-//
-//	// create map of shard - testNodeProcessors for metachain and shard chain
-//	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
-//		nodesPerShard,
-//		nbMetaNodes,
-//		nbShards,
-//		shardConsensusGroupSize,
-//		consensusGroupSize,
-//		seedAddress,
-//		cache,
-//	)
-//
-//	roundsPerEpoch := uint64(1000)
-//	maxGasLimitPerBlock := uint64(100000)
-//	gasPrice := uint64(10)
-//	gasLimit := uint64(100)
-//	for _, nodes := range nodesMap {
-//		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
-//		integrationTests.DisplayAndStartNodes(nodes[0:1])
-//
-//		for _, node := range nodes {
-//			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
-//		}
-//	}
-//
-//	defer func() {
-//		_ = advertiser.Close()
-//		for _, nodes := range nodesMap {
-//			for _, n := range nodes {
-//				_ = n.Node.Stop()
-//			}
-//		}
-//	}()
-//
-//	round := uint64(1)
-//	roundDifference := 10
-//	nonce := uint64(1)
-//
-//	firstNodeOnMeta := nodesMap[sharding.MetachainShardId][0]
-//	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
-//
-//	// set bitmap for all consensus nodes signing
-//	bitmap := make([]byte, consensusGroupSize/8+1)
-//	for i := range bitmap {
-//		bitmap[i] = 0xFF
-//	}
-//
-//	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
-//	header.SetPubKeysBitmap(bitmap)
-//
-//	firstNodeOnMeta.CommitBlock(body, header)
-//
-//	round += uint64(roundDifference)
-//	nonce++
-//	putCounter = 0
-//
-//	cacheMut.Lock()
-//	for k := range cacheMap {
-//		delete(cacheMap, k)
-//	}
-//	cacheMut.Unlock()
-//
-//	firstNodeOnMeta.ProposeBlock(round, nonce)
-//
-//	assert.Equal(t, roundDifference, putCounter)
-//}
+func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
+	//TODO fix this test
+	t.Skip("TODO fix this test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	nodesPerShard := 2
+	shardConsensusGroupSize := 2
+	nbMetaNodes := 400
+	nbShards := 1
+	consensusGroupSize := 400
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	cacheMut := &sync.Mutex{}
+
+	putCounter := 0
+	cacheMap := make(map[string]interface{})
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		shardConsensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	roundsPerEpoch := uint64(1000)
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes[0:1])
+
+		for _, node := range nodes {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	roundDifference := 10
+	nonce := uint64(1)
+
+	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
+	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	// set bitmap for all consensus nodes signing
+	bitmap := make([]byte, consensusGroupSize/8+1)
+	for i := range bitmap {
+		bitmap[i] = 0xFF
+	}
+
+	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
+	header.SetPubKeysBitmap(bitmap)
+
+	firstNodeOnMeta.CommitBlock(body, header)
+
+	round += uint64(roundDifference)
+	nonce++
+	putCounter = 0
+
+	cacheMut.Lock()
+	for k := range cacheMap {
+		delete(cacheMap, k)
+	}
+	cacheMut.Unlock()
+
+	firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	assert.Equal(t, roundDifference, putCounter)
+}

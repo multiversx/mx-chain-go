@@ -500,6 +500,18 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 		return nil
 	}
 
+	_, ok := ps.persistersMapByEpoch[epoch]
+	if ok {
+		err := ps.changeEpochWithExisting(epoch)
+		if err != nil {
+			log.Warn("change epoch", "epoch", epoch, "error", err)
+			return err
+		}
+		log.Info("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
+
+		return nil
+	}
+
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
@@ -507,7 +519,7 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
-		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
+		log.Warn("change epoch", "persister", ps.identifier, "error", err.Error())
 		return err
 	}
 
@@ -528,9 +540,39 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 
 	err = ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
-		log.Debug("closing and destroying old persister", "error", err.Error())
+		log.Warn("closing and destroying old persister", "error", err.Error())
 		return err
 	}
+
+	return nil
+}
+
+func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
+	var err error
+	activePersisters := make([]*persisterData, 0, ps.numOfActivePersisters)
+
+	oldestEpochActive := int64(epoch) - int64(ps.numOfActivePersisters) + 1
+	if oldestEpochActive < 0 {
+		oldestEpochActive = 0
+	}
+
+	for e := int64(epoch); e >= oldestEpochActive; e-- {
+		p, ok := ps.persistersMapByEpoch[uint32(e)]
+		if !ok {
+			return nil
+		}
+
+		if p.isClosed {
+			_, err = ps.persisterFactory.Create(p.path)
+			if err != nil {
+				return err
+			}
+		}
+
+		activePersisters = append(activePersisters, p)
+	}
+
+	ps.activePersisters = activePersisters
 
 	return nil
 }

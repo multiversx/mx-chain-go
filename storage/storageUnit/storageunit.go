@@ -388,7 +388,7 @@ func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	case Keccak:
 		return keccak.Keccak{}, nil
 	case Blake2b:
-		return blake2b.Blake2b{}, nil
+		return &blake2b.Blake2b{}, nil
 	case Fnv:
 		return fnv.Fnv{}, nil
 	default:
