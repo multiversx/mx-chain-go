@@ -64,7 +64,7 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 	return nil, nil
 }
 
-// updatePeersListAndIndex -
+// UpdatePeerAccounts -
 func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerAccounts() error {
 	return nil
 }

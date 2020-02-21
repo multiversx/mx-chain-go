@@ -97,6 +97,46 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilHeartbeatStorer, err)
 }
 
+func TestNewMonitor_NilEligibleListProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := mock.NewMockTimer()
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		nil,
+		&mock.EpochStartTriggerStub{},
+		th,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilEligibleListProvider, err)
+}
+
+func TestNewMonitor_NilEpochHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := mock.NewMockTimer()
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		&mock.EligibleListProviderStub{},
+		nil,
+		th,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilEpochHandler, err)
+}
+
 func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 

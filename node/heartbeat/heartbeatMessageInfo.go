@@ -19,13 +19,13 @@ type heartbeatMessageInfo struct {
 	genesisTime        time.Time
 	versionNumber      string
 	nodeDisplayName    string
+	peerList           string
 	receivedShardID    uint32
 	computedShardID    uint32
 	updateMutex        sync.Mutex
 	getTimeHandler     func() time.Time
 	isActive           bool
 	isValidator        bool
-	isInEligibleList   bool
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -146,7 +146,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	receivedshardID uint32,
 	version string,
 	nodeDisplayName string,
-	isInEligibleList bool,
+	peerList string,
 ) {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
@@ -156,7 +156,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.receivedShardID = receivedshardID
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
-	hbmi.isInEligibleList = isInEligibleList
+	hbmi.peerList = peerList
 
 	hbmi.updateTimes(crtTime)
 	hbmi.timeStamp = crtTime

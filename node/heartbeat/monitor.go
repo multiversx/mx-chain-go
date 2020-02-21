@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"sort"
 	"strings"
 	"sync"
@@ -55,7 +54,7 @@ func NewMonitor(
 		return nil, ErrNilMarshalizer
 	}
 	if check.IfNil(eligibleListProvider) {
-		return nil, errors.New("nil eligible list provider")
+		return nil, ErrNilEligibleListProvider
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
@@ -68,6 +67,9 @@ func NewMonitor(
 	}
 	if check.IfNil(timer) {
 		return nil, ErrNilTimer
+	}
+	if check.IfNil(epochHandler) {
+		return nil, ErrNilEpochHandler
 	}
 
 	mon := &Monitor{
@@ -242,7 +244,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
-	isInEligibleList := m.isInEligibleList(hb.Pubkey, computedShardID)
+	isInEligibleList := m.computePeerList(hb.Pubkey, computedShardID)
 
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, isInEligibleList)
 	hbDTO := m.convertToExportedStruct(hbmi)
@@ -293,20 +295,23 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 
-func (m *Monitor) isInEligibleList(pubkey []byte, shardID uint32) bool {
+func (m *Monitor) computePeerList(pubkey []byte, shardID uint32) string {
+	peerList := core.WaitingList
 	nodesMap, err := m.eligibleListProvider.GetNodesPerShard(m.epochHandler.Epoch())
 	if err != nil {
-		return false
+		log.Warn("heartbeat monitor: error getting nodes per shard", "error", err.Error())
+		return string(core.NewList)
 	}
 
 	validatorsInShard := nodesMap[shardID]
 	for _, validator := range validatorsInShard {
 		if bytes.Equal(validator.PubKey(), pubkey) {
-			return true
+			peerList = core.EligibleList
+			break
 		}
 	}
 
-	return false
+	return string(peerList)
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {
@@ -348,18 +353,18 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
-			HexPublicKey:     hex.EncodeToString([]byte(k)),
-			TimeStamp:        v.timeStamp,
-			MaxInactiveTime:  v.maxInactiveTime,
-			IsActive:         v.isActive,
-			ReceivedShardID:  v.receivedShardID,
-			ComputedShardID:  v.computedShardID,
-			TotalUpTime:      int(v.totalUpTime.Seconds()),
-			TotalDownTime:    int(v.totalDownTime.Seconds()),
-			VersionNumber:    v.versionNumber,
-			IsValidator:      v.isValidator,
-			NodeDisplayName:  v.nodeDisplayName,
-			IsInEligibleList: v.isInEligibleList,
+			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			TimeStamp:       v.timeStamp,
+			MaxInactiveTime: v.maxInactiveTime,
+			IsActive:        v.isActive,
+			ReceivedShardID: v.receivedShardID,
+			ComputedShardID: v.computedShardID,
+			TotalUpTime:     int(v.totalUpTime.Seconds()),
+			TotalDownTime:   int(v.totalDownTime.Seconds()),
+			VersionNumber:   v.versionNumber,
+			IsValidator:     v.isValidator,
+			NodeDisplayName: v.nodeDisplayName,
+			PeerList:        v.peerList,
 		}
 		idx++
 	}
@@ -393,7 +398,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		NodeDisplayName:    v.nodeDisplayName,
 		LastUptimeDowntime: v.lastUptimeDowntime,
 		GenesisTime:        v.genesisTime,
-		IsInEligibleList:   v.isInEligibleList,
+		PeerList:           v.peerList,
 	}
 }
 
@@ -412,6 +417,6 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		isValidator:                 hbDTO.IsValidator,
 		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
 		genesisTime:                 hbDTO.GenesisTime,
-		isInEligibleList:            hbDTO.IsInEligibleList,
+		peerList:                    hbDTO.PeerList,
 	}
 }

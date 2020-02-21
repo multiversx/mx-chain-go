@@ -567,8 +567,11 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReader signals that nil rating reader has been provided
-var ErrNilRatingReader = errors.New("nil rating reader")
+// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
+var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
+
+// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
+var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")

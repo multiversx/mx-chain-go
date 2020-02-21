@@ -112,7 +112,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
 
 	if !ok {
-		return nil, process.ErrNilRatingReader
+		return nil, process.ErrNilRatingReaderSetter
 	}
 	log.Debug("setting ratingReader")
 
@@ -124,7 +124,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	listIndexUpdaterSetter, ok := rater.(sharding.ListIndexUpdaterSetter)
 	if !ok {
-		return nil, process.ErrNilRatingReader
+		return nil, process.ErrNilListIndexUpdaterSetter
 	}
 	log.Debug("setting list index updater")
 

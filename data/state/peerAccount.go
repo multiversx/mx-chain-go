@@ -371,12 +371,6 @@ func (pa *PeerAccount) GetRating() uint32 {
 	return pa.Rating
 }
 
-// SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it
-func (pa *PeerAccount) SetListAndIndex(list string, index int) {
-	pa.List = list
-	pa.IndexInList = index
-}
-
 // SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
 func (pa *PeerAccount) SetListAndIndexWithJournal(list string, index int) error {
 	entry, err := NewPeerJournalEntryListIndex(pa, pa.List, pa.IndexInList)
