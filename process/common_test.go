@@ -1974,6 +1974,7 @@ func ExampleSortTransactionsByNonceAndSender() {
 		&transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")},
 		&transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")},
 		&transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")},
+		&transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")},
 		&transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")},
 	}
 
@@ -1985,6 +1986,7 @@ func ExampleSortTransactionsByNonceAndSender() {
 		[]byte("t"),
 		[]byte("a"),
 		[]byte("b"),
+		[]byte("c"),
 	}
 
 	items := process.SortTransactionsByNonceAndSender(transactions, hashes)
@@ -1997,7 +1999,8 @@ func ExampleSortTransactionsByNonceAndSender() {
 	// 1 aaaa x
 	// 2 aaaa z
 	// 3 bbbb w
-	// 3 eeee b
+	// 3 eeee c
+	// 3 ffff b
 	// 5 bbbb y
 	// 6 aabb a
 	// 7 aabb t

@@ -641,7 +641,7 @@ type TransactionWithHash struct {
 	Hash        []byte
 }
 
-// SortTransactionsByNonceAndSender sorts
+// SortTransactionsByNonceAndSender sorts the provided transactions and hashes simultaneously
 func SortTransactionsByNonceAndSender(transactions []data.TransactionHandler, hashes [][]byte) []TransactionWithHash {
 	if len(transactions) != len(hashes) {
 		return nil
