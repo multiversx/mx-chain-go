@@ -288,6 +288,12 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 			continue
 		}
 		db := tsm.getSnapshotDb(snapshot.newDb)
+		if check.IfNil(db) {
+			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+
+			log.Error("trie storage manager: getSnapshotDb error")
+			continue
+		}
 
 		tsm.storageOperationMutex.Unlock()
 
