@@ -54,7 +54,6 @@ func NewTrieFactory(
 
 // Create creates a new trie
 func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnabled bool) (data.Trie, error) {
-
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(tc.shardId, trieStorageCfg.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(trieStorageCfg.DB)
@@ -94,9 +93,15 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		return nil, err
 	}
 
-	tc.snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath)
+	snapshotDbCfg := &config.DBConfig{
+		FilePath:          filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath),
+		Type:              tc.snapshotDbCfg.Type,
+		BatchDelaySeconds: tc.snapshotDbCfg.BatchDelaySeconds,
+		MaxBatchSize:      tc.snapshotDbCfg.MaxBatchSize,
+		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
+	}
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &tc.snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, snapshotDbCfg, ewl)
 	if err != nil {
 		return nil, err
 	}

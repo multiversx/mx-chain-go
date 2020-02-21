@@ -1018,7 +1018,7 @@ func (bp *baseProcessor) updateAccountsStateStorage(finalHeader data.HeaderHandl
 		}
 	}
 
-	prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeader.GetPrevHash(), bp.marshalizer, bp.store)
+	prevHeader, errNotCritical := bp.getPreviousHeader(finalHeader)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 		return
@@ -1037,6 +1037,18 @@ func (bp *baseProcessor) updateAccountsStateStorage(finalHeader data.HeaderHandl
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
+}
+
+func (bp *baseProcessor) getPreviousHeader(header data.HeaderHandler) (data.HeaderHandler, error) {
+	if _, ok := header.(*block.MetaBlock); ok {
+		return process.GetMetaHeaderFromStorage(header.GetPrevHash(), bp.marshalizer, bp.store)
+	}
+
+	if _, ok := header.(*block.Header); ok {
+		return process.GetShardHeaderFromStorage(header.GetPrevHash(), bp.marshalizer, bp.store)
+	}
+
+	return nil, process.ErrWrongTypeAssertion
 }
 
 func (bp *baseProcessor) updatePeerStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
@@ -1065,7 +1077,7 @@ func (bp *baseProcessor) updatePeerStateStorage(finalHeader data.HeaderHandler, 
 		}
 	}
 
-	prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeader.GetPrevHash(), bp.marshalizer, bp.store)
+	prevHeader, errNotCritical := bp.getPreviousHeader(finalHeader)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 		return
