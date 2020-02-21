@@ -3,8 +3,8 @@ package libp2p
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,5 +23,5 @@ func TestUnknownPeerShardResolver_ByIDShouldReturnUnknownId(t *testing.T) {
 
 	upsr := &unknownPeerShardResolver{}
 
-	assert.Equal(t, sharding.UnknownShardId, upsr.ByID(""))
+	assert.Equal(t, core.UnknownShardId, upsr.ByID(""))
 }

@@ -16,13 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -77,11 +78,12 @@ func NewTestP2PNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
 	pkShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
 	pidShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
-	tP2pNode.NetworkShardingUpdater, err = networkSharding.NewPeerShardMapper(
+	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
 		pidPk,
 		pkShardId,
 		pidShardId,
 		coordinator,
+		&mock.EpochStartTriggerStub{},
 	)
 	if err != nil {
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
@@ -136,7 +138,7 @@ func createCustomMessenger(
 }
 
 func (tP2pNode *TestP2PNode) initStorage() {
-	if tP2pNode.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tP2pNode.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tP2pNode.Storage = CreateMetaStore(tP2pNode.ShardCoordinator)
 	} else {
 		tP2pNode.Storage = CreateShardStore(tP2pNode.ShardCoordinator.NumberOfShards())
@@ -152,6 +154,10 @@ func (tP2pNode *TestP2PNode) initCrypto() {
 func (tP2pNode *TestP2PNode) initNode() {
 	var err error
 
+	validators, err := tP2pNode.NodesCoordinator.GetAllValidatorsPublicKeys(0)
+	if err != nil {
+		fmt.Println(err)
+	}
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
 		node.WithMarshalizer(TestMarshalizer, 100),
@@ -164,7 +170,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithPubKey(tP2pNode.NodeKeys.Pk),
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithDataStore(tP2pNode.Storage),
-		node.WithInitialNodesPubKeys(convertInitialPks(tP2pNode.NodesCoordinator.GetAllValidatorsPublicKeys())),
+		node.WithInitialNodesPubKeys(convertInitialPks(validators)),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
@@ -186,7 +192,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 func (tP2pNode *TestP2PNode) CreateTestInterceptors() {
 	tP2pNode.RegisterTopicValidator(GlobalTopic, tP2pNode.Interceptor)
 
-	metaIdentifier := ShardTopic + tP2pNode.ShardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+	metaIdentifier := ShardTopic + tP2pNode.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	tP2pNode.RegisterTopicValidator(metaIdentifier, tP2pNode.Interceptor)
 
 	for i := uint32(0); i < tP2pNode.ShardCoordinator.NumberOfShards(); i++ {
@@ -210,8 +216,8 @@ func (tP2pNode *TestP2PNode) CountIntraShardMessages() int {
 func (tP2pNode *TestP2PNode) CountCrossShardMessages() int {
 	messages := 0
 
-	if tP2pNode.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-		metaIdentifier := ShardTopic + tP2pNode.ShardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+	if tP2pNode.ShardCoordinator.SelfId() != core.MetachainShardId {
+		metaIdentifier := ShardTopic + tP2pNode.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 		messages += tP2pNode.Interceptor.MessageCount(metaIdentifier)
 	}
 
@@ -282,14 +288,19 @@ func CreateNodesWithTestP2PNodes(
 			Hasher:                  TestHasher,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
+			EligibleNodes:           validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
+			Shuffler:                &mock.NodeShufflerMock{},
+			BootStorer:              CreateMemUnit(),
+			WaitingNodes:            make(map[uint32][]sharding.Validator),
+			Epoch:                   0,
+			EpochStartSubscriber:    &mock.EpochStartNotifierStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
-			fmt.Println("Error creating node coordinator")
+			fmt.Println("Error creating node coordinator " + err.Error())
 		}
 
 		nodesList := make([]*TestP2PNode, len(validatorList))

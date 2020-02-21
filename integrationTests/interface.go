@@ -23,6 +23,11 @@ type TestEpochStartTrigger interface {
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
 
+// BlockProcessorInitializer offers initialization for block processor
+type BlockProcessorInitializer interface {
+	InitBlockProcessor()
+}
+
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	ByID(pid p2p.PeerID) (shardId uint32)

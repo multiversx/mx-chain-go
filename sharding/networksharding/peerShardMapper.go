@@ -1,6 +1,7 @@
-package networkSharding
+package networksharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -14,6 +15,7 @@ type PeerShardMapper struct {
 	fallbackPidShard storage.Cacher
 
 	nodesCoordinator sharding.NodesCoordinator
+	epochHandler     sharding.EpochHandler
 }
 
 // NewPeerShardMapper creates a new peerShardMapper instance
@@ -22,6 +24,7 @@ func NewPeerShardMapper(
 	fallbackPkShard storage.Cacher,
 	fallbackPidShard storage.Cacher,
 	nodesCoordinator sharding.NodesCoordinator,
+	epochHandler sharding.EpochHandler,
 ) (*PeerShardMapper, error) {
 
 	if check.IfNil(nodesCoordinator) {
@@ -36,12 +39,16 @@ func NewPeerShardMapper(
 	if check.IfNil(fallbackPidShard) {
 		return nil, sharding.ErrNilCacher
 	}
+	if check.IfNil(epochHandler) {
+		return nil, sharding.ErrNilEpochHandler
+	}
 
 	return &PeerShardMapper{
 		peerIdPk:         peerIdPk,
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
 		nodesCoordinator: nodesCoordinator,
+		epochHandler:     epochHandler,
 	}, nil
 }
 
@@ -64,17 +71,17 @@ func (psm *PeerShardMapper) ByID(pid p2p.PeerID) (shardId uint32) {
 func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
-		return sharding.UnknownShardId, nil, false
+		return core.UnknownShardId, nil, false
 	}
 
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
-		return sharding.UnknownShardId, nil, false
+		return core.UnknownShardId, nil, false
 	}
 
-	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff)
+	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, psm.epochHandler.Epoch())
 	if err != nil {
-		return sharding.UnknownShardId, pkBuff, false
+		return core.UnknownShardId, pkBuff, false
 	}
 
 	return shardId, pkBuff, true
@@ -82,17 +89,17 @@ func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId ui
 
 func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
 	if len(pkBuff) == 0 {
-		return sharding.UnknownShardId, false
+		return core.UnknownShardId, false
 	}
 
 	shardObj, ok := psm.fallbackPkShard.Get(pkBuff)
 	if !ok {
-		return sharding.UnknownShardId, false
+		return core.UnknownShardId, false
 	}
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
-		return sharding.UnknownShardId, false
+		return core.UnknownShardId, false
 	}
 
 	return shard, true
@@ -101,12 +108,12 @@ func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shard
 func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
-		return sharding.UnknownShardId
+		return core.UnknownShardId
 	}
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
-		return sharding.UnknownShardId
+		return core.UnknownShardId
 	}
 
 	return shard

@@ -21,9 +21,15 @@ func createEligibleList(size int) []string {
 func initConsensusState() *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
+
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
 	indexLeader := 1
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesPubKeys,
 		consensusGroupSize,
 		eligibleList[indexLeader])
 
