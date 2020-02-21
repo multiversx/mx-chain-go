@@ -386,7 +386,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 	sw.Start("checkForMissedBlocks")
 	defer func() {
 		sw.Stop("checkForMissedBlocks")
-		log.Trace("measurements checkForMissedBlocks", sw.GetMeasurements()...)
+		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
@@ -473,12 +473,22 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 
 	for _, h := range metaHeader.ShardInfo {
 
+		startTime := time.Now()
 		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
+		elapsedTime := time.Since(startTime)
+		log.Debug("elapsed time to updateShardDataPeerState.ComputeValidatorsGroup",
+			"time [s]", elapsedTime,
+		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
+		startTime = time.Now()
 		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap)
+		elapsedTime = time.Since(startTime)
+		log.Debug("elapsed time to updateShardDataPeerState.updateValidatorInfo",
+			"time [s]", elapsedTime,
+		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -487,21 +497,31 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			continue
 		}
 
+		startTime = time.Now()
 		prevShardData, shardInfoErr := process.GetShardHeader(
 			h.PrevHash,
 			vs.dataPool.Headers(),
 			vs.marshalizer,
 			vs.storageService,
 		)
+		elapsedTime = time.Since(startTime)
+		log.Debug("elapsed time to updateShardDataPeerState.GetShardHeader",
+			"time [s]", elapsedTime,
+		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
+		startTime = time.Now()
 		shardInfoErr = vs.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
+		)
+		elapsedTime = time.Since(startTime)
+		log.Debug("elapsed time to updateShardDataPeerState.checkForMissedBlocks",
+			"time [s]", elapsedTime,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -620,7 +640,12 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			return err
 		}
 
+		startTime := time.Now()
 		err = peerAcc.SetTempRatingWithJournal(newRating)
+		elapsedTime := time.Since(startTime)
+		log.Debug("elapsed time to updateValidatorInfo.SetTempRatingWithJournal",
+			"time [s]", elapsedTime,
+		)
 		if err != nil {
 			return err
 		}
