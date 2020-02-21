@@ -901,11 +901,16 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	miniBlocks, err := txs.createAndProcessMiniBlock(sndShardId, process.MaxItemsInBlock, process.MaxItemsInBlock, haveTimeTrue, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
+	txHashes := 0
+	for _, miniBlock := range miniBlocks {
+		txHashes += len(miniBlock.TxHashes)
+	}
+
+	assert.Equal(t, len(addedTxs), txHashes)
 }
 
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
@@ -967,11 +972,16 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	miniBlocks, err := txs.createAndProcessMiniBlock(sndShardId, process.MaxItemsInBlock, process.MaxItemsInBlock, haveTimeTrue, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
+	txHashes := 0
+	for _, miniBlock := range miniBlocks {
+		txHashes += len(miniBlock.TxHashes)
+	}
+
+	assert.Equal(t, len(addedTxs), txHashes)
 }
 
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCall(t *testing.T) {
@@ -1040,11 +1050,16 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	orderedTxs, orderedTxHashes, _ := txs.computeOrderedTxs(sndShardId, dstShardId)
-	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, orderedTxs, orderedTxHashes)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	miniBlocks, err := txs.createAndProcessMiniBlock(sndShardId, process.MaxItemsInBlock, process.MaxItemsInBlock, haveTimeTrue, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
-	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))
+	txHashes := 0
+	for _, miniBlock := range miniBlocks {
+		txHashes += len(miniBlock.TxHashes)
+	}
+
+	assert.Equal(t, numTxsToAdd, txHashes)
 }
 
 func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t *testing.T) {
