@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -293,7 +293,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	nonce++
 
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() == core.MetachainShardId {
 			continue
 		}
 
@@ -364,28 +364,8 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 
 	cacheMut := &sync.Mutex{}
 
-	getCounter := 0
 	putCounter := 0
 	cacheMap := make(map[string]interface{})
-	cache := &mock.NodesCoordinatorCacheMock{
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
-			cacheMut.Lock()
-			defer cacheMut.Unlock()
-			putCounter++
-			cacheMap[string(key)] = value
-			return false
-		},
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
-			cacheMut.Lock()
-			defer cacheMut.Unlock()
-			getCounter++
-			val, ok := cacheMap[string(key)]
-			if ok {
-				return val, true
-			}
-			return nil, false
-		},
-	}
 
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
@@ -395,7 +375,6 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 		shardConsensusGroupSize,
 		consensusGroupSize,
 		seedAddress,
-		cache,
 	)
 
 	roundsPerEpoch := uint64(1000)
@@ -424,7 +403,7 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	roundDifference := 10
 	nonce := uint64(1)
 
-	firstNodeOnMeta := nodesMap[sharding.MetachainShardId][0]
+	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
 	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
 
 	// set bitmap for all consensus nodes signing

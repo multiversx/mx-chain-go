@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -13,11 +12,11 @@ import (
 )
 
 func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
-	v1 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk1"), []byte("addr1"))
-	v2 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk2"), []byte("addr2"))
-	v3 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk3"), []byte("addr3"))
-	v4 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk4"), []byte("addr4"))
-	v5 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk5"), []byte("addr5"))
+	v1 := mock.NewValidatorMock([]byte("pk1"), []byte("addr1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"), []byte("addr2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"), []byte("addr3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"), []byte("addr4"))
+	v5 := mock.NewValidatorMock([]byte("pk5"), []byte("addr5"))
 
 	elList := make([]Validator, 0)
 	elList = append(elList, v1, v1, v1)     // starts at 0 - count 3
@@ -145,14 +144,13 @@ func getExpandedEligibleList(num int) []Validator {
 	sliceToRet := make([]Validator, 0)
 
 	for i := 1; i <= num; i++ {
-		randStake := rand.Intn(1234567)
 		randRat := rand.Intn(5) + 8
 		pubkey := make([]byte, 32)
 		_, _ = rand.Read(pubkey)
 		address := make([]byte, 32)
 		_, _ = rand.Read(address)
 		for j := 0; j < randRat; j++ {
-			sliceToRet = append(sliceToRet, mock.NewValidatorMock(big.NewInt(int64(randStake)), int32(randRat), pubkey, address))
+			sliceToRet = append(sliceToRet, mock.NewValidatorMock(pubkey, address))
 		}
 	}
 
