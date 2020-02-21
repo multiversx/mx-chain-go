@@ -162,7 +162,7 @@ func CreateMetaGenesisBlock(
 		txProcessor,
 		args.ShardCoordinator,
 		args.NodesSetup.InitialNodesInfo(),
-		args.Economics.StakeValue(),
+		args.Economics.GenesisNodePrice(),
 	)
 	if err != nil {
 		return nil, err
@@ -180,6 +180,13 @@ func CreateMetaGenesisBlock(
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+	}
+	header.EpochStart.Economics = block.Economics{
+		TotalSupply:            big.NewInt(0).Set(args.Economics.GenesisTotalSupply()),
+		TotalToDistribute:      big.NewInt(0),
+		TotalNewlyMinted:       big.NewInt(0),
+		RewardsPerBlockPerNode: big.NewInt(0),
+		NodePrice:              big.NewInt(0).Set(args.Economics.GenesisNodePrice()),
 	}
 
 	header.SetTimeStamp(args.GenesisTime)

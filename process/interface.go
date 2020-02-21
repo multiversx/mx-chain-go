@@ -201,9 +201,8 @@ type BlockProcessor interface {
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader() data.HeaderHandler
-	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
@@ -473,13 +472,22 @@ type PoolsCleaner interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
+	MinInflationRate() float64
+	MaxInflationRate() float64
+	IsInterfaceNil() bool
+}
+
+// EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
+type EndOfEpochEconomics interface {
+	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
-	StakeValue() *big.Int
+	GenesisNodePrice() *big.Int
 	IsInterfaceNil() bool
 }
 
@@ -651,5 +659,11 @@ type BuiltinFunction interface {
 		acntSnd, acntDst state.UserAccountHandler,
 		vmInput *vmcommon.ContractCallInput,
 	) (*big.Int, error)
+	IsInterfaceNil() bool
+}
+
+// RoundTimeDurationHandler defines the methods to get the time duration of a round
+type RoundTimeDurationHandler interface {
+	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }

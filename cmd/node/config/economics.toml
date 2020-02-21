@@ -1,11 +1,12 @@
 #Econimics config of the node
-[EconomicsAddresses]
-    CommunityAddress = "1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420"
-    BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+[GlobalSettings]
+    TotalSupply = "20000000000000000000000000000" #20BILERD
+    MinimumInflation = 0.0
+    MaximumInflation = 0.1 #fraction of value 1 - 10%
 
 [RewardsSettings]
-    LeaderPercentage = 0.10
-    DeveloperPercentage = 0.30
+    LeaderPercentage = 0.10 #fraction of value 1 - 10%
+    DeveloperPercentage = 0.30 #fraction of value 1 - 30%
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
@@ -16,8 +17,8 @@
     DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    StakeValue = "500000000000000000000000" #500000ERD
-    UnBoundPeriod = "100000"
+    GenesisNodePrice = "500000000000000000000000" #500000ERD
+    UnBoundPeriod    = "100000"
 
 [RatingSettings]
     StartRating = 500000

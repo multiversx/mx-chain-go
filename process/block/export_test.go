@@ -2,7 +2,6 @@ package block
 
 import (
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -150,12 +149,8 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
 }
 
-func (mp *metaProcessor) CreateShardInfo(round uint64) ([]block.ShardData, error) {
-	return mp.createShardInfo(round)
-}
-
-func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
-	return mp.processBlockHeaders(header, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo() ([]block.ShardData, error) {
+	return mp.createShardInfo()
 }
 
 func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
@@ -324,10 +319,6 @@ func (bp *baseProcessor) CreateBlockStarted() {
 	bp.createBlockStarted()
 }
 
-func (sp *shardProcessor) CreateBlockStarted() {
-	sp.createBlockStarted()
-}
-
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
 	return sp.addProcessedCrossMiniBlocksFromHeader(header)
 }
@@ -338,4 +329,20 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 
 func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
 	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
+}
+
+func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+	return mp.applyBodyToHeader(metaHdr, bodyHandler)
+}
+
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+	return sp.applyBodyToHeader(shardHdr, bodyHandler)
+}
+
+func (mp *metaProcessor) CreateBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
+	return mp.createBlockBody(metaBlock, haveTime)
+}
+
+func (sp *shardProcessor) CreateBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
+	return sp.createBlockBody(shardHdr, haveTime)
 }

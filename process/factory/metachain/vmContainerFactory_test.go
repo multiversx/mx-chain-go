@@ -46,10 +46,11 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	economicsData, _ := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				CommunityAddress: "addr1",
-				BurnAddress:      "addr2",
+		&config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				TotalSupply:      "2000000000000000000000",
+				MinimumInflation: 0,
+				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage: 0.10,
@@ -62,8 +63,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "1000",
+				GenesisNodePrice: "500",
+				UnBoundPeriod:    "1000",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 5,

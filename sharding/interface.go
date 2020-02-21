@@ -35,6 +35,7 @@ type NodesCoordinator interface {
 	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 	ConsensusGroupSize(uint32) int
+	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
 }
 

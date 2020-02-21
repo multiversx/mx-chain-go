@@ -996,8 +996,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
-	cfg := &config.ConfigEconomics{}
+func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
+	cfg := &config.EconomicsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err

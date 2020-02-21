@@ -30,7 +30,8 @@ type metaProcessor struct {
 	scDataGetter             external.SCQueryService
 	scToProtocol             process.SmartContractToProtocolHandler
 	peerChanges              process.PeerChangesHandler
-	epochStartCreator        process.EpochStartDataCreator
+	epochStartDataCreator    process.EpochStartDataCreator
+	epochEconomics           process.EndOfEpochEconomics
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
@@ -62,6 +63,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.PendingMiniBlocksHandler) {
 		return nil, process.ErrNilPendingMiniBlocksHandler
+	}
+	if check.IfNil(arguments.EpochStartDataCreator) {
+		return nil, process.ErrNilEpochStartDataCreator
+	}
+	if check.IfNil(arguments.EpochEconomics) {
+		return nil, process.ErrNilEpochEconomics
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -102,11 +109,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		peerChanges:              arguments.PeerChangesHandler,
 		scToProtocol:             arguments.SCToProtocol,
 		pendingMiniBlocksHandler: arguments.PendingMiniBlocksHandler,
-	}
-
-	mp.epochStartCreator, err = createEpochStartDataCreator(arguments)
-	if err != nil {
-		return nil, err
+		epochStartDataCreator:    arguments.EpochStartDataCreator,
+		epochEconomics:           arguments.EpochEconomics,
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
@@ -125,24 +129,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
-}
-
-func createEpochStartDataCreator(arguments ArgMetaProcessor) (process.EpochStartDataCreator, error) {
-	argsNewEpochStartData := ArgsNewEpochStartData{
-		Marshalizer:       arguments.Marshalizer,
-		Hasher:            arguments.Hasher,
-		Store:             arguments.Store,
-		DataPool:          arguments.DataPool,
-		BlockTracker:      arguments.BlockTracker,
-		ShardCoordinator:  arguments.ShardCoordinator,
-		EpochStartTrigger: arguments.EpochStartTrigger,
-	}
-	epochStartDataObject, err := NewEpochStartData(argsNewEpochStartData)
-	if err != nil {
-		return nil, err
-	}
-
-	return epochStartDataObject, nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -258,7 +244,12 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.epochStartCreator.VerifyEpochStartDataForMetablock(header)
+	err = mp.epochStartDataCreator.VerifyEpochStartDataForMetablock(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header)
 	if err != nil {
 		return err
 	}
@@ -288,11 +279,6 @@ func (mp *metaProcessor) ProcessBlock(
 			mp.RevertAccountState()
 		}
 	}()
-
-	err = mp.processBlockHeaders(header, header.Round, haveTime)
-	if err != nil {
-		return err
-	}
 
 	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
@@ -355,7 +341,6 @@ func (mp *metaProcessor) checkEpochCorrectness(
 	isEpochIncorrect = mp.epochStartTrigger.IsEpochStart() &&
 		mp.epochStartTrigger.EpochStartRound() <= headerHandler.GetRound() &&
 		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1
-
 	if isEpochIncorrect {
 		log.Warn("is epoch start and epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", headerHandler.GetEpoch(), "epochStartTrigger", mp.epochStartTrigger.Epoch())
 		return process.ErrEpochDoesNotMatch
@@ -561,19 +546,89 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	return nil
 }
 
-// CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+// CreateBlock creates the final block and header for the current round
+func (mp *metaProcessor) CreateBlock(
+	initialHdr data.HeaderHandler,
+	haveTime func() bool,
+) (data.HeaderHandler, data.BodyHandler, error) {
+	if check.IfNil(initialHdr) {
+		return nil, nil, process.ErrNilBlockHeader
+	}
+	metaHdr, ok := initialHdr.(*block.MetaBlock)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	mp.epochStartTrigger.Update(initialHdr.GetRound())
+	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	mp.blockChainHook.SetCurrentHeader(initialHdr)
+
+	err := mp.epochStartHeaderDataCreation(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err := mp.createBlockBody(metaHdr, haveTime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err = mp.applyBodyToHeader(metaHdr, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return metaHdr, body, nil
+}
+
+func (mp *metaProcessor) epochStartHeaderDataCreation(metaHdr *block.MetaBlock) error {
+	if !mp.epochStartTrigger.IsEpochStart() {
+		return nil
+	}
+
+	sw := core.NewStopWatch()
+	sw.Start("createEpochStartForMetablock")
+	defer func() {
+		sw.Stop("createEpochStartForMetablock")
+		log.Debug("epochStartHeaderDataCreation", sw.GetMeasurements()...)
+	}()
+
+	epochStart, err := mp.epochStartDataCreator.CreateEpochStartData()
+	if err != nil {
+		return err
+	}
+
+	metaHdr.EpochStart = *epochStart
+
+	totalAccumulatedFeesInEpoch := big.NewInt(0)
+	currentHeader := mp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
+		prevMetaHdr, ok := currentHeader.(*block.MetaBlock)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.AccumulatedFeesInEpoch)
+	}
+
+	metaHdr.AccumulatedFeesInEpoch = totalAccumulatedFeesInEpoch
+	economicsData, err := mp.epochEconomics.ComputeEndOfEpochEconomics(metaHdr)
+	if err != nil {
+		return err
+	}
+
+	metaHdr.EpochStart.Economics = *economicsData
+	return nil
+}
+
+// createBlockBody creates block body of metachain
+func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
-	mp.epochStartTrigger.Update(initialHdrData.GetRound())
-	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
-	mp.blockChainHook.SetCurrentHeader(initialHdrData)
-
 	log.Debug("started creating block body",
-		"epoch", initialHdrData.GetEpoch(),
-		"round", initialHdrData.GetRound(),
-		"nonce", initialHdrData.GetNonce(),
+		"epoch", metaBlock.GetEpoch(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
 	)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
@@ -581,12 +636,12 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 		return nil, err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(miniBlocks, initialHdrData.GetRound())
+	err = mp.scToProtocol.UpdateProtocol(miniBlocks, metaBlock.GetRound())
 	if err != nil {
 		return nil, err
 	}
 
-	mp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
+	mp.requestHandler.SetEpoch(metaBlock.GetEpoch())
 
 	return miniBlocks, nil
 }
@@ -793,39 +848,6 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			}
 		}
 	}
-}
-
-func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
-	arguments := make([]interface{}, 0, len(header.ShardInfo))
-	for i := 0; i < len(header.ShardInfo); i++ {
-		shardData := header.ShardInfo[i]
-		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
-			if haveTime() < 0 {
-				return process.ErrTimeIsOut
-			}
-
-			headerHash := shardData.HeaderHash
-			shardMiniBlockHeader := &shardData.ShardMiniBlockHeaders[j]
-			err := mp.checkAndProcessShardMiniBlockHeader(
-				headerHash,
-				shardMiniBlockHeader,
-				round,
-				shardData.ShardID,
-			)
-
-			if err != nil {
-				return err
-			}
-
-			arguments = append(arguments, "hash", shardMiniBlockHeader.Hash)
-		}
-	}
-
-	if len(arguments) > 0 {
-		log.Trace("the following miniblocks hashes were successfully processed", arguments...)
-	}
-
-	return nil
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
@@ -1435,19 +1457,7 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 	return missingHeadersHashes
 }
 
-func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
-	_ []byte,
-	_ *block.ShardMiniBlockHeader,
-	_ uint64,
-	_ uint32,
-) error {
-	// TODO: real processing has to be done here, using metachain state
-	return nil
-}
-
-func (mp *metaProcessor) createShardInfo(
-	round uint64,
-) ([]block.ShardData, error) {
+func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 
 	shardInfo := make([]block.ShardData, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
@@ -1480,17 +1490,6 @@ func (mp *metaProcessor) createShardInfo(
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
 			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
 			shardMiniBlockHeader.TxCount = shardHdr.MiniBlockHeaders[i].TxCount
-
-			// execute shard miniblock to change the trie root hash
-			err := mp.checkAndProcessShardMiniBlockHeader(
-				[]byte(hdrHash),
-				&shardMiniBlockHeader,
-				round,
-				shardData.ShardID,
-			)
-			if err != nil {
-				return nil, err
-			}
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}
@@ -1547,38 +1546,33 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr *block.MetaBlock)
 	return currentlyAccumulatedFeesInEpoch, nil
 }
 
-// ApplyBodyToHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+// applyBodyToHeader creates a miniblock header list given a block body
+func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
-	sw.Start("ApplyBodyToHeader")
+	sw.Start("applyBodyToHeader")
 	defer func() {
-		sw.Stop("ApplyBodyToHeader")
+		sw.Stop("applyBodyToHeader")
 
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	err := checkForNils(hdr, bodyHandler)
-	if err != nil {
-		return nil, err
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
 	}
 
-	metaHdr, ok := hdr.(*block.MetaBlock)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
+	var err error
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(hdr.GetRound())
+		go mp.checkAndRequestIfShardHeadersMissing(metaHdr.GetRound())
 
 		if err == nil {
 			mp.blockSizeThrottler.Add(
-				hdr.GetRound(),
-				core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
+				metaHdr.GetRound(),
+				core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 		}
 	}()
 
 	sw.Start("createShardInfo")
-	shardInfo, err := mp.createShardInfo(hdr.GetRound())
+	shardInfo, err := mp.createShardInfo()
 	sw.Stop("createShardInfo")
 	if err != nil {
 		return nil, err
@@ -1630,14 +1624,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	if err != nil {
 		return nil, err
 	}
-
-	sw.Start("createEpochStartForMetablock")
-	epochStart, err := mp.epochStartCreator.CreateEpochStartData()
-	sw.Stop("createEpochStartForMetablock")
-	if err != nil {
-		return nil, err
-	}
-	metaHdr.EpochStart = *epochStart
 
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),

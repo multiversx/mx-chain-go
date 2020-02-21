@@ -11,6 +11,11 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32) ([]string, error)
 }
 
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
+}
+
 // GetAllValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
 	return nil

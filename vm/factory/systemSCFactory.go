@@ -33,7 +33,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
 	sc, err := systemSmartContracts.NewStakingSmartContract(
-		scf.validatorSettings.StakeValue(),
+		scf.validatorSettings.GenesisNodePrice(),
 		scf.validatorSettings.UnBoundPeriod(),
 		scf.systemEI,
 	)
