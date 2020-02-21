@@ -21,3 +21,8 @@ type TestEpochStartTrigger interface {
 	SetTrigger(triggerHandler epochStart.TriggerHandler)
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
+
+// BlockProcessorInitializer offers initialization for block processor
+type BlockProcessorInitializer interface {
+	InitBlockProcessor()
+}

@@ -104,7 +104,7 @@ func (hhs *HeaderHandlerStub) GetChainID() []byte {
 
 // GetTxCount -
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
-	panic("implement me")
+	return 0
 }
 
 // SetNonce -
@@ -179,7 +179,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
-	panic("implement me")
+	return []byte("vs root hash")
 }
 
 // SetValidatorStatsRootHash -

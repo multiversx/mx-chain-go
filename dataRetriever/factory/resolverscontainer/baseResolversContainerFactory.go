@@ -1,6 +1,7 @@
 package resolverscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -95,7 +96,7 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 		keys[idx] = identifierTx
 	}
 
-	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
@@ -160,7 +161,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 		keys[idx] = identifierMiniBlocks
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)

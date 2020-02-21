@@ -18,6 +18,3 @@ var ErrSelfNotarizedHeadersNotifier = errors.New("nil self notarized header noti
 
 // ErrNotarizedHeaderOffsetIsOutOfBound signals that a requested offset of the notarized header is out of bound
 var ErrNotarizedHeaderOffsetIsOutOfBound = errors.New("requested offset of the notarized header is out of bound")
-
-// ErrHigherRoundInBlock signals that the round index in block is higher than the current round of chronology
-var ErrHigherRoundInBlock = errors.New("higher round in block")
