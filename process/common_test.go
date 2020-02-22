@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEmptyChannelShouldWorkOnBufferedChannel(t *testing.T) {
@@ -2004,4 +2005,23 @@ func ExampleSortTransactionsByNonceAndSender() {
 	// 5 bbbb y
 	// 6 aabb a
 	// 7 aabb t
+}
+
+func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
+	numTx := 100000
+	transactions := make([]data.TransactionHandler, numTx)
+	hashes := make([][]byte, numTx)
+	for i := 0; i < numTx; i++ {
+		transactions[i] = &transaction.Transaction{
+			Nonce:   uint64(numTx - i),
+			SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
+		}
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		result := process.SortTransactionsByNonceAndSender(transactions, hashes)
+		require.Len(b, result, numTx)
+	}
 }
