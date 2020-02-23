@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"math/rand"
 	"runtime"
@@ -1416,6 +1418,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:TRACE")
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
@@ -1470,7 +1473,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
-	numRounds := uint32(9)
+	numRounds := uint32(6)
 	for i := uint64(0); i < uint64(numRounds); i++ {
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -1490,7 +1493,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		)
 	}
 
-	numDelayRounds := uint32(4)
+	numDelayRounds := uint32(2)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		time.Sleep(integrationTests.StepDelay)
@@ -1523,6 +1526,7 @@ func collectSnapshotAndCheckpointHashes(
 			continue
 		}
 
+		fmt.Println(fmt.Sprintf("should be pruned - rootHash: %v", core.ToHex(currentBlockHeader.GetRootHash())))
 		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
 	}
 }
@@ -1553,7 +1557,10 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
-		assert.Nil(t, tr)
-		assert.NotNil(t, err)
+		if tr != nil {
+			fmt.Println("Trie was not pruned " + core.ToHex(prunedRootHashes[i]))
+		}
+		require.Nil(t, tr)
+		require.NotNil(t, err)
 	}
 }

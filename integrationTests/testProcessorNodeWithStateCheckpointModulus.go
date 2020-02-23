@@ -25,6 +25,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 
 	pkBytes := make([]byte, 128)
 	address := make([]byte, 32)
+
+	pkBytes[0] = 1
+	address[0] = 1
+
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 			v, _ := sharding.NewValidator(pkBytes, address)

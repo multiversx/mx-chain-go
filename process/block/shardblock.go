@@ -904,6 +904,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
+	fmt.Println("Before updateStorage with len selfNotarized: " + fmt.Sprint(len(selfNotarizedHeaders)))
 	sp.updateStateStorage(selfNotarizedHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -1026,6 +1027,7 @@ func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) 
 			continue
 		}
 
+		fmt.Println("pruning prev rootHash", "rootHash", prevRootHash)
 		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())

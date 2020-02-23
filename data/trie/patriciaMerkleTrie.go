@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -424,6 +425,8 @@ func emptyTrie(root []byte) bool {
 func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruningIdentifier) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
+
+	fmt.Println("Doing the pruning: " + core.ToHex(rootHash))
 
 	rootHash = append(rootHash, byte(identifier))
 	return tr.trieStorage.Prune(rootHash)

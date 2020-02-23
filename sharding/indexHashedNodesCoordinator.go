@@ -282,8 +282,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
-	lenExpandedList := len(expandedList)
-
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,
 		"consensus size", consensusSize,
