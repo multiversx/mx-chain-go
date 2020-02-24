@@ -7,18 +7,11 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled           func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled           func(header data.HeaderHandler) error
-	IsInterfaceNilCalled            func() bool
-	RevertPeerStateToSnapshotCalled func(snapshot int) error
-	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
-	CommitCalled                    func() ([]byte, error)
-	RootHashCalled                  func() ([]byte, error)
-	IsPruningEnabledCalled          func() bool
-	SnapshotStateCalled             func([]byte)
-	SetStateCheckpointCalled        func([]byte)
-	PruneTrieCalled                 func([]byte, data.TriePruningIdentifier) error
-	CancelPruneCalled               func([]byte, data.TriePruningIdentifier)
+	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled func(header data.HeaderHandler) error
+	IsInterfaceNilCalled  func() bool
+	GetPeerAccountCalled  func(address []byte) (state.PeerAccountHandler, error)
+	RootHashCalled        func() ([]byte, error)
 }
 
 // UpdatePeerState -
@@ -35,22 +28,6 @@ func (vsp *ValidatorStatisticsProcessorMock) RevertPeerState(header data.HeaderH
 		return vsp.RevertPeerStateCalled(header)
 	}
 	return nil
-}
-
-// RevertPeerStateToSnapshot -
-func (vsp *ValidatorStatisticsProcessorMock) RevertPeerStateToSnapshot(snapshot int) error {
-	if vsp.RevertPeerStateToSnapshotCalled != nil {
-		return vsp.RevertPeerStateToSnapshotCalled(snapshot)
-	}
-	return nil
-}
-
-// Commit -
-func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
-	if vsp.CommitCalled != nil {
-		return vsp.CommitCalled()
-	}
-	return nil, nil
 }
 
 // RootHash -
@@ -76,43 +53,4 @@ func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
 		return vsp.IsInterfaceNilCalled()
 	}
 	return false
-}
-
-// IsPruningEnabled -
-func (vsp *ValidatorStatisticsProcessorMock) IsPruningEnabled() bool {
-	if vsp.IsPruningEnabledCalled != nil {
-		return vsp.IsPruningEnabledCalled()
-	}
-
-	return false
-}
-
-// SnapshotState -
-func (vsp *ValidatorStatisticsProcessorMock) SnapshotState(rootHash []byte) {
-	if vsp.SnapshotStateCalled != nil {
-		vsp.SnapshotStateCalled(rootHash)
-	}
-}
-
-// SetStateCheckpoint -
-func (vsp *ValidatorStatisticsProcessorMock) SetStateCheckpoint(rootHash []byte) {
-	if vsp.SetStateCheckpointCalled != nil {
-		vsp.SetStateCheckpointCalled(rootHash)
-	}
-}
-
-// PruneTrie -
-func (vsp *ValidatorStatisticsProcessorMock) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
-	if vsp.PruneTrieCalled != nil {
-		return vsp.PruneTrieCalled(rootHash, identifier)
-	}
-
-	return nil
-}
-
-// CancelPrune -
-func (vsp *ValidatorStatisticsProcessorMock) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if vsp.CancelPruneCalled != nil {
-		vsp.CancelPruneCalled(rootHash, identifier)
-	}
 }

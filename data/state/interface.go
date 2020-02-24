@@ -4,6 +4,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// AccountsDbIdentifier is the type of accounts db
+type AccountsDbIdentifier byte
+
+const (
+	// UserAccountsState is the user accounts
+	UserAccountsState AccountsDbIdentifier = 0
+	// PeerAccountsState is the peer accounts
+	PeerAccountsState AccountsDbIdentifier = 1
+)
+
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 

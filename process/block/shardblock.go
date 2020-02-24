@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -58,7 +60,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
+		accountsDB:                   arguments.AccountsDB,
 		blockSizeThrottler:           blockSizeThrottler,
 		forkDetector:                 arguments.ForkDetector,
 		hasher:                       arguments.Hasher,
@@ -239,7 +241,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if sp.accounts.JournalLen() != 0 {
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
 
@@ -324,17 +326,10 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime t
 	return nil
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (sp *shardProcessor) RevertAccountState() {
-	err := sp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-}
-
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := sp.accounts.RecreateTrie(header.GetRootHash())
+
+	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
@@ -345,11 +340,6 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	return nil
-}
-
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
-	sp.pruneStateOnRollback(currHeader, prevHeader, sp.accounts)
 }
 
 func (sp *shardProcessor) checkEpochCorrectness(
@@ -941,18 +931,9 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
 			headers[i],
 			headers[i].GetRootHash(),
 			prevHeader.GetRootHash(),
-			sp.accounts,
+			sp.accountsDB[state.UserAccountsState],
 		)
 	}
-}
-
-func (sp *shardProcessor) commitAll() error {
-	_, err := sp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
@@ -1671,7 +1652,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 
-	if sp.accounts.JournalLen() != 0 {
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
 

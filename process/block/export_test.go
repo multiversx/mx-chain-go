@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -76,9 +78,12 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 	}
 	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
+			AccountsDB:                   accountsDb,
 			ForkDetector:                 &mock.ForkDetectorMock{},
 			Hasher:                       &mock.HasherMock{},
 			Marshalizer:                  &mock.MarshalizerMock{},

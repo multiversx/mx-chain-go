@@ -837,8 +837,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
+
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 tpn.ForkDetector,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,

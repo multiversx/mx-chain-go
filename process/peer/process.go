@@ -331,11 +331,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	return vs.peerAdapter.RootHash()
 }
 
-// Commit commits the validator statistics trie and returns the root hash
-func (vs *validatorStatistics) Commit() ([]byte, error) {
-	return vs.peerAdapter.Commit()
-}
-
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) RootHash() ([]byte, error) {
 	return vs.peerAdapter.RootHash()
@@ -442,11 +437,6 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []s
 //  for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
-}
-
-// RevertPeerStateToSnapshot reverts the applied changes to the peerAdapter
-func (vs *validatorStatistics) RevertPeerStateToSnapshot(snapshot int) error {
-	return vs.peerAdapter.RevertToSnapshot(snapshot)
 }
 
 func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
@@ -807,29 +797,4 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
 
 	return nil
-}
-
-// IsPruningEnabled returns true if pruning is enabled on the peer trie
-func (vs *validatorStatistics) IsPruningEnabled() bool {
-	return vs.peerAdapter.IsPruningEnabled()
-}
-
-// SnapshotState takes a snapshot of the peer state
-func (vs *validatorStatistics) SnapshotState(rootHash []byte) {
-	vs.peerAdapter.SnapshotState(rootHash)
-}
-
-// SetStateCheckpoint creates a state checkpoint
-func (vs *validatorStatistics) SetStateCheckpoint(rootHash []byte) {
-	vs.peerAdapter.SetStateCheckpoint(rootHash)
-}
-
-// PruneTrie removes values from storage
-func (vs *validatorStatistics) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
-	return vs.peerAdapter.PruneTrie(rootHash, identifier)
-}
-
-// CancelPrune removes values from the eviction waiting list
-func (vs *validatorStatistics) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	vs.peerAdapter.CancelPrune(rootHash, identifier)
 }

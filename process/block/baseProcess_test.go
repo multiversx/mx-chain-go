@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -269,9 +271,13 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
+			AccountsDB:                   accountsDb,
 			ForkDetector:                 &mock.ForkDetectorMock{},
 			Hasher:                       &mock.HasherStub{},
 			Marshalizer:                  &mock.MarshalizerMock{},
@@ -367,7 +373,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	}
 
 	arguments := CreateMockArguments()
-	arguments.Accounts = accounts
+	arguments.AccountsDB[state.UserAccountsState] = accounts
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	assert.True(t, bp.VerifyStateRoot(rootHash))
@@ -401,7 +407,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments()
-	arguments.Accounts = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
@@ -758,7 +764,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 			}
 		},
 	}
-	rootHash, _ := arguments.Accounts.RootHash()
+	rootHash, _ := arguments.AccountsDB[state.UserAccountsState].RootHash()
 	epochStartHash := []byte("epochStartHash")
 	header := &block.Header{
 		Round:              10,

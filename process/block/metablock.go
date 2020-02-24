@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -68,7 +70,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
+		accountsDB:                   arguments.AccountsDB,
 		blockSizeThrottler:           blockSizeThrottler,
 		forkDetector:                 arguments.ForkDetector,
 		hasher:                       arguments.Hasher,
@@ -242,7 +244,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	if mp.accounts.JournalLen() != 0 {
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
 
@@ -596,7 +598,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	if mp.accounts.JournalLen() != 0 {
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
 
@@ -739,7 +741,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			uint32(len(miniBlocks)))
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			snapshot := mp.accounts.JournalLen()
+			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
 			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currShardHdr,
 				nil,
@@ -754,7 +756,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 					"hash", orderedHdrsHashes[i])
 
 				// shard header must be processed completely
-				errAccountState := mp.accounts.RevertToSnapshot(snapshot)
+				errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
 				if errAccountState != nil {
 					// TODO: evaluate if reloading the trie from disk will might solve the problem
 					log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
@@ -1053,29 +1055,15 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		lastMetaBlock,
 		lastMetaBlock.GetRootHash(),
 		prevHeader.GetRootHash(),
-		mp.accounts,
+		mp.accountsDB[state.UserAccountsState],
 	)
 
 	mp.updateStateStorage(
 		lastMetaBlock,
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevHeader.GetValidatorStatsRootHash(),
-		mp.validatorStatisticsProcessor,
+		mp.accountsDB[state.PeerAccountsState],
 	)
-}
-
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.HeaderHandler, []byte) {
@@ -1098,22 +1086,9 @@ func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandle
 	}
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (mp *metaProcessor) RevertAccountState() {
-	err := mp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
-	}
-}
-
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
@@ -1134,12 +1109,6 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	return nil
-}
-
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
-	mp.pruneStateOnRollback(currHeader, prevHeader, mp.accounts)
-	mp.pruneStateOnRollback(currHeader, prevHeader, mp.validatorStatisticsProcessor)
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {

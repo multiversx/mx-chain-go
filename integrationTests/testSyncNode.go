@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -117,8 +119,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
+
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 nil,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
