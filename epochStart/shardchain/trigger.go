@@ -43,7 +43,6 @@ type ArgsShardEpochStartTrigger struct {
 type trigger struct {
 	currentRoundIndex           int64
 	epochStartRound             uint64
-	epochStartNonce             uint64
 	epochMetaBlockHash          []byte
 	triggerStateKey             []byte
 	finality                    uint64
@@ -229,10 +228,7 @@ func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler
 	}
 }
 
-func (t *trigger) checkIfEpochFinalityAttestingWithLowerRound(metaHdr *block.MetaBlock) {
-	if metaHdr.GetNonce() != t.epochStartNonce+1 {
-		return
-	}
+func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.MetaBlock) {
 	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
 		return
 	}
@@ -255,7 +251,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	}
 
 	if t.isEpochStart && header.GetEpoch() == t.epoch {
-		t.checkIfEpochFinalityAttestingWithLowerRound(metaHdr)
+		t.setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr)
 		return
 	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
@@ -302,7 +298,6 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
-			t.epochStartNonce = meta.Nonce
 			t.epochStartMeta = meta
 			t.saveCurrentState(meta.GetRound())
 
@@ -482,7 +477,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 		}
 	}
 
-	if chosenMeta.GetNonce() != nonce {
+	if lowestRound == uint64(math.MaxUint64) {
 		return nil
 	}
 
@@ -517,7 +512,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 		t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hashes[i]))
 	}
 
-	if chosenMeta.GetNonce() != nonce {
+	if lowestRound == uint64(math.MaxUint64) {
 		return nil
 	}
 
