@@ -81,7 +81,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		return nil, process.ErrNotEpochStartBlock
 	}
 
-	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromPreviousEpochStart(metaBlock.Epoch - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
 	if err != nil {
 		return nil, err
 	}
@@ -112,10 +112,10 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	computedEconomics := block.Economics{
-		TotalSupply:            e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
-		TotalToDistribute:      big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalSupply:            big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalToDistribute:      big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
-		RewardsPerBlockPerNode: big.NewInt(0).Set(totalRewardsToBeDistributed),
+		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
 		NodePrice: big.NewInt(0).Set(prevEpochEconomics.NodePrice),
 	}
@@ -168,7 +168,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	return totalNumBlocks
 }
 
-func (e *economics) startNoncePerShardFromPreviousEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
+func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = 0
