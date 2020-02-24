@@ -38,11 +38,8 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilTimer signals that a nil time getter handler has been provided
 var ErrNilTimer = errors.New("nil time getter handler")
 
-// ErrNilEligibleListProvider signals that a nil eligible list provided has been given
-var ErrNilEligibleListProvider = errors.New("nil eligible list provider")
-
-// ErrNilEpochHandler signals that a nil epoch handler has been
-var ErrNilEpochHandler = errors.New("nil epoch handler")
+// ErrNilPeerTypeProvider signals that a nil peer type provider has been given
+var ErrNilPeerTypeProvider = errors.New("nil peer type provider")
 
 // ErrNilMonitorDb signals that a nil monitor db was provided
 var ErrNilMonitorDb = errors.New("nil monitor db")

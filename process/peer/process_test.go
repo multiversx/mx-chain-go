@@ -1043,7 +1043,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 	}
@@ -1106,7 +1106,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 	}
@@ -1309,7 +1309,7 @@ func DoComputeMissingBlocks(
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return consensus, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 		ConsensusGroupSizeCalled: func(uint32) int {

@@ -11,13 +11,18 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 }
 
+// GetWaitingPublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // UpdatePeersListAndIndex -
 func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
 	return nil
 }
 
-// GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+// GetEligiblePublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetEligiblePublicKeysPerShard(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 

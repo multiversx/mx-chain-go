@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -23,8 +22,7 @@ var log = logger.GetOrCreate("node/heartbeat")
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	marshalizer                 marshal.Marshalizer
-	eligibleListProvider        EligibleListProvider
-	epochHandler                dataRetriever.EpochHandler
+	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutPubKeysMap               sync.RWMutex
@@ -46,15 +44,14 @@ func NewMonitor(
 	genesisTime time.Time,
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
-	eligibleListProvider EligibleListProvider,
-	epochHandler dataRetriever.EpochHandler,
+	peerTypeProvider PeerTypeProviderHandler,
 	timer Timer,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(eligibleListProvider) {
-		return nil, ErrNilEligibleListProvider
+	if check.IfNil(peerTypeProvider) {
+		return nil, ErrNilPeerTypeProvider
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
@@ -68,15 +65,11 @@ func NewMonitor(
 	if check.IfNil(timer) {
 		return nil, ErrNilTimer
 	}
-	if check.IfNil(epochHandler) {
-		return nil, ErrNilEpochHandler
-	}
 
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
-		eligibleListProvider:        eligibleListProvider,
-		epochHandler:                epochHandler,
+		peerTypeProvider:            peerTypeProvider,
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 		genesisTime:                 genesisTime,
@@ -129,7 +122,8 @@ func (m *Monitor) initializeHeartBeatForPK(
 ) error {
 	hbmi, err := m.loadHbmiFromStorer(pubkey)
 	if err != nil { // if pubKey not found in DB, create a new instance
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+		peerType := m.computePeerType([]byte(pubkey), shardId)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			return err
 		}
@@ -197,6 +191,7 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
+	receivedHbmi.peerType = m.computePeerType([]byte(pubKey), receivedHbmi.computedShardID)
 
 	return &receivedHbmi, nil
 }
@@ -233,7 +228,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	hbmi, ok := m.heartbeatMessages[pubKeyStr]
 	if hbmi == nil || !ok {
 		var err error
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
+		peerType := m.computePeerType(hb.Pubkey, hb.ShardID)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			log.Debug("error creating hbmi", "error", err.Error())
 			m.mutHeartbeatMessages.Unlock()
@@ -244,7 +240,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
-	isInEligibleList := m.computePeerList(hb.Pubkey, computedShardID)
+	isInEligibleList := m.computePeerType(hb.Pubkey, computedShardID)
 
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, isInEligibleList)
 	hbDTO := m.convertToExportedStruct(hbmi)
@@ -295,23 +291,14 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 
-func (m *Monitor) computePeerList(pubkey []byte, shardID uint32) string {
-	peerList := core.WaitingList
-	nodesMap, err := m.eligibleListProvider.GetNodesPerShard(m.epochHandler.Epoch())
+func (m *Monitor) computePeerType(pubkey []byte, shardID uint32) string {
+	peerType, err := m.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
 	if err != nil {
-		log.Warn("heartbeat monitor: error getting nodes per shard", "error", err.Error())
-		return string(core.NewList)
+		log.Warn("monitor: compute peer type", "error", err)
+		return string(core.ObserverList)
 	}
 
-	validatorsInShard := nodesMap[shardID]
-	for _, validator := range validatorsInShard {
-		if bytes.Equal(validator.PubKey(), pubkey) {
-			peerList = core.EligibleList
-			break
-		}
-	}
-
-	return string(peerList)
+	return string(peerType)
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {
@@ -362,9 +349,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			TotalUpTime:     int(v.totalUpTime.Seconds()),
 			TotalDownTime:   int(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
-			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
-			PeerList:        v.peerList,
+			PeerType:        v.peerType,
 		}
 		idx++
 	}
@@ -394,11 +380,10 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		TotalUpTime:        v.totalUpTime,
 		TotalDownTime:      v.totalDownTime,
 		VersionNumber:      v.versionNumber,
-		IsValidator:        v.isValidator,
 		NodeDisplayName:    v.nodeDisplayName,
 		LastUptimeDowntime: v.lastUptimeDowntime,
 		GenesisTime:        v.genesisTime,
-		PeerList:           v.peerList,
+		PeerType:           v.peerType,
 	}
 }
 
@@ -414,9 +399,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		computedShardID:             hbDTO.ComputedShardID,
 		versionNumber:               hbDTO.VersionNumber,
 		nodeDisplayName:             hbDTO.NodeDisplayName,
-		isValidator:                 hbDTO.IsValidator,
 		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
 		genesisTime:                 hbDTO.GenesisTime,
-		peerList:                    hbDTO.PeerList,
+		peerType:                    hbDTO.PeerType,
 	}
 }

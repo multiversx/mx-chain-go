@@ -27,7 +27,6 @@ type NodesCoordinator interface {
 	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, epoch uint32, updatePeers bool) error
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
-	GetNodesPerShard(epoch uint32) (map[uint32][]Validator, error)
 	UpdatePeersListAndIndex() error
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
@@ -40,11 +39,18 @@ type NodesCoordinator interface {
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
-	GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
 	GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
+}
+
+// EpochHandler defines what a component which handles current epoch should be able to do
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
 }
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration

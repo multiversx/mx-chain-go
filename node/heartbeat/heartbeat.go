@@ -12,7 +12,7 @@ type Heartbeat struct {
 	ShardID         uint32
 	VersionNumber   string
 	NodeDisplayName string
-	PeerList        string
+	PeerType        string
 }
 
 // PubKeyHeartbeat returns the heartbeat status for a public key
@@ -26,8 +26,7 @@ type PubKeyHeartbeat struct {
 	MaxInactiveTime Duration  `json:"maxInactiveTime"`
 	ReceivedShardID uint32    `json:"receivedShardID"`
 	ComputedShardID uint32    `json:"computedShardID"`
-	PeerList        string    `json:"peerList"`
-	IsValidator     bool      `json:"isValidator"`
+	PeerType        string    `json:"peerType"`
 	IsActive        bool      `json:"isActive"`
 }
 
@@ -38,13 +37,12 @@ type HeartbeatDTO struct {
 	TimeStamp                   time.Time
 	VersionNumber               string
 	NodeDisplayName             string
-	PeerList                    string
+	PeerType                    string
 	MaxDurationPeerUnresponsive time.Duration
 	MaxInactiveTime             Duration
 	TotalUpTime                 Duration
 	TotalDownTime               Duration
 	ReceivedShardID             uint32
 	ComputedShardID             uint32
-	IsValidator                 bool
 	IsActive                    bool
 }

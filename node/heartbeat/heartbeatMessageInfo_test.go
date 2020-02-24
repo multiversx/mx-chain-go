@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const waitingList = "waiting list"
+const dummyPeerType = "dummy peer type"
 
 //------- newHeartbeatMessageInfo
 
@@ -18,7 +18,7 @@ func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 
 	hbmi, err := heartbeat.NewHeartbeatMessageInfo(
 		0,
-		false,
+		dummyPeerType,
 		time.Time{},
 		mock.NewMockTimer(),
 	)
@@ -32,7 +32,7 @@ func TestNewHeartbeatMessageInfo_NilGetTimeHandlerShouldErr(t *testing.T) {
 
 	hbmi, err := heartbeat.NewHeartbeatMessageInfo(
 		1,
-		false,
+		dummyPeerType,
 		time.Time{},
 		nil,
 	)
@@ -46,7 +46,7 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 
 	hbmi, err := heartbeat.NewHeartbeatMessageInfo(
 		1,
-		false,
+		dummyPeerType,
 		time.Time{},
 		mock.NewMockTimer(),
 	)
@@ -65,7 +65,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		10*time.Second,
-		false,
+		dummyPeerType,
 		genesisTime,
 		mockTimer,
 	)
@@ -75,13 +75,13 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	mockTimer.IncrementSeconds(1)
 
 	expectedTime := time.Unix(1, 0)
-	hbmi.HeartbeatReceived(uint32(0), uint32(0), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(0), "v0.1", "undefined", dummyPeerType)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 	assert.Equal(t, uint32(0), hbmi.GetReceiverShardId())
 
 	mockTimer.IncrementSeconds(1)
 	expectedTime = time.Unix(2, 0)
-	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", dummyPeerType)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 	assert.Equal(t, uint32(1), hbmi.GetReceiverShardId())
 }
@@ -93,7 +93,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	genesisTime := mockTimer.Now()
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
-		false,
+		dummyPeerType,
 		genesisTime,
 		mockTimer,
 	)
@@ -105,7 +105,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	expectedTime := time.Unix(1, 0)
 	expectedUptime := time.Duration(0)
 	expectedDownTime := 1 * time.Second
-	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", "undefined", dummyPeerType)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 	assert.Equal(t, true, hbmi.GetIsActive())
 	assert.Equal(t, expectedUptime, hbmi.GetTotalUpTime().Duration)
@@ -119,7 +119,7 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 	genesisTime := mockTimer.Now()
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
-		false,
+		dummyPeerType,
 		genesisTime,
 		mockTimer,
 	)
@@ -128,9 +128,9 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", dummyPeerType)
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", dummyPeerType)
 
 	expectedDownDuration := 1 * time.Second
 	expectedUpDuration := 1 * time.Second
@@ -148,7 +148,7 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 	maxUnresponsiveTime := 500 * time.Millisecond
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		maxUnresponsiveTime,
-		false,
+		"eligible",
 		genesisTime,
 		mockTimer,
 	)
@@ -157,9 +157,9 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", dummyPeerType)
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", dummyPeerType)
 
 	expectedDownDuration := 1500 * time.Millisecond
 	expectedUpDuration := maxUnresponsiveTime
@@ -176,7 +176,7 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 	genesisTime := time.Unix(5, 0)
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
-		false,
+		dummyPeerType,
 		genesisTime,
 		mockTimer,
 	)
@@ -185,9 +185,9 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", dummyPeerType)
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined", dummyPeerType)
 
 	expectedDuration := time.Duration(0)
 	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime().Duration)
@@ -203,14 +203,14 @@ func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *t
 	genesisTime := time.Unix(1, 0)
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
-		false,
+		dummyPeerType,
 		genesisTime,
 		mockTimer,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 	mockTimer.IncrementSeconds(1)
-	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", waitingList)
+	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined", dummyPeerType)
 
 	expectedDuration := time.Duration(0)
 	assert.Equal(t, expectedDuration, hbmi.GetTotalUpTime().Duration)

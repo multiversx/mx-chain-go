@@ -9,6 +9,9 @@ const EligibleList ValidatorList = "eligible"
 // WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
 const WaitingList ValidatorList = "waiting"
 
+// ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
+const ObserverList ValidatorList = "observer"
+
 // NewList -
 const NewList ValidatorList = "new"
 

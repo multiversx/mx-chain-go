@@ -1,32 +1,28 @@
 package heartbeat
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // Sender periodically sends heartbeat messages on a pubsub topic
 type Sender struct {
-	peerMessenger        PeerMessenger
-	singleSigner         crypto.SingleSigner
-	privKey              crypto.PrivateKey
-	marshalizer          marshal.Marshalizer
-	shardCoordinator     sharding.Coordinator
-	eligibleListProvider EligibleListProvider
-	epochHandler         dataRetriever.EpochHandler
-	statusHandler        core.AppStatusHandler
-	topic                string
-	versionNumber        string
-	nodeDisplayName      string
+	peerMessenger    PeerMessenger
+	singleSigner     crypto.SingleSigner
+	privKey          crypto.PrivateKey
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	peerTypeProvider PeerTypeProviderHandler
+	statusHandler    core.AppStatusHandler
+	topic            string
+	versionNumber    string
+	nodeDisplayName  string
 }
 
 // NewSender will create a new sender instance
@@ -37,8 +33,7 @@ func NewSender(
 	marshalizer marshal.Marshalizer,
 	topic string,
 	shardCoordinator sharding.Coordinator,
-	eligibleListProvider EligibleListProvider,
-	epochHandler dataRetriever.EpochHandler,
+	peerTypeProvider PeerTypeProviderHandler,
 	statusHandler core.AppStatusHandler,
 	versionNumber string,
 	nodeDisplayName string,
@@ -58,28 +53,24 @@ func NewSender(
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(eligibleListProvider) {
-		return nil, errors.New("nil eligible list provider")
-	}
-	if check.IfNil(epochHandler) {
-		return nil, errors.New("nil epoch handler")
+	if check.IfNil(peerTypeProvider) {
+		return nil, ErrNilPeerTypeProvider
 	}
 	if check.IfNil(statusHandler) {
 		return nil, ErrNilAppStatusHandler
 	}
 
 	sender := &Sender{
-		peerMessenger:        peerMessenger,
-		singleSigner:         singleSigner,
-		privKey:              privKey,
-		marshalizer:          marshalizer,
-		topic:                topic,
-		shardCoordinator:     shardCoordinator,
-		eligibleListProvider: eligibleListProvider,
-		epochHandler:         epochHandler,
-		statusHandler:        statusHandler,
-		versionNumber:        versionNumber,
-		nodeDisplayName:      nodeDisplayName,
+		peerMessenger:    peerMessenger,
+		singleSigner:     singleSigner,
+		privKey:          privKey,
+		marshalizer:      marshalizer,
+		topic:            topic,
+		shardCoordinator: shardCoordinator,
+		peerTypeProvider: peerTypeProvider,
+		statusHandler:    statusHandler,
+		versionNumber:    versionNumber,
+		nodeDisplayName:  nodeDisplayName,
 	}
 
 	return sender, nil
@@ -130,25 +121,16 @@ func (s *Sender) SendHeartbeat() error {
 }
 
 func (s *Sender) updateMetrics(hb *Heartbeat) {
-	result := "in waiting list"
-	if s.isInEligibleList(hb.Pubkey, hb.ShardID) {
-		result = "in eligible list"
-	}
+	result := s.computePeerList(hb.Pubkey, hb.ShardID)
 	s.statusHandler.SetStringValue(core.MetricValidatorType, result)
 }
 
-func (s *Sender) isInEligibleList(pubkey []byte, shardID uint32) bool {
-	nodesMap, err := s.eligibleListProvider.GetNodesPerShard(s.epochHandler.Epoch())
+func (s *Sender) computePeerList(pubkey []byte, shardID uint32) string {
+	peerType, err := s.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
 	if err != nil {
-		return false
+		log.Warn("monitor: compute peer type", "error", err)
+		return string(core.ObserverList)
 	}
 
-	validatorsInShard := nodesMap[shardID]
-	for _, validator := range validatorsInShard {
-		if bytes.Equal(validator.PubKey(), pubkey) {
-			return true
-		}
-	}
-
-	return false
+	return string(peerType)
 }

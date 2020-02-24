@@ -776,7 +776,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
 	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
+	nodesMap, _ := tpn.NodesCoordinator.GetEligiblePublicKeysPerShard(0)
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
 			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)

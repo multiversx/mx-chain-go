@@ -982,7 +982,7 @@ func TestIndexHashedGroupSelector_GetAllValidatorsPublicKeys(t *testing.T) {
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	allValidatorsPublicKeys, err := ihgs.GetAllValidatorsPublicKeys(0)
+	allValidatorsPublicKeys, err := ihgs.GetEligiblePublicKeysPerShard(0)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 	assert.Nil(t, err)
 }
@@ -1010,7 +1010,7 @@ func TestIndexHashedGroupSelector_EpochStart(t *testing.T) {
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	validators, err := ihgs.GetAllValidatorsPublicKeys(1)
+	validators, err := ihgs.GetEligiblePublicKeysPerShard(1)
 	assert.Nil(t, err)
 	assert.NotNil(t, validators)
 

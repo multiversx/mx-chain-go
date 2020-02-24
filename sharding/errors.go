@@ -25,6 +25,9 @@ var ErrNotInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
+// ErrNilEpochHandler signals that the epoch handler
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 

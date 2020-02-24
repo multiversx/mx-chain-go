@@ -3,8 +3,8 @@ package heartbeat
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // PeerMessenger defines a subset of the p2p.Messenger interface
@@ -21,7 +21,14 @@ type MessageHandler interface {
 
 // EligibleListProvider defines what an eligible list provider should do
 type EligibleListProvider interface {
-	GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error)
+	GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// PeerTypeProviderHandler defines what a component which computes the type of a peer should do
+type PeerTypeProviderHandler interface {
+	ComputeForPubKey(pubKey []byte, shardID uint32) (core.ValidatorList, error)
 	IsInterfaceNil() bool
 }
 

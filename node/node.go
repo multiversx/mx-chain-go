@@ -915,6 +915,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
@@ -922,8 +927,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.marshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
-		n.nodesCoordinator,
-		n.epochStartTrigger,
+		peerTypeProvider,
 		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
@@ -960,8 +964,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
-		n.nodesCoordinator,
-		n.epochStartTrigger,
+		peerTypeProvider,
 		timer,
 	)
 	if err != nil {
