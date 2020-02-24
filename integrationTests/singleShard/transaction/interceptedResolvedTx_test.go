@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -115,6 +116,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	var nrOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
@@ -141,9 +144,11 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a reward Transaction
+	_, pubKey, _ := integrationTests.GenerateSkAndPkInShard(nRequester.ShardCoordinator, nRequester.ShardCoordinator.SelfId())
+	pubKeyArray, _ := pubKey.ToByteArray()
 	tx := rewardTx.RewardTx{
 		Value:   big.NewInt(0),
-		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
+		RcvAddr: pubKeyArray,
 		Round:   0,
 		Epoch:   0,
 	}
@@ -159,7 +164,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	//step 2. wire up a received handler for requester
 	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), sharding.MetachainShardId),
+			process.ShardCacherIdentifier(sharding.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
 		if reflect.DeepEqual(rewardTxStored, &tx) {

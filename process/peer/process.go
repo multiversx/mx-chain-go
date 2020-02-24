@@ -272,7 +272,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validatorInfoData := &state.ValidatorInfoData{
 			PublicKey:                  peerAccount.BLSPublicKey,
 			ShardId:                    peerAccount.CurrentShardId,
-			List:                       "",
+			List:                       "list",
 			Index:                      0,
 			TempRating:                 peerAccount.TempRating,
 			Rating:                     peerAccount.Rating,

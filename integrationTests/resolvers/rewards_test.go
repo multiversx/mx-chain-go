@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -15,11 +14,9 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	rm := newReceiverMonitor(t)
 	shardIdResolver := sharding.MetachainShardId
-	shardIdRequester := uint32(1)
+	shardIdRequester := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardIdResolver, shardIdRequester)
 	headerNonce := uint64(0)
 	reward, hash := createReward(headerNonce)
@@ -39,7 +36,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, shardIdResolver)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, sharding.MetachainShardId)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
