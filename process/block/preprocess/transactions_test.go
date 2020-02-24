@@ -3,6 +3,7 @@ package preprocess
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -25,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -1285,6 +1287,68 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 	assert.Nil(t, err)
 }
 
+func ExampleSortTransactionsByNonceAndSender() {
+	preprocessor := createGoodPreprocessor()
+
+	transactions := []data.TransactionHandler{
+		&transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")},
+		&transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")},
+		&transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")},
+		&transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")},
+		&transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")},
+		&transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")},
+		&transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")},
+		&transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")},
+	}
+
+	hashes := [][]byte{
+		[]byte("w"),
+		[]byte("x"),
+		[]byte("y"),
+		[]byte("z"),
+		[]byte("t"),
+		[]byte("a"),
+		[]byte("b"),
+		[]byte("c"),
+	}
+
+	items := preprocessor.sortTransactionsByNonceAndSender(transactions, hashes)
+
+	for _, item := range items {
+		fmt.Println(item.Transaction.GetNonce(), string(item.Transaction.GetSndAddress()), string(item.Hash))
+	}
+
+	// Output:
+	// 1 aaaa x
+	// 2 aaaa z
+	// 3 bbbb w
+	// 3 eeee c
+	// 3 ffff b
+	// 5 bbbb y
+	// 6 aabb a
+	// 7 aabb t
+}
+
+func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
+	preprocessor := createGoodPreprocessor()
+	numTx := 100000
+	transactions := make([]data.TransactionHandler, numTx)
+	hashes := make([][]byte, numTx)
+	for i := 0; i < numTx; i++ {
+		transactions[i] = &transaction.Transaction{
+			Nonce:   uint64(numTx - i),
+			SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
+		}
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		result := preprocessor.sortTransactionsByNonceAndSender(transactions, hashes)
+		require.Len(b, result, numTx)
+	}
+}
+
 func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
@@ -1297,4 +1361,27 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 			NumberOfShards: 1,
 		},
 	)
+}
+
+func createGoodPreprocessor() *transactions {
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		miniBlocksCompacterMock(),
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		&mock.AddressConverterMock{},
+	)
+
+	return preprocessor
 }

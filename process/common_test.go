@@ -2,7 +2,6 @@ package process_test
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -19,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEmptyChannelShouldWorkOnBufferedChannel(t *testing.T) {
@@ -1965,63 +1963,4 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(1), headers[0].GetNonce())
 	assert.Equal(t, uint64(2), headers[1].GetNonce())
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
-}
-
-func ExampleSortTransactionsByNonceAndSender() {
-	transactions := []data.TransactionHandler{
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")},
-		&transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")},
-		&transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")},
-		&transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")},
-		&transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")},
-		&transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")},
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")},
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")},
-	}
-
-	hashes := [][]byte{
-		[]byte("w"),
-		[]byte("x"),
-		[]byte("y"),
-		[]byte("z"),
-		[]byte("t"),
-		[]byte("a"),
-		[]byte("b"),
-		[]byte("c"),
-	}
-
-	items := process.SortTransactionsByNonceAndSender(transactions, hashes)
-
-	for _, item := range items {
-		fmt.Println(item.Transaction.GetNonce(), string(item.Transaction.GetSndAddress()), string(item.Hash))
-	}
-
-	// Output:
-	// 1 aaaa x
-	// 2 aaaa z
-	// 3 bbbb w
-	// 3 eeee c
-	// 3 ffff b
-	// 5 bbbb y
-	// 6 aabb a
-	// 7 aabb t
-}
-
-func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
-	numTx := 100000
-	transactions := make([]data.TransactionHandler, numTx)
-	hashes := make([][]byte, numTx)
-	for i := 0; i < numTx; i++ {
-		transactions[i] = &transaction.Transaction{
-			Nonce:   uint64(numTx - i),
-			SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
-		}
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		result := process.SortTransactionsByNonceAndSender(transactions, hashes)
-		require.Len(b, result, numTx)
-	}
 }
