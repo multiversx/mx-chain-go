@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +26,7 @@ func createStringPeersShardResolver() *mock.PeerShardResolverStub {
 				return crtShardId
 			}
 			if strings.Contains(strPid, "u") {
-				return sharding.UnknownShardId
+				return core.UnknownShardId
 			}
 
 			return crtShardId + 1

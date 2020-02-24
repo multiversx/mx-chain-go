@@ -3,6 +3,8 @@ package track
 import (
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -262,7 +264,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 			"shard", shardID,
 			"nonce", nonce)
 
-		if shardID == sharding.MetachainShardId {
+		if shardID == core.MetachainShardId {
 			go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		} else {
 			go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)

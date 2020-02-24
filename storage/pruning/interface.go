@@ -1,14 +1,14 @@
 package pruning
 
 import (
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // EpochStartNotifier defines
 type EpochStartNotifier interface {
-	RegisterHandler(handler notifier.SubscribeFunctionHandler)
-	UnregisterHandler(handler notifier.SubscribeFunctionHandler)
+	RegisterHandler(handler epochStart.EpochStartHandler)
+	UnregisterHandler(handler epochStart.EpochStartHandler)
 	IsInterfaceNil() bool
 }
 

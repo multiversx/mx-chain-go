@@ -4,6 +4,9 @@ import (
 	"errors"
 )
 
+// ErrMissingMetachainNodes signals that metachain nodes were not configured
+var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
+
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -15,6 +18,9 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 
 // ErrNilPubKey signals that the public key is nil
 var ErrNilPubKey = errors.New("nil public key")
+
+// ErrNotInvalidNumberPubKeys signals that an invalid number of public keys was used
+var ErrNotInvalidNumberPubKeys = errors.New("invalid number of public keys")
 
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
@@ -58,6 +64,9 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
+// ErrEpochNodesConfigDesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does not exist")
+
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
 
@@ -76,11 +85,11 @@ var ErrNilRandomness = errors.New("nil randomness source")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
-// ErrNilStake signals that a nil stake structure has been provided
-var ErrNilStake = errors.New("nil stake")
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
-// ErrNegativeStake signals that the stake is negative
-var ErrNegativeStake = errors.New("negative stake")
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer provided")
 
 // ErrNilAddress signals that the address is nil
 var ErrNilAddress = errors.New("nil address")
@@ -93,3 +102,6 @@ var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that a nil epoch handler has been provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")

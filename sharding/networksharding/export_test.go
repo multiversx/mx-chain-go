@@ -1,4 +1,4 @@
-package networkSharding
+package networksharding
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 

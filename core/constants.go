@@ -16,6 +16,12 @@ const NodeTypeValidator NodeType = "validator"
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
+
+// UnknownShardId will be used to identify an unknown shard ID
+const UnknownShardId = uint32(0xFFFFFFFE)
+
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
 

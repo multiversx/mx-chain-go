@@ -1,10 +1,12 @@
 {
   "startTime": 0,
   "roundDuration": 6000,
-  "consensusGroupSize": 20,
-  "minNodesPerShard": 20,
-  "metaChainConsensusGroupSize": 1,
-  "metaChainMinNodes": 1,
+  "consensusGroupSize": 4,
+  "minNodesPerShard": 4,
+  "metaChainConsensusGroupSize": 4,
+  "metaChainMinNodes": 4,
+  "hysteresis": 0.2,
+  "adaptivity": false,
   "chainID": "undefined",
   "initialNodes": [
     {
