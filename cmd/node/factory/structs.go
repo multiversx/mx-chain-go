@@ -1558,6 +1558,7 @@ func createInMemoryStoreBlkc(
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
@@ -2176,7 +2177,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsEpochStartData := block.ArgsNewEpochStartData{
+	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       core.Marshalizer,
 		Hasher:            core.Hasher,
 		Store:             data.Store,
@@ -2185,19 +2186,35 @@ func newMetaBlockProcessor(
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
 	}
-	epochStartDataCreator, err := block.NewEpochStartData(argsEpochStartData)
+	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
 		return nil, err
 	}
 
-	argsEpochEconomics := economics.ArgsNewEpochEconomics{
+	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:      core.Marshalizer,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
 		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
 	}
-	epochEconomics, err := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	if err != nil {
+		return nil, err
+	}
+
+	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
+	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
+		ShardCoordinator: shardCoordinator,
+		AddrConverter:    state.AddressConverter,
+		RewardsStorage:   rewardsStorage,
+		MiniBlockStorage: miniBlockStorage,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+	}
+	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -2229,10 +2246,10 @@ func newMetaBlockProcessor(
 		ArgBaseProcessor:         argumentsBaseProcessor,
 		SCDataGetter:             scDataGetter,
 		SCToProtocol:             smartContractToProtocol,
-		PeerChangesHandler:       smartContractToProtocol,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		EpochStartDataCreator:    epochStartDataCreator,
 		EpochEconomics:           epochEconomics,
+		EpochRewardsCreator:      epochRewards,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
@@ -2252,7 +2269,6 @@ func newValidatorStatisticsProcessor(
 	processComponents *processComponentsFactoryArgs,
 ) (process.ValidatorStatisticsProcessor, error) {
 
-	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
 	var peerDataPool peer.DataPool = processComponents.data.Datapool
@@ -2261,7 +2277,6 @@ func newValidatorStatisticsProcessor(
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:        initialNodes,
 		PeerAdapter:         processComponents.state.PeerAccounts,
 		AdrConv:             processComponents.state.BLSAddressConverter,
 		NodesCoordinator:    processComponents.nodesCoordinator,

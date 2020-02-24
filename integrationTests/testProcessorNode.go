@@ -1,12 +1,10 @@
 package integrationTests
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -558,7 +556,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	if tpn.ValidatorStatisticsProcessor == nil {
-		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{}
+		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
 	}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
@@ -765,28 +763,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap := tpn.NodesCoordinator.GetAllValidatorsPublicKeys()
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk)
-			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
-				NodeInfo: sharding.NodeInfo{},
-			}
-			initialNodes = append(initialNodes, n)
-		}
-	}
-
-	sort.Slice(initialNodes, func(i, j int) bool {
-		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
-	})
-
 	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:        initialNodes,
 		PeerAdapter:         tpn.PeerState,
 		AdrConv:             TestAddressConverterBLS,
 		NodesCoordinator:    tpn.NodesCoordinator,
@@ -874,7 +853,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 
-		argsEpochStartData := block.ArgsNewEpochStartData{
+		argsEpochStartData := metachain.ArgsNewEpochStartData{
 			Marshalizer:       TestMarshalizer,
 			Hasher:            TestHasher,
 			Store:             tpn.Storage,
@@ -883,25 +862,38 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ShardCoordinator:  tpn.ShardCoordinator,
 			EpochStartTrigger: tpn.EpochStartTrigger,
 		}
-		epochStartDataCreator, _ := block.NewEpochStartData(argsEpochStartData)
+		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
-		argsEpochEconomics := economics.ArgsNewEpochEconomics{
+		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
 			Marshalizer:      TestMarshalizer,
 			Store:            tpn.Storage,
 			ShardCoordinator: tpn.ShardCoordinator,
 			NodesCoordinator: tpn.NodesCoordinator,
 			RewardsHandler:   tpn.EconomicsData,
+			RoundTime:        tpn.Rounder,
 		}
-		epochEconomics, _ := economics.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+
+		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
+		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+		argsEpochRewards := metachain.ArgsNewRewardsCreator{
+			ShardCoordinator: tpn.ShardCoordinator,
+			AddrConverter:    TestAddressConverter,
+			RewardsStorage:   rewardsStorage,
+			MiniBlockStorage: miniBlockStorage,
+			Hasher:           TestHasher,
+			Marshalizer:      TestMarshalizer,
+		}
+		_, _ = metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             tpn.SCQueryService,
 			SCToProtocol:             scToProtocol,
-			PeerChangesHandler:       scToProtocol,
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:           epochEconomics,
 			EpochStartDataCreator:    epochStartDataCreator,
+			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1051,6 +1043,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
+	blockHeader.SetTimeStamp(round * uint64(tpn.Rounder.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
@@ -1285,7 +1278,7 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 }
 
 func (tpn *TestProcessorNode) initRounder() {
-	tpn.Rounder = &mock.RounderMock{}
+	tpn.Rounder = &mock.RounderMock{TimeDurationField: 5 * time.Second}
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {

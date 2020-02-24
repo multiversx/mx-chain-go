@@ -48,8 +48,9 @@ type PeerAccount struct {
 	NodeInWaitingList bool
 	UnStakedNonce     uint64
 
-	ValidatorSuccessRate SignRate
-	LeaderSuccessRate    SignRate
+	ValidatorSuccessRate       SignRate
+	LeaderSuccessRate          SignRate
+	NumSelectedInSuccessBlocks uint32
 
 	CodeHash []byte
 
@@ -323,6 +324,19 @@ func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
+// IncreaseNumSelectedInSuccessBlocks increases the counter for number of selection in successful blocks
+func (pa *PeerAccount) IncreaseNumSelectedInSuccessBlocks() error {
+	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.NumSelectedInSuccessBlocks += 1
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
 func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
@@ -354,13 +368,59 @@ func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
 
 // ResetAtNewEpoch will reset a set of values after changing epoch
 func (pa *PeerAccount) ResetAtNewEpoch() error {
-	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entryAccFee)
+	pa.AccumulatedFees = big.NewInt(0)
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	err = pa.SetRatingWithJournal(pa.GetTempRating())
+	if err != nil {
+		return err
+	}
+
+	entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entryLeaderRate)
+	pa.LeaderSuccessRate.NrFailure = 0
+	pa.LeaderSuccessRate.NrSuccess = 0
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entryValidatorRate)
+	pa.ValidatorSuccessRate.NrSuccess = 0
+	pa.ValidatorSuccessRate.NrFailure = 0
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
-	pa.AccumulatedFees = big.NewInt(0)
+	pa.NumSelectedInSuccessBlocks = 0
 
 	return pa.accountTracker.SaveAccount(pa)
 }

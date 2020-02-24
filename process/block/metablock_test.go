@@ -47,7 +47,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
@@ -62,10 +62,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		},
 		SCDataGetter:             &mock.ScQueryMock{},
 		SCToProtocol:             &mock.SCToProtocolStub{},
-		PeerChangesHandler:       &mock.PeerChangesHandler{},
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:           &mock.EpochEconomicsStub{},
+		EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 	}
 	return arguments
 }
@@ -79,7 +79,6 @@ func createMetaBlockHeader() *block.MetaBlock {
 		PubKeysBitmap:          []byte("pubKeysBitmap"),
 		RootHash:               []byte("rootHash"),
 		ShardInfo:              make([]block.ShardData, 0),
-		PeerInfo:               make([]block.PeerData, 0),
 		TxCount:                1,
 		PrevRandSeed:           make([]byte, 0),
 		RandSeed:               make([]byte, 0),
@@ -102,11 +101,6 @@ func createMetaBlockHeader() *block.MetaBlock {
 		ShardMiniBlockHeaders: shardMiniBlockHeaders,
 	}
 	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
-
-	peerData := block.PeerData{
-		PublicKey: []byte("public_key1"),
-	}
-	hdr.PeerInfo = append(hdr.PeerInfo, peerData)
 
 	return &hdr
 }
@@ -836,7 +830,7 @@ func TestMetaProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testin
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},
@@ -862,7 +856,7 @@ func TestMetaProcessor_RevertStateToBlockShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.HeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
@@ -2111,25 +2105,6 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrTimeIsOut, err)
-}
-
-func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	dPool := initDataPool([]byte("tx_hash"))
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return nil
-	}
-
-	arguments := createMockMetaArguments()
-	arguments.DataPool = dPool
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
-
-	metaHdr := &block.MetaBlock{Round: round}
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
 
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {

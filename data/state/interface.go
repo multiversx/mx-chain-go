@@ -76,10 +76,16 @@ type PeerAccountHandler interface {
 	DecreaseLeaderSuccessRateWithJournal(value uint32) error
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error
 	DecreaseValidatorSuccessRateWithJournal(value uint32) error
+	IncreaseNumSelectedInSuccessBlocks() error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+	ResetAtNewEpoch() error
+	SetRewardAddressWithJournal(address []byte) error
+	SetSchnorrPublicKeyWithJournal(address []byte) error
+	SetBLSPublicKeyWithJournal(address []byte) error
+	SetStakeWithJournal(stake *big.Int) error
 }
 
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
@@ -128,6 +134,7 @@ type AccountsAdapter interface {
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	ClosePersister() error
+	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -144,4 +151,14 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
+}
+
+type ValidatorInfo interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
 }

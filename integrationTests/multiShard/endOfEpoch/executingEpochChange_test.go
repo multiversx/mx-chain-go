@@ -19,7 +19,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 3
 	nodesPerShard := 3
 	numMetachainNodes := 3
 

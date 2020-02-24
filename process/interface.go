@@ -122,8 +122,7 @@ type TransactionCoordinator interface {
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
-	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
-
+	CreateMarshalizedData(body block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	CreateReceiptsHash() ([]byte, error)
@@ -221,6 +220,8 @@ type ValidatorStatisticsProcessor interface {
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -635,6 +636,16 @@ type BlockTracker interface {
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
 	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	IsInterfaceNil() bool
+}
+
+// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type EpochStartRewardsCreator interface {
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
+	CreateMarshalizedData(body block.Body) map[string][][]byte
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body)
 	IsInterfaceNil() bool
 }
 

@@ -1705,7 +1705,15 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	mrsData := make(map[uint32][]byte, sp.shardCoordinator.NumberOfShards()+1)
-	bodies, mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
+	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
+
+	bodies := make(map[uint32]block.MiniBlockSlice)
+	for _, miniBlock := range body {
+		if miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
+			continue
+		}
+		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
+	}
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := sp.marshalizer.Marshal(subsetBlockBody)
