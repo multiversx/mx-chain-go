@@ -221,7 +221,7 @@ type ValidatorStatisticsProcessor interface {
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -670,5 +670,11 @@ type BuiltinFunction interface {
 		acntSnd, acntDst state.UserAccountHandler,
 		vmInput *vmcommon.ContractCallInput,
 	) (*big.Int, error)
+	IsInterfaceNil() bool
+}
+
+// RoundTimeDurationHandler defines the methods to get the time duration of a round
+type RoundTimeDurationHandler interface {
+	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }

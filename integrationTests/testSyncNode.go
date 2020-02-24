@@ -126,7 +126,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},

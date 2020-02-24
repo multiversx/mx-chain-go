@@ -67,7 +67,6 @@ func createMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 		Nonce:         nonce,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),

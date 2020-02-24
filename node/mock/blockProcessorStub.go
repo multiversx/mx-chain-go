@@ -62,7 +62,7 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) err
 	return nil
 }
 
-// CreateBlockBody mocks the creation of a transaction block body
+// CreateBlock mocks the creation of a new block with header and body
 func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bps.CreateBlockCalled(initialHdrData, haveTime)
 }

@@ -2,11 +2,11 @@
 [GlobalSettings]
     TotalSupply = "20000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
-    MaximumInflation = 0.1
+    MaximumInflation = 0.1 #fraction of value 1 - 10%
 
 [RewardsSettings]
-    LeaderPercentage = 0.10
-    DeveloperPercentage = 0.30
+    LeaderPercentage = 0.10 #fraction of value 1 - 10%
+    DeveloperPercentage = 0.30 #fraction of value 1 - 30%
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]

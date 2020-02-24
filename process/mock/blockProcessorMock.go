@@ -63,7 +63,7 @@ func (bpm *BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bpm.CreateGenesisBlockCalled(balances)
 }
 
-// CreateBlockBody -
+// CreateBlock -
 func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }

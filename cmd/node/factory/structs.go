@@ -2197,6 +2197,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
 		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -2268,7 +2269,6 @@ func newValidatorStatisticsProcessor(
 	processComponents *processComponentsFactoryArgs,
 ) (process.ValidatorStatisticsProcessor, error) {
 
-	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
 	var peerDataPool peer.DataPool = processComponents.data.Datapool
@@ -2277,7 +2277,6 @@ func newValidatorStatisticsProcessor(
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:        initialNodes,
 		PeerAdapter:         processComponents.state.PeerAccounts,
 		AdrConv:             processComponents.state.BLSAddressConverter,
 		NodesCoordinator:    processComponents.nodesCoordinator,

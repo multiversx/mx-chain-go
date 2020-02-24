@@ -1057,7 +1057,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
 			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
 				switch {
 				case bytes.Equal(address, []byte(keys[0][0])):
@@ -2014,7 +2014,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithChainID([]byte("id")),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithMultiSigner(&mock.MultisignMock{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
