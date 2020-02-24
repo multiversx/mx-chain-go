@@ -10,12 +10,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func uint64ToBytes(value uint64) []byte {
@@ -73,7 +72,7 @@ func createArguments() ArgNodesCoordinator {
 }
 
 func genRandSource(round uint64, randomness string) string {
-	return fmt.Sprintf("%d-%s", round, core.ToB64([]byte(randomness)))
+	return fmt.Sprintf("%d-%s", round, []byte(randomness))
 }
 
 //------- NewIndexHashedNodesCoordinator
@@ -478,13 +477,22 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	randomnessWithRound := genRandSource(0, randomness)
 
 	//script:
-	// for index 0, hasher will return 11 which will translate to 1, so 1 is the first element
-	// for index 1, hasher will return 1 which will translate to 1, 1 is already picked, try the next, 2 is the second element
-	// for index 2, hasher will return 9 which will translate to 9, 9 is the 3-rd element
-	// for index 3, hasher will return 9 which will translate to 9, 9 is already picked, try the next one, 0 is the 4-th element
-	// for index 4, hasher will return 0 which will translate to 0, 0 is already picked, 1 is already picked, 2 is already picked,
-	//      3 is the 4-th element
-	// for index 5, hasher will return 9 which will translate to 9, so 9, 0, 1, 2, 3 are already picked, 4 is the 5-th element
+	// for index 0, hasher will return 11 which will translate to 1, so index 1 will be used ; num appearances = 1 => size = 1
+
+	// for index 1, hasher will return 1 which will translate to 1, 1 is already picked, size will be added so the
+	// new calculated index will 2 ; appearances = 1 => size = 2
+
+	// for index 2, hasher will return 9 , 9 % (10 - 2) = 1 ; 1 is already picked so add the size (2) and the new
+	// validator will be from index 3 ; appearances = 1 => size = 3
+
+	// for index 3, hasher will return 9 ; 9 % (10 - 3) = 2 ; 2 > 1 (first element in slice) so add the size (3) and the new
+	// validator will be from index 5 ; appearances = 1 => size = 4
+
+	// for index 4, hasher will return 0 ; 0 % (10 - 4) = 0 so the new validator will be from index 0 ;
+	// num appearances = 1 => size = 5
+
+	// for index 5, hasher will return 9 ; 9 % (10 - 5) = 4 ; 4 > 0 (first element in sorted slice) so size will be added
+	// and will return the index 9 for the validator
 	script := make(map[string]uint64)
 
 	script[string(uint64ToBytes(0))+randomnessWithRound] = 11 //will translate to 1, add 1
@@ -563,10 +571,10 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	//check order as described in script
 	assert.Equal(t, validator1, list2[0])
 	assert.Equal(t, validator2, list2[1])
-	assert.Equal(t, validator9, list2[2])
-	assert.Equal(t, validator0, list2[3])
-	assert.Equal(t, validator3, list2[4])
-	assert.Equal(t, validator4, list2[5])
+	assert.Equal(t, validator3, list2[2])
+	assert.Equal(t, validator5, list2[3])
+	assert.Equal(t, validator0, list2[4])
+	assert.Equal(t, validator9, list2[5])
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10locksNoMemoization(t *testing.T) {
