@@ -908,7 +908,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RecreateStateTries(&hdr)
+	err := mp.RevertStateToBlock(&hdr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -935,7 +935,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RecreateStateTries(&hdr)
+	err := mp.RevertStateToBlock(&hdr)
 	assert.Nil(t, err)
 	assert.True(t, revertePeerStateWasCalled)
 	assert.True(t, recreateTrieWasCalled)

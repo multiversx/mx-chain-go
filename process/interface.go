@@ -215,8 +215,8 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error
-	RecreateStateTries(header data.HeaderHandler) error
+	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader(round uint64) data.HeaderHandler
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error

@@ -160,7 +160,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
-	err = st.blkExecutor.RecreateStateTries(headerFromStorage)
+	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
 		return err
@@ -329,7 +329,7 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 
 func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	genesisHeader := st.blkc.GetGenesisHeader()
-	err := st.blkExecutor.RecreateStateTries(genesisHeader)
+	err := st.blkExecutor.RevertStateToBlock(genesisHeader)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}

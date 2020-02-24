@@ -13,7 +13,7 @@ type BlockProcessorMock struct {
 	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
-	RevertStateCalled                func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
@@ -25,7 +25,7 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	RecreateStateTriesCalled         func(header data.HeaderHandler) error
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
 // SetNumProcessedObj -
@@ -55,19 +55,17 @@ func (bpm *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, header 
 	return bpm.CommitBlockCalled(blockChain, header, body)
 }
 
-// RevertState recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
-	if bpm.RevertStateCalled != nil {
-		return bpm.RevertStateCalled(currHeader, prevHeader)
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if bpm.PruneStateOnRollbackCalled != nil {
+		bpm.PruneStateOnRollbackCalled(currHeader, prevHeader)
 	}
-
-	return nil
 }
 
-// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RecreateStateTries(header data.HeaderHandler) error {
-	if bpm.RecreateStateTriesCalled != nil {
-		return bpm.RecreateStateTriesCalled(header)
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
 	}
 
 	return nil

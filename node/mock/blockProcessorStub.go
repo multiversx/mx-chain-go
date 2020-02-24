@@ -24,8 +24,8 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	RevertStateCalled                func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error
-	RecreateStateTriesCalled         func(header data.HeaderHandler) error
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -56,12 +56,11 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bps.CreateGenesisBlockCalled(balances)
 }
 
-// RevertState recreates thee state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
-	if bps.RevertStateCalled != nil {
-		return bps.RevertStateCalled(currHeader, prevHeader)
+// PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
+func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if bps.PruneStateOnRollbackCalled != nil {
+		bps.PruneStateOnRollbackCalled(currHeader, prevHeader)
 	}
-	return nil
 }
 
 // CreateBlockBody mocks the creation of a transaction block body
@@ -123,10 +122,10 @@ func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
 }
 
-// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorStub) RecreateStateTries(header data.HeaderHandler) error {
-	if bpm.RecreateStateTriesCalled != nil {
-		return bpm.RecreateStateTriesCalled(header)
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
 	}
 
 	return nil

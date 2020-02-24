@@ -670,10 +670,11 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blockProcessor.RevertState(currHeader, prevHeader)
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
 	if err != nil {
 		return err
 	}
+	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
@@ -739,7 +740,7 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blockProcessor.RecreateStateTries(currHeader)
+	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
 		log.Debug("RevertState", "error", err.Error())
 	}

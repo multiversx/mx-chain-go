@@ -332,8 +332,8 @@ func (sp *shardProcessor) RevertAccountState() {
 	}
 }
 
-// RecreateStateTries recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) RecreateStateTries(header data.HeaderHandler) error {
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := sp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
@@ -347,21 +347,9 @@ func (sp *shardProcessor) RecreateStateTries(header data.HeaderHandler) error {
 	return nil
 }
 
-// RevertState recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) RevertState(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) error {
-	err := sp.accounts.RecreateTrie(prevHeader.GetRootHash())
-	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", prevHeader.GetNonce(),
-			"hash", prevHeader.GetRootHash(),
-		)
-
-		return err
-	}
-
-	sp.pruneStateAccountsOnRollback(currHeader, prevHeader)
-
-	return nil
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (sp *shardProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	sp.pruneStateOnRollback(currHeader, prevHeader, sp.accounts)
 }
 
 func (sp *shardProcessor) checkEpochCorrectness(
@@ -852,9 +840,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	for i := range selfNotarizedHeaders {
-		sp.updateAccountsStateStorage(selfNotarizedHeaders[i], sp.stateCheckpointModulus)
-	}
+	sp.updateState(selfNotarizedHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -941,6 +927,23 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
+	for i := range headers {
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
+		if errNotCritical != nil {
+			log.Debug("could not get shard header from storage")
+			return
+		}
+
+		sp.updateStateStorage(
+			headers[i],
+			headers[i].GetRootHash(),
+			prevHeader.GetRootHash(),
+			sp.accounts,
+		)
+	}
 }
 
 func (sp *shardProcessor) commitAll() error {

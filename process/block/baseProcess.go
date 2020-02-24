@@ -992,39 +992,31 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
 }
 
-func (bp *baseProcessor) updateAccountsStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
-	if check.IfNil(finalHeader) {
-		log.Error("updateAccountsStateStorage nil header")
+func (bp *baseProcessor) updateStateStorage(
+	finalHeader data.HeaderHandler,
+	rootHash []byte,
+	prevRootHash []byte,
+	stateUpdater stateUpdater,
+) {
+	if !stateUpdater.IsPruningEnabled() {
 		return
 	}
 
-	if !bp.accounts.IsPruningEnabled() {
-		return
-	}
-
-	rootHash := finalHeader.GetRootHash()
-	bp.accounts.CancelPrune(rootHash, data.NewRoot)
+	stateUpdater.CancelPrune(rootHash, data.NewRoot)
 
 	if finalHeader.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", rootHash)
-		bp.accounts.SnapshotState(rootHash)
+		stateUpdater.SnapshotState(rootHash)
 	}
 
 	// TODO generate checkpoint on a trigger
-	if checkpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(checkpointModulus) == 0 {
+	if bp.stateCheckpointModulus != 0 {
+		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			bp.accounts.SetStateCheckpoint(rootHash)
+			stateUpdater.SetStateCheckpoint(rootHash)
 		}
 	}
 
-	prevHeader, errNotCritical := bp.getPreviousHeader(finalHeader)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-		return
-	}
-
-	prevRootHash := prevHeader.GetRootHash()
 	if prevRootHash == nil {
 		return
 	}
@@ -1033,73 +1025,14 @@ func (bp *baseProcessor) updateAccountsStateStorage(finalHeader data.HeaderHandl
 		return
 	}
 
-	errNotCritical = bp.accounts.PruneTrie(prevRootHash, data.OldRoot)
+	errNotCritical := stateUpdater.PruneTrie(prevRootHash, data.OldRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
 }
 
-func (bp *baseProcessor) getPreviousHeader(header data.HeaderHandler) (data.HeaderHandler, error) {
-	if _, ok := header.(*block.MetaBlock); ok {
-		return process.GetMetaHeaderFromStorage(header.GetPrevHash(), bp.marshalizer, bp.store)
-	}
-
-	if _, ok := header.(*block.Header); ok {
-		return process.GetShardHeaderFromStorage(header.GetPrevHash(), bp.marshalizer, bp.store)
-	}
-
-	return nil, process.ErrWrongTypeAssertion
-}
-
-func (bp *baseProcessor) updatePeerStateStorage(finalHeader data.HeaderHandler, checkpointModulus uint) {
-	if check.IfNil(finalHeader) {
-		log.Error("updatePeerStateStorage nil header")
-		return
-	}
-
-	if !bp.validatorStatisticsProcessor.IsPruningEnabled() {
-		return
-	}
-
-	validatorStatsRootHash := finalHeader.GetValidatorStatsRootHash()
-	bp.validatorStatisticsProcessor.CancelPrune(validatorStatsRootHash, data.NewRoot)
-
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "validator stats rootHash", validatorStatsRootHash)
-		bp.validatorStatisticsProcessor.SnapshotState(validatorStatsRootHash)
-	}
-
-	// TODO generate checkpoint on a trigger
-	if checkpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(checkpointModulus) == 0 {
-			log.Debug("trie checkpoint", "validator stats rootHash", validatorStatsRootHash)
-			bp.validatorStatisticsProcessor.SetStateCheckpoint(validatorStatsRootHash)
-		}
-	}
-
-	prevHeader, errNotCritical := bp.getPreviousHeader(finalHeader)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-		return
-	}
-
-	prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
-	if prevValidatorStatsRootHash == nil {
-		return
-	}
-
-	if bytes.Equal(prevValidatorStatsRootHash, validatorStatsRootHash) {
-		return
-	}
-
-	errNotCritical = bp.validatorStatisticsProcessor.PruneTrie(prevValidatorStatsRootHash, data.OldRoot)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-}
-
-func (bp *baseProcessor) pruneStateAccountsOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
-	if !bp.accounts.IsPruningEnabled() {
+func (bp *baseProcessor) pruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, stateUpdater stateUpdater) {
+	if !stateUpdater.IsPruningEnabled() {
 		return
 	}
 
@@ -1110,29 +1043,9 @@ func (bp *baseProcessor) pruneStateAccountsOnRollback(currHeader data.HeaderHand
 		return
 	}
 
-	bp.accounts.CancelPrune(prevRootHash, data.OldRoot)
+	stateUpdater.CancelPrune(prevRootHash, data.OldRoot)
 
-	errNotCritical := bp.accounts.PruneTrie(rootHash, data.NewRoot)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-}
-
-func (bp *baseProcessor) prunePeerAccountsOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
-	if !bp.validatorStatisticsProcessor.IsPruningEnabled() {
-		return
-	}
-
-	validatorStatsRootHash := currHeader.GetValidatorStatsRootHash()
-	prevValidatorStatsRootHash := prevHeader.GetValidatorStatsRootHash()
-
-	if bytes.Equal(validatorStatsRootHash, prevValidatorStatsRootHash) {
-		return
-	}
-
-	bp.validatorStatisticsProcessor.CancelPrune(prevValidatorStatsRootHash, data.OldRoot)
-
-	errNotCritical := bp.validatorStatisticsProcessor.PruneTrie(validatorStatsRootHash, data.NewRoot)
+	errNotCritical := stateUpdater.PruneTrie(rootHash, data.NewRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
