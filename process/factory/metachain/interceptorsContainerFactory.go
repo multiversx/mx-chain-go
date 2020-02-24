@@ -138,7 +138,7 @@ func NewInterceptorsContainerFactory(
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:  protoMarshalizer,
-		SignMarshalizer:   txSignMarshalizer,
+		TxSignMarshalizer: txSignMarshalizer,
 		Hasher:            hasher,
 		ShardCoordinator:  shardCoordinator,
 		NodesCoordinator:  nodesCoordinator,

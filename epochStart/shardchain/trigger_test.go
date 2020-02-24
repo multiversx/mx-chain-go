@@ -288,7 +288,7 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 	assert.False(t, called)
 
 	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 3,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}}})
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}}})
 	assert.False(t, called)
 
 	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 2})

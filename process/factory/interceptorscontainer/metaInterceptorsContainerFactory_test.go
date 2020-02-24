@@ -127,7 +127,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -138,7 +138,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	args.SizeCheckDelta = 1
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -436,7 +436,8 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
 		Messenger:              &mock.TopicHandlerStub{},
 		Store:                  createMetaStore(),
-		Marshalizer:            &mock.MarshalizerMock{},
+		ProtoMarshalizer:       &mock.MarshalizerMock{},
+		TxSignMarshalizer:      &mock.MarshalizerMock{},
 		Hasher:                 &mock.HasherMock{},
 		MultiSigner:            mock.NewMultiSigner(),
 		DataPool:               createMetaDataPools(),

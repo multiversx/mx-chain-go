@@ -28,12 +28,13 @@ func NewShardInterceptorsContainerFactory(
 	args ShardInterceptorsContainerFactoryArgs,
 ) (*shardInterceptorsContainerFactory, error) {
 	if args.SizeCheckDelta > 0 {
-		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
+		args.ProtoMarshalizer = marshal.NewSizeCheckUnmarshalizer(args.ProtoMarshalizer, args.SizeCheckDelta)
 	}
 	err := checkBaseParams(
 		args.ShardCoordinator,
 		args.Accounts,
-		args.Marshalizer,
+		args.ProtoMarshalizer,
+		args.TxSignMarshalizer,
 		args.Hasher,
 		args.Store,
 		args.DataPool,
@@ -78,7 +79,8 @@ func NewShardInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.Marshalizer,
+		ProtoMarshalizer:  args.ProtoMarshalizer,
+		TxSignMarshalizer: args.TxSignMarshalizer,
 		Hasher:            args.Hasher,
 		ShardCoordinator:  args.ShardCoordinator,
 		MultiSigVerifier:  args.MultiSigner,
@@ -102,7 +104,7 @@ func NewShardInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.Marshalizer,
+		marshalizer:            args.ProtoMarshalizer,
 		hasher:                 args.Hasher,
 		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,

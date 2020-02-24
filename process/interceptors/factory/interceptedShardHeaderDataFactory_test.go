@@ -35,7 +35,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *tes
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.SignMarshalizer = nil
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))

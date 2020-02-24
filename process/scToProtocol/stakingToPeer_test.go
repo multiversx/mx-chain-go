@@ -34,7 +34,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	}
 }
 
-func createBlockBody() block.Body {
+func createBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			&block.MiniBlock{

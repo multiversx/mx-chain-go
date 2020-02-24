@@ -30,7 +30,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.SignMarshalizer) {
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -54,7 +54,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 
 	return &interceptedTxDataFactory{
 		protoMarshalizer: argument.ProtoMarshalizer,
-		signMarshalizer:  argument.SignMarshalizer,
+		signMarshalizer:  argument.TxSignMarshalizer,
 		hasher:           argument.Hasher,
 		keyGen:           argument.KeyGen,
 		singleSigner:     argument.Signer,

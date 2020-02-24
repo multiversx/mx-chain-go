@@ -25,7 +25,7 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.SignMarshalizer) {
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {

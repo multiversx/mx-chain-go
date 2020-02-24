@@ -34,7 +34,7 @@ func TestNewInterceptedUnsignedTxDataFactory_NilSignMarshalizerShouldErr(t *test
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.SignMarshalizer = nil
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)

@@ -770,7 +770,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		RootHash:           rootHash,
 	}
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 

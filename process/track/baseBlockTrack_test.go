@@ -791,7 +791,7 @@ func TestCleanupInvalidCrossHeaders_DoesntChangeAnythingIfNoInvalidHeaders(t *te
 	startHeaderShard0Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard0)
 
 	hdr1Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        1,
 		Nonce:        1,
 		PrevHash:     startHeaderShard0Hash,
@@ -800,7 +800,7 @@ func TestCleanupInvalidCrossHeaders_DoesntChangeAnythingIfNoInvalidHeaders(t *te
 	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard0)
 
 	hdr2Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        2,
 		Nonce:        2,
 		PrevHash:     hdr1Hash,
@@ -809,7 +809,7 @@ func TestCleanupInvalidCrossHeaders_DoesntChangeAnythingIfNoInvalidHeaders(t *te
 	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard0)
 
 	hdr3Shard0 := &block.Header{
-		ShardId:      0,
+		ShardID:      0,
 		Round:        3,
 		Nonce:        3,
 		PrevHash:     hdr2Hash,
@@ -848,7 +848,7 @@ func TestCleanupInvalidCrossHeaders_RemovesInvalidInvalidHeaders(t *testing.T) {
 
 	hdr1Shard0 := &block.Header{
 		Epoch:        0,
-		ShardId:      0,
+		ShardID:      0,
 		Round:        1,
 		Nonce:        1,
 		PrevHash:     startHeaderShard0Hash,
@@ -859,7 +859,7 @@ func TestCleanupInvalidCrossHeaders_RemovesInvalidInvalidHeaders(t *testing.T) {
 	// should be last accepted round due to grace period
 	hdr2Shard0 := &block.Header{
 		Epoch:        0,
-		ShardId:      0,
+		ShardID:      0,
 		Round:        4,
 		Nonce:        2,
 		PrevHash:     hdr1Hash,
@@ -870,7 +870,7 @@ func TestCleanupInvalidCrossHeaders_RemovesInvalidInvalidHeaders(t *testing.T) {
 	// should be removed on cleanup
 	hdr3Shard0 := &block.Header{
 		Epoch:        0,
-		ShardId:      0,
+		ShardID:      0,
 		Round:        6,
 		Nonce:        3,
 		PrevHash:     hdr2Hash,
