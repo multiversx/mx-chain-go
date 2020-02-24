@@ -970,8 +970,7 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
-	mp.updateAccountsStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
-	mp.updatePeerStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
+	mp.updateStateStorage(lastMetaBlock)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1036,6 +1035,11 @@ func (mp *metaProcessor) CommitBlock(
 	go mp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (mp *metaProcessor) updateStateStorage(lastMetaBlock data.HeaderHandler) {
+	mp.updateAccountsStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
+	mp.updatePeerStateStorage(lastMetaBlock, mp.stateCheckpointModulus)
 }
 
 func (mp *metaProcessor) commitAll() error {

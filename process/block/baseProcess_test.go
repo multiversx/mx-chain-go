@@ -395,7 +395,7 @@ func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- RevertStateT
+//------- RevertStateTrie
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 

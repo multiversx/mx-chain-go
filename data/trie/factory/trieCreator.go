@@ -93,7 +93,7 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		return nil, err
 	}
 
-	snapshotDbCfg := &config.DBConfig{
+	snapshotDbCfg := config.DBConfig{
 		FilePath:          filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath),
 		Type:              tc.snapshotDbCfg.Type,
 		BatchDelaySeconds: tc.snapshotDbCfg.BatchDelaySeconds,
