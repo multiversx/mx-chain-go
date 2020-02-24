@@ -299,6 +299,7 @@ func Test_routeToCache(t *testing.T) {
 	require.Equal(t, "42", pool.routeToCache("42_1"))
 	require.Equal(t, "42", pool.routeToCache("42_2"))
 	require.Equal(t, "42", pool.routeToCache("42_*"))
+	require.Equal(t, "42", pool.routeToCache("42_42"))
 	require.Equal(t, "2_5", pool.routeToCache("2_5"))
 	require.Equal(t, "foobar", pool.routeToCache("foobar"))
 }
