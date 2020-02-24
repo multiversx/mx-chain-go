@@ -3,7 +3,6 @@ package networksharding
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 	"testing"
 
@@ -110,9 +109,9 @@ func TestNewListKadSharder_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- ComputeEvictList
+//------- ComputeEvictionList
 
-func TestListKadSharder_ComputeEvictListNotReachedIntraShardShouldRetEmpty(t *testing.T) {
+func TestListKadSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	lks, _ := NewListKadSharder(
@@ -126,12 +125,12 @@ func TestListKadSharder_ComputeEvictListNotReachedIntraShardShouldRetEmpty(t *te
 	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
 	pids := []peer.ID{pidCrtShard, pidCrossShard}
 
-	evictList := lks.ComputeEvictList(pids)
+	evictList := lks.ComputeEvictionList(pids)
 
 	assert.Equal(t, 0, len(evictList))
 }
 
-func TestListKadSharder_ComputeEvictListNotReachedCrossShardShouldRetEmpty(t *testing.T) {
+func TestListKadSharder_ComputeEvictionListNotReachedCrossShardShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	lks, _ := NewListKadSharder(
@@ -145,12 +144,12 @@ func TestListKadSharder_ComputeEvictListNotReachedCrossShardShouldRetEmpty(t *te
 	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
 	pids := []peer.ID{pidCrtShard, pidCrossShard}
 
-	evictList := lks.ComputeEvictList(pids)
+	evictList := lks.ComputeEvictionList(pids)
 
 	assert.Equal(t, 0, len(evictList))
 }
 
-func TestListKadSharder_ComputeEvictListReachedIntraShardShouldSortAndEvict(t *testing.T) {
+func TestListKadSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
 	t.Parallel()
 
 	lks, _ := NewListKadSharder(
@@ -164,13 +163,13 @@ func TestListKadSharder_ComputeEvictListReachedIntraShardShouldSortAndEvict(t *t
 	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - new pid", crtShardId))
 	pids := []peer.ID{pidCrtShard2, pidCrtShard1}
 
-	evictList := lks.ComputeEvictList(pids)
+	evictList := lks.ComputeEvictionList(pids)
 
 	assert.Equal(t, 1, len(evictList))
-	assert.Equal(t, pidCrtShard2, evictList[0])
+	assert.Equal(t, pidCrtShard1, evictList[0])
 }
 
-func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.T) {
+func TestListKadSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing.T) {
 	t.Parallel()
 
 	maxPeerCount := 4
@@ -189,7 +188,7 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 	newUnknownPid := peer.ID("u a pid")
 	unknownPids = append(unknownPids, newUnknownPid)
 
-	evictList := lks.ComputeEvictList(unknownPids)
+	evictList := lks.ComputeEvictionList(unknownPids)
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, unknownPids[0], evictList[0])
@@ -197,14 +196,24 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 
 //------- computeDistance
 
-func TestComputeDistance(t *testing.T) {
+func TestComputeDistanceByCountingBits(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, uint64(0), computeDistance("", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistance("a", "").Uint64())
-	assert.Equal(t, uint64(0), computeDistance("a", "a").Uint64())
-	assert.Equal(t, uint64(1), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
-	assert.Equal(t, uint64(255), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
-	expectedResult := big.NewInt(0).SetBytes([]byte{255, 127})
-	assert.Equal(t, expectedResult.Uint64(), computeDistance(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+	//compute will be done on hashes. Impossible to predict the outcome in this test
+	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistanceByCountingBits("a", "a").Uint64())
+	assert.Equal(t, uint64(139), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(130), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(117), computeDistanceByCountingBits(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+}
+
+func TestComputeDistanceLog2Based(t *testing.T) {
+	t.Parallel()
+
+	//compute will be done on hashes. Impossible to predict the outcome in this test
+	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistanceLog2Based("a", "a").Uint64())
+	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(250), computeDistanceLog2Based(peer.ID([]byte{254}), peer.ID([]byte{255})).Uint64())
+	assert.Equal(t, uint64(256), computeDistanceLog2Based(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }

@@ -322,7 +322,7 @@ func CreateNodesWithTestP2PNodes(
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/Intra/Cross/Unk"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/Intra/Cross/Unk"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -331,10 +331,12 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 
 			peerInfo := n.Messenger.GetConnectedPeersInfo()
 
+			pid := n.Messenger.ID().Pretty()
 			lineData := display.NewLineData(
 				false,
 				[]string{
 					core.GetTrimmedPk(hex.EncodeToString(buffPk)),
+					pid[len(pid)-6:],
 					fmt.Sprintf("%d", shardId),
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),

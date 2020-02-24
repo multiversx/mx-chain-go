@@ -3,16 +3,56 @@ package networksharding
 import (
 	"fmt"
 	"math/big"
+	"math/bits"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const minAllowedConnectedPeers = 2
 const minAllowedPeersOnList = 1
+
+var leadingZerosCount = []int{
+	8, 7, 6, 6, 5, 5, 5, 5,
+	4, 4, 4, 4, 4, 4, 4, 4,
+	3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3,
+	2, 2, 2, 2, 2, 2, 2, 2,
+	2, 2, 2, 2, 2, 2, 2, 2,
+	2, 2, 2, 2, 2, 2, 2, 2,
+	2, 2, 2, 2, 2, 2, 2, 2,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+// this will fail if we have less than 256 values in the slice
+var _ = leadingZerosCount[255]
 
 // listKadSharder is the struct able to compute an eviction list of connected peers id according to the
 // provided parameters. It basically splits all connected peers into 3 lists: intra shard peers, cross shard peers
@@ -24,6 +64,7 @@ type listKadSharder struct {
 	maxPeerCount      int
 	maxIntraShard     int
 	maxCrossShard     int
+	computeDistance   func(src peer.ID, dest peer.ID) *big.Int
 }
 
 // NewListKadSharder creates a new kad list based kad sharder instance
@@ -53,11 +94,12 @@ func NewListKadSharder(
 		maxPeerCount:      maxPeerCount,
 		maxIntraShard:     maxIntraShard,
 		maxCrossShard:     maxCrossShard,
+		computeDistance:   computeDistanceByCountingBits,
 	}, nil
 }
 
-// ComputeEvictList returns the eviction list
-func (lks *listKadSharder) ComputeEvictList(pidList []peer.ID) []peer.ID {
+// ComputeEvictionList returns the eviction list
+func (lks *listKadSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	evictionProposed := make([]peer.ID, 0)
 	intraShard, crossShard, unknownShard := lks.splitPeerIds(pidList)
 
@@ -93,6 +135,7 @@ func (lks *listKadSharder) PeerShardResolver() p2p.PeerShardResolver {
 	return lks.peerShardResolver
 }
 
+//TODO study if we need to hve a dedicated section for metanodes
 func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDistances, peerDistances) {
 	selfId := lks.peerShardResolver.ByID(p2p.PeerID(lks.selfPeerId))
 
@@ -103,10 +146,9 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDis
 	for _, p := range peers {
 		pd := peerDistance{
 			ID:       p,
-			distance: computeDistance(p, lks.selfPeerId),
+			distance: lks.computeDistance(p, lks.selfPeerId),
 		}
 		pid := p2p.PeerID(p)
-
 		shardId := lks.peerShardResolver.ByID(pid)
 
 		switch shardId {
@@ -146,15 +188,35 @@ func (lks *listKadSharder) IsInterfaceNil() bool {
 	return lks == nil
 }
 
-// computes the kademlia distance between 2 provided peer by doing byte xor operations
-func computeDistance(src peer.ID, dest peer.ID) *big.Int {
-	srcBuff := []byte(src)
-	destBuff := []byte(dest)
+// computes the kademlia distance between 2 provided peers by doing byte xor operations and counting the resulting bits
+func computeDistanceByCountingBits(src peer.ID, dest peer.ID) *big.Int {
+	srcBuff := kbucket.ConvertPeerID(src)
+	destBuff := kbucket.ConvertPeerID(dest)
 
-	result := make([]byte, core.MinInt(len(srcBuff), len(destBuff)))
-	for i := 0; i < len(src) && i < len(dest); i++ {
-		result[i] = srcBuff[i] ^ destBuff[i]
+	cumulatedBits := 0
+	for i := 0; i < len(srcBuff); i++ {
+		result := srcBuff[i] ^ destBuff[i]
+		cumulatedBits += bits.OnesCount8(result)
 	}
 
-	return big.NewInt(0).SetBytes(result)
+	return big.NewInt(0).SetInt64(int64(cumulatedBits))
+}
+
+// computes the kademlia distance between 2 provided peers by doing byte xor operations and applying log2 on the result
+func computeDistanceLog2Based(src peer.ID, dest peer.ID) *big.Int {
+	srcBuff := kbucket.ConvertPeerID(src)
+	destBuff := kbucket.ConvertPeerID(dest)
+
+	val := 0
+	for i := 0; i < len(srcBuff); i++ {
+		result := srcBuff[i] ^ destBuff[i]
+		val += leadingZerosCount[result]
+		if result != 0 {
+			break
+		}
+	}
+
+	val = len(srcBuff)*8 - val
+
+	return big.NewInt(0).SetInt64(int64(val))
 }

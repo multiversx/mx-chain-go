@@ -1,7 +1,6 @@
 package connectionMonitor
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -145,5 +144,5 @@ func TestLibp2pConnectionMonitorSimple_SetSharderNilSharderShouldErr(t *testing.
 	lcms, _ := NewLibp2pConnectionMonitorSimple(nil, 3)
 	err := lcms.SetSharder(nil)
 
-	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
+	assert.Equal(t, p2p.ErrNilSharder, err)
 }

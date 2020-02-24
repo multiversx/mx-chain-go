@@ -41,7 +41,6 @@ type Worker struct {
 	chainID            []byte
 
 	networkShardingCollector consensus.NetworkShardingCollector
-	checkSigChan             chan struct{}
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -101,23 +100,23 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		consensusService:   consensusService,
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessor,
-		bootstrapper:       bootstrapper,
-		broadcastMessenger: broadcastMessenger,
-		consensusState:     consensusState,
-		forkDetector:       forkDetector,
-		keyGenerator:       keyGenerator,
-		marshalizer:        marshalizer,
-		rounder:            rounder,
-		shardCoordinator:   shardCoordinator,
-		singleSigner:       singleSigner,
-		syncTimer:          syncTimer,
-		headerSigVerifier:  headerSigVerifier,
-		chainID:            chainID,
-		appStatusHandler:   statusHandler.NewNilStatusHandler(),
-		networkShardingCollector:	networkShardingCollector,
+		consensusService:         consensusService,
+		blockChain:               blockChain,
+		blockProcessor:           blockProcessor,
+		bootstrapper:             bootstrapper,
+		broadcastMessenger:       broadcastMessenger,
+		consensusState:           consensusState,
+		forkDetector:             forkDetector,
+		keyGenerator:             keyGenerator,
+		marshalizer:              marshalizer,
+		rounder:                  rounder,
+		shardCoordinator:         shardCoordinator,
+		singleSigner:             singleSigner,
+		syncTimer:                syncTimer,
+		headerSigVerifier:        headerSigVerifier,
+		chainID:                  chainID,
+		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		networkShardingCollector: networkShardingCollector,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)

@@ -11,42 +11,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSharderFactory_CreateWithNilShouldErr(t *testing.T) {
+func createMockArg() ArgsSharderFactory {
+	return ArgsSharderFactory{
+		Reconnecter:        &mock.ReconnecterStub{},
+		PeerShardResolver:  &mock.PeerShardResolverStub{},
+		PrioBits:           1,
+		Pid:                "",
+		MaxConnectionCount: 2,
+		MaxIntraShard:      1,
+		MaxCrossShard:      1,
+	}
+}
+
+func TestNewSharder_WithNilReconnecterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sf := NewSharderFactory(nil, &mock.PeerShardResolverStub{}, 1, "", 2, 1, 1)
-
-	sharder, err := sf.Create()
+	arg := createMockArg()
+	arg.Reconnecter = nil
+	sharder, err := NewSharder(arg)
 
 	assert.Nil(t, sharder)
 	assert.True(t, errors.Is(err, p2p.ErrIncompatibleMethodCalled))
 }
 
-func TestSharderFactory_CreateWithReconnecterWithPasueAndResumeShouldWork(t *testing.T) {
+func TestNewSharder_CreateWithReconnecterWithPauseAndResumeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
-	peerResolver := &mock.PeerShardResolverStub{}
-	sf := NewSharderFactory(reconn, peerResolver, 1, "", 2, 1, 1)
+	arg := createMockArg()
+	arg.Reconnecter = &mock.ReconnecterWithPauseAndResumeStub{}
+	sharder, err := NewSharder(arg)
 
-	sharder, err := sf.Create()
-
-	expectedSharder, _ := networksharding.NewKadSharder(1, peerResolver)
+	expectedSharder, _ := networksharding.NewKadSharder(1, &mock.PeerShardResolverStub{})
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }
 
-func TestSharderFactory_CreateWithReconnecterShouldWork(t *testing.T) {
+func TestNewSharder_CreateWithReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
+	arg := createMockArg()
+	sharder, err := NewSharder(arg)
 	maxPeerCount := 2
-	reconn := &mock.ReconnecterStub{}
-	peerResolver := &mock.PeerShardResolverStub{}
-	sf := NewSharderFactory(reconn, peerResolver, 1, "", maxPeerCount, 1, 1)
 
-	sharder, err := sf.Create()
-
-	expectedSharder, _ := networksharding.NewListKadSharder(peerResolver, "", maxPeerCount, maxPeerCount, maxPeerCount)
+	expectedSharder, _ := networksharding.NewListKadSharder(&mock.PeerShardResolverStub{}, "", maxPeerCount, maxPeerCount, maxPeerCount)
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }

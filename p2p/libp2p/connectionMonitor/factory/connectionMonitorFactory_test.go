@@ -10,51 +10,58 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnectionMonitorFactory_CreateNilShouldCreateNilConnectionMonitor(t *testing.T) {
+func createMockArg() ArgsConnectionMonitorFactory {
+	return ArgsConnectionMonitorFactory{
+		Reconnecter:                &mock.ReconnecterWithPauseAndResumeStub{},
+		ThresholdMinConnectedPeers: 1,
+		TargetCount:                1,
+	}
+}
+
+func TestNewConnectionMonitor_NilReconnecterShouldCreateNoConnectionMonitor(t *testing.T) {
 	t.Parallel()
 
-	cmf := NewConnectionMonitorFactory(nil, 1, 1)
-
-	cm, err := cmf.Create()
+	arg := createMockArg()
+	arg.Reconnecter = nil
+	cm, err := NewConnectionMonitor(arg)
 
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(&connectionMonitor.NilConnectionMonitor{}), reflect.TypeOf(cm))
 }
 
-func TestConnectionMonitorFactory_CreateReconnecterPauseResumeShouldCreateConnectionMonitor(t *testing.T) {
+func TestNewConnectionMonitor_ReconnecterPauseResumeShouldCreateConnectionMonitor(t *testing.T) {
 	t.Parallel()
 
-	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
-	cmf := NewConnectionMonitorFactory(reconn, 1, 1)
-
-	cm, err := cmf.Create()
+	arg := createMockArg()
+	cm, err := NewConnectionMonitor(arg)
 
 	assert.Nil(t, err)
+	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
 	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitor(reconn, 1, 1)
 	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
 }
 
-func TestConnectionMonitorFactory_CreateReconnecterPauseResumeShouldCreateConnectionMonitorWithIntermediateVar(t *testing.T) {
+func TestNewConnectionMonitor_ReconnecterPauseResumeShouldCreateConnectionMonitorWithIntermediateVar(t *testing.T) {
 	t.Parallel()
 
 	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
 	simpleReconn := p2p.Reconnecter(reconn)
-	cmf := NewConnectionMonitorFactory(simpleReconn, 1, 1)
-
-	cm, err := cmf.Create()
+	arg := createMockArg()
+	arg.Reconnecter = simpleReconn
+	cm, err := NewConnectionMonitor(arg)
 
 	assert.Nil(t, err)
 	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitor(reconn, 1, 1)
 	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
 }
 
-func TestConnectionMonitorFactory_CreateReconnecterShouldCreateConnectionMonitor(t *testing.T) {
+func TestNewConnectionMonitor_ReconnecterShouldCreateConnectionMonitor(t *testing.T) {
 	t.Parallel()
 
 	reconn := &mock.ReconnecterStub{}
-	cmf := NewConnectionMonitorFactory(reconn, 1, 1)
-
-	cm, err := cmf.Create()
+	arg := createMockArg()
+	arg.Reconnecter = reconn
+	cm, err := NewConnectionMonitor(arg)
 
 	assert.Nil(t, err)
 	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(reconn, 1)

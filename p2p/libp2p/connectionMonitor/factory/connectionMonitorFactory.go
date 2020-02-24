@@ -6,37 +6,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 )
 
-type connectionMonitorFactory struct {
-	reconnecter                p2p.Reconnecter
-	thresholdMinConnectedPeers int
-	targetCount                int
+// ArgsConnectionMonitorFactory represents the argument for the connection monitor factory
+type ArgsConnectionMonitorFactory struct {
+	Reconnecter                p2p.Reconnecter
+	ThresholdMinConnectedPeers int
+	TargetCount                int
 }
 
-// NewConnectionMonitorFactory creates a new instance of connectionMonitorFactory able to create ConnectionMonitor instances
-//TODO(iulian) refactor this: create a factory function, remove the struct, use a specialized argument and refactor the switch
-func NewConnectionMonitorFactory(
-	reconnecter p2p.Reconnecter,
-	thresholdMinConnectedPeers int,
-	targetCount int,
-) *connectionMonitorFactory {
-
-	return &connectionMonitorFactory{
-		reconnecter:                reconnecter,
-		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
-		targetCount:                targetCount,
-	}
-}
-
-// Create creates new ConnectionMonitor instances
-func (cmf *connectionMonitorFactory) Create() (ConnectionMonitor, error) {
-	if check.IfNil(cmf.reconnecter) {
+// NewConnectionMonitor creates a new ConnectionMonitor instance
+func NewConnectionMonitor(arg ArgsConnectionMonitorFactory) (ConnectionMonitor, error) {
+	if check.IfNil(arg.Reconnecter) {
 		return &connectionMonitor.NilConnectionMonitor{}, nil
 	}
 
-	switch recon := cmf.reconnecter.(type) {
+	switch recon := arg.Reconnecter.(type) {
 	case p2p.ReconnecterWithPauseResumeAndWatchdog:
-		return connectionMonitor.NewLibp2pConnectionMonitor(recon, cmf.thresholdMinConnectedPeers, cmf.targetCount)
+		return connectionMonitor.NewLibp2pConnectionMonitor(recon, arg.ThresholdMinConnectedPeers, arg.TargetCount)
 	default:
-		return connectionMonitor.NewLibp2pConnectionMonitorSimple(recon, cmf.thresholdMinConnectedPeers)
+		return connectionMonitor.NewLibp2pConnectionMonitorSimple(recon, arg.ThresholdMinConnectedPeers)
 	}
 }

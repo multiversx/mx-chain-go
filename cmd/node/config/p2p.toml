@@ -18,7 +18,7 @@
     Seed = ""
 
     # The targeted number of peer connections
-    TargetPeerCount = 32
+    TargetPeerCount = 16
 
 # P2P peer discovery section
 
@@ -60,5 +60,5 @@
 [Sharding]
     # Number of ptiority bits used
     PrioBits = 4
-    MaxIntraShard = 15
-    MaxCrossShard = 15
+    MaxIntraShard = 12
+    MaxCrossShard = 4

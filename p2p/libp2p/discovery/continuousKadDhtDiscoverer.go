@@ -29,6 +29,8 @@ type ContinuousKadDhtDiscoverer struct {
 	initialPeersList     []string
 	bucketSize           uint32
 	routingTableRefresh  time.Duration
+	hostConnManagement   *hostWithConnectionManagement
+	sharder              libp2p.Sharder
 }
 
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
@@ -112,13 +114,14 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 	}
 
 	ctxrun, cancel := context.WithCancel(ctx)
-	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
+	var err error
+	ckdd.hostConnManagement, err = NewHostWithConnectionManagement(h, ckdd.sharder)
 	if err != nil {
 		cancel()
 		return err
 	}
 
-	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(ckdd.protocols()...), customOptions)
+	kademliaDHT, err := dht.New(ctx, ckdd.hostConnManagement, opts.Protocols(ckdd.protocols()...), customOptions)
 	if err != nil {
 		cancel()
 		return err
@@ -262,6 +265,20 @@ func (ckdd *ContinuousKadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProv
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
+}
+
+// SetSharder sets the sharder that is able to sort the peers by their distance.
+func (ckdd *ContinuousKadDhtDiscoverer) SetSharder(sharder libp2p.Sharder) error {
+	if check.IfNil(sharder) {
+		return p2p.ErrNilSharder
+	}
+
+	ckdd.sharder = sharder
+	if !check.IfNil(ckdd.hostConnManagement) {
+		ckdd.hostConnManagement.sharder = sharder
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

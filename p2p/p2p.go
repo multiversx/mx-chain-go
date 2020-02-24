@@ -272,3 +272,8 @@ type PeerCounts struct {
 	IntraShardPeers int
 	CrossShardPeers int
 }
+
+// CommonSharder represents the common interface implemented by all sharder implementations
+type CommonSharder interface {
+	IsInterfaceNil() bool
+}
