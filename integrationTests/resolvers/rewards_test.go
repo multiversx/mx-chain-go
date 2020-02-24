@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -13,15 +15,18 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	rm := newReceiverMonitor(t)
 	shardIdResolver := sharding.MetachainShardId
 	shardIdRequester := uint32(1)
 	nResolver, nRequester := createResolverRequester(shardIdResolver, shardIdRequester)
 	headerNonce := uint64(0)
-	reward, hash := createReward(headerNonce, shardIdRequester)
+	reward, hash := createReward(headerNonce)
 
 	//add reward with round 0 in pool
-	nResolver.DataPool.RewardTransactions().AddData(hash, reward, "cache")
+	cacheId := process.ShardCacherIdentifier(shardIdRequester, sharding.MetachainShardId)
+	nResolver.DataPool.RewardTransactions().AddData(hash, reward, cacheId)
 
 	//setup header received event
 	nRequester.DataPool.RewardTransactions().RegisterHandler(

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -145,7 +146,6 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		Round:   0,
 		Epoch:   0,
-		ShardId: 0,
 	}
 
 	marshaledTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
@@ -159,7 +159,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	//step 2. wire up a received handler for requester
 	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), sharding.MetachainShardId),
 		).Get(key)
 
 		if reflect.DeepEqual(rewardTxStored, &tx) {
@@ -174,17 +174,17 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
-		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), sharding.MetachainShardId),
 	)
 
 	//Step 4. request tx
-	rewardTxResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
+	rewardTxResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, sharding.MetachainShardId)
 	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 3):
+	case <-time.After(time.Hour * 3):
 		assert.Fail(t, "timeout")
 	}
 }

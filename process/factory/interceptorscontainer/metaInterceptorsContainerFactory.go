@@ -144,6 +144,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
+	err = micf.generateRewardTxInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
 	err = micf.generateMiniBlocksInterceptors()
 	if err != nil {
 		return nil, err

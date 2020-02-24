@@ -299,9 +299,9 @@ func (srcf *shardResolversContainerFactory) generateRewardResolvers(
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := srcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool)
 	if err != nil {
 		return err
 	}

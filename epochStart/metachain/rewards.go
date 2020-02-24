@@ -43,7 +43,6 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	ShardId                    uint32
 	LeaderSuccess              uint32
 	LeaderFailure              uint32
 	ValidatorSuccess           uint32
@@ -139,12 +138,11 @@ func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 
-	for shardId, shardValidatorInfos := range validatorInfos {
+	for _, shardValidatorInfos := range validatorInfos {
 		for _, validatorInfo := range shardValidatorInfos {
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					ShardId:         shardId,
 					AccumulatedFees: big.NewInt(0),
 				}
 				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
@@ -173,7 +171,6 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(rwdInfo.AccumulatedFees),
 		RcvAddr: address,
-		ShardId: rwdInfo.ShardId,
 		Epoch:   metaBlock.Epoch,
 	}
 

@@ -719,8 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
-
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
@@ -729,7 +727,7 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        shardIdStr,
+		Sender:        "meta",
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,

@@ -280,9 +280,10 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
+	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
-		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+		excludePeersFromTopic := emptyExcludePeersOnTopic
 
 		resolver, err := mrcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
 		if err != nil {

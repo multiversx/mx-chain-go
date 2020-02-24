@@ -112,7 +112,6 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(
 		Epoch:   0,
 		Value:   new(big.Int).SetInt64(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -143,7 +142,6 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 		Epoch:   0,
 		Value:   new(big.Int).SetInt64(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -171,7 +169,6 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 		Epoch:   0,
 		Value:   new(big.Int).SetInt64(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -198,7 +195,6 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 		Epoch:   0,
 		Value:   new(big.Int).SetInt64(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -237,7 +233,6 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 		Epoch:   0,
 		Value:   new(big.Int).SetInt64(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
