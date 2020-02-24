@@ -216,5 +216,8 @@ const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
+// AllShardId will be used to identify that a message is for all shards
+const AllShardId = uint32(0xFFFFFFF0)
+
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024

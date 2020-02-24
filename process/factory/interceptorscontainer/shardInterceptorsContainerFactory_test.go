@@ -477,7 +477,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsUnsignedTxs := numInterceptorTxs
 	numInterceptorsRewardTxs := numInterceptorTxs
 	numInterceptorHeaders := 1
-	numInterceptorMiniBlocks := noOfShards + 1
+	numInterceptorMiniBlocks := noOfShards + 1 + 1
 	numInterceptorMetachainHeaders := 1
 	numInterceptorTrieNodes := 2
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +

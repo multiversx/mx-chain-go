@@ -137,3 +137,132 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 
 	rm.waitWithTimeout()
 }
+
+func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	rm := newReceiverMonitor(t)
+	shardId := uint32(0)
+	nResolver, nRequester := createResolverRequester(shardId, shardId)
+	miniblock, hash := createMiniblock(core.MetachainShardId, core.AllShardId)
+
+	//add miniblock in pool
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+
+	//setup header received event
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
+		func(key []byte) {
+			if bytes.Equal(key, hash) {
+				log.Info("received miniblock", "hash", key)
+				rm.done()
+			}
+		},
+	)
+
+	//request by hash should work
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	log.LogIfError(err)
+	err = resolver.RequestDataFromHash(hash, 0)
+	log.LogIfError(err)
+
+	rm.waitWithTimeout()
+}
+
+func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	rm := newReceiverMonitor(t)
+	shardIdResolver := uint32(0)
+	shardIdRequester := uint32(1)
+	nResolver, nRequester := createResolverRequester(shardIdResolver, shardIdRequester)
+	miniblock, hash := createMiniblock(shardIdResolver, core.AllShardId)
+
+	//add miniblock in pool
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+
+	//setup header received event
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
+		func(key []byte) {
+			if bytes.Equal(key, hash) {
+				log.Info("received miniblock", "hash", key)
+				rm.done()
+			}
+		},
+	)
+
+	//request by hash should work
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	log.LogIfError(err)
+	err = resolver.RequestDataFromHash(hash, 0)
+	log.LogIfError(err)
+
+	rm.waitWithTimeout()
+}
+
+func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	rm := newReceiverMonitor(t)
+	shardId := uint32(0)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
+	miniblock, hash := createMiniblock(shardId, core.AllShardId)
+
+	//add miniblock in pool
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+
+	//setup header received event
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
+		func(key []byte) {
+			if bytes.Equal(key, hash) {
+				log.Info("received miniblock", "hash", key)
+				rm.done()
+			}
+		},
+	)
+
+	//request by hash should work
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	log.LogIfError(err)
+	err = resolver.RequestDataFromHash(hash, 0)
+	log.LogIfError(err)
+
+	rm.waitWithTimeout()
+}
+
+func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	rm := newReceiverMonitor(t)
+	shardId := uint32(0)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
+	miniblock, hash := createMiniblock(shardId, core.AllShardId)
+
+	//add miniblock in pool
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+
+	//setup header received event
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
+		func(key []byte) {
+			if bytes.Equal(key, hash) {
+				log.Info("received miniblock", "hash", key)
+				rm.done()
+			}
+		},
+	)
+
+	//request by hash should work
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	log.LogIfError(err)
+	err = resolver.RequestDataFromHash(hash, 0)
+	log.LogIfError(err)
+
+	rm.waitWithTimeout()
+}

@@ -71,8 +71,9 @@ func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard() {
 func (inTxBody *InterceptedTxBlockBody) isMiniblockForCurrentShard(miniblock *block.MiniBlock) bool {
 	isForCurrentShardRecv := miniblock.ReceiverShardID == inTxBody.shardCoordinator.SelfId()
 	isForCurrentShardSender := miniblock.SenderShardID == inTxBody.shardCoordinator.SelfId()
+	isForAllShards := miniblock.ReceiverShardID == core.AllShardId || miniblock.SenderShardID == core.AllShardId
 
-	return isForCurrentShardRecv || isForCurrentShardSender
+	return isForCurrentShardRecv || isForCurrentShardSender || isForAllShards
 }
 
 // Hash gets the hash of this transaction block body
@@ -103,12 +104,14 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 		}
 
 		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.ReceiverShardID != core.MetachainShardId {
+			(miniBlock.ReceiverShardID != core.MetachainShardId &&
+				miniBlock.ReceiverShardID != core.AllShardId) {
 			return process.ErrInvalidShardId
 		}
 
 		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.SenderShardID != core.MetachainShardId {
+			(miniBlock.SenderShardID != core.MetachainShardId &&
+				miniBlock.SenderShardID != core.AllShardId) {
 			return process.ErrInvalidShardId
 		}
 

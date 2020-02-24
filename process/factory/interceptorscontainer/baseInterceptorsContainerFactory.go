@@ -320,8 +320,8 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
 	shardC := bicf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards+1)
-	interceptorsSlice := make([]process.Interceptor, noOfShards+1)
+	keys := make([]string, noOfShards+2)
+	interceptorsSlice := make([]process.Interceptor, noOfShards+2)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -344,6 +344,16 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 
 	keys[noOfShards] = identifierMiniBlocks
 	interceptorsSlice[noOfShards] = interceptor
+
+	identifierAllShardsMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
+
+	allShardsMiniBlocksInterceptorinterceptor, err := bicf.createOneMiniBlocksInterceptor(identifierAllShardsMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	keys[noOfShards+1] = identifierAllShardsMiniBlocks
+	interceptorsSlice[noOfShards+1] = allShardsMiniBlocksInterceptorinterceptor
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
