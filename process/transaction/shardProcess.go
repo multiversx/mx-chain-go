@@ -112,7 +112,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return err
 	}
 
-	process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
+	//process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
