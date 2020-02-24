@@ -49,7 +49,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: factory.BlsHashSize}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 
@@ -94,7 +94,7 @@ func CreateNodesWithNodesCoordinator(
 	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress)
 }
 
-// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
+// CreateNodesWithNodesCoordinatorWithCacher returns a map with nodes per shard each using a real nodes coordinator with cacher
 func CreateNodesWithNodesCoordinatorWithCacher(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -383,7 +383,7 @@ func ProposeBlockWithConsensusSignature(
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
 
-	// set some randomness
+	// select nodes from map based on their pub keys
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)

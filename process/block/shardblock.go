@@ -356,15 +356,15 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return nil
 	}
 
-	isEpochIncorrect := header.GetEpoch() < currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
+	headerEpochBehindCurrentHeader := header.GetEpoch() < currentBlockHeader.GetEpoch()
+	if headerEpochBehindCurrentHeader {
 		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
 	}
 
-	isEpochIncorrect = header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
+	if incorrectStartOfEpochBlock {
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
 	}
@@ -377,7 +377,8 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		header.GetEpoch() < sp.epochStartTrigger.Epoch()
+		header.GetEpoch() < sp.epochStartTrigger.Epoch() &&
+		sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
 	if isOldEpochAndShouldBeNew {
 		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
@@ -770,14 +771,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
-	headersPool := sp.dataPool.Headers()
-	if headersPool == nil {
-		err = process.ErrNilHeadersDataPool
-		return err
-	}
-
-	headersPool.RemoveHeaderByHash(headerHash)
-
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
@@ -817,6 +810,7 @@ func (sp *shardProcessor) CommitBlock(
 		"epoch", header.Epoch,
 		"round", header.Round,
 		"nonce", header.Nonce,
+		"shard id", header.ShardId,
 		"hash", headerHash,
 	)
 
@@ -835,10 +829,11 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
+	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
+	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
-	selfNotarizedHeader, selfNotarizedHeaderHash := sp.getLastSelfNotarizedHeader()
-	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
+	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.updateStateStorage(selfNotarizedHeaders)
 
@@ -924,7 +919,7 @@ func (sp *shardProcessor) CommitBlock(
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
 
-	go sp.cleanupPools(headerHandler, headersPool)
+	go sp.cleanupPools(headerHandler)
 
 	return nil
 }
@@ -1021,11 +1016,15 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 	return nil
 }
 
-func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []byte) {
+func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
+	if sp.forkDetector.GetHighestFinalBlockNonce() == 0 {
+		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
+	}
+
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
+		log.Warn("getLastSelfNotarizedHeaderByMetachain.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
 		return nil, nil
 	}
 

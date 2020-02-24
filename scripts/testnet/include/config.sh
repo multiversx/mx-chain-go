@@ -56,7 +56,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
-  cp $NODEDIR/config/server.toml ./node/config
+  cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
 
@@ -78,6 +78,10 @@ updateNodeConfig() {
   
   let startTime="$(date +%s) + $NODE_DELAY"
   updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
+
+	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
+		updateJSONValue nodesSetup_edit.json "chainID" "\"$startTime\""
+	fi
 
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
