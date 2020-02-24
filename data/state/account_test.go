@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
@@ -241,4 +242,112 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 	assert.Equal(t, codeHash, acc.CodeHash)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
+}
+
+func TestAccount_SetOwnerAddressWithJournal(t *testing.T) {
+	t.Parallel()
+
+	journalizeWasCalled, saveAccountWasCalled := false, false
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeWasCalled = true
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountWasCalled = true
+			return nil
+		},
+	}
+
+	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
+
+	owner := []byte("owner")
+	err := acc.SetOwnerAddressWithJournal(owner)
+	require.Nil(t, err)
+	require.True(t, journalizeWasCalled)
+	require.True(t, saveAccountWasCalled)
+	require.Equal(t, acc.OwnerAddress, owner)
+}
+
+func TestAccount_AddAndClaimDeveloperRewardsWrongAddress(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
+	owner := []byte("owner")
+	_ = acc.SetOwnerAddressWithJournal(owner)
+
+	devRewards := big.NewInt(100)
+	err := acc.AddToDeveloperReward(devRewards)
+	require.Nil(t, err)
+
+	rewards, err := acc.ClaimDeveloperRewards([]byte("wrongAddr"))
+	require.Nil(t, rewards)
+	require.Equal(t, state.ErrOperationNotPermitted, err)
+
+}
+
+func TestAccount_AddAndClaimDeveloperRewardsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
+	owner := []byte("owner")
+	_ = acc.SetOwnerAddressWithJournal(owner)
+
+	devRewards := big.NewInt(100)
+	err := acc.AddToDeveloperReward(devRewards)
+	require.Nil(t, err)
+
+	rewards, err := acc.ClaimDeveloperRewards(owner)
+	require.Nil(t, err)
+	require.Equal(t, devRewards, rewards)
+	require.Equal(t, big.NewInt(0), acc.DeveloperReward)
+}
+
+func TestAccount_ChangeOwnerAddress(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+
+	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
+	owner := []byte("owner")
+	_ = acc.SetOwnerAddressWithJournal(owner)
+
+	newOwnerAddr := []byte("newOwner")
+	err := acc.ChangeOwnerAddress([]byte("wrong"), newOwnerAddr)
+	require.Equal(t, state.ErrOperationNotPermitted, err)
+
+	err = acc.ChangeOwnerAddress(owner, newOwnerAddr)
+	require.Equal(t, state.ErrInvalidAddressLength, err)
+
+	correctNewAddr := []byte("00000000000000000000000000000000")
+	err = acc.ChangeOwnerAddress(owner, correctNewAddr)
+	require.Nil(t, err)
+	require.Equal(t, correctNewAddr, acc.GetOwnerAddress())
+}
+
+func TestAccount_AddToBalance(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+
+	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
+
+	balance := big.NewInt(1000)
+	err := acc.AddToBalance(balance)
+	require.Nil(t, err)
+
+	result := acc.GetBalance()
+	require.Equal(t, balance, result)
+
+	balance = big.NewInt(-500)
+	err = acc.AddToBalance(balance)
+	require.Nil(t, err)
+
+	result2 := acc.GetBalance()
+	require.Equal(t, result2.Sub(result, balance), result2)
+
+	balance = big.NewInt(-1000)
+	err = acc.AddToBalance(balance)
+	require.Equal(t, state.ErrInsufficientFunds, err)
 }

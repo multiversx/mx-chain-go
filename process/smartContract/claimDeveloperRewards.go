@@ -16,7 +16,7 @@ type claimDeveloperRewards struct {
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
 func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	tx data.TransactionHandler,
-	_, acntDst state.UserAccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 	_ *vmcommon.ContractCallInput,
 ) (*big.Int, error) {
 	if check.IfNil(tx) {
@@ -27,6 +27,15 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 
 	value, err := acntDst.ClaimDeveloperRewards(tx.GetSndAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	if check.IfNil(acntSnd) {
+		return value, nil
+	}
+
+	err = acntSnd.AddToBalance(value)
 	if err != nil {
 		return nil, err
 	}
