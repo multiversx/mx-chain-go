@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,11 +19,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
+	numOfShards := 2
+	nodesPerShard := 2
 	numMetachainNodes := 2
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()

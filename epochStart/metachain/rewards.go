@@ -116,7 +116,11 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 			return nil, err
 		}
 
-		rwdTx, rwdTxHash := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
+		rwdTx, rwdTxHash, err := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
+		if err != nil {
+			return nil, err
+		}
+
 		r.currTxs.AddTx(rwdTxHash, rwdTx)
 
 		shardId := r.shardCoordinator.ComputeId(addrContainer)
@@ -129,7 +133,14 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		})
 	}
 
-	return miniBlocks, nil
+	finalMiniBlocks := make(block.Body, 0)
+	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+		if len(miniBlocks[i].TxHashes) > 0 {
+			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+		}
+	}
+
+	return finalMiniBlocks, nil
 }
 
 func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
@@ -166,7 +177,7 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 	rwdInfo *rewardInfoData,
 	economicsData *block.Economics,
 	metaBlock *block.MetaBlock,
-) (*rewardTx.RewardTx, []byte) {
+) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(rwdInfo.AccumulatedFees),
@@ -176,7 +187,13 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 
 	protocolRewardValue := big.NewInt(0).Mul(economicsData.RewardsPerBlockPerNode, big.NewInt(0).SetUint64(uint64(rwdInfo.NumSelectedInSuccessBlocks)))
 	rwdTx.Value.Add(rwdTx.Value, protocolRewardValue)
-	return rwdTx, nil
+
+	rwdTxHash, err := core.CalculateHash(r.marshalizer, r.hasher, rwdTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rwdTx, rwdTxHash, nil
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
