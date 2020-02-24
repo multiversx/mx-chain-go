@@ -23,8 +23,8 @@ import (
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
-		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = createGenesisBlock(shardId)
 	}
 
 	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
@@ -32,7 +32,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 	return genesisBlocks
 }
 
-func createGenesisBlock(ShardID uint32) *block.Header {
+func createGenesisBlock(shardId uint32) *block.Header {
 	rootHash := []byte("roothash")
 	return &block.Header{
 		Nonce:         0,
@@ -40,7 +40,7 @@ func createGenesisBlock(ShardID uint32) *block.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       ShardID,
+		ShardId:       shardId,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,

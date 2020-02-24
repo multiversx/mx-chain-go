@@ -29,7 +29,6 @@ type metaProcessor struct {
 	core                     serviceContainer.Core
 	scDataGetter             external.SCQueryService
 	scToProtocol             process.SmartContractToProtocolHandler
-	peerChanges              process.PeerChangesHandler
 	epochStartDataCreator    process.EpochStartDataCreator
 	epochEconomics           process.EndOfEpochEconomics
 	epochRewardsCreator      process.EpochStartRewardsCreator
@@ -332,7 +331,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfosForRootHash(currentRootHash)
+	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
 	if err != nil {
 		return err
 	}
@@ -617,7 +616,7 @@ func (mp *metaProcessor) CreateBlock(
 	var err error
 
 	if mp.epochStartTrigger.IsEpochStart() {
-		err = mp.createEpochStartHeader(metaHdr)
+		err = mp.updateEpochStartHeader(metaHdr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -643,7 +642,7 @@ func (mp *metaProcessor) CreateBlock(
 	return metaHdr, body, nil
 }
 
-func (mp *metaProcessor) createEpochStartHeader(metaHdr *block.MetaBlock) error {
+func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {
 	sw := core.NewStopWatch()
 	sw.Start("createEpochStartForMetablock")
 	defer func() {
@@ -692,7 +691,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfosForRootHash(currentRootHash)
+	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
 	if err != nil {
 		return nil, err
 	}

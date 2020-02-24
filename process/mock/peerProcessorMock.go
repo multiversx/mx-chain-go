@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-// ValidatorStatisticsProcessorMock -
-type ValidatorStatisticsProcessorMock struct {
+// ValidatorStatisticsProcessorStub -
+type ValidatorStatisticsProcessorStub struct {
 	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
 	RevertPeerStateCalled                    func(header data.HeaderHandler) error
 	IsInterfaceNilCalled                     func() bool
@@ -15,27 +15,27 @@ type ValidatorStatisticsProcessorMock struct {
 	CommitCalled                             func() ([]byte, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfosForRootHashCalled       func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
 
 // ResetValidatorStatisticsAtNewEpoch -
-func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
 	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
 		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
 	}
 	return nil
 }
 
-// GetValidatorInfosForRootHash -
-func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
-	if vsp.GetValidatorInfosForRootHashCalled != nil {
-		return vsp.GetValidatorInfosForRootHashCalled(rootHash)
+// GetValidatorInfoForRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+	if vsp.GetValidatorInfoForRootHashCalled != nil {
+		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
 	return nil, nil
 }
 
 // UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
 	}
@@ -43,7 +43,7 @@ func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderH
 }
 
 // RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorMock) RevertPeerState(header data.HeaderHandler) error {
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.HeaderHandler) error {
 	if vsp.RevertPeerStateCalled != nil {
 		return vsp.RevertPeerStateCalled(header)
 	}
@@ -51,7 +51,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RevertPeerState(header data.HeaderH
 }
 
 // RevertPeerStateToSnapshot -
-func (vsp *ValidatorStatisticsProcessorMock) RevertPeerStateToSnapshot(snapshot int) error {
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerStateToSnapshot(snapshot int) error {
 	if vsp.RevertPeerStateToSnapshotCalled != nil {
 		return vsp.RevertPeerStateToSnapshotCalled(snapshot)
 	}
@@ -59,7 +59,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RevertPeerStateToSnapshot(snapshot 
 }
 
 // Commit -
-func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
 	if vsp.CommitCalled != nil {
 		return vsp.CommitCalled()
 	}
@@ -67,7 +67,7 @@ func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
 }
 
 // RootHash -
-func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) RootHash() ([]byte, error) {
 	if vsp.RootHashCalled != nil {
 		return vsp.RootHashCalled()
 	}
@@ -75,7 +75,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
 }
 
 // GetPeerAccount -
-func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}
@@ -84,7 +84,7 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 }
 
 // IsInterfaceNil -
-func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
+func (vsp *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
 	if vsp.IsInterfaceNilCalled != nil {
 		return vsp.IsInterfaceNilCalled()
 	}

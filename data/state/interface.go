@@ -81,6 +81,11 @@ type PeerAccountHandler interface {
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+	ResetAtNewEpoch() error
+	SetRewardAddressWithJournal(address []byte) error
+	SetSchnorrPublicKeyWithJournal(address []byte) error
+	SetBLSPublicKeyWithJournal(address []byte) error
+	SetStakeWithJournal(stake *big.Int) error
 }
 
 // UserAccountHandler models a user account, which can journalize account's data with some extra features

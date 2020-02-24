@@ -2,7 +2,6 @@ package peer
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -35,7 +34,6 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	InitialNodes        []*sharding.InitialNode
 	StakeValue          *big.Int
 	Marshalizer         marshal.Marshalizer
 	NodesCoordinator    sharding.NodesCoordinator
@@ -59,7 +57,7 @@ type validatorStatistics struct {
 	peerAdapter             state.AccountsAdapter
 	rater                   sharding.RaterHandler
 	rewardsHandler          process.RewardsHandler
-	initialNodes            []*sharding.InitialNode
+	initialNodes            map[uint32][]*sharding.NodeInfo
 	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
@@ -130,9 +128,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	vs.initialNodes = arguments.InitialNodes
-
-	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +138,21 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(
-	in []*sharding.InitialNode,
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	for _, node := range in {
-		err := vs.initializeNode(node, stakeValue, startRating)
-		if err != nil {
-			return err
+	nodesMap := vs.nodesCoordinator.GetAllValidatorsPublicKeys()
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk)
+			if err != nil {
+				return err
+			}
+
+			err = vs.initializeNode(node, stakeValue, startRating)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -159,110 +162,6 @@ func (vs *validatorStatistics) saveInitialState(
 	}
 
 	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
-
-	return nil
-}
-
-// IsNodeValid calculates if a node that's present in the initial validator list
-//  contains all the required information in order to be able to participate in consensus
-func (vs *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
-	if len(node.PubKey) == 0 {
-		return false
-	}
-	if len(node.Address) == 0 {
-		return false
-	}
-
-	return true
-}
-
-func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
-	if vs.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return nil
-	}
-
-	metaBlock, ok := header.(*block.MetaBlock)
-	if !ok {
-		return nil
-	}
-
-	for _, peerChange := range metaBlock.PeerInfo {
-		err := vs.updatePeerData(peerChange)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (vs *validatorStatistics) updatePeerData(
-	peerChange block.PeerData,
-) error {
-	adrSrc, err := vs.adrConv.CreateAddressFromPublicKeyBytes(peerChange.PublicKey)
-	if err != nil {
-		return err
-	}
-
-	if peerChange.Action == block.PeerDeregistration {
-		return vs.peerAdapter.RemoveAccount(adrSrc)
-	}
-
-	accHandler, err := vs.peerAdapter.GetAccountWithJournal(adrSrc)
-	if err != nil {
-		return err
-	}
-
-	account, ok := accHandler.(*state.PeerAccount)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
-		err = account.SetRewardAddressWithJournal(peerChange.Address)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: Since the BLSPublicKey is the key in the peer accounts trie, this condition will never be met.
-	//  In order to be able to change the BLSPublicKey of a validator, we need to provide in the peer
-	//  change the old and the new public key. Also, important: the peer statistics data and the
-	//  rating from the old account needs to be associated to the new account
-	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err = account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
-		if err != nil {
-			return err
-		}
-	}
-
-	zero := big.NewInt(0)
-	if peerChange.ValueChange.Cmp(zero) != 0 {
-		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
-		err = account.SetStakeWithJournal(actualValue)
-		if err != nil {
-			return err
-		}
-	}
-
-	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
-		err = account.SetNonceWithJournal(peerChange.TimeStamp)
-		if err != nil {
-			return err
-		}
-
-		err = account.SetNodeInWaitingListWithJournal(true)
-		if err != nil {
-			return err
-		}
-	}
-
-	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
-		err = account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -277,11 +176,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	vs.mutMissedBlocksCounters.Lock()
 	vs.missedBlocksCounters.reset()
 	vs.mutMissedBlocksCounters.Unlock()
-
-	err := vs.processPeerChanges(header)
-	if err != nil {
-		return nil, err
-	}
 
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
@@ -329,8 +223,10 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 }
 
 func (vs *validatorStatistics) displayRatings() {
-	for _, node := range vs.initialNodes {
-		log.Trace("ratings", "pk", node.Address, "tempRating", vs.getTempRating(node.PubKey))
+	for _, shardList := range vs.initialNodes {
+		for _, node := range shardList {
+			log.Trace("ratings", "pk", node.Address(), "tempRating", vs.getTempRating(string(node.PubKey())))
+		}
 	}
 }
 
@@ -373,9 +269,8 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		}
 
 		currentShardId := peerAccount.CurrentShardId
-		pk128, err := hex.DecodeString(string(peerAccount.BLSPublicKey))
 		validatorInfoData := &state.ValidatorInfoData{
-			PublicKey:                  pk128,
+			PublicKey:                  peerAccount.BLSPublicKey,
 			ShardId:                    peerAccount.CurrentShardId,
 			List:                       "",
 			Index:                      0,
@@ -396,8 +291,15 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-// GetValidatorInfosForRootHash returns all the peer accounts from the trie with the given rootHash
-func (vs *validatorStatistics) GetValidatorInfosForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+// GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
+func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+	sw := core.NewStopWatch()
+	sw.Start("GetValidatorInfoForRootHash")
+	defer func() {
+		sw.Stop("GetValidatorInfoForRootHash")
+		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
+	}()
+
 	allLeaves, err := vs.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
 		return nil, err
@@ -413,6 +315,13 @@ func (vs *validatorStatistics) GetValidatorInfosForRootHash(rootHash []byte) (ma
 
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
 func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+	sw := core.NewStopWatch()
+	sw.Start("ResetValidatorStatisticsAtNewEpoch")
+	defer func() {
+		sw.Stop("ResetValidatorStatisticsAtNewEpoch")
+		log.Debug("ResetValidatorStatisticsAtNewEpoch", sw.GetMeasurements()...)
+	}()
+
 	for _, validators := range vInfos {
 		for _, validator := range validators {
 			addrContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
@@ -424,7 +333,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return err
 			}
 
-			peerAccount, ok := account.(*state.PeerAccount)
+			peerAccount, ok := account.(state.PeerAccountHandler)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -588,13 +497,12 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	return nil
 }
 
-func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int,
-	startRating uint32) error {
-	if !vs.IsNodeValid(node) {
-		return process.ErrInvalidInitialNodesState
-	}
-
-	peerAccount, err := vs.generatePeerAccount(node)
+func (vs *validatorStatistics) initializeNode(
+	node sharding.Validator,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
+	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
@@ -607,42 +515,23 @@ func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeV
 	return nil
 }
 
-func (vs *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := vs.adrConv.CreateAddressFromHex(node.PubKey)
-	if err != nil {
-		return nil, err
-	}
-
-	acc, err := vs.peerAdapter.GetAccountWithJournal(address)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccount, ok := acc.(*state.PeerAccount)
-	if !ok {
-		return nil, process.ErrInvalidPeerAccount
-	}
-
-	return peerAccount, nil
-}
-
 func (vs *validatorStatistics) savePeerAccountData(
-	peerAccount *state.PeerAccount,
-	data *sharding.InitialNode,
+	peerAccount state.PeerAccountHandler,
+	data sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	err := peerAccount.SetRewardAddressWithJournal([]byte(data.Address))
+	err := peerAccount.SetRewardAddressWithJournal(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetSchnorrPublicKeyWithJournal([]byte(data.Address))
+	err = peerAccount.SetSchnorrPublicKeyWithJournal(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKeyWithJournal([]byte(data.PubKey))
+	err = peerAccount.SetBLSPublicKeyWithJournal(data.PubKey())
 	if err != nil {
 		return err
 	}

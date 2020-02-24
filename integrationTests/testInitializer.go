@@ -296,7 +296,6 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		PeerInfo:               nil,
 		Signature:              nil,
 		PubKeysBitmap:          nil,
 		PrevHash:               rootHash,

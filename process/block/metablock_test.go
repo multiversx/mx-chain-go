@@ -47,7 +47,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
@@ -79,7 +79,6 @@ func createMetaBlockHeader() *block.MetaBlock {
 		PubKeysBitmap:          []byte("pubKeysBitmap"),
 		RootHash:               []byte("rootHash"),
 		ShardInfo:              make([]block.ShardData, 0),
-		PeerInfo:               make([]block.PeerData, 0),
 		TxCount:                1,
 		PrevRandSeed:           make([]byte, 0),
 		RandSeed:               make([]byte, 0),
@@ -102,11 +101,6 @@ func createMetaBlockHeader() *block.MetaBlock {
 		ShardMiniBlockHeaders: shardMiniBlockHeaders,
 	}
 	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
-
-	peerData := block.PeerData{
-		PublicKey: []byte("public_key1"),
-	}
-	hdr.PeerInfo = append(hdr.PeerInfo, peerData)
 
 	return &hdr
 }
@@ -836,7 +830,7 @@ func TestMetaProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testin
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},
@@ -862,7 +856,7 @@ func TestMetaProcessor_RevertStateToBlockShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.HeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil

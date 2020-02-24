@@ -85,3 +85,6 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 
 // ErrNilAddressConverter signals that nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
+var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")

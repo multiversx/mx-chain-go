@@ -113,7 +113,6 @@ type MetaBlock struct {
 	Round                  uint64
 	TimeStamp              uint64
 	ShardInfo              []ShardData
-	PeerInfo               []PeerData
 	Signature              []byte
 	LeaderSignature        []byte
 	PubKeysBitmap          []byte
@@ -335,7 +334,6 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(m.PeerInfo)
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)

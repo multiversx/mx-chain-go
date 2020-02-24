@@ -109,27 +109,7 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
 
-	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
-	for shardId, shardValidatorInfos := range validatorInfos {
-		for _, validatorInfo := range shardValidatorInfos {
-			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
-			if !ok {
-				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = &rewardInfoData{
-					ShardId:         shardId,
-					AccumulatedFees: big.NewInt(0),
-				}
-				rwdInfo = rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
-			}
-
-			rwdInfo.LeaderSuccess += validatorInfo.LeaderSuccess
-			rwdInfo.LeaderFailure += validatorInfo.LeaderFailure
-			rwdInfo.ValidatorFailure += validatorInfo.ValidatorFailure
-			rwdInfo.ValidatorSuccess += validatorInfo.ValidatorSuccess
-			rwdInfo.NumSelectedInSuccessBlocks += validatorInfo.NumSelectedInSuccessBlocks
-
-			rwdInfo.AccumulatedFees.Add(rwdInfo.AccumulatedFees, validatorInfo.AccumulatedFees)
-		}
-	}
+	rwdAddrValidatorInfo := r.computeValidatorInfoPerRewardAddress(validatorInfos)
 
 	for address, rwdInfo := range rwdAddrValidatorInfo {
 		addrContainer, err := r.addrConverter.CreateAddressFromPublicKeyBytes([]byte(address))
@@ -151,6 +131,36 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	}
 
 	return miniBlocks, nil
+}
+
+func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
+	validatorInfos map[uint32][]*state.ValidatorInfoData,
+) map[string]*rewardInfoData {
+
+	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
+
+	for shardId, shardValidatorInfos := range validatorInfos {
+		for _, validatorInfo := range shardValidatorInfos {
+			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
+			if !ok {
+				rwdInfo = &rewardInfoData{
+					ShardId:         shardId,
+					AccumulatedFees: big.NewInt(0),
+				}
+				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
+			}
+
+			rwdInfo.LeaderSuccess += validatorInfo.LeaderSuccess
+			rwdInfo.LeaderFailure += validatorInfo.LeaderFailure
+			rwdInfo.ValidatorFailure += validatorInfo.ValidatorFailure
+			rwdInfo.ValidatorSuccess += validatorInfo.ValidatorSuccess
+			rwdInfo.NumSelectedInSuccessBlocks += validatorInfo.NumSelectedInSuccessBlocks
+
+			rwdInfo.AccumulatedFees.Add(rwdInfo.AccumulatedFees, validatorInfo.AccumulatedFees)
+		}
+	}
+
+	return rwdAddrValidatorInfo
 }
 
 func (r *rewardsCreator) createRewardFromRwdInfo(
@@ -180,11 +190,13 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	}
 
 	createdMiniBlocks := createdBody.(block.Body)
+	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
 		if miniBlockHdr.Type != block.RewardsBlock {
 			continue
 		}
 
+		numReceivedRewardsMBs++
 		createdMiniBlock := createdMiniBlocks[miniBlockHdr.ReceiverShardID]
 		createdMBHash, err := core.CalculateHash(r.marshalizer, r.hasher, createdMiniBlock)
 		if err != nil {
@@ -192,8 +204,13 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		}
 
 		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
+			// TODO: add display debug prints of miniblocks contents
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
 		}
+	}
+
+	if len(createdMiniBlocks) != numReceivedRewardsMBs {
+		return epochStart.ErrRewardMiniBlocksNumDoesNotMatch
 	}
 
 	return nil
@@ -219,12 +236,12 @@ func (r *rewardsCreator) CreateMarshalizedData(body block.Body) map[string][][]b
 				continue
 			}
 
-			marshalledData, err := r.marshalizer.Marshal(rwdTx)
+			marshaledData, err := r.marshalizer.Marshal(rwdTx)
 			if err != nil {
 				continue
 			}
 
-			txs[broadCastTopic] = append(txs[broadCastTopic], marshalledData)
+			txs[broadCastTopic] = append(txs[broadCastTopic], marshaledData)
 		}
 	}
 
@@ -244,12 +261,12 @@ func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body b
 				continue
 			}
 
-			marshalledData, err := r.marshalizer.Marshal(rwdTx)
+			marshaledData, err := r.marshalizer.Marshal(rwdTx)
 			if err != nil {
 				continue
 			}
 
-			_ = r.rewardsStorage.Put(txHash, marshalledData)
+			_ = r.rewardsStorage.Put(txHash, marshaledData)
 		}
 
 		for _, mbHeader := range metaBlock.MiniBlockHeaders {
@@ -260,12 +277,12 @@ func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body b
 				continue
 			}
 
-			marshalledData, err := r.marshalizer.Marshal(miniBlock)
+			marshaledData, err := r.marshalizer.Marshal(miniBlock)
 			if err != nil {
 				continue
 			}
 
-			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshalledData)
+			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
 		}
 	}
 	r.clean()
