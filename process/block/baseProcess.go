@@ -1017,10 +1017,6 @@ func (bp *baseProcessor) updateStateStorage(
 		}
 	}
 
-	if prevRootHash == nil {
-		return
-	}
-
 	if bytes.Equal(prevRootHash, rootHash) {
 		return
 	}

@@ -1634,11 +1634,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
-				return nil
-			},
-		}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
@@ -1889,11 +1885,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
-				return nil
-			},
-		}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
 				return []byte("nil"), localErr
@@ -1981,11 +1973,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
-				return nil
-			},
-		}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
 				return []byte("keyBytes"), nil
@@ -2089,11 +2077,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{
-			RevertStateToBlockCalled: func(header data.HeaderHandler) error {
-				return nil
-			},
-		}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
 				return []byte("keyBytes"), nil
