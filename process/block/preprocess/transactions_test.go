@@ -1312,7 +1312,7 @@ func ExampleSortTransactionsByNonceAndSender() {
 		[]byte("c"),
 	}
 
-	items := preprocessor.sortTransactionsByNonceAndSender(transactions, hashes)
+	items := preprocessor.sortTransactionsBySenderAndNonce(transactions, hashes)
 
 	for _, item := range items {
 		fmt.Println(item.Transaction.GetNonce(), string(item.Transaction.GetSndAddress()), string(item.Hash))
@@ -1321,12 +1321,12 @@ func ExampleSortTransactionsByNonceAndSender() {
 	// Output:
 	// 1 aaaa x
 	// 2 aaaa z
-	// 3 bbbb w
-	// 3 eeee c
-	// 3 ffff b
-	// 5 bbbb y
 	// 6 aabb a
 	// 7 aabb t
+	// 3 bbbb w
+	// 5 bbbb y
+	// 3 eeee c
+	// 3 ffff b
 }
 
 func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
@@ -1344,7 +1344,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		result := preprocessor.sortTransactionsByNonceAndSender(transactions, hashes)
+		result := preprocessor.sortTransactionsBySenderAndNonce(transactions, hashes)
 		require.Len(b, result, numTx)
 	}
 }

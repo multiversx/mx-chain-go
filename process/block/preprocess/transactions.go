@@ -421,7 +421,7 @@ func (txs *transactions) computeSortedTxsFromMe(body block.Body) ([]transactionW
 		}
 	}
 
-	sortedTxsAndHashes := txs.sortTransactionsByNonceAndSender(txHandlers, txHashes)
+	sortedTxsAndHashes := txs.sortTransactionsBySenderAndNonce(txHandlers, txHashes)
 	return sortedTxsAndHashes, nil
 }
 
@@ -866,10 +866,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 	//num_isTxAlreadyProcessed := 0
 	//num_isBadTx := 0
 	num_badTxs := 0
-	totalTime := time.Duration(0)
-	//num_sndAddressToSkip := 0
+	num_sndAddressToSkip := 0
+	totalProcesssingTime := time.Duration(0)
 
-	//sndAddressToSkip := []byte("no skip")
+	sndAddressToSkip := []byte("no skip")
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
@@ -884,17 +884,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 		txHandler := sortedTxsAndHashes[index].Transaction
 		tx := txHandler.(*transaction.Transaction)
 		txHash := sortedTxsAndHashes[index].Hash
+		receiverShardID := sortedTxsAndHashes[index].ReceiverShardID
 
-		startTime := time.Now()
-		receiverShardID, err := txs.getShardForAddress(tx.GetRecvAddress())
-		elapsedTime := time.Since(startTime)
-		totalTime += elapsedTime
-		if err != nil {
-			log.Debug("createAndProcessMiniBlock.getShardForAddress",
-				"receiver address", tx.GetRecvAddress(),
-				"error", err.Error())
-			continue
-		}
 		if txs.blockTracker.IsShardStuck(receiverShardID) {
 			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
@@ -907,16 +898,16 @@ func (txs *transactions) createAndProcessMiniBlock(
 		//	num_isBadTx++
 		//	continue
 		//}
-		//if bytes.Equal(sndAddressToSkip, tx.GetSndAddress()) {
-		//	num_sndAddressToSkip++
-		//	continue
-		//}
+		if bytes.Equal(sndAddressToSkip, tx.GetSndAddress()) {
+			num_sndAddressToSkip++
+			continue
+		}
 
 		snapshot := txs.accounts.JournalLen()
 
 		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
 		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-		err = txs.computeGasConsumed(
+		err := txs.computeGasConsumed(
 			senderShardID,
 			receiverShardID,
 			tx,
@@ -929,17 +920,20 @@ func (txs *transactions) createAndProcessMiniBlock(
 		}
 
 		// execute transaction to change the trie root hash
+		startTime := time.Now()
 		err = txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
 			senderShardID,
 			receiverShardID,
 		)
+		elapsedTime := time.Since(startTime)
+		totalProcesssingTime += elapsedTime
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			//if err == process.ErrHigherNonceInTransaction {
-			//	sndAddressToSkip = tx.GetSndAddress()
-			//}
+			if err == process.ErrHigherNonceInTransaction {
+				sndAddressToSkip = tx.GetSndAddress()
+			}
 
 			num_badTxs++
 			log.Trace("bad tx",
@@ -961,7 +955,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			continue
 		}
 
-		//sndAddressToSkip = []byte("no skip")
+		sndAddressToSkip = []byte("no skip")
 
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
@@ -991,7 +985,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			log.Debug("max txs accepted in one block is reached",
 				"num added txs", addedTxs,
 				"total txs", len(sortedTxsAndHashes),
-				"getShardForAddress total time used [s]", totalTime)
+				"processAndRemoveBadTransaction used time", totalProcesssingTime)
 
 			return miniBlocks, nil
 		}
@@ -1013,11 +1007,11 @@ func (txs *transactions) createAndProcessMiniBlock(
 	//log.Debug("COUNTS", "num_isTxAlreadyProcessed", num_isTxAlreadyProcessed)
 	//log.Debug("COUNTS", "num_isBadTx", num_isBadTx)
 	log.Debug("COUNTS", "num_badTxs", num_badTxs)
-	//log.Debug("COUNTS", "num_sndAddressToSkip", num_sndAddressToSkip)
+	log.Debug("COUNTS", "num_sndAddressToSkip", num_sndAddressToSkip)
 	log.Debug("createAndProcessMiniBlock has been finished",
 		"num added txs", addedTxs,
 		"total txs", len(sortedTxsAndHashes),
-		"getShardForAddress total time used [s]", totalTime)
+		"processAndRemoveBadTransaction used time", totalProcesssingTime)
 
 	return miniBlocks, nil
 }
@@ -1075,7 +1069,7 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetSortedTransactions()
 
-	sortedTxsAndHashes := txs.sortTransactionsByNonceAndSender(sortedTxs, sortedTxsHashes)
+	sortedTxsAndHashes := txs.sortTransactionsBySenderAndNonce(sortedTxs, sortedTxsHashes)
 	return sortedTxsAndHashes, nil
 }
 
@@ -1183,13 +1177,13 @@ func (txs *transactions) IsInterfaceNil() bool {
 
 // transactionWrapper holds the transaction and its hash
 type transactionWrapper struct {
-	Transaction   data.TransactionHandler
-	Hash          []byte
-	ReceiverShard uint32
+	Transaction     data.TransactionHandler
+	Hash            []byte
+	ReceiverShardID uint32
 }
 
-// sortTransactionsByNonceAndSender sorts the provided transactions and hashes simultaneously
-func (txs *transactions) sortTransactionsByNonceAndSender(transactions []data.TransactionHandler, hashes [][]byte) []transactionWrapper {
+// sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []data.TransactionHandler, hashes [][]byte) []transactionWrapper {
 	if len(transactions) != len(hashes) {
 		return nil
 	}
@@ -1198,18 +1192,18 @@ func (txs *transactions) sortTransactionsByNonceAndSender(transactions []data.Tr
 	for i := 0; i < len(items); i++ {
 		tx := transactions[i]
 		receiverAddress := tx.GetRecvAddress()
-		receiverShard, _ := txs.getShardForAddress(receiverAddress)
+		receiverShardID, _ := txs.getShardForAddress(receiverAddress)
 		// TODO: handle error of getShardForAddress(), skip transaction? No error should happen in practice (address is valid at this point).
-		items[i] = transactionWrapper{Transaction: tx, Hash: hashes[i], ReceiverShard: receiverShard}
+		items[i] = transactionWrapper{Transaction: tx, Hash: hashes[i], ReceiverShardID: receiverShardID}
 	}
 
 	sorter := func(i, j int) bool {
 		txI := items[i].Transaction
 		txJ := items[j].Transaction
 
-		delta := int(txI.GetNonce()) - int(txJ.GetNonce())
+		delta := bytes.Compare(txI.GetSndAddress(), txJ.GetSndAddress())
 		if delta == 0 {
-			delta = bytes.Compare(txI.GetSndAddress(), txJ.GetSndAddress())
+			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
 		}
 
 		return delta < 0
