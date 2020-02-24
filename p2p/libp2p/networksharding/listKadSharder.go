@@ -6,6 +6,7 @@ import (
 	"math/bits"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
