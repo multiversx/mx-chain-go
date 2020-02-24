@@ -179,7 +179,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
-	panic("implement me")
+	return []byte("vs root hash")
 }
 
 // SetValidatorStatsRootHash -

@@ -3,12 +3,46 @@ package shard_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
+
+func createDataPools() dataRetriever.PoolsHolder {
+	pools := &mock.PoolsHolderStub{}
+	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	pools.PeerChangesBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	pools.MetaBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	pools.TrieNodesCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
+		return &mock.TxForCurrentBlockStub{}
+	}
+	return pools
+}
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 	t.Parallel()

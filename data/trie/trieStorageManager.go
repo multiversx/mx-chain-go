@@ -187,7 +187,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 		return err
 	}
 
-	log.Trace("trie removeFromDb", "rootHash", rootHash)
+	log.Debug("trie removeFromDb", "rootHash", rootHash)
 
 	var hash []byte
 	var present bool
@@ -305,6 +305,8 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		}
 
 		isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+
+		log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
 	}
 
 	tsm.removeKeysFromDb(keys)

@@ -1,6 +1,7 @@
 package process
 
 import (
+	"encoding/hex"
 	"math"
 	"sort"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -602,4 +604,32 @@ type ForkInfo struct {
 // NewForkInfo creates a new ForkInfo object
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
+}
+
+// DisplayProcessTxDetails displays information related to the tx which should be executed
+func DisplayProcessTxDetails(
+	message string,
+	accountHandler state.AccountHandler,
+	txHandler data.TransactionHandler,
+) {
+	if !check.IfNil(accountHandler) {
+		account, ok := accountHandler.(*state.Account)
+		if ok {
+			log.Trace(message,
+				"nonce", account.Nonce,
+				"balance", account.Balance,
+			)
+		}
+	}
+
+	if !check.IfNil(txHandler) {
+		log.Trace("executing transaction",
+			"nonce", txHandler.GetNonce(),
+			"value", txHandler.GetValue(),
+			"gas limit", txHandler.GetGasLimit(),
+			"gas price", txHandler.GetGasPrice(),
+			"data", hex.EncodeToString(txHandler.GetData()),
+			"sender", hex.EncodeToString(txHandler.GetSndAddress()),
+			"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
+	}
 }
