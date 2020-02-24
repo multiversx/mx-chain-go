@@ -9,14 +9,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -44,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -381,7 +380,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage: 0.10,
+				LeaderPercentage:    0.10,
+				DeveloperPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  maxGasLimitPerBlock,

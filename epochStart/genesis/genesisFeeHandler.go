@@ -1,9 +1,10 @@
 package genesis
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type feeHandler struct {
