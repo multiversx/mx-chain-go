@@ -480,7 +480,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		}
 		err = handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
 		if err != nil {
-			log.Trace("p2p validator",
+			log.Warn("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
 				"pid", p2p.MessageOriginatorPid(wrappedMsg),
@@ -542,8 +542,14 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	go func(msg p2p.MessageP2P) {
 		err := processor.ProcessReceivedMessage(msg, nil)
 		if err != nil {
-			log.Trace("p2p validator",
+			log.Warn("p2p validator",
 				"error", err.Error(),
+				"topics", msg.TopicIDs(),
+				"pid", p2p.MessageOriginatorPid(msg),
+				"seq no", p2p.MessageOriginatorSeq(msg),
+			)
+		} else {
+			log.Info("direct message processed",
 				"topics", msg.TopicIDs(),
 				"pid", p2p.MessageOriginatorPid(msg),
 				"seq no", p2p.MessageOriginatorSeq(msg),

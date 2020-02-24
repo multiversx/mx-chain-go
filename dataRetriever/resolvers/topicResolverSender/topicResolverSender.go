@@ -2,6 +2,7 @@ package topicResolverSender
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -11,6 +12,8 @@ const topicRequestSuffix = "_REQUEST"
 
 // NumPeersToQuery number of peers to send the message
 const NumPeersToQuery = 2
+
+var log = logger.GetOrCreate("dataretriever/resolvers")
 
 type topicResolverSender struct {
 	messenger       dataRetriever.MessageHandler
@@ -83,6 +86,14 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
+			log.Warn("error sending request",
+				"topic", topicToSendRequest,
+				"error", err,
+				"epoch", rd.Epoch,
+				"value", rd.Value,
+				"type", rd.Type,
+				"pid", p2p.PidString(peer),
+			)
 			continue
 		}
 
@@ -94,6 +105,14 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	if msgSentCounter == 0 {
 		return err
+	} else {
+		log.Info("request sent",
+			"topic", topicToSendRequest,
+			"epoch", rd.Epoch,
+			"value", rd.Value,
+			"type", rd.Type,
+			"num peers", msgSentCounter,
+		)
 	}
 
 	return nil

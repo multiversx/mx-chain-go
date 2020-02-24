@@ -31,7 +31,7 @@ func processInterceptedData(
 ) {
 	err := processor.Validate(data)
 	if err != nil {
-		log.Trace("intercepted data is not valid",
+		log.Warn("intercepted data is not valid",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
@@ -44,7 +44,7 @@ func processInterceptedData(
 
 	err = processor.Save(data)
 	if err != nil {
-		log.Trace("intercepted data can not be processed",
+		log.Warn("intercepted data can not be processed",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
