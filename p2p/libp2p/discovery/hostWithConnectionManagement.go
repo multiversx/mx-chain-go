@@ -18,9 +18,10 @@ type hostWithConnectionManagement struct {
 // NewHostWithConnectionManagement returns a host wrapper able to decide if connection initiated to a peer
 // will actually be kept or not
 func NewHostWithConnectionManagement(ch ConnectableHost, sharder libp2p.Sharder) (*hostWithConnectionManagement, error) {
-	if ch == nil {
+	if check.IfNil(ch) {
 		return nil, p2p.ErrNilHost
 	}
+	//TODO add check if nil for sharder after the refactoring is done
 
 	return &hostWithConnectionManagement{
 		ConnectableHost: ch,

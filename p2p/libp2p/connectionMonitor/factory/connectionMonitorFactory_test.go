@@ -26,7 +26,7 @@ func TestNewConnectionMonitor_NilReconnecterShouldCreateNoConnectionMonitor(t *t
 	cm, err := NewConnectionMonitor(arg)
 
 	assert.Nil(t, err)
-	assert.IsType(t, reflect.TypeOf(&connectionMonitor.NoConnectionMonitor{}), reflect.TypeOf(cm))
+	assert.IsType(t, reflect.TypeOf(&connectionMonitor.NilConnectionMonitor{}), reflect.TypeOf(cm))
 }
 
 func TestNewConnectionMonitor_ReconnecterPauseResumeShouldCreateConnectionMonitor(t *testing.T) {

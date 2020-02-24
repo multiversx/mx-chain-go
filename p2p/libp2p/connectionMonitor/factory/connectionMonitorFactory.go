@@ -16,7 +16,7 @@ type ArgsConnectionMonitorFactory struct {
 // NewConnectionMonitor creates a new ConnectionMonitor instance
 func NewConnectionMonitor(arg ArgsConnectionMonitorFactory) (ConnectionMonitor, error) {
 	if check.IfNil(arg.Reconnecter) {
-		return &connectionMonitor.NoConnectionMonitor{}, nil
+		return &connectionMonitor.NilConnectionMonitor{}, nil
 	}
 
 	switch recon := arg.Reconnecter.(type) {

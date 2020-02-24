@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNoConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
+func TestNilConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -18,7 +18,7 @@ func TestNoConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	ncm := &NoConnectionMonitor{}
+	ncm := &NilConnectionMonitor{}
 
 	ncm.OpenedStream(nil, nil)
 	ncm.ListenClose(nil, nil)
@@ -28,10 +28,10 @@ func TestNoConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 	ncm.Connected(nil, nil)
 }
 
-func TestNoConnectionMonitor_SetSharderShouldErr(t *testing.T) {
+func TestNilConnectionMonitor_SetSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncm := &NoConnectionMonitor{}
+	ncm := &NilConnectionMonitor{}
 	err := ncm.SetSharder(nil)
 
 	assert.True(t, errors.Is(err, p2p.ErrIncompatibleMethodCalled))
