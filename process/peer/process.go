@@ -331,11 +331,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	return vs.peerAdapter.RootHash()
 }
 
-// Commit commits the validator statistics trie and returns the root hash
-func (vs *validatorStatistics) Commit() ([]byte, error) {
-	return vs.peerAdapter.Commit()
-}
-
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) RootHash() ([]byte, error) {
 	return vs.peerAdapter.RootHash()
@@ -442,11 +437,6 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []s
 //  for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
-}
-
-// RevertPeerStateToSnapshot reverts the applied changes to the peerAdapter
-func (vs *validatorStatistics) RevertPeerStateToSnapshot(snapshot int) error {
-	return vs.peerAdapter.RevertToSnapshot(snapshot)
 }
 
 func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
