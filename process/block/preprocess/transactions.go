@@ -730,6 +730,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
 		}
+
 		if bytes.Equal(sndAddressToSkip, tx.GetSndAddress()) {
 			num_sndAddressToSkip++
 			continue

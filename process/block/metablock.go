@@ -566,7 +566,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 		"nonce", initialHdrData.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -581,11 +581,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	return miniBlocks, nil
 }
 
-func (mp *metaProcessor) createMiniBlocks(
-	maxItemsInBlock uint32,
-	haveTime func() bool,
-) (block.Body, error) {
-
+func (mp *metaProcessor) createMiniBlocks(haveTime func() bool) (block.Body, error) {
 	miniBlocks := make(block.Body, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
 		return miniBlocks, nil
@@ -605,7 +601,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
+	destMeMiniBlocks, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -634,7 +630,6 @@ func (mp *metaProcessor) createMiniBlocks(
 
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 

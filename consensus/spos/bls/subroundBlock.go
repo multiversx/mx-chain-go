@@ -166,12 +166,12 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 	header data.HeaderHandler,
 ) bool {
 
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+	bodyAndHeader := data.BodyAndHeader{
 		Body:   body,
 		Header: header,
 	}
 
-	subRoundData, err := sr.Marshalizer().Marshal(&marshalizedBodyAndHeader)
+	subRoundData, err := sr.Marshalizer().Marshal(&bodyAndHeader)
 	if err != nil {
 		log.Debug("sendBlockBodyAndHeader.Marshal: marshalizedBodyAndHeader", "error", err.Error())
 		return false

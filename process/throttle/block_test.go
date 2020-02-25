@@ -27,11 +27,11 @@ func TestBlockSizeThrottle_MaxItemsToAdd(t *testing.T) {
 func TestBlockSizeThrottle_Add(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItems := uint32(12000)
+	maxItems := uint32(14000)
 	bst.SetMaxItems(maxItems)
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 
 	assert.Equal(t, maxItems, bst.MaxItemsInLastItemAdded())
@@ -44,7 +44,7 @@ func TestBlockSizeThrottle_SucceedInLastItemAdded(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 	assert.False(t, bst.SucceedInLastItemAdded())
 
@@ -59,7 +59,7 @@ func TestBlockSizeThrottle_SucceedInItemAdded(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 	bst.Add(round+1, items)
 	assert.False(t, bst.SucceedInItemAdded(0))
@@ -105,7 +105,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToAnIncreasedValueWhe
 	assert.Equal(t, increasedValue, bst.MaxItemsToAdd())
 
 	bst.SetSucceed(2, false)
-	lastActionMaxItems2 := uint32(10000)
+	lastActionMaxItems2 := uint32(12000)
 	bst.SetMaxItems(lastActionMaxItems2)
 	bst.Add(3, 0)
 	bst.SetSucceed(3, true)
@@ -134,7 +134,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToMinItemsInBlockWhen
 func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhenLastActionNotSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	lastActionMaxItems1 := core.MaxUint32(10000, process.MinItemsInBlock)
+	lastActionMaxItems1 := core.MaxUint32(12000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems1)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, false)
@@ -143,7 +143,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhen
 	assert.Equal(t, decreasedValue, bst.MaxItemsToAdd())
 
 	bst.SetSucceed(2, true)
-	lastActionMaxItems2 := core.MaxUint32(12000, process.MinItemsInBlock)
+	lastActionMaxItems2 := core.MaxUint32(14000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems2)
 	bst.Add(3, 0)
 	bst.SetSucceed(3, false)
@@ -167,7 +167,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldReturnMaxItemsInBlock(t *
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldReturnNoOfMaxItemsUsedWithoutSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithoutSucceed := uint32(12000)
+	maxItemsUsedWithoutSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
 	jumpAbovePercent := float32(bst.JumpAbovePercent()+1) / float32(100)
@@ -190,7 +190,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItemsWithAtLea
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItems(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithoutSucceed := uint32(12000)
+	maxItemsUsedWithoutSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
 	lastActionMaxItems := uint32(float32(maxItemsUsedWithoutSucceed) * 0.5)
@@ -203,24 +203,24 @@ func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItems(t *testi
 func TestBlockSizeThrottle_GetCloserAboveMaxItemsUsedWithoutSucceedShouldReturnMaxItemsInBlock(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(11999))
+	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(13999))
 
-	maxItemsUsedWithoutSucceed := uint32(12000)
+	maxItemsUsedWithoutSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
-	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(12000))
+	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(14000))
 
 	bst.SetSucceed(2, true)
-	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(11999))
+	assert.Equal(t, uint32(process.MaxItemsInBlock), bst.GetCloserAboveMaxItemsUsedWithoutSucceed(13999))
 }
 
 func TestBlockSizeThrottle_GetCloserAboveMaxItemsUsedWithoutSucceedShouldReturnMaxItemsUsedWithoutSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithoutSucceed := uint32(12000)
+	maxItemsUsedWithoutSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
-	assert.Equal(t, maxItemsUsedWithoutSucceed, bst.GetCloserAboveMaxItemsUsedWithoutSucceed(11999))
+	assert.Equal(t, maxItemsUsedWithoutSucceed, bst.GetCloserAboveMaxItemsUsedWithoutSucceed(13999))
 }
 
 func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldReturnMinItemsInBlock(t *testing.T) {
@@ -258,7 +258,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItemsWithAt
 func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItems(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithSucceed := core.MaxUint32(6000, process.MinItemsInBlock)
+	maxItemsUsedWithSucceed := core.MaxUint32(7000, process.MinItemsInBlock)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)
@@ -272,24 +272,24 @@ func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItems(t *te
 func TestBlockSizeThrottle_GetCloserBelowMaxItemsUsedWithSucceedShouldReturnMinItemsInBlock(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(12001))
+	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(14001))
 
-	maxItemsUsedWithSucceed := uint32(12000)
+	maxItemsUsedWithSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)
-	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(12000))
+	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(14000))
 
 	bst.SetSucceed(2, false)
-	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(12001))
+	assert.Equal(t, uint32(process.MinItemsInBlock), bst.GetCloserBelowMaxItemsUsedWithSucceed(14001))
 }
 
 func TestBlockSizeThrottle_GetCloserBelowMaxItemsUsedWithSucceedShouldReturnMaxItemsUsedWithoutSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithSucceed := uint32(12000)
+	maxItemsUsedWithSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)
-	assert.Equal(t, maxItemsUsedWithSucceed, bst.GetCloserBelowMaxItemsUsedWithSucceed(12001))
+	assert.Equal(t, maxItemsUsedWithSucceed, bst.GetCloserBelowMaxItemsUsedWithSucceed(14001))
 }

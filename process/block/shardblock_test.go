@@ -3033,12 +3033,12 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
 
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+	bodyAndHeader := data.BodyAndHeader{
 		Body:   body,
 		Header: hdr,
 	}
 
-	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	message, err := marshalizerMock.Marshal(&bodyAndHeader)
 	assert.Nil(t, err)
 
 	dcdBlk, dcdHdr := sp.DecodeBlockBodyAndHeader(nil)
