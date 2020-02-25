@@ -683,7 +683,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	}
 
 	timeBefore := time.Now()
-	sortedTxsAndHashes, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
 	timeAfter := time.Now()
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -692,14 +692,14 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 	if !haveTime() {
 		log.Debug("time is up ordering txs",
-			"num txs", len(sortedTxsAndHashes),
+			"num txs", len(sortedTxs),
 			"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 		)
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
 	log.Debug("time elapsed to ordered txs",
-		"num txs", len(sortedTxsAndHashes),
+		"num txs", len(sortedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
 
@@ -752,11 +752,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 	startTime := time.Now()
 	miniBlocks, err := txs.createAndProcessMiniBlock(
-		txs.shardCoordinator.SelfId(),
 		maxTxSpaceRemained,
 		maxMbSpaceRemained,
 		haveTime,
-		sortedTxsAndHashes)
+		sortedTxs)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to createAndProcessMiniBlock",
 		"time [s]", elapsedTime,
@@ -838,25 +837,23 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 // CreateAndProcessMiniBlock creates and processes miniblocks
 func (txs *transactions) createAndProcessMiniBlock(
-	senderShardID uint32,
 	txsSpaceRemained uint32,
 	mbsSpaceRemained uint32,
 	haveTime func() bool,
-	sortedTxsAndHashes []*txcache.WrappedTransaction,
+	sortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, error) {
 
 	log.Debug("createAndProcessMiniBlock has been started",
-		"sender shard", senderShardID,
 		"txsSpaceRemained", txsSpaceRemained,
 		"mbsSpaceRemained", mbsSpaceRemained)
 
 	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
 
-	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
-		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(senderShardID, shardID, block.TxBlock)
-	}
-	//TODO: Should be analyzed situation when receiver shard is metachain
-	mapMiniBlocks[sharding.MetachainShardId] = txs.createEmptyMiniBlock(senderShardID, sharding.MetachainShardId, block.TxBlock)
+	//for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
+	//	mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(senderShardID, shardID, block.TxBlock)
+	//}
+	////TODO: Should be analyzed situation when receiver shard is metachain
+	//mapMiniBlocks[sharding.MetachainShardId] = txs.createEmptyMiniBlock(senderShardID, sharding.MetachainShardId, block.TxBlock)
 
 	addedTxs := uint32(0)
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
@@ -879,7 +876,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 	}()
 
 	startIterateTime := time.Now()
-	for index := range sortedTxsAndHashes {
+	for index := range sortedTxs {
 		startTime := time.Now()
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlock")
@@ -888,10 +885,11 @@ func (txs *transactions) createAndProcessMiniBlock(
 		elapsedTime := time.Since(startTime)
 		totalHaveTimeTime += elapsedTime
 
-		txHandler := sortedTxsAndHashes[index].Tx
+		txHandler := sortedTxs[index].Tx
 		tx := txHandler.(*transaction.Transaction)
-		txHash := sortedTxsAndHashes[index].TxHash
-		receiverShardID := sortedTxsAndHashes[index].ReceiverShardID
+		txHash := sortedTxs[index].TxHash
+		senderShardID := sortedTxs[index].SenderShardID
+		receiverShardID := sortedTxs[index].ReceiverShardID
 
 		startTime = time.Now()
 		if txs.blockTracker.IsShardStuck(receiverShardID) {
@@ -982,6 +980,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 		}
 
 		if !errors.Is(err, process.ErrFailedTransaction) {
+			if _, ok := mapMiniBlocks[receiverShardID]; !ok {
+				mapMiniBlocks[receiverShardID] = txs.createEmptyMiniBlock(senderShardID, receiverShardID, block.TxBlock)
+			}
+
 			mapMiniBlocks[receiverShardID].TxHashes = append(mapMiniBlocks[receiverShardID].TxHashes, txHash)
 		}
 
@@ -1002,7 +1004,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 			log.Debug("max txs accepted in one block is reached",
 				"num added txs", addedTxs,
-				"total txs", len(sortedTxsAndHashes))
+				"total txs", len(sortedTxs))
 
 			return miniBlocks, nil
 		}
@@ -1028,7 +1030,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 	log.Debug("COUNTS", "num_sndAddressToSkip", num_sndAddressToSkip)
 	log.Debug("createAndProcessMiniBlock has been finished",
 		"num added txs", addedTxs,
-		"total txs", len(sortedTxsAndHashes),
+		"total txs", len(sortedTxs),
 		"iterate time", elapsedIterateTime,
 		"haveTime used time", totalHaveTimeTime,
 		"IsShardStuck used time", totalIsShardStuckTime,
