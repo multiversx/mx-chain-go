@@ -65,7 +65,7 @@ func GetBroadcastMessenger(
 		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return broadcast.NewMetaChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
 	}
 

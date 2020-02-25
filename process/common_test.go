@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -1610,7 +1610,7 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 
 	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		storageService,
 		uint64Converter,
 		marshalizer)

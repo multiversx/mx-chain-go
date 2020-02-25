@@ -80,7 +80,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}
-	miniBlocks[sharding.MetachainShardId] = &block.MiniBlock{}
+	miniBlocks[core.MetachainShardId] = &block.MiniBlock{}
 
 	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()
@@ -101,6 +101,16 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 			sort.Slice(miniblock.TxHashes, func(a, b int) bool {
 				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
+
+			log.Trace("intermediateResultsProcessor.CreateAllInterMiniBlocks",
+				"type", miniblock.Type,
+				"senderShardID", miniblock.SenderShardID,
+				"receiverShardID", miniblock.ReceiverShardID,
+			)
+
+			for _, hash := range miniblock.TxHashes {
+				log.Trace("tx", "hash", hash)
+			}
 
 			finalMBs[shId] = miniblock
 		}

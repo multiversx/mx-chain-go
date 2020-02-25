@@ -3,6 +3,7 @@ package systemVM
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -144,16 +145,18 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
+	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -163,6 +166,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 			_ = n.Node.Stop()
 		}
 	}()
+
+	for _, nds := range nodesMap {
+		fmt.Println(integrationTests.MakeDisplayTable(nds))
+	}
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
@@ -227,6 +234,16 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	verifyUnbound(t, nodes, initialVal, consumedBalance)
+}
+
+func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal, consumedBalance *big.Int) {

@@ -19,6 +19,10 @@ const pkPrefixSize = 12
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
 
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 15000
+
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 2 << 17 //128KB bulks
@@ -55,10 +59,6 @@ const MetricIsSyncing = "erd_is_syncing"
 
 // MetricPublicKeyBlockSign is the metric for monitoring public key of a node used in block signing
 const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
-
-// MetricPublicKeyTxSign is the metric for monitoring public key of a node used in tx signing
-// (balance account held by the node)
-const MetricPublicKeyTxSign = "erd_public_key_tx_sign"
 
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
@@ -212,6 +212,9 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
 
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
