@@ -16,7 +16,7 @@ import (
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	Accounts                     state.AccountsAdapter
+	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                 process.ForkDetector
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
@@ -36,14 +36,14 @@ type ArgBaseProcessor struct {
 	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
 	DataPool                     dataRetriever.PoolsHolder
+	StateCheckpointModulus       uint
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
 	ArgBaseProcessor
-	TxsPoolsCleaner        process.PoolsCleaner
-	StateCheckpointModulus uint
+	TxsPoolsCleaner process.PoolsCleaner
 }
 
 // ArgMetaProcessor holds all dependencies required by the process data factory in order to create

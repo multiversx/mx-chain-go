@@ -24,23 +24,15 @@ import (
 func TestNewTrieStorageManagerNilDb(t *testing.T) {
 	t.Parallel()
 
-	ts, err := NewTrieStorageManager(nil, &config.DBConfig{}, &mock.EvictionWaitingList{})
+	ts, err := NewTrieStorageManager(nil, config.DBConfig{}, &mock.EvictionWaitingList{})
 	assert.Nil(t, ts)
 	assert.Equal(t, ErrNilDatabase, err)
-}
-
-func TestNewTrieStorageManagerNilSnapshotDbConfig(t *testing.T) {
-	t.Parallel()
-
-	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), nil, &mock.EvictionWaitingList{})
-	assert.Nil(t, ts)
-	assert.Equal(t, ErrNilSnapshotDbConfig, err)
 }
 
 func TestNewTrieStorageManagerNilEwlAndPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), &config.DBConfig{}, nil)
+	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, nil)
 	assert.Nil(t, ts)
 	assert.Equal(t, ErrNilEvictionWaitingList, err)
 }
@@ -48,7 +40,7 @@ func TestNewTrieStorageManagerNilEwlAndPruningEnabled(t *testing.T) {
 func TestNewTrieStorageManagerOkVals(t *testing.T) {
 	t.Parallel()
 
-	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), &config.DBConfig{}, &mock.EvictionWaitingList{})
+	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, &mock.EvictionWaitingList{})
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
 }
@@ -57,7 +49,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	t.Parallel()
 
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -93,7 +85,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 func TestTrieStorageManager_Clone(t *testing.T) {
 	t.Parallel()
 
-	ts, _ := NewTrieStorageManager(mock.NewMemDbMock(), &config.DBConfig{}, &mock.EvictionWaitingList{})
+	ts, _ := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, &mock.EvictionWaitingList{})
 
 	newTs := ts.Clone()
 	newTs, _ = newTs.(*trieStorageManager)
@@ -107,7 +99,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	msh, hsh := getTestMarshAndHasher()
 	size := uint(1)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
-	trieStorage, _ := NewTrieStorageManager(db, &config.DBConfig{}, evictionWaitList)
+	trieStorage, _ := NewTrieStorageManager(db, config.DBConfig{}, evictionWaitList)
 
 	tr := &patriciaMerkleTrie{
 		trieStorage: trieStorage,
@@ -252,7 +244,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -344,7 +336,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("reindeer"), val)
 
-	snapshotTrieStorage, _ := NewTrieStorageManager(trieStorage.snapshots[0], &config.DBConfig{}, &mock.EvictionWaitingList{})
+	snapshotTrieStorage, _ := NewTrieStorageManager(trieStorage.snapshots[0], config.DBConfig{}, &mock.EvictionWaitingList{})
 	collapsedRoot, _ := tr.root.getCollapsed()
 	snapshotTrie := &patriciaMerkleTrie{
 		root:        collapsedRoot,

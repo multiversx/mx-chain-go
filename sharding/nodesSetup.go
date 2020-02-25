@@ -106,7 +106,6 @@ func (ns *NodesSetup) processConfig() error {
 			return ErrCouldNotParsePubKey
 		}
 
-		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
 		// decoder treats empty string as correct, it is not allowed to have empty string as address
 		if ns.InitialNodes[i].Address == "" {
 			ns.InitialNodes[i].address = nil
