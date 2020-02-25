@@ -289,6 +289,7 @@
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
    Port = 123
    TimeoutMilliseconds = 100
+   SyncPeriodSeconds = 3600
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]

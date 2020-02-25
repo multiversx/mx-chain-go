@@ -312,7 +312,7 @@ func (boot *baseBootstrap) trySyncTrigger() {
 		return
 	}
 
-	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0 && !process.IsInProperRound(boot.rounder.Index())
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
 
 	if shouldTrySync {
 		nonce := boot.getNonceForNextBlock()
