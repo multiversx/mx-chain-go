@@ -85,7 +85,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -157,6 +159,7 @@ type Crypto struct {
 	BlockSignKeyGen crypto.KeyGenerator
 	TxSignKeyGen    crypto.KeyGenerator
 	InitialPubKeys  map[uint32][]string
+	MessageSignVerifier vm.MessageSignVerifier
 }
 
 // Process struct holds the process components of the Elrond protocol
@@ -458,6 +461,11 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 
 	txSignKeyGen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
 
+	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Crypto{
 		TxSingleSigner:  txSingleSigner,
 		SingleSigner:    singleSigner,
@@ -465,6 +473,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		BlockSignKeyGen: args.keyGen,
 		TxSignKeyGen:    txSignKeyGen,
 		InitialPubKeys:  initialPubKeys,
+		MessageSignVerifier: messageSignVerifier,
 	}, nil
 }
 
@@ -1797,6 +1806,7 @@ func newBlockProcessor(
 			blockTracker,
 			pendingMiniBlocksHandler,
 			processArgs.stateCheckpointModulus,
+			processArgs.crypto.MessageSignVerifier,
 		)
 	}
 
@@ -2072,6 +2082,7 @@ func newMetaBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	stateCheckpointModulus uint,
+	messageSignVerifier vm.MessageSignVerifier,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2083,7 +2094,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics, messageSignVerifier)
 	if err != nil {
 		return nil, err
 	}

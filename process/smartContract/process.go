@@ -138,13 +138,13 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-	if acntDst == nil || acntDst.IsInterfaceNil() {
+	if check.IfNil(acntDst) {
 		return process.ErrNilSCDestAccount
 	}
-	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
+	if acntDst.GetCode() == nil {
 		return process.ErrNilSCDestAccount
 	}
 
