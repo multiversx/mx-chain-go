@@ -562,26 +562,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 
 func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 	txHash := []byte("tx1_hash")
-	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions(), false)
+	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, dataPool.Transactions(), false)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)
@@ -589,32 +573,16 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 
 func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
-	shardId := uint32(1)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
+	shardID := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	mBlk := block.MiniBlock{ReceiverShardID: shardID, TxHashes: txHashes}
 	body = append(body, &mBlk)
 	txsRequested := txs.RequestBlockTransactions(body)
 	assert.Equal(t, 2, txsRequested)
@@ -622,32 +590,16 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 
 func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 
-	shardId := uint32(1)
+	shardID := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mb := &block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	mb := &block.MiniBlock{ReceiverShardID: shardID, TxHashes: txHashes}
 	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
 }
@@ -671,23 +623,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 
 	dataPool.SetTransactions(shardedDataStub)
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		dataPool.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	txs := createGoodPreprocessor(dataPool)
 
 	//add 3 tx hashes on requested list
 	txHash1 := []byte("tx hash 1")
@@ -750,23 +686,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		process.ShardCacherIdentifier(3, 4),
 	)
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		dataPool.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	txs := createGoodPreprocessor(dataPool)
 
 	mb := &block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -789,49 +709,17 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 
 func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
-	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
+	err := txs.RemoveTxBlockFromPools(nil, dataPool.MiniBlocks())
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
 func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
@@ -842,7 +730,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
-	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
+	err := txs.RemoveTxBlockFromPools(body, dataPool.MiniBlocks())
 	assert.Nil(t, err)
 }
 
@@ -1205,24 +1093,8 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 func TestTransactions_IsDataPrepared_NumMissingTxsZeroShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 
 	err := txs.IsDataPrepared(0, haveTime)
 	assert.Nil(t, err)
@@ -1231,24 +1103,8 @@ func TestTransactions_IsDataPrepared_NumMissingTxsZeroShouldWork(t *testing.T) {
 func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroTxNotReceivedShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 
 	haveTimeShorter := func() time.Duration {
 		return time.Millisecond
@@ -1260,24 +1116,8 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroTxNotReceivedSh
 func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		&mock.AddressConverterMock{},
-	)
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
 
 	go func() {
 		txs.SetRcvdTxChan()
@@ -1349,8 +1189,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 	)
 }
 
-func createGoodPreprocessor() *transactions {
-	dataPool := initDataPool()
+func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	preprocessor, _ := NewTransactionPreprocessor(
 		dataPool.Transactions(),
