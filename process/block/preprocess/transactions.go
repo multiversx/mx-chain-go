@@ -526,7 +526,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 
 	err := txs.txProcessor.ProcessTransaction(transaction)
-	isTxTargetedForDeletion := err == process.ErrLowerNonceInTransaction || errors.Is(err, process.ErrInsufficientFee)
+	isTxTargetedForDeletion := err == process.ErrLowerNonceInTransaction || err == process.ErrInsufficientFee
 	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
@@ -540,7 +540,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.accountsInfo[string(transaction.GetSndAddress())] = &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	txs.mutAccountsInfo.Unlock()
 
-	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
+	if err != nil && err != process.ErrFailedTransaction {
 		return err
 	}
 
@@ -868,6 +868,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 	num_badTxs := 0
 	num_sndAddressToSkip := 0
 	totalProcesssingTime := time.Duration(0)
+	totalHaveTimeTime := time.Duration(0)
+	totalIsShardStuckTime := time.Duration(0)
+	totalComputeGasConsumedTime := time.Duration(0)
+	totalOnErrorTime := time.Duration(0)
 
 	sndAddressToSkip := []byte("no skip")
 
@@ -875,21 +879,29 @@ func (txs *transactions) createAndProcessMiniBlock(
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
+	startIterateTime := time.Now()
 	for index := range sortedTxsAndHashes {
+		startTime := time.Now()
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlock")
 			break
 		}
+		elapsedTime := time.Since(startTime)
+		totalHaveTimeTime += elapsedTime
 
 		txHandler := sortedTxsAndHashes[index].Transaction
 		tx := txHandler.(*transaction.Transaction)
 		txHash := sortedTxsAndHashes[index].Hash
 		receiverShardID := sortedTxsAndHashes[index].ReceiverShardID
 
+		startTime = time.Now()
 		if txs.blockTracker.IsShardStuck(receiverShardID) {
 			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
 		}
+		elapsedTime = time.Since(startTime)
+		totalIsShardStuckTime += elapsedTime
+
 		//if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
 		//	num_isTxAlreadyProcessed++
 		//	continue
@@ -907,6 +919,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
 		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
+		startTime = time.Now()
 		err := txs.computeGasConsumed(
 			senderShardID,
 			receiverShardID,
@@ -914,23 +927,26 @@ func (txs *transactions) createAndProcessMiniBlock(
 			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
+		elapsedTime = time.Since(startTime)
+		totalComputeGasConsumedTime += elapsedTime
 		if err != nil {
 			log.Debug("createAndProcessMiniBlock.computeGasConsumed", "error", err)
 			continue
 		}
 
 		// execute transaction to change the trie root hash
-		startTime := time.Now()
+		startTime = time.Now()
 		err = txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
 			senderShardID,
 			receiverShardID,
 		)
-		elapsedTime := time.Since(startTime)
+		elapsedTime = time.Since(startTime)
 		totalProcesssingTime += elapsedTime
 
-		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
+		if err != nil && err != process.ErrFailedTransaction {
+			startTime = time.Now()
 			if err == process.ErrHigherNonceInTransaction {
 				sndAddressToSkip = tx.GetSndAddress()
 			}
@@ -952,6 +968,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 			gasConsumedByMiniBlockInSenderShard = oldGasConsumedByMiniBlockInSenderShard
 			gasConsumedByMiniBlockInReceiverShard = oldGasConsumedByMiniBlockInReceiverShard
 
+			elapsedTime = time.Since(startTime)
+			totalOnErrorTime += elapsedTime
+
 			continue
 		}
 
@@ -963,7 +982,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			gasConsumedByMiniBlockInSenderShard -= gasRefunded
 		}
 
-		if !errors.Is(err, process.ErrFailedTransaction) {
+		if err != process.ErrFailedTransaction {
 			mapMiniBlocks[receiverShardID].TxHashes = append(mapMiniBlocks[receiverShardID].TxHashes, txHash)
 		}
 
@@ -984,12 +1003,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 			log.Debug("max txs accepted in one block is reached",
 				"num added txs", addedTxs,
-				"total txs", len(sortedTxsAndHashes),
-				"processAndRemoveBadTransaction used time", totalProcesssingTime)
+				"total txs", len(sortedTxsAndHashes))
 
 			return miniBlocks, nil
 		}
 	}
+	elapsedIterateTime := time.Since(startIterateTime)
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
@@ -1011,7 +1030,12 @@ func (txs *transactions) createAndProcessMiniBlock(
 	log.Debug("createAndProcessMiniBlock has been finished",
 		"num added txs", addedTxs,
 		"total txs", len(sortedTxsAndHashes),
-		"processAndRemoveBadTransaction used time", totalProcesssingTime)
+		"iterate time", elapsedIterateTime,
+		"haveTime used time", totalHaveTimeTime,
+		"IsShardStuck used time", totalIsShardStuckTime,
+		"computeGasConsumed used time", totalComputeGasConsumedTime,
+		"processAndRemoveBadTransaction used time", totalProcesssingTime,
+		"processAndRemoveBadTransaction error handling used time", totalOnErrorTime)
 
 	return miniBlocks, nil
 }
