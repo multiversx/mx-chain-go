@@ -375,6 +375,13 @@ func (sp *shardProcessor) checkEpochCorrectness(
 			process.ErrEpochDoesNotMatch, header.GetEpoch())
 	}
 
+	isNotEpochStartButShouldBe := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		!header.IsStartOfEpochBlock()
+	if isNotEpochStartButShouldBe {
+		return fmt.Errorf("%w proposed header with new epoch %d is not of type epoch start",
+			process.ErrEpochDoesNotMatch, header.GetEpoch())
+	}
+
 	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.Epoch()
 	if isOldEpochStart {
 		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
@@ -650,6 +657,11 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	sp.createBlockStarted()
+
+	if sp.epochStartTrigger.IsEpochStart() {
+		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
+	}
+
 	shardHdr.SetEpoch(sp.epochStartTrigger.Epoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
 
