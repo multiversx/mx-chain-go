@@ -422,7 +422,7 @@ func (txs *transactions) computeSortedTxsFromMe(body block.Body) ([]*txcache.Wra
 		}
 	}
 
-	txs.sortTransactionsBySenderAndNonce(txsAndHashes)
+	sortTransactionsBySenderAndNonce(txsAndHashes)
 	return txsAndHashes, nil
 }
 
@@ -1089,7 +1089,7 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	txs.sortTransactionsBySenderAndNonce(sortedTxs)
+	sortTransactionsBySenderAndNonce(sortedTxs)
 	return sortedTxs, nil
 }
 
@@ -1198,7 +1198,7 @@ func (txs *transactions) IsInterfaceNil() bool {
 }
 
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
+func sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx
