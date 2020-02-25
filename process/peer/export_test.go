@@ -18,8 +18,8 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 }
 
 // SaveInitialState -
-func (vs *validatorStatistics) SaveInitialState(stakeValue *big.Int, initialRating uint32) error {
-	return vs.saveInitialState(stakeValue, initialRating)
+func (vs *validatorStatistics) SaveInitialState(stakeValue *big.Int, initialRating uint32, startEpoch uint32) error {
+	return vs.saveInitialState(stakeValue, initialRating, startEpoch)
 }
 
 // GetMatchingPrevShardData -

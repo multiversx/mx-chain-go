@@ -161,7 +161,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		return ErrSmallMetachainEligibleListSize
 	}
 
-	numTotalEligible := uint64(len(nodesList[MetachainShardId]))
+	numTotalEligible := uint64(len(nodesList))
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
 		nbNodesShard := len(eligible[shardId])
 		if nbNodesShard < ihgs.shardConsensusGroupSize {
@@ -176,6 +176,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.waitingMap = waiting
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
+	ihgs.numTotalEligible = numTotalEligible
 
 	return nil
 }

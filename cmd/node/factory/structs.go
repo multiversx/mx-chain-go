@@ -2297,6 +2297,7 @@ func newValidatorStatisticsProcessor(
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,
+		StartEpoch:          processComponents.startEpochNum,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

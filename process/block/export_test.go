@@ -342,6 +342,6 @@ func (sp *shardProcessor) CreateBlockBody(shardHdr *block.Header, haveTime func(
 	return sp.createBlockBody(shardHdr, haveTime)
 }
 
-func (sp *shardProcessor) CheckEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
-	return sp.checkEpochCorrectnessCrossChain(blockChain)
+func (sp *shardProcessor) CheckEpochCorrectnessCrossChain() error {
+	return sp.checkEpochCorrectnessCrossChain()
 }

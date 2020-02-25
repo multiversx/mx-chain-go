@@ -249,7 +249,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		err = sp.checkEpochCorrectnessCrossChain()
 		if err != nil {
 			return err
 		}
@@ -800,7 +800,7 @@ func (sp *shardProcessor) CommitBlock(
 	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(sp.blockChain)
 	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.updateStateStorage(selfNotarizedHeaders)
@@ -983,9 +983,9 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 	return nil
 }
 
-func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
+func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain() (data.HeaderHandler, []byte) {
 	if sp.forkDetector.GetHighestFinalBlockNonce() == 0 {
-		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
+		return sp.blockChain.GetGenesisHeader(), sp.blockChain.GetGenesisHeaderHash()
 	}
 
 	hash := sp.forkDetector.GetHighestFinalBlockHash()

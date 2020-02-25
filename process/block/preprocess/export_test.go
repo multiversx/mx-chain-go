@@ -1,8 +1,8 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte) {
@@ -69,7 +69,7 @@ func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.Transactio
 		tx := txs[i]
 		rtp.rewardTxsForBlock.txHashAndInfo[string(hash)] = &txInfo{
 			tx:          tx,
-			txShardInfo: &txShardInfo{receiverShardID: sharding.MetachainShardId, senderShardID: 0},
+			txShardInfo: &txShardInfo{receiverShardID: core.MetachainShardId, senderShardID: 0},
 		}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()

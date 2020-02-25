@@ -303,7 +303,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 func (boot *baseBootstrap) trySyncTrigger() {
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if currHeader == nil {
+	if check.IfNil(currHeader) {
 		return
 	}
 

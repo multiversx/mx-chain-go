@@ -780,6 +780,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
+		StartEpoch:          0,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)

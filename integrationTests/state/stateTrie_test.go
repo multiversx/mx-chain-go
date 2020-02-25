@@ -26,6 +26,7 @@ import (
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -1416,9 +1417,11 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	_ = logger.SetLogLevel("*:TRACE")
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")

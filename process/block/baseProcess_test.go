@@ -684,8 +684,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch:    1,
-				RandSeed: randSeed,
+				Epoch:           1,
+				RandSeed:        randSeed,
+				AccumulatedFees: big.NewInt(0),
 			}
 		},
 	}
@@ -751,8 +752,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	}
 
 	randSeed := []byte("randseed")
-	sp, _ := blproc.NewShardProcessor(arguments)
-	blockChain := &mock.BlockChainMock{
+	arguments.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    3,
@@ -760,6 +760,8 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 			}
 		},
 	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
 	rootHash, _ := arguments.Accounts.RootHash()
 	epochStartHash := []byte("epochStartHash")
 	header := &block.Header{
@@ -770,17 +772,18 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		PrevRandSeed:       randSeed,
 		EpochStartMetaHash: epochStartHash,
 		RootHash:           rootHash,
+		AccumulatedFees:    big.NewInt(0),
 	}
 
 	blk := make(block.Body, 0)
-	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
 	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
 
-	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
 	hasher.ComputeCalled = func(s string) []byte {
@@ -790,6 +793,6 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		return nil
 	}
 
-	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }

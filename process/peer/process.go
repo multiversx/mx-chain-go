@@ -45,6 +45,7 @@ type ArgValidatorStatisticsProcessor struct {
 	Rater               sharding.RaterHandler
 	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
+	StartEpoch          uint32
 }
 
 type validatorStatistics struct {
@@ -128,7 +129,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -140,11 +141,16 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 func (vs *validatorStatistics) saveInitialState(
 	stakeValue *big.Int,
 	startRating uint32,
+	startEpoch uint32,
 ) error {
-	nodesMap := vs.nodesCoordinator.GetAllValidatorsPublicKeys()
+	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	if err != nil {
+		return err
+	}
+
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk)
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
 			if err != nil {
 				return err
 			}
@@ -245,7 +251,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	for i := uint32(0); i < vs.shardCoordinator.NumberOfShards(); i++ {
 		validators[i] = make([]*state.ValidatorInfoData, 0)
 	}
-	validators[sharding.MetachainShardId] = make([]*state.ValidatorInfoData, 0)
+	validators[core.MetachainShardId] = make([]*state.ValidatorInfoData, 0)
 
 	sortedLeaves := make([][]byte, len(leaves))
 	i := 0

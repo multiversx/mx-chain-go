@@ -40,7 +40,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		core.MetachainShardId: {0, 1},
 	}
 
-	nodesMap, numShards := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
+	nodesMap, _ := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
 
 	defer func() {
 		_ = advertiser.Close()
