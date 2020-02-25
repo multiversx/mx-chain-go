@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +56,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	for _, n := range nodes {
 		isSenderShard := n.ShardCoordinator.SelfId() == senderShard
 		isRecvShard := integrationTests.Uint32InSlice(n.ShardCoordinator.SelfId(), recvShards)
-		isRecvMetachain := n.ShardCoordinator.SelfId() == sharding.MetachainShardId
+		isRecvMetachain := n.ShardCoordinator.SelfId() == core.MetachainShardId
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterMetaRcv))
 
@@ -103,7 +102,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
-	node4Meta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2Shard0, node3Shard1, node4Meta}
 
@@ -156,7 +155,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 
 	for _, n := range nodes {
-		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
 			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
@@ -176,6 +175,86 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	assert.Nil(t, retrievedHeader)
 }
 
+// TestMetaHeadersAreRequstedByAMetachainNode tests the metaheader request is served by a metachain node and
+// by a shard node
+func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(2)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+
+	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2MetaRequester, node3MetaResolver}
+	//update to a "safe" round number
+	integrationTests.UpdateRound(nodes, 3)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	metaBlock1 := &block.MetaBlock{
+		Nonce:         1,
+		Round:         1,
+		Epoch:         0,
+		ShardInfo:     make([]block.ShardData, 0),
+		PeerInfo:      make([]block.PeerData, 0),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte{1},
+		PrevHash:      []byte("prev hash"),
+		PrevRandSeed:  []byte("prev rand seed"),
+		RandSeed:      []byte("rand seed"),
+		RootHash:      []byte("root hash"),
+		TxCount:       0,
+		ChainID:       integrationTests.ChainID,
+	}
+	metaBlock1Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock1)
+
+	metaBlock2 := &block.MetaBlock{
+		Nonce:         2,
+		Round:         2,
+		Epoch:         0,
+		ShardInfo:     make([]block.ShardData, 0),
+		PeerInfo:      make([]block.PeerData, 0),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte{1},
+		PrevHash:      []byte("prev hash"),
+		PrevRandSeed:  []byte("prev rand seed"),
+		RandSeed:      []byte("rand seed"),
+		RootHash:      []byte("root hash"),
+		TxCount:       0,
+		ChainID:       integrationTests.ChainID,
+	}
+	metaBlock2Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock2)
+
+	node1Shard0.DataPool.Headers().AddHeader(metaBlock1Hash, metaBlock1)
+	node3MetaResolver.DataPool.Headers().AddHeader(metaBlock2Hash, metaBlock2)
+
+	retrievedHeaders := requestAndRetrieveMetaHeadersByNonce(node2MetaRequester, metaBlock1.Nonce)
+	require.Equal(t, 1, len(retrievedHeaders))
+	assert.Equal(t, metaBlock1.Nonce, retrievedHeaders[0].GetNonce())
+
+	retrievedHeaders = requestAndRetrieveMetaHeadersByNonce(node2MetaRequester, metaBlock2.Nonce)
+	require.Equal(t, 1, len(retrievedHeaders))
+	assert.Equal(t, metaBlock2.Nonce, retrievedHeaders[0].GetNonce())
+}
+
 func requestAndRetrieveMetaHeader(
 	node *integrationTests.TestProcessorNode,
 	hash []byte,
@@ -187,11 +266,23 @@ func requestAndRetrieveMetaHeader(
 
 	select {
 	case <-chanReceived:
-	case <-time.After(time.Second * 2):
+	case <-time.After(stepDelay):
 		return nil
 	}
 
 	retrievedObject, _ := node.DataPool.Headers().GetHeaderByHash(hash)
 
 	return retrievedObject.(*block.MetaBlock)
+}
+
+func requestAndRetrieveMetaHeadersByNonce(
+	node *integrationTests.TestProcessorNode,
+	nonce uint64,
+) []data.HeaderHandler {
+
+	node.RequestHandler.RequestMetaHeaderByNonce(nonce)
+	time.Sleep(time.Second * 2)
+	retrievedObject, _, _ := node.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+
+	return retrievedObject
 }

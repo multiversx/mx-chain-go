@@ -152,14 +152,14 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 }
 
 func initRounder() consensus.Rounder {
-	round, _ := round.NewRound(
+	roundNb, _ := round.NewRound(
 		time.Now(),
 		time.Now(),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 	)
 
-	return round
+	return roundNb
 }
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
@@ -1084,6 +1084,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bs.SetNodeStateCalculated(false)
 	}
 
 	shouldSync = bs.ShouldSync()

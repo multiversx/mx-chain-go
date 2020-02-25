@@ -346,7 +346,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
 	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
-	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, 0, storageConfig.DB.FilePath))
+	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
 		Identifier:            storageConfig.DB.FilePath,
 		PruningEnabled:        pruningEnabled,
@@ -361,6 +361,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		NumOfEpochsToKeep:     numOfEpochsToKeep,
 		NumOfActivePersisters: numOfActivePersisters,
 		Notifier:              psf.epochStartNotifier,
+		MaxBatchSize:          storageConfig.DB.MaxBatchSize,
 	}
 
 	return args
