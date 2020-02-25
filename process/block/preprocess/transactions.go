@@ -276,6 +276,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	//with miniblocks from self shard, the gas computation is still correct.
 	mapGasConsumedByMiniBlockInSenderShard := make(map[uint32]map[uint32]uint64)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]map[uint32]uint64)
+	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
 	//for j := 0; j < len(miniBlock.TxHashes); j++ {
 	for index := range sortedTxsAndHashes {
@@ -341,7 +342,8 @@ func (txs *transactions) ProcessBlockTransactions(
 			tx,
 			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard)
 
 		if err != nil {
 			return err
@@ -858,6 +860,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 	addedTxs := uint32(0)
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
 	//num_isTxAlreadyProcessed := 0
 	//num_isBadTx := 0
@@ -907,6 +910,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
 		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
+		oldTotalGasConsumedInSelfShard := totalGasConsumedInSelfShard
 		startTime := time.Now()
 		err := txs.computeGasConsumed(
 			senderShardID,
@@ -914,7 +918,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 			tx,
 			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard)
 		elapsedTime := time.Since(startTime)
 		totalComputeGasConsumedTime += elapsedTime
 		if err != nil {
@@ -955,6 +960,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 			gasConsumedByMiniBlockInSenderShard = oldGasConsumedByMiniBlockInSenderShard
 			gasConsumedByMiniBlockInReceiverShard = oldGasConsumedByMiniBlockInReceiverShard
+			totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 			elapsedTime = time.Since(startTime)
 			totalOnErrorTime += elapsedTime
@@ -989,7 +995,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 					"receiver shard", miniBlock.ReceiverShardID,
 					"gas consumed", gasConsumedByMiniBlockInReceiverShard,
 					"self shard", txs.shardCoordinator.SelfId(),
-					"gas consumed", txs.gasHandler.TotalGasConsumed(),
+					"gas consumed", totalGasConsumedInSelfShard,
 					"txs added", len(miniBlock.TxHashes))
 			}
 
@@ -1011,7 +1017,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			"receiver shard", miniBlock.ReceiverShardID,
 			"gas consumed", gasConsumedByMiniBlockInReceiverShard,
 			"self shard", txs.shardCoordinator.SelfId(),
-			"gas consumed", txs.gasHandler.TotalGasConsumed(),
+			"gas consumed", totalGasConsumedInSelfShard,
 			"txs added", len(miniBlock.TxHashes))
 	}
 
@@ -1118,6 +1124,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
@@ -1130,7 +1137,8 @@ func (txs *transactions) ProcessMiniBlock(
 			miniBlockTxs[index],
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard)
 
 		if err != nil {
 			return err

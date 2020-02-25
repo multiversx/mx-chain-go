@@ -474,6 +474,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -486,7 +487,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard)
 
 		if err != nil {
 			return err
