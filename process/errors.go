@@ -633,5 +633,8 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
+// ErrInvalidShardCacherIdentifier signals an invalid identifier
+var ErrInvalidShardCacherIdentifier = errors.New("invalid identifier for shard cacher")
+
 // ErrMaxBlockSizeReached signals that max block size has been reached
 var ErrMaxBlockSizeReached = errors.New("max block size has been reached")

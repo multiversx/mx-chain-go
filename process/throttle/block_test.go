@@ -233,7 +233,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldReturnMinItemsInBlock(
 func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldReturnNoOfMaxItemsUsedWithSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithSucceed := uint32(12000)
+	maxItemsUsedWithSucceed := uint32(14000)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 100)
 	bst.SetSucceed(2, true)

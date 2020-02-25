@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/require"
 )
 
@@ -240,64 +241,21 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	require.Equal(t, uint32(0), nSenders)
 }
 
-// This seems to be the worst case in terms of eviction complexity
-// Eviction is triggered often and little eviction (only 10 senders) is done
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
+// This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
+// 25000 senders with 10 transactions each, with default "NumSendersToEvictInOneStep".
+// ~1 second on average laptop.
+func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := CacheConfig{
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          1000000000,
 		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 10,
+		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
 		LargeNumOfTxsForASender:    1000,
 		NumTxsToEvictFromASender:   250,
 	}
 
 	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(t, int64(240000), cache.CountTx())
-}
-
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	config := CacheConfig{
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 100,
-		LargeNumOfTxsForASender:    1000,
-		NumTxsToEvictFromASender:   250,
-	}
-
-	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(t, int64(240000), cache.CountTx())
-}
-
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	config := CacheConfig{
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 1000,
-		LargeNumOfTxsForASender:    1000,
-		NumTxsToEvictFromASender:   250,
-	}
-
-	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	addManyTransactionsWithUniformDistribution(cache, 25000, 10)
 	require.Equal(t, int64(240000), cache.CountTx())
 }

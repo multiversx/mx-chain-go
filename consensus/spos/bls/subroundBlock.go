@@ -123,7 +123,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 	}
 
 	if sr.canBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+		return sr.sendBlockBodyAndHeader(body, header)
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
@@ -164,13 +164,11 @@ func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 func (sr *subroundBlock) sendBlockBodyAndHeader(
 	body data.BodyHandler,
 	header data.HeaderHandler,
-	marshalizedBody []byte,
-	marshalizedHeader []byte,
 ) bool {
 
 	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
+		Body:   body,
+		Header: header,
 	}
 
 	subRoundData, err := sr.Marshalizer().Marshal(&marshalizedBodyAndHeader)

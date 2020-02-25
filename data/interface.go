@@ -186,6 +186,6 @@ type TrieFactory interface {
 
 // MarshalizedBodyAndHeader holds marshalized body and header
 type MarshalizedBodyAndHeader struct {
-	Body   []byte
-	Header []byte
+	Body   BodyHandler
+	Header HeaderHandler
 }

@@ -126,9 +126,3 @@ func (cache *TxCache) diagnose() {
 	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
 	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 }
-
-type gapJournal struct {
-	accountNonce        uint64
-	previousNonce       uint64
-	numFailedSelections int64
-}
