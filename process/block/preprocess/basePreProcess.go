@@ -262,9 +262,6 @@ func (bpp *basePreProcess) computeGasConsumed(
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
 ) error {
-	//TODO: Remove this line
-	return nil
-
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
