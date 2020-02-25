@@ -158,10 +158,16 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
+	eligible, waiting := args.NodesSetup.InitialNodesInfo()
+	allNodes := make(map[uint32][]*sharding.NodeInfo)
+
+	for shard := range eligible {
+		allNodes[shard] = append(eligible[shard], waiting[shard]...)
+	}
+
 	err = setStakingData(
 		txProcessor,
-		args.ShardCoordinator,
-		args.NodesSetup.InitialNodesInfo(),
+		allNodes,
 		args.Economics.GenesisNodePrice(),
 	)
 	if err != nil {
@@ -370,12 +376,11 @@ func deploySystemSmartContracts(
 // setStakingData sets the initial staked values to the staking smart contract
 func setStakingData(
 	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+	for i := range initialNodeInfo {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
@@ -393,25 +398,6 @@ func setStakingData(
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	nodeInfoList := initialNodeInfo[sharding.MetachainShardId]
-	for _, nodeInfo := range nodeInfoList {
-		tx := &transaction.Transaction{
-			Nonce:     0,
-			Value:     big.NewInt(0).Set(stakeValue),
-			RcvAddr:   vmFactory.StakingSCAddress,
-			SndAddr:   nodeInfo.Address(),
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
-			Signature: nil,
-		}
-
-		err := txProcessor.ProcessTransaction(tx)
-		if err != nil {
-			return err
 		}
 	}
 

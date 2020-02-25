@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
@@ -203,7 +202,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
 	nodes[0] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	nodes[1] = integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
-	nodes[2] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 1, advertiserAddr)
+	nodes[2] = integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 1, advertiserAddr)
 
 	idxProposer := 0
 	numPlayers := 100
@@ -298,8 +297,8 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nodes[1] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	nodes[2] = integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
 	nodes[3] = integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
-	nodes[4] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	nodes[5] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodes[4] = integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	nodes[5] = integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
 	idxProposer := 0
 	numPlayers := 100

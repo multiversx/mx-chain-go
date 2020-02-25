@@ -98,7 +98,7 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 

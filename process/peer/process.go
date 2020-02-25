@@ -177,6 +177,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	vs.missedBlocksCounters.reset()
 	vs.mutMissedBlocksCounters.Unlock()
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		log.Debug("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
@@ -188,6 +194,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
+		epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -207,7 +214,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID(), epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -217,17 +224,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vs.displayRatings()
-
 	return vs.peerAdapter.RootHash()
-}
-
-func (vs *validatorStatistics) displayRatings() {
-	for _, shardList := range vs.initialNodes {
-		for _, node := range shardList {
-			log.Trace("ratings", "pk", node.Address(), "tempRating", vs.getTempRating(string(node.PubKey())))
-		}
-	}
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -353,6 +350,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
 	missedRounds := currentHeaderRound - previousHeaderRound
 	if missedRounds <= 1 {
@@ -361,13 +359,13 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 
 	tooManyComputations := missedRounds > vs.maxComputableRounds
 	if !tooManyComputations {
-		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
+		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId, epoch)
 	}
 
-	return vs.decreaseAll(shardId, missedRounds-1)
+	return vs.decreaseAll(shardId, missedRounds-1, epoch)
 }
 
-func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32) error {
+func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32, epoch uint32) error {
 	sw := core.NewStopWatch()
 	sw.Start("checkForMissedBlocks")
 	defer func() {
@@ -379,7 +377,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
+		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardId, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
@@ -414,6 +412,10 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 			return err
 		}
 		sw.Add(swInner)
+
+		for _, val := range consensusGroup {
+			vs.display(string(val.PubKey()))
+		}
 	}
 	return nil
 }
@@ -457,9 +459,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		return process.ErrInvalidMetaHeader
 	}
 
-	for _, h := range metaHeader.ShardInfo {
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
-		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
+	for _, h := range metaHeader.ShardInfo {
+		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -488,6 +495,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
+			epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -598,6 +606,8 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		if err != nil {
 			return err
 		}
+
+		vs.display(string(validatorList[i].PubKey()))
 	}
 
 	return nil
@@ -710,11 +720,41 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
-func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64) error {
+func (vs *validatorStatistics) display(validatorKey string) {
+	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
+
+	if err != nil {
+		log.Trace("display peer acc", "error", err)
+		return
+	}
+
+	acc, ok := peerAcc.(*state.PeerAccount)
+
+	if !ok {
+		log.Trace("display", "error", "not a peeracc")
+		return
+	}
+
+	log.Trace("validator statistics",
+		"pk", acc.BLSPublicKey,
+		"leader fail", acc.LeaderSuccessRate.NrFailure,
+		"leader success", acc.LeaderSuccessRate.NrSuccess,
+		"val fail", acc.ValidatorSuccessRate.NrFailure,
+		"val success", acc.ValidatorSuccessRate.NrSuccess,
+		"temp rating", acc.TempRating,
+		"rating", acc.Rating,
+	)
+}
+
+func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, epoch uint32) error {
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	shardValidators := vs.nodesCoordinator.GetAllValidatorsPublicKeys()[shardId]
+	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+	shardValidators := validators[shardId]
 	validatorsCount := len(shardValidators)
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
 	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1 - math.SmallestNonzeroFloat64)
@@ -752,6 +792,8 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64) 
 		if err != nil {
 			return err
 		}
+
+		vs.display(string(validator))
 	}
 
 	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
