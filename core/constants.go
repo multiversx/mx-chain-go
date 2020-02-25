@@ -1,19 +1,19 @@
 package core
 
-// ValidatorList represents the list to which a validator belongs
-type ValidatorList string
+// PeerType represents the type of a peer
+type PeerType string
 
 // EligibleList represents the list of peers who participate in consensus inside a shard
-const EligibleList ValidatorList = "eligible"
+const EligibleList PeerType = "eligible"
 
 // WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
-const WaitingList ValidatorList = "waiting"
+const WaitingList PeerType = "waiting"
 
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
-const ObserverList ValidatorList = "observer"
+const ObserverList PeerType = "observer"
 
 // NewList -
-const NewList ValidatorList = "new"
+const NewList PeerType = "new"
 
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag

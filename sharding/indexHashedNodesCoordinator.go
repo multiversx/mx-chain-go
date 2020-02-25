@@ -650,7 +650,7 @@ func (ihgs *indexHashedNodesCoordinator) UpdatePeersListAndIndex() error {
 
 func (ihgs *indexHashedNodesCoordinator) updatePeerAccountsForGivenMap(
 	peers map[uint32][]Validator,
-	list core.ValidatorList,
+	list core.PeerType,
 ) error {
 	for _, accountsPerShard := range peers {
 		for index, account := range accountsPerShard {

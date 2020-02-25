@@ -28,7 +28,7 @@ type EligibleListProvider interface {
 
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
-	ComputeForPubKey(pubKey []byte, shardID uint32) (core.ValidatorList, error)
+	ComputeForPubKey(pubKey []byte, shardID uint32) (core.PeerType, error)
 	IsInterfaceNil() bool
 }
 
