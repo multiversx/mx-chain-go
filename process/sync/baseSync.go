@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -27,6 +28,7 @@ var log = logger.GetOrCreate("process/sync")
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const tryRequestHeaderDelta = uint64(5)
 
 // HdrInfo hold the data related to a header
 type HdrInfo struct {
@@ -73,10 +75,11 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched     sync.RWMutex
-	isNodeSynchronized bool
-	hasLastBlock       bool
-	roundIndex         int64
+	mutNodeSynched        sync.RWMutex
+	isNodeSynchronized    bool
+	isNodeStateCalculated atomic.Flag
+	hasLastBlock          bool
+	roundIndex            int64
 
 	forkInfo *process.ForkInfo
 
@@ -258,9 +261,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
-	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
-	if isNodeSynchronizedInCurrentRound {
-		return false
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated.IsSet()
+	if isNodeStateCalculatedInCurrentRound {
+		return !boot.isNodeSynchronized
 	}
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
@@ -273,6 +276,8 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
 
+	boot.trySyncTrigger()
+
 	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
@@ -282,6 +287,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
+	boot.isNodeStateCalculated.Set()
 	boot.roundIndex = boot.rounder.Index()
 
 	var result uint64
@@ -293,6 +299,25 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
 	return !isNodeSynchronized
+}
+
+func (boot *baseBootstrap) trySyncTrigger() {
+	currHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if currHeader == nil {
+		return
+	}
+
+	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
+	if roundDiff < tryRequestHeaderDelta {
+		return
+	}
+
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
+
+	if shouldTrySync {
+		nonce := boot.getNonceForNextBlock()
+		boot.requestHeaderByNonce(nonce)
+	}
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -351,6 +376,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.NetworkWatcher) {
 		return process.ErrNilNetworkWatcher
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return process.ErrNilBootStorer
 	}
 	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
@@ -448,6 +476,10 @@ func (boot *baseBootstrap) syncBlock() error {
 	if !boot.ShouldSync() {
 		return nil
 	}
+
+	defer func() {
+		boot.isNodeStateCalculated.Unset()
+	}()
 
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
@@ -631,19 +663,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		if err != nil {
 			return err
 		}
-
-		// TODO check if pruning should be done on rollback
-		if boot.accounts.IsPruningEnabled() {
-			boot.accounts.CancelPrune(prevHeader.GetRootHash())
-
-			if !bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
-				log.Trace("header will be pruned", "root hash", currHeader.GetRootHash())
-				errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
-				if errNotCritical != nil {
-					log.Debug(errNotCritical.Error())
-				}
-			}
-		}
 	} else {
 		err = boot.setCurrentBlockInfo(nil, nil, nil)
 		if err != nil {
@@ -655,6 +674,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if err != nil {
 		return err
 	}
+	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
@@ -722,7 +742,7 @@ func (boot *baseBootstrap) restoreState(
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
-		log.Debug("RevertStateToBlock", "error", err.Error())
+		log.Debug("RevertState", "error", err.Error())
 	}
 }
 
@@ -837,4 +857,13 @@ func (boot *baseBootstrap) init() {
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+}
+
+func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }

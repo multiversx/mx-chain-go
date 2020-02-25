@@ -14,7 +14,7 @@ import (
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	IsNodeRunning() bool
-	StartNode() error
+	StartNode(epoch uint32) error
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
@@ -51,6 +51,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
+	// placeholder for custom routes
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node

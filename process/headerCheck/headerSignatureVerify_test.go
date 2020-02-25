@@ -3,7 +3,6 @@ package headerCheck
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -142,8 +141,8 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -177,8 +176,8 @@ func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testi
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -223,8 +222,8 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenVa
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -262,8 +261,8 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -298,8 +297,8 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -355,8 +354,8 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -377,8 +376,8 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v, v, v, v, v}, nil
 		},
 	}
@@ -400,8 +399,8 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, pkAddr)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, pkAddr)
 			return []sharding.Validator{v}, nil
 		},
 	}

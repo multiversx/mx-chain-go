@@ -1,12 +1,7 @@
 package mock
 
-import (
-	"math/big"
-)
-
+// ValidatorMock -
 type ValidatorMock struct {
-	stake   *big.Int
-	rating  int32
 	pubKey  []byte
 	address []byte
 
@@ -14,14 +9,7 @@ type ValidatorMock struct {
 	AddressCalled func() []byte
 }
 
-func (vm *ValidatorMock) Stake() *big.Int {
-	return vm.stake
-}
-
-func (vm *ValidatorMock) Rating() int32 {
-	return vm.rating
-}
-
+// PubKey -
 func (vm *ValidatorMock) PubKey() []byte {
 	if vm.PubKeyCalled != nil {
 		return vm.PubKeyCalled()
@@ -29,6 +17,7 @@ func (vm *ValidatorMock) PubKey() []byte {
 	return vm.pubKey
 }
 
+// Address -
 func (vm *ValidatorMock) Address() []byte {
 	if vm.AddressCalled != nil {
 		return vm.AddressCalled()

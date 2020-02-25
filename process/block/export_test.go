@@ -8,13 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -59,7 +59,7 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 }
 
 func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
-	sp.updateStateStorage(finalHeaders)
+	sp.updateState(finalHeaders)
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
@@ -77,9 +77,12 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 	}
 	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
+			AccountsDB:                   accountsDb,
 			ForkDetector:                 &mock.ForkDetectorMock{},
 			Hasher:                       &mock.HasherMock{},
 			Marshalizer:                  &mock.MarshalizerMock{},
@@ -175,9 +178,9 @@ func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
 		}
 	}
 
-	lastCrossNotarizedHeaderForShard := bp.LastNotarizedHdrForShard(sharding.MetachainShardId)
+	lastCrossNotarizedHeaderForShard := bp.LastNotarizedHdrForShard(core.MetachainShardId)
 	if !check.IfNil(lastCrossNotarizedHeaderForShard) {
-		lastCrossNotarizedHeaders[sharding.MetachainShardId] = append(lastCrossNotarizedHeaders[sharding.MetachainShardId], lastCrossNotarizedHeaderForShard)
+		lastCrossNotarizedHeaders[core.MetachainShardId] = append(lastCrossNotarizedHeaders[core.MetachainShardId], lastCrossNotarizedHeaderForShard)
 	}
 
 	return lastCrossNotarizedHeaders
@@ -259,7 +262,7 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	return sp.requestMissingFinalityAttestingHeaders(
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		sp.metaBlockFinality,
 	)
 }
@@ -339,4 +342,8 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 
 func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
 	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
+}
+
+func (sp *shardProcessor) CheckEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
+	return sp.checkEpochCorrectnessCrossChain(blockChain)
 }

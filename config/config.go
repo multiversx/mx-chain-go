@@ -2,9 +2,10 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type   string `json:"type"`
-	Size   uint32 `json:"size"`
-	Shards uint32 `json:"shards"`
+	Type        string `json:"type"`
+	Size        uint32 `json:"size"`
+	SizeInBytes uint32 `json:"sizeInBytes"`
+	Shards      uint32 `json:"shards"`
 }
 
 //HeadersPoolConfig will map the headers cache configuration
@@ -35,12 +36,6 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig `json:"bloom"`
 }
 
-// LoggerConfig will map the json logger configuration
-type LoggerConfig struct {
-	Path            string `json:"path"`
-	StackTraceDepth int    `json:"stackTraceDepth"`
-}
-
 // AddressConfig will map the json address configuration
 type AddressConfig struct {
 	Length int    `json:"length"`
@@ -63,6 +58,7 @@ type NTPConfig struct {
 	Hosts               []string
 	Port                int
 	TimeoutMilliseconds int
+	SyncPeriodSeconds   int
 	Version             int
 }
 
@@ -98,7 +94,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
-	StateTrieConfig         StateTrieConfig
+	StateTriesConfig        StateTriesConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -109,7 +105,6 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	EpochStartConfig            EpochStartConfig
-	Logger                      LoggerConfig
 	Address                     AddressConfig
 	BLSPublicKey                AddressConfig
 	Hasher                      TypeConfig
@@ -120,7 +115,6 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
-	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
 	NTPConfig         NTPConfig
@@ -175,25 +169,8 @@ type HeartbeatConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	DestinationShardAsObserver string
-	StatusPollingIntervalSec   int
-}
-
-// ExplorerConfig will hold the configuration for the explorer indexer
-type ExplorerConfig struct {
-	Enabled    bool
-	IndexerURL string
-}
-
-// ServersConfig will hold all the confidential settings for servers
-type ServersConfig struct {
-	ElasticSearch ElasticSearchConfig
-}
-
-// ElasticSearchConfig will hold the configuration for the elastic search
-type ElasticSearchConfig struct {
-	Username string
-	Password string
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -202,8 +179,9 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// StateTrieConfig will hold information about state trie
-type StateTrieConfig struct {
-	RoundsModulus  uint
-	PruningEnabled bool
+// StateTriesConfig will hold information about state tries
+type StateTriesConfig struct {
+	CheckpointRoundsModulus     uint
+	AccountsStatePruningEnabled bool
+	PeerStatePruningEnabled     bool
 }

@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	block2 "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -255,7 +256,7 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	bp.DoJobOnReceivedCrossNotarizedHeader(sharding.MetachainShardId)
+	bp.DoJobOnReceivedCrossNotarizedHeader(core.MetachainShardId)
 
 	assert.Equal(t, 2, called)
 }

@@ -2,10 +2,13 @@ package p2p
 
 import (
 	"context"
+	"encoding/hex"
 	"io"
 
 	"github.com/mr-tron/base58/base58"
 )
+
+const displayLastPidChars = 12
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
@@ -197,4 +200,21 @@ type DirectSender interface {
 type PeerDiscoveryFactory interface {
 	CreatePeerDiscoverer() (PeerDiscoverer, error)
 	IsInterfaceNil() bool
+}
+
+// MessageOriginatorPid will output the message peer id in a pretty format
+// If it can, it will display the last displayLastPidChars (12) characters from the pid
+func MessageOriginatorPid(msg MessageP2P) string {
+	prettyPid := msg.Peer().Pretty()
+	lenPrettyPid := len(prettyPid)
+	if lenPrettyPid > displayLastPidChars {
+		return "..." + prettyPid[lenPrettyPid-displayLastPidChars:]
+	}
+
+	return prettyPid
+}
+
+// MessageOriginatorSeq will output the sequence number as hex
+func MessageOriginatorSeq(msg MessageP2P) string {
+	return hex.EncodeToString(msg.SeqNo())
 }

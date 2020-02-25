@@ -12,8 +12,9 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
-	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId)
+	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId, epoch)
 }
 
 func (vs *validatorStatistics) SaveInitialState(in []*sharding.InitialNode, stakeValue *big.Int, initialRating uint32) error {
@@ -24,8 +25,13 @@ func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.S
 	return vs.getMatchingPrevShardData(currentShardData, shardInfo)
 }
 
-func (vs *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
-	vs.mutPrevShardInfo.RLock()
-	defer vs.mutPrevShardInfo.RUnlock()
-	return vs.prevShardInfo
+func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
+	vs.mutMissedBlocksCounters.RLock()
+	defer vs.mutMissedBlocksCounters.RUnlock()
+
+	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
+}
+
+func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
+	return vs.updateMissedBlocksCounters()
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type resolverRequestHandler struct {
@@ -222,6 +221,11 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
+	log.Trace("requesting shard header from network",
+		"shard", shardID,
+		"hash", hash,
+	)
+
 	headerResolver, err := rrh.getShardHeaderResolver(shardID)
 	if err != nil {
 		log.Error("RequestShardHeader.getShardHeaderResolver",
@@ -249,6 +253,10 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 	if !rrh.testIfRequestIsNeeded(hash) {
 		return
 	}
+
+	log.Trace("requesting meta header from network",
+		"hash", hash,
+	)
 
 	resolver, err := rrh.getMetaHeaderResolver()
 	if err != nil {
@@ -278,6 +286,11 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
+
+	log.Trace("requesting shard header by nonce from network",
+		"shard", shardID,
+		"nonce", nonce,
+	)
 
 	headerResolver, err := rrh.getShardHeaderResolver(shardID)
 	if err != nil {
@@ -320,7 +333,7 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 	var resolver dataRetriever.Resolver
 	var err error
 
-	if destShardID == sharding.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
 	} else {
 		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
@@ -351,10 +364,14 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
-	key := []byte(fmt.Sprintf("%d-%d", sharding.MetachainShardId, nonce))
+	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
+
+	log.Trace("requesting meta header by nonce from network",
+		"nonce", nonce,
+	)
 
 	headerResolver, err := rrh.getMetaHeaderResolver()
 	if err != nil {
@@ -401,9 +418,9 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
-	isMetachainNode := rrh.shardID == sharding.MetachainShardId
+	isMetachainNode := rrh.shardID == core.MetachainShardId
 	shardIdMissmatch := rrh.shardID != shardID
-	requestOnMetachain := shardID == sharding.MetachainShardId
+	requestOnMetachain := shardID == core.MetachainShardId
 	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest
@@ -411,7 +428,7 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 
 	//requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
 	//the cross shard id
-	crossShardID := sharding.MetachainShardId
+	crossShardID := core.MetachainShardId
 	if isMetachainNode {
 		crossShardID = shardID
 	}

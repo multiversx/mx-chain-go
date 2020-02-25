@@ -310,10 +310,10 @@ func TestSpecialAddresses_IsCurrentNodeInConsensusShouldReturnFalse(t *testing.T
 			GetOwnPublicKeyCalled: func() []byte {
 				return []byte(key)
 			},
-			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
 				return []string{}, nil
 			},
-			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
 				return []string{"another-key", "yet-another-key"}, nil
 			},
 		},
@@ -338,10 +338,10 @@ func TestSpecialAddresses_IsCurrentNodeInConsensusShouldReturnTrue(t *testing.T)
 			GetOwnPublicKeyCalled: func() []byte {
 				return []byte(key)
 			},
-			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
 				return []string{}, nil
 			},
-			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
 				return []string{key, "another-key"}, nil
 			},
 		},
