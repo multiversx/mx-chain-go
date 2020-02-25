@@ -25,8 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -1290,32 +1290,21 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 func ExampleSortTransactionsByNonceAndSender() {
 	preprocessor := createGoodPreprocessor()
 
-	transactions := []data.TransactionHandler{
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")},
-		&transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")},
-		&transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")},
-		&transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")},
-		&transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")},
-		&transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")},
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")},
-		&transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")},
+	transactions := []*txcache.WrappedTransaction{
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")}, TxHash: []byte("y")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")}, TxHash: []byte("z")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")}, TxHash: []byte("t")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")}, TxHash: []byte("a")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")}, TxHash: []byte("b")},
+		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
 	}
 
-	hashes := [][]byte{
-		[]byte("w"),
-		[]byte("x"),
-		[]byte("y"),
-		[]byte("z"),
-		[]byte("t"),
-		[]byte("a"),
-		[]byte("b"),
-		[]byte("c"),
-	}
+	preprocessor.sortTransactionsBySenderAndNonce(transactions)
 
-	items := preprocessor.sortTransactionsBySenderAndNonce(transactions, hashes)
-
-	for _, item := range items {
-		fmt.Println(item.Transaction.GetNonce(), string(item.Transaction.GetSndAddress()), string(item.Hash))
+	for _, item := range transactions {
+		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddress()), string(item.TxHash))
 	}
 
 	// Output:
@@ -1332,20 +1321,20 @@ func ExampleSortTransactionsByNonceAndSender() {
 func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
 	preprocessor := createGoodPreprocessor()
 	numTx := 100000
-	transactions := make([]data.TransactionHandler, numTx)
-	hashes := make([][]byte, numTx)
+	transactions := make([]*txcache.WrappedTransaction, numTx)
 	for i := 0; i < numTx; i++ {
-		transactions[i] = &transaction.Transaction{
-			Nonce:   uint64(numTx - i),
-			SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
+		transactions[i] = &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{
+				Nonce:   uint64(numTx - i),
+				SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
+			},
 		}
 	}
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		result := preprocessor.sortTransactionsBySenderAndNonce(transactions, hashes)
-		require.Len(b, result, numTx)
+		preprocessor.sortTransactionsBySenderAndNonce(transactions)
 	}
 }
 

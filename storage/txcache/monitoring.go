@@ -1,10 +1,7 @@
 package txcache
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
@@ -52,7 +49,7 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, selectionHashes [][]byte, stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
@@ -61,49 +58,6 @@ func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, s
 	cache.displaySendersHistogram()
 
 	go cache.diagnose()
-	//go cache.dumpSelection(selection, selectionHashes)
-}
-
-func (cache *TxCache) dumpSelection(selection []data.TransactionHandler, selectionHashes [][]byte) {
-	if len(selection) == 0 {
-		return
-	}
-
-	log.Trace("dumpSelection")
-
-	sender := selection[0].GetSndAddress()
-	senderTxs := make([]uint64, 0)
-	senderNonce := cache.getNonceOfSender(sender)
-
-	for i := 0; i < len(selection); i++ {
-		tx := selection[i]
-		currentSender := tx.GetSndAddress()
-		currentNonce := tx.GetNonce()
-
-		if !bytes.Equal(sender, currentSender) {
-			log.Trace("sender", "addr", sender, "nonce", senderNonce, "txs", senderTxs)
-
-			sender = currentSender
-			senderTxs = make([]uint64, 0)
-			senderNonce = cache.getNonceOfSender(sender)
-		}
-
-		senderTxs = append(senderTxs, currentNonce)
-	}
-
-	log.Trace("sender", "addr", sender, "txs", senderTxs)
-}
-
-func (cache *TxCache) getNonceOfSender(sender []byte) int64 {
-	txList, ok := cache.txListBySender.getListForSender(string(sender))
-	if !ok {
-		return -2
-	}
-	if !txList.accountNonceKnown.IsSet() {
-		return -1
-	}
-
-	return int64(txList.accountNonce.Get())
 }
 
 func (cache *TxCache) displaySendersHistogram() {
@@ -171,42 +125,10 @@ func (cache *TxCache) diagnose() {
 	logFunc("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
 	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
 	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
-
-	//cache.displayNonceGaps()
 }
 
 type gapJournal struct {
 	accountNonce        uint64
 	previousNonce       uint64
 	numFailedSelections int64
-}
-
-func (cache *TxCache) displayNonceGaps() {
-	gaps := make(map[string]gapJournal)
-
-	cache.forEachSenderDescending(func(key string, txList *txListForSender) {
-		if !txList.copyDetectedGap {
-			return
-		}
-
-		gaps[key] = gapJournal{
-			accountNonce:        txList.accountNonce.Get(),
-			previousNonce:       txList.copyPreviousNonce,
-			numFailedSelections: txList.numFailedSelections.Get(),
-		}
-	})
-
-	if len(gaps) > 0 {
-		log.Trace("Detected gaps", "count", len(gaps))
-
-		dumped := 0
-		for key, value := range gaps {
-			log.Trace("Gap", "sender", []byte(key), "info", value)
-
-			dumped++
-			if dumped > 100 {
-				break
-			}
-		}
-	}
 }

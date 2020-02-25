@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -19,9 +18,9 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache *txcache.TxCache) *ad
 }
 
 // GetSortedTransactions gets the transactions from the cache
-func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
-	txs, txHashes := adapter.txCache.SelectTransactions(20000, process.NumTxPerSenderBatchForFillingMiniblock)
-	return txs, txHashes
+func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
+	txs := adapter.txCache.SelectTransactions(20000, process.NumTxPerSenderBatchForFillingMiniblock)
+	return txs
 }
 
 // NotifyAccountNonce notifies the cache about the current nonce of an account

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var log = logger.GetOrCreate("process/block/preprocess")
@@ -298,9 +299,9 @@ func (txs *transactions) ProcessBlockTransactions(
 		//	return process.ErrWrongTypeAssertion
 		//}
 
-		txHandler := sortedTxsAndHashes[index].Transaction
+		txHandler := sortedTxsAndHashes[index].Tx
 		tx := txHandler.(*transaction.Transaction)
-		txHash := sortedTxsAndHashes[index].Hash
+		txHash := sortedTxsAndHashes[index].TxHash
 
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
 		txInfoFromMap := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
@@ -354,8 +355,8 @@ func (txs *transactions) ProcessBlockTransactions(
 	return nil
 }
 
-func (txs *transactions) computeTxsToMe(body block.Body) ([]transactionWrapper, error) {
-	txsAndHashes := make([]transactionWrapper, 0)
+func (txs *transactions) computeTxsToMe(body block.Body) ([]*txcache.WrappedTransaction, error) {
+	txsAndHashes := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
 
 	for _, miniBlock := range block.MiniBlockSlice(body) {
 		if miniBlock.Type != txs.blockType {
@@ -381,16 +382,15 @@ func (txs *transactions) computeTxsToMe(body block.Body) ([]transactionWrapper, 
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			txsAndHashes = append(txsAndHashes, transactionWrapper{Transaction: tx, Hash: txHash})
+			txsAndHashes = append(txsAndHashes, &txcache.WrappedTransaction{Tx: tx, TxHash: txHash})
 		}
 	}
 
 	return txsAndHashes, nil
 }
 
-func (txs *transactions) computeSortedTxsFromMe(body block.Body) ([]transactionWrapper, error) {
-	txHandlers := make([]data.TransactionHandler, 0)
-	txHashes := make([][]byte, 0)
+func (txs *transactions) computeSortedTxsFromMe(body block.Body) ([]*txcache.WrappedTransaction, error) {
+	txsAndHashes := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
 
 	for _, miniBlock := range block.MiniBlockSlice(body) {
 		if miniBlock.Type != txs.blockType {
@@ -416,13 +416,12 @@ func (txs *transactions) computeSortedTxsFromMe(body block.Body) ([]transactionW
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			txHandlers = append(txHandlers, tx)
-			txHashes = append(txHashes, txHash)
+			txsAndHashes = append(txsAndHashes, &txcache.WrappedTransaction{Tx: tx, TxHash: txHash})
 		}
 	}
 
-	sortedTxsAndHashes := txs.sortTransactionsBySenderAndNonce(txHandlers, txHashes)
-	return sortedTxsAndHashes, nil
+	txs.sortTransactionsBySenderAndNonce(txsAndHashes)
+	return txsAndHashes, nil
 }
 
 // SaveTxBlockToStorage saves transactions from body into storage
@@ -843,7 +842,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 	txsSpaceRemained uint32,
 	mbsSpaceRemained uint32,
 	haveTime func() bool,
-	sortedTxsAndHashes []transactionWrapper,
+	sortedTxsAndHashes []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, error) {
 
 	log.Debug("createAndProcessMiniBlock has been started",
@@ -881,9 +880,9 @@ func (txs *transactions) createAndProcessMiniBlock(
 			break
 		}
 
-		txHandler := sortedTxsAndHashes[index].Transaction
+		txHandler := sortedTxsAndHashes[index].Tx
 		tx := txHandler.(*transaction.Transaction)
-		txHash := sortedTxsAndHashes[index].Hash
+		txHash := sortedTxsAndHashes[index].TxHash
 		receiverShardID := sortedTxsAndHashes[index].ReceiverShardID
 
 		if txs.blockTracker.IsShardStuck(receiverShardID) {
@@ -1054,7 +1053,7 @@ func (txs *transactions) getMiniBlockSliceFromMap(mapMiniBlocks map[uint32]*bloc
 func (txs *transactions) computeSortedTxs(
 	sndShardId uint32,
 	dstShardId uint32,
-) ([]transactionWrapper, error) {
+) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
@@ -1067,10 +1066,10 @@ func (txs *transactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
-	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetSortedTransactions()
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	sortedTxsAndHashes := txs.sortTransactionsBySenderAndNonce(sortedTxs, sortedTxsHashes)
-	return sortedTxsAndHashes, nil
+	txs.sortTransactionsBySenderAndNonce(sortedTxs)
+	return sortedTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
@@ -1175,31 +1174,11 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil
 }
 
-// transactionWrapper holds the transaction and its hash
-type transactionWrapper struct {
-	Transaction     data.TransactionHandler
-	Hash            []byte
-	ReceiverShardID uint32
-}
-
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []data.TransactionHandler, hashes [][]byte) []transactionWrapper {
-	if len(transactions) != len(hashes) {
-		return nil
-	}
-
-	items := make([]transactionWrapper, len(transactions))
-	for i := 0; i < len(items); i++ {
-		tx := transactions[i]
-		receiverAddress := tx.GetRecvAddress()
-		receiverShardID, _ := txs.getShardForAddress(receiverAddress)
-		// TODO: handle error of getShardForAddress(), skip transaction? No error should happen in practice (address is valid at this point).
-		items[i] = transactionWrapper{Transaction: tx, Hash: hashes[i], ReceiverShardID: receiverShardID}
-	}
-
+func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
-		txI := items[i].Transaction
-		txJ := items[j].Transaction
+		txI := transactions[i].Tx
+		txJ := transactions[j].Tx
 
 		delta := bytes.Compare(txI.GetSndAddress(), txJ.GetSndAddress())
 		if delta == 0 {
@@ -1209,6 +1188,5 @@ func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []data.Tr
 		return delta < 0
 	}
 
-	sort.Slice(items, sorter)
-	return items
+	sort.Slice(transactions, sorter)
 }

@@ -9,9 +9,9 @@ import (
 func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
 	list := newListToTest()
 
-	list.AddTx([]byte("a"), createTxWithParams(".", 1, 1000, 200000, 100*oneTrilion))
-	list.AddTx([]byte("b"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
-	list.AddTx([]byte("c"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
+	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneTrilion))
+	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneTrilion))
+	list.AddTx(createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneTrilion))
 
 	require.Equal(t, uint64(3), list.countTx())
 	require.Equal(t, int64(2000), list.totalBytes.Get())

@@ -128,16 +128,25 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 		return
 	}
 
-	txPool.addTx(key, valueAsTransaction, cacheID)
+	sourceShardID, destinationShardID := parseCacheID(cacheID)
+
+	wrapper := &txcache.WrappedTransaction{
+		Tx:              valueAsTransaction,
+		TxHash:          key,
+		SenderShardID:   sourceShardID,
+		ReceiverShardID: destinationShardID,
+	}
+
+	txPool.addTx(wrapper, cacheID)
 }
 
 // addTx adds the transaction to the cache
-func (txPool *shardedTxPool) addTx(txHash []byte, tx data.TransactionHandler, cacheID string) {
+func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
-	_, added := cache.AddTx(txHash, tx)
+	_, added := cache.AddTx(tx)
 	if added {
-		txPool.onAdded(txHash)
+		txPool.onAdded(tx.TxHash)
 	}
 }
 
@@ -161,12 +170,12 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
-	var txFromCache data.TransactionHandler
+	var txFromCache *txcache.WrappedTransaction
 	var hashExists bool
 	for _, shard := range txPool.backingMap {
 		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
 		if hashExists {
-			return txFromCache, true
+			return txFromCache.Tx, true
 		}
 	}
 
@@ -220,8 +229,8 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 	sourceShard := txPool.getOrCreateShard(sourceCacheID)
 	sourceCache := sourceShard.Cache
 
-	sourceCache.ForEachTransaction(func(txHash []byte, tx data.TransactionHandler) {
-		txPool.addTx(txHash, tx, destCacheID)
+	sourceCache.ForEachTransaction(func(txHash []byte, tx *txcache.WrappedTransaction) {
+		txPool.addTx(tx, destCacheID)
 	})
 
 	txPool.mutex.Lock()
@@ -264,19 +273,10 @@ func (txPool *shardedTxPool) IsInterfaceNil() bool {
 }
 
 func (txPool *shardedTxPool) routeToCache(cacheID string) string {
-	parts := strings.Split(cacheID, "_")
+	sourceShardID, _ := parseCacheID(cacheID)
 
-	if len(parts) != 2 {
-		return cacheID
-	}
-
-	sourceShardID, err := strconv.ParseUint(parts[0], 10, 64)
-	if err != nil {
-		return cacheID
-	}
-
-	if uint32(sourceShardID) == txPool.selfShardID {
-		return parts[0]
+	if sourceShardID == txPool.selfShardID {
+		return strconv.Itoa(int(sourceShardID))
 	}
 
 	return cacheID
@@ -289,4 +289,34 @@ func (txPool *shardedTxPool) isCacheForSelfShard(cacheID string) bool {
 	}
 
 	return uint32(shardID) == txPool.selfShardID
+}
+
+func parseCacheID(cacheID string) (sourceShardID uint32, destinationShardID uint32) {
+	parts := strings.Split(cacheID, "_")
+	sourceShardID = 0
+	destinationShardID = 0
+
+	switch len(parts) {
+	case 1:
+		shardID := parseCacheIDPart(parts[0])
+		sourceShardID = shardID
+		destinationShardID = shardID
+	case 2:
+		sourceShardID = parseCacheIDPart(parts[0])
+		destinationShardID = parseCacheIDPart(parts[1])
+	default:
+		log.Error("parseCacheID", "cacheID", cacheID)
+	}
+
+	return
+}
+
+func parseCacheIDPart(cacheIDPart string) uint32 {
+	part, err := strconv.ParseUint(cacheIDPart, 10, 64)
+	if err != nil {
+		log.Error("parseCacheIDPart", "cacheIDPart", cacheIDPart)
+		return 0
+	}
+
+	return uint32(part)
 }
