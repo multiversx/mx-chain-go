@@ -14,7 +14,6 @@ type AccountWrapMock struct {
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
-	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
@@ -23,10 +22,9 @@ type AccountWrapMock struct {
 }
 
 // NewAccountWrapMock -
-func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker) *AccountWrapMock {
+func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
 	return &AccountWrapMock{
 		address:           adr,
-		tracker:           tracker,
 		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
 	}
 }

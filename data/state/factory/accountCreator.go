@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 )
 
 // AccountCreator has method to create a new account
@@ -14,13 +15,8 @@ func NewAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (ac *AccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-	account, err := state.NewAccount(address, tracker)
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
+func (ac *AccountCreator) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+	return accounts.NewUserAccount(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,73 +1,77 @@
 package state
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
+type JournalEntryCode struct {
+	codeHash []byte
+	updater  Updater
+}
+
+func NewJournalEntryCode(codeHash []byte, updater Updater) (*JournalEntryCode, error) {
+	return &JournalEntryCode{
+		codeHash: codeHash,
+		updater:  updater,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jea *JournalEntryCode) Revert() (AccountHandler, error) {
+	return nil, jea.updater.Update(jea.codeHash, nil)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jea *JournalEntryCode) IsInterfaceNil() bool {
+	return jea == nil
+}
+
 //------- JournalEntryBalance
 
-// JournalEntryBalance is used to revert a balance change
-type JournalEntryBalance struct {
-	account    *Account
-	oldBalance *big.Int
+type JournalEntryAccount struct {
+	account AccountHandler
 }
 
-// NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntryBalance, error) {
-	if account == nil {
+func NewJournalEntryAccount(account AccountHandler) (*JournalEntryAccount, error) {
+	if check.IfNil(account) {
 		return nil, ErrNilAccountHandler
 	}
 
-	return &JournalEntryBalance{
-		account:    account,
-		oldBalance: oldBalance,
+	return &JournalEntryAccount{
+		account: account,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
-	jeb.account.Balance = jeb.oldBalance
-
-	return jeb.account, nil
+func (jea *JournalEntryAccount) Revert() (AccountHandler, error) {
+	return jea.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
-	return jeb == nil
+func (jea *JournalEntryAccount) IsInterfaceNil() bool {
+	return jea == nil
 }
 
-//------- JournalEntryDeveloperReward
-
-// JournalEntryDeveloperReward is used to revert a developer reward change
-type JournalEntryDeveloperReward struct {
-	account            *Account
-	oldDeveloperReward *big.Int
+type JournalEntryAccountCreation struct {
+	address []byte
+	updater Updater
 }
 
-// NewJournalEntryDeveloperReward outputs a new JournalEntry implementation used to revert a developer reward change
-func NewJournalEntryDeveloperReward(account *Account, oldDeveloperReward *big.Int) (*JournalEntryDeveloperReward, error) {
-	if account == nil {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &JournalEntryDeveloperReward{
-		account:            account,
-		oldDeveloperReward: oldDeveloperReward,
+func NewJournalEntryAccountCreation(address []byte, updater Updater) (*JournalEntryAccountCreation, error) {
+	return &JournalEntryAccountCreation{
+		address: address,
+		updater: updater,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jed *JournalEntryDeveloperReward) Revert() (AccountHandler, error) {
-	jed.account.DeveloperReward = jed.oldDeveloperReward
-
-	return jed.account, nil
+func (jea *JournalEntryAccountCreation) Revert() (AccountHandler, error) {
+	return nil, jea.updater.Update(jea.address, nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jed *JournalEntryDeveloperReward) IsInterfaceNil() bool {
-	return jed == nil
+func (jea *JournalEntryAccountCreation) IsInterfaceNil() bool {
+	return jea == nil
 }
 
 //------- JournalEntryDataTrieUpdates
@@ -116,36 +120,4 @@ func (jedtu *JournalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
 	return jedtu == nil
-}
-
-//------- JournalEntryOwnerAddress
-
-// JournalEntryOwnerAddress is used to revert an owner address change
-type JournalEntryOwnerAddress struct {
-	account         *Account
-	oldOwnerAddress []byte
-}
-
-// NewJournalEntryOwnerAddress outputs a new JournalEntry implementation used to revert an owner address change
-func NewJournalEntryOwnerAddress(account *Account, ownerAddress []byte) (*JournalEntryOwnerAddress, error) {
-	if account == nil {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &JournalEntryOwnerAddress{
-		account:         account,
-		oldOwnerAddress: ownerAddress,
-	}, nil
-}
-
-// Revert applies undo operation
-func (jeo *JournalEntryOwnerAddress) Revert() (AccountHandler, error) {
-	jeo.account.OwnerAddress = jeo.oldOwnerAddress
-
-	return jeo.account, nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (jeo *JournalEntryOwnerAddress) IsInterfaceNil() bool {
-	return jeo == nil
 }

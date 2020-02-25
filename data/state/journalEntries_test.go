@@ -2,51 +2,15 @@ package state_test
 
 import (
 	"errors"
-	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-//------- JournalEntryBalance
-
-func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
-
-	entry, err := state.NewJournalEntryBalance(nil, nil)
-
-	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountHandler, err)
-}
-
-func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, err := state.NewJournalEntryBalance(accnt, nil)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(entry))
-
-}
-
-func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	balance := big.NewInt(34)
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, _ := state.NewJournalEntryBalance(accnt, balance)
-	_, err := entry.Revert()
-
-	assert.Nil(t, err)
-	assert.Equal(t, balance, accnt.Balance)
-}
-
-// ---- JournalEntryDataTrieUpdates
 
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
@@ -63,7 +27,7 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	accnt, _ := accounts.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, entry)
@@ -75,7 +39,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	accnt, _ := accounts.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)
@@ -89,7 +53,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -113,7 +77,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -140,7 +104,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -161,26 +125,4 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, updateWasCalled)
 	assert.True(t, rootWasCalled)
-}
-
-func TestNewJournalEntryDeveloperReward(t *testing.T) {
-	t.Parallel()
-
-	jed, err := state.NewJournalEntryDeveloperReward(nil, big.NewInt(1000))
-	require.Nil(t, jed)
-	require.Equal(t, state.ErrNilAccountHandler, err)
-
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-
-	oldDevReward := big.NewInt(1000)
-	jed, err = state.NewJournalEntryDeveloperReward(accnt, oldDevReward)
-	require.Nil(t, err)
-	require.False(t, check.IfNil(jed))
-
-	accHandler, err := jed.Revert()
-	require.Nil(t, err)
-
-	acc, ok := accHandler.(*state.Account)
-	require.True(t, ok)
-	require.Equal(t, oldDevReward, acc.DeveloperReward)
 }

@@ -6,18 +6,21 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address, tracker), nil
+		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(address), nil
 		},
 	})
 	return accnt
@@ -25,12 +28,12 @@ func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 
 func generateAccount() *mock.AccountWrapMock {
 	adr := mock.NewAddressMock()
-	return mock.NewAccountWrapMock(adr, nil)
+	return mock.NewAccountWrapMock(adr)
 }
 
 func generateAddressAccountAccountsDB(trie data.Trie) (state.AddressContainer, *mock.AccountWrapMock, *state.AccountsDB) {
 	adr := mock.NewAddressMock()
-	account := mock.NewAccountWrapMock(adr, nil)
+	account := mock.NewAccountWrapMock(adr)
 
 	adb := generateAccountDBFromTrie(trie)
 
@@ -111,151 +114,152 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 
 //------- PutCode
 
-func TestAccountsDB_PutCodeNilCodeHashShouldRetNil(t *testing.T) {
-	t.Parallel()
-
-	_, account, adb := generateAddressAccountAccountsDB(&mock.TrieStub{})
-
-	err := adb.PutCode(account, nil)
-	assert.Equal(t, state.ErrNilCode, err)
-}
-
-func TestAccountsDB_PutCodeEmptyCodeShouldWork(t *testing.T) {
-	t.Parallel()
-
-	updateCalled := false
-	ts := &mock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			updateCalled = true
-			return nil
-		},
-		GetCalled: func(key []byte) (i []byte, e error) {
-			return nil, nil
-		},
-	}
-	_, account, adb := generateAddressAccountAccountsDB(ts)
-
-	setCodeCalled := false
-	account.SetCodeHashWithJournalCalled = func(codeHash []byte) error {
-		setCodeCalled = true
-		account.SetCodeHash(codeHash)
-		return nil
-	}
-
-	err := adb.PutCode(account, make([]byte, 0))
-	assert.Nil(t, err)
-	assert.True(t, updateCalled)
-	assert.True(t, setCodeCalled)
-}
-
-func TestAccountsDB_PutCodeMalfunctionTrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	account := generateAccount()
-	mockTrie := &mock.TrieStub{}
-	adb := generateAccountDBFromTrie(mockTrie)
-
-	//should return error
-	err := adb.PutCode(account, []byte{65})
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_PutCodeMalfunction2TrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	account := generateAccount()
-
-	mockTrie := &mock.TrieStub{}
-	adb := generateAccountDBFromTrie(mockTrie)
-
-	//should return error
-	err := adb.PutCode(account, []byte{65})
-	assert.NotNil(t, err)
-}
+//func TestAccountsDB_PutCodeNilCodeHashShouldRetNil(t *testing.T) {
+//	t.Parallel()
+//
+//	_, account, adb := generateAddressAccountAccountsDB(&mock.TrieStub{})
+//
+//	err := adb.PutCode(account, nil)
+//	assert.Equal(t, state.ErrNilCode, err)
+//}
+//
+//func TestAccountsDB_PutCodeEmptyCodeShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	updateCalled := false
+//	ts := &mock.TrieStub{
+//		UpdateCalled: func(key, value []byte) error {
+//			updateCalled = true
+//			return nil
+//		},
+//		GetCalled: func(key []byte) (i []byte, e error) {
+//			return nil, nil
+//		},
+//	}
+//	_, account, adb := generateAddressAccountAccountsDB(ts)
+//
+//	setCodeCalled := false
+//	account.SetCodeHashWithJournalCalled = func(codeHash []byte) error {
+//		setCodeCalled = true
+//		account.SetCodeHash(codeHash)
+//		return nil
+//	}
+//
+//	err := adb.PutCode(account, make([]byte, 0))
+//	assert.Nil(t, err)
+//	assert.True(t, updateCalled)
+//	assert.True(t, setCodeCalled)
+//}
+//
+//func TestAccountsDB_PutCodeMalfunctionTrieShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	account := generateAccount()
+//	mockTrie := &mock.TrieStub{}
+//	adb := generateAccountDBFromTrie(mockTrie)
+//
+//	//should return error
+//	err := adb.PutCode(account, []byte{65})
+//	assert.NotNil(t, err)
+//}
+//
+//func TestAccountsDB_PutCodeMalfunction2TrieShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	account := generateAccount()
+//
+//	mockTrie := &mock.TrieStub{}
+//	adb := generateAccountDBFromTrie(mockTrie)
+//
+//	//should return error
+//	err := adb.PutCode(account, []byte{65})
+//	assert.NotNil(t, err)
+//}
 
 //------- RemoveAccount
 
-func TestAccountsDB_RemoveCodeShouldWork(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-
-	trieStub := mock.TrieStub{}
-	trieStub.UpdateCalled = func(key, value []byte) error {
-		wasCalled = true
-		return nil
-	}
-
-	adb := generateAccountDBFromTrie(&trieStub)
-
-	err := adb.RemoveCode([]byte("AAA"))
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
-}
+//func TestAccountsDB_RemoveCodeShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	wasCalled := false
+//
+//	trieStub := mock.TrieStub{}
+//	trieStub.UpdateCalled = func(key, value []byte) error {
+//		wasCalled = true
+//		return nil
+//	}
+//
+//	adb := generateAccountDBFromTrie(&trieStub)
+//
+//	err := adb.RemoveCode([]byte("AAA"))
+//	assert.Nil(t, err)
+//	assert.True(t, wasCalled)
+//}
 
 //------- SaveData
 
-func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
-	t.Parallel()
+//func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	ts := &mock.TrieStub{
+//		RecreateCalled: func(root []byte) (i data.Trie, e error) {
+//			return nil, nil
+//		},
+//
+//	}
+//	_, account, adb := generateAddressAccountAccountsDB(ts)
+//	err := adb.SaveAccount(account)
+//
+//	assert.Nil(t, err)
+//	assert.Equal(t, 0, adb.JournalLen())
+//}
 
-	ts := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (i data.Trie, e error) {
-			return nil, nil
-		},
-	}
-	_, account, adb := generateAddressAccountAccountsDB(ts)
-	err := adb.SaveDataTrie(account)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 0, adb.JournalLen())
-}
-
-func TestAccountsDB_SaveDataMalfunctionTrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	account := generateAccount()
-	mockTrie := &mock.TrieStub{}
-	adb := generateAccountDBFromTrie(mockTrie)
-
-	err := adb.SaveDataTrie(account)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveDataTrieShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ts := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (i data.Trie, e error) {
-			dataTrie := mock.TrieStub{
-				UpdateCalled: func(key, value []byte) error {
-					return nil
-				},
-				RootCalled: func() (i []byte, e error) {
-					return make([]byte, 0), nil
-				},
-				GetCalled: func(key []byte) (i []byte, err error) {
-					return []byte{}, nil
-				},
-			}
-
-			return &dataTrie, nil
-		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
-		RootCalled: func() (i []byte, e error) {
-			return make([]byte, 0), nil
-		},
-	}
-	_, _, adb := generateAddressAccountAccountsDB(ts)
-
-	account := generateAccount()
-	account.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-
-	err := adb.SaveDataTrie(account)
-
-	assert.Nil(t, err)
-}
+//func TestAccountsDB_SaveDataMalfunctionTrieShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	account := generateAccount()
+//	mockTrie := &mock.TrieStub{}
+//	adb := generateAccountDBFromTrie(mockTrie)
+//
+//	err := adb.SaveDataTrie(account)
+//	assert.NotNil(t, err)
+//}
+//
+//func TestAccountsDB_SaveDataTrieShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	ts := &mock.TrieStub{
+//		RecreateCalled: func(root []byte) (i data.Trie, e error) {
+//			dataTrie := mock.TrieStub{
+//				UpdateCalled: func(key, value []byte) error {
+//					return nil
+//				},
+//				RootCalled: func() (i []byte, e error) {
+//					return make([]byte, 0), nil
+//				},
+//				GetCalled: func(key []byte) (i []byte, err error) {
+//					return []byte{}, nil
+//				},
+//			}
+//
+//			return &dataTrie, nil
+//		},
+//		UpdateCalled: func(key, value []byte) error {
+//			return nil
+//		},
+//		RootCalled: func() (i []byte, e error) {
+//			return make([]byte, 0), nil
+//		},
+//	}
+//	_, _, adb := generateAddressAccountAccountsDB(ts)
+//
+//	account := generateAccount()
+//	account.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+//
+//	err := adb.SaveDataTrie(account)
+//
+//	assert.Nil(t, err)
+//}
 
 //------- HasAccount
 
@@ -306,61 +310,61 @@ func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
 
 //------- SaveJournalizedAccount
 
-func TestAccountsDB_SaveJournalizedAccountNilStateShouldErr(t *testing.T) {
-	t.Parallel()
+//func TestAccountsDB_SaveJournalizedAccountNilStateShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	adb := generateAccountDBFromTrie(nil)
+//
+//	err := adb.SaveAccount(nil)
+//	assert.NotNil(t, err)
+//}
 
-	adb := generateAccountDBFromTrie(nil)
+//func TestAccountsDB_SaveJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	account := generateAccount()
+//	mockTrie := &mock.TrieStub{}
+//	adb := generateAccountDBFromTrie(mockTrie)
+//
+//	//should return error
+//	err := adb.SaveAccount(account)
+//	assert.NotNil(t, err)
+//}
+//
+//func TestAccountsDB_SaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	account := generateAccount()
+//	mockTrie := &mock.TrieStub{}
+//	marshalizer := &mock.MarshalizerMock{}
+//	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
+//		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+//			return mock.NewAccountWrapMock(address), nil
+//		},
+//	})
+//
+//	marshalizer.Fail = true
+//
+//	//should return error
+//	err := adb.SaveAccount(account)
+//
+//	assert.NotNil(t, err)
+//}
 
-	err := adb.SaveAccount(nil)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	account := generateAccount()
-	mockTrie := &mock.TrieStub{}
-	adb := generateAccountDBFromTrie(mockTrie)
-
-	//should return error
-	err := adb.SaveAccount(account)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	account := generateAccount()
-	mockTrie := &mock.TrieStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address, tracker), nil
-		},
-	})
-
-	marshalizer.Fail = true
-
-	//should return error
-	err := adb.SaveAccount(account)
-
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveJournalizedAccountWithSomeValuesShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ts := &mock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
-	}
-	_, account, adb := generateAddressAccountAccountsDB(ts)
-
-	//should return error
-	err := adb.SaveAccount(account)
-	assert.Nil(t, err)
-}
+//func TestAccountsDB_SaveJournalizedAccountWithSomeValuesShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	ts := &mock.TrieStub{
+//		UpdateCalled: func(key, value []byte) error {
+//			return nil
+//		},
+//	}
+//	_, account, adb := generateAddressAccountAccountsDB(ts)
+//
+//	//should return error
+//	err := adb.SaveAccount(account)
+//	assert.Nil(t, err)
+//}
 
 //------- RemoveAccount
 
@@ -385,38 +389,38 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 
 //------- GetJournalizedAccount
 
-func TestAccountsDB_GetJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	trieMock := &mock.TrieStub{}
-	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
-
-	_, err := adb.GetAccountWithJournal(adr)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_GetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) {
-	t.Parallel()
-
-	trieMock := &mock.TrieStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			return nil, nil
-		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
-	}
-
-	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
-
-	accountExpected := mock.NewAccountWrapMock(adr, adb)
-	accountRecovered, err := adb.GetAccountWithJournal(adr)
-
-	assert.Equal(t, accountExpected, accountRecovered)
-	assert.Nil(t, err)
-}
+//func TestAccountsDB_GetJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	trieMock := &mock.TrieStub{}
+//	adr := mock.NewAddressMock()
+//	adb := generateAccountDBFromTrie(trieMock)
+//
+//	_, err := adb.GetAccountWithJournal(adr)
+//	assert.NotNil(t, err)
+//}
+//
+//func TestAccountsDB_GetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) {
+//	t.Parallel()
+//
+//	trieMock := &mock.TrieStub{
+//		GetCalled: func(key []byte) (i []byte, e error) {
+//			return nil, nil
+//		},
+//		UpdateCalled: func(key, value []byte) error {
+//			return nil
+//		},
+//	}
+//
+//	adr := mock.NewAddressMock()
+//	adb := generateAccountDBFromTrie(trieMock)
+//
+//	accountExpected := mock.NewAccountWrapMock(adr, adb)
+//	accountRecovered, err := adb.GetAccountWithJournal(adr)
+//
+//	assert.Equal(t, accountExpected, accountRecovered)
+//	assert.Nil(t, err)
+//}
 
 //------- GetExistingAccount
 
@@ -450,30 +454,30 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	assert.Equal(t, 0, adb.JournalLen())
 }
 
-func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
-	t.Parallel()
-
-	expectedValue := 45
-	adr := mock.NewAddressMock()
-	accnt := mock.NewAccountWrapMock(adr, nil)
-	accnt.MockValue = expectedValue
-	marshalizer := &mock.MarshalizerMock{}
-	buffExpected, _ := marshalizer.Marshal(accnt)
-
-	trieMock := &mock.TrieStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			return buffExpected, nil
-		},
-	}
-
-	adb := generateAccountDBFromTrie(trieMock)
-	accntRecov, err := adb.GetAccountWithJournal(adr)
-
-	assert.Nil(t, err)
-	assert.Equal(t, expectedValue, accntRecov.(*mock.AccountWrapMock).MockValue)
-	//no journal entry shall be created
-	assert.Equal(t, 0, adb.JournalLen())
-}
+//func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
+//	t.Parallel()
+//
+//	expectedValue := 45
+//	adr := mock.NewAddressMock()
+//	accnt := mock.NewAccountWrapMock(adr)
+//	accnt.MockValue = expectedValue
+//	marshalizer := &mock.MarshalizerMock{}
+//	buffExpected, _ := marshalizer.Marshal(accnt)
+//
+//	trieMock := &mock.TrieStub{
+//		GetCalled: func(key []byte) (i []byte, e error) {
+//			return buffExpected, nil
+//		},
+//	}
+//
+//	adb := generateAccountDBFromTrie(trieMock)
+//	accntRecov, err := adb.GetAccountWithJournal(adr)
+//
+//	assert.Nil(t, err)
+//	assert.Equal(t, expectedValue, accntRecov.(*mock.AccountWrapMock).MockValue)
+//	//no journal entry shall be created
+//	assert.Equal(t, 0, adb.JournalLen())
+//}
 
 //------- getAccount
 
@@ -484,7 +488,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	adr, _, adb := generateAddressAccountAccountsDB(&mock.TrieStub{})
 
 	//Step 1. Create an account + its DbAccount representation
-	testAccount := mock.NewAccountWrapMock(adr, adb)
+	testAccount := mock.NewAccountWrapMock(adr)
 	testAccount.MockValue = 45
 
 	//Step 2. marshalize the DbAccount
@@ -498,8 +502,8 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	}
 
 	adb, _ = state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address, tracker), nil
+		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(address), nil
 		},
 	})
 
@@ -551,8 +555,8 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	}
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address, tracker), nil
+		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(address), nil
 		},
 	})
 
@@ -666,52 +670,52 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 
 //------- Commit
 
-func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
-	t.Parallel()
-
-	commitCalled := 0
-	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
-	trieStub := mock.TrieStub{
-		CommitCalled: func() error {
-			commitCalled++
-
-			return nil
-		},
-		RootCalled: func() (i []byte, e error) {
-			return nil, nil
-		},
-		GetCalled: func(key []byte) (i []byte, err error) {
-			return serializedAccount, nil
-		},
-		RecreateCalled: func(root []byte) (trie data.Trie, err error) {
-			return &mock.TrieStub{
-				GetCalled: func(key []byte) (i []byte, err error) {
-					return []byte("doge"), nil
-				},
-				UpdateCalled: func(key, value []byte) error {
-					return nil
-				},
-				CommitCalled: func() error {
-					commitCalled++
-
-					return nil
-				},
-			}, nil
-		},
-	}
-
-	adb := generateAccountDBFromTrie(&trieStub)
-
-	state2, _ := adb.GetAccountWithJournal(mock.NewAddressMock())
-	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
-	_ = adb.SaveDataTrie(state2)
-
-	_, err := adb.Commit()
-	assert.Nil(t, err)
-	//one commit for the JournalEntryData and one commit for the main trie
-	assert.Equal(t, 2, commitCalled)
-}
+//func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
+//	t.Parallel()
+//
+//	commitCalled := 0
+//	marsh := &mock.MarshalizerMock{}
+//	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+//	trieStub := mock.TrieStub{
+//		CommitCalled: func() error {
+//			commitCalled++
+//
+//			return nil
+//		},
+//		RootCalled: func() (i []byte, e error) {
+//			return nil, nil
+//		},
+//		GetCalled: func(key []byte) (i []byte, err error) {
+//			return serializedAccount, nil
+//		},
+//		RecreateCalled: func(root []byte) (trie data.Trie, err error) {
+//			return &mock.TrieStub{
+//				GetCalled: func(key []byte) (i []byte, err error) {
+//					return []byte("doge"), nil
+//				},
+//				UpdateCalled: func(key, value []byte) error {
+//					return nil
+//				},
+//				CommitCalled: func() error {
+//					commitCalled++
+//
+//					return nil
+//				},
+//			}, nil
+//		},
+//	}
+//
+//	adb := generateAccountDBFromTrie(&trieStub)
+//
+//	state2, _ := adb.GetAccountWithJournal(mock.NewAddressMock())
+//	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
+//	_ = adb.SaveDataTrie(state2)
+//
+//	_, err := adb.Commit()
+//	assert.Nil(t, err)
+//	//one commit for the JournalEntryData and one commit for the main trie
+//	assert.Equal(t, 2, commitCalled)
+//}
 
 //------- RecreateTrie
 
@@ -770,77 +774,6 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 
-}
-
-// ----- ClosePersister
-
-func TestAccountsDB_CloseMainTriePersisterReturnsErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	trieStub := mock.TrieStub{}
-	trieStub.ClosePersisterCalled = func() error {
-		return errors.New("error")
-	}
-
-	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.ClosePersister()
-	assert.Equal(t, storage.ErrClosingPersisters, err)
-}
-
-func TestAccountsDB_CloseDataTriePersisterReturnsErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
-	trieStub := mock.TrieStub{
-		CommitCalled: func() error {
-			return nil
-		},
-		ClosePersisterCalled: func() error {
-			return nil // main trie is closed successfully
-		},
-		RootCalled: func() (i []byte, e error) {
-			return nil, nil
-		},
-		GetCalled: func(key []byte) (i []byte, err error) {
-			return serializedAccount, nil
-		},
-		RecreateCalled: func(root []byte) (trie data.Trie, err error) {
-			return &mock.TrieStub{
-				GetCalled: func(key []byte) (i []byte, err error) {
-					return []byte("doge"), nil
-				},
-				UpdateCalled: func(key, value []byte) error {
-					return nil
-				},
-				ClosePersisterCalled: func() error {
-					return errors.New("error")
-				},
-			}, nil
-		},
-	}
-
-	adb := generateAccountDBFromTrie(&trieStub)
-
-	state2, _ := adb.GetAccountWithJournal(mock.NewAddressMock())
-	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
-	_ = adb.SaveDataTrie(state2)
-
-	err := adb.ClosePersister()
-	assert.Equal(t, storage.ErrClosingPersisters, err)
-}
-
-func TestAccountsDB_ClosePersisterNoErrorShouldWork(t *testing.T) {
-	t.Parallel()
-
-	trieStub := mock.TrieStub{}
-	trieStub.ClosePersisterCalled = func() error {
-		return nil
-	}
-
-	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.ClosePersister()
-	assert.Nil(t, err)
 }
 
 func TestAccountsDB_CancelPrune(t *testing.T) {
@@ -934,14 +867,29 @@ type testEntry struct{}
 func (te *testEntry) Revert() (state.AccountHandler, error) { return nil, nil }
 func (te *testEntry) IsInterfaceNil() bool                  { return false }
 
-func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
+//func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
+//	t.Parallel()
+//
+//	trieStub := &mock.TrieStub{}
+//	adb := generateAccountDBFromTrie(trieStub)
+//
+//	adb.Journalize(&testEntry{})
+//	adb.Journalize(&testEntry{})
+//
+//	err := adb.RevertToSnapshot(1)
+//	assert.Nil(t, err)
+//}
+
+func TestAccountsDB_RevertToSnapshot(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &mock.TrieStub{}
-	adb := generateAccountDBFromTrie(trieStub)
+	marsh := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh)
 
-	adb.Journalize(&testEntry{})
-	adb.Journalize(&testEntry{})
+	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
 
 	err := adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
