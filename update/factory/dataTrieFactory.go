@@ -4,6 +4,7 @@ import (
 	"path"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -86,12 +87,12 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 		}
 	}
 
-	err := d.createAndAddOneTrie(sharding.MetachainShardId, factory.UserAccount, container)
+	err := d.createAndAddOneTrie(core.MetachainShardId, factory.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.createAndAddOneTrie(sharding.MetachainShardId, factory.ValidatorAccount, container)
+	err = d.createAndAddOneTrie(core.MetachainShardId, factory.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}

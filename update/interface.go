@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -34,12 +33,6 @@ type TrieSyncContainer interface {
 	Replace(key string, val TrieSyncer) error
 	Remove(key string)
 	Len() int
-	IsInterfaceNil() bool
-}
-
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	RegisterHandler(handler notifier.SubscribeFunctionHandler)
 	IsInterfaceNil() bool
 }
 
