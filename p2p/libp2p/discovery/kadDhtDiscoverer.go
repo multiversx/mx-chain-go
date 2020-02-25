@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
@@ -28,20 +27,23 @@ var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
 // ArgKadDht represents the kad-dht config argument DTO
 type ArgKadDht struct {
+	Context              context.Context
+	Host                 ConnectableHost
 	PeersRefreshInterval time.Duration
 	RandezVous           string
 	InitialPeersList     []string
 	BucketSize           uint32
 	RoutingTableRefresh  time.Duration
+	KddSharder           p2p.CommonSharder
 }
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
+	host          ConnectableHost
+	context       context.Context
 	mutKadDht     sync.RWMutex
 	kadDHT        *dht.IpfsDHT
 	refreshCancel context.CancelFunc
-
-	contextProvider *libp2p.Libp2pContext
 
 	peersRefreshInterval time.Duration
 	randezVous           string
@@ -56,6 +58,12 @@ type KadDhtDiscoverer struct {
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewKadDhtPeerDiscoverer(arg ArgKadDht) (*KadDhtDiscoverer, error) {
+	if arg.Context == nil {
+		return nil, p2p.ErrNilContext
+	}
+	if arg.Host == nil {
+		return nil, p2p.ErrNilHost
+	}
 	if arg.PeersRefreshInterval < time.Second {
 		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", p2p.ErrInvalidValue)
 	}
@@ -69,6 +77,8 @@ func NewKadDhtPeerDiscoverer(arg ArgKadDht) (*KadDhtDiscoverer, error) {
 	}
 
 	return &KadDhtDiscoverer{
+		context:              arg.Context,
+		host:                 arg.Host,
 		peersRefreshInterval: arg.PeersRefreshInterval,
 		randezVous:           arg.RandezVous,
 		initialPeersList:     arg.InitialPeersList,
@@ -85,10 +95,6 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 
 	if kdd.kadDHT != nil {
 		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
-	}
-
-	if kdd.contextProvider == nil {
-		return p2p.ErrNilContextProvider
 	}
 
 	return kdd.startDHT()
@@ -115,15 +121,11 @@ func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
 	return []protocol.ID{
 		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, kdd.randezVous)),
 		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
-		//TODO: to be removed once the seed is updated
 		opts.ProtocolDHT,
 	}
 }
 
 func (kdd *KadDhtDiscoverer) startDHT() error {
-	ctx := kdd.contextProvider.Context()
-	h := kdd.contextProvider.Host()
-
 	defaultOptions := opts.Defaults
 	customOptions := func(opt *opts.Options) error {
 		err := defaultOptions(opt)
@@ -134,14 +136,14 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 		return nil
 	}
 
-	ctxrun, cancel := context.WithCancel(ctx)
-	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
+	ctxrun, cancel := context.WithCancel(kdd.context)
+	hd, err := NewHostDecorator(kdd.host, ctxrun, 3, time.Second)
 	if err != nil {
 		cancel()
 		return err
 	}
 
-	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...), customOptions)
+	kademliaDHT, err := dht.New(kdd.context, hd, opts.Protocols(kdd.protocols()...), customOptions)
 	if err != nil {
 		cancel()
 		return err
@@ -162,10 +164,8 @@ func (kdd *KadDhtDiscoverer) stopDHT() error {
 	kdd.refreshCancel()
 	kdd.refreshCancel = nil
 
-	h := kdd.contextProvider.Host()
-
 	for _, p := range kdd.protocols() {
-		h.RemoveStreamHandler(p)
+		kdd.host.RemoveStreamHandler(p)
 	}
 
 	err := kdd.kadDHT.Close()
@@ -229,9 +229,6 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 	intervalBetweenAttempts time.Duration,
 	initialPeersList []string) <-chan struct{} {
 
-	h := kdd.contextProvider.Host()
-	ctx := kdd.contextProvider.Context()
-
 	chanDone := make(chan struct{}, 1)
 
 	if initialPeersList == nil {
@@ -248,14 +245,14 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 		startIndex := 0
 
 		for {
-			err := h.ConnectToPeer(ctx, initialPeersList[startIndex])
+			err := kdd.host.ConnectToPeer(kdd.context, initialPeersList[startIndex])
 
 			if err != nil {
 				//could not connect, wait and try next one
 				startIndex++
 				startIndex = startIndex % len(initialPeersList)
 				select {
-				case <-ctx.Done():
+				case <-kdd.context.Done():
 					break
 				case <-time.After(intervalBetweenAttempts):
 					continue
@@ -275,22 +272,6 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 // Name returns the name of the kad dht peer discovery implementation
 func (kdd *KadDhtDiscoverer) Name() string {
 	return kadDhtName
-}
-
-// ApplyContext sets the context in which this discoverer is to be run
-func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
-		return p2p.ErrNilContextProvider
-	}
-
-	ctx, ok := ctxProvider.(*libp2p.Libp2pContext)
-
-	if !ok {
-		return p2p.ErrWrongContextProvider
-	}
-
-	kdd.contextProvider = ctx
-	return nil
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
@@ -329,10 +310,6 @@ func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) error {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()
 
-	if kdd.contextProvider == nil {
-		return p2p.ErrNilContextProvider
-	}
-
 	if kdd.watchdogKick != nil {
 		return p2p.ErrWatchdogAlreadyStarted
 	}
@@ -342,7 +319,7 @@ func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) error {
 	}
 
 	kdd.watchdogKick = make(chan struct{})
-	ctx := kdd.contextProvider.Context()
+	ctx := kdd.context
 	wdCtx, wdCancel := context.WithCancel(ctx)
 	go func(kick <-chan struct{}) {
 		for {

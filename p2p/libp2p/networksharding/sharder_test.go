@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,12 +18,12 @@ var (
 	nodeF = peer.ID("NODE F")
 )
 
-func makeSortingID(id peer.ID) sortingID {
-	return sortingID{
-		id:       id,
-		key:      keyFromID(id),
-		shard:    0,
-		distance: big.NewInt(0),
+func makeSortingID(id peer.ID) sorting.SortingID {
+	return sorting.SortingID{
+		ID:       id,
+		Key:      keyFromID(id),
+		Shard:    0,
+		Distance: big.NewInt(0),
 	}
 }
 

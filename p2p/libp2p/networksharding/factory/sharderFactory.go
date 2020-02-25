@@ -3,7 +3,6 @@ package factory
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
@@ -13,29 +12,23 @@ import (
 var log = logger.GetOrCreate("p2p/networksharding/factory")
 
 // ArgsSharderFactory represents the argument for the sharder factory
-//TODO(iulian) should not pass reconnecter but a config,
 type ArgsSharderFactory struct {
-	Reconnecter        p2p.Reconnecter
 	PeerShardResolver  p2p.PeerShardResolver
 	PrioBits           uint32
 	Pid                peer.ID
 	MaxConnectionCount int
 	MaxIntraShard      int
 	MaxCrossShard      int
+	Type               string
 }
 
 // NewSharder creates new Sharder instances
-//TODO(iulian) make a common interface out of all sharders implementations and replace interface{}
 func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
-	if check.IfNil(arg.Reconnecter) {
-		return nil, fmt.Errorf("%w for sharderFactory.Create", p2p.ErrIncompatibleMethodCalled)
-	}
-
-	switch arg.Reconnecter.(type) {
-	case p2p.ReconnecterWithPauseResumeAndWatchdog:
-		log.Debug("using kadSharder")
+	switch arg.Type {
+	case p2p.SharderVariantPrioBits:
+		log.Debug("using kadSharder with prio bits")
 		return networksharding.NewKadSharder(arg.PrioBits, arg.PeerShardResolver)
-	default:
+	case p2p.SharderVariantWithLists:
 		log.Debug("using list-based kadSharder")
 		return networksharding.NewListKadSharder(
 			arg.PeerShardResolver,
@@ -44,5 +37,16 @@ func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
 			arg.MaxIntraShard,
 			arg.MaxCrossShard,
 		)
+	case p2p.NoSharderWithLists:
+		log.Debug("using list-based no kadSharder")
+		return networksharding.NewListNoKadSharder(
+			arg.Pid,
+			arg.MaxConnectionCount,
+		)
+	case p2p.DisabledSharder:
+		log.Debug("kadSharder disabled")
+		return networksharding.NewDisabledSharder(), nil
+	default:
+		return nil, fmt.Errorf("%w when selecting sharder: unknown %s value", p2p.ErrInvalidValue, arg.Type)
 	}
 }

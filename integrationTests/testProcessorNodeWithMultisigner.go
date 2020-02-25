@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,7 +38,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -49,7 +49,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := &blake2b.Blake2b{HashSize: factory.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 
@@ -116,9 +116,9 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
-		cache, _ := lrucache.NewCache(10000)
 
 		for i := range validatorList {
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesList[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -131,12 +131,12 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cp,
-				cache,
+				dataCache,
 			)
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -149,7 +149,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 			)
 		}
 
@@ -176,8 +176,8 @@ func createNode(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
-	nodeKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	nodesKeys := cp.Keys[shardId][keyIndex]
+	pubKeyBytes, _ := nodesKeys.Pk.ToByteArray()
 	bootStorer := CreateMemUnit()
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{

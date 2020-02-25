@@ -6,22 +6,23 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type hostWithConnectionManagement struct {
-	sharder libp2p.Sharder
+	sharder Sharder
 	ConnectableHost
 }
 
 // NewHostWithConnectionManagement returns a host wrapper able to decide if connection initiated to a peer
 // will actually be kept or not
-func NewHostWithConnectionManagement(ch ConnectableHost, sharder libp2p.Sharder) (*hostWithConnectionManagement, error) {
+func NewHostWithConnectionManagement(ch ConnectableHost, sharder Sharder) (*hostWithConnectionManagement, error) {
 	if check.IfNil(ch) {
 		return nil, p2p.ErrNilHost
 	}
-	//TODO add check if nil for sharder after the refactoring is done
+	if check.IfNil(sharder) {
+		return nil, p2p.ErrNilSharder
+	}
 
 	return &hostWithConnectionManagement{
 		ConnectableHost: ch,
@@ -40,12 +41,6 @@ func (hwcm *hostWithConnectionManagement) Connect(ctx context.Context, pi peer.A
 }
 
 func (hwcm *hostWithConnectionManagement) canConnectToPeer(pid peer.ID) error {
-	sharder := hwcm.sharder
-	if check.IfNil(sharder) {
-		//no sharder in place, let them connect as usual
-		return nil
-	}
-
 	allPeers := hwcm.ConnectableHost.Network().Peers()
 	if !hwcm.sharder.Has(pid, allPeers) {
 		allPeers = append(allPeers, pid)

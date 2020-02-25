@@ -697,7 +697,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
+	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig)
 	if err != nil {
 		return err
 	}
@@ -797,7 +797,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		p2pConfig,
 	)
 	if err != nil {
 		return err
@@ -1276,7 +1275,6 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartSubscriber epochStart.EpochStartSubscriber,
-	p2pConfig *config.P2PConfig,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1286,7 +1284,6 @@ func createNode(
 	networkShardingCollector, err := prepareNetworkShardingCollector(
 		network,
 		config,
-		p2pConfig,
 		nodesCoordinator,
 		shardCoordinator,
 		process.EpochStartTrigger,
@@ -1373,7 +1370,6 @@ func createNode(
 func prepareNetworkShardingCollector(
 	network *factory.Network,
 	config *config.Config,
-	p2pConfig *config.P2PConfig,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochHandler sharding.EpochHandler,
@@ -1387,12 +1383,7 @@ func prepareNetworkShardingCollector(
 	localId := network.NetMessenger.ID()
 	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(
-		networkShardingCollector,
-		p2pConfig.Sharding.PrioBits,
-		p2pConfig.Sharding.MaxIntraShard,
-		p2pConfig.Sharding.MaxCrossShard,
-	)
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}

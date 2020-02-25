@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
@@ -18,11 +17,11 @@ import (
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
 // This implementation does not support pausing and resuming of the discovery process
 type ContinuousKadDhtDiscoverer struct {
+	host          ConnectableHost
+	context       context.Context
 	mutKadDht     sync.RWMutex
 	kadDHT        *dht.IpfsDHT
 	refreshCancel context.CancelFunc
-
-	contextProvider *libp2p.Libp2pContext
 
 	peersRefreshInterval time.Duration
 	randezVous           string
@@ -30,12 +29,25 @@ type ContinuousKadDhtDiscoverer struct {
 	bucketSize           uint32
 	routingTableRefresh  time.Duration
 	hostConnManagement   *hostWithConnectionManagement
-	sharder              libp2p.Sharder
+	sharder              Sharder
 }
 
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, error) {
+	if arg.Context == nil {
+		return nil, p2p.ErrNilContext
+	}
+	if arg.Host == nil {
+		return nil, p2p.ErrNilHost
+	}
+	if check.IfNil(arg.KddSharder) {
+		return nil, p2p.ErrNilSharder
+	}
+	sharder, ok := arg.KddSharder.(Sharder)
+	if !ok {
+		return nil, fmt.Errorf("%w for sharder: expected discovery.Sharder type of interface", p2p.ErrWrongTypeAssertion)
+	}
 	if arg.PeersRefreshInterval < time.Second {
 		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", p2p.ErrInvalidValue)
 	}
@@ -49,6 +61,9 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 	}
 
 	return &ContinuousKadDhtDiscoverer{
+		context:              arg.Context,
+		host:                 arg.Host,
+		sharder:              sharder,
 		peersRefreshInterval: arg.PeersRefreshInterval,
 		randezVous:           arg.RandezVous,
 		initialPeersList:     arg.InitialPeersList,
@@ -64,9 +79,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) Bootstrap() error {
 
 	if ckdd.kadDHT != nil {
 		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
-	}
-	if ckdd.contextProvider == nil {
-		return p2p.ErrNilContextProvider
 	}
 
 	return ckdd.startDHT()
@@ -94,15 +106,11 @@ func (ckdd *ContinuousKadDhtDiscoverer) protocols() []protocol.ID {
 	return []protocol.ID{
 		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, ckdd.randezVous)),
 		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
-		//TODO: to be removed once the seed is updated
 		opts.ProtocolDHT,
 	}
 }
 
 func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
-	ctx := ckdd.contextProvider.Context()
-	h := ckdd.contextProvider.Host()
-
 	defaultOptions := opts.Defaults
 	customOptions := func(opt *opts.Options) error {
 		err := defaultOptions(opt)
@@ -113,15 +121,15 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		return nil
 	}
 
-	ctxrun, cancel := context.WithCancel(ctx)
+	ctxrun, cancel := context.WithCancel(ckdd.context)
 	var err error
-	ckdd.hostConnManagement, err = NewHostWithConnectionManagement(h, ckdd.sharder)
+	ckdd.hostConnManagement, err = NewHostWithConnectionManagement(ckdd.host, ckdd.sharder)
 	if err != nil {
 		cancel()
 		return err
 	}
 
-	kademliaDHT, err := dht.New(ctx, ckdd.hostConnManagement, opts.Protocols(ckdd.protocols()...), customOptions)
+	kademliaDHT, err := dht.New(ckdd.context, ckdd.hostConnManagement, opts.Protocols(ckdd.protocols()...), customOptions)
 	if err != nil {
 		cancel()
 		return err
@@ -142,10 +150,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) stopDHT() error {
 	ckdd.refreshCancel()
 	ckdd.refreshCancel = nil
 
-	h := ckdd.contextProvider.Host()
-
 	for _, p := range ckdd.protocols() {
-		h.RemoveStreamHandler(p)
+		ckdd.host.RemoveStreamHandler(p)
 	}
 
 	err := ckdd.kadDHT.Close()
@@ -161,38 +167,38 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 		ckdd.initialPeersList,
 	)
 
+	go func() {
+		<-chanStartBootstrap
+
+		ckdd.bootstrap(ctx)
+	}()
+}
+
+func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 	cfg := dht.BootstrapConfig{
 		Period:  ckdd.peersRefreshInterval,
 		Queries: noOfQueries,
 		Timeout: peerDiscoveryTimeout,
 	}
 
-	//TODO(iulian) remove one nested go routine. Refactor the whole function
-	go func() {
-		<-chanStartBootstrap
+	for {
+		ckdd.mutKadDht.RLock()
+		kadDht := ckdd.kadDHT
+		ckdd.mutKadDht.RUnlock()
 
-		go func() {
-			for {
-				ckdd.mutKadDht.RLock()
-				kadDht := ckdd.kadDHT
-				ckdd.mutKadDht.RUnlock()
-
-				var err = error(nil)
-				if kadDht != nil {
-					err = kadDht.BootstrapOnce(ctx, cfg)
-				}
-				if err == kbucket.ErrLookupFailure {
-					<-ckdd.ReconnectToNetwork()
-				}
-				select {
-				case <-time.After(ckdd.peersRefreshInterval):
-				case <-ctx.Done():
-					return
-				}
-			}
-
-		}()
-	}()
+		var err = error(nil)
+		if kadDht != nil {
+			err = kadDht.BootstrapOnce(ctx, cfg)
+		}
+		if err == kbucket.ErrLookupFailure {
+			<-ckdd.ReconnectToNetwork()
+		}
+		select {
+		case <-time.After(ckdd.peersRefreshInterval):
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (ckdd *ContinuousKadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
@@ -219,18 +225,16 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 ) {
 
 	startIndex := 0
-	h := ckdd.contextProvider.Host()
-	ctx := ckdd.contextProvider.Context()
 
 	for {
-		err := h.ConnectToPeer(ctx, initialPeersList[startIndex])
+		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeersList[startIndex])
 
 		if err != nil {
 			//could not connect, wait and try next one
 			startIndex++
 			startIndex = startIndex % len(initialPeersList)
 			select {
-			case <-ctx.Done():
+			case <-ckdd.context.Done():
 				break
 			case <-time.After(intervalBetweenAttempts):
 				continue
@@ -247,38 +251,9 @@ func (ckdd *ContinuousKadDhtDiscoverer) Name() string {
 	return kadDhtName
 }
 
-// ApplyContext sets the context in which this discoverer is to be run
-func (ckdd *ContinuousKadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if check.IfNil(ctxProvider) {
-		return p2p.ErrNilContextProvider
-	}
-
-	ctx, ok := ctxProvider.(*libp2p.Libp2pContext)
-	if !ok {
-		return p2p.ErrWrongContextProvider
-	}
-
-	ckdd.contextProvider = ctx
-	return nil
-}
-
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
-}
-
-// SetSharder sets the sharder that is able to sort the peers by their distance.
-func (ckdd *ContinuousKadDhtDiscoverer) SetSharder(sharder libp2p.Sharder) error {
-	if check.IfNil(sharder) {
-		return p2p.ErrNilSharder
-	}
-
-	ckdd.sharder = sharder
-	if !check.IfNil(ckdd.hostConnManagement) {
-		ckdd.hostConnManagement.sharder = sharder
-	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

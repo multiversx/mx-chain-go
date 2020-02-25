@@ -16,9 +16,6 @@
     #p2p identity generation
     Seed = "seed"
 
-    # The targeted number of peer connections
-    TargetPeerCount = 10000
-
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered
@@ -54,10 +51,17 @@
    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
    RoutingTableRefreshIntervalInSec = 300
 
-   Type = "kad dht with lists"
-
 [Sharding]
+    # The targeted number of peer connections
+    TargetPeerCount = 0
     # Number of ptiority bits used
-    PrioBits = 4
-    MaxIntraShard = 15
-    MaxCrossShard = 15
+    PrioBits = 0
+    MaxIntraShard = 0
+    MaxCrossShard = 0
+    #available options:
+    #  `ListSharder` will split the peers based on the shard membership (intra, cross or unknown)
+    #  `PrioSharder` will split the peers based on the shard membership (intra, other)
+    #  `NoSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
+    #              the shard membership of the connected peers
+    #  `DisabledSharder` will disable conection trimming (sharder is off)
+    Type = "DisabledSharder"

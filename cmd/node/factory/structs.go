@@ -2,11 +2,8 @@ package factory
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"io"
 	"math/big"
 	"time"
 
@@ -57,8 +54,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -86,15 +81,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
 )
 
 const (
-	// BlsHashSize specifies the hash size for using bls scheme
-	BlsHashSize = 16
-
 	// BlsConsensusType specifies te signature scheme used in the consensus
 	BlsConsensusType = "bls"
 
@@ -473,15 +463,14 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, core *Core) (*Network, error) {
-	var randReader io.Reader
-	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
-	} else {
-		randReader = rand.Reader
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
+		P2pConfig:     *p2pConfig,
 	}
 
-	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
+	netMessenger, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -885,40 +874,6 @@ func newEpochStartTrigger(
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-type seedRandReader struct {
-	index int
-	seed  []byte
-}
-
-// NewSeedRandReader will return a new instance of a seed-based reader
-func NewSeedRandReader(seed []byte) *seedRandReader {
-	return &seedRandReader{seed: seed, index: 0}
-}
-
-func (srr *seedRandReader) Read(p []byte) (n int, err error) {
-	if srr.seed == nil {
-		return 0, errors.New("nil seed")
-	}
-	if len(srr.seed) == 0 {
-		return 0, errors.New("empty seed")
-	}
-	if p == nil {
-		return 0, errors.New("nil buffer")
-	}
-	if len(p) == 0 {
-		return 0, errors.New("empty buffer")
-	}
-
-	for i := 0; i < len(p); i++ {
-		p[i] = srr.seed[srr.index]
-
-		srr.index++
-		srr.index %= len(srr.seed)
-	}
-
-	return len(p), nil
-}
-
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
 func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
@@ -1115,7 +1070,7 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 		return sha256.Sha256{}, nil
 	case "blake2b":
 		if cfg.Consensus.Type == BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: BlsHashSize}, nil
+			return &blake2b.Blake2b{HashSize: hashing.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
 	}
@@ -1138,44 +1093,6 @@ func createMultiSigner(
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}
-}
-
-func createNetMessenger(
-	p2pConfig *config.P2PConfig,
-	log logger.Logger,
-	randReader io.Reader,
-) (p2p.Messenger, error) {
-
-	if p2pConfig.Node.Port < 0 {
-		return nil, errors.New("cannot start node on port < 0")
-	}
-
-	pDiscoverer, err := factoryP2P.NewPeerDiscoverer(*p2pConfig)
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("peer discovery", "method", pDiscoverer.Name())
-
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	nm, err := libp2p.NewNetworkMessenger(
-		context.Background(),
-		p2pConfig.Node.Port,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		pDiscoverer,
-		libp2p.ListenAddrWithIp4AndTcp,
-		p2pConfig.Node.TargetPeerCount,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return nm, nil
 }
 
 func newInterceptorContainerFactory(

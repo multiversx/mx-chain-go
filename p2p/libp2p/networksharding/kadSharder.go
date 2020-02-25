@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -22,14 +24,15 @@ const (
 //
 // Resets a number of MSb to decrease the distance between nodes from the same shard
 type kadSharder struct {
-	prioBits uint32
-	resolver p2p.PeerShardResolver
+	prioBits    uint32
+	mutResolver sync.RWMutex
+	resolver    p2p.PeerShardResolver
 }
 
 // NewKadSharder kadSharder constructor
 // prioBits - Number of reseted bits.
 // f - Callback used to get the shard id for a given peer.ID
-func NewKadSharder(prioBits uint32, kgs p2p.PeerShardResolver) (Sharder, error) {
+func NewKadSharder(prioBits uint32, kgs p2p.PeerShardResolver) (*kadSharder, error) {
 	if prioBits == 0 {
 		return nil, fmt.Errorf("%w, prioBits should be greater than 0", ErrBadParams)
 	}
@@ -49,6 +52,9 @@ func NewKadSharder(prioBits uint32, kgs p2p.PeerShardResolver) (Sharder, error) 
 
 // GetShard get the shard id of the peer
 func (ks *kadSharder) GetShard(id peer.ID) uint32 {
+	ks.mutResolver.RLock()
+	defer ks.mutResolver.RUnlock()
+
 	return ks.resolver.ByID(p2p.PeerID(id))
 }
 
@@ -63,13 +69,13 @@ func (ks *kadSharder) resetDistanceBits(d []byte) []byte {
 }
 
 // GetDistance get the distance between a and b
-func (ks *kadSharder) GetDistance(a, b sortingID) *big.Int {
-	c := make([]byte, len(a.key))
-	for i := 0; i < len(a.key); i++ {
-		c[i] = a.key[i] ^ b.key[i]
+func (ks *kadSharder) GetDistance(a, b sorting.SortingID) *big.Int {
+	c := make([]byte, len(a.Key))
+	for i := 0; i < len(a.Key); i++ {
+		c[i] = a.Key[i] ^ b.Key[i]
 	}
 
-	if a.shard == b.shard {
+	if a.Shard == b.Shard {
 		c = ks.resetDistanceBits(c)
 	}
 
@@ -93,15 +99,10 @@ func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
 	return sl.SortedPeers(), balanced
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (ks *kadSharder) IsInterfaceNil() bool {
-	return ks == nil
-}
-
-func inShardCount(sl *sortingList) int {
+func inShardCount(sl *sorting.SortingList) int {
 	cnt := 0
-	for _, p := range sl.peers {
-		if p.shard == sl.ref.shard {
+	for _, p := range sl.Peers {
+		if p.Shard == sl.Ref.Shard {
 			cnt++
 		}
 	}
@@ -114,4 +115,22 @@ func getMinOOS(bits uint32, conns int) int {
 		return minOOSHardLimit
 	}
 	return t
+}
+
+// SetPeerShardResolver sets the peer shard resolver for this sharder
+func (ks *kadSharder) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
+	if check.IfNil(psp) {
+		return p2p.ErrNilPeerShardResolver
+	}
+
+	ks.mutResolver.Lock()
+	ks.resolver = psp
+	ks.mutResolver.Unlock()
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ks *kadSharder) IsInterfaceNil() bool {
+	return ks == nil
 }

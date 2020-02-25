@@ -2,11 +2,14 @@ package networksharding
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,6 +48,33 @@ var (
 	fs20 = &testKadResolver{fakeShardBit0Byte2}
 )
 
+func TestNewKadSharder_ZeroPrioBitsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ks, err := NewKadSharder(0, &mock.PeerShardResolverStub{})
+
+	assert.True(t, check.IfNil(ks))
+	assert.True(t, errors.Is(err, ErrBadParams))
+}
+
+func TestNewKadSharder_NilPeerShardResolverShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ks, err := NewKadSharder(1, nil)
+
+	assert.True(t, check.IfNil(ks))
+	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
+}
+
+func TestNewKadSharder_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ks, err := NewKadSharder(1, &mock.PeerShardResolverStub{})
+
+	assert.False(t, check.IfNil(ks))
+	assert.Nil(t, err)
+}
+
 func TestCutoOffBits(t *testing.T) {
 	i := []byte{0xff, 0xff}[:]
 
@@ -82,8 +112,7 @@ func TestCutoOffBits(t *testing.T) {
 	for _, td := range testData {
 		tdCopy := td
 		t.Run(fmt.Sprint(tdCopy.l, "_", tdCopy.exp), func(t *testing.T) {
-			s, _ := NewKadSharder(tdCopy.l, fs0)
-			k := s.(*kadSharder)
+			k, _ := NewKadSharder(tdCopy.l, fs0)
 			r := k.resetDistanceBits(i)
 			assert.Equal(t, big.NewInt(0).SetBytes(r), tdCopy.exp, "Should match")
 		})
@@ -114,7 +143,7 @@ func TestKadSharderOrdering2_list(t *testing.T) {
 	sameShardCount := uint64(0)
 	otherShardScore := uint64(0)
 	retLen := uint64(len(l1))
-	t.Logf("[ref] %s , sha %x, shard %d\n", string(nodeA), sha256.Sum256([]byte(nodeA)), refShardID)
+	fmt.Printf("[ref] %s , sha %x, shard %d\n", string(nodeA), sha256.Sum256([]byte(nodeA)), refShardID)
 	for i, id := range l1 {
 		shardID := fakeShardBit0Byte2(p2p.PeerID(id))
 
@@ -128,7 +157,29 @@ func TestKadSharderOrdering2_list(t *testing.T) {
 
 	avgSame := sameShardScore / sameShardCount
 	avgOther := otherShardScore / (retLen - sameShardCount)
-	t.Logf("Same shard avg score %d, Other shard avg score %d\n", avgSame, avgOther)
+	fmt.Printf("Same shard avg score %d, Other shard avg score %d\n", avgSame, avgOther)
 
 	assert.True(t, avgSame > avgOther)
+}
+
+func TestKadSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ks, _ := NewKadSharder(1, &mock.PeerShardResolverStub{})
+
+	err := ks.SetPeerShardResolver(nil)
+
+	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
+}
+
+func TestKadSharder_SetPeerShardResolverShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ks, _ := NewKadSharder(1, &mock.PeerShardResolverStub{})
+	newPeerShardResolver := &mock.PeerShardResolverStub{}
+	err := ks.SetPeerShardResolver(newPeerShardResolver)
+
+	//pointer testing
+	assert.True(t, ks.resolver == newPeerShardResolver)
+	assert.Nil(t, err)
 }

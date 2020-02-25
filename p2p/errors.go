@@ -10,9 +10,6 @@ var ErrNilContext = errors.New("nil context")
 // ErrInvalidPort signals that an invalid port was provided
 var ErrInvalidPort = errors.New("invalid port provided")
 
-// ErrNilP2PprivateKey signals that a nil P2P private key has been provided
-var ErrNilP2PprivateKey = errors.New("nil P2P private key")
-
 // ErrNilMockNet signals that a nil mocknet was provided. Should occur only in testing!!!
 var ErrNilMockNet = errors.New("nil mocknet provided")
 
@@ -24,9 +21,6 @@ var ErrTopicAlreadyExists = errors.New("topic already exists")
 
 // ErrTopicValidatorOperationNotSupported signals that an unsupported validator operation occurred
 var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operation is not supported")
-
-// ErrNilChannelLoadBalancer signals that a nil data throttler object has been provided
-var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer object")
 
 // ErrChannelAlreadyExists signals that the channel is already defined (and used)
 var ErrChannelAlreadyExists = errors.New("channel already exists")
@@ -60,15 +54,6 @@ var ErrNilValidator = errors.New("no validator has been set for this topic")
 
 // ErrPeerDiscoveryProcessAlreadyStarted signals that a peer discovery is already turned on
 var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("peer discovery is already turned on")
-
-// ErrNilContextProvider signals that a nil context applier has been provided
-var ErrNilContextProvider = errors.New("nil context provider")
-
-// ErrWrongContextProvider signals that a wrong type of context provider has been provided
-var ErrWrongContextProvider = errors.New("wrong type of ContextProvider")
-
-// ErrNilPeerDiscoverer signals that a nil peer dicoverer has been provided
-var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
 
 // ErrMessageTooLarge signals that the message provided is too large
 var ErrMessageTooLarge = errors.New("buffer too large")
@@ -115,16 +100,15 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrIncompatibleMethodCalled signals that the program called a method that should not have been called
-// this is an indication that a previous setup was not properly done
-var ErrIncompatibleMethodCalled = errors.New("incompatible method called")
-
 // ErrNilReconnecter signals that a nil reconnecter has been provided
 var ErrNilReconnecter = errors.New("nil reconnecter")
-
-// ErrPeerAlreadyConnected signals that the peer is already connected
-var ErrPeerAlreadyConnected = errors.New("peer is already connected")
 
 // ErrUnwantedPeer signals that the provided peer has a longer kademlia distance in respect with the already connected
 // peers and a connection to this peer will result in an immediate disconnection
 var ErrUnwantedPeer = errors.New("unwanted peer: will not initiate connection as it will get disconnected")
+
+// ErrEmptySeed signals that an empty seed has been provided
+var ErrEmptySeed = errors.New("empty seed")
+
+// ErrEmptyBuffer signals that an empty buffer has been provided
+var ErrEmptyBuffer = errors.New("empty buffer")

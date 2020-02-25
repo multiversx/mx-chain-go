@@ -1,9 +1,5 @@
 package discovery
 
-import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
-)
-
 const nullName = "no peer discovery"
 
 // NullDiscoverer is the non-functional peer discoverer aimed to be used when peer discovery options are all disabled
@@ -25,9 +21,9 @@ func (nd *NullDiscoverer) Name() string {
 	return nullName
 }
 
-// ApplyContext is an empty func as the context is not required
-func (nd *NullDiscoverer) ApplyContext(_ p2p.ContextProvider) error {
-	return nil
+// ReconnectToNetwork returns an empty channel
+func (nd *NullDiscoverer) ReconnectToNetwork() <-chan struct{} {
+	return make(chan struct{})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

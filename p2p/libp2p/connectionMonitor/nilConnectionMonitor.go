@@ -1,9 +1,6 @@
 package connectionMonitor
 
 import (
-	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -46,7 +43,7 @@ func (n *NilConnectionMonitor) ThresholdMinConnectedPeers() int {
 	return n.thresholdMinConnectedPeers
 }
 
-// SetSharder sets the sharder that is able to sort the peers by their distance. Should not be used inside this implementation
-func (n *NilConnectionMonitor) SetSharder(_ p2p.CommonSharder) error {
-	return fmt.Errorf("%w while calling NilConnectionMonitor.SetSharder", p2p.ErrIncompatibleMethodCalled)
+// IsInterfaceNil returns true if there is no value under the interface
+func (n *NilConnectionMonitor) IsInterfaceNil() bool {
+	return n == nil
 }

@@ -32,7 +32,7 @@ func WithAuthentication(
 
 		var err error
 		mes.ip, err = NewIdentityProvider(
-			mes.ctxProvider.connHost,
+			mes.p2pHost,
 			networkShardingCollector,
 			signerVerifier,
 			marshalizer,
@@ -42,7 +42,7 @@ func WithAuthentication(
 			return err
 		}
 
-		mes.ctxProvider.connHost.Network().Notify(mes.ip)
+		mes.p2pHost.Network().Notify(mes.ip)
 
 		return nil
 	}

@@ -3,6 +3,7 @@ package networksharding
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -16,10 +17,10 @@ func (ns *NoSharder) GetShard(_ peer.ID) uint32 {
 }
 
 // GetDistance Kademlia XOR distance
-func (ns *NoSharder) GetDistance(a, b sortingID) *big.Int {
-	c := make([]byte, len(a.key))
-	for i := 0; i < len(a.key); i++ {
-		c[i] = a.key[i] ^ b.key[i]
+func (ns *NoSharder) GetDistance(a, b sorting.SortingID) *big.Int {
+	c := make([]byte, len(a.Key))
+	for i := 0; i < len(a.Key); i++ {
+		c[i] = a.Key[i] ^ b.Key[i]
 	}
 
 	ret := big.NewInt(0).SetBytes(c)

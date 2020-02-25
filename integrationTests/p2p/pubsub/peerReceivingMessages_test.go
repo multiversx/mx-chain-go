@@ -20,6 +20,7 @@ type messageProcessorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
+// ProcessReceivedMessage -
 func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	return mps.ProcessReceivedMessageCalled(message)
 }

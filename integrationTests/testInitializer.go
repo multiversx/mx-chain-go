@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -46,9 +45,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	discoveryFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -57,8 +53,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,35 +79,32 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
-func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, randezVous string, initialPeersList []string) p2p.PeerDiscoverer {
-	arg := discovery.ArgKadDht{
-		PeersRefreshInterval: peerRefreshInterval,
-		RandezVous:           randezVous,
-		InitialPeersList:     initialPeersList,
-		BucketSize:           100,
-		RoutingTableRefresh:  time.Minute,
+func createP2PConfig(initialPeerList []string) config.P2PConfig {
+	return config.P2PConfig{
+		Node: config.NodeConfig{},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             2,
+			RandezVous:                       "",
+			InitialPeerList:                  initialPeerList,
+			BucketSize:                       100,
+			RoutingTableRefreshIntervalInSec: 2,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.DisabledSharder,
+		},
 	}
-	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
-
-	return peerDiscovery
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShardId ...uint32) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-	shardKadTopic := "test"
-	if len(nodeShardId) > 0 {
-		shardKadTopic = fmt.Sprintf("shard_%d", nodeShardId)
+func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     createP2PConfig([]string{initialAddr}),
 	}
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, shardKadTopic, []string{initialAddr}),
-	)
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -121,20 +112,15 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShar
 	return libP2PMes
 }
 
-// CreateMessengerWithKadDht creates a new libp2p messenger with provided configuration
+// CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
 
-	peerDiscovery, _ := discoveryFactory.NewPeerDiscoverer(p2pConfig)
-
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerDiscovery,
-	)
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

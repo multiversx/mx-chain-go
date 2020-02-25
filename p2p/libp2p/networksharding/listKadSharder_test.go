@@ -194,6 +194,35 @@ func TestListKadSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testi
 	assert.Equal(t, unknownPids[0], evictList[0])
 }
 
+//------- Has
+
+func TestListKadSharder_HasNotFound(t *testing.T) {
+	t.Parallel()
+
+	list := []peer.ID{"pid1", "pid2", "pid3"}
+	lks := &listKadSharder{}
+
+	assert.False(t, lks.Has("pid4", list))
+}
+
+func TestListKadSharder_HasEmpty(t *testing.T) {
+	t.Parallel()
+
+	list := make([]peer.ID, 0)
+	lks := &listKadSharder{}
+
+	assert.False(t, lks.Has("pid4", list))
+}
+
+func TestListKadSharder_HasFound(t *testing.T) {
+	t.Parallel()
+
+	list := []peer.ID{"pid1", "pid2", "pid3"}
+	lks := &listKadSharder{}
+
+	assert.True(t, lks.Has("pid2", list))
+}
+
 //------- computeDistance
 
 func TestComputeDistanceByCountingBits(t *testing.T) {
@@ -216,4 +245,38 @@ func TestComputeDistanceLog2Based(t *testing.T) {
 	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
 	assert.Equal(t, uint64(250), computeDistanceLog2Based(peer.ID([]byte{254}), peer.ID([]byte{255})).Uint64())
 	assert.Equal(t, uint64(256), computeDistanceLog2Based(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
+}
+
+func TestListKadSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	lks, _ := NewListKadSharder(
+		createStringPeersShardResolver(),
+		crtPid,
+		minAllowedConnectedPeers,
+		minAllowedPeersOnList,
+		minAllowedPeersOnList,
+	)
+
+	err := lks.SetPeerShardResolver(nil)
+
+	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
+}
+
+func TestListKadSharder_SetPeerShardResolverShouldWork(t *testing.T) {
+	t.Parallel()
+
+	lks, _ := NewListKadSharder(
+		createStringPeersShardResolver(),
+		crtPid,
+		minAllowedConnectedPeers,
+		minAllowedPeersOnList,
+		minAllowedPeersOnList,
+	)
+	newPeerShardResolver := &mock.PeerShardResolverStub{}
+	err := lks.SetPeerShardResolver(newPeerShardResolver)
+
+	//pointer testing
+	assert.True(t, lks.peerShardResolver == newPeerShardResolver)
+	assert.Nil(t, err)
 }

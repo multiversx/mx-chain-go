@@ -38,10 +38,8 @@ func createStubMessengerForDefineOptions(notifeeCalled func(), setStreamHandlerC
 	}
 
 	mes := &networkMessenger{
-		ctxProvider: &Libp2pContext{
-			ctx:      context.Background(),
-			connHost: stubHost,
-		},
+		p2pHost: stubHost,
+		ctx:     context.Background(),
 	}
 
 	return mes

@@ -3,64 +3,52 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
-var r *rand.Rand
+func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
+	return libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled:                          true,
+				RefreshIntervalInSec:             2,
+				RandezVous:                       "",
+				InitialPeerList:                  nil,
+				BucketSize:                       100,
+				RoutingTableRefreshIntervalInSec: 10,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.DisabledSharder,
+			},
+		},
+	}
+}
 
 //The purpose of this example program is to show what happens if a peer connects to a network of 100 peers
 func main() {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	startingPort := 32000
 
-	randezVous := "test"
-	arg := discovery.ArgKadDht{
-		PeersRefreshInterval: time.Second,
-		RandezVous:           randezVous,
-		InitialPeersList:     nil,
-		BucketSize:           100,
-		RoutingTableRefresh:  time.Minute,
-	}
-	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
-	advertiser, _ := libp2p.NewNetworkMessenger(
-		context.Background(),
-		startingPort,
-		genPrivKey(),
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerDiscovery,
-		libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		0,
-	)
+	advertiser, err := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	fmt.Println(err)
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
 	peers := make([]p2p.Messenger, 0)
 	_ = advertiser.Bootstrap()
 
 	for i := 0; i < 99; i++ {
-		argPeer := arg
-		argPeer.InitialPeersList = []string{getConnectableAddress(advertiser)}
-		peerDiscoverer, _ := discovery.NewKadDhtPeerDiscoverer(argPeer)
-		netPeer, _ := libp2p.NewNetworkMessenger(
-			context.Background(),
-			startingPort,
-			genPrivKey(),
-			nil,
-			loadBalancer.NewOutgoingChannelLoadBalancer(),
-			peerDiscoverer,
-			libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			0,
-		)
+		arg := createMockNetworkArgs()
+		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{getConnectableAddress(advertiser)}
+		netPeer, _ := libp2p.NewNetworkMessenger(arg)
 		_ = netPeer.Bootstrap()
 
 		peers = append(peers, netPeer)
@@ -96,11 +84,6 @@ func getConnectableAddress(peer p2p.Messenger) string {
 	}
 
 	return ""
-}
-
-func genPrivKey() libp2pCrypto.PrivKey {
-	prv, _, _ := libp2pCrypto.GenerateKeyPairWithReader(libp2pCrypto.Ed25519, 0, r)
-	return prv
 }
 
 func showConnections(advertiser p2p.Messenger, peers []p2p.Messenger) {

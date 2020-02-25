@@ -1,9 +1,10 @@
 package factory
 
 import (
-	"reflect"
+	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -13,57 +14,68 @@ import (
 func createMockArg() ArgsConnectionMonitorFactory {
 	return ArgsConnectionMonitorFactory{
 		Reconnecter:                &mock.ReconnecterWithPauseAndResumeStub{},
+		Sharder:                    &mock.PrioSharderStub{},
 		ThresholdMinConnectedPeers: 1,
 		TargetCount:                1,
 	}
 }
 
-func TestNewConnectionMonitor_NilReconnecterShouldCreateNoConnectionMonitor(t *testing.T) {
+func TestNewConnectionMonitor_NilReconnecterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
 	arg.Reconnecter = nil
 	cm, err := NewConnectionMonitor(arg)
 
-	assert.Nil(t, err)
-	assert.IsType(t, reflect.TypeOf(&connectionMonitor.NilConnectionMonitor{}), reflect.TypeOf(cm))
+	assert.True(t, check.IfNil(cm))
+	assert.Equal(t, p2p.ErrNilReconnecter, err)
 }
 
-func TestNewConnectionMonitor_ReconnecterPauseResumeShouldCreateConnectionMonitor(t *testing.T) {
+func TestNewConnectionMonitor_PrioSharderWithInvalidReconnecterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArg()
+	arg.Reconnecter = &mock.ReconnecterStub{}
+	cm, err := NewConnectionMonitor(arg)
+
+	assert.True(t, check.IfNil(cm))
+	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
+}
+
+func TestNewConnectionMonitor_PrioSharderWithReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
 	cm, err := NewConnectionMonitor(arg)
 
+	assert.False(t, check.IfNil(cm))
 	assert.Nil(t, err)
-	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
-	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitor(reconn, 1, 1)
-	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
+	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitor(nil, 0, 0, nil)
+	//this works even though cmExpected is nil because it checks only the type
+	assert.IsType(t, cmExpected, cm)
 }
 
-func TestNewConnectionMonitor_ReconnecterPauseResumeShouldCreateConnectionMonitorWithIntermediateVar(t *testing.T) {
+func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
-	simpleReconn := p2p.Reconnecter(reconn)
 	arg := createMockArg()
-	arg.Reconnecter = simpleReconn
+	arg.Sharder = &mock.SharderStub{}
 	cm, err := NewConnectionMonitor(arg)
 
+	assert.False(t, check.IfNil(cm))
 	assert.Nil(t, err)
-	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitor(reconn, 1, 1)
-	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
+	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(nil, 0, nil)
+	//this works even though cmExpected is nil because it checks only the type
+	assert.IsType(t, cmExpected, cm)
 }
 
-func TestNewConnectionMonitor_ReconnecterShouldCreateConnectionMonitor(t *testing.T) {
+func TestNewConnectionMonitor_InvalidSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	reconn := &mock.ReconnecterStub{}
 	arg := createMockArg()
-	arg.Reconnecter = reconn
+	arg.Sharder = &mock.CommonSharder{}
 	cm, err := NewConnectionMonitor(arg)
 
-	assert.Nil(t, err)
-	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(reconn, 1)
-	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
+	assert.True(t, check.IfNil(cm))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }

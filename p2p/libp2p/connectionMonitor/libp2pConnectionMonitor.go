@@ -1,9 +1,7 @@
 package connectionMonitor
 
 import (
-	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,7 +27,6 @@ type libp2pConnectionMonitor struct {
 	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
 	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
 	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
-	mutSharder                 sync.RWMutex
 	sharder                    ns.Sharder
 }
 
@@ -38,10 +35,13 @@ func NewLibp2pConnectionMonitor(
 	reconnecter p2p.ReconnecterWithPauseResumeAndWatchdog,
 	thresholdMinConnectedPeers int,
 	targetConnCount int,
+	sharder ns.Sharder,
 ) (*libp2pConnectionMonitor, error) {
-
 	if thresholdMinConnectedPeers < 0 {
 		return nil, p2p.ErrInvalidValue
+	}
+	if check.IfNil(sharder) {
+		return nil, p2p.ErrNilSharder
 	}
 
 	cm := &libp2pConnectionMonitor{
@@ -51,7 +51,7 @@ func NewLibp2pConnectionMonitor(
 		thresholdDiscoveryResume:   0,
 		thresholdDiscoveryPause:    math.MaxInt32,
 		thresholdConnTrim:          math.MaxInt32,
-		sharder:                    &ns.NoSharder{},
+		sharder:                    sharder,
 	}
 
 	if targetConnCount > 0 {
@@ -91,9 +91,7 @@ func (lcm *libp2pConnectionMonitor) kickWatchdog() {
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, _ network.Conn) {
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
-		lcm.mutSharder.RLock()
 		sorted, isBalanced := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
-		lcm.mutSharder.RUnlock()
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			_ = netw.ClosePeer(sorted[i])
 		}
@@ -143,7 +141,6 @@ func (lcm *libp2pConnectionMonitor) IsConnectedToTheNetwork(netw network.Network
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers number when the node is considered connected on the network
-//TODO(iulian) refactor this in a future PR (not require to inject the netw pointer)
 func (lcm *libp2pConnectionMonitor) SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network) {
 	if netw == nil {
 		return
@@ -157,20 +154,7 @@ func (lcm *libp2pConnectionMonitor) ThresholdMinConnectedPeers() int {
 	return lcm.thresholdMinConnectedPeers
 }
 
-// SetSharder sets the sharder that is able to sort the peers by their distance
-func (lcm *libp2pConnectionMonitor) SetSharder(sharder p2p.CommonSharder) error {
-	if check.IfNil(sharder) {
-		return p2p.ErrNilSharder
-	}
-
-	sharderIntf, ok := sharder.(ns.Sharder)
-	if !ok {
-		return fmt.Errorf("%w when applying sharder: expected interface networksharding.Sharder", p2p.ErrWrongTypeAssertion)
-	}
-
-	lcm.mutSharder.Lock()
-	lcm.sharder = sharderIntf
-	lcm.mutSharder.Unlock()
-
-	return nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (lcm *libp2pConnectionMonitor) IsInterfaceNil() bool {
+	return lcm == nil
 }

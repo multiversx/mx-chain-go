@@ -3,33 +3,89 @@ package discovery_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
+var timeoutWaitResponses = 2 * time.Second
+
 func createTestArgument() discovery.ArgKadDht {
 	return discovery.ArgKadDht{
+		Context:              context.Background(),
+		Host:                 &mock.ConnectableHostStub{},
+		KddSharder:           &mock.SharderStub{},
 		PeersRefreshInterval: time.Second,
-		RandezVous:           "randez vous",
+		RandezVous:           "",
 		InitialPeersList:     []string{"peer1", "peer2"},
 		BucketSize:           100,
 		RoutingTableRefresh:  5 * time.Second,
 	}
 }
 
+//------- NewContinuousKadDhtDiscoverer
+
+func TestNewContinuousKadDhtDiscoverer_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
+	arg.Context = nil
+
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.True(t, check.IfNil(kdd))
+	assert.True(t, errors.Is(err, p2p.ErrNilContext))
+}
+
+func TestNewContinuousKadDhtDiscoverer_NilHostShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
+	arg.Host = nil
+
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.True(t, check.IfNil(kdd))
+	assert.True(t, errors.Is(err, p2p.ErrNilHost))
+}
+
+func TestNewContinuousKadDhtDiscoverer_NilSharderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
+	arg.KddSharder = nil
+
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.True(t, check.IfNil(kdd))
+	assert.True(t, errors.Is(err, p2p.ErrNilSharder))
+}
+
+func TestNewContinuousKadDhtDiscoverer_WrongSharderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
+	arg.KddSharder = &mock.CommonSharder{}
+
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.True(t, check.IfNil(kdd))
+	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
+}
+
 func TestNewContinuousKadDhtDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	arg.PeersRefreshInterval = time.Second - time.Microsecond
 
@@ -40,6 +96,8 @@ func TestNewContinuousKadDhtDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *t
 }
 
 func TestNewContinuousKadDhtDiscoverer_InvalidRoutingTableRefreshIntervalShouldErr(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	arg.RoutingTableRefresh = time.Second - time.Microsecond
 
@@ -49,49 +107,49 @@ func TestNewContinuousKadDhtDiscoverer_InvalidRoutingTableRefreshIntervalShouldE
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-//------- Bootstrap
+func TestNewContinuousKadDhtDiscoverer_ShouldWork(t *testing.T) {
+	t.Parallel()
 
-func TestContinuousKadDhtDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *testing.T) {
 	arg := createTestArgument()
 
-	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	err := ckdd.Bootstrap()
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	assert.Equal(t, p2p.ErrNilContextProvider, err)
+	assert.False(t, check.IfNil(kdd))
+	assert.Nil(t, err)
 }
 
-func TestContinuousKadDhtDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
+func TestNewContinuousKadDhtDiscoverer_EmptyInitialPeersShouldWork(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
-	h := createDummyHost()
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
+	arg.InitialPeersList = nil
 
+	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.False(t, check.IfNil(kdd))
+	assert.Nil(t, err)
+}
+
+//------- Bootstrap
+
+func TestContinuousKadDhtDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	defer func() {
-		_ = h.Close()
-	}()
 
-	_ = ckdd.ApplyContext(ctx)
 	err := ckdd.Bootstrap()
 
 	assert.Nil(t, err)
-
-	if !testing.Short() {
-		time.Sleep(arg.PeersRefreshInterval * 2)
-	}
+	time.Sleep(arg.PeersRefreshInterval * 2)
 }
 
 func TestContinuousKadDhtDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
-	arg := createTestArgument()
-	h := createDummyHost()
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
+	t.Parallel()
 
+	arg := createTestArgument()
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	defer func() {
-		_ = h.Close()
-	}()
-
-	_ = ckdd.ApplyContext(ctx)
 	_ = ckdd.Bootstrap()
 	err := ckdd.Bootstrap()
 
@@ -101,10 +159,10 @@ func TestContinuousKadDhtDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) 
 //------- connectToOnePeerFromInitialPeersList
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	_ = ckdd.ApplyContext(lctx)
 
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Second, nil)
 
@@ -112,10 +170,10 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersListNilListS
 }
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShouldRetWithChanFull(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	_ = ckdd.ApplyContext(lctx)
 
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Second, make([]string, 0))
 
@@ -123,11 +181,13 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyLis
 }
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnect(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	peerID := "peer"
 	wasConnectCalled := int32(0)
 
-	uhs := &mock.ConnectableHostStub{
+	arg.Host = &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID == address {
 				atomic.AddInt32(&wasConnectCalled, 1)
@@ -136,11 +196,7 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 			return nil
 		},
 	}
-
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
-	_ = ckdd.ApplyContext(lctx)
-
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Second, []string{peerID})
 
 	select {
@@ -152,14 +208,15 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 }
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnectContinously(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	peerID := "peer"
 	wasConnectCalled := int32(0)
 
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
-
-	uhs := &mock.ConnectableHostStub{
+	arg.Host = &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID != address {
 				assert.Fail(t, "should have tried to connect to the same ID")
@@ -174,10 +231,7 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 			return nil
 		},
 	}
-
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
-	_ = ckdd.ApplyContext(lctx)
 
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Millisecond*10, []string{peerID})
 
@@ -190,16 +244,15 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 }
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlternate(t *testing.T) {
+	t.Parallel()
+
 	arg := createTestArgument()
 	peerID1 := "peer1"
 	peerID2 := "peer2"
-
 	wasConnectCalled := int32(0)
-
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
-
-	uhs := &mock.ConnectableHostStub{
+	arg.Host = &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			connCalled := atomic.LoadInt32(&wasConnectCalled)
 
@@ -225,10 +278,7 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShou
 			return errDidNotConnect
 		},
 	}
-
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
-	_ = ckdd.ApplyContext(lctx)
 
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Millisecond*10, []string{peerID1, peerID2})
 
@@ -239,37 +289,6 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShou
 	}
 }
 
-//------- ApplyContext
-
-func TestContinuousKadDhtPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
-	arg := createTestArgument()
-	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-
-	err := ckdd.ApplyContext(nil)
-
-	assert.Equal(t, p2p.ErrNilContextProvider, err)
-}
-
-func TestContinuousKadDhtDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
-	arg := createTestArgument()
-	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-
-	err := ckdd.ApplyContext(&mock.ContextProviderMock{})
-
-	assert.Equal(t, p2p.ErrWrongContextProvider, err)
-}
-
-func TestContinuousKadDhtDiscoverer_ApplyContextShouldWork(t *testing.T) {
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	arg := createTestArgument()
-	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-
-	err := ckdd.ApplyContext(ctx)
-
-	assert.Nil(t, err)
-	assert.True(t, ctx == ckdd.ContextProvider())
-}
-
 //---------- Protocols
 
 func TestContinuousKadDhtDiscoverer_Protocols(t *testing.T) {
@@ -277,48 +296,33 @@ func TestContinuousKadDhtDiscoverer_Protocols(t *testing.T) {
 	notifeesCnt := 0
 	net := &mock.NetworkStub{
 		ConnectednessCalled: func(p peer.ID) network.Connectedness {
-			t.Logf("Conn to %s", p.Pretty())
+			fmt.Printf("Conn to %s\n", p.Pretty())
 			return network.CannotConnect
 		},
 
 		NotifyCalled:     func(nn network.Notifiee) { notifeesCnt++ },
 		StopNotifyCalled: func(nn network.Notifiee) { notifeesCnt-- },
 	}
-
-	host := &mock.ConnectableHostStub{
+	arg := createTestArgument()
+	arg.Host = &mock.ConnectableHostStub{
 		IDCalled: func() peer.ID {
 			return "local peer"
-		},
-		PeerstoreCalled: func() peerstore.Peerstore {
-			return nil
 		},
 		NetworkCalled: func() network.Network {
 			return net
 		},
 		SetStreamHandlerCalled: func(proto protocol.ID, sh network.StreamHandler) {
-			t.Logf("Set strem hndl %v", proto)
+			fmt.Printf("Set strem hndl %v\n", proto)
 			streams[proto] = sh
 		},
 		RemoveStreamHandlerCalled: func(proto protocol.ID) {
-			t.Logf("Remove stream %v", proto)
+			fmt.Printf("Remove stream %v\n", proto)
 			streams[proto] = nil
 		},
-		ConnManagerCalled: func() connmgr.ConnManager {
-			return nil
-		},
-		ConnectToPeerCalled: func(ctx context.Context, address string) error {
-			return nil
-		},
 	}
-
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), host)
-	arg := createTestArgument()
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	err := ckdd.ApplyContext(ctx)
-	assert.Nil(t, err)
-
-	err = ckdd.Bootstrap()
+	err := ckdd.Bootstrap()
 	assert.Nil(t, err)
 
 	assert.Equal(t, notifeesCnt, 1)
@@ -332,4 +336,13 @@ func TestContinuousKadDhtDiscoverer_Protocols(t *testing.T) {
 	for p, cb := range streams {
 		assert.Nil(t, cb, p, "should have no callback")
 	}
+}
+
+func TestContinuousKadDhtDiscoverer_Name(t *testing.T) {
+	t.Parallel()
+
+	arg := createTestArgument()
+	kdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
+
+	assert.Equal(t, discovery.KadDhtName, kdd.Name())
 }

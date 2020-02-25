@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"fmt"
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -11,16 +11,29 @@ import (
 
 // NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
-func NewPeerDiscoverer(p2pConfig config.P2PConfig) (p2p.PeerDiscoverer, error) {
+func NewPeerDiscoverer(
+	context context.Context,
+	host discovery.ConnectableHost,
+	sharder p2p.CommonSharder,
+	p2pConfig config.P2PConfig,
+) (p2p.PeerDiscoverer, error) {
 	if p2pConfig.KadDhtPeerDiscovery.Enabled {
-		return createKadDhtPeerDiscoverer(p2pConfig)
+		return createKadDhtPeerDiscoverer(context, host, sharder, p2pConfig)
 	}
 
 	return discovery.NewNullDiscoverer(), nil
 }
 
-func createKadDhtPeerDiscoverer(p2pConfig config.P2PConfig) (p2p.PeerDiscoverer, error) {
+func createKadDhtPeerDiscoverer(
+	context context.Context,
+	host discovery.ConnectableHost,
+	sharder p2p.CommonSharder,
+	p2pConfig config.P2PConfig,
+) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
+		Context:              context,
+		Host:                 host,
+		KddSharder:           sharder,
 		PeersRefreshInterval: time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 		RandezVous:           p2pConfig.KadDhtPeerDiscovery.RandezVous,
 		InitialPeersList:     p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
@@ -28,12 +41,10 @@ func createKadDhtPeerDiscoverer(p2pConfig config.P2PConfig) (p2p.PeerDiscoverer,
 		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 	}
 
-	switch p2pConfig.KadDhtPeerDiscovery.Type {
-	case config.KadDhtVariantPrioBits:
+	switch p2pConfig.Sharding.Type {
+	case p2p.SharderVariantPrioBits:
 		return discovery.NewKadDhtPeerDiscoverer(arg)
-	case config.KadDhtVariantWithLists:
-		return discovery.NewContinuousKadDhtDiscoverer(arg)
 	default:
-		return nil, fmt.Errorf("%w unknown kad dht type: %s", p2p.ErrInvalidValue, p2pConfig.KadDhtPeerDiscovery.Type)
+		return discovery.NewContinuousKadDhtDiscoverer(arg)
 	}
 }

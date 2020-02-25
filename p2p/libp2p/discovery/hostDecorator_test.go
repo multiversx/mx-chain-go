@@ -74,7 +74,7 @@ func TestLimiting(t *testing.T) {
 	connCount := 0
 	mtx := sync.Mutex{}
 
-	host := &mock.ConnectableHostStub{
+	connHost := &mock.ConnectableHostStub{
 		ConnectCalled: func(context.Context, peer.AddrInfo) error {
 			mtx.Lock()
 			defer mtx.Unlock()
@@ -86,7 +86,7 @@ func TestLimiting(t *testing.T) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	start := time.Now()
 
-	dec, err := NewHostDecorator(host, ctx, testCPSVal, 100*time.Microsecond)
+	dec, err := NewHostDecorator(connHost, ctx, testCPSVal, 100*time.Microsecond)
 	assert.Nil(t, err)
 	assert.NotNil(t, dec)
 
@@ -109,7 +109,7 @@ func TestPauseResume(t *testing.T) {
 
 	connCount := 0
 
-	host := &mock.ConnectableHostStub{
+	connHost := &mock.ConnectableHostStub{
 		ConnectCalled: func(context.Context, peer.AddrInfo) error {
 			connCount++
 			return nil
@@ -118,7 +118,7 @@ func TestPauseResume(t *testing.T) {
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
-	dec, err := NewHostDecorator(host, ctx, testCPSVal, 100*time.Microsecond)
+	dec, err := NewHostDecorator(connHost, ctx, testCPSVal, 100*time.Microsecond)
 	assert.Nil(t, err)
 	assert.NotNil(t, dec)
 	assert.True(t, len(dec.acceptedChan) < testCPSVal)

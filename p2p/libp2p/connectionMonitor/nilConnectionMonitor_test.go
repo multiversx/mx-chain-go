@@ -1,10 +1,11 @@
 package connectionMonitor
 
 import (
-	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,6 +21,7 @@ func TestNilConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 
 	ncm := &NilConnectionMonitor{}
 
+	assert.False(t, check.IfNil(ncm))
 	ncm.OpenedStream(nil, nil)
 	ncm.ListenClose(nil, nil)
 	ncm.Listen(nil, nil)
@@ -28,11 +30,31 @@ func TestNilConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 	ncm.Connected(nil, nil)
 }
 
-func TestNilConnectionMonitor_SetSharderShouldErr(t *testing.T) {
+func TestNilConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
 	t.Parallel()
 
 	ncm := &NilConnectionMonitor{}
-	err := ncm.SetSharder(nil)
+	threshold := 10
+	ncm.SetThresholdMinConnectedPeers(threshold, nil)
 
-	assert.True(t, errors.Is(err, p2p.ErrIncompatibleMethodCalled))
+	assert.Equal(t, threshold, ncm.ThresholdMinConnectedPeers())
+}
+
+func TestNilConnectionMonitor_IsConnectedToTheNetwork(t *testing.T) {
+	t.Parallel()
+
+	ncm := &NilConnectionMonitor{}
+	threshold := 10
+	ncm.SetThresholdMinConnectedPeers(threshold, nil)
+
+	connections := 5
+	netw := &mock.NetworkStub{
+		ConnsCalled: func() []network.Conn {
+			return make([]network.Conn, connections)
+		},
+	}
+
+	assert.False(t, ncm.IsConnectedToTheNetwork(netw))
+	ncm.SetThresholdMinConnectedPeers(connections, nil)
+	assert.True(t, ncm.IsConnectedToTheNetwork(netw))
 }
