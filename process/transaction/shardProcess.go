@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -116,7 +115,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
-		if errors.Is(err, process.ErrInsufficientFunds) {
+		if err == process.ErrInsufficientFunds {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return receiptErr
