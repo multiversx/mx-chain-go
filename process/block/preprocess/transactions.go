@@ -814,19 +814,19 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 //	return txsForShard, txHashesForShard
 //}
 
-func (txs *transactions) getShardForAddress(address []byte) (uint32, error) {
-	isEmptyAddress := bytes.Equal(address, make([]byte, txs.addressConverter.AddressLen()))
-	if isEmptyAddress {
-		return txs.shardCoordinator.SelfId(), nil
-	}
+// func (txs *transactions) getShardForAddress(address []byte) (uint32, error) {
+// 	isEmptyAddress := bytes.Equal(address, make([]byte, txs.addressConverter.AddressLen()))
+// 	if isEmptyAddress {
+// 		return txs.shardCoordinator.SelfId(), nil
+// 	}
 
-	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
-	if err != nil {
-		return 0, err
-	}
+// 	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-	return txs.shardCoordinator.ComputeId(addressContainer), nil
-}
+// 	return txs.shardCoordinator.ComputeId(addressContainer), nil
+// }
 
 //func (txs *transactions) isBadTx(txHash []byte) bool {
 //	txs.mutBadTxs.RLock()
