@@ -914,17 +914,22 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 		return nil, nil
 	}
 
-	bodyAndHeader := data.MarshalizedBodyAndHeader{
-		Body:   &block.Body{},
+	//TODO refactor this hack when data.Body will be an actual structure (protobuf feat)
+	bodyHeader := struct {
+		Body   block.Body
+		Header data.HeaderHandler
+	}{
+		Body:   make(block.Body, 0),
 		Header: bp.blockProcessor.CreateNewHeader(),
 	}
-	err := bp.marshalizer.Unmarshal(&bodyAndHeader, dta)
+
+	err := bp.marshalizer.Unmarshal(&bodyHeader, dta)
 	if err != nil {
 		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
 		return nil, nil
 	}
 
-	return bodyAndHeader.Body, bodyAndHeader.Header
+	return bodyHeader.Body, bodyHeader.Header
 }
 
 func (bp *baseProcessor) saveBody(body block.Body) {
