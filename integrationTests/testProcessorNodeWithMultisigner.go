@@ -116,9 +116,9 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
-		cache, _ := lrucache.NewCache(10000)
 
 		for i := range validatorList {
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesList[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -131,7 +131,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cp,
-				cache,
+				dataCache,
 			)
 		}
 
