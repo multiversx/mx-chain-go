@@ -229,11 +229,6 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
-// // EvictPenalizedSenders should be called periodically in order to remove senders with unresolved, persistent initial gaps
-// func (cache *TxCache) EvictPenalizedSenders() {
-// 	cache.doEvictPenalizedSenders()
-// }
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
