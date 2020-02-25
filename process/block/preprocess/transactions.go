@@ -864,8 +864,6 @@ func (txs *transactions) createAndProcessMiniBlock(
 	num_badTxs := 0
 	num_sndAddressToSkip := 0
 	totalProcesssingTime := time.Duration(0)
-	totalHaveTimeTime := time.Duration(0)
-	totalIsShardStuckTime := time.Duration(0)
 	totalComputeGasConsumedTime := time.Duration(0)
 	totalOnErrorTime := time.Duration(0)
 
@@ -877,13 +875,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 	startIterateTime := time.Now()
 	for index := range sortedTxs {
-		startTime := time.Now()
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlock")
 			break
 		}
-		elapsedTime := time.Since(startTime)
-		totalHaveTimeTime += elapsedTime
 
 		txHandler := sortedTxs[index].Tx
 		tx := txHandler.(*transaction.Transaction)
@@ -891,14 +886,10 @@ func (txs *transactions) createAndProcessMiniBlock(
 		senderShardID := sortedTxs[index].SenderShardID
 		receiverShardID := sortedTxs[index].ReceiverShardID
 
-		startTime = time.Now()
 		if txs.blockTracker.IsShardStuck(receiverShardID) {
 			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
 		}
-		elapsedTime = time.Since(startTime)
-		totalIsShardStuckTime += elapsedTime
-
 		//if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
 		//	num_isTxAlreadyProcessed++
 		//	continue
@@ -916,7 +907,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 
 		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
 		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-		startTime = time.Now()
+		startTime := time.Now()
 		err := txs.computeGasConsumed(
 			senderShardID,
 			receiverShardID,
@@ -924,7 +915,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
-		elapsedTime = time.Since(startTime)
+		elapsedTime := time.Since(startTime)
 		totalComputeGasConsumedTime += elapsedTime
 		if err != nil {
 			log.Debug("createAndProcessMiniBlock.computeGasConsumed", "error", err)
@@ -1032,8 +1023,6 @@ func (txs *transactions) createAndProcessMiniBlock(
 		"num added txs", addedTxs,
 		"total txs", len(sortedTxs),
 		"iterate time", elapsedIterateTime,
-		"haveTime used time", totalHaveTimeTime,
-		"IsShardStuck used time", totalIsShardStuckTime,
 		"computeGasConsumed used time", totalComputeGasConsumedTime,
 		"processAndRemoveBadTransaction used time", totalProcesssingTime,
 		"processAndRemoveBadTransaction error handling used time", totalOnErrorTime)
