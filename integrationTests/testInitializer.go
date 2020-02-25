@@ -73,6 +73,16 @@ var P2pBootstrapDelay = 5 * time.Second
 
 var log = logger.GetOrCreate("integrationtests")
 
+// Type defines account types to save in accounts trie
+type Type uint8
+
+const (
+	// UserAccount identifies an account holding balance, storage updates, code
+	UserAccount Type = 0
+	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
+	ValidatorAccount Type = 1
+)
+
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
@@ -206,7 +216,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
@@ -222,10 +232,22 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
-	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
+
+	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
 	return adb, tr, store
+}
+
+func getAccountFactory(accountType Type) state.AccountFactory {
+	switch accountType {
+	case UserAccount:
+		return factory.NewAccountCreator()
+	case ValidatorAccount:
+		return factory.NewPeerAccountCreator()
+	default:
+		return nil
+	}
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -391,7 +413,7 @@ func CreateGenesisMetaBlock(
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
-		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
+		newAccounts, _, _ := CreateAccountsDB(UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -489,7 +511,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(factory.UserAccount)
+	adb, _, _ := CreateAccountsDB(UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -1327,7 +1349,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(factory.UserAccount)
+	accnts, _, _ := CreateAccountsDB(UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
