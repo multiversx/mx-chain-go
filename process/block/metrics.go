@@ -99,7 +99,19 @@ func saveMetachainCommitBlockMetrics(
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
+
+	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
+		header.PrevRandSeed,
+		header.Round,
+		core.MetachainShardId,
+		epoch,
+	)
 	if err != nil {
 		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
@@ -155,11 +167,16 @@ func saveRoundInfoInElastic(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		publicKeys, err := nodesCoordinator.GetValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId)
+		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
 		if err != nil {
 			continue
 		}
-		signersIndexes = nodesCoordinator.GetValidatorsIndexes(publicKeys)
+		signersIndexes, err = nodesCoordinator.GetValidatorsIndexes(publicKeys, lastHeader.GetEpoch())
+		if err != nil {
+			log.Error(err.Error(), "round", i)
+			continue
+		}
+
 		roundInfo = indexer.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,

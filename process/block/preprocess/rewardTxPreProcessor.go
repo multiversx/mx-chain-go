@@ -295,7 +295,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		if mb.Type != block.RewardsBlock {
 			continue
 		}
-		if mb.SenderShardID != sharding.MetachainShardId {
+		if mb.SenderShardID != core.MetachainShardId {
 			continue
 		}
 
@@ -409,7 +409,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	if miniBlock.Type != block.RewardsBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
-	if miniBlock.SenderShardID != sharding.MetachainShardId {
+	if miniBlock.SenderShardID != core.MetachainShardId {
 		return process.ErrRewardMiniBlockNotFromMeta
 	}
 

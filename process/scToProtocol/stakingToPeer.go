@@ -3,6 +3,7 @@ package scToProtocol
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -229,7 +229,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != sharding.MetachainShardId {
+		if miniBlock.SenderShardID != core.MetachainShardId {
 			continue
 		}
 

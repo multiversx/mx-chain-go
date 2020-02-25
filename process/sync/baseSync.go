@@ -28,6 +28,7 @@ var log = logger.GetOrCreate("process/sync")
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const tryRequestHeaderDelta = uint64(5)
 
 // HdrInfo hold the data related to a header
 type HdrInfo struct {
@@ -275,6 +276,8 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
 
+	boot.trySyncTrigger()
+
 	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
@@ -296,6 +299,25 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
 	return !isNodeSynchronized
+}
+
+func (boot *baseBootstrap) trySyncTrigger() {
+	currHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currHeader) {
+		return
+	}
+
+	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
+	if roundDiff < tryRequestHeaderDelta {
+		return
+	}
+
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
+
+	if shouldTrySync {
+		nonce := boot.getNonceForNextBlock()
+		boot.requestHeaderByNonce(nonce)
+	}
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -354,6 +376,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.NetworkWatcher) {
 		return process.ErrNilNetworkWatcher
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return process.ErrNilBootStorer
 	}
 	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
@@ -852,4 +877,13 @@ func (boot *baseBootstrap) init() {
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+}
+
+func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }

@@ -163,7 +163,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	for shardId := uint32(0); shardId < e.shardCoordinator.NumberOfShards(); shardId++ {
 		totalNumBlocks += mapEndNonce[shardId] - mapStartNonce[shardId]
 	}
-	totalNumBlocks += mapEndNonce[sharding.MetachainShardId] - mapStartNonce[sharding.MetachainShardId]
+	totalNumBlocks += mapEndNonce[core.MetachainShardId] - mapStartNonce[core.MetachainShardId]
 
 	return totalNumBlocks
 }
@@ -173,7 +173,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = 0
 	}
-	mapShardIdNonce[sharding.MetachainShardId] = 0
+	mapShardIdNonce[core.MetachainShardId] = 0
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
@@ -185,7 +185,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 		return mapShardIdNonce, previousEpochStartMeta, nil
 	}
 
-	mapShardIdNonce[sharding.MetachainShardId] = previousEpochStartMeta.GetNonce()
+	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
 	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
 		mapShardIdNonce[shardData.ShardId] = shardData.Nonce
 	}
@@ -198,7 +198,7 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = 0
 	}
-	mapShardIdNonce[sharding.MetachainShardId] = metaNonce
+	mapShardIdNonce[core.MetachainShardId] = metaNonce
 
 	for _, shardData := range epochStart.LastFinalizedHeaders {
 		mapShardIdNonce[shardData.ShardId] = shardData.Nonce

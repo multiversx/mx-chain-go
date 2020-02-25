@@ -39,7 +39,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilSyncTimer
 	}
 	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
-		return ErrNilValidatorGroupSelector
+		return ErrNilNodesCoordinator
 	}
 	if container.PrivateKey() == nil || container.PrivateKey().IsInterfaceNil() {
 		return ErrNilBlsPrivateKey

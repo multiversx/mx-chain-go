@@ -124,7 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
-
+	epochStartSubscriber := &EpochStartNotifierStub{}
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
@@ -140,6 +140,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		shardCoordinatorMock,
 		syncTimerMock,
 		validatorGroupSelector,
+		epochStartSubscriber,
 	}
 
 	return container

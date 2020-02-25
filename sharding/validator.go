@@ -1,26 +1,12 @@
 package sharding
 
-import (
-	"math/big"
-)
-
 type validator struct {
-	stake   *big.Int
-	rating  int32
 	pubKey  []byte
 	address []byte
 }
 
 // NewValidator creates a new instance of a validator
-func NewValidator(stake *big.Int, rating int32, pubKey []byte, address []byte) (*validator, error) {
-	if stake == nil {
-		return nil, ErrNilStake
-	}
-
-	if stake.Cmp(big.NewInt(0)) < 0 {
-		return nil, ErrNegativeStake
-	}
-
+func NewValidator(pubKey []byte, address []byte) (*validator, error) {
 	if pubKey == nil {
 		return nil, ErrNilPubKey
 	}
@@ -30,21 +16,9 @@ func NewValidator(stake *big.Int, rating int32, pubKey []byte, address []byte) (
 	}
 
 	return &validator{
-		stake:   stake,
-		rating:  rating,
 		pubKey:  pubKey,
 		address: address,
 	}, nil
-}
-
-// Stake returns the validator's stake
-func (v *validator) Stake() *big.Int {
-	return v.stake
-}
-
-// Rating returns the validator's rating
-func (v *validator) Rating() int32 {
-	return v.rating
 }
 
 // PubKey returns the validator's public key

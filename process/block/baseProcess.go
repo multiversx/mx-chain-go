@@ -78,6 +78,17 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 }
 
+type bootStorerDataArgs struct {
+	headerInfo                 bootstrapStorage.BootstrapHeaderInfo
+	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
+	round                      uint64
+	highestFinalBlockNonce     uint64
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
+	nodesCoordinatorConfigKey  []byte
+	epochStartTriggerConfigKey []byte
+}
+
 func checkForNils(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
@@ -594,7 +605,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 }
 
 func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
-	if targetShardID == sharding.MetachainShardId {
+	if targetShardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
 		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
@@ -611,12 +622,12 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
 
@@ -708,12 +719,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 
 	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+		bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
@@ -757,35 +768,28 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 
 func (bp *baseProcessor) getShardForSelfNotarized(shardID uint32) uint32 {
 	isSelfShard := shardID == bp.shardCoordinator.SelfId()
-	if isSelfShard && bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		return sharding.MetachainShardId
+	if isSelfShard && bp.shardCoordinator.SelfId() != core.MetachainShardId {
+		return core.MetachainShardId
 	}
 
 	return shardID
 }
 
-func (bp *baseProcessor) prepareDataForBootStorer(
-	headerInfo bootstrapStorage.BootstrapHeaderInfo,
-	round uint64,
-	lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
-	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
-	highestFinalBlockNonce uint64,
-	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
-) {
-	//TODO add end of epoch stuff
-
+func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:                headerInfo,
-		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
-		PendingMiniBlocks:         pendingMiniBlocks,
-		HighestFinalBlockNonce:    highestFinalBlockNonce,
-		ProcessedMiniBlocks:       processedMiniBlocks,
+		LastHeader:                 args.headerInfo,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
+		LastSelfNotarizedHeaders:   args.lastSelfNotarizedHeaders,
+		PendingMiniBlocks:          args.pendingMiniBlocks,
+		ProcessedMiniBlocks:        args.processedMiniBlocks,
+		HighestFinalBlockNonce:     args.highestFinalBlockNonce,
+		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
+		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	err := bp.bootStorer.Put(int64(round), bootData)
+	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
 			"error", err.Error())
@@ -802,7 +806,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		}
 	}
 
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(sharding.MetachainShardId)
+	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
@@ -893,7 +897,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header := bp.blockProcessor.CreateNewHeader()
+	header := bp.blockProcessor.CreateNewHeader(0)
 
 	err := bp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {

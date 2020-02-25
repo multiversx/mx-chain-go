@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,12 +35,12 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 
 	//it is important to have all combinations here as to test more edgecases
 	mapAssignements := map[uint32][]uint32{
-		0:                         {1, 0},
-		1:                         {0, 1},
-		sharding.MetachainShardId: {0, 1},
+		0:                     {1, 0},
+		1:                     {0, 1},
+		core.MetachainShardId: {0, 1},
 	}
 
-	nodesMap, numShards := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
+	nodesMap, _ := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
 
 	defer func() {
 		_ = advertiser.Close()
@@ -56,10 +55,9 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(1)
 	round = integrationTests.IncrementAndPrintRound(round)
-	randomness := generateInitialRandomness(numShards)
 
 	senderShardID := uint32(0)
-	receiver := nodesMap[sharding.MetachainShardId][0].OwnAccount.PkTxSign
+	receiver := nodesMap[core.MetachainShardId][0].OwnAccount.PkTxSign
 
 	transferValue := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
 
@@ -86,7 +84,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
