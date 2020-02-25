@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var errNotImplemented = errors.New("not implemented")
+
 // AccountsStub -
 type AccountsStub struct {
 	AddJournalEntryCalled       func(je state.JournalEntry)
@@ -27,9 +29,16 @@ type AccountsStub struct {
 	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
 	IsPruningEnabledCalled      func() bool
+	GetAllLeavesCalled          func(rootHash []byte) (map[string][]byte, error)
 }
 
-var errNotImplemented = errors.New("not implemented")
+// GetAllLeaves -
+func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+	if as.GetAllLeavesCalled != nil {
+		return as.GetAllLeavesCalled(rootHash)
+	}
+	return nil, nil
+}
 
 // AddJournalEntry -
 func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {

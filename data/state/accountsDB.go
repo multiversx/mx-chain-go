@@ -600,6 +600,24 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 	return adb.mainTrie.IsPruningEnabled()
 }
 
+// GetAllLeaves returns all the leaves from a given rootHash
+func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+	newTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+	if newTrie == nil {
+		return nil, ErrNilTrie
+	}
+
+	allAccounts, err := newTrie.GetAllLeaves()
+	if err != nil {
+		return nil, err
+	}
+
+	return allAccounts, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
 	return adb == nil

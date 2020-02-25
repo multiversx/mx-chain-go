@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"math/big"
 )
 
 // HashLength defines how many bytes are used in a hash
@@ -69,14 +70,21 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
+	AddToAccumulatedFees(value *big.Int) error
 	IncreaseLeaderSuccessRateWithJournal(value uint32) error
 	DecreaseLeaderSuccessRateWithJournal(value uint32) error
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error
 	DecreaseValidatorSuccessRateWithJournal(value uint32) error
+	IncreaseNumSelectedInSuccessBlocks() error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+	ResetAtNewEpoch() error
+	SetRewardAddressWithJournal(address []byte) error
+	SetSchnorrPublicKeyWithJournal(address []byte) error
+	SetBLSPublicKeyWithJournal(address []byte) error
+	SetStakeWithJournal(stake *big.Int) error
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -112,6 +120,7 @@ type AccountsAdapter interface {
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	ClosePersister() error
+	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -128,4 +137,15 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
+}
+
+// ValidatorInfo is used for the validator properties implementations
+type ValidatorInfo interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
 }

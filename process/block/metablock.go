@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"sync"
 	"time"
 
@@ -592,7 +593,12 @@ func (mp *metaProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
-		return miniBlocks, nil
+		peerMiniBlocks, err2 := mp.generateValidatorMiniBlocks()
+		if err2 != nil {
+			return nil, err2
+		}
+
+		return peerMiniBlocks, nil
 	}
 
 	if mp.accounts.JournalLen() != 0 {
@@ -1745,4 +1751,46 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 	}
 
 	return pendingMiniBlocks
+}
+
+func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
+	validatorStatsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	validatorInfoDataList, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mp.createValidatorMiniBlocks(validatorInfoDataList)
+}
+
+func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]*state.ValidatorInfoData) ([]*block.MiniBlock, error) {
+	miniblocks := make([]*block.MiniBlock, 0)
+
+	for _, validators := range list {
+		if len(validators) == 0 {
+			continue
+		}
+
+		miniBlock := &block.MiniBlock{}
+		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
+		miniBlock.ReceiverShardID = core.AllShardId
+		miniBlock.TxHashes = make([][]byte, len(validators))
+		miniBlock.Type = block.PeerBlock
+
+		for index, validator := range validators {
+			marshalizedValidator, err := mp.marshalizer.Marshal(validator)
+			if err != nil {
+				return nil, err
+			}
+			miniBlock.TxHashes[index] = marshalizedValidator
+		}
+
+		miniblocks = append(miniblocks, miniBlock)
+	}
+
+	return miniblocks, nil
 }

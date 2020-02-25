@@ -238,6 +238,8 @@ type ValidatorStatisticsProcessor interface {
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
