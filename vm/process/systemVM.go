@@ -1,26 +1,27 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type systemVM struct {
-	systemEI        vm.SystemEI
+	systemEI        vm.ContextHandler
 	vmType          []byte
 	systemContracts vm.SystemSCContainer
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
 func NewSystemVM(
-	systemEI vm.SystemEI,
+	systemEI vm.ContextHandler,
 	systemContracts vm.SystemSCContainer,
 	vmType []byte,
 ) (*systemVM, error) {
-	if systemEI == nil || systemEI.IsInterfaceNil() {
+	if check.IfNil(systemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if systemContracts == nil || systemContracts.IsInterfaceNil() {
+	if check.IfNil(systemContracts) {
 		return nil, vm.ErrNilSystemContractsContainer
 	}
 	if len(vmType) == 0 { // no need for nil check, len() for nil returns 0
@@ -34,8 +35,6 @@ func NewSystemVM(
 	}
 	copy(sVm.vmType, vmType)
 
-	//TODO: run all system smart contracts INIT function at genesis, update roothash and block
-
 	return sVm, nil
 }
 
@@ -47,8 +46,7 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 	if input.CallerAddr == nil {
 		return nil, vm.ErrInputCallerAddrIsNil
 	}
-	// currently this function is not used, as all the contracts are deployed and created at startNode time only
-	// register the system smart contract with a name into the map
+
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.CallerAddr)
 
