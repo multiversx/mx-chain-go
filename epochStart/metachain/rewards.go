@@ -113,7 +113,8 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	for address, rwdInfo := range rwdAddrValidatorInfo {
 		addrContainer, err := r.addrConverter.CreateAddressFromPublicKeyBytes([]byte(address))
 		if err != nil {
-			return nil, err
+			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
+			continue
 		}
 
 		rwdTx, rwdTxHash, err := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
