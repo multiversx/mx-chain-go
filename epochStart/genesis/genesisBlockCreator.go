@@ -165,7 +165,7 @@ func CreateMetaGenesisBlock(
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
 	}
 
-	err = setStakingData(
+	err = setStakedData(
 		txProcessor,
 		allNodes,
 		args.Economics.StakeValue(),
