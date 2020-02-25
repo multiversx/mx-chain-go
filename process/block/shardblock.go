@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -35,7 +36,6 @@ type shardProcessor struct {
 	txCounter           *transactionCounter
 	txsPoolsCleaner     process.PoolsCleaner
 
-	stateCheckpointModulus            uint
 	lowestNonceInSelfNotarizedHeaders uint64
 }
 
@@ -59,26 +59,28 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:              arguments.Accounts,
-		blockSizeThrottler:    blockSizeThrottler,
-		forkDetector:          arguments.ForkDetector,
-		hasher:                arguments.Hasher,
-		marshalizer:           arguments.Marshalizer,
-		store:                 arguments.Store,
-		shardCoordinator:      arguments.ShardCoordinator,
-		nodesCoordinator:      arguments.NodesCoordinator,
-		specialAddressHandler: arguments.SpecialAddressHandler,
-		uint64Converter:       arguments.Uint64Converter,
-		requestHandler:        arguments.RequestHandler,
-		appStatusHandler:      statusHandler.NewNilStatusHandler(),
-		blockChainHook:        arguments.BlockChainHook,
-		txCoordinator:         arguments.TxCoordinator,
-		rounder:               arguments.Rounder,
-		epochStartTrigger:     arguments.EpochStartTrigger,
-		headerValidator:       arguments.HeaderValidator,
-		bootStorer:            arguments.BootStorer,
-		blockTracker:          arguments.BlockTracker,
-		dataPool:              arguments.DataPool,
+		accountsDB:                   arguments.AccountsDB,
+		blockSizeThrottler:           blockSizeThrottler,
+		forkDetector:                 arguments.ForkDetector,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		specialAddressHandler:        arguments.SpecialAddressHandler,
+		uint64Converter:              arguments.Uint64Converter,
+		requestHandler:               arguments.RequestHandler,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		blockChainHook:               arguments.BlockChainHook,
+		txCoordinator:                arguments.TxCoordinator,
+		rounder:                      arguments.Rounder,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		headerValidator:              arguments.HeaderValidator,
+		bootStorer:                   arguments.BootStorer,
+		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
+		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
+		stateCheckpointModulus:       arguments.StateCheckpointModulus,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -86,11 +88,10 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp := shardProcessor{
-		core:                   arguments.Core,
-		baseProcessor:          base,
-		txCounter:              NewTransactionCounter(),
-		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
-		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		core:            arguments.Core,
+		baseProcessor:   base,
+		txCounter:       NewTransactionCounter(),
+		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
@@ -239,7 +240,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if sp.accounts.JournalLen() != 0 {
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
 
@@ -324,17 +325,10 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime t
 	return nil
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (sp *shardProcessor) RevertAccountState() {
-	err := sp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-}
-
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := sp.accounts.RecreateTrie(header.GetRootHash())
+
+	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
@@ -835,7 +829,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	sp.updateStateStorage(selfNotarizedHeaders)
+	sp.updateState(selfNotarizedHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -924,59 +918,20 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func (sp *shardProcessor) commitAll() error {
-	_, err := sp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	if !sp.accounts.IsPruningEnabled() {
-		return
-	}
-
-	for i := range finalHeaders {
-		sp.saveState(finalHeaders[i])
-
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
+	for i := range headers {
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
+			log.Debug("could not get shard header from storage")
+			return
 		}
 
-		prevRootHash := prevHeader.GetRootHash()
-		if prevRootHash == nil {
-			continue
-		}
-
-		rootHash := finalHeaders[i].GetRootHash()
-		if bytes.Equal(prevRootHash, rootHash) {
-			continue
-		}
-
-		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
-
-		sp.accounts.CancelPrune(rootHash)
-	}
-}
-
-func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", finalHeader.GetRootHash())
-		sp.accounts.SnapshotState(finalHeader.GetRootHash())
-		return
-	}
-
-	// TODO generate checkpoint on a trigger
-	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
-		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
-		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+		sp.updateStateStorage(
+			headers[i],
+			headers[i].GetRootHash(),
+			prevHeader.GetRootHash(),
+			sp.accountsDB[state.UserAccountsState],
+		)
 	}
 }
 
@@ -1696,7 +1651,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 
-	if sp.accounts.JournalLen() != 0 {
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
 
