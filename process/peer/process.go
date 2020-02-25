@@ -48,19 +48,17 @@ type ArgValidatorStatisticsProcessor struct {
 }
 
 type validatorStatistics struct {
-	marshalizer         	marshal.Marshalizer
-	dataPool            	DataPool
-	storageService      	dataRetriever.StorageService
-	nodesCoordinator    	sharding.NodesCoordinator
-	shardCoordinator    	sharding.Coordinator
-	adrConv             	state.AddressConverter
-	peerAdapter         	state.AccountsAdapter
-	prevShardInfo       	map[string]block.ShardData
-	mutPrevShardInfo    	sync.RWMutex
-	rater               	sharding.RaterHandler
-	rewardsHandler      	process.RewardsHandler
-	initialNodes        	[]*sharding.InitialNode
-	maxComputableRounds 	uint64
+	marshalizer             marshal.Marshalizer
+	dataPool                DataPool
+	storageService          dataRetriever.StorageService
+	nodesCoordinator        sharding.NodesCoordinator
+	shardCoordinator        sharding.Coordinator
+	adrConv                 state.AddressConverter
+	peerAdapter             state.AccountsAdapter
+	rater                   sharding.RaterHandler
+	rewardsHandler          process.RewardsHandler
+	initialNodes            []*sharding.InitialNode
+	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
 }
@@ -103,17 +101,17 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:         arguments.PeerAdapter,
-		adrConv:             arguments.AdrConv,
-		nodesCoordinator:    arguments.NodesCoordinator,
-		shardCoordinator:    arguments.ShardCoordinator,
-		dataPool:            arguments.DataPool,
-		storageService:      arguments.StorageService,
-		marshalizer:         arguments.Marshalizer,
+		peerAdapter:          arguments.PeerAdapter,
+		adrConv:              arguments.AdrConv,
+		nodesCoordinator:     arguments.NodesCoordinator,
+		shardCoordinator:     arguments.ShardCoordinator,
+		dataPool:             arguments.DataPool,
+		storageService:       arguments.StorageService,
+		marshalizer:          arguments.Marshalizer,
 		missedBlocksCounters: make(validatorRoundCounters),
-		rater:               arguments.Rater,
-		rewardsHandler:      arguments.RewardsHandler,
-		maxComputableRounds: arguments.MaxComputableRounds,
+		rater:                arguments.Rater,
+		rewardsHandler:       arguments.RewardsHandler,
+		maxComputableRounds:  arguments.MaxComputableRounds,
 	}
 
 	rater := arguments.Rater
