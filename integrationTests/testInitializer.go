@@ -211,7 +211,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -574,7 +574,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
