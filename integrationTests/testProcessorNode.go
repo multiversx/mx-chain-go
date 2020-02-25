@@ -898,15 +898,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			"0x",
 		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     blsKeyedAddressConverter,
-			Hasher:      TestHasher,
+			AdrConv:          blsKeyedAddressConverter,
+			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
-			PeerState:   tpn.PeerState,
-			BaseState:   tpn.AccntState,
-			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.DataPool.CurrentBlockTxs(),
-			ScQuery:     tpn.SCQueryService,
+			PeerState:        tpn.PeerState,
+			BaseState:        tpn.AccntState,
+			ArgParser:        tpn.ArgsParser,
+			CurrTxs:          tpn.DataPool.CurrentBlockTxs(),
+			ScQuery:          tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
@@ -969,7 +969,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithProtoMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
-		node.WithHasher(TestHasher),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),

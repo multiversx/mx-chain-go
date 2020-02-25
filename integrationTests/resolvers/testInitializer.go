@@ -40,20 +40,33 @@ func createResolverRequester(
 
 func createShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.Header{
-		Nonce:            nonce,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardID:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          chainID,
+		Nonce:        nonce,
+		PrevHash:     []byte("prev hash"),
+		PrevRandSeed: []byte("prev rand seed"),
+		RandSeed:     []byte("rand seed"),
+		PubKeysBitmap: []byte{
+			255,
+			0,
+		},
+		TimeStamp:       uint64(time.Now().Unix()),
+		Round:           1,
+		Signature:       []byte("signature"),
+		LeaderSignature: nil,
+		RootHash: []byte{
+			255,
+			255,
+		},
+		ValidatorStatsRootHash: nil,
+		MetaBlockHashes:        nil,
+		EpochStartMetaHash:     nil,
+		ReceiptsHash:           nil,
+		ChainID:                chainID,
+		MiniBlockHeaders:       make([]block.MiniBlockHeader, 0),
+		PeerChanges:            nil,
+		Epoch:                  2,
+		TxCount:                0,
+		ShardID:                0,
+		BlockBodyType:          block.TxBlock,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)

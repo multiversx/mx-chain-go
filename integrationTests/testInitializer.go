@@ -971,7 +971,7 @@ func CreateAndSendTransactionWithGasLimit(
 		GasLimit: gasLimit,
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
