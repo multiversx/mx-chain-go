@@ -48,7 +48,7 @@ const MaxHeaderRequestsAllowed = 10
 
 // MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-const MaxItemsInBlock = 15000
+const MaxItemsInBlock = 14000
 
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
@@ -57,7 +57,7 @@ const NumTxPerSenderBatchForFillingMiniblock = 10
 
 // MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-const MinItemsInBlock = 15000
+const MinItemsInBlock = 14000
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced

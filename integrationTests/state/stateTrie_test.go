@@ -26,6 +26,7 @@ import (
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -976,7 +977,7 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	nrOfAccounts := 1000000
-	nrTxs := 15000
+	nrTxs := process.MaxItemsInBlock
 	txVal := 100
 	balance := nrTxs * txVal
 	persist := mock.NewCountingDB()

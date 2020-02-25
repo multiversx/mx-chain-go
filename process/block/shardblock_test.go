@@ -2786,7 +2786,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments.TxCoordinator = tc
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	blockBody, err := bp.CreateMiniBlocks(15000, func() bool { return true })
+	blockBody, err := bp.CreateMiniBlocks(process.MaxItemsInBlock, func() bool { return true })
 
 	assert.Nil(t, err)
 	//testing execution

@@ -742,7 +742,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -793,7 +793,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
@@ -822,7 +822,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -903,7 +903,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1005,7 +1005,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1032,7 +1032,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
@@ -1098,7 +1098,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1144,7 +1144,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1217,7 +1217,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1285,7 +1285,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
@@ -1350,7 +1350,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	assert.Equal(t, 0, len(usedTxs))
 
 	// create block to have some txs
-	maxTxRemaining := uint32(15000)
+	maxTxRemaining := uint32(process.MaxItemsInBlock)
 	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
