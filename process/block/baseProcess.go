@@ -735,12 +735,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	crossNotarizedNonce := uint64(0)
 
 	if shardID != bp.shardCoordinator.SelfId() {
-		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
-		if err != nil {
+		crossNotarizedHeader, _, errNotCritical := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+		if errNotCritical != nil {
 			log.Warn("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
 				"shard", shardID,
 				"nonces to final", noncesToFinal,
-				"error", err.Error())
+				"error", errNotCritical.Error())
 			return
 		}
 
@@ -914,23 +914,23 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 		return nil, nil
 	}
 
-	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
-	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	bodyAndHeader := data.MarshalizedBodyAndHeader{
+		Body:   &block.Body{},
+		Header: bp.blockProcessor.CreateNewHeader(),
+	}
+	err := bp.marshalizer.Unmarshal(&bodyAndHeader, dta)
 	if err != nil {
 		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
 		return nil, nil
 	}
 
-	body := bp.DecodeBlockBody(marshalizedBodyAndHeader.Body)
-	header := bp.DecodeBlockHeader(marshalizedBodyAndHeader.Header)
-
-	return body, header
+	return bodyAndHeader.Body, bodyAndHeader.Header
 }
 
 func (bp *baseProcessor) saveBody(body block.Body) {
-	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
-	if errNotCritical != nil {
-		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
+	err := bp.txCoordinator.SaveBlockDataToStorage(body)
+	if err != nil {
+		log.Warn("saveBody.SaveBlockDataToStorage", "error", err.Error())
 	}
 
 	for i := 0; i < len(body); i++ {
