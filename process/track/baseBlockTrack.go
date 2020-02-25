@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -47,7 +48,7 @@ type baseBlockTrack struct {
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if headerHandler.GetShardID() == sharding.MetachainShardId {
+	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
 	}
@@ -184,12 +185,12 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 
 // ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
 func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
+	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
@@ -243,7 +244,7 @@ func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 		bbt.displayHeadersForShard(shardID)
 	}
 
-	bbt.displayHeadersForShard(sharding.MetachainShardId)
+	bbt.displayHeadersForShard(core.MetachainShardId)
 }
 
 func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
@@ -369,6 +370,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 	}
 
 	return lastCrossNotarizedHeaders, nil
+}
+
+// GetLastSelfNotarizedHeader returns last self notarized header for a given shard
+func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
 }
 
 // GetTrackedHeaders returns tracked headers for a given shard

@@ -74,7 +74,12 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	if !sdi.dataVerifier.IsForCurrentShard(interceptedData) {
 		sdi.throttler.EndProcessing()
-		log.Trace("intercepted data is for other shards", "hash", interceptedData.Hash(), "type", interceptedData.Type())
+		log.Trace("intercepted data is for other shards",
+			"pid", p2p.MessageOriginatorPid(message),
+			"seq no", p2p.MessageOriginatorSeq(message),
+			"topics", message.TopicIDs(),
+			"hash", interceptedData.Hash(),
+		)
 		return nil
 	}
 
@@ -85,7 +90,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	go processInterceptedData(sdi.processor, interceptedData, wgProcess)
+	go processInterceptedData(sdi.processor, interceptedData, wgProcess, message)
 
 	return nil
 }

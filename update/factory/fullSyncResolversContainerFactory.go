@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -109,8 +110,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() ([]string, []
 		keys = append(keys, trieId)
 	}
 
-	trieId := genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.UserAccount)
-	resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId, trieId)
+	trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, accountFactory.UserAccount)
+	resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, core.MetachainShardId, trieId)
 	if err != nil && !errors.Is(err, p2p.ErrTopicAlreadyExists) {
 		return nil, nil, err
 	}
@@ -118,8 +119,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() ([]string, []
 	resolverSlice = append(resolverSlice, resolver)
 	keys = append(keys, trieId)
 
-	trieId = genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.ValidatorAccount)
-	resolver, err = rcf.createTrieNodesResolver(factory.ValidatorTrieNodesTopic, sharding.MetachainShardId, trieId)
+	trieId = genesis.CreateTrieIdentifier(core.MetachainShardId, accountFactory.ValidatorAccount)
+	resolver, err = rcf.createTrieNodesResolver(factory.ValidatorTrieNodesTopic, core.MetachainShardId, trieId)
 	if err != nil {
 		return nil, nil, err
 	}

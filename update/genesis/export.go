@@ -3,6 +3,7 @@ package genesis
 import (
 	"encoding/json"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -183,7 +184,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	if shId > se.shardCoordinator.NumberOfShards() && shId != sharding.MetachainShardId {
+	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
 		return sharding.ErrInvalidShardId
 	}
 

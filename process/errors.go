@@ -59,6 +59,9 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
+// ErrNilBootStorer signals that the provided boot storer is bil
+var ErrNilBootStorer = errors.New("nil boot storer")
+
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -558,6 +561,9 @@ var ErrHeaderIsBlackListed = errors.New("header is black listed")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
+// ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
+var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
+
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
@@ -632,3 +638,6 @@ var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
 // ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
 var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
+
+// ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
+var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")

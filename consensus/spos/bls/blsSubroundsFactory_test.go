@@ -3,6 +3,7 @@ package bls_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -14,12 +15,53 @@ import (
 
 var chainID = []byte("chain ID")
 
+const roundTimeDuration = 100 * time.Millisecond
+
+const processingThresholdPercent = 85
+
+const (
+	// SrStartRound defines ID of subround "Start round"
+	SrStartRound = iota
+	// SrBlock defines ID of subround "block"
+	SrBlock
+	// SrCommitmentHash defines ID of subround "commitment hash"
+	SrCommitmentHash
+	// SrBitmap defines ID of subround "bitmap"
+	SrBitmap
+	// SrCommitment defines ID of subround "commitment"
+	SrCommitment
+	// SrSignature defines ID of subround "signature"
+	SrSignature
+)
+
+const (
+	// MtBlockBody defines ID of a message that has a block body inside
+	MtBlockBody = iota
+	// MtBlockHeader defines ID of a message that has a block header inside
+	MtBlockHeader
+)
+
+func displayStatistics() {
+}
+
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
+}
+
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex: 0,
+		TimeStampCalled: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
+	}
 }
 
 func initWorker() spos.WorkerHandler {
@@ -57,7 +99,10 @@ func initFactory() bls.Factory {
 func TestFactory_GetMessageTypeName(t *testing.T) {
 	t.Parallel()
 
-	r := bls.GetStringValue(bls.MtBlockBody)
+	r := bls.GetStringValue(bls.MtBlockBodyAndHeader)
+	assert.Equal(t, "(BLOCK_BODY_AND_HEADER)", r)
+
+	r = bls.GetStringValue(bls.MtBlockBody)
 	assert.Equal(t, "(BLOCK_BODY)", r)
 
 	r = bls.GetStringValue(bls.MtBlockHeader)
@@ -65,6 +110,9 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 
 	r = bls.GetStringValue(bls.MtSignature)
 	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bls.GetStringValue(bls.MtBlockHeaderFinalInfo)
+	assert.Equal(t, "(FINAL_INFO)", r)
 
 	r = bls.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
@@ -313,7 +361,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {

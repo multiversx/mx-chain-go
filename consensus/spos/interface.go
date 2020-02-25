@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -39,6 +40,8 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() sharding.NodesCoordinator
+	// EpochStartSubscriber gets the EpochStartSubscriber stored in the ConsensusCore
+	EpochStartSubscriber() epochStart.EpochStartSubscriber
 	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
@@ -60,6 +63,8 @@ type ConsensusService interface {
 	GetMessageRange() []consensus.MessageType
 	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
 	CanProceed(*ConsensusState, consensus.MessageType) bool
+	//IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
+	IsMessageWithBlockBodyAndHeader(consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature

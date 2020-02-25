@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -26,15 +25,8 @@ func ConvertBytes(bytes uint64) string {
 	return fmt.Sprintf("%.2f GB", float64(bytes)/1024.0/1024.0/1024.0)
 }
 
-// ToB64 encodes the given buff to base64
-func ToB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
-}
-
 // ToHex encodes the given buff to hex
+// This should be used only for display purposes!
 func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"

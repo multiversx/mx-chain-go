@@ -7,14 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-// CreateTxPool creates a new tx pool, according to the configuration
-func CreateTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
-	switch config.Type {
+// CreateTxPool creates a new tx pool
+func CreateTxPool(args txpool.ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+	switch args.Config.Type {
 	case storageUnit.FIFOShardedCache:
-		return shardedData.NewShardedData(config)
+		return shardedData.NewShardedData(args.Config)
 	case storageUnit.LRUCache:
-		return shardedData.NewShardedData(config)
+		return shardedData.NewShardedData(args.Config)
 	default:
-		return txpool.NewShardedTxPool(config)
+		return txpool.NewShardedTxPool(args)
 	}
 }

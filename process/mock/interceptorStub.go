@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// InterceptorStub -
 type InterceptorStub struct {
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	SetIsDataForCurrentShardVerifierCalled func(verifier process.InterceptedDataVerifier) error
@@ -14,6 +15,7 @@ func (is *InterceptorStub) SetIsDataForCurrentShardVerifier(verifier process.Int
 	return is.SetIsDataForCurrentShardVerifierCalled(verifier)
 }
 
+// ProcessReceivedMessage -
 func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 	return is.ProcessReceivedMessageCalled(message, broadcastHandler)
 }

@@ -4,6 +4,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// AccountsDbIdentifier is the type of accounts db
+type AccountsDbIdentifier byte
+
+const (
+	// UserAccountsState is the user accounts
+	UserAccountsState AccountsDbIdentifier = 0
+	// PeerAccountsState is the peer accounts
+	PeerAccountsState AccountsDbIdentifier = 1
+)
+
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
@@ -69,10 +79,10 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
-	IncreaseLeaderSuccessRateWithJournal() error
-	DecreaseLeaderSuccessRateWithJournal() error
-	IncreaseValidatorSuccessRateWithJournal() error
-	DecreaseValidatorSuccessRateWithJournal() error
+	IncreaseLeaderSuccessRateWithJournal(value uint32) error
+	DecreaseLeaderSuccessRateWithJournal(value uint32) error
+	IncreaseValidatorSuccessRateWithJournal(value uint32) error
+	DecreaseValidatorSuccessRateWithJournal(value uint32) error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
@@ -106,8 +116,8 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
-	PruneTrie(rootHash []byte) error
-	CancelPrune(rootHash []byte)
+	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error
+	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool

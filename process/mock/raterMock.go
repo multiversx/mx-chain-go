@@ -2,6 +2,7 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/sharding"
 
+// RaterMock -
 type RaterMock struct {
 	StartRating       uint32
 	MinRating         uint32
@@ -20,6 +21,7 @@ type RaterMock struct {
 	RatingReader                   sharding.RatingReader
 }
 
+// GetNewMockRater -
 func GetNewMockRater() *RaterMock {
 	raterMock := &RaterMock{}
 	raterMock.GetRatingCalled = func(s string) uint32 {
@@ -57,38 +59,47 @@ func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
 	return uint32(newVal)
 }
 
+// GetRating -
 func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
 }
 
+// GetRatings -
 func (rm *RaterMock) GetRatings([]string) map[string]uint32 {
 	return make(map[string]uint32)
 }
 
+// GetStartRating -
 func (rm *RaterMock) GetStartRating() uint32 {
 	return rm.GetStartRatingCalled()
 }
 
+// ComputeIncreaseProposer -
 func (rm *RaterMock) ComputeIncreaseProposer(val uint32) uint32 {
 	return rm.ComputeIncreaseProposerCalled(val)
 }
 
+// ComputeDecreaseProposer -
 func (rm *RaterMock) ComputeDecreaseProposer(val uint32) uint32 {
 	return rm.ComputeDecreaseProposerCalled(val)
 }
 
+// ComputeIncreaseValidator -
 func (rm *RaterMock) ComputeIncreaseValidator(val uint32) uint32 {
 	return rm.ComputeIncreaseValidatorCalled(val)
 }
 
+// ComputeDecreaseValidator -
 func (rm *RaterMock) ComputeDecreaseValidator(val uint32) uint32 {
 	return rm.ComputeDecreaseValidatorCalled(val)
 }
 
+// SetRatingReader -
 func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
 	rm.RatingReader = reader
 }
 
+// IsInterfaceNil -
 func (rm *RaterMock) IsInterfaceNil() bool {
 	return rm == nil
 }

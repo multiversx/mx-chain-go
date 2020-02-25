@@ -3,6 +3,7 @@ package data
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -16,6 +17,9 @@ const (
 	// NewRoot is appended to the key when newHashes are added to the evictionWaitingList
 	NewRoot TriePruningIdentifier = 1
 )
+
+// ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
+type ModifiedHashes map[string]struct{}
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -146,9 +150,10 @@ type DBWriteCacher interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Put([]byte, [][]byte) error
-	Evict([]byte) ([][]byte, error)
+	Put([]byte, ModifiedHashes) error
+	Evict([]byte) (ModifiedHashes, error)
 	GetSize() uint
+	PresentInNewHashes(hash string) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -162,12 +167,11 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	SetDatabase(cacher DBWriteCacher)
 	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
 	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error
 	CancelPrune([]byte)
-	MarkForEviction([]byte, [][]byte) error
+	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	Clone() StorageManager
 	IsPruningEnabled() bool
@@ -176,6 +180,12 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create() (Trie, error)
+	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
+}
+
+// MarshalizedBodyAndHeader holds marshalized body and header
+type MarshalizedBodyAndHeader struct {
+	Body   []byte
+	Header []byte
 }

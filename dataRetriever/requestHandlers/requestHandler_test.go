@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -514,7 +514,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 		1,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 	)
 
 	rrh.RequestShardHeaderByNonce(1, 0)
@@ -900,7 +900,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 		0,
 	)
 
-	rrh.RequestTrieNodes(sharding.MetachainShardId, []byte("hash"), "topic")
+	rrh.RequestTrieNodes(core.MetachainShardId, []byte("hash"), "topic")
 	assert.True(t, called)
 }
 
