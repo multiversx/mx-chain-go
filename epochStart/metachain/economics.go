@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,7 +26,7 @@ type economics struct {
 	roundTime        process.RoundTimeDurationHandler
 }
 
-// ArgsNewEpochEconomics
+// ArgsNewEpochEconomics holds the arguments needed when creating a new end of epoch economics data creator
 type ArgsNewEpochEconomics struct {
 	Marshalizer      marshal.Marshalizer
 	Store            dataRetriever.StorageService
@@ -38,19 +39,19 @@ type ArgsNewEpochEconomics struct {
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
 func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, error) {
 	if check.IfNil(args.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Store) {
-		return nil, process.ErrNilStore
+		return nil, epochStart.ErrNilStorage
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+		return nil, epochStart.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
+		return nil, epochStart.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.RewardsHandler) {
-		return nil, process.ErrNilRewardsHandler
+		return nil, epochStart.ErrNilRewardsHandler
 	}
 	if check.IfNil(args.RoundTime) {
 		return nil, process.ErrNilRounder
@@ -67,18 +68,18 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	return e, nil
 }
 
-// ComputeRewardsPerBlock calculates the rewards per block value for the current epoch
+// ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
 	if check.IfNil(metaBlock) {
-		return nil, process.ErrNilHeaderHandler
+		return nil, epochStart.ErrNilHeaderHandler
 	}
 	if metaBlock.AccumulatedFeesInEpoch == nil {
-		return nil, process.ErrNilTotalAccumulatedFeesInEpoch
+		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
-		return nil, process.ErrNotEpochStartBlock
+		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
 	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
@@ -222,19 +223,19 @@ func (e *economics) VerifyRewardsPerBlock(
 	receivedEconomics := metaBlock.EpochStart.Economics
 	if computedEconomics.TotalToDistribute.Cmp(receivedEconomics.TotalToDistribute) != 0 {
 		return fmt.Errorf("%w total to distribute computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalToDistribute, receivedEconomics.TotalToDistribute)
+			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalToDistribute, receivedEconomics.TotalToDistribute)
 	}
 	if computedEconomics.TotalNewlyMinted.Cmp(receivedEconomics.TotalNewlyMinted) != 0 {
 		return fmt.Errorf("%w total newly minted computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalNewlyMinted, receivedEconomics.TotalNewlyMinted)
+			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalNewlyMinted, receivedEconomics.TotalNewlyMinted)
 	}
 	if computedEconomics.TotalSupply.Cmp(receivedEconomics.TotalSupply) != 0 {
 		return fmt.Errorf("%w total supply computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalSupply, receivedEconomics.TotalSupply)
+			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalSupply, receivedEconomics.TotalSupply)
 	}
 	if computedEconomics.RewardsPerBlockPerNode.Cmp(receivedEconomics.RewardsPerBlockPerNode) != 0 {
 		return fmt.Errorf("%wrewards per block per node computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.RewardsPerBlockPerNode, receivedEconomics.RewardsPerBlockPerNode)
+			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.RewardsPerBlockPerNode, receivedEconomics.RewardsPerBlockPerNode)
 	}
 
 	return nil
