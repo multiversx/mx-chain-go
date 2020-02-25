@@ -67,6 +67,7 @@ type NTPConfig struct {
 	Hosts               []string
 	Port                int
 	TimeoutMilliseconds int
+	SyncPeriodSeconds   int
 	Version             int
 }
 
@@ -102,7 +103,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
-	StateTrieConfig         StateTrieConfig
+	StateTriesConfig        StateTriesConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -199,8 +200,9 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// StateTrieConfig will hold information about state trie
-type StateTrieConfig struct {
-	RoundsModulus  uint
-	PruningEnabled bool
+// StateTriesConfig will hold information about state tries
+type StateTriesConfig struct {
+	CheckpointRoundsModulus     uint
+	AccountsStatePruningEnabled bool
+	PeerStatePruningEnabled     bool
 }

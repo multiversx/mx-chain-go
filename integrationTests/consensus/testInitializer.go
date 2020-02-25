@@ -240,7 +240,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -376,7 +376,7 @@ func createConsensusOnlyNode(
 	singlesigner := &singlesig.SchnorrSigner{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), time.Hour, nil)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
 
 	rounder, err := round.NewRound(

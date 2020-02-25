@@ -238,7 +238,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -601,7 +601,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
@@ -979,7 +979,10 @@ func CreateAndSendTransaction(
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
-	_, _ = node.SendTransaction(tx)
+	_, err := node.SendTransaction(tx)
+	if err != nil {
+		log.Warn("could not create transaction", "address", node.OwnAccount.Address.Bytes(), "error", err)
+	}
 	node.OwnAccount.Nonce++
 }
 
