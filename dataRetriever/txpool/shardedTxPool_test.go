@@ -183,11 +183,11 @@ func Test_RemoveData(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "bar")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "1")
 
-	pool.RemoveData([]byte("hash-x"), "foo")
-	pool.RemoveData([]byte("hash-y"), "bar")
+	pool.RemoveData([]byte("hash-x"), "0")
+	pool.RemoveData([]byte("hash-y"), "1")
 	xTx, xOk := pool.searchFirstTx([]byte("hash-x"))
 	yTx, yOk := pool.searchFirstTx([]byte("hash-y"))
 	require.False(t, xOk)
@@ -199,13 +199,13 @@ func Test_RemoveData(t *testing.T) {
 func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
-	cache := pool.getTxCache("foo")
+	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "foo")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "0")
 	require.Equal(t, int64(2), cache.CountTx())
 
-	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "foo")
+	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "0")
 	require.Zero(t, cache.CountTx())
 }
 
@@ -213,12 +213,12 @@ func Test_RemoveDataFromAllShards(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "bar")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
 	pool.RemoveDataFromAllShards([]byte("hash-x"))
 
-	require.Zero(t, pool.getTxCache("foo").CountTx())
-	require.Zero(t, pool.getTxCache("bar").CountTx())
+	require.Zero(t, pool.getTxCache("0").CountTx())
+	require.Zero(t, pool.getTxCache("1").CountTx())
 }
 
 func Test_MergeShardStores(t *testing.T) {
@@ -237,12 +237,12 @@ func Test_Clear(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
 
 	pool.Clear()
-	require.Zero(t, pool.getTxCache("foo").CountTx())
-	require.Zero(t, pool.getTxCache("bar").CountTx())
+	require.Zero(t, pool.getTxCache("0").CountTx())
+	require.Zero(t, pool.getTxCache("1").CountTx())
 }
 
 func Test_ClearShardStore(t *testing.T) {
@@ -288,20 +288,19 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	require.NotPanics(t, func() { pool.CreateShardStore("foo") })
 }
 
-func Test_routeToCache(t *testing.T) {
+func Test_routeToCacheUnions(t *testing.T) {
 	config := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4, SelfShardID: 42}
 	poolAsInterface, _ := NewShardedTxPool(args)
 	pool := poolAsInterface.(*shardedTxPool)
 
-	require.Equal(t, "42", pool.routeToCache("42"))
-	require.Equal(t, "42", pool.routeToCache("42_0"))
-	require.Equal(t, "42", pool.routeToCache("42_1"))
-	require.Equal(t, "42", pool.routeToCache("42_2"))
-	require.Equal(t, "42", pool.routeToCache("42_*"))
-	require.Equal(t, "42", pool.routeToCache("42_42"))
-	require.Equal(t, "2_5", pool.routeToCache("2_5"))
-	require.Equal(t, "foobar", pool.routeToCache("foobar"))
+	require.Equal(t, "42", pool.routeToCacheUnions("42"))
+	require.Equal(t, "42", pool.routeToCacheUnions("42_0"))
+	require.Equal(t, "42", pool.routeToCacheUnions("42_1"))
+	require.Equal(t, "42", pool.routeToCacheUnions("42_2"))
+	require.Equal(t, "42", pool.routeToCacheUnions("42_42"))
+	require.Equal(t, "2_5", pool.routeToCacheUnions("2_5"))
+	require.Equal(t, "foobar", pool.routeToCacheUnions("foobar"))
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {

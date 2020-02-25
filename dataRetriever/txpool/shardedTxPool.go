@@ -2,12 +2,12 @@ package txpool
 
 import (
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -80,7 +80,7 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 }
 
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
-	cacheID = txPool.routeToCache(cacheID)
+	cacheID = txPool.routeToCacheUnions(cacheID)
 
 	txPool.mutex.RLock()
 	shard, ok := txPool.backingMap[cacheID]
@@ -104,7 +104,8 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 		cacheConfig := txPool.cacheConfigPrototype
 		cacheConfig.Name = cacheID
 
-		if txPool.isCacheForSelfShard(cacheID) {
+		isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
+		if isForSelfShard {
 			cacheConfig.CountThreshold *= txPool.numberOfShards
 			cacheConfig.NumBytesThreshold *= txPool.numberOfShards
 		}
@@ -128,7 +129,10 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 		return
 	}
 
-	sourceShardID, destinationShardID := parseCacheID(cacheID)
+	sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
+	if err != nil {
+		return
+	}
 
 	wrapper := &txcache.WrappedTransaction{
 		Tx:              valueAsTransaction,
@@ -223,8 +227,8 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
-	sourceCacheID = txPool.routeToCache(sourceCacheID)
-	destCacheID = txPool.routeToCache(destCacheID)
+	sourceCacheID = txPool.routeToCacheUnions(sourceCacheID)
+	destCacheID = txPool.routeToCacheUnions(destCacheID)
 
 	sourceShard := txPool.getOrCreateShard(sourceCacheID)
 	sourceCache := sourceShard.Cache
@@ -272,51 +276,15 @@ func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil
 }
 
-func (txPool *shardedTxPool) routeToCache(cacheID string) string {
-	sourceShardID, _ := parseCacheID(cacheID)
+func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
+	sourceShardID, _, err := process.ParseShardCacherIdentifier(cacheID)
+	if err != nil {
+		return cacheID
+	}
 
 	if sourceShardID == txPool.selfShardID {
 		return strconv.Itoa(int(sourceShardID))
 	}
 
 	return cacheID
-}
-
-func (txPool *shardedTxPool) isCacheForSelfShard(cacheID string) bool {
-	shardID, err := strconv.ParseUint(cacheID, 10, 64)
-	if err != nil {
-		return false
-	}
-
-	return uint32(shardID) == txPool.selfShardID
-}
-
-func parseCacheID(cacheID string) (sourceShardID uint32, destinationShardID uint32) {
-	parts := strings.Split(cacheID, "_")
-	sourceShardID = 0
-	destinationShardID = 0
-
-	switch len(parts) {
-	case 1:
-		shardID := parseCacheIDPart(parts[0])
-		sourceShardID = shardID
-		destinationShardID = shardID
-	case 2:
-		sourceShardID = parseCacheIDPart(parts[0])
-		destinationShardID = parseCacheIDPart(parts[1])
-	default:
-		log.Error("parseCacheID", "cacheID", cacheID)
-	}
-
-	return
-}
-
-func parseCacheIDPart(cacheIDPart string) uint32 {
-	part, err := strconv.ParseUint(cacheIDPart, 10, 64)
-	if err != nil {
-		log.Error("parseCacheIDPart", "cacheIDPart", cacheIDPart)
-		return 0
-	}
-
-	return uint32(part)
 }
