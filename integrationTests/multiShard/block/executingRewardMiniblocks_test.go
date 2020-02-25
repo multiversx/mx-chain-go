@@ -239,7 +239,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, _ := range consensusNodes {
+		for shardId := range consensusNodes {
 			if shardId == core.MetachainShardId {
 				continue
 			}

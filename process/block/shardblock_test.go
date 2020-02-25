@@ -4205,6 +4205,8 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T
 	blockChain = &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 		return &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound()}
 	}}
+	arguments.BlockChain = blockChain
+	sp, _ = blproc.NewShardProcessor(arguments)
 
 	err = sp.CheckEpochCorrectnessCrossChain()
 	assert.Equal(t, nil, err)
