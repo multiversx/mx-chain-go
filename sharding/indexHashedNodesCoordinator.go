@@ -144,7 +144,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	epoch uint32,
 	updatePeersListAndIndex bool,
 ) error {
-
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
 
@@ -185,7 +184,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	ihgs.nodesConfig[epoch] = nodesConfig
 
 	if updatePeersListAndIndex {
-		err := ihgs.UpdatePeersListAndIndex()
+		err := ihgs.updatePeersListAndIndex(nodesConfig)
 		if err != nil {
 			return err
 		}
@@ -638,6 +637,15 @@ func (ihgs *indexHashedNodesCoordinator) UpdatePeersListAndIndex() error {
 		return ErrEpochNodesConfigDoesNotExist
 	}
 
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	return ihgs.updatePeersListAndIndex(nodesConfig)
+}
+
+// updatePeersListAndIndex will update the list and the index for all peers
+// should be called with mutex locked
+func (ihgs *indexHashedNodesCoordinator) updatePeersListAndIndex(nodesConfig *epochNodesConfig) error {
 	err := ihgs.updatePeerAccountsForGivenMap(nodesConfig.eligibleMap, core.EligibleList)
 	if err != nil {
 		return err
