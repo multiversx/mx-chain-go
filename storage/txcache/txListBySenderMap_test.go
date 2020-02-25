@@ -11,9 +11,9 @@ import (
 func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
-	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
-	myMap.addTx([]byte("b"), createTx("bob", uint64(1)))
+	myMap.addTx(createTx([]byte("a"), "alice", uint64(1)))
+	myMap.addTx(createTx([]byte("aa"), "alice", uint64(2)))
+	myMap.addTx(createTx([]byte("b"), "bob", uint64(1)))
 
 	// There are 2 senders
 	require.Equal(t, int64(2), myMap.counter.Get())
@@ -22,13 +22,13 @@ func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	txAlice1 := createTx("alice", uint64(1))
-	txAlice2 := createTx("alice", uint64(2))
-	txBob := createTx("bob", uint64(1))
+	txAlice1 := createTx([]byte("a"), "alice", uint64(1))
+	txAlice2 := createTx([]byte("a"), "alice", uint64(2))
+	txBob := createTx([]byte("b"), "bob", uint64(1))
 
-	myMap.addTx([]byte("a"), txAlice1)
-	myMap.addTx([]byte("a"), txAlice2)
-	myMap.addTx([]byte("b"), txBob)
+	myMap.addTx(txAlice1)
+	myMap.addTx(txAlice2)
+	myMap.addTx(txBob)
 	require.Equal(t, int64(2), myMap.counter.Get())
 
 	myMap.removeTx(txAlice1)
@@ -46,7 +46,7 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 func TestSendersMap_RemoveSender(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
+	myMap.addTx(createTx([]byte("a"), "alice", uint64(1)))
 	require.Equal(t, int64(1), myMap.counter.Get())
 
 	// Bob is unknown
@@ -63,7 +63,7 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	// Discarded notification, since sender not added yet
 	myMap.notifyAccountNonce([]byte("alice"), 42)
 
-	myMap.addTx([]byte("tx-42"), createTx("alice", uint64(42)))
+	myMap.addTx(createTx([]byte("tx-42"), "alice", uint64(42)))
 	alice, _ := myMap.getListForSender("alice")
 	require.Equal(t, uint64(0), alice.accountNonce.Get())
 	require.False(t, alice.accountNonceKnown.IsSet())
@@ -129,7 +129,7 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 	for i := 0; i < numSenders; i++ {
 		sender := fmt.Sprintf("Sender-%d", i)
 		hash := createFakeTxHash([]byte(sender), 1)
-		myMap.addTx(hash, createTx(sender, uint64(1)))
+		myMap.addTx(createTx(hash, sender, uint64(1)))
 	}
 
 	return myMap

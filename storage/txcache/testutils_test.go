@@ -36,31 +36,41 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
 			txHash := createFakeTxHash(sender, txNonce)
-			tx := createTx(string(sender), uint64(txNonce))
-			cache.AddTx([]byte(txHash), tx)
+			tx := createTx(txHash, string(sender), uint64(txNonce))
+			cache.AddTx(tx)
 		}
 	}
 }
 
-func createTx(sender string, nonce uint64) *transaction.Transaction {
-	return &transaction.Transaction{
+func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
+	tx := &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
 	}
+
+	return &WrappedTransaction{
+		Tx:     tx,
+		TxHash: hash,
+	}
 }
 
-func createTxWithParams(sender string, nonce uint64, dataLength uint64, gasLimit uint64, gasPrice uint64) *transaction.Transaction {
+func createTxWithParams(hash []byte, sender string, nonce uint64, dataLength uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
 	payloadLength := int(dataLength) - int(estimatedSizeOfBoundedTxFields)
 	if payloadLength < 0 {
 		panic("createTxWithData(): invalid length for dummy tx")
 	}
 
-	return &transaction.Transaction{
+	tx := &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
 		Data:     make([]byte, payloadLength),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
+	}
+
+	return &WrappedTransaction{
+		Tx:     tx,
+		TxHash: hash,
 	}
 }
 

@@ -225,12 +225,12 @@ func Test_MergeShardStores(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
-	pool.MergeShardStores("foo", "bar")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1_0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "2_0")
+	pool.MergeShardStores("1_0", "2_0")
 
-	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
-	require.Equal(t, int64(2), pool.getTxCache("bar").CountTx())
+	require.Equal(t, int64(0), pool.getTxCache("1_0").CountTx())
+	require.Equal(t, int64(2), pool.getTxCache("2_0").CountTx())
 }
 
 func Test_Clear(t *testing.T) {
@@ -245,17 +245,17 @@ func Test_Clear(t *testing.T) {
 	require.Zero(t, pool.getTxCache("bar").CountTx())
 }
 
-func Test_CreateShardStore(t *testing.T) {
+func Test_ClearShardStore(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "foo")
-	pool.AddData([]byte("hash-z"), createTx("alice", 15), "bar")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
+	pool.AddData([]byte("hash-z"), createTx("alice", 15), "5")
 
-	pool.ClearShardStore("foo")
-	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
-	require.Equal(t, int64(1), pool.getTxCache("bar").CountTx())
+	pool.ClearShardStore("1")
+	require.Equal(t, int64(0), pool.getTxCache("1").CountTx())
+	require.Equal(t, int64(1), pool.getTxCache("5").CountTx())
 }
 
 func Test_RegisterHandler(t *testing.T) {

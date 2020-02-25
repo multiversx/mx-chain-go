@@ -1,10 +1,12 @@
 package preprocess
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+)
 
 // SortedTransactionsProvider defines the public API of the transactions cache
 type SortedTransactionsProvider interface {
-	GetSortedTransactions() ([]data.TransactionHandler, [][]byte)
+	GetSortedTransactions() []*txcache.WrappedTransaction
 	NotifyAccountNonce(accountKey []byte, nonce uint64)
 	IsInterfaceNil() bool
 }

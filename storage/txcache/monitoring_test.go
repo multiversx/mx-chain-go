@@ -19,14 +19,14 @@ func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {
 
 	cache.isEvictionInProgress.Set()
 
-	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
-	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
+	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-3"), "alice", 3))
 	_ = cache.RemoveTxByHash([]byte("hash-1"))
 
 	cache.isEvictionInProgress.Unset()
 
-	cache.AddTx([]byte("hash-4"), createTx("alice", 4))
+	cache.AddTx(createTx([]byte("hash-4"), "alice", 4))
 	_ = cache.RemoveTxByHash([]byte("hash-2"))
 
 	require.Equal(t, int64(3), cache.numTxAddedDuringEviction.Get())
@@ -45,17 +45,17 @@ func TestMonitoring_numTxAddedAndRemovedBetweenSelections(t *testing.T) {
 
 	require.Equal(t, int64(0), cache.numTxAddedBetweenSelections.Get())
 
-	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
-	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
+	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-3"), "alice", 3))
 	_ = cache.RemoveTxByHash([]byte("hash-1"))
 
 	require.Equal(t, int64(3), cache.numTxAddedBetweenSelections.Get())
 
 	cache.SelectTransactions(1000, 10)
 
-	cache.AddTx([]byte("hash-4"), createTx("alice", 4))
-	cache.AddTx([]byte("hash-5"), createTx("alice", 5))
+	cache.AddTx(createTx([]byte("hash-4"), "alice", 4))
+	cache.AddTx(createTx([]byte("hash-5"), "alice", 5))
 	_ = cache.RemoveTxByHash([]byte("hash-2"))
 	_ = cache.RemoveTxByHash([]byte("hash-3"))
 

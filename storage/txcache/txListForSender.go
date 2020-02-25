@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -33,12 +32,6 @@ type txListForSender struct {
 	sweepable             atomic.Flag
 }
 
-// txListForSenderNode is a node of the linked list
-type txListForSenderNode struct {
-	txHash []byte
-	tx     data.TransactionHandler
-}
-
 // newTxListForSender creates a new (sorted) list of transactions
 func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSender {
 	return &txListForSender{
@@ -50,25 +43,24 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSende
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHandler) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	nonce := tx.GetNonce()
+	nonce := tx.Tx.GetNonce()
 	mark := listForSender.findTxWithLowerNonce(nonce)
-	newNode := txListForSenderNode{txHash, tx}
 
 	if mark == nil {
-		listForSender.items.PushFront(newNode)
+		listForSender.items.PushFront(tx)
 	} else {
-		listForSender.items.InsertAfter(newNode, mark)
+		listForSender.items.InsertAfter(tx, mark)
 	}
 
 	listForSender.onAddedTransaction(tx)
 }
 
-func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHandler) {
+func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
@@ -77,8 +69,8 @@ func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHand
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.Element {
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		value := element.Value.(txListForSenderNode)
-		if value.tx.GetNonce() < nonce {
+		value := element.Value.(*WrappedTransaction)
+		if value.Tx.GetNonce() < nonce {
 			return element
 		}
 	}
@@ -87,7 +79,7 @@ func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.E
 }
 
 // RemoveTx removes a transaction from the sender's list
-func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool {
+func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -103,11 +95,11 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 }
 
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
-	value := element.Value.(txListForSenderNode)
+	value := element.Value.(*WrappedTransaction)
 
-	listForSender.totalBytes.Subtract(int64(estimateTxSize(value.tx)))
-	listForSender.totalGas.Subtract(int64(estimateTxGas(value.tx)))
-	listForSender.totalGas.Subtract(int64(estimateTxFee(value.tx)))
+	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
+	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
+	listForSender.totalGas.Subtract(int64(estimateTxFee(value)))
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
@@ -126,8 +118,8 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 		listForSender.onRemovedListElement(element)
 
 		// Keep track of removed transaction
-		value := element.Value.(txListForSenderNode)
-		removedTxHashes[index] = value.txHash
+		value := element.Value.(*WrappedTransaction)
+		removedTxHashes[index] = value.TxHash
 
 		index++
 	}
@@ -136,16 +128,16 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findListElementWithTx(txToFind data.TransactionHandler) *list.Element {
+func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(txListForSenderNode)
+		value := element.Value.(*WrappedTransaction)
 
-		if value.tx == txToFind {
+		if value == txToFind {
 			return element
 		}
 
 		// Optimization: stop search at this point, since the list is sorted by nonce
-		if value.tx.GetNonce() > txToFind.GetNonce() {
+		if value.Tx.GetNonce() > txToFind.Tx.GetNonce() {
 			break
 		}
 	}
@@ -165,7 +157,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // selectBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []data.TransactionHandler, destinationHashes [][]byte, batchSize int) int {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) int {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
@@ -199,17 +191,15 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 			break
 		}
 
-		value := element.Value.(txListForSenderNode)
-		tx := value.tx
-		txNonce := tx.GetNonce()
+		value := element.Value.(*WrappedTransaction)
+		txNonce := value.Tx.GetNonce()
 
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
 			break
 		}
 
-		destination[copied] = tx
-		destinationHashes[copied] = value.txHash
+		destination[copied] = value
 		element = element.Next()
 		previousNonce = txNonce
 	}
@@ -227,8 +217,8 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	result := make([][]byte, 0, listForSender.countTx())
 
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(txListForSenderNode)
-		result = append(result, value.txHash)
+		value := element.Value.(*WrappedTransaction)
+		result = append(result, value.TxHash)
 	}
 
 	return result
@@ -293,21 +283,21 @@ func (listForSender *txListForSender) hasInitialGap() bool {
 		return false
 	}
 
-	firstTxNonce := firstTx.GetNonce()
+	firstTxNonce := firstTx.Tx.GetNonce()
 	accountNonce := listForSender.accountNonce.Get()
 	hasGap := firstTxNonce > accountNonce
 	return hasGap
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) getLowestNonceTx() data.TransactionHandler {
+func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 	front := listForSender.items.Front()
 	if front == nil {
 		return nil
 	}
 
-	value := front.Value.(txListForSenderNode)
-	return value.tx
+	value := front.Value.(*WrappedTransaction)
+	return value
 }
 
 // isInGracePeriod returns whether the sender is grace period due to a number of failed selections

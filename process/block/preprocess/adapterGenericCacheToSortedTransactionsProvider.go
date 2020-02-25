@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 type adapterGenericCacheToSortedTransactionsProvider struct {
@@ -26,9 +27,10 @@ func newAdapterGenericCacheToSortedTransactionsProvider(transactionsPreprocessor
 }
 
 // GetSortedTransactions gets the transactions from the cache
-func (adapter *adapterGenericCacheToSortedTransactionsProvider) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
-	txs, txHashes := adapter.getOrderedTx()
-	return txs, txHashes
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
+	panic("not implemented")
+	//txs, txHashes := adapter.getOrderedTx()
+	//return txs, txHashes
 }
 
 // getOrderedTx was moved here from the previous implementation
