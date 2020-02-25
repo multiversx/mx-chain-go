@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -69,7 +70,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
+		accountsDB:                   arguments.AccountsDB,
 		blockSizeThrottler:           blockSizeThrottler,
 		forkDetector:                 arguments.ForkDetector,
 		hasher:                       arguments.Hasher,
@@ -90,6 +91,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataPool,
+		stateCheckpointModulus:       arguments.StateCheckpointModulus,
 	}
 
 	mp := metaProcessor{
@@ -242,7 +244,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	if mp.accounts.JournalLen() != 0 {
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
 
@@ -601,7 +603,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return peerMiniBlocks, nil
 	}
 
-	if mp.accounts.JournalLen() != 0 {
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
 
@@ -744,7 +746,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			uint32(len(miniBlocks)))
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			snapshot := mp.accounts.JournalLen()
+			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
 			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currShardHdr,
 				nil,
@@ -759,7 +761,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 					"hash", orderedHdrsHashes[i])
 
 				// shard header must be processed completely
-				errAccountState := mp.accounts.RevertToSnapshot(snapshot)
+				errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
 				if errAccountState != nil {
 					// TODO: evaluate if reloading the trie from disk will might solve the problem
 					log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
@@ -908,7 +910,7 @@ func (mp *metaProcessor) CommitBlock(
 
 		mp.updateShardHeadersNonce(shardBlock.ShardId, shardBlock.Nonce)
 
-		marshalizedHeader, err := mp.marshalizer.Marshal(shardBlock)
+		marshalizedHeader, err = mp.marshalizer.Marshal(shardBlock)
 		if err != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return err
@@ -975,6 +977,7 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
+	mp.updateState(lastMetaBlock)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1041,18 +1044,31 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
+func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
+	if check.IfNil(lastMetaBlock) {
+		log.Debug("updateState nil header")
+		return
 	}
 
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
+	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(lastMetaBlock.GetPrevHash(), mp.marshalizer, mp.store)
+	if errNotCritical != nil {
+		log.Debug("could not get meta header from storage")
+		return
 	}
 
-	return nil
+	mp.updateStateStorage(
+		lastMetaBlock,
+		lastMetaBlock.GetRootHash(),
+		prevHeader.GetRootHash(),
+		mp.accountsDB[state.UserAccountsState],
+	)
+
+	mp.updateStateStorage(
+		lastMetaBlock,
+		lastMetaBlock.GetValidatorStatsRootHash(),
+		prevHeader.GetValidatorStatsRootHash(),
+		mp.accountsDB[state.PeerAccountsState],
+	)
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.HeaderHandler, []byte) {
@@ -1075,22 +1091,9 @@ func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandle
 	}
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (mp *metaProcessor) RevertAccountState() {
-	err := mp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
-	}
-}
-
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),

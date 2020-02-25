@@ -26,8 +26,9 @@ type BlockProcessorMock struct {
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusDataCalled                  func(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	CreateNewHeaderCalled                   func() data.HeaderHandler
-	RevertStateToBlockCalled                func(header data.HeaderHandler) error
+	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
+	RevertStateToBlockCalled                func(header data.HeaderHandler) error
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -76,13 +77,11 @@ func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body
 	return bpm.ApplyBodyToHeaderCalled(header, body)
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if bpm.RevertStateToBlockCalled != nil {
-		return bpm.RevertStateToBlockCalled(header)
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if bpm.PruneStateOnRollbackCalled != nil {
+		bpm.PruneStateOnRollbackCalled(currHeader, prevHeader)
 	}
-
-	return nil
 }
 
 // SetNumProcessedObj -
@@ -168,4 +167,13 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
+	}
+
+	return nil
 }

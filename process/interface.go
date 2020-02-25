@@ -215,6 +215,7 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
+	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader(round uint64) data.HeaderHandler
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
@@ -233,10 +234,8 @@ type BlockProcessor interface {
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
-	RevertPeerStateToSnapshot(snapshot int) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	IsInterfaceNil() bool
-	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
