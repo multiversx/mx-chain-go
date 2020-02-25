@@ -16,3 +16,11 @@ type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool
 	IsInterfaceNil() bool
 }
+
+// BlockSizeComputationHandler defines the functionality for block size computation
+type BlockSizeComputationHandler interface {
+	Init()
+	AddNumMiniBlocks(numMiniBlocks int)
+	AddNumTxs(numTxs int)
+	IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool
+}

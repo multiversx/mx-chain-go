@@ -41,11 +41,12 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	gasHandler       process.GasHandler
-	economicsFee     process.FeeHandler
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	shardCoordinator     sharding.Coordinator
+	gasHandler           process.GasHandler
+	economicsFee         process.FeeHandler
+	blockSizeComputation BlockSizeComputationHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -244,14 +245,6 @@ func (bpp *basePreProcess) displayMissingTransactions(
 		}
 	}
 }
-
-//func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {
-//	forBlock.mutTxsForBlock.RLock()
-//	_, txAlreadyProcessed := forBlock.txHashAndInfo[string(txHash)]
-//	forBlock.mutTxsForBlock.RUnlock()
-//
-//	return txAlreadyProcessed
-//}
 
 func (bpp *basePreProcess) computeGasConsumed(
 	senderShardId uint32,

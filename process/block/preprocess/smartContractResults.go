@@ -439,12 +439,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(
-	_ uint32,
-	_ uint32,
-	_ func() bool,
-) (block.MiniBlockSlice, error) {
-
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
 	return nil, nil
 }
 

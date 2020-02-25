@@ -634,7 +634,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		return nil, err
 	}
 
-	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
+	miniBlocks, err := sp.createMiniBlocks(haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1473,7 +1473,6 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -1504,22 +1503,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
-				"num txs", txsAdded,
-			)
-			break
-		}
-
-		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
-			log.Debug("max number of mini blocks allowed to be added in one shard block has been reached",
-				"limit", len(miniBlocks),
-			)
-			break
-		}
-
-		itemsAddedInHeader := uint32(len(sp.hdrsForCurrBlock.hdrHashAndInfo) + len(miniBlocks))
-		if itemsAddedInHeader >= maxItemsInBlock {
-			log.Debug("max records allowed to be added in shard header has been reached",
-				"limit", maxItemsInBlock,
+				"num txs added", txsAdded,
 			)
 			break
 		}
@@ -1539,46 +1523,31 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		itemsAddedInBody := txsAdded
-		if itemsAddedInBody >= maxItemsInBlock {
-			continue
+		processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
+		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currMetaHdr,
+			processedMiniBlocksHashes,
+			haveTime)
+
+		// all txs processed, add to processed miniblocks
+		miniBlocks = append(miniBlocks, currMBProcessed...)
+		txsAdded += currTxsAdded
+
+		if currTxsAdded > 0 {
+			sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocksHashes[i])] = &hdrInfo{hdr: currMetaHdr, usedInBlock: true}
+			hdrsAdded++
 		}
 
-		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
-		maxMbSpaceRemained := sp.getMaxMiniBlocksSpaceRemained(
-			maxItemsInBlock,
-			itemsAddedInHeader+1,
-			uint32(len(miniBlocks)))
+		if !hdrProcessFinished {
+			log.Debug("meta block cannot be fully processed",
+				"round", currMetaHdr.GetRound(),
+				"nonce", currMetaHdr.GetNonce(),
+				"hash", orderedMetaBlocksHashes[i])
 
-		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-				currMetaHdr,
-				processedMiniBlocksHashes,
-				uint32(maxTxSpaceRemained),
-				uint32(maxMbSpaceRemained),
-				haveTime)
-
-			// all txs processed, add to processed miniblocks
-			miniBlocks = append(miniBlocks, currMBProcessed...)
-			txsAdded += currTxsAdded
-
-			if currTxsAdded > 0 {
-				sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocksHashes[i])] = &hdrInfo{hdr: currMetaHdr, usedInBlock: true}
-				hdrsAdded++
-			}
-
-			if !hdrProcessFinished {
-				log.Debug("meta block cannot be fully processed",
-					"round", currMetaHdr.GetRound(),
-					"nonce", currMetaHdr.GetNonce(),
-					"hash", orderedMetaBlocksHashes[i])
-
-				break
-			}
-
-			lastMetaHdr = currMetaHdr
+			break
 		}
+
+		lastMetaHdr = currMetaHdr
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1602,11 +1571,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(
-	maxItemsInBlock uint32,
-	haveTime func() bool,
-) (block.Body, error) {
-
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (block.Body, error) {
 	miniBlocks := make(block.Body, 0)
 
 	if sp.accounts.JournalLen() != 0 {
@@ -1624,7 +1589,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	startTime := time.Now()
-	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
+	destMeMiniBlocks, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
@@ -1645,24 +1610,16 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	log.Debug("processed miniblocks and txs with destination in self shard",
 		"num miniblocks", len(destMeMiniBlocks),
-		"num txs", nbTxs,
+		"num txs", numTxs,
+		"num meta headers", numMetaHeaders,
 	)
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
 
-	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(nbTxs)
-	maxMbSpaceRemained := sp.getMaxMiniBlocksSpaceRemained(
-		maxItemsInBlock,
-		uint32(len(destMeMiniBlocks))+nbHdrs,
-		uint32(len(miniBlocks)))
-
 	startTime = time.Now()
-	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
-		uint32(maxTxSpaceRemained),
-		uint32(maxMbSpaceRemained),
-		haveTime)
+	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,
@@ -1788,18 +1745,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
 	return sp == nil
-}
-
-func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
-	maxItemsInBlock uint32,
-	itemsAddedInBlock uint32,
-	miniBlocksAddedInBlock uint32,
-) int32 {
-	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
-	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
-	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
-
-	return maxMbSpaceRemained
 }
 
 // GetBlockBodyFromPool returns block body from pool for a given header

@@ -632,3 +632,6 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrMaxBlockSizeReached signals that max block size has been reached
+var ErrMaxBlockSizeReached = errors.New("max block size has been reached")

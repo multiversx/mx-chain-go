@@ -441,8 +441,6 @@ func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
 
@@ -482,12 +480,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		// overflow would happen if processing would continue
-		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
-		if txOverFlow {
-			return miniBlocks, nrTxAdded, false
-		}
-
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			continue
@@ -502,11 +494,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
-
-		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
-		if mbOverFlow {
-			return miniBlocks, nrTxAdded, false
-		}
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
@@ -516,8 +503,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
@@ -528,11 +513,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			return nil
 		}
 
-		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
-			maxTxSpaceRemained,
-			maxMbSpaceRemained,
-			haveTime,
-		)
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime)
 		if err != nil {
 			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
