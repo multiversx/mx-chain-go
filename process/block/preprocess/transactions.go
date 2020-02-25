@@ -526,7 +526,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 
 	err := txs.txProcessor.ProcessTransaction(transaction)
-	isTxTargetedForDeletion := err == process.ErrLowerNonceInTransaction || err == process.ErrInsufficientFee
+	isTxTargetedForDeletion := err == process.ErrLowerNonceInTransaction || errors.Is(err, process.ErrInsufficientFee)
 	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
@@ -540,7 +540,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.accountsInfo[string(transaction.GetSndAddress())] = &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	txs.mutAccountsInfo.Unlock()
 
-	if err != nil && err != process.ErrFailedTransaction {
+	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		return err
 	}
 
@@ -945,7 +945,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 		elapsedTime = time.Since(startTime)
 		totalProcesssingTime += elapsedTime
 
-		if err != nil && err != process.ErrFailedTransaction {
+		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			startTime = time.Now()
 			if err == process.ErrHigherNonceInTransaction {
 				sndAddressToSkip = tx.GetSndAddress()
@@ -982,7 +982,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			gasConsumedByMiniBlockInSenderShard -= gasRefunded
 		}
 
-		if err != process.ErrFailedTransaction {
+		if !errors.Is(err, process.ErrFailedTransaction) {
 			mapMiniBlocks[receiverShardID].TxHashes = append(mapMiniBlocks[receiverShardID].TxHashes, txHash)
 		}
 
