@@ -456,7 +456,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
-	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
 	go syncer.StartSync()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
@@ -757,7 +757,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		0,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
-		generalConfig.StateTrieConfig.RoundsModulus,
+		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
