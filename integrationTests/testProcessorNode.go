@@ -216,13 +216,23 @@ func NewTestProcessorNode(
 	sk, pk := kg.GeneratePair()
 
 	pkBytes := make([]byte, 128)
+	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	address := make([]byte, 32)
-	pkBytes[0] = 1
-	address[0] = 1
+	address = []byte("afafafafafafafafafafafafafafafaf")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
+		},
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			keys[0] = make([][]byte, 0)
+			keys[0] = append(keys[0], pkBytes)
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, address)
+			return validator, 0, nil
 		},
 	}
 
@@ -907,7 +917,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
 		}
-		_, _ = metachain.NewEpochStartRewardsCreator(argsEpochRewards)
+		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,
@@ -916,7 +926,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:           epochEconomics,
 			EpochStartDataCreator:    epochStartDataCreator,
-			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
+			EpochRewardsCreator:      epochStartRewards,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

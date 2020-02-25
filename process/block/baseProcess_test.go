@@ -94,7 +94,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		Epoch:   0,
 		Value:   big.NewInt(10),
 		RcvAddr: []byte("receiver"),
-		ShardId: 0,
 	}
 	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)

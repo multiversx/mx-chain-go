@@ -9,6 +9,8 @@ type NodesCoordinatorMock struct {
 	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
 	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
+	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
 // GetNumTotalEligible -
@@ -18,6 +20,10 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 
 // GetAllValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllValidatorsPublicKeysCalled()
+	}
+
 	return nil, nil
 }
 
@@ -131,8 +137,11 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uin
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(_ []byte, _ uint32) (sharding.Validator, uint32, error) {
-	panic("implement me")
+func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(address []byte, _ uint32) (sharding.Validator, uint32, error) {
+	if ncm.GetValidatorWithPublicKeyCalled != nil {
+		return ncm.GetValidatorWithPublicKeyCalled(address)
+	}
+	return nil, 0, nil
 }
 
 // GetOwnPublicKey -

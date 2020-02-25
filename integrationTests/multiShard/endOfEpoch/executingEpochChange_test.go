@@ -20,9 +20,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 3
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()

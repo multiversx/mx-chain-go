@@ -70,7 +70,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateTxResolvers(
+	err = srcf.generateRewardResolver(
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		srcf.dataPools.RewardTransactions(),
@@ -285,6 +285,31 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	return srcf.container.AddMultiple(keys, resolversSlice)
+}
+
+func (srcf *shardResolversContainerFactory) generateRewardResolver(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) error {
+
+	shardC := srcf.shardCoordinator
+
+	keys := make([]string, 0)
+	resolverSlice := make([]dataRetriever.Resolver, 0)
+
+	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool)
+	if err != nil {
+		return err
+	}
+
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTx)
+
+	return srcf.container.AddMultiple(keys, resolverSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

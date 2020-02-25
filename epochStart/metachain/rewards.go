@@ -43,7 +43,6 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	ShardId                    uint32
 	LeaderSuccess              uint32
 	LeaderFailure              uint32
 	ValidatorSuccess           uint32
@@ -114,10 +113,15 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	for address, rwdInfo := range rwdAddrValidatorInfo {
 		addrContainer, err := r.addrConverter.CreateAddressFromPublicKeyBytes([]byte(address))
 		if err != nil {
+			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
+			continue
+		}
+
+		rwdTx, rwdTxHash, err := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
+		if err != nil {
 			return nil, err
 		}
 
-		rwdTx, rwdTxHash := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
 		r.currTxs.AddTx(rwdTxHash, rwdTx)
 
 		shardId := r.shardCoordinator.ComputeId(addrContainer)
@@ -130,7 +134,14 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		})
 	}
 
-	return miniBlocks, nil
+	finalMiniBlocks := make(block.Body, 0)
+	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+		if len(miniBlocks[i].TxHashes) > 0 {
+			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+		}
+	}
+
+	return finalMiniBlocks, nil
 }
 
 func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
@@ -139,12 +150,11 @@ func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 
-	for shardId, shardValidatorInfos := range validatorInfos {
+	for _, shardValidatorInfos := range validatorInfos {
 		for _, validatorInfo := range shardValidatorInfos {
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					ShardId:         shardId,
 					AccumulatedFees: big.NewInt(0),
 				}
 				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
@@ -168,18 +178,23 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 	rwdInfo *rewardInfoData,
 	economicsData *block.Economics,
 	metaBlock *block.MetaBlock,
-) (*rewardTx.RewardTx, []byte) {
+) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(rwdInfo.AccumulatedFees),
 		RcvAddr: address,
-		ShardId: rwdInfo.ShardId,
 		Epoch:   metaBlock.Epoch,
 	}
 
 	protocolRewardValue := big.NewInt(0).Mul(economicsData.RewardsPerBlockPerNode, big.NewInt(0).SetUint64(uint64(rwdInfo.NumSelectedInSuccessBlocks)))
 	rwdTx.Value.Add(rwdTx.Value, protocolRewardValue)
-	return rwdTx, nil
+
+	rwdTxHash, err := core.CalculateHash(r.marshalizer, r.hasher, rwdTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rwdTx, rwdTxHash, nil
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
