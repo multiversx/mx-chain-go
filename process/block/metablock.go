@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"sync"
 	"time"
 
