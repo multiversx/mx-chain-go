@@ -9,7 +9,7 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = false
+   Enabled = true
 
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
@@ -97,7 +97,7 @@
         FilePath = "Transactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 45000
+        MaxBatchSize = 20000
         MaxOpenFiles = 10
 
 [UnsignedTransactionStorage]
@@ -108,7 +108,7 @@
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 45000
+        MaxBatchSize = 20000
         MaxOpenFiles = 10
 
 [RewardTxStorage]
@@ -119,7 +119,7 @@
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 45000
+        MaxBatchSize = 20000
         MaxOpenFiles = 10
 
 [StatusMetricsStorage]
@@ -252,8 +252,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 100000
-    RoundsPerEpoch         = 100000
+    MinRoundsBetweenEpochs = 30
+    RoundsPerEpoch         = 50
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -289,6 +289,7 @@
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
    Port = 123
    TimeoutMilliseconds = 100
+   SyncPeriodSeconds = 3600
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTrieConfig]

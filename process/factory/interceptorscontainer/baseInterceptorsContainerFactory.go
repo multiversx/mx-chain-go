@@ -1,6 +1,7 @@
 package interceptorscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -119,7 +120,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	}
 
 	//tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 	if err != nil {
@@ -270,7 +271,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return err
@@ -299,7 +300,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
