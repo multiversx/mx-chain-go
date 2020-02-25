@@ -70,7 +70,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateRewardResolvers(
+	err = srcf.generateRewardResolver(
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		srcf.dataPools.RewardTransactions(),
@@ -287,7 +287,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	return srcf.container.AddMultiple(keys, resolversSlice)
 }
 
-func (srcf *shardResolversContainerFactory) generateRewardResolvers(
+func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	topic string,
 	unit dataRetriever.UnitType,
 	dataPool dataRetriever.ShardedDataCacherNotifier,
@@ -298,7 +298,7 @@ func (srcf *shardResolversContainerFactory) generateRewardResolvers(
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool)

@@ -4,12 +4,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -139,7 +139,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, shardId, irt.ReceiverShardId())
-	assert.Equal(t, sharding.MetachainShardId, irt.SenderShardId())
+	assert.Equal(t, core.MetachainShardId, irt.SenderShardId())
 	assert.Equal(t, &rewTx, irt.Transaction())
 	assert.True(t, irt.IsForCurrentShard())
 

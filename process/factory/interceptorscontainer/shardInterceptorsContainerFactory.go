@@ -139,7 +139,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateRewardTxInterceptors()
+	err = sicf.generateRewardTxInterceptor()
 	if err != nil {
 		return nil, err
 	}
@@ -215,13 +215,13 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 
 //------- Reward transactions interceptors
 
-func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptors() error {
+func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() error {
 	shardC := sicf.shardCoordinator
 
 	keys := make([]string, 0)
 	interceptorSlice := make([]process.Interceptor, 0)
 
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
 		return err

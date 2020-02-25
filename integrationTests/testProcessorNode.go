@@ -224,14 +224,14 @@ func NewTestProcessorNode(
 			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() map[uint32][][]byte {
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], pkBytes)
-			return keys
+			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(big.NewInt(50), 10, publicKey, address)
+			validator, _ := sharding.NewValidator(publicKey, address)
 			return validator, 0, nil
 		},
 	}

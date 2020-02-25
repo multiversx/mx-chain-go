@@ -727,7 +727,7 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        "meta",
+		Sender:        metachainTpsDocID,
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
