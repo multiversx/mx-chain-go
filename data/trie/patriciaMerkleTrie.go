@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -86,8 +87,15 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie
 func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
+	startProcessTime := time.Now()
 	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
+	defer func() {
+		tr.mutOperation.Unlock()
+		elapsedTime := time.Since(startProcessTime)
+		if elapsedTime > time.Second {
+			log.Debug("elapsed time to updateTrie", "time [s]", elapsedTime)
+		}
+	}()
 
 	hexKey := keyBytesToHex(key)
 	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)

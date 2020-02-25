@@ -437,11 +437,16 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
 
+	startProcessTime := time.Now()
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Blockchain(),
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,
+	)
+	elapsedTime := time.Since(startProcessTime)
+	log.Debug("elapsed time to process block",
+		"time [s]", elapsedTime,
 	)
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {

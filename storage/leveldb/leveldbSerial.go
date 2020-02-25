@@ -3,6 +3,7 @@ package leveldb
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -16,9 +17,13 @@ import (
 type SerialDB struct {
 	db                *leveldb.DB
 	path              string
+	name              string
 	maxBatchSize      int
 	batchDelaySeconds int
 	sizeBatch         int
+	actualSize        int
+	totalSize         uint64
+	totalBatches      uint64
 	batch             storage.Batcher
 	mutBatch          sync.RWMutex
 	dbAccess          chan serialQueryer
@@ -62,6 +67,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		closed:            false,
 	}
 
+	dbStore.name = filepath.Base(path)
+
 	dbStore.batch = NewBatch()
 
 	go dbStore.batchTimeoutHandle(ctx)
@@ -78,6 +85,8 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+			s.totalBatches += uint64(s.sizeBatch)
+			s.totalSize += uint64(s.actualSize)
 			err := s.putBatch()
 			if err != nil {
 				log.Warn("leveldb serial putBatch", "error", err.Error())
@@ -87,6 +96,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 			log.Debug("closing the timed batch handler")
 			return
 		}
+
 	}
 }
 
@@ -104,12 +114,15 @@ func (s *SerialDB) Put(key, val []byte) error {
 	}
 
 	s.sizeBatch++
+	s.actualSize += len(val)
 	if s.sizeBatch < s.maxBatchSize {
 		s.mutBatch.Unlock()
 		return nil
 	}
 	s.mutBatch.Unlock()
 
+	s.totalBatches += uint64(s.sizeBatch)
+	s.totalSize += uint64(s.actualSize)
 	err = s.putBatch()
 
 	return err
@@ -168,13 +181,19 @@ func (s *SerialDB) Init() error {
 
 // putBatch writes the Batch data into the database
 func (s *SerialDB) putBatch() error {
+	startProcessTime := time.Now()
 	s.mutBatch.Lock()
 	dbBatch, ok := s.batch.(*batch)
 	if !ok {
 		s.mutBatch.Unlock()
 		return storage.ErrInvalidBatch
 	}
+
+	sizeBatch := s.sizeBatch
+	actualSize := s.actualSize
+
 	s.sizeBatch = 0
+	s.actualSize = 0
 	s.batch = NewBatch()
 	s.mutBatch.Unlock()
 
@@ -187,6 +206,11 @@ func (s *SerialDB) putBatch() error {
 	s.dbAccess <- req
 	result := <-ch
 	close(ch)
+
+	elapsedTime := time.Since(startProcessTime)
+	if elapsedTime > time.Second {
+		log.Debug("elapsed time to putBatch", "time [s]", elapsedTime, "dbName", s.name, "sizeOfBatch", sizeBatch, "totalSize", actualSize)
+	}
 
 	return result
 }
@@ -212,6 +236,8 @@ func (s *SerialDB) Close() error {
 	_ = s.putBatch()
 
 	s.cancel()
+
+	log.Debug("close levelDB", "totalBatches", s.totalBatches, "totalSize", s.totalSize)
 
 	return s.db.Close()
 }
@@ -277,7 +303,7 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
 		case <-ctx.Done():
-			log.Debug("closing the leveldb process loop")
+			log.Debug("closing the leveldb process loop", "totalBatches", s.totalBatches, "totalSize", s.totalSize)
 			return
 		}
 	}
