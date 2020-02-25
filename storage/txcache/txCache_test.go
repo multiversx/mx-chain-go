@@ -89,9 +89,17 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 	require.True(t, okPeek)
 	require.Equal(t, tx.Tx, foundTxPeek)
 
+	foundTxPeek, okPeek = cache.Peek([]byte("missing"))
+	require.False(t, okPeek)
+	require.Nil(t, foundTxPeek)
+
 	foundTxGet, okGet := cache.Get(txHash)
 	require.True(t, okGet)
 	require.Equal(t, tx.Tx, foundTxGet)
+
+	foundTxGet, okGet = cache.Get([]byte("missing"))
+	require.False(t, okGet)
+	require.Nil(t, foundTxGet)
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
