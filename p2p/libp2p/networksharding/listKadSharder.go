@@ -148,7 +148,7 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (sorting.PeerDistances,
 	unknownShard := sorting.PeerDistances{}
 
 	for _, p := range peers {
-		pd := sorting.PeerDistance{
+		pd := &sorting.PeerDistance{
 			ID:       p,
 			Distance: lks.computeDistance(p, lks.selfPeerId),
 		}

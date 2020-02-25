@@ -5,7 +5,7 @@ import (
 )
 
 const KadDhtName = kadDhtName
-const NullName = nullName
+const NullName = nilName
 
 //------- KadDhtDiscoverer
 

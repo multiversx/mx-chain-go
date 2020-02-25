@@ -13,7 +13,7 @@ type Sharder interface {
 	// GetShard get the shard id of the peer
 	GetShard(id peer.ID) uint32
 	// GetDistance get the distance between a and b
-	GetDistance(a, b sorting.SortingID) *big.Int
+	GetDistance(a, b sorting.SortedID) *big.Int
 	// SortList sort the provided peers list
 	SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool)
 	IsInterfaceNil() bool
@@ -24,19 +24,19 @@ func keyFromID(id peer.ID) []byte {
 	return key[:]
 }
 
-func getSortingList(s Sharder, peers []peer.ID, ref peer.ID) *sorting.SortingList {
-	sl := sorting.SortingList{
-		Ref: sorting.SortingID{
+func getSortingList(s Sharder, peers []peer.ID, ref peer.ID) *sorting.SortedList {
+	sl := sorting.SortedList{
+		Ref: sorting.SortedID{
 			ID:       ref,
 			Key:      keyFromID(ref),
 			Shard:    s.GetShard(ref),
 			Distance: big.NewInt(0),
 		},
-		Peers: make([]sorting.SortingID, len(peers)),
+		Peers: make([]sorting.SortedID, len(peers)),
 	}
 
 	for i, id := range peers {
-		sl.Peers[i] = sorting.SortingID{
+		sl.Peers[i] = sorting.SortedID{
 			ID:       id,
 			Key:      keyFromID(id),
 			Shard:    s.GetShard(id),

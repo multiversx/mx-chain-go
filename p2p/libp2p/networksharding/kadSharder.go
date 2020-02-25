@@ -69,7 +69,7 @@ func (ks *kadSharder) resetDistanceBits(d []byte) []byte {
 }
 
 // GetDistance get the distance between a and b
-func (ks *kadSharder) GetDistance(a, b sorting.SortingID) *big.Int {
+func (ks *kadSharder) GetDistance(a, b sorting.SortedID) *big.Int {
 	c := make([]byte, len(a.Key))
 	for i := 0; i < len(a.Key); i++ {
 		c[i] = a.Key[i] ^ b.Key[i]
@@ -99,7 +99,7 @@ func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
 	return sl.SortedPeers(), balanced
 }
 
-func inShardCount(sl *sorting.SortingList) int {
+func inShardCount(sl *sorting.SortedList) int {
 	cnt := 0
 	for _, p := range sl.Peers {
 		if p.Shard == sl.Ref.Shard {

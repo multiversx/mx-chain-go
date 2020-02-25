@@ -54,7 +54,7 @@
 [Sharding]
     # The targeted number of peer connections
     TargetPeerCount = 0
-    # Number of ptiority bits used
+    # Number of priority bits used
     PrioBits = 0
     MaxIntraShard = 0
     MaxCrossShard = 0

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -58,10 +59,10 @@ type KadDhtDiscoverer struct {
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewKadDhtPeerDiscoverer(arg ArgKadDht) (*KadDhtDiscoverer, error) {
-	if arg.Context == nil {
+	if check.IfNilReflect(arg.Context) {
 		return nil, p2p.ErrNilContext
 	}
-	if arg.Host == nil {
+	if check.IfNilReflect(arg.Host) {
 		return nil, p2p.ErrNilHost
 	}
 	if arg.PeersRefreshInterval < time.Second {
@@ -246,11 +247,11 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 
 		for {
 			err := kdd.host.ConnectToPeer(kdd.context, initialPeersList[startIndex])
-
 			if err != nil {
 				//could not connect, wait and try next one
 				startIndex++
 				startIndex = startIndex % len(initialPeersList)
+
 				select {
 				case <-kdd.context.Done():
 					break

@@ -38,8 +38,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 func main() {
 	startingPort := 32000
 
-	advertiser, err := libp2p.NewNetworkMessenger(createMockNetworkArgs())
-	fmt.Println(err)
+	advertiser, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
 	peers := make([]p2p.Messenger, 0)

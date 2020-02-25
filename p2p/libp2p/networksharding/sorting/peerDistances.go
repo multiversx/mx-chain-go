@@ -14,7 +14,7 @@ type PeerDistance struct {
 }
 
 // PeerDistances represents a sortable peerDistance slice
-type PeerDistances []PeerDistance
+type PeerDistances []*PeerDistance
 
 // Len returns the length of this slice
 func (pd PeerDistances) Len() int {

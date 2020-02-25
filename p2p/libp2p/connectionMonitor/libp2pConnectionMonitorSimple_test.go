@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const durTimeoutWaiting = time.Second * 2
-const durStartGoRoutine = time.Second
+const durationTimeoutWaiting = time.Second * 2
+const durationStartGoRoutine = time.Second
 
 func TestNewLibp2pConnectionMonitorSimple_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
@@ -74,12 +74,12 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	}
 
 	lcms, _ := NewLibp2pConnectionMonitorSimple(&rs, 3, &mock.SharderStub{})
-	time.Sleep(durStartGoRoutine)
+	time.Sleep(durationStartGoRoutine)
 	lcms.Disconnected(&ns, nil)
 
 	select {
 	case <-chReconnectCalled:
-	case <-time.After(durTimeoutWaiting):
+	case <-time.After(durationTimeoutWaiting):
 		assert.Fail(t, "timeout waiting to call reconnect")
 	}
 }

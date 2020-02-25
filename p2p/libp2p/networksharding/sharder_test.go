@@ -18,8 +18,8 @@ var (
 	nodeF = peer.ID("NODE F")
 )
 
-func makeSortingID(id peer.ID) sorting.SortingID {
-	return sorting.SortingID{
+func makeSortingID(id peer.ID) sorting.SortedID {
+	return sorting.SortedID{
 		ID:       id,
 		Key:      keyFromID(id),
 		Shard:    0,

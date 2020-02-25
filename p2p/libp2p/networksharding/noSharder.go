@@ -17,7 +17,7 @@ func (ns *NoSharder) GetShard(_ peer.ID) uint32 {
 }
 
 // GetDistance Kademlia XOR distance
-func (ns *NoSharder) GetDistance(a, b sorting.SortingID) *big.Int {
+func (ns *NoSharder) GetDistance(a, b sorting.SortedID) *big.Int {
 	c := make([]byte, len(a.Key))
 	for i := 0; i < len(a.Key); i++ {
 		c[i] = a.Key[i] ^ b.Key[i]

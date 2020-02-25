@@ -67,12 +67,12 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 	}
 
 	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0, &ns.NoSharder{})
-	time.Sleep(durStartGoRoutine)
+	time.Sleep(durationStartGoRoutine)
 	cm.Disconnected(netw, nil)
 
 	select {
 	case <-chReconnectCalled:
-	case <-time.After(durTimeoutWaiting):
+	case <-time.After(durationTimeoutWaiting):
 		assert.Fail(t, "timeout waiting to call reconnect")
 	}
 }

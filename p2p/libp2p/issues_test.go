@@ -31,7 +31,6 @@ func createMessenger() p2p.Messenger {
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
-
 	if err != nil {
 		fmt.Println(err.Error())
 	}

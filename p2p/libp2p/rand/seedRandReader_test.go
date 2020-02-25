@@ -52,11 +52,11 @@ func TestSeedRandReader_ReadShouldWork(t *testing.T) {
 		err   error
 		name  string
 	}{
-		{pSize: 1, p: seed[:1], n: 1, err: nil, name: "1 character"},
-		{pSize: 2, p: seed[:2], n: 2, err: nil, name: "2 characters"},
-		{pSize: 4, p: seed[:], n: 4, err: nil, name: "seed"},
-		{pSize: 5, p: append(seed, seed[:1]...), n: 5, err: nil, name: "seed + 1 character"},
-		{pSize: 8, p: append(seed, seed[:]...), n: 8, err: nil, name: "seed x 2"},
+		{pSize: 1, p: []byte{15}, n: 1, err: nil, name: "1 character"},
+		{pSize: 2, p: []byte{15, 210}, n: 2, err: nil, name: "2 characters"},
+		{pSize: 4, p: []byte{15, 210, 236, 97}, n: 4, err: nil, name: "4 characters"},
+		{pSize: 5, p: []byte{15, 210, 236, 97, 112}, n: 5, err: nil, name: "5 characters"},
+		{pSize: 8, p: []byte{15, 210, 236, 97, 112, 165, 91, 186}, n: 8, err: nil, name: "8 characters"},
 	}
 
 	for _, tc := range testTbl {

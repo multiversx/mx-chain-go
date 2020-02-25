@@ -21,7 +21,7 @@ func NewPeerDiscoverer(
 		return createKadDhtPeerDiscoverer(context, host, sharder, p2pConfig)
 	}
 
-	return discovery.NewNullDiscoverer(), nil
+	return discovery.NewNilDiscoverer(), nil
 }
 
 func createKadDhtPeerDiscoverer(

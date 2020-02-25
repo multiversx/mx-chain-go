@@ -1,9 +1,15 @@
 package rand
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"crypto/sha256"
+	"encoding/binary"
+	"math/rand"
+
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 type seedRandReader struct {
-	seed []byte
+	seedNumber int64
 }
 
 // NewSeedRandReader will return a new instance of a seed-based reader
@@ -12,8 +18,12 @@ func NewSeedRandReader(seed []byte) (*seedRandReader, error) {
 	if len(seed) == 0 {
 		return nil, p2p.ErrEmptySeed
 	}
+
+	seedHash := sha256.Sum256(seed)
+	seedNumber := binary.BigEndian.Uint64(seedHash[:])
+
 	return &seedRandReader{
-		seed: seed,
+		seedNumber: int64(seedNumber),
 	}, nil
 }
 
@@ -24,10 +34,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 		return 0, p2p.ErrEmptyBuffer
 	}
 
-	for i := 0; i < len(p); i++ {
-		idx := i % len(srr.seed)
-		p[i] = srr.seed[idx]
-	}
+	randomizer := rand.New(rand.NewSource(srr.seedNumber))
 
-	return len(p), nil
+	return randomizer.Read(p)
 }
