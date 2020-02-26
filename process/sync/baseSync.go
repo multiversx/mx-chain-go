@@ -312,7 +312,7 @@ func (boot *baseBootstrap) trySyncTrigger() {
 		return
 	}
 
-	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0 && !process.IsInProperRound(boot.rounder.Index())
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
 
 	if shouldTrySync {
 		nonce := boot.getNonceForNextBlock()
@@ -663,8 +663,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		if err != nil {
 			return err
 		}
-
-		boot.updateStateStorage(currHeader, prevHeader)
 	} else {
 		err = boot.setCurrentBlockInfo(nil, nil, nil)
 		if err != nil {
@@ -676,6 +674,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if err != nil {
 		return err
 	}
+	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
@@ -685,24 +684,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	boot.cleanCachesAndStorageOnRollback(currHeader)
 
 	return nil
-}
-
-func (boot *baseBootstrap) updateStateStorage(currHeader, prevHeader data.HeaderHandler) {
-	// TODO check if pruning should be done on rollback
-	if !boot.accounts.IsPruningEnabled() {
-		return
-	}
-
-	if bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
-		return
-	}
-
-	boot.accounts.CancelPrune(prevHeader.GetRootHash())
-
-	errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
 }
 
 func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
@@ -761,7 +742,7 @@ func (boot *baseBootstrap) restoreState(
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
-		log.Debug("RevertStateToBlock", "error", err.Error())
+		log.Debug("RevertState", "error", err.Error())
 	}
 }
 
