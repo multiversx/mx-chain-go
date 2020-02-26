@@ -175,12 +175,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
-	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
+	if check.IfNil(sr.indexer) {
 		return
 	}
 
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	if check.IfNil(currentHeader) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
 	}
 

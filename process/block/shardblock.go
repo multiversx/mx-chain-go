@@ -497,6 +497,12 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	if check.IfNil(sp.core) || check.IfNil(sp.core.Indexer()) {
 		return
 	}
+	if check.IfNil(header) {
+		return
+	}
+	if check.IfNil(body) {
+		return
+	}
 
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
