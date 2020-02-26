@@ -664,3 +664,9 @@ type MiniBlocksResolver interface {
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool
 }
+
+// Rounder defines the actions which should be handled by a round implementation
+type Rounder interface {
+	Index() int64
+	IsInterfaceNil() bool
+}
