@@ -205,7 +205,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, testError, err)
+	assert.Nil(t, err)
 }
 
 func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
@@ -312,7 +312,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
+	stakingData := systemSmartContracts.StakedData{
 		StakeValue: big.NewInt(100),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -369,9 +369,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -428,9 +428,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -487,9 +487,9 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -546,9 +546,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 

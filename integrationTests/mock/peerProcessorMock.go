@@ -5,15 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-// ValidatorStatisticsProcessorStub -
-type ValidatorStatisticsProcessorStub struct {
-	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled                    func(header data.HeaderHandler) error
-	IsInterfaceNilCalled                     func() bool
-	RevertPeerStateToSnapshotCalled          func(snapshot int) error
-	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
-	CommitCalled                             func() ([]byte, error)
-	RootHashCalled                           func() ([]byte, error)
+// ValidatorStatisticsProcessorMock -
+type ValidatorStatisticsProcessorMock struct {
+	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled func(header data.HeaderHandler) error
+	IsInterfaceNilCalled  func() bool
+	GetPeerAccountCalled  func(address []byte) (state.PeerAccountHandler, error)
+	RootHashCalled        func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }
@@ -34,6 +32,7 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 	return nil, nil
 }
 
+
 // UpdatePeerState -
 func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
@@ -48,22 +47,6 @@ func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.HeaderH
 		return vsp.RevertPeerStateCalled(header)
 	}
 	return nil
-}
-
-// RevertPeerStateToSnapshot -
-func (vsp *ValidatorStatisticsProcessorStub) RevertPeerStateToSnapshot(snapshot int) error {
-	if vsp.RevertPeerStateToSnapshotCalled != nil {
-		return vsp.RevertPeerStateToSnapshotCalled(snapshot)
-	}
-	return nil
-}
-
-// Commit -
-func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
-	if vsp.CommitCalled != nil {
-		return vsp.CommitCalled()
-	}
-	return nil, nil
 }
 
 // RootHash -

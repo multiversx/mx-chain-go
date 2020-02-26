@@ -24,8 +24,9 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled                   func() data.HeaderHandler
-	RevertStateToBlockCalled                func(header data.HeaderHandler) error
+	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
+	RevertStateToBlockCalled                func(header data.HeaderHandler) error
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -74,8 +75,13 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 	if bpm.RevertStateToBlockCalled != nil {
 		return bpm.RevertStateToBlockCalled(header)
 	}
+}
 
-	return nil
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if bpm.PruneStateOnRollbackCalled != nil {
+		bpm.PruneStateOnRollbackCalled(currHeader, prevHeader)
+	}
 }
 
 // SetNumProcessedObj -
@@ -154,4 +160,13 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
+	}
+
+	return nil
 }
