@@ -7,9 +7,9 @@ import (
 
 // SharderStub -
 type SharderStub struct {
-	ComputeEvictListCalled  func(pidList []peer.ID) []peer.ID
-	HasCalled               func(pid peer.ID, list []peer.ID) bool
-	PeerShardResolverCalled func() p2p.PeerShardResolver
+	ComputeEvictListCalled     func(pidList []peer.ID) []peer.ID
+	HasCalled                  func(pid peer.ID, list []peer.ID) bool
+	SetPeerShardResolverCalled func(psp p2p.PeerShardResolver) error
 }
 
 // ComputeEvictionList -
@@ -30,10 +30,10 @@ func (ss *SharderStub) Has(pid peer.ID, list []peer.ID) bool {
 	return false
 }
 
-// PeerShardResolver -
-func (ss *SharderStub) PeerShardResolver() p2p.PeerShardResolver {
-	if ss.PeerShardResolverCalled != nil {
-		return ss.PeerShardResolverCalled()
+// SetPeerShardResolver -
+func (ss *SharderStub) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
+	if ss.SetPeerShardResolverCalled != nil {
+		return ss.SetPeerShardResolverCalled(psp)
 	}
 
 	return nil

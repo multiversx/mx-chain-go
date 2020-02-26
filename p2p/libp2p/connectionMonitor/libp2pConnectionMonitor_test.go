@@ -5,36 +5,40 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	DurationBetweenReconnectAttempts = time.Millisecond
-}
-
-var durTimeoutWaiting = time.Second * 2
-var durStartGoRoutine = time.Second
-
 func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0)
+	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.Equal(t, p2p.ErrInvalidValue, err)
-	assert.Nil(t, cm)
+	assert.True(t, check.IfNil(cm))
 }
 
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0)
+	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.Nil(t, err)
-	assert.NotNil(t, cm)
+	assert.False(t, check.IfNil(cm))
+}
+
+func TestNewLibp2pConnectionMonitor_WithNilSharderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, nil)
+
+	assert.Equal(t, p2p.ErrNilSharder, err)
+	assert.True(t, check.IfNil(cm))
 }
 
 func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconnect(t *testing.T) {
@@ -53,7 +57,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	ns := mock.NetworkStub{
+	netw := &mock.NetworkStub{
 		ConnsCalled: func() []network.Conn {
 			//only one connection which is under the threshold
 			return []network.Conn{
@@ -62,13 +66,13 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0)
-	time.Sleep(durStartGoRoutine)
-	cm.Disconnected(&ns, nil)
+	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0, &ns.SimplePrioBitsSharder{})
+	time.Sleep(durationStartGoRoutine)
+	cm.Disconnected(netw, nil)
 
 	select {
 	case <-chReconnectCalled:
-	case <-time.After(durTimeoutWaiting):
+	case <-time.After(durationTimeoutWaiting):
 		assert.Fail(t, "timeout waiting to call reconnect")
 	}
 }
@@ -76,7 +80,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 func TestNewLibp2pConnectionMonitor_DefaultTriming(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0)
+	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 0, cm.thresholdDiscoveryResume)
@@ -100,7 +104,7 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 		ResumeCall: func() { resumeCallCount++ },
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor(&rc, 3, 10)
+	cm, _ := NewLibp2pConnectionMonitor(&rc, 3, 10, &ns.SimplePrioBitsSharder{})
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 8, cm.thresholdDiscoveryResume)
@@ -158,4 +162,54 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 	cm.Disconnected(netFact(5), nil)
 	assert.Equal(t, 2, pauseCallCount)
 	assert.Equal(t, 2, resumeCallCount)
+}
+
+func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have panic")
+		}
+	}()
+
+	netw := &mock.NetworkStub{
+		PeersCall: func() []peer.ID {
+			return make([]peer.ID, 0)
+		},
+	}
+
+	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.SimplePrioBitsSharder{})
+
+	lcm.ClosedStream(netw, nil)
+	lcm.Disconnected(netw, nil)
+	lcm.Listen(netw, nil)
+	lcm.ListenClose(netw, nil)
+	lcm.OpenedStream(netw, nil)
+}
+
+func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
+	t.Parallel()
+
+	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.SimplePrioBitsSharder{})
+
+	thr := 10
+	lcm.SetThresholdMinConnectedPeers(thr, &mock.NetworkStub{})
+	thrSet := lcm.ThresholdMinConnectedPeers()
+
+	assert.Equal(t, thr, thrSet)
+}
+
+func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeersNilNetwShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	minConnPeers := 3
+	lcm, _ := NewLibp2pConnectionMonitor(nil, minConnPeers, 10, &ns.SimplePrioBitsSharder{})
+
+	thr := 10
+	lcm.SetThresholdMinConnectedPeers(thr, nil)
+	thrSet := lcm.ThresholdMinConnectedPeers()
+
+	assert.Equal(t, thrSet, minConnPeers)
 }

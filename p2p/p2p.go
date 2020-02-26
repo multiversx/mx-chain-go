@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"context"
 	"encoding/hex"
 	"io"
 	"time"
@@ -10,6 +9,19 @@ import (
 )
 
 const displayLastPidChars = 12
+
+const (
+	// PrioBitsSharder is the variant that uses priority bits
+	PrioBitsSharder = "PrioBitsSharder"
+	// SimplePrioBitsSharder is the variant that computes the distance without prio bits
+	SimplePrioBitsSharder = "SimplePrioBitsSharder"
+	// ListsSharder is the variant that uses lists
+	ListsSharder = "ListsSharder"
+	// OneListSharder is the variant that is shard agnostic and uses one list
+	OneListSharder = "OneListSharder"
+	// NilListSharder is the variant that will not do connection trimming
+	NilListSharder = "NilListSharder"
+)
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
@@ -21,6 +33,7 @@ type MessageProcessor interface {
 
 // BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
 // a subset of received message (after filtering occurs)
+//TODO remove this after merging feat/antiflood branch
 type BroadcastCallbackHandler interface {
 	SetBroadcastCallback(callback func(buffToSend []byte))
 	IsInterfaceNil() bool
@@ -45,18 +58,10 @@ func (pid PeerID) Pretty() string {
 	return base58.Encode(pid.Bytes())
 }
 
-// ContextProvider defines an interface for providing context to various messenger components
-type ContextProvider interface {
-	Context() context.Context
-	IsInterfaceNil() bool
-}
-
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
 type PeerDiscoverer interface {
 	Bootstrap() error
 	Name() string
-
-	ApplyContext(ctxProvider ContextProvider) error
 	IsInterfaceNil() bool
 }
 
@@ -117,10 +122,6 @@ type Messenger interface {
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []PeerID
 
-	// TrimConnections tries to optimize the number of open connections, closing
-	// those that are considered expendable.
-	TrimConnections()
-
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error
@@ -173,7 +174,7 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32, maxIntraShard uint32, maxCrossShard uint32) error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -275,5 +276,6 @@ type PeerCounts struct {
 
 // CommonSharder represents the common interface implemented by all sharder implementations
 type CommonSharder interface {
+	SetPeerShardResolver(psp PeerShardResolver) error
 	IsInterfaceNil() bool
 }

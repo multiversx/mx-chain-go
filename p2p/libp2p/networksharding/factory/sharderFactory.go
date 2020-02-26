@@ -3,7 +3,6 @@ package factory
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
@@ -13,36 +12,44 @@ import (
 var log = logger.GetOrCreate("p2p/networksharding/factory")
 
 // ArgsSharderFactory represents the argument for the sharder factory
-//TODO(iulian) should not pass reconnecter but a config,
 type ArgsSharderFactory struct {
-	Reconnecter        p2p.Reconnecter
 	PeerShardResolver  p2p.PeerShardResolver
 	PrioBits           uint32
 	Pid                peer.ID
 	MaxConnectionCount int
 	MaxIntraShard      int
 	MaxCrossShard      int
+	Type               string
 }
 
 // NewSharder creates new Sharder instances
-//TODO(iulian) make a common interface out of all sharders implementations and replace interface{}
 func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
-	if check.IfNil(arg.Reconnecter) {
-		return nil, fmt.Errorf("%w for sharderFactory.Create", p2p.ErrIncompatibleMethodCalled)
-	}
-
-	switch arg.Reconnecter.(type) {
-	case p2p.ReconnecterWithPauseResumeAndWatchdog:
-		log.Debug("using kadSharder")
-		return networksharding.NewKadSharder(arg.PrioBits, arg.PeerShardResolver)
-	default:
-		log.Debug("using list-based kadSharder")
-		return networksharding.NewListKadSharder(
+	switch arg.Type {
+	case p2p.PrioBitsSharder:
+		log.Debug("using prio bits sharder")
+		return networksharding.NewPrioBitsSharder(arg.PrioBits, arg.PeerShardResolver)
+	case p2p.SimplePrioBitsSharder:
+		log.Debug("using simple prio bits sharder")
+		return &networksharding.SimplePrioBitsSharder{}, nil
+	case p2p.ListsSharder:
+		log.Debug("using lists sharder")
+		return networksharding.NewListsSharder(
 			arg.PeerShardResolver,
 			arg.Pid,
 			arg.MaxConnectionCount,
 			arg.MaxIntraShard,
 			arg.MaxCrossShard,
 		)
+	case p2p.OneListSharder:
+		log.Debug("using one list sharder")
+		return networksharding.NewOneListSharder(
+			arg.Pid,
+			arg.MaxConnectionCount,
+		)
+	case p2p.NilListSharder:
+		log.Debug("using nil list sharder")
+		return networksharding.NewNilListSharder(), nil
+	default:
+		return nil, fmt.Errorf("%w when selecting sharder: unknown %s value", p2p.ErrInvalidValue, arg.Type)
 	}
 }

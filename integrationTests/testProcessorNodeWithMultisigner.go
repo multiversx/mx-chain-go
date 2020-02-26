@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,7 +37,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -49,7 +48,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: multisig.BlsHashSize}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 
@@ -136,7 +135,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -149,7 +148,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 			)
 		}
 
@@ -176,8 +175,8 @@ func createNode(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
-	nodeKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	nodesKeys := cp.Keys[shardId][keyIndex]
+	pubKeyBytes, _ := nodesKeys.Pk.ToByteArray()
 	bootStorer := CreateMemUnit()
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{

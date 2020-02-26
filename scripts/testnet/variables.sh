@@ -51,9 +51,9 @@ export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
-export META_VALIDATORCOUNT=1
+export META_VALIDATORCOUNT=4
 export META_OBSERVERCOUNT=0
-export META_CONSENSUS_SIZE=1
+export META_CONSENSUS_SIZE=3
 
 # Leave unchanged.
 let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
@@ -76,7 +76,7 @@ export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
 
 # Address of the Seednode. Will be written to the p2p.toml file of the Nodes
-export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"
+export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0

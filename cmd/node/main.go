@@ -48,12 +48,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
@@ -444,7 +442,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
+		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
@@ -698,7 +696,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
+	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig)
 	if err != nil {
 		return err
 	}
@@ -798,7 +796,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		p2pConfig,
 	)
 	if err != nil {
 		return err
@@ -1278,17 +1275,15 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartSubscriber epochStart.EpochStartSubscriber,
-	p2pConfig *config.P2PConfig,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	networkShardingCollector, err := prepareNetworkShardingCollector(
+	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
 		network,
 		config,
-		p2pConfig,
 		nodesCoordinator,
 		shardCoordinator,
 		process.EpochStartTrigger,
@@ -1370,73 +1365,6 @@ func createNode(
 		}
 	}
 	return nd, nil
-}
-
-func prepareNetworkShardingCollector(
-	network *factory.Network,
-	config *config.Config,
-	p2pConfig *config.P2PConfig,
-	nodesCoordinator sharding.NodesCoordinator,
-	coordinator sharding.Coordinator,
-	epochHandler sharding.EpochHandler,
-) (*networksharding.PeerShardMapper, error) {
-
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	localId := network.NetMessenger.ID()
-	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
-
-	err = network.NetMessenger.SetPeerShardResolver(
-		networkShardingCollector,
-		p2pConfig.Sharding.PrioBits,
-		p2pConfig.Sharding.MaxIntraShard,
-		p2pConfig.Sharding.MaxCrossShard,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return networkShardingCollector, nil
-}
-
-func createNetworkShardingCollector(
-	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
-	epochHandler sharding.EpochHandler,
-) (*networksharding.PeerShardMapper, error) {
-
-	cacheConfig := config.PublicKeyPeerId
-	cachePkPid, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PublicKeyShardId
-	cachePkShardId, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PeerIdShardId
-	cachePidShardId, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return networksharding.NewPeerShardMapper(
-		cachePkPid,
-		cachePkShardId,
-		cachePidShardId,
-		nodesCoordinator,
-		epochHandler,
-	)
-}
-
-func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
 }
 
 func initStatsFileMonitor(

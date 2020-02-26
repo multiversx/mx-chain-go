@@ -2,8 +2,6 @@ package integrationTests
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -19,14 +17,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 // ShardTopic is the topic string generator for sharded topics
@@ -35,8 +28,6 @@ const ShardTopic = "shard"
 
 // GlobalTopic is a global testing that all nodes will bind an interceptor
 const GlobalTopic = "global"
-
-const networkShardingPrioBits = 6
 
 // TestP2PNode represents a container type of class used in integration tests
 // with all its fields exported, used mainly on P2P tests
@@ -89,16 +80,11 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = createCustomMessenger(context.Background(), p2pConfig)
+	tP2pNode.Messenger = CreateMessengerFromConfig(context.Background(), p2pConfig)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
-	err = tP2pNode.Messenger.SetPeerShardResolver(
-		tP2pNode.NetworkShardingUpdater,
-		networkShardingPrioBits,
-		p2pConfig.Sharding.MaxIntraShard,
-		p2pConfig.Sharding.MaxCrossShard,
-	)
+	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater)
 	if err != nil {
 		fmt.Printf("Error setting messenger.SetPeerShardResolver: %s\n", err.Error())
 	}
@@ -108,33 +94,6 @@ func NewTestP2PNode(
 	tP2pNode.initNode()
 
 	return tP2pNode
-}
-
-func createCustomMessenger(
-	ctx context.Context,
-	p2pConfig config.P2PConfig,
-) p2p.Messenger {
-
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	peerDiscovery, _ := factory.NewPeerDiscoverer(p2pConfig)
-
-	libP2PMes, err := libp2p.NewNetworkMessenger(
-		ctx,
-		0,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerDiscovery,
-		libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		p2pConfig.Node.TargetPeerCount,
-	)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
 }
 
 func (tP2pNode *TestP2PNode) initStorage() {

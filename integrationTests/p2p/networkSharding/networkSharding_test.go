@@ -29,12 +29,10 @@ func createDefaultConfig() config.P2PConfig {
 
 func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
 	p2pConfig := createDefaultConfig()
-	p2pConfig.Node = config.NodeConfig{
-		TargetPeerCount: 9,
-	}
-	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantPrioBits
 	p2pConfig.Sharding = config.ShardingConfig{
-		PrioBits: 4,
+		TargetPeerCount: 9,
+		PrioBits:        4,
+		Type:            p2p.PrioBitsSharder,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
@@ -42,13 +40,11 @@ func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
-	p2pConfig.Node = config.NodeConfig{
-		TargetPeerCount: 9,
-	}
-	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantWithLists
 	p2pConfig.Sharding = config.ShardingConfig{
-		MaxIntraShard: 7,
-		MaxCrossShard: 2,
+		TargetPeerCount: 9,
+		MaxIntraShard:   7,
+		MaxCrossShard:   2,
+		Type:            p2p.ListsSharder,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
@@ -64,8 +60,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	numShards := 2
 	consensusGroupSize := 2
 
-	p2pConfigSeeder := p2pConfig
-	advertiser := integrationTests.CreateMessengerFromConfig(context.Background(), p2pConfigSeeder)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 

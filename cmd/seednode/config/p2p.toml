@@ -9,15 +9,15 @@
     #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
     #The seed provided in this string can be of any length.
     #########################################################################################
-    # WARNING! For security reasons, one might use a generated string as long as possible!  #
-    # It is recommended that the seed field should remain empty (no characters between "")  #
+    # WARNING! FOR SECURITY REASONS, ONE MIGHT USE A GENERATED STRING AS LONG AS POSSIBLE!  #
+    # IT IS RECOMMENDED THAT THE SEED FIELD SHOULD REMAIN EMPTY (NO CHARACTERS BETWEEN "")  #
+    # THIS SEED WILL BE USED FOR P2P'S PRIVATE KEY GENERATION. SAME SEED USED WILL LEAD TO  #
+    # THE GENERATION OF THE SAME P2P IDENTITY.                                              #
+    # SPECIFY A SEED VALUE IF YOU KNOW WHAT YOU ARE DOING!                                  #
     #########################################################################################
     #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
     #p2p identity generation
     Seed = "seed"
-
-    # The targeted number of peer connections
-    TargetPeerCount = 10000
 
 # P2P peer discovery section
 
@@ -54,10 +54,18 @@
    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
    RoutingTableRefreshIntervalInSec = 300
 
-   Type = "kad dht with lists"
-
 [Sharding]
-    # Number of ptiority bits used
-    PrioBits = 4
-    MaxIntraShard = 15
-    MaxCrossShard = 15
+    # The targeted number of peer connections
+    TargetPeerCount = 0
+    # Number of priority bits used
+    PrioBits = 0
+    MaxIntraShard = 0
+    MaxCrossShard = 0
+    #available options:
+    #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
+    #  `PrioBitsSharder` will split the peers based on the shard membership (intra, other) using kademlia distance
+    #  `SimplePrioBitsSharder` will just select closest peers using kademlia distance (shard agnostic)
+    #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
+    #              the shard membership of the connected peers
+    #  `NilListSharder` will disable conection trimming (sharder is off)
+    Type = "NilListSharder"

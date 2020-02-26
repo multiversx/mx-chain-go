@@ -2,9 +2,10 @@ package discovery
 
 import (
 	"time"
-
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 )
+
+const KadDhtName = kadDhtName
+const NullName = nilName
 
 //------- KadDhtDiscoverer
 
@@ -26,10 +27,6 @@ func (kdd *KadDhtDiscoverer) RoutingTableRefresh() time.Duration {
 
 func (kdd *KadDhtDiscoverer) BucketSize() uint32 {
 	return kdd.bucketSize
-}
-
-func (kdd *KadDhtDiscoverer) ContextProvider() *libp2p.Libp2pContext {
-	return kdd.contextProvider
 }
 
 func (kdd *KadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
@@ -54,10 +51,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
 	initialPeersList []string) <-chan struct{} {
 
 	return ckdd.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
-}
-
-func (ckdd *ContinuousKadDhtDiscoverer) ContextProvider() *libp2p.Libp2pContext {
-	return ckdd.contextProvider
 }
 
 func (ckdd *ContinuousKadDhtDiscoverer) StopDHT() error {

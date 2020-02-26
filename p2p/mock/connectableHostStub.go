@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"errors"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/event"
@@ -32,78 +33,125 @@ type ConnectableHostStub struct {
 
 // EventBus -
 func (hs *ConnectableHostStub) EventBus() event.Bus {
-	return hs.EventBusCalled()
+	if hs.EventBusCalled != nil {
+		return hs.EventBusCalled()
+	}
+
+	return nil
 }
 
 // ConnectToPeer -
 func (hs *ConnectableHostStub) ConnectToPeer(ctx context.Context, address string) error {
-	return hs.ConnectToPeerCalled(ctx, address)
+	if hs.ConnectToPeerCalled != nil {
+		return hs.ConnectToPeerCalled(ctx, address)
+	}
+
+	return nil
 }
 
 // ID -
 func (hs *ConnectableHostStub) ID() peer.ID {
-	return hs.IDCalled()
+	if hs.IDCalled != nil {
+		return hs.IDCalled()
+	}
+
+	return "mock pid"
 }
 
 // Peerstore -
 func (hs *ConnectableHostStub) Peerstore() peerstore.Peerstore {
-	return hs.PeerstoreCalled()
+	if hs.PeerstoreCalled != nil {
+		return hs.PeerstoreCalled()
+	}
+
+	return nil
 }
 
 // Addrs -
 func (hs *ConnectableHostStub) Addrs() []multiaddr.Multiaddr {
-	return hs.AddrsCalled()
+	if hs.AddrsCalled != nil {
+		return hs.AddrsCalled()
+	}
+
+	return make([]multiaddr.Multiaddr, 0)
 }
 
 // Network -
 func (hs *ConnectableHostStub) Network() network.Network {
-	return hs.NetworkCalled()
+	if hs.NetworkCalled != nil {
+		return hs.NetworkCalled()
+	}
+
+	return &NetworkStub{}
 }
 
 // Mux -
 func (hs *ConnectableHostStub) Mux() protocol.Switch {
-	return hs.MuxCalled()
+	if hs.MuxCalled != nil {
+		return hs.MuxCalled()
+	}
+
+	return nil
 }
 
 // Connect -
 func (hs *ConnectableHostStub) Connect(ctx context.Context, pi peer.AddrInfo) error {
-	return hs.ConnectCalled(ctx, pi)
+	if hs.ConnectCalled != nil {
+		return hs.ConnectCalled(ctx, pi)
+	}
+
+	return nil
 }
 
 // SetStreamHandler -
 func (hs *ConnectableHostStub) SetStreamHandler(pid protocol.ID, handler network.StreamHandler) {
-	hs.SetStreamHandlerCalled(pid, handler)
+	if hs.SetStreamHandlerCalled != nil {
+		hs.SetStreamHandlerCalled(pid, handler)
+	}
 }
 
 // SetStreamHandlerMatch -
 func (hs *ConnectableHostStub) SetStreamHandlerMatch(pid protocol.ID, handler func(string) bool, streamHandler network.StreamHandler) {
-	hs.SetStreamHandlerMatchCalled(pid, handler, streamHandler)
+	if hs.SetStreamHandlerMatchCalled != nil {
+		hs.SetStreamHandlerMatchCalled(pid, handler, streamHandler)
+	}
 }
 
 // RemoveStreamHandler -
 func (hs *ConnectableHostStub) RemoveStreamHandler(pid protocol.ID) {
-	hs.RemoveStreamHandlerCalled(pid)
+	if hs.RemoveStreamHandlerCalled != nil {
+		hs.RemoveStreamHandlerCalled(pid)
+	}
 }
 
 // NewStream -
 func (hs *ConnectableHostStub) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (network.Stream, error) {
-	return hs.NewStreamCalled(ctx, p, pids...)
+	if hs.NewStreamCalled != nil {
+		return hs.NewStreamCalled(ctx, p, pids...)
+	}
+
+	return nil, errors.New("no stream")
 }
 
 // Close -
 func (hs *ConnectableHostStub) Close() error {
-	return hs.CloseCalled()
+	if hs.CloseCalled != nil {
+		return hs.CloseCalled()
+	}
+
+	return nil
 }
 
 // ConnManager -
 func (hs *ConnectableHostStub) ConnManager() connmgr.ConnManager {
-	return hs.ConnManagerCalled()
+	if hs.ConnManagerCalled != nil {
+		return hs.ConnManagerCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hs *ConnectableHostStub) IsInterfaceNil() bool {
-	if hs == nil {
-		return true
-	}
-	return false
+	return hs == nil
 }

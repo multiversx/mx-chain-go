@@ -174,15 +174,15 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
 
-	ForkDetector				process.ForkDetector
-	BlockProcessor				process.BlockProcessor
-	BroadcastMessenger			consensus.BroadcastMessenger
-	Bootstrapper				TestBootstrapper
-	Rounder						*mock.RounderMock
-	BootstrapStorer				*mock.BoostrapStorerMock
-	StorageBootstrapper 		*mock.StorageBootstrapperMock
-	RequestedItemsHandler		dataRetriever.RequestedItemsHandler
-	NetworkShardingCollector	consensus.NetworkShardingCollector
+	ForkDetector             process.ForkDetector
+	BlockProcessor           process.BlockProcessor
+	BroadcastMessenger       consensus.BroadcastMessenger
+	Bootstrapper             TestBootstrapper
+	Rounder                  *mock.RounderMock
+	BootstrapStorer          *mock.BoostrapStorerMock
+	StorageBootstrapper      *mock.StorageBootstrapperMock
+	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
+	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
@@ -228,7 +228,7 @@ func NewTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -256,7 +256,7 @@ func NewTestProcessorNode(
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}

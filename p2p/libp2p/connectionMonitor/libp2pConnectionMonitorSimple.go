@@ -1,8 +1,6 @@
 package connectionMonitor
 
 import (
-	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,24 +13,31 @@ type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
-	mutSharder                 sync.RWMutex
 	sharder                    Sharder
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
 //about pausing and resuming the discovery process)
-func NewLibp2pConnectionMonitorSimple(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int) (*libp2pConnectionMonitorSimple, error) {
+func NewLibp2pConnectionMonitorSimple(
+	reconnecter p2p.Reconnecter,
+	thresholdMinConnectedPeers int,
+	sharder Sharder,
+) (*libp2pConnectionMonitorSimple, error) {
 	if thresholdMinConnectedPeers < 0 {
 		return nil, p2p.ErrInvalidValue
 	}
 	if check.IfNil(reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
+	if check.IfNil(sharder) {
+		return nil, p2p.ErrNilSharder
+	}
 
 	cm := &libp2pConnectionMonitorSimple{
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
+		sharder:                    sharder,
 	}
 
 	if reconnecter != nil {
@@ -58,18 +63,12 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 
 // Connected is called when a connection opened
 func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, _ network.Conn) {
-	lcms.mutSharder.RLock()
-	if !check.IfNil(lcms.sharder) {
-		allPeers := netw.Peers()
+	allPeers := netw.Peers()
 
-		evicted := lcms.sharder.ComputeEvictionList(allPeers)
-		lcms.mutSharder.RUnlock()
-		for _, pid := range evicted {
-			_ = netw.ClosePeer(pid)
-		}
-		return
+	evicted := lcms.sharder.ComputeEvictionList(allPeers)
+	for _, pid := range evicted {
+		_ = netw.ClosePeer(pid)
 	}
-	lcms.mutSharder.RUnlock()
 }
 
 // Disconnected is called when a connection closed
@@ -104,7 +103,6 @@ func (lcms *libp2pConnectionMonitorSimple) IsConnectedToTheNetwork(netw network.
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers number when the node is considered connected on the network
-//TODO(iulian) refactor this in a future PR (not require to inject the netw pointer)
 func (lcms *libp2pConnectionMonitorSimple) SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network) {
 	if check.IfNilReflect(netw) {
 		return
@@ -118,20 +116,7 @@ func (lcms *libp2pConnectionMonitorSimple) ThresholdMinConnectedPeers() int {
 	return lcms.thresholdMinConnectedPeers
 }
 
-// SetSharder sets the sharder that is able to sort the peers by their distance
-func (lcms *libp2pConnectionMonitorSimple) SetSharder(sharder p2p.CommonSharder) error {
-	if check.IfNil(sharder) {
-		return p2p.ErrNilSharder
-	}
-
-	sharderIntf, ok := sharder.(Sharder)
-	if !ok {
-		return fmt.Errorf("%w when applying sharder: expected interface libp2p.Sharder", p2p.ErrWrongTypeAssertion)
-	}
-
-	lcms.mutSharder.Lock()
-	lcms.sharder = sharderIntf
-	lcms.mutSharder.Unlock()
-
-	return nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (lcms *libp2pConnectionMonitorSimple) IsInterfaceNil() bool {
+	return lcms == nil
 }

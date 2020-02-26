@@ -1,14 +1,5 @@
 package config
 
-const (
-	// KadDhtVariantPrioBits is the variant that uses priority bits
-	KadDhtVariantPrioBits = "kad dht with prio bits"
-	// KadDhtVariantWithLists is the variant that uses lists
-	KadDhtVariantWithLists = "kad dht with lists"
-)
-
-type KadDhtType string
-
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Type        string `json:"type"`
@@ -133,44 +124,12 @@ type Config struct {
 	HeadersPoolConfig HeadersPoolConfig
 }
 
-// NodeConfig will hold basic p2p settings
-type NodeConfig struct {
-	Port            int
-	Seed            string
-	TargetPeerCount int
-}
-
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
-}
-
-// KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
-type KadDhtPeerDiscoveryConfig struct {
-	Enabled              				bool
-	RefreshIntervalInSec 				uint32
-	RandezVous           				string
-	InitialPeerList      				[]string
-	BucketSize                       	uint32
-	RoutingTableRefreshIntervalInSec	uint32
-	Type                 				KadDhtType
-}
-
-// ShardingConfig will hold the network sharding config settings
-type ShardingConfig struct {
-	PrioBits      uint32
-	MaxIntraShard uint32
-	MaxCrossShard uint32
-}
-
-// P2PConfig will hold all the P2P settings
-type P2PConfig struct {
-	Node                NodeConfig
-	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
-	Sharding            ShardingConfig
 }
 
 // ResourceStatsConfig will hold all resource stats settings

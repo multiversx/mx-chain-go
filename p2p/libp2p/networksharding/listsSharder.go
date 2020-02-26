@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"math/bits"
 	"sort"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
@@ -54,11 +56,12 @@ var leadingZerosCount = []int{
 // this will fail if we have less than 256 values in the slice
 var _ = leadingZerosCount[255]
 
-// listKadSharder is the struct able to compute an eviction list of connected peers id according to the
+// listsSharder is the struct able to compute an eviction list of connected peers id according to the
 // provided parameters. It basically splits all connected peers into 3 lists: intra shard peers, cross shard peers
 // and unknown peers by the following rule: both intra shard and cross shard lists are upper bounded to provided
 // maximum levels, unknown list is able to fill the gap until maximum peer count value is fulfilled.
-type listKadSharder struct {
+type listsSharder struct {
+	mutResolver       sync.RWMutex
 	peerShardResolver p2p.PeerShardResolver
 	selfPeerId        peer.ID
 	maxPeerCount      int
@@ -67,14 +70,14 @@ type listKadSharder struct {
 	computeDistance   func(src peer.ID, dest peer.ID) *big.Int
 }
 
-// NewListKadSharder creates a new kad list based kad sharder instance
-func NewListKadSharder(
+// NewListsSharder creates a new kad list based kad sharder instance
+func NewListsSharder(
 	resolver p2p.PeerShardResolver,
 	selfPeerId peer.ID,
 	maxPeerCount int,
 	maxIntraShard int,
 	maxCrossShard int,
-) (*listKadSharder, error) {
+) (*listsSharder, error) {
 	if check.IfNil(resolver) {
 		return nil, p2p.ErrNilPeerShardResolver
 	}
@@ -88,7 +91,7 @@ func NewListKadSharder(
 		return nil, fmt.Errorf("%w, maxCrossShard should be at least %d", p2p.ErrInvalidValue, minAllowedPeersOnList)
 	}
 
-	return &listKadSharder{
+	return &listsSharder{
 		peerShardResolver: resolver,
 		selfPeerId:        selfPeerId,
 		maxPeerCount:      maxPeerCount,
@@ -99,28 +102,32 @@ func NewListKadSharder(
 }
 
 // ComputeEvictionList returns the eviction list
-func (lks *listKadSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
+func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	evictionProposed := make([]peer.ID, 0)
-	intraShard, crossShard, unknownShard := lks.splitPeerIds(pidList)
+	intraShard, crossShard, unknownShard := ls.splitPeerIds(pidList)
 
-	intraShard, e := lks.evict(intraShard, lks.maxIntraShard)
+	intraShard, e := evict(intraShard, ls.maxIntraShard)
 	evictionProposed = append(evictionProposed, e...)
 
-	crossShard, e = lks.evict(crossShard, lks.maxCrossShard)
+	crossShard, e = evict(crossShard, ls.maxCrossShard)
 	evictionProposed = append(evictionProposed, e...)
 
 	sum := len(intraShard) + len(crossShard) + len(unknownShard)
-	if sum <= lks.maxPeerCount {
+	if sum <= ls.maxPeerCount {
 		return evictionProposed
 	}
-	remainingForUnknown := lks.maxPeerCount + 1 - len(intraShard) - len(crossShard)
-	_, e = lks.evict(unknownShard, remainingForUnknown)
+	remainingForUnknown := ls.maxPeerCount + 1 - len(intraShard) - len(crossShard)
+	_, e = evict(unknownShard, remainingForUnknown)
 
 	return append(evictionProposed, e...)
 }
 
 // Has returns true if provided pid is among the provided list
-func (lks *listKadSharder) Has(pid peer.ID, list []peer.ID) bool {
+func (ls *listsSharder) Has(pid peer.ID, list []peer.ID) bool {
+	return has(pid, list)
+}
+
+func has(pid peer.ID, list []peer.ID) bool {
 	for _, p := range list {
 		if p == pid {
 			return true
@@ -130,26 +137,25 @@ func (lks *listKadSharder) Has(pid peer.ID, list []peer.ID) bool {
 	return false
 }
 
-// PeerShardResolver returns the peer shard resolver used by this kad sharder
-func (lks *listKadSharder) PeerShardResolver() p2p.PeerShardResolver {
-	return lks.peerShardResolver
-}
-
 //TODO study if we need to hve a dedicated section for metanodes
-func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDistances, peerDistances) {
-	selfId := lks.peerShardResolver.ByID(p2p.PeerID(lks.selfPeerId))
+func (ls *listsSharder) splitPeerIds(peers []peer.ID) (sorting.PeerDistances, sorting.PeerDistances, sorting.PeerDistances) {
+	ls.mutResolver.RLock()
+	selfId := ls.peerShardResolver.ByID(p2p.PeerID(ls.selfPeerId))
+	ls.mutResolver.RUnlock()
 
-	intraShard := peerDistances{}
-	crossShard := peerDistances{}
-	unknownShard := peerDistances{}
+	intraShard := sorting.PeerDistances{}
+	crossShard := sorting.PeerDistances{}
+	unknownShard := sorting.PeerDistances{}
 
 	for _, p := range peers {
-		pd := peerDistance{
+		pd := &sorting.PeerDistance{
 			ID:       p,
-			distance: lks.computeDistance(p, lks.selfPeerId),
+			Distance: ls.computeDistance(p, ls.selfPeerId),
 		}
 		pid := p2p.PeerID(p)
-		shardId := lks.peerShardResolver.ByID(pid)
+		ls.mutResolver.RLock()
+		shardId := ls.peerShardResolver.ByID(pid)
+		ls.mutResolver.RUnlock()
 
 		switch shardId {
 		case core.UnknownShardId:
@@ -164,7 +170,7 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDis
 	return intraShard, crossShard, unknownShard
 }
 
-func (lks *listKadSharder) evict(distances peerDistances, numKeep int) (peerDistances, []peer.ID) {
+func evict(distances sorting.PeerDistances, numKeep int) (sorting.PeerDistances, []peer.ID) {
 	if numKeep < 0 {
 		numKeep = 0
 	}
@@ -181,11 +187,6 @@ func (lks *listKadSharder) evict(distances peerDistances, numKeep int) (peerDist
 	}
 
 	return remaining, evictedPids
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (lks *listKadSharder) IsInterfaceNil() bool {
-	return lks == nil
 }
 
 // computes the kademlia distance between 2 provided peers by doing byte xor operations and counting the resulting bits
@@ -219,4 +220,22 @@ func computeDistanceLog2Based(src peer.ID, dest peer.ID) *big.Int {
 	val = len(srcBuff)*8 - val
 
 	return big.NewInt(0).SetInt64(int64(val))
+}
+
+// SetPeerShardResolver sets the peer shard resolver for this sharder
+func (ls *listsSharder) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
+	if check.IfNil(psp) {
+		return p2p.ErrNilPeerShardResolver
+	}
+
+	ls.mutResolver.Lock()
+	ls.peerShardResolver = psp
+	ls.mutResolver.Unlock()
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ls *listsSharder) IsInterfaceNil() bool {
+	return ls == nil
 }

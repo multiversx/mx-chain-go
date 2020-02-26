@@ -26,15 +26,12 @@ func NewHostDecorator(h host.Host, ctx context.Context, cps uint32, timeout time
 	if h == nil {
 		return nil, p2p.ErrNilHost
 	}
-
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
 	if timeout < 0 {
 		return nil, p2p.ErrInvalidDurationProvided
 	}
-
 	if cps < hardCPSLimitLow || cps > hardCPSLimitHigh {
 		return nil, p2p.ErrInvalidValue
 	}
