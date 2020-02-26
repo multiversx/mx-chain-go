@@ -3,7 +3,6 @@ package track
 import (
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -21,7 +20,7 @@ type blockProcessor struct {
 	crossNotarizer                blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
-	rounder                       consensus.Rounder
+	rounder                       process.Rounder
 
 	blockFinality uint64
 }
@@ -234,7 +233,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 func (bp *blockProcessor) requestHeadersIfNeeded(
 	lastNotarizedHeader data.HeaderHandler,
-	sortedHeaders []data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
 	longestChainHeaders []data.HeaderHandler,
 ) {
 	if check.IfNil(lastNotarizedHeader) {
@@ -245,16 +244,18 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 
 	defer func() {
 		if !shouldRequestHeaders {
-			bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+			latestValidHeader := bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+			highestRound := bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+			bp.requestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
 		}
 	}()
 
-	numSortedHeaders := len(sortedHeaders)
-	if numSortedHeaders == 0 {
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders == 0 {
 		return
 	}
 
-	highestNonceReceived := sortedHeaders[numSortedHeaders-1].GetNonce()
+	highestNonceReceived := sortedReceivedHeaders[numSortedReceivedHeaders-1].GetNonce()
 	highestNonceInLongestChain := lastNotarizedHeader.GetNonce()
 	numLongestChainHeaders := len(longestChainHeaders)
 	if numLongestChainHeaders > 0 {
@@ -269,7 +270,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	log.Debug("requestHeadersIfNeeded",
 		"shard", lastNotarizedHeader.GetShardID(),
 		"last notarized nonce", lastNotarizedHeader.GetNonce(),
-		"numSortedHeaders", numSortedHeaders,
+		"numSortedReceivedHeaders", numSortedReceivedHeaders,
 		"numLongestChainHeaders", numLongestChainHeaders,
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
@@ -277,44 +278,58 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1)
 }
 
-func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
+func (bp *blockProcessor) getLatestValidHeader(
 	lastNotarizedHeader data.HeaderHandler,
-	sortedHeaders []data.HeaderHandler,
 	longestChainHeaders []data.HeaderHandler,
+) data.HeaderHandler {
+
+	latestValidHeader := lastNotarizedHeader
+	numLongestChainHeaders := len(longestChainHeaders)
+	if numLongestChainHeaders > 0 {
+		latestValidHeader = longestChainHeaders[numLongestChainHeaders-1]
+	}
+
+	return latestValidHeader
+}
+
+func (bp *blockProcessor) getHighestRoundInReceivedHeaders(
+	latestValidHeader data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
+) uint64 {
+
+	if check.IfNil(latestValidHeader) {
+		return 0
+	}
+
+	highestRound := latestValidHeader.GetRound()
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders > 0 {
+		highestRound = core.MaxUint64(highestRound, sortedReceivedHeaders[numSortedReceivedHeaders-1].GetRound())
+	}
+
+	return highestRound
+}
+
+func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
+	latestValidHeader data.HeaderHandler,
+	highestRoundInReceivedHeaders uint64,
 ) {
-	if check.IfNil(lastNotarizedHeader) {
+	if check.IfNil(latestValidHeader) {
 		return
 	}
 
-	header := lastNotarizedHeader
-	numLongestChainHeaders := len(longestChainHeaders)
-	if numLongestChainHeaders > 0 {
-		header = longestChainHeaders[numLongestChainHeaders-1]
-	}
-
-	highestRoundReceived := header.GetRound()
-	numSortedHeaders := len(sortedHeaders)
-	if numSortedHeaders > 0 {
-		if sortedHeaders[numSortedHeaders-1].GetRound() > highestRoundReceived {
-			highestRoundReceived = sortedHeaders[numSortedHeaders-1].GetRound()
-		}
-	}
-
-	shouldRequestHeaders := bp.rounder.Index()-int64(highestRoundReceived) > process.MaxRoundsWithoutNewBlockReceived
+	shouldRequestHeaders := bp.rounder.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived
 	if !shouldRequestHeaders {
 		return
 	}
 
 	log.Debug("requestHeadersIfNothingNewIsReceived",
-		"shard", header.GetShardID(),
-		"last notarized nonce", lastNotarizedHeader.GetNonce(),
-		"numSortedHeaders", numSortedHeaders,
-		"numLongestChainHeaders", numLongestChainHeaders,
-		"header nonce", header.GetNonce(),
+		"shard", latestValidHeader.GetShardID(),
+		"latest valid header nonce", latestValidHeader.GetNonce(),
 		"chronology round", bp.rounder.Index(),
-		"highest round received", highestRoundReceived)
+		"highest round in received headers", highestRoundInReceivedHeaders)
 
-	bp.requestHeaders(header.GetShardID(), header.GetNonce()+1)
+	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {

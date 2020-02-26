@@ -1,7 +1,6 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -16,5 +15,5 @@ type ArgBlockProcessor struct {
 	CrossNotarizer                blockNotarizerHandler
 	CrossNotarizedHeadersNotifier blockNotifierHandler
 	SelfNotarizedHeadersNotifier  blockNotifierHandler
-	Rounder                       consensus.Rounder
+	Rounder                       process.Rounder
 }

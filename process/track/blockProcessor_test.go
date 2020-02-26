@@ -771,9 +771,11 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHeaderIsNil(t *t
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	sortedHeaders := []data.HeaderHandler{&block2.Header{}}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{}}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{}}
-	bp.RequestHeadersIfNothingNewIsReceived(nil, sortedHeaders, longestChainHeaders)
+	latestValidHeader := bp.GetLatestValidHeader(nil, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -800,9 +802,11 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFrom
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
-	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2, Round: 2}}
-	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -843,9 +847,11 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
-	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2, Round: 2}}
-	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
 	wg.Wait()
 
 	mutCalled.RLock()

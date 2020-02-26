@@ -6,7 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -31,7 +30,7 @@ type baseBlockTrack struct {
 	hasher           hashing.Hasher
 	headerValidator  process.HeaderConstructionValidator
 	marshalizer      marshal.Marshalizer
-	rounder          consensus.Rounder
+	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
