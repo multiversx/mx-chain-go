@@ -32,10 +32,12 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
+	gasSchedule := make(map[string]map[string]uint64)
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
 		&mock.MessageSignVerifierMock{},
+		gasSchedule,
 	)
 
 	assert.NotNil(t, vmf)
@@ -92,6 +94,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		createMockVMAccountsArguments(),
 		economicsData,
 		&mock.MessageSignVerifierMock{},
+		makeGasSchedule(),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -106,4 +109,42 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+}
+
+func makeGasSchedule() map[string]map[string]uint64 {
+	gasSchedule := make(map[string]map[string]uint64)
+	FillGasMapInternal(gasSchedule, 1)
+	return gasSchedule
+}
+
+func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
+	gasMap["BaseOperationCost"] = FillGasMapBaseOperationCosts(value)
+	gasMap["MetaChainSystemSCsCost"] = FillGasMapMetaChainSystemSCsCosts(value)
+
+	return gasMap
+}
+
+func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["StorePerByte"] = value
+	gasMap["DataCopyPerByte"] = value
+	gasMap["ReleasePerByte"] = value
+	gasMap["PersistPerByte"] = value
+	gasMap["CompilePerByte"] = value
+
+	return gasMap
+}
+
+func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["Stake"] = value
+	gasMap["UnStake"] = value
+	gasMap["UnBond"] = value
+	gasMap["Claim"] = value
+	gasMap["Get"] = value
+	gasMap["ChangeRewardAddress"] = value
+	gasMap["ChangeValidatorKeys"] = value
+	gasMap["UnJail"] = value
+
+	return gasMap
 }

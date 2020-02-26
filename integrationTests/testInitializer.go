@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -362,6 +363,9 @@ func CreateGenesisMetaBlock(
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	vm.FillGasMapInternal(gasSchedule, 1)
+
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
@@ -376,6 +380,7 @@ func CreateGenesisMetaBlock(
 		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
+		GasMap:                   gasSchedule,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

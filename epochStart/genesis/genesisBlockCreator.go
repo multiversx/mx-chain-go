@@ -98,6 +98,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	DataPool                 dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
 	MessageSignVerifier      vm.MessageSignVerifier
+	GasMap                   map[string]map[string]uint64
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -245,7 +246,7 @@ func createProcessorsForMetaGenesisBlock(
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
 
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -293,21 +294,23 @@ func createProcessorsForMetaGenesisBlock(
 	}
 
 	genesisFeeHandler := NewGenesisFeeHandler()
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		args.Hasher,
-		args.Marshalizer,
-		args.Accounts,
-		virtualMachineFactory.BlockChainHookImpl(),
-		args.AddrConv,
-		args.ShardCoordinator,
-		scForwarder,
-		genesisFeeHandler,
-		genesisFeeHandler,
-		txTypeHandler,
-		gasHandler,
-	)
+	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   vmContainer,
+		ArgsParser:    argsParser,
+		Hasher:        args.Hasher,
+		Marshalizer:   args.Marshalizer,
+		AccountsDB:    args.Accounts,
+		TempAccounts:  virtualMachineFactory.BlockChainHookImpl(),
+		AdrConv:       args.AddrConv,
+		Coordinator:   args.ShardCoordinator,
+		ScrForwarder:  scForwarder,
+		TxFeeHandler:  genesisFeeHandler,
+		EconomicsFee:  genesisFeeHandler,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    gasHandler,
+		GasMap:        args.GasMap,
+	}
+	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
 		return nil, nil, err
 	}

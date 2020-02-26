@@ -1,37 +1,101 @@
 package factory
 
 import (
+	"errors"
+	"fmt"
+	"reflect"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/mitchellh/mapstructure"
 )
 
 type systemSCFactory struct {
 	systemEI          vm.ContextHandler
 	validatorSettings vm.ValidatorSettingsHandler
 	sigVerifier       vm.MessageSignVerifier
+	gasCost           vm.GasCost
+}
+
+// ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
+type ArgsNewSystemSCFactory struct {
+	SystemEI          vm.ContextHandler
+	ValidatorSettings vm.ValidatorSettingsHandler
+	SigVerifier       vm.MessageSignVerifier
+	GasMap            map[string]map[string]uint64
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
-func NewSystemSCFactory(
-	systemEI vm.ContextHandler,
-	validatorSettings vm.ValidatorSettingsHandler,
-	sigVerifier vm.MessageSignVerifier,
-) (*systemSCFactory, error) {
-	if check.IfNil(systemEI) {
+func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
+	if check.IfNil(args.SystemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if check.IfNil(validatorSettings) {
+	if check.IfNil(args.ValidatorSettings) {
 		return nil, vm.ErrNilEconomicsData
 	}
-	if check.IfNil(sigVerifier) {
+	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
 	}
 
-	return &systemSCFactory{
-		systemEI:          systemEI,
-		validatorSettings: validatorSettings,
-		sigVerifier:       sigVerifier}, nil
+	scf := &systemSCFactory{
+		systemEI:          args.SystemEI,
+		validatorSettings: args.ValidatorSettings,
+		sigVerifier:       args.SigVerifier}
+
+	err := scf.createGasConfig(args.GasMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return scf, nil
+}
+
+func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64) error {
+	baseOps := &vm.BaseOperationCost{}
+	err := mapstructure.Decode(gasMap["BaseOperationCost"], baseOps)
+	if err != nil {
+		return err
+	}
+
+	err = checkForZeroUint64Fields(*baseOps)
+	if err != nil {
+		return err
+	}
+
+	metaChainSCsOps := &vm.MetaChainSystemSCsCost{}
+	err = mapstructure.Decode(gasMap["MetaChainSystemSCsCost"], metaChainSCsOps)
+	if err != nil {
+		return err
+	}
+
+	err = checkForZeroUint64Fields(*metaChainSCsOps)
+	if err != nil {
+		return err
+	}
+
+	scf.gasCost = vm.GasCost{
+		BaseOperationCost:      *baseOps,
+		MetaChainSystemSCsCost: *metaChainSCsOps,
+	}
+
+	return nil
+}
+
+func checkForZeroUint64Fields(arg interface{}) error {
+	v := reflect.ValueOf(arg)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
+			continue
+		}
+		if field.Uint() == 0 {
+			name := v.Type().Field(i).Name
+			return errors.New(fmt.Sprintf("Gas cost for operation %s has been set to 0 or is not set.", name))
+		}
+	}
+
+	return nil
 }
 
 // Create instantiates all the system smart contracts and returns a container
@@ -47,6 +111,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		NumRoundsWithoutBleed:    scf.validatorSettings.NumRoundsWithoutBleed(),
 		BleedPercentagePerRound:  scf.validatorSettings.BleedPercentagePerRound(),
 		MaximumPercentageToBleed: scf.validatorSettings.MaximumPercentageToBleed(),
+		GasCost:                  scf.gasCost,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	if err != nil {
@@ -64,6 +129,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		ValidatorSettings: scf.validatorSettings,
 		StakingSCAddress:  StakingSCAddress,
 		AuctionSCAddress:  AuctionSCAddress,
+		GasCost:           scf.gasCost,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	if err != nil {

@@ -236,7 +236,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 }
 
 func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd state.UserAccountHandler) (*big.Int, error) {
-	if acntSnd == nil {
+	if check.IfNil(acntSnd) {
 		return big.NewInt(0), nil
 	}
 

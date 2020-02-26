@@ -3,8 +3,10 @@ package smartContract
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/mitchellh/mapstructure"
 )
 
 // claimDeveloperRewardsFunctionName is a constant which defines the name for the claim developer rewards function
@@ -49,82 +52,92 @@ type scProcessor struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
+	gasCost       GasCost
+}
+
+// ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
+type ArgsNewSmartContractProcessor struct {
+	VmContainer   process.VirtualMachinesContainer
+	ArgsParser    process.ArgumentsParser
+	Hasher        hashing.Hasher
+	Marshalizer   marshal.Marshalizer
+	AccountsDB    state.AccountsAdapter
+	TempAccounts  process.TemporaryAccountsHandler
+	AdrConv       state.AddressConverter
+	Coordinator   sharding.Coordinator
+	ScrForwarder  process.IntermediateTransactionHandler
+	TxFeeHandler  process.TransactionFeeHandler
+	EconomicsFee  process.FeeHandler
+	TxTypeHandler process.TxTypeHandler
+	GasHandler    process.GasHandler
+	GasMap        map[string]map[string]uint64
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
-func NewSmartContractProcessor(
-	vmContainer process.VirtualMachinesContainer,
-	argsParser process.ArgumentsParser,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountsDB state.AccountsAdapter,
-	tempAccounts process.TemporaryAccountsHandler,
-	adrConv state.AddressConverter,
-	coordinator sharding.Coordinator,
-	scrForwarder process.IntermediateTransactionHandler,
-	txFeeHandler process.TransactionFeeHandler,
-	economicsFee process.FeeHandler,
-	txTypeHandler process.TxTypeHandler,
-	gasHandler process.GasHandler,
-) (*scProcessor, error) {
+func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
 
-	if check.IfNil(vmContainer) {
+	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if check.IfNil(argsParser) {
+	if check.IfNil(args.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(accountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(tempAccounts) {
+	if check.IfNil(args.TempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if check.IfNil(adrConv) {
+	if check.IfNil(args.AdrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if check.IfNil(coordinator) {
+	if check.IfNil(args.Coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(scrForwarder) {
+	if check.IfNil(args.ScrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if check.IfNil(txFeeHandler) {
+	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(txTypeHandler) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(gasHandler) {
+	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
 
 	sc := &scProcessor{
-		vmContainer:      vmContainer,
-		argsParser:       argsParser,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		accounts:         accountsDB,
-		tempAccounts:     tempAccounts,
-		adrConv:          adrConv,
-		shardCoordinator: coordinator,
-		scrForwarder:     scrForwarder,
-		txFeeHandler:     txFeeHandler,
-		economicsFee:     economicsFee,
-		txTypeHandler:    txTypeHandler,
-		gasHandler:       gasHandler,
+		vmContainer:      args.VmContainer,
+		argsParser:       args.ArgsParser,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		accounts:         args.AccountsDB,
+		tempAccounts:     args.TempAccounts,
+		adrConv:          args.AdrConv,
+		shardCoordinator: args.Coordinator,
+		scrForwarder:     args.ScrForwarder,
+		txFeeHandler:     args.TxFeeHandler,
+		economicsFee:     args.EconomicsFee,
+		txTypeHandler:    args.TxTypeHandler,
+		gasHandler:       args.GasHandler,
 	}
 
-	err := sc.createBuiltInFunctions()
+	err := sc.createGasConfig(args.GasMap)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sc.createBuiltInFunctions()
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +145,58 @@ func NewSmartContractProcessor(
 	return sc, nil
 }
 
+func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) error {
+	baseOps := &BaseOperationCost{}
+	err := mapstructure.Decode(gasMap["BaseOperationCost"], baseOps)
+	if err != nil {
+		return err
+	}
+
+	err = checkForZeroUint64Fields(*baseOps)
+	if err != nil {
+		return err
+	}
+
+	builtInOps := &BuiltInCost{}
+	err = mapstructure.Decode(gasMap["BuiltInCost"], builtInOps)
+	if err != nil {
+		return err
+	}
+
+	err = checkForZeroUint64Fields(*builtInOps)
+	if err != nil {
+		return err
+	}
+
+	sc.gasCost = GasCost{
+		BaseOperationCost: *baseOps,
+		BuiltInCost:       *builtInOps,
+	}
+
+	return nil
+}
+
+func checkForZeroUint64Fields(arg interface{}) error {
+	v := reflect.ValueOf(arg)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
+			continue
+		}
+		if field.Uint() == 0 {
+			name := v.Type().Field(i).Name
+			return errors.New(fmt.Sprintf("Gas cost for operation %s has been set to 0 or is not set.", name))
+		}
+	}
+
+	return nil
+}
+
 func (sc *scProcessor) createBuiltInFunctions() error {
 	sc.builtInFunctions = make(map[string]process.BuiltinFunction)
 
-	sc.builtInFunctions[claimDeveloperRewardsFunctionName] = &claimDeveloperRewards{}
-	sc.builtInFunctions[changeOwnerAddressFunctionName] = &changeOwnerAddress{}
+	sc.builtInFunctions[claimDeveloperRewardsFunctionName] = &claimDeveloperRewards{gasCost: sc.gasCost.BuiltInCost.ClaimDeveloperRewards}
+	sc.builtInFunctions[changeOwnerAddressFunctionName] = &changeOwnerAddress{gasCost: sc.gasCost.BuiltInCost.ClaimDeveloperRewards}
 
 	return nil
 }
@@ -277,7 +337,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	gasConsumed := builtInFunctionBaseCostMultiplier * sc.economicsFee.ComputeGasLimit(tx)
+	gasConsumed := builtIn.GasUsed()
 	if tx.GetGasLimit() < gasConsumed {
 		return true, process.ErrNotEnoughGas
 	}

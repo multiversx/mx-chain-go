@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -627,21 +628,24 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		tpn.VMContainer,
-		tpn.ArgsParser,
-		TestHasher,
-		TestMarshalizer,
-		tpn.AccntState,
-		vmFactory.BlockChainHookImpl(),
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.ScrForwarder,
-		tpn.FeeAccumulator,
-		tpn.EconomicsData,
-		txTypeHandler,
-		tpn.GasHandler,
-	)
+	vm.FillGasMapInternal(gasSchedule, 1)
+	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   tpn.VMContainer,
+		ArgsParser:    tpn.ArgsParser,
+		Hasher:        TestHasher,
+		Marshalizer:   TestMarshalizer,
+		AccountsDB:    tpn.AccntState,
+		TempAccounts:  vmFactory.BlockChainHookImpl(),
+		AdrConv:       TestAddressConverter,
+		Coordinator:   tpn.ShardCoordinator,
+		ScrForwarder:  tpn.ScrForwarder,
+		TxFeeHandler:  tpn.FeeAccumulator,
+		EconomicsFee:  tpn.EconomicsData,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    tpn.GasHandler,
+		GasMap:        gasSchedule,
+	}
+	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
@@ -716,8 +720,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
 	}
-
-	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData, &genesis.NilMessageSignVerifier{})
+	gasSchedule := make(map[string]map[string]uint64)
+	vm.FillGasMapInternal(gasSchedule, 1)
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData, &genesis.NilMessageSignVerifier{}, gasSchedule)
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -728,21 +733,23 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
-	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		tpn.VMContainer,
-		tpn.ArgsParser,
-		TestHasher,
-		TestMarshalizer,
-		tpn.AccntState,
-		vmFactory.BlockChainHookImpl(),
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.ScrForwarder,
-		tpn.FeeAccumulator,
-		tpn.EconomicsData,
-		txTypeHandler,
-		tpn.GasHandler,
-	)
+	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   tpn.VMContainer,
+		ArgsParser:    tpn.ArgsParser,
+		Hasher:        TestHasher,
+		Marshalizer:   TestMarshalizer,
+		AccountsDB:    tpn.AccntState,
+		TempAccounts:  vmFactory.BlockChainHookImpl(),
+		AdrConv:       TestAddressConverter,
+		Coordinator:   tpn.ShardCoordinator,
+		ScrForwarder:  tpn.ScrForwarder,
+		TxFeeHandler:  tpn.FeeAccumulator,
+		EconomicsFee:  tpn.EconomicsData,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    tpn.GasHandler,
+		GasMap:        gasSchedule,
+	}
+	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
 		tpn.AccntState,
@@ -859,7 +866,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockTracker:           tpn.BlockTracker,
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:   			tpn.BlockChain,
+		BlockChain:             tpn.BlockChain,
 	}
 
 	if tpn.EpochStartNotifier == nil {

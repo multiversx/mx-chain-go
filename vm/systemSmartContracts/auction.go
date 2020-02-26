@@ -43,6 +43,7 @@ type stakingAuctionSC struct {
 	stakingSCAddress   []byte
 	auctionSCAddress   []byte
 	enableStakingNonce uint64
+	gasCost            vm.GasCost
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -52,6 +53,7 @@ type ArgsStakingAuctionSmartContract struct {
 	SigVerifier       vm.MessageSignVerifier
 	StakingSCAddress  []byte
 	AuctionSCAddress  []byte
+	GasCost           vm.GasCost
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -95,6 +97,7 @@ func NewStakingAuctionSmartContract(
 		enableStakingNonce: args.ValidatorSettings.StakeEnableNonce(),
 		stakingSCAddress:   args.StakingSCAddress,
 		auctionSCAddress:   args.AuctionSCAddress,
+		gasCost:            args.GasCost,
 	}
 	return reg, nil
 }
@@ -139,8 +142,21 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	for _, argument := range args.Arguments {
-		_, _ = s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(argument)))
+		err = s.eei.UseGas(s.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(argument)))
+		if err != nil {
+			return vmcommon.OutOfGas
+		}
+
+		vmOutput, _ := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(argument)))
+		if vmOutput != nil && vmOutput.ReturnCode == vmcommon.OutOfGas {
+			return vmcommon.OutOfGas
+		}
 	}
 
 	return vmcommon.Ok
@@ -163,6 +179,12 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	}
 	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
 		return vmcommon.UserError
+	}
+
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeRewardAddress +
+		uint64(len(args.Arguments[0]))*s.gasCost.BaseOperationCost.StorePerByte)
+	if err != nil {
+		return vmcommon.OutOfGas
 	}
 
 	registrationData.RewardAddress = args.Arguments[0]
@@ -203,10 +225,20 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	for i := 1; i < len(args.Arguments); i += 3 {
 		oldBlsKey := args.Arguments[i]
 		newBlsKey := args.Arguments[i+1]
 		signedWithNewKey := args.Arguments[i+2]
+
+		err = s.eei.UseGas(s.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(newBlsKey)))
+		if err != nil {
+			return vmcommon.OutOfGas
+		}
 
 		err := s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
 		if err != nil {
@@ -252,6 +284,11 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
 		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		return vmcommon.OutOfGas
 	}
 
 	value := s.eei.GetStorage(args.Arguments[0])
@@ -366,6 +403,10 @@ func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgu
 	newKeys := make([][]byte, 0)
 	for i := uint64(0); i < uint64(len(keysFromArgument)); i++ {
 		if _, ok := registeredKeysMap[string(keysFromArgument[i])]; ok {
+			err := s.eei.UseGas(s.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(keysFromArgument[i])))
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -403,6 +444,10 @@ func (s *stakingAuctionSC) registerBLSKeys(registrationData *AuctionData, pubKey
 			return err
 		}
 
+		err = s.eei.UseGas(s.gasCost.BaseOperationCost.StorePerByte * uint64(len(blsKey)))
+		if err != nil {
+			return err
+		}
 		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
 	}
 
@@ -482,6 +527,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	registrationData.RewardAddress = args.CallerAddr
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
@@ -492,8 +542,16 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
 				registrationData.RewardAddress = args.Arguments[i]
+				err = s.eei.UseGas(s.gasCost.BaseOperationCost.StorePerByte * uint64(len(args.Arguments[i])))
+				if err != nil {
+					return vmcommon.OutOfGas
+				}
 			} else {
 				registrationData.MaxStakePerNode.SetBytes(args.Arguments[i])
+				err = s.eei.UseGas(s.gasCost.BaseOperationCost.StorePerByte * uint64(len(args.Arguments[i])))
+				if err != nil {
+					return vmcommon.OutOfGas
+				}
 			}
 		}
 	}
@@ -635,12 +693,21 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
 		return vmcommon.UserError
 	}
 
 	for _, blsKey := range blsKeys {
+		err = s.eei.UseGas(s.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(blsKey)))
+		if err != nil {
+			return vmcommon.OutOfGas
+		}
 		_, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
 			log.Debug("blsKey unStaking", "error", err)
@@ -690,8 +757,17 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	totalUnBond := big.NewInt(0)
 	for _, blsKey := range blsKeys {
+		err = s.eei.UseGas(s.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(blsKey)))
+		if err != nil {
+			return vmcommon.OutOfGas
+		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
@@ -749,6 +825,11 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	if len(registrationData.RewardAddress) == 0 {
 		return vmcommon.UserError
+	}
+
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
+	if err != nil {
+		return vmcommon.OutOfGas
 	}
 
 	zero := big.NewInt(0)
@@ -886,11 +967,6 @@ func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeed
 	return randomlySelected
 }
 
-// IsInterfaceNil verifies if the underlying object is nil or not
-func (s *stakingAuctionSC) IsInterfaceNil() bool {
-	return s == nil
-}
-
 func calcTotalQualifyingStake(nodePrice *big.Int, bids []AuctionData) *big.Int {
 	totalQualifyingStake := big.NewInt(0)
 	for _, validator := range bids {
@@ -968,4 +1044,9 @@ func isNumArgsCorrectToStake(args [][]byte) bool {
 	areEnoughArgs := uint64(len(args)) >= 2*maxNodesToRun+1
 
 	return areEnoughArgs
+}
+
+// IsInterfaceNil verifies if the underlying object is nil or not
+func (s *stakingAuctionSC) IsInterfaceNil() bool {
+	return s == nil
 }
