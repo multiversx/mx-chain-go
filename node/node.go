@@ -699,11 +699,10 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 			continue
 		}
 
-		//TODO: Remove these comments after TPS tests would be done with success
-		//err = n.validateTx(tx)
-		//if err != nil {
-		//	continue
-		//}
+		err = n.validateTx(tx)
+		if err != nil {
+			continue
+		}
 
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
 	}
