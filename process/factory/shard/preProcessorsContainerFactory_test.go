@@ -27,7 +27,6 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -54,7 +53,6 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -81,7 +79,6 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -108,7 +105,6 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -135,7 +131,6 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -162,7 +157,6 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -189,7 +183,6 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -216,7 +209,6 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -243,7 +235,6 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -270,7 +261,6 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -297,7 +287,6 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		nil,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -324,7 +313,6 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -351,7 +339,6 @@ func TestNewPreProcessorsContainerFactory_NilInternalTransactionProducer(t *test
 		&mock.RewardTxProcessorMock{},
 		nil,
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -378,39 +365,11 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		nil,
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
-		&mock.AccountsStub{},
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.FeeHandlerStub{},
-		nil,
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-	)
-
-	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -432,7 +391,6 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		nil,
 		&mock.BlockTrackerMock{},
 	)
@@ -459,7 +417,6 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		nil,
 	)
@@ -486,7 +443,6 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -518,7 +474,6 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -559,7 +514,6 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -609,7 +563,6 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)

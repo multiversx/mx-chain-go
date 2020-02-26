@@ -169,7 +169,6 @@ type TestProcessorNode struct {
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
-	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
 
 	ForkDetector          process.ForkDetector
@@ -645,8 +644,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		badBlocskHandler,
 	)
 
-	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
-
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -662,7 +659,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RewardsProcessor,
 		internalTxProducer,
 		tpn.EconomicsData,
-		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
 		tpn.BlockTracker,
 	)
@@ -739,8 +735,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
-	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
-
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -752,7 +746,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.TxProcessor,
 		scProcessor,
 		tpn.EconomicsData.EconomicsData,
-		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestAddressConverter,

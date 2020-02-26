@@ -1946,11 +1946,6 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1966,7 +1961,6 @@ func newShardBlockProcessor(
 		rewardsTxProcessor,
 		internalTransactionProducer,
 		economics,
-		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
 	)
@@ -2152,11 +2146,6 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -2168,7 +2157,6 @@ func newMetaBlockProcessor(
 		transactionProcessor,
 		scProcessor,
 		economics,
-		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
 		state.AddressConverter,

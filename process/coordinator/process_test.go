@@ -44,17 +44,6 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 	}
 }
 
-func MiniBlocksCompacterMock() *mock.MiniBlocksCompacterMock {
-	return &mock.MiniBlocksCompacterMock{
-		CompactCalled: func(miniBlocks block.MiniBlockSlice, mpaHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
-			return miniBlocks
-		},
-		ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAntTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-			return miniBlocks, nil
-		},
-	}
-}
-
 func createShardedDataChacherNotifier(
 	handler data.TransactionHandler,
 	testHash []byte,
@@ -467,7 +456,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -518,7 +506,6 @@ func createPreProcessorContainerWithDataPool(
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -859,7 +846,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -973,7 +959,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
@@ -1582,7 +1567,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
@@ -1720,7 +1704,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 	)
@@ -1845,7 +1828,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -1976,7 +1958,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil

@@ -40,7 +40,6 @@ type transactions struct {
 	orderedTxs           map[string][]data.TransactionHandler
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
-	miniBlocksCompacter  process.MiniBlocksCompacter
 	blockTracker         BlockTracker
 	blockType            block.Type
 	addressConverter     state.AddressConverter
@@ -59,7 +58,6 @@ func NewTransactionPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 	economicsFee process.FeeHandler,
-	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
 	blockTracker BlockTracker,
 	blockType block.Type,
@@ -93,9 +91,6 @@ func NewTransactionPreprocessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(miniBlocksCompacter) {
-		return nil, process.ErrNilMiniBlocksCompacter
-	}
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
@@ -124,7 +119,6 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
-		miniBlocksCompacter:  miniBlocksCompacter,
 		blockTracker:         blockTracker,
 		blockType:            blockType,
 		addressConverter:     addressConverter,
