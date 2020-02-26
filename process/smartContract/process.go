@@ -3,10 +3,8 @@ package smartContract
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
