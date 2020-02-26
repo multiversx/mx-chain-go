@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	allShardNumber = 1
+)
+
 func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
@@ -477,7 +481,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsUnsignedTxs := numInterceptorTxs
 	numInterceptorsRewardTxs := numInterceptorTxs
 	numInterceptorHeaders := 1
-	numInterceptorMiniBlocks := noOfShards + 1 + 1
+	numInterceptorMiniBlocks := noOfShards + 1 + allShardNumber
 	numInterceptorMetachainHeaders := 1
 	numInterceptorTrieNodes := 2
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +

@@ -16,6 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	allShardNumber = 1
+)
+
 func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
@@ -245,7 +249,7 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	container, _ := rcf.Create()
 	numResolversShardHeadersForMetachain := noOfShards
 	numResolverMetablocks := 1
-	numResolversMiniBlocks := noOfShards + 1 + 1
+	numResolversMiniBlocks := noOfShards + 1 + allShardNumber
 	numResolversUnsigned := noOfShards + 1
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := (noOfShards + 1) * 2

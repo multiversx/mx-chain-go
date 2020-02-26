@@ -2,7 +2,6 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"math/big"
 )
 
 // AccountsDbIdentifier is the type of accounts db
@@ -80,21 +79,15 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
-	AddToAccumulatedFees(value *big.Int) error
 	IncreaseLeaderSuccessRateWithJournal(value uint32) error
 	DecreaseLeaderSuccessRateWithJournal(value uint32) error
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error
 	DecreaseValidatorSuccessRateWithJournal(value uint32) error
-	IncreaseNumSelectedInSuccessBlocks() error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
 	ResetAtNewEpoch() error
-	SetRewardAddressWithJournal(address []byte) error
-	SetSchnorrPublicKeyWithJournal(address []byte) error
-	SetBLSPublicKeyWithJournal(address []byte) error
-	SetStakeWithJournal(stake *big.Int) error
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account

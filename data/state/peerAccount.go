@@ -38,7 +38,6 @@ type PeerAccount struct {
 	SchnorrPublicKey []byte
 	RewardAddress    []byte
 	Stake            *big.Int
-	AccumulatedFees  *big.Int
 
 	JailTime      TimePeriod
 	PastJailTimes []TimePeriod
@@ -48,9 +47,8 @@ type PeerAccount struct {
 	NodeInWaitingList bool
 	UnStakedNonce     uint64
 
-	ValidatorSuccessRate       SignRate
-	LeaderSuccessRate          SignRate
-	NumSelectedInSuccessBlocks uint32
+	ValidatorSuccessRate SignRate
+	LeaderSuccessRate    SignRate
 
 	CodeHash []byte
 
@@ -78,7 +76,6 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
-		AccumulatedFees:  big.NewInt(0),
 		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -324,19 +321,6 @@ func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseNumSelectedInSuccessBlocks increases the counter for number of selection in successful blocks
-func (pa *PeerAccount) IncreaseNumSelectedInSuccessBlocks() error {
-	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.NumSelectedInSuccessBlocks += 1
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
 func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
@@ -351,37 +335,10 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseLeaderAccumulatedFees increases the account's accumulated fees
-func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
-	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
-
-	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.AccumulatedFees = newAccumulatedFees
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
 // ResetAtNewEpoch will reset a set of values after changing epoch
 func (pa *PeerAccount) ResetAtNewEpoch() error {
-	entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-	if err != nil {
-		return err
-	}
 
-	pa.accountTracker.Journalize(entryAccFee)
-	pa.AccumulatedFees = big.NewInt(0)
-
-	err = pa.accountTracker.SaveAccount(pa)
-	if err != nil {
-		return err
-	}
-
-	err = pa.SetRatingWithJournal(pa.GetTempRating())
+	err := pa.SetRatingWithJournal(pa.GetTempRating())
 	if err != nil {
 		return err
 	}
@@ -408,19 +365,6 @@ func (pa *PeerAccount) ResetAtNewEpoch() error {
 	pa.accountTracker.Journalize(entryValidatorRate)
 	pa.ValidatorSuccessRate.NrSuccess = 0
 	pa.ValidatorSuccessRate.NrFailure = 0
-
-	err = pa.accountTracker.SaveAccount(pa)
-	if err != nil {
-		return err
-	}
-
-	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.NumSelectedInSuccessBlocks = 0
 
 	return pa.accountTracker.SaveAccount(pa)
 }
