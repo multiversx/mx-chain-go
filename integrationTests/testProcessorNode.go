@@ -395,7 +395,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				GenesisNodePrice:         "500",
+				GenesisNodePrice:         "500000000",
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",

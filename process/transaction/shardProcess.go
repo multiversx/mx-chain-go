@@ -235,15 +235,28 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	return nil
 }
 
-func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd state.UserAccountHandler) (*big.Int, error) {
+func (txProc *txProcessor) processTxFee(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) (*big.Int, error) {
 	if check.IfNil(acntSnd) {
 		return big.NewInt(0), nil
 	}
 
+	totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	cost := txProc.economicsFee.ComputeFee(tx)
-	err := acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
-	if err != nil {
-		return nil, err
+
+	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRecvAddress())
+	if isCrossShardSCCall {
+		err := acntSnd.AddToBalance(big.NewInt(0).Neg(totalCost))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cost, nil
@@ -261,7 +274,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txFee, err := txProc.processTxFee(tx, acntSrc)
+	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst)
 	if err != nil {
 		return err
 	}
