@@ -504,6 +504,7 @@ func (wrk *Worker) checkChannels() {
 
 //Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
+	wrk.consensusState.ExtendedCalled = true
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 

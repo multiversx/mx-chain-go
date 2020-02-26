@@ -307,6 +307,14 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
 func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
+	sw := core.NewStopWatch()
+	sw.Start("receivedBlockBodyAndHeader")
+
+	defer func() {
+		sw.Stop("receivedBlockBodyAndHeader")
+		log.Debug("time measurements of receivedBlockBodyAndHeader", sw.GetMeasurements()...)
+	}()
+
 	node := string(cnsDta.PubKey)
 
 	if sr.IsConsensusDataSet() {
@@ -330,7 +338,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
+	sw.Start("DecodeBlockBodyAndHeader")
 	sr.Body, sr.Header = sr.BlockProcessor().DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
+	sw.Stop("DecodeBlockBodyAndHeader")
 
 	if check.IfNil(sr.Body) || check.IfNil(sr.Header) {
 		return false
@@ -339,7 +349,10 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	log.Debug("step 1: block body and header have been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
+
+	sw.Start("processReceivedBlock")
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	sw.Stop("processReceivedBlock")
 
 	return blockProcessedWithSuccess
 }
@@ -424,6 +437,17 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	sr.SetProcessingBlock(true)
 
+	shouldNotProcessBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.Rounder().Index()
+	if shouldNotProcessBlock {
+		log.Debug("canceled round",
+			"round", sr.Rounder().Index(),
+			"subround", sr.Name(),
+			"cnsDta round", cnsDta.RoundIndex,
+			"extended called", sr.ExtendedCalled,
+		)
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	startTime := sr.RoundTimeStamp
@@ -444,9 +468,11 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {
 		log.Debug("canceled round, meantime round index has been changed",
-			"old round", cnsDta.RoundIndex,
+			"round", sr.Rounder().Index(),
 			"subround", sr.Name(),
-			"new round", sr.Rounder().Index())
+			"cnsDta round", cnsDta.RoundIndex,
+		)
+
 		return false
 	}
 
