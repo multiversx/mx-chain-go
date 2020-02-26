@@ -35,10 +35,10 @@ type ContinuousKadDhtDiscoverer struct {
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, error) {
-	if arg.Context == nil {
+	if check.IfNilReflect(arg.Context) {
 		return nil, p2p.ErrNilContext
 	}
-	if arg.Host == nil {
+	if check.IfNilReflect(arg.Host) {
 		return nil, p2p.ErrNilHost
 	}
 	if check.IfNil(arg.KddSharder) {
@@ -169,7 +169,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 
 	go func() {
 		<-chanStartBootstrap
-
 		ckdd.bootstrap(ctx)
 	}()
 }
@@ -186,13 +185,11 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 		kadDht := ckdd.kadDHT
 		ckdd.mutKadDht.RUnlock()
 
-		var err = error(nil)
-		if kadDht != nil {
-			err = kadDht.BootstrapOnce(ctx, cfg)
-		}
-		if err == kbucket.ErrLookupFailure {
+		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.BootstrapOnce(ctx, cfg)
+		if shouldReconnect {
 			<-ckdd.ReconnectToNetwork()
 		}
+
 		select {
 		case <-time.After(ckdd.peersRefreshInterval):
 		case <-ctx.Done():
@@ -228,7 +225,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 
 	for {
 		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeersList[startIndex])
-
 		if err != nil {
 			//could not connect, wait and try next one
 			startIndex++

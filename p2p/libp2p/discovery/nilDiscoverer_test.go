@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNullDiscoverer(t *testing.T) {
+func TestNilDiscoverer(t *testing.T) {
 	t.Parallel()
 
-	nd := discovery.NewNullDiscoverer()
+	nd := discovery.NewNilDiscoverer()
 
 	assert.False(t, check.IfNil(nd))
 	assert.Equal(t, discovery.NullName, nd.Name())

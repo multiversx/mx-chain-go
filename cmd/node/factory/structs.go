@@ -1071,7 +1071,7 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 		return sha256.Sha256{}, nil
 	case "blake2b":
 		if cfg.Consensus.Type == BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: hashing.BlsHashSize}, nil
+			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
 	}

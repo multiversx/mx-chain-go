@@ -29,7 +29,7 @@ func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.
 		&mock.SharderStub{},
 		p2pConfig,
 	)
-	_, ok := pDiscoverer.(*discovery.NullDiscoverer)
+	_, ok := pDiscoverer.(*discovery.NilDiscoverer)
 
 	assert.True(t, ok)
 	assert.Nil(t, err)

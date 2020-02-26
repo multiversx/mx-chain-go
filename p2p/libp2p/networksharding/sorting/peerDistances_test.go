@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createPeerDistance(distance int) PeerDistance {
-	return PeerDistance{
+func createPeerDistance(distance int) *PeerDistance {
+	return &PeerDistance{
 		ID:       peer.ID(fmt.Sprintf("pid_%d", distance)),
 		Distance: big.NewInt(int64(distance)),
 	}

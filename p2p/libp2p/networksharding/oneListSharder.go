@@ -43,7 +43,7 @@ func (ols *oneListSharder) convertList(peers []peer.ID) sorting.PeerDistances {
 	list := sorting.PeerDistances{}
 
 	for _, p := range peers {
-		pd := sorting.PeerDistance{
+		pd := &sorting.PeerDistance{
 			ID:       p,
 			Distance: ols.computeDistance(p, ols.selfPeerId),
 		}

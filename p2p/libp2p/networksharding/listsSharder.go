@@ -148,7 +148,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) (sorting.PeerDistances, so
 	unknownShard := sorting.PeerDistances{}
 
 	for _, p := range peers {
-		pd := sorting.PeerDistance{
+		pd := &sorting.PeerDistance{
 			ID:       p,
 			Distance: ls.computeDistance(p, ls.selfPeerId),
 		}

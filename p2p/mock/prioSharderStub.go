@@ -26,7 +26,7 @@ func (pss *PrioSharderStub) GetShard(id peer.ID) uint32 {
 }
 
 // GetDistance -
-func (pss *PrioSharderStub) GetDistance(a, b sorting.SortingID) *big.Int {
+func (pss *PrioSharderStub) GetDistance(a, b sorting.SortedID) *big.Int {
 	if pss.GetDistanceCalled != nil {
 		return pss.GetDistanceCalled(a, b)
 	}
