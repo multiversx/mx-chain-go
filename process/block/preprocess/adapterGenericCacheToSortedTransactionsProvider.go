@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -28,9 +29,25 @@ func newAdapterGenericCacheToSortedTransactionsProvider(transactionsPreprocessor
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterGenericCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
-	panic("not implemented")
-	//txs, txHashes := adapter.getOrderedTx()
-	//return txs, txHashes
+	txs, txHashes := adapter.getOrderedTx()
+
+	senderShardID, receiverShardID, err := process.ParseShardCacherIdentifier(adapter.cacheKey)
+	if err != nil {
+		log.Error(err.Error())
+		return make([]*txcache.WrappedTransaction, 0)
+	}
+
+	result := make([]*txcache.WrappedTransaction, len(txs))
+	for i := 0; i < len(result); i++ {
+		result[i] = &txcache.WrappedTransaction{
+			Tx:              txs[i],
+			TxHash:          txHashes[i],
+			SenderShardID:   senderShardID,
+			ReceiverShardID: receiverShardID,
+		}
+	}
+
+	return result
 }
 
 // getOrderedTx was moved here from the previous implementation
