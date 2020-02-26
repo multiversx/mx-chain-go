@@ -90,8 +90,6 @@ func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
 }
 
 func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) {
-	t.Skip("Skip this because it requires non-merged tx pool caches")
-
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
@@ -99,11 +97,11 @@ func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) 
 
 	// 100 * 10 caches will be created
 
-	for i := 0; i < 100; i++ {
+	for i := 1; i <= 100; i++ {
 		wg.Add(1)
 
 		go func(i int) {
-			for j := 0; j < 10; j++ {
+			for j := 111; j <= 120; j++ {
 				pool.ShardDataStore(fmt.Sprintf("%d_%d", i, j))
 			}
 
@@ -115,8 +113,8 @@ func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) 
 
 	require.Equal(t, 1000, len(pool.backingMap))
 
-	for i := 0; i < 100; i++ {
-		for j := 0; j < 10; j++ {
+	for i := 1; i <= 100; i++ {
+		for j := 111; j <= 120; j++ {
 			_, inMap := pool.backingMap[fmt.Sprintf("%d_%d", i, j)]
 			require.True(t, inMap)
 		}
