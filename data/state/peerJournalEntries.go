@@ -464,7 +464,7 @@ func NewPeerJournalEntryNumSelectedInSuccessBlocks(account *PeerAccount, oldNumS
 
 // Revert applies undo operation
 func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) Revert() (AccountHandler, error) {
-	pjen.account.CurrentShardId = pjen.oldNumSelected
+	pjen.account.NumSelectedInSuccessBlocks = pjen.oldNumSelected
 
 	return pjen.account, nil
 }
