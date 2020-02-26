@@ -61,7 +61,7 @@ func NewStakingAuctionSmartContract(
 	if check.IfNil(args.ValidatorSettings) {
 		return nil, vm.ErrNilValidatorSettings
 	}
-	if args.ValidatorSettings.StakeValue() == nil {
+	if args.ValidatorSettings.GenesisNodePrice() == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
 	if args.ValidatorSettings.MinStepValue().Cmp(big.NewInt(0)) < 1 {
@@ -78,11 +78,11 @@ func NewStakingAuctionSmartContract(
 	}
 
 	baseConfig := AuctionConfig{
-		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.StakeValue()),
+		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		NumNodes:      args.ValidatorSettings.NumNodes(),
 		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
-		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.StakeValue()),
+		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		UnJailPrice:   big.NewInt(0).Set(args.ValidatorSettings.UnJailValue()),
 	}
 

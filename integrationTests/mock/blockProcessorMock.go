@@ -75,6 +75,7 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 	if bpm.RevertStateToBlockCalled != nil {
 		return bpm.RevertStateToBlockCalled(header)
 	}
+	return nil
 }
 
 // PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
@@ -160,13 +161,4 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
-}
-
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if bpm.RevertStateToBlockCalled != nil {
-		return bpm.RevertStateToBlockCalled(header)
-	}
-
-	return nil
 }

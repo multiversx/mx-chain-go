@@ -5,13 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-// ValidatorStatisticsProcessorMock -
-type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled func(header data.HeaderHandler) error
-	IsInterfaceNilCalled  func() bool
-	GetPeerAccountCalled  func(address []byte) (state.PeerAccountHandler, error)
-	RootHashCalled        func() ([]byte, error)
+// ValidatorStatisticsProcessorStub -
+type ValidatorStatisticsProcessorStub struct {
+	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled                    func(header data.HeaderHandler) error
+	IsInterfaceNilCalled                     func() bool
+	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
+	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
 }

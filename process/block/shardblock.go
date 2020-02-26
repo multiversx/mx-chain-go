@@ -68,7 +68,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		store:                        arguments.Store,
 		shardCoordinator:             arguments.ShardCoordinator,
 		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
 		uint64Converter:              arguments.Uint64Converter,
 		requestHandler:               arguments.RequestHandler,
 		appStatusHandler:             statusHandler.NewNilStatusHandler(),
@@ -82,7 +81,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		dataPool:                     arguments.DataPool,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		stateCheckpointModulus:       arguments.StateCheckpointModulus,
-		blockChain:         arguments.BlockChain,
+		blockChain:                   arguments.BlockChain,
+		feeHandler:                   arguments.FeeHandler,
 	}
 
 	if check.IfNil(arguments.TxsPoolsCleaner) {

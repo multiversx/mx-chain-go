@@ -10,19 +10,19 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	leaderPercentage     float64
-	maxGasLimitPerBlock  uint64
-	gasPerDataByte       uint64
-	dataLimitForBaseCalc uint64
-	minGasPrice          uint64
-	minGasLimit          uint64
-	genesisNodePrice     *big.Int
-	unBondPeriod        uint64
-	ratingsData          *RatingsData
-	developerPercentage  float64
-	genesisTotalSupply   *big.Int
-	minInflation         float64
-	maxInflation         float64
+	leaderPercentage         float64
+	maxGasLimitPerBlock      uint64
+	gasPerDataByte           uint64
+	dataLimitForBaseCalc     uint64
+	minGasPrice              uint64
+	minGasLimit              uint64
+	genesisNodePrice         *big.Int
+	unBondPeriod             uint64
+	ratingsData              *RatingsData
+	developerPercentage      float64
+	genesisTotalSupply       *big.Int
+	minInflation             float64
+	maxInflation             float64
 	minStep                  *big.Int
 	unJailPrice              *big.Int
 	numNodes                 uint32
@@ -55,19 +55,19 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		leaderPercentage:     economics.RewardsSettings.LeaderPercentage,
-		maxGasLimitPerBlock:  data.maxGasLimitPerBlock,
-		minGasPrice:          data.minGasPrice,
-		minGasLimit:          data.minGasLimit,
-		genesisNodePrice:     data.genesisNodePrice,
-		unBoundPeriod:        data.unBoundPeriod,
-		gasPerDataByte:       data.gasPerDataByte,
-		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
-		ratingsData:          rd,
-		developerPercentage:  economics.RewardsSettings.DeveloperPercentage,
-		minInflation:         economics.GlobalSettings.MinimumInflation,
-		maxInflation:         economics.GlobalSettings.MaximumInflation,
-		genesisTotalSupply:   data.genesisTotalSupply,
+		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
+		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
+		minGasPrice:              data.minGasPrice,
+		minGasLimit:              data.minGasLimit,
+		genesisNodePrice:         data.genesisNodePrice,
+		unBondPeriod:             data.unBondPeriod,
+		gasPerDataByte:           data.gasPerDataByte,
+		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
+		ratingsData:              rd,
+		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
+		minInflation:             economics.GlobalSettings.MinimumInflation,
+		maxInflation:             economics.GlobalSettings.MaximumInflation,
+		genesisTotalSupply:       data.genesisTotalSupply,
 		minStep:                  data.minStep,
 		numNodes:                 data.numNodes,
 		auctionEnableNonce:       data.auctionEnableNonce,
@@ -163,14 +163,14 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	}
 
 	return &EconomicsData{
-		minGasPrice:          minGasPrice,
-		minGasLimit:          minGasLimit,
-		genesisNodePrice:     genesisNodePrice,
-		unBoundPeriod:        unBoundPeriod,
-		maxGasLimitPerBlock:  maxGasLimitPerBlock,
-		gasPerDataByte:       gasPerDataByte,
-		dataLimitForBaseCalc: dataLimitForBaseCalc,
-		genesisTotalSupply:   genesisTotalSupply,
+		minGasPrice:              minGasPrice,
+		minGasLimit:              minGasLimit,
+		genesisNodePrice:         genesisNodePrice,
+		unBondPeriod:             unBondPeriod,
+		maxGasLimitPerBlock:      maxGasLimitPerBlock,
+		gasPerDataByte:           gasPerDataByte,
+		dataLimitForBaseCalc:     dataLimitForBaseCalc,
+		genesisTotalSupply:       genesisTotalSupply,
 		minStep:                  minStepValue,
 		numNodes:                 economics.ValidatorSettings.NumNodes,
 		auctionEnableNonce:       auctionEnableNonce,
@@ -310,7 +310,7 @@ func (ed *EconomicsData) UnJailValue() *big.Int {
 
 // TotalSupply returns the total supply of the protocol
 func (ed *EconomicsData) TotalSupply() *big.Int {
-	return ed.totalSupply
+	return ed.genesisTotalSupply
 }
 
 // NumNodes returns the total node number for current setting
