@@ -1,0 +1,44 @@
+package process
+
+import (
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/require"
+)
+
+func TestIdentifiers_ShardCacherIdentifier(t *testing.T) {
+	require.Equal(t, "0", ShardCacherIdentifier(0, 0))
+	require.Equal(t, "4", ShardCacherIdentifier(4, 4))
+	require.Equal(t, "0_1", ShardCacherIdentifier(0, 1))
+	require.Equal(t, "1_0", ShardCacherIdentifier(1, 0))
+}
+
+func TestIdentifiers_ParseShardCacherIdentifier(t *testing.T) {
+	assertParseShardCacherIdentifier(t, "", 0, 0, ErrInvalidShardCacherIdentifier)
+	assertParseShardCacherIdentifier(t, "_", 0, 0, ErrInvalidShardCacherIdentifier)
+	assertParseShardCacherIdentifier(t, "?", 0, 0, ErrInvalidShardCacherIdentifier)
+	assertParseShardCacherIdentifier(t, "0", 0, 0, nil)
+	assertParseShardCacherIdentifier(t, "1", 1, 1, nil)
+	assertParseShardCacherIdentifier(t, "0_1", 0, 1, nil)
+	assertParseShardCacherIdentifier(t, "1_0", 1, 0, nil)
+	assertParseShardCacherIdentifier(t, "2_2", 2, 2, nil)
+	assertParseShardCacherIdentifier(t, "4_3", 4, 3, nil)
+	assertParseShardCacherIdentifier(t, "0_4294967295", 0, sharding.MetachainShardId, nil)
+}
+
+func assertParseShardCacherIdentifier(t *testing.T, cacheID string, source uint32, destination uint32, err error) {
+	actoualSource, actualDestination, actualErr := ParseShardCacherIdentifier(cacheID)
+	require.Equal(t, source, actoualSource)
+	require.Equal(t, destination, actualDestination)
+	require.Equal(t, err, actualErr)
+}
+
+func TestIdentifiers_IsShardCacherIdentifierIntraShard(t *testing.T) {
+	require.True(t, IsShardCacherIdentifierIntraShard("0", 0))
+	require.True(t, IsShardCacherIdentifierIntraShard("1", 1))
+	require.False(t, IsShardCacherIdentifierIntraShard("2", 1))
+	require.False(t, IsShardCacherIdentifierIntraShard("2_2", 2)) // Bad format
+	require.False(t, IsShardCacherIdentifierIntraShard("", 0))
+	require.False(t, IsShardCacherIdentifierIntraShard("2_3", 2))
+}

@@ -2565,7 +2565,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, haveTimeTrue)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2642,7 +2642,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, haveTimeTrue)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -2786,7 +2786,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments.TxCoordinator = tc
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	blockBody, err := bp.CreateMiniBlocks(15000, func() bool { return true })
+	blockBody, err := bp.CreateMiniBlocks(func() bool { return true })
 
 	assert.Nil(t, err)
 	//testing execution
@@ -3033,18 +3033,12 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
 
-	marshalizedBody, err := marshalizerMock.Marshal(body)
-	assert.Nil(t, err)
-
-	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
+	bodyAndHeader := data.BodyAndHeader{
+		Body:   body,
+		Header: hdr,
 	}
 
-	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	message, err := marshalizerMock.Marshal(&bodyAndHeader)
 	assert.Nil(t, err)
 
 	dcdBlk, dcdHdr := sp.DecodeBlockBodyAndHeader(nil)

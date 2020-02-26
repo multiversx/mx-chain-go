@@ -566,7 +566,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 		"nonce", initialHdrData.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -581,11 +581,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	return miniBlocks, nil
 }
 
-func (mp *metaProcessor) createMiniBlocks(
-	maxItemsInBlock uint32,
-	haveTime func() bool,
-) (block.Body, error) {
-
+func (mp *metaProcessor) createMiniBlocks(haveTime func() bool) (block.Body, error) {
 	miniBlocks := make(block.Body, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
 		return miniBlocks, nil
@@ -605,31 +601,22 @@ func (mp *metaProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
+	destMeMiniBlocks, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
 
 	log.Debug("processed miniblocks and txs with destination in self shard",
 		"num miniblocks", len(destMeMiniBlocks),
-		"num txs", nbTxs,
+		"num txs", numTxs,
+		"num shard headers", numShardHeaders,
 	)
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
 
-	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(nbTxs)
-	maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
-		maxItemsInBlock,
-		uint32(len(destMeMiniBlocks))+nbHdrs,
-		uint32(len(miniBlocks)))
-
-	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
-		uint32(maxTxSpaceRemained),
-		uint32(maxMbSpaceRemained),
-		haveTime)
-
+	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)
 	}
@@ -643,7 +630,6 @@ func (mp *metaProcessor) createMiniBlocks(
 
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -680,21 +666,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
-			log.Debug("max number of mini blocks allowed to be added in one shard block has been reached",
-				"num miniblocks", len(miniBlocks),
-			)
-			break
-		}
-
-		itemsAddedInHeader := uint32(len(mp.hdrsForCurrBlock.hdrHashAndInfo) + len(miniBlocks))
-		if itemsAddedInHeader >= maxItemsInBlock {
-			log.Debug("max records allowed to be added in shard header has been reached",
-				"num max items", maxItemsInBlock,
-			)
-			break
-		}
-
 		currShardHdr := orderedHdrs[i]
 		if currShardHdr.GetNonce() > lastShardHdr[currShardHdr.GetShardID()].GetNonce()+1 {
 			log.Debug("skip searching",
@@ -712,51 +683,36 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		itemsAddedInBody := txsAdded
-		if itemsAddedInBody >= maxItemsInBlock {
+		snapshot := mp.accounts.JournalLen()
+		currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currShardHdr,
+			nil,
+			haveTime)
+
+		if !hdrProcessFinished {
+			log.Debug("shard header cannot be fully processed",
+				"round", currShardHdr.GetRound(),
+				"nonce", currShardHdr.GetNonce(),
+				"hash", orderedHdrsHashes[i])
+
+			// shard header must be processed completely
+			errAccountState := mp.accounts.RevertToSnapshot(snapshot)
+			if errAccountState != nil {
+				// TODO: evaluate if reloading the trie from disk will might solve the problem
+				log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
+			}
 			continue
 		}
 
-		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
-		maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
-			maxItemsInBlock,
-			itemsAddedInHeader+1,
-			uint32(len(miniBlocks)))
+		// all txs processed, add to processed miniblocks
+		miniBlocks = append(miniBlocks, currMBProcessed...)
+		txsAdded += currTxsAdded
 
-		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			snapshot := mp.accounts.JournalLen()
-			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-				currShardHdr,
-				nil,
-				uint32(maxTxSpaceRemained),
-				uint32(maxMbSpaceRemained),
-				haveTime)
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
+		hdrsAdded++
+		hdrsAddedForShard[currShardHdr.GetShardID()]++
 
-			if !hdrProcessFinished {
-				log.Debug("shard header cannot be fully processed",
-					"round", currShardHdr.GetRound(),
-					"nonce", currShardHdr.GetNonce(),
-					"hash", orderedHdrsHashes[i])
-
-				// shard header must be processed completely
-				errAccountState := mp.accounts.RevertToSnapshot(snapshot)
-				if errAccountState != nil {
-					// TODO: evaluate if reloading the trie from disk will might solve the problem
-					log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
-				}
-				break
-			}
-
-			// all txs processed, add to processed miniblocks
-			miniBlocks = append(miniBlocks, currMBProcessed...)
-			txsAdded += currTxsAdded
-
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
-			hdrsAdded++
-			hdrsAddedForShard[currShardHdr.GetShardID()]++
-
-			lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
-		}
+		lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 

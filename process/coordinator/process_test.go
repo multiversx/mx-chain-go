@@ -742,12 +742,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -793,12 +791,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -822,12 +818,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -903,8 +897,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -918,7 +910,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
@@ -1005,12 +997,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1032,12 +1022,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1064,12 +1052,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(0)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1098,8 +1084,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1115,7 +1099,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -1144,8 +1128,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1174,7 +1156,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1217,8 +1199,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1243,7 +1223,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1285,8 +1265,6 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1313,7 +1291,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1350,8 +1328,6 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	assert.Equal(t, 0, len(usedTxs))
 
 	// create block to have some txs
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1366,7 +1342,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		txPool.AddData(txHash, newTx, strCache)
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 	require.Equal(t, 5, len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)

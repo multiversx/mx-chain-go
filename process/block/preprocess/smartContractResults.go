@@ -439,12 +439,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(
-	_ uint32,
-	_ uint32,
-	_ func() bool,
-) (block.MiniBlockSlice, error) {
-
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
 	return nil, nil
 }
 
@@ -474,6 +469,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -486,7 +482,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard)
 
 		if err != nil {
 			return err

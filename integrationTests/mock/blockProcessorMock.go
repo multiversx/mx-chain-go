@@ -100,25 +100,17 @@ func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHa
 		return nil, nil
 	}
 
-	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
-	err := bpm.Marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	bodyAndHeader := data.BodyAndHeader{
+		Body:   &block.Body{},
+		Header: &block.Header{},
+	}
+
+	err := bpm.Marshalizer.Unmarshal(&bodyAndHeader, dta)
 	if err != nil {
 		return nil, nil
 	}
 
-	var body block.Body
-	err = bpm.Marshalizer.Unmarshal(&body, marshalizedBodyAndHeader.Body)
-	if err != nil {
-		return nil, nil
-	}
-
-	var header block.Header
-	err = bpm.Marshalizer.Unmarshal(&header, marshalizedBodyAndHeader.Header)
-	if err != nil {
-		return nil, nil
-	}
-
-	return body, &header
+	return bodyAndHeader.Body, bodyAndHeader.Header
 }
 
 // DecodeBlockBody method decodes block body from a given byte array

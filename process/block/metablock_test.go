@@ -2029,18 +2029,12 @@ func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
 
-	marshalizedBody, err := marshalizerMock.Marshal(body)
-	assert.Nil(t, err)
-
-	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
+	bodyAndHeader := data.BodyAndHeader{
+		Body:   body,
+		Header: hdr,
 	}
 
-	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	message, err := marshalizerMock.Marshal(&bodyAndHeader)
 	assert.Nil(t, err)
 
 	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
@@ -2232,10 +2226,10 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{expectedMiniBlock2}
 		},
 	}
@@ -2392,10 +2386,10 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{miniBlock2}
 		},
 	}
@@ -2485,7 +2479,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true
 		},
 	}

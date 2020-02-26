@@ -690,7 +690,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 		},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
 	assert.Nil(t, mBlocksSlice)
 	assert.Equal(t, process.ErrNilRewardTransaction, err)
 }
@@ -734,7 +734,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

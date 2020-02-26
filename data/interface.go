@@ -184,8 +184,8 @@ type TrieFactory interface {
 	IsInterfaceNil() bool
 }
 
-// MarshalizedBodyAndHeader holds marshalized body and header
-type MarshalizedBodyAndHeader struct {
-	Body   []byte
-	Header []byte
+// BodyAndHeader holds body and header
+type BodyAndHeader struct {
+	Body   BodyHandler
+	Header HeaderHandler
 }
