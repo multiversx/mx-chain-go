@@ -65,6 +65,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 
 	log.Debug("received shard header from network in block tracker",
 		"shard", shardHeader.GetShardID(),
+		"epoch", shardHeader.GetEpoch(),
 		"round", shardHeader.GetRound(),
 		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
@@ -83,6 +84,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 
 	log.Debug("received meta block from network in block tracker",
 		"shard", metaBlock.GetShardID(),
+		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,

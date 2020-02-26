@@ -127,3 +127,7 @@ func (bp *blockProcessor) CheckHeaderFinality(header data.HeaderHandler, sortedH
 func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler) {
 	bp.requestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
 }
+
+func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler) {
+	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+}
