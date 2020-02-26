@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
@@ -128,6 +131,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 			return err
 		}
 
+		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
+
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
 			FuncName:  "get",
@@ -159,7 +164,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 			continue
 		}
 
-		var stakingData systemSmartContracts.StakingData
+		var stakingData systemSmartContracts.StakedData
 		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
@@ -175,12 +180,12 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakingData,
+	stakingData systemSmartContracts.StakedData,
 	account *state.PeerAccount,
 	blsPubKey []byte,
 ) error {
-	if !bytes.Equal(stakingData.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(stakingData.Address)
+	if !bytes.Equal(stakingData.RewardAddress, account.RewardAddress) {
+		err := account.SetRewardAddressWithJournal(stakingData.RewardAddress)
 		if err != nil {
 			return err
 		}
@@ -200,8 +205,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if stakingData.StartNonce != account.Nonce {
-		err := account.SetNonceWithJournal(stakingData.StartNonce)
+	if stakingData.RegisterNonce != account.Nonce {
+		err := account.SetNonceWithJournal(stakingData.RegisterNonce)
 		if err != nil {
 			return err
 		}
@@ -250,7 +255,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error
 
 			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			for _, storageUpdate := range storageUpdates {

@@ -275,7 +275,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	store := integrationTests.CreateMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
@@ -334,7 +334,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1024,7 +1024,7 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1099,7 +1099,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1136,7 +1136,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1194,7 +1194,7 @@ func collapseTrie(state state.AccountHandler, t *testing.T) {
 	state.DataTrieTracker().SetDataTrie(stateNewTrie)
 }
 
-func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
+func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1517,7 +1517,7 @@ func collectSnapshotAndCheckpointHashes(
 			continue
 		}
 
-		checkpointRound := currentBlockHeader.GetRound()%stateCheckpointModulus == 0
+		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue

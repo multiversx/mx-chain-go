@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
@@ -393,8 +394,17 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				GenesisNodePrice: "500",
-				UnBoundPeriod:    "5",
+				GenesisNodePrice:         "500",
+				UnBondPeriod:             "5",
+				TotalSupply:              "200000000000",
+				MinStepValue:             "100000",
+				NumNodes:                 1000,
+				AuctionEnableNonce:       "100000",
+				StakeEnableNonce:         "0",
+				NumRoundsWithoutBleed:    "1000",
+				MaximumPercentageToBleed: "0.5",
+				BleedPercentagePerRound:  "0.00001",
+				UnJailValue:              "1000",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 500000,
@@ -707,7 +717,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Uint64Converter:  TestUint64Converter,
 	}
 
-	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData, &genesis.NilMessageSignVerifier{})
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -821,8 +831,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
+
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 tpn.ForkDetector,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
@@ -842,9 +856,10 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker: tpn.BlockTracker,
-		DataPool:     tpn.DataPool,
-		BlockChain:   tpn.BlockChain,
+		BlockTracker:           tpn.BlockTracker,
+		DataPool:               tpn.DataPool,
+		StateCheckpointModulus: stateCheckpointModulus,
+		BlockChain:   			tpn.BlockChain,
 	}
 
 	if tpn.EpochStartNotifier == nil {
@@ -952,9 +967,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor:       argumentsBase,
-			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: stateCheckpointModulus,
+			ArgBaseProcessor: argumentsBase,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
