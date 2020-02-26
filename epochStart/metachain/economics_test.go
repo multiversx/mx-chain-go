@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -172,23 +173,42 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	assert.NotNil(t, res)
 }
 
-func TestEconomics_VerifyRewardsPerBlock(t *testing.T) {
+func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	t.Parallel()
 
+	totalSupply := big.NewInt(20000000000) // 20B
+	accFeesInEpoch := big.NewInt(0)
+	roundDur := 4
 	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func() float64 {
+			return 0.1
+		},
+	}
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDur) * time.Second
+		},
+	}
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdr := block.MetaBlock{
-					Round: 10,
-					Nonce: 5,
+					Round: 0,
+					Nonce: 0,
+					Epoch: 0,
 					EpochStart: block.EpochStart{
 						Economics: block.Economics{
-							TotalSupply:            big.NewInt(100000),
+							TotalSupply:            totalSupply,
 							TotalToDistribute:      big.NewInt(10),
-							TotalNewlyMinted:       big.NewInt(109),
+							TotalNewlyMinted:       big.NewInt(10),
 							RewardsPerBlockPerNode: big.NewInt(10),
 							NodePrice:              big.NewInt(10),
+						},
+						LastFinalizedHeaders: []block.EpochStartShardData{
+							{ShardId: 0, Nonce: 0},
+							{ShardId: 1, Nonce: 0},
 						},
 					},
 				}
@@ -199,32 +219,46 @@ func TestEconomics_VerifyRewardsPerBlock(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	expectedTotalToDistribute, _ := big.NewInt(0).SetString("70134520968243715236428", 10)
-	expectedTotalNewlyMinted, _ := big.NewInt(0).SetString("70134520968243715226428", 10)
-	expectedTotalSupply, _ := big.NewInt(0).SetString("70134520968243715326428", 10)
-	rwdsPerBlock := big.NewInt(3802)
+	expRwdPerBlock := 84 // based on 0.1 inflation
 
-	mb := block.MetaBlock{
-		Round: 15000,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 1, Round: 2, Nonce: 3},
-				{ShardId: 2, Round: 2, Nonce: 3},
-			},
-			Economics: block.Economics{
-				TotalSupply:            expectedTotalSupply,
-				TotalToDistribute:      expectedTotalToDistribute,
-				TotalNewlyMinted:       expectedTotalNewlyMinted,
-				RewardsPerBlockPerNode: rwdsPerBlock,
-				NodePrice:              big.NewInt(12),
-			},
-		},
-		Epoch:                  2,
-		AccumulatedFeesInEpoch: big.NewInt(10000),
+	numBlocksInEpochSlice := []int{
+		numberOfSecondsInDay / roundDur,       // 100 % hit rate
+		(numberOfSecondsInDay / roundDur) / 2, // 50 % hit rate
+		(numberOfSecondsInDay / roundDur) / 4, // 25 % hit rate
+		(numberOfSecondsInDay / roundDur) / 8, // 12.5 % hit rate
+		1,                                     // only the metablock was committed in that epoch
+		37,                                    // random
+		63,                                    // random
 	}
 
-	err := ec.VerifyRewardsPerBlock(&mb)
-	assert.Nil(t, err)
+	for _, numBlocksInEpoch := range numBlocksInEpochSlice {
+		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
+		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
+		expectedTotalSupply := big.NewInt(0).Add(totalSupply, expectedTotalNewlyMinted)
+
+		mb := block.MetaBlock{
+			Round: uint64(numBlocksInEpoch),
+			Nonce: uint64(numBlocksInEpoch),
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardId: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+					{ShardId: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+				},
+				Economics: block.Economics{
+					TotalSupply:            expectedTotalSupply,
+					TotalToDistribute:      expectedTotalToDistribute,
+					TotalNewlyMinted:       expectedTotalNewlyMinted,
+					RewardsPerBlockPerNode: big.NewInt(int64(expRwdPerBlock)),
+					NodePrice:              big.NewInt(12),
+				},
+			},
+			Epoch:                  1,
+			AccumulatedFeesInEpoch: accFeesInEpoch,
+		}
+
+		err := ec.VerifyRewardsPerBlock(&mb)
+		assert.Nil(t, err)
+	}
 }
 
 func getArguments() ArgsNewEpochEconomics {

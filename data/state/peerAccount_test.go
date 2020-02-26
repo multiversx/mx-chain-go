@@ -563,3 +563,93 @@ func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
+
+func TestPeerAccount_IncreaseNumSelectedInSuccessBlocks(t *testing.T) {
+	t.Parallel()
+
+	journalizeCalled := false
+	saveAccountCalled := false
+
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeCalled = true
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountCalled = true
+			return nil
+		},
+	}
+
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{}, tracker)
+	err := acc.IncreaseNumSelectedInSuccessBlocks()
+
+	assert.Nil(t, err)
+	assert.True(t, journalizeCalled)
+	assert.True(t, saveAccountCalled)
+}
+
+func TestPeerAccount_AddToAccumulatedFees(t *testing.T) {
+	journalizeCalled := false
+	saveAccountCalled := false
+
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeCalled = true
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountCalled = true
+			return nil
+		},
+	}
+
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{}, tracker)
+	err := acc.AddToAccumulatedFees(big.NewInt(37))
+
+	assert.Nil(t, err)
+	assert.True(t, journalizeCalled)
+	assert.True(t, saveAccountCalled)
+}
+
+func TestPeerAccount_SetTempRatingWithJournal(t *testing.T) {
+	journalizeCalled := false
+	saveAccountCalled := false
+
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeCalled = true
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountCalled = true
+			return nil
+		},
+	}
+
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{}, tracker)
+	err := acc.SetTempRatingWithJournal(100)
+
+	assert.Nil(t, err)
+	assert.True(t, journalizeCalled)
+	assert.True(t, saveAccountCalled)
+}
+
+func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
+	numTimesJournalizeWasCalled := 0
+	numTimesSaveAccountWasCalled := 0
+
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			numTimesJournalizeWasCalled++
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			numTimesSaveAccountWasCalled++
+			return nil
+		},
+	}
+
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{}, tracker)
+	err := acc.ResetAtNewEpoch()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 5, numTimesJournalizeWasCalled)
+	assert.Equal(t, 5, numTimesSaveAccountWasCalled)
+}

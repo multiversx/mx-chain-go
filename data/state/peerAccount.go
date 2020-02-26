@@ -351,7 +351,7 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseLeaderAccumulatedFees increases the account's accumulated fees
+// AddToAccumulatedFees increases the account's accumulated fees
 func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
 	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
 
