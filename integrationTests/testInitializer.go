@@ -91,7 +91,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			RoutingTableRefreshIntervalInSec: 2,
 		},
 		Sharding: config.ShardingConfig{
-			Type: p2p.DisabledSharder,
+			Type: p2p.NilListSharder,
 		},
 	}
 }

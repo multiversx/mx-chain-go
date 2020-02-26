@@ -441,7 +441,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
+		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))

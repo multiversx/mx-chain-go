@@ -9,7 +9,7 @@ type P2PConfig struct {
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
-	Port int
+	Port uint32
 	Seed string
 }
 

@@ -24,52 +24,64 @@ func createMockArg() ArgsSharderFactory {
 	}
 }
 
-func TestNewSharder_CreateWithPrioBitsVariantShouldWork(t *testing.T) {
+func TestNewSharder_CreatePrioBitsSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Type = p2p.SharderVariantPrioBits
+	arg.Type = p2p.PrioBitsSharder
 	sharder, err := NewSharder(arg)
 
-	expectedSharder, _ := networksharding.NewKadSharder(1, &mock.PeerShardResolverStub{})
+	expectedSharder, _ := networksharding.NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }
 
-func TestNewSharder_CreateWithListSharderShouldWork(t *testing.T) {
+func TestNewSharder_CreateSimplePrioBitsSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Type = p2p.SharderVariantWithLists
+	arg.Type = p2p.SimplePrioBitsSharder
+	sharder, err := NewSharder(arg)
+
+	expectedSharder := &networksharding.SimplePrioBitsSharder{}
+	assert.Nil(t, err)
+	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
+}
+
+func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArg()
+	arg.Type = p2p.ListsSharder
 	sharder, err := NewSharder(arg)
 	maxPeerCount := 2
 
-	expectedSharder, _ := networksharding.NewListKadSharder(&mock.PeerShardResolverStub{}, "", maxPeerCount, maxPeerCount, maxPeerCount)
+	expectedSharder, _ := networksharding.NewListsSharder(&mock.PeerShardResolverStub{}, "", maxPeerCount, maxPeerCount, maxPeerCount)
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }
 
-func TestNewSharder_CreateWithListNoSharderShouldWork(t *testing.T) {
+func TestNewSharder_CreateOneListSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Type = p2p.NoSharderWithLists
+	arg.Type = p2p.OneListSharder
 	sharder, err := NewSharder(arg)
 	maxPeerCount := 2
 
-	expectedSharder, _ := networksharding.NewListNoKadSharder("", maxPeerCount)
+	expectedSharder, _ := networksharding.NewOneListSharder("", maxPeerCount)
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }
 
-func TestNewSharder_CreateWithDisabledSharderShouldWork(t *testing.T) {
+func TestNewSharder_CreateNilListSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Type = p2p.DisabledSharder
+	arg.Type = p2p.NilListSharder
 	sharder, err := NewSharder(arg)
 
-	expectedSharder := networksharding.NewDisabledSharder()
+	expectedSharder := networksharding.NewNilListSharder()
 	assert.Nil(t, err)
 	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }

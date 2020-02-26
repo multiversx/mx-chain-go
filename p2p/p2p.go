@@ -11,14 +11,16 @@ import (
 const displayLastPidChars = 12
 
 const (
-	// SharderVariantPrioBits is the variant that uses priority bits
-	SharderVariantPrioBits = "PrioSharder"
-	// SharderVariantWithLists is the variant that uses lists
-	SharderVariantWithLists = "ListSharder"
-	// NoSharderWithLists is the variant that is shard agnostic nd uses lists
-	NoSharderWithLists = "NoSharder"
-	// DisabledSharder is the variant that will not do connection trimming
-	DisabledSharder = "DisabledSharder"
+	// PrioBitsSharder is the variant that uses priority bits
+	PrioBitsSharder = "PrioBitsSharder"
+	// SimplePrioBitsSharder is the variant that computes the distance without prio bits
+	SimplePrioBitsSharder = "SimplePrioBitsSharder"
+	// ListsSharder is the variant that uses lists
+	ListsSharder = "ListsSharder"
+	// OneListSharder is the variant that is shard agnostic and uses one list
+	OneListSharder = "OneListSharder"
+	// NilListSharder is the variant that will not do connection trimming
+	NilListSharder = "NilListSharder"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do

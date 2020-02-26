@@ -122,9 +122,6 @@ func checkParameters(args ArgsNetworkMessenger) error {
 	if args.Context == nil {
 		return p2p.ErrNilContext
 	}
-	if args.P2pConfig.Node.Port < 0 {
-		return p2p.ErrInvalidPort
-	}
 
 	return nil
 }
@@ -186,7 +183,7 @@ func createMessenger(
 		return nil, err
 	}
 
-	netMes.logsPrints()
+	netMes.printLogs()
 
 	return &netMes, nil
 }
@@ -287,7 +284,7 @@ func (netMes *networkMessenger) createConnectionsMetric() {
 	netMes.p2pHost.Network().Notify(netMes.connectionsMetric)
 }
 
-func (netMes *networkMessenger) logsPrints() {
+func (netMes *networkMessenger) printLogs() {
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.p2pHost.Addrs() {
 		addresses = append(addresses, fmt.Sprintf("addr%d", i))
@@ -295,10 +292,10 @@ func (netMes *networkMessenger) logsPrints() {
 	}
 	log.Info("listening on addresses", addresses...)
 
-	go netMes.logsPrintsStats()
+	go netMes.printLogsStats()
 }
 
-func (netMes *networkMessenger) logsPrintsStats() {
+func (netMes *networkMessenger) printLogsStats() {
 	for {
 		time.Sleep(secondsBetweenPeerPrints * time.Second)
 

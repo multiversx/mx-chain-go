@@ -48,30 +48,30 @@ var (
 	fs20 = &testKadResolver{fakeShardBit0Byte2}
 )
 
-func TestNewKadSharder_ZeroPrioBitsShouldErr(t *testing.T) {
+func TestNewPrioBitsSharder_ZeroPrioBitsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ks, err := NewKadSharder(0, &mock.PeerShardResolverStub{})
+	pbs, err := NewPrioBitsSharder(0, &mock.PeerShardResolverStub{})
 
-	assert.True(t, check.IfNil(ks))
+	assert.True(t, check.IfNil(pbs))
 	assert.True(t, errors.Is(err, ErrBadParams))
 }
 
-func TestNewKadSharder_NilPeerShardResolverShouldErr(t *testing.T) {
+func TestNewPrioBitsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ks, err := NewKadSharder(1, nil)
+	pbs, err := NewPrioBitsSharder(1, nil)
 
-	assert.True(t, check.IfNil(ks))
+	assert.True(t, check.IfNil(pbs))
 	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
 }
 
-func TestNewKadSharder_ShouldWork(t *testing.T) {
+func TestNewPrioBitsSharder_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ks, err := NewKadSharder(1, &mock.PeerShardResolverStub{})
+	pbs, err := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 
-	assert.False(t, check.IfNil(ks))
+	assert.False(t, check.IfNil(pbs))
 	assert.Nil(t, err)
 }
 
@@ -112,25 +112,25 @@ func TestCutoOffBits(t *testing.T) {
 	for _, td := range testData {
 		tdCopy := td
 		t.Run(fmt.Sprint(tdCopy.l, "_", tdCopy.exp), func(t *testing.T) {
-			k, _ := NewKadSharder(tdCopy.l, fs0)
-			r := k.resetDistanceBits(i)
+			pbs, _ := NewPrioBitsSharder(tdCopy.l, fs0)
+			r := pbs.resetDistanceBits(i)
 			assert.Equal(t, big.NewInt(0).SetBytes(r), tdCopy.exp, "Should match")
 		})
 	}
 }
 
-func TestKadSharderDistance(t *testing.T) {
-	s, _ := NewKadSharder(8, fs0)
-	checkDistance(s, t)
+func TestPrioBitsSharderDistance(t *testing.T) {
+	pbs, _ := NewPrioBitsSharder(8, fs0)
+	checkDistance(pbs, t)
 }
 
 func TestKadSharderOrdering2(t *testing.T) {
-	s, _ := NewKadSharder(2, fs20)
-	checkOrdering(s, t)
+	pbs, _ := NewPrioBitsSharder(2, fs20)
+	checkOrdering(pbs, t)
 }
 
-func TestKadSharderOrdering2_list(t *testing.T) {
-	s, _ := NewKadSharder(4, fs20)
+func TestPrioBitsSharderOrdering2_list(t *testing.T) {
+	s, _ := NewPrioBitsSharder(4, fs20)
 
 	peerList := make([]peer.ID, testNodesCount)
 	for i := 0; i < testNodesCount; i++ {
@@ -162,12 +162,12 @@ func TestKadSharderOrdering2_list(t *testing.T) {
 	assert.True(t, avgSame > avgOther)
 }
 
-func TestKadSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
+func TestPrioBitsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ks, _ := NewKadSharder(1, &mock.PeerShardResolverStub{})
+	pbs, _ := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 
-	err := ks.SetPeerShardResolver(nil)
+	err := pbs.SetPeerShardResolver(nil)
 
 	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
@@ -175,11 +175,11 @@ func TestKadSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 func TestKadSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ks, _ := NewKadSharder(1, &mock.PeerShardResolverStub{})
+	pbs, _ := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
-	err := ks.SetPeerShardResolver(newPeerShardResolver)
+	err := pbs.SetPeerShardResolver(newPeerShardResolver)
 
 	//pointer testing
-	assert.True(t, ks.resolver == newPeerShardResolver)
+	assert.True(t, pbs.resolver == newPeerShardResolver)
 	assert.Nil(t, err)
 }

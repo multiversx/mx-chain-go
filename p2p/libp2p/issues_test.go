@@ -25,7 +25,7 @@ func createMessenger() p2p.Messenger {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: p2p.DisabledSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 	}

@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNoSharderDistance(t *testing.T) {
-	s := &NoSharder{}
+func TestSimplePrioSharderDistance(t *testing.T) {
+	s := &SimplePrioBitsSharder{}
 
 	assert.False(t, check.IfNil(s))
 	checkDistance(s, t)
 }
 
-func TestNoSharderOrdering(t *testing.T) {
-	s := &NoSharder{}
+func TestSimplePrioBitsSharderOrdering(t *testing.T) {
+	s := &SimplePrioBitsSharder{}
 	checkOrdering(s, t)
 }

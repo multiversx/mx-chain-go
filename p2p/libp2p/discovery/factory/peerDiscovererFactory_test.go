@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
@@ -34,7 +35,7 @@ func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.
 	assert.Nil(t, err)
 }
 
-func TestNewPeerDiscoverer_KadInvalidIntervalShouldErr(t *testing.T) {
+func TestNewPeerDiscoverer_InvalidIntervalShouldErr(t *testing.T) {
 	t.Parallel()
 
 	p2pConfig := config.P2PConfig{
@@ -43,7 +44,7 @@ func TestNewPeerDiscoverer_KadInvalidIntervalShouldErr(t *testing.T) {
 			RefreshIntervalInSec: 0,
 		},
 		Sharding: config.ShardingConfig{
-			Type: p2p.SharderVariantPrioBits,
+			Type: p2p.PrioBitsSharder,
 		},
 	}
 
@@ -58,7 +59,7 @@ func TestNewPeerDiscoverer_KadInvalidIntervalShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-func TestNewPeerDiscoverer_KadPrioBitsShouldWork(t *testing.T) {
+func TestNewPeerDiscoverer_PrioBitsSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	p2pConfig := config.P2PConfig{
@@ -67,7 +68,7 @@ func TestNewPeerDiscoverer_KadPrioBitsShouldWork(t *testing.T) {
 			RefreshIntervalInSec: 1,
 		},
 		Sharding: config.ShardingConfig{
-			Type: p2p.SharderVariantPrioBits,
+			Type: p2p.PrioBitsSharder,
 		},
 	}
 
@@ -84,7 +85,7 @@ func TestNewPeerDiscoverer_KadPrioBitsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewPeerDiscoverer_KadListShouldWork(t *testing.T) {
+func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	p2pConfig := config.P2PConfig{
@@ -93,7 +94,7 @@ func TestNewPeerDiscoverer_KadListShouldWork(t *testing.T) {
 			RefreshIntervalInSec: 1,
 		},
 		Sharding: config.ShardingConfig{
-			Type: p2p.SharderVariantWithLists,
+			Type: p2p.ListsSharder,
 		},
 	}
 
@@ -108,4 +109,28 @@ func TestNewPeerDiscoverer_KadListShouldWork(t *testing.T) {
 	assert.NotNil(t, pDiscoverer)
 	assert.True(t, ok)
 	assert.Nil(t, err)
+}
+
+func TestNewPeerDiscoverer_UnknownShouldErr(t *testing.T) {
+	t.Parallel()
+
+	p2pConfig := config.P2PConfig{
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:              true,
+			RefreshIntervalInSec: 1,
+		},
+		Sharding: config.ShardingConfig{
+			Type: "unknown",
+		},
+	}
+
+	pDiscoverer, err := factory.NewPeerDiscoverer(
+		context.Background(),
+		&mock.ConnectableHostStub{},
+		&mock.SharderStub{},
+		p2pConfig,
+	)
+
+	assert.True(t, check.IfNil(pDiscoverer))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }

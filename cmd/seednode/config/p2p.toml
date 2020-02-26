@@ -9,8 +9,11 @@
     #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
     #The seed provided in this string can be of any length.
     #########################################################################################
-    # WARNING! For security reasons, one might use a generated string as long as possible!  #
-    # It is recommended that the seed field should remain empty (no characters between "")  #
+    # WARNING! FOR SECURITY REASONS, ONE MIGHT USE A GENERATED STRING AS LONG AS POSSIBLE!  #
+    # IT IS RECOMMENDED THAT THE SEED FIELD SHOULD REMAIN EMPTY (NO CHARACTERS BETWEEN "")  #
+    # THIS SEED WILL BE USED FOR P2P'S PRIVATE KEY GENERATION. SAME SEED USED WILL LEAD TO  #
+    # THE GENERATION OF THE SAME P2P IDENTITY.                                              #
+    # SPECIFY A SEED VALUE IF YOU KNOW WHAT YOU ARE DOING!                                  #
     #########################################################################################
     #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
     #p2p identity generation
@@ -59,9 +62,10 @@
     MaxIntraShard = 0
     MaxCrossShard = 0
     #available options:
-    #  `ListSharder` will split the peers based on the shard membership (intra, cross or unknown)
-    #  `PrioSharder` will split the peers based on the shard membership (intra, other)
-    #  `NoSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
+    #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
+    #  `PrioBitsSharder` will split the peers based on the shard membership (intra, other) using kademlia distance
+    #  `SimplePrioBitsSharder` will just select closest peers using kademlia distance (shard agnostic)
+    #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
     #              the shard membership of the connected peers
-    #  `DisabledSharder` will disable conection trimming (sharder is off)
-    Type = "DisabledSharder"
+    #  `NilListSharder` will disable conection trimming (sharder is off)
+    Type = "NilListSharder"

@@ -18,6 +18,7 @@ const (
 	initReconnectMul   = 20
 	kadDhtName         = "kad-dht discovery"
 	minWatchdogTimeout = time.Second
+	targetCps          = 3
 )
 
 var peerDiscoveryTimeout = 10 * time.Second
@@ -137,7 +138,7 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 	}
 
 	ctxrun, cancel := context.WithCancel(kdd.context)
-	hd, err := NewHostDecorator(kdd.host, ctxrun, 3, time.Second)
+	hd, err := NewHostDecorator(kdd.host, ctxrun, targetCps, time.Second)
 	if err != nil {
 		cancel()
 		return err

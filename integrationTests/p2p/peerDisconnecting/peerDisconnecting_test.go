@@ -36,7 +36,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithPrioBits(t *testing.T
 	p2pConfig.Sharding = config.ShardingConfig{
 		TargetPeerCount: 100,
 		PrioBits:        4,
-		Type:            p2p.SharderVariantPrioBits,
+		Type:            p2p.PrioBitsSharder,
 	}
 
 	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
@@ -48,7 +48,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		TargetPeerCount: 100,
 		MaxCrossShard:   50,
 		MaxIntraShard:   50,
-		Type:            p2p.SharderVariantWithLists,
+		Type:            p2p.ListsSharder,
 	}
 
 	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)

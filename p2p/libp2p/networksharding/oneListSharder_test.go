@@ -10,36 +10,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewNoListKadSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
+func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	lnks, err := NewListNoKadSharder(
+	ols, err := NewOneListSharder(
 		"",
 		minAllowedConnectedPeers-1,
 	)
 
-	assert.True(t, check.IfNil(lnks))
+	assert.True(t, check.IfNil(ols))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-func TestNewNoListKadSharder_ShouldWork(t *testing.T) {
+func TestNewOneListSharder_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	lnks, err := NewListNoKadSharder(
+	ols, err := NewOneListSharder(
 		"",
 		minAllowedConnectedPeers,
 	)
 
-	assert.False(t, check.IfNil(lnks))
+	assert.False(t, check.IfNil(ols))
 	assert.Nil(t, err)
 }
 
 //------- ComputeEvictionList
 
-func TestNewListKadSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T) {
+func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	lnks, _ := NewListNoKadSharder(
+	ols, _ := NewOneListSharder(
 		crtPid,
 		minAllowedConnectedPeers,
 	)
@@ -47,15 +47,15 @@ func TestNewListKadSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testin
 	pid2 := peer.ID("pid2")
 	pids := []peer.ID{pid1, pid2}
 
-	evictList := lnks.ComputeEvictionList(pids)
+	evictList := ols.ComputeEvictionList(pids)
 
 	assert.Equal(t, 0, len(evictList))
 }
 
-func TestListNoKadSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
+func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
 	t.Parallel()
 
-	lnks, _ := NewListNoKadSharder(
+	ols, _ := NewOneListSharder(
 		crtPid,
 		minAllowedConnectedPeers,
 	)
@@ -64,7 +64,7 @@ func TestListNoKadSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict
 	pid3 := peer.ID("pid3")
 	pids := []peer.ID{pid1, pid2, pid3}
 
-	evictList := lnks.ComputeEvictionList(pids)
+	evictList := ols.ComputeEvictionList(pids)
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, pid3, evictList[0])
@@ -72,34 +72,34 @@ func TestListNoKadSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict
 
 //------- Has
 
-func TestListNoKadSharder_HasNotFound(t *testing.T) {
+func TestOneListSharder_HasNotFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	lnks := &listNoKadSharder{}
+	lnks := &oneListSharder{}
 
 	assert.False(t, lnks.Has("pid4", list))
 }
 
-func TestListNoKadSharder_HasEmpty(t *testing.T) {
+func TestOneListSharder_HasEmpty(t *testing.T) {
 	t.Parallel()
 
 	list := make([]peer.ID, 0)
-	lnks := &listNoKadSharder{}
+	lnks := &oneListSharder{}
 
 	assert.False(t, lnks.Has("pid4", list))
 }
 
-func TestListNoKadSharder_HasFound(t *testing.T) {
+func TestOneListSharder_HasFound(t *testing.T) {
 	t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
-	lnks := &listNoKadSharder{}
+	lnks := &oneListSharder{}
 
 	assert.True(t, lnks.Has("pid2", list))
 }
 
-func TestListNoKadSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
+func TestOneListSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -109,12 +109,12 @@ func TestListNoKadSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	lnks, _ := NewListNoKadSharder(
+	ols, _ := NewOneListSharder(
 		"",
 		minAllowedConnectedPeers,
 	)
 
-	err := lnks.SetPeerShardResolver(nil)
+	err := ols.SetPeerShardResolver(nil)
 
 	assert.Nil(t, err)
 }

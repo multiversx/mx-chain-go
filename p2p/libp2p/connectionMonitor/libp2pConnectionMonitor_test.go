@@ -17,7 +17,7 @@ import (
 func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0, &ns.NoSharder{})
+	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.Equal(t, p2p.ErrInvalidValue, err)
 	assert.True(t, check.IfNil(cm))
@@ -26,7 +26,7 @@ func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T)
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.NoSharder{})
+	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(cm))
@@ -66,7 +66,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0, &ns.NoSharder{})
+	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0, &ns.SimplePrioBitsSharder{})
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(netw, nil)
 
@@ -80,7 +80,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 func TestNewLibp2pConnectionMonitor_DefaultTriming(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.NoSharder{})
+	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 0, cm.thresholdDiscoveryResume)
@@ -104,7 +104,7 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 		ResumeCall: func() { resumeCallCount++ },
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor(&rc, 3, 10, &ns.NoSharder{})
+	cm, _ := NewLibp2pConnectionMonitor(&rc, 3, 10, &ns.SimplePrioBitsSharder{})
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 8, cm.thresholdDiscoveryResume)
@@ -180,7 +180,7 @@ func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
 		},
 	}
 
-	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.NoSharder{})
+	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.SimplePrioBitsSharder{})
 
 	lcm.ClosedStream(netw, nil)
 	lcm.Disconnected(netw, nil)
@@ -192,7 +192,7 @@ func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
 func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
 	t.Parallel()
 
-	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.NoSharder{})
+	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.SimplePrioBitsSharder{})
 
 	thr := 10
 	lcm.SetThresholdMinConnectedPeers(thr, &mock.NetworkStub{})
@@ -205,7 +205,7 @@ func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeersNilNetwShouldDoNot
 	t.Parallel()
 
 	minConnPeers := 3
-	lcm, _ := NewLibp2pConnectionMonitor(nil, minConnPeers, 10, &ns.NoSharder{})
+	lcm, _ := NewLibp2pConnectionMonitor(nil, minConnPeers, 10, &ns.SimplePrioBitsSharder{})
 
 	thr := 10
 	lcm.SetThresholdMinConnectedPeers(thr, nil)

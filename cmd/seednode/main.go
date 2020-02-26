@@ -88,7 +88,7 @@ func startNode(ctx *cli.Context) error {
 	}
 	fmt.Printf("Initialized with p2p config from: %s\n", p2pConfigurationFile)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
+		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 	if ctx.IsSet(p2pSeed.Name) {
 		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)

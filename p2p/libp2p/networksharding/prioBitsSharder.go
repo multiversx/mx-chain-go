@@ -20,63 +20,62 @@ const (
 	minOOSHardLimit     = 3    // the hard limit for minimum out of shard connections count
 )
 
-// kadSharder KAD based sharder
-//
+// prioBitsSharder KAD based sharder using prio bits
 // Resets a number of MSb to decrease the distance between nodes from the same shard
-type kadSharder struct {
+type prioBitsSharder struct {
 	prioBits    uint32
 	mutResolver sync.RWMutex
 	resolver    p2p.PeerShardResolver
 }
 
-// NewKadSharder kadSharder constructor
-// prioBits - Number of reseted bits.
-// f - Callback used to get the shard id for a given peer.ID
-func NewKadSharder(prioBits uint32, kgs p2p.PeerShardResolver) (*kadSharder, error) {
+// NewPrioBitsSharder kadSharder constructor
+// prioBits - Number of bits to reset
+// psp - peer shard resolver used to get the shard id for a given peer.ID
+func NewPrioBitsSharder(prioBits uint32, psp p2p.PeerShardResolver) (*prioBitsSharder, error) {
 	if prioBits == 0 {
 		return nil, fmt.Errorf("%w, prioBits should be greater than 0", ErrBadParams)
 	}
-	if check.IfNil(kgs) {
+	if check.IfNil(psp) {
 		return nil, p2p.ErrNilPeerShardResolver
 	}
-	k := &kadSharder{
-		prioBits: 8,
-		resolver: kgs,
+	k := &prioBitsSharder{
+		resolver: psp,
+		prioBits: prioBits,
 	}
 
-	if prioBits < maxMaskBits {
-		k.prioBits = prioBits
+	if prioBits > maxMaskBits {
+		k.prioBits = maxMaskBits
 	}
 	return k, nil
 }
 
 // GetShard get the shard id of the peer
-func (ks *kadSharder) GetShard(id peer.ID) uint32 {
-	ks.mutResolver.RLock()
-	defer ks.mutResolver.RUnlock()
+func (pbs *prioBitsSharder) GetShard(id peer.ID) uint32 {
+	pbs.mutResolver.RLock()
+	defer pbs.mutResolver.RUnlock()
 
-	return ks.resolver.ByID(p2p.PeerID(id))
+	return pbs.resolver.ByID(p2p.PeerID(id))
 }
 
 // Resets distance bits
-func (ks *kadSharder) resetDistanceBits(d []byte) []byte {
-	if ks.prioBits == 0 {
+func (pbs *prioBitsSharder) resetDistanceBits(d []byte) []byte {
+	if pbs.prioBits == 0 {
 		return d
 	}
-	mask := byte(((1 << (maxMaskBits - ks.prioBits)) - 1) & fullMaskBits)
+	mask := byte(((1 << (maxMaskBits - pbs.prioBits)) - 1) & fullMaskBits)
 	b0 := d[0] & mask
 	return append([]byte{b0}[:], d[1:]...)
 }
 
 // GetDistance get the distance between a and b
-func (ks *kadSharder) GetDistance(a, b sorting.SortingID) *big.Int {
+func (pbs *prioBitsSharder) GetDistance(a, b sorting.SortingID) *big.Int {
 	c := make([]byte, len(a.Key))
 	for i := 0; i < len(a.Key); i++ {
 		c[i] = a.Key[i] ^ b.Key[i]
 	}
 
 	if a.Shard == b.Shard {
-		c = ks.resetDistanceBits(c)
+		c = pbs.resetDistanceBits(c)
 	}
 
 	ret := big.NewInt(0).SetBytes(c)
@@ -84,12 +83,12 @@ func (ks *kadSharder) GetDistance(a, b sorting.SortingID) *big.Int {
 }
 
 // SortList sort the provided peers list
-func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
-	sl := getSortingList(ks, peers, ref)
+func (pbs *prioBitsSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
+	sl := getSortingList(pbs, peers, ref)
 	// for balance we should have between 1 and 20% connections outside of shard
 	peerCnt := len(peers)
 	inShardCnt := inShardCount(sl)
-	balanced := getMinOOS(ks.prioBits, peerCnt) <= (peerCnt - inShardCnt)
+	balanced := getMinOOS(pbs.prioBits, peerCnt) <= (peerCnt - inShardCnt)
 
 	if balanced {
 		minInShard := int(math.Floor(float64(peerCnt) * minInShardConnRatio))
@@ -118,19 +117,19 @@ func getMinOOS(bits uint32, conns int) int {
 }
 
 // SetPeerShardResolver sets the peer shard resolver for this sharder
-func (ks *kadSharder) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
+func (pbs *prioBitsSharder) SetPeerShardResolver(psp p2p.PeerShardResolver) error {
 	if check.IfNil(psp) {
 		return p2p.ErrNilPeerShardResolver
 	}
 
-	ks.mutResolver.Lock()
-	ks.resolver = psp
-	ks.mutResolver.Unlock()
+	pbs.mutResolver.Lock()
+	pbs.resolver = psp
+	pbs.mutResolver.Unlock()
 
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ks *kadSharder) IsInterfaceNil() bool {
-	return ks == nil
+func (pbs *prioBitsSharder) IsInterfaceNil() bool {
+	return pbs == nil
 }

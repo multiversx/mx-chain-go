@@ -32,7 +32,7 @@ func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
 	p2pConfig.Sharding = config.ShardingConfig{
 		TargetPeerCount: 9,
 		PrioBits:        4,
-		Type:            p2p.SharderVariantPrioBits,
+		Type:            p2p.PrioBitsSharder,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
@@ -44,7 +44,7 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 		TargetPeerCount: 9,
 		MaxIntraShard:   7,
 		MaxCrossShard:   2,
-		Type:            p2p.SharderVariantWithLists,
+		Type:            p2p.ListsSharder,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)

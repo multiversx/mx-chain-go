@@ -28,7 +28,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				RoutingTableRefreshIntervalInSec: 10,
 			},
 			Sharding: config.ShardingConfig{
-				Type: p2p.DisabledSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 	}

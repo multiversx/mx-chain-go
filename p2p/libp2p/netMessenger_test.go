@@ -72,7 +72,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: p2p.DisabledSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 	}
@@ -174,15 +174,6 @@ func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 	assert.Equal(t, err, p2p.ErrNilContext)
 }
 
-func TestNewNetworkMessenger_InvalidPortShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.P2pConfig.Node.Port = -1
-
-	mes, err := libp2p.NewNetworkMessenger(arg)
-	assert.Nil(t, mes)
-	assert.Equal(t, err, p2p.ErrInvalidPort)
-}
-
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
 	//TODO remove skip when external library is concurrent safe
 	if testing.Short() {
@@ -213,7 +204,7 @@ func TestNewNetworkMessenger_WithKadDiscovererPrioSharderInvalidPrioBitsShouldEr
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
 	}
-	arg.P2pConfig.Sharding.Type = p2p.SharderVariantPrioBits
+	arg.P2pConfig.Sharding.Type = p2p.PrioBitsSharder
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(mes))
@@ -237,7 +228,7 @@ func TestNewNetworkMessenger_WithKadDiscovererPrioSharderShouldWork(t *testing.T
 	}
 	arg.P2pConfig.Sharding = config.ShardingConfig{
 		PrioBits: 1,
-		Type:     p2p.SharderVariantPrioBits,
+		Type:     p2p.PrioBitsSharder,
 	}
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
@@ -247,7 +238,7 @@ func TestNewNetworkMessenger_WithKadDiscovererPrioSharderShouldWork(t *testing.T
 	_ = mes.Close()
 }
 
-func TestNewNetworkMessenger_WithKadDiscovererListSharderInvalidTargetConnShouldErr(t *testing.T) {
+func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShouldErr(t *testing.T) {
 	//TODO remove skip when external library is concurrent safe
 	if testing.Short() {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
@@ -262,7 +253,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderInvalidTargetConnShould
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
 	}
-	arg.P2pConfig.Sharding.Type = p2p.NoSharderWithLists
+	arg.P2pConfig.Sharding.Type = p2p.ListsSharder
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.True(t, check.IfNil(mes))
@@ -285,7 +276,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 		RoutingTableRefreshIntervalInSec: 10,
 	}
 	arg.P2pConfig.Sharding = config.ShardingConfig{
-		Type:            p2p.NoSharderWithLists,
+		Type:            p2p.NilListSharder,
 		TargetPeerCount: 10,
 	}
 	mes, err := libp2p.NewNetworkMessenger(arg)

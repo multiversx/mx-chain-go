@@ -23,7 +23,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Enabled: false,
 			},
 			Sharding: config.ShardingConfig{
-				Type: p2p.DisabledSharder,
+				Type: p2p.NilListSharder,
 			},
 		},
 	}
