@@ -168,7 +168,6 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	SetDatabase(cacher DBWriteCacher)
 	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
 	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error

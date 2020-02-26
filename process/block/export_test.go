@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -56,7 +57,7 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 }
 
 func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
-	sp.updateStateStorage(finalHeaders)
+	sp.updateState(finalHeaders)
 }
 
 func NewShardProcessorEmptyWith3shards(
@@ -73,9 +74,12 @@ func NewShardProcessorEmptyWith3shards(
 	}
 	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
+			AccountsDB:                   accountsDb,
 			ForkDetector:                 &mock.ForkDetectorMock{},
 			Hasher:                       &mock.HasherMock{},
 			Marshalizer:                  &mock.MarshalizerMock{},

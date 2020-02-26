@@ -97,6 +97,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
+	MessageSignVerifier      vm.MessageSignVerifier
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -165,7 +166,7 @@ func CreateMetaGenesisBlock(
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
 	}
 
-	err = setStakingData(
+	err = setStakedData(
 		txProcessor,
 		allNodes,
 		args.Economics.GenesisNodePrice(),
@@ -243,7 +244,8 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -373,24 +375,25 @@ func deploySystemSmartContracts(
 	return nil
 }
 
-// setStakingData sets the initial staked values to the staking smart contract
-func setStakingData(
+// setStakedData sets the initial staked values to the staking smart contract
+func setStakedData(
 	txProcessor process.TransactionProcessor,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	for i := range initialNodeInfo {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
 				Value:     big.NewInt(0).Set(stakeValue),
-				RcvAddr:   vmFactory.StakingSCAddress,
+				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,
-				Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
+				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
 
@@ -467,4 +470,15 @@ func setBalanceToTrie(
 	}
 
 	return account.SetBalanceWithJournal(balance)
+}
+
+type NilMessageSignVerifier struct {
+}
+
+func (n *NilMessageSignVerifier) Verify(_ []byte, _ []byte, _ []byte) error {
+	return nil
+}
+
+func (n *NilMessageSignVerifier) IsInterfaceNil() bool {
+	return n == nil
 }
