@@ -209,7 +209,7 @@ func (s *SerialDB) putBatch() error {
 
 	elapsedTime := time.Since(startProcessTime)
 	if elapsedTime > time.Second {
-		log.Debug("elapsed time to putBatch", "time [s]", elapsedTime, "dbName", s.name, "sizeOfBatch", sizeBatch, "totalSize", actualSize)
+		log.Debug("elapsed time to putBatch", "time [s]", "moreThanASecond", elapsedTime > time.Second, elapsedTime, "dbName", s.name, "sizeOfBatch", sizeBatch, "totalSize", actualSize)
 	}
 
 	return result

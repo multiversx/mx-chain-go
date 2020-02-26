@@ -276,6 +276,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processPeerChanges",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -297,6 +298,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to checkForMissedBlocks",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -307,6 +309,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to updateShardDataPeerState",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -317,6 +320,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to updateMissedBlocksCounters",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -336,6 +340,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to updateValidatorInfo",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -478,6 +483,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		elapsedTime := time.Since(startTime)
 		log.Debug("elapsed time to updateShardDataPeerState.ComputeValidatorsGroup",
 			"time [s]", elapsedTime,
+			"moreThanASecond", elapsedTime > time.Second,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -488,6 +494,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		elapsedTime = time.Since(startTime)
 		log.Debug("elapsed time to updateShardDataPeerState.updateValidatorInfo",
 			"time [s]", elapsedTime,
+			"moreThanASecond", elapsedTime > time.Second,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -507,6 +514,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		elapsedTime = time.Since(startTime)
 		log.Debug("elapsed time to updateShardDataPeerState.GetShardHeader",
 			"time [s]", elapsedTime,
+			"moreThanASecond", elapsedTime > time.Second,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -522,6 +530,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		elapsedTime = time.Since(startTime)
 		log.Debug("elapsed time to updateShardDataPeerState.checkForMissedBlocks",
 			"time [s]", elapsedTime,
+			"moreThanASecond", elapsedTime > time.Second,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -645,6 +654,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		elapsedTime := time.Since(startTime)
 		log.Debug("elapsed time to updateValidatorInfo.SetTempRatingWithJournal",
 			"time [s]", elapsedTime,
+			"moreThanASecond", elapsedTime > time.Second,
 		)
 		if err != nil {
 			return err

@@ -303,6 +303,7 @@ func (mp *metaProcessor) ProcessBlock(
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to UpdateProtocol",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err
@@ -313,6 +314,7 @@ func (mp *metaProcessor) ProcessBlock(
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to VerifyPeerChanges",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err
@@ -328,6 +330,7 @@ func (mp *metaProcessor) ProcessBlock(
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to verifyValidatorStatisticsRootHash",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err

@@ -137,6 +137,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to getAllModifiedStates",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err
@@ -208,6 +209,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to iterates affectedStates",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 
 	return nil

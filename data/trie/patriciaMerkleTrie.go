@@ -93,7 +93,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.mutOperation.Unlock()
 		elapsedTime := time.Since(startProcessTime)
 		if elapsedTime > time.Second {
-			log.Debug("elapsed time to updateTrie", "time [s]", elapsedTime)
+			log.Debug("elapsed time to updateTrie", "time [s]", elapsedTime, "moreThanASecond", elapsedTime > time.Second)
 		}
 	}()
 

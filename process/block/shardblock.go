@@ -279,6 +279,7 @@ func (sp *shardProcessor) ProcessBlock(
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err
@@ -1628,6 +1629,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
@@ -1666,6 +1668,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 
 	if len(mbFromMe) > 0 {

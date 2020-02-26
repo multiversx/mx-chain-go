@@ -447,6 +447,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	elapsedTime := time.Since(startProcessTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {

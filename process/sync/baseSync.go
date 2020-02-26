@@ -505,6 +505,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err
@@ -515,6 +516,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		return err

@@ -171,6 +171,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		log.Debug("doEndRoundJob.CommitBlock", "error", err)
@@ -259,6 +260,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
+		"moreThanASecond", elapsedTime > time.Second,
 	)
 	if err != nil {
 		log.Debug("doEndRoundJobByParticipant.CommitBlock", "error", err.Error())
