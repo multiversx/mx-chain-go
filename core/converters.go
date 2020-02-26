@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -121,4 +122,21 @@ func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// CheckForZeroUint64Fields checks if fields are uint64 and whether are greater than 0
+func CheckForZeroUint64Fields(arg interface{}) error {
+	v := reflect.ValueOf(arg)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
+			continue
+		}
+		if field.Uint() == 0 {
+			name := v.Type().Field(i).Name
+			return fmt.Errorf("gas cost for operation %s has been set to 0 or is not set", name)
+		}
+	}
+
+	return nil
 }

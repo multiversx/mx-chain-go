@@ -152,7 +152,7 @@ func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) erro
 		return err
 	}
 
-	err = checkForZeroUint64Fields(*baseOps)
+	err = core.CheckForZeroUint64Fields(*baseOps)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) erro
 		return err
 	}
 
-	err = checkForZeroUint64Fields(*builtInOps)
+	err = core.CheckForZeroUint64Fields(*builtInOps)
 	if err != nil {
 		return err
 	}
@@ -171,22 +171,6 @@ func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) erro
 	sc.gasCost = GasCost{
 		BaseOperationCost: *baseOps,
 		BuiltInCost:       *builtInOps,
-	}
-
-	return nil
-}
-
-func checkForZeroUint64Fields(arg interface{}) error {
-	v := reflect.ValueOf(arg)
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
-			continue
-		}
-		if field.Uint() == 0 {
-			name := v.Type().Field(i).Name
-			return errors.New(fmt.Sprintf("Gas cost for operation %s has been set to 0 or is not set.", name))
-		}
 	}
 
 	return nil

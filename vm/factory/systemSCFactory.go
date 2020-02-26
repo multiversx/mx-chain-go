@@ -1,10 +1,7 @@
 package factory
 
 import (
-	"errors"
-	"fmt"
-	"reflect"
-
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -58,7 +55,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 		return err
 	}
 
-	err = checkForZeroUint64Fields(*baseOps)
+	err = core.CheckForZeroUint64Fields(*baseOps)
 	if err != nil {
 		return err
 	}
@@ -69,7 +66,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 		return err
 	}
 
-	err = checkForZeroUint64Fields(*metaChainSCsOps)
+	err = core.CheckForZeroUint64Fields(*metaChainSCsOps)
 	if err != nil {
 		return err
 	}
@@ -77,22 +74,6 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 	scf.gasCost = vm.GasCost{
 		BaseOperationCost:      *baseOps,
 		MetaChainSystemSCsCost: *metaChainSCsOps,
-	}
-
-	return nil
-}
-
-func checkForZeroUint64Fields(arg interface{}) error {
-	v := reflect.ValueOf(arg)
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
-			continue
-		}
-		if field.Uint() == 0 {
-			name := v.Type().Field(i).Name
-			return errors.New(fmt.Sprintf("Gas cost for operation %s has been set to 0 or is not set.", name))
-		}
 	}
 
 	return nil
