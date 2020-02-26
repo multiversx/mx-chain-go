@@ -83,73 +83,74 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-
+	filePathPlaceholder = "[path]"
 	// genesisFile defines a flag for the path of the bootstrapping file.
 	genesisFile = cli.StringFlag{
 		Name: "genesis-file",
-		Usage: "The `filepath` for the genesis file in JSON format. This file should contain initial data to bootstrap" +
-			" from, such as initial balances for accounts.",
+		Usage: "The `" + filePathPlaceholder + "` for the genesis file. This JSON file contains initial data to " +
+			"bootstrap from, such as initial balances for accounts.",
 		Value: "./config/genesis.json",
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name: "nodes-setup-file",
-		Usage: "The `filepath` for the nodes setup in JSON format. This file should contain initial nodes info, such as" +
-			" consensus group size, round duration, validators public keys and so on",
+		Usage: "The `" + filePathPlaceholder + "` for the nodes setup. This JSON file contains initial nodes info, " +
+			"such as consensus group size, round duration, validators public keys and so on.",
 		Value: "./config/nodesSetup.json",
 	}
 	// sk defines a flag for the path of the multi sign private key used when starting the node
 	sk = cli.StringFlag{
-		Name:  "sk",
-		Usage: "The `filepath` for the PEM file which includes the private key the node will use for block signing",
+		Name: "sk",
+		Usage: "The `" + filePathPlaceholder + "` for the PEM file which contains the private key the node will " +
+			"use for block signing.",
 		Value: "",
 	}
 	// configurationFile defines a flag for the path to the main toml configuration file
 	configurationFile = cli.StringFlag{
 		Name: "config",
-		Usage: "The `filepath` for the main configuration file in TOML format. This file should contain the main" +
-			" configurations such as storage setups, epoch duration and so on",
+		Usage: "The `" + filePathPlaceholder + "` for the main configuration file. This TOML file contain the main " +
+			"configurations such as storage setups, epoch duration and so on.",
 		Value: "./config/config.toml",
 	}
 	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
 	configurationEconomicsFile = cli.StringFlag{
 		Name: "config-economics",
-		Usage: "The `filepath` for the economics configuration file in TOML format. This file should contain" +
-			" economics configurations such as minimum gas price for a transactions and so on",
+		Usage: "The `" + filePathPlaceholder + "` for the economics configuration file. This TOML file contains " +
+			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
 	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
 	configurationPreferencesFile = cli.StringFlag{
 		Name: "config-preferences",
-		Usage: "The `filepath` for the preferences configuration file in TOML format. This file should contain" +
-			" preferences configurations, such as the node display name or the shard to start in when starting as observer",
+		Usage: "The `" + filePathPlaceholder + "` for the preferences configuration file. This TOML file contains " +
+			"preferences configurations, such as the node display name or the shard to start in when starting as observer",
 		Value: "./config/prefs.toml",
 	}
 	// externalConfigFile defines a flag for the path to the external toml configuration file
 	externalConfigFile = cli.StringFlag{
 		Name: "config-external",
-		Usage: "The `filepath` for the external configuration file in TOML format. This file should contain external" +
-			" configurations such as ElasticSearch's URL and login information",
+		Usage: "The `" + filePathPlaceholder + "` for the external configuration file. This TOML file contains" +
+			" external configurations such as ElasticSearch's URL and login information",
 		Value: "./config/external.toml",
 	}
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
 		Name: "p2p-config",
-		Usage: "The `filepath` for the p2p configuration file in TOML format. This file should contain peer-to-peer" +
-			" configurations such as port, target peer count or KadDHT settings",
+		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file. This TOML file contains peer-to-peer " +
+			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
 	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
 	gasScheduleConfigurationFile = cli.StringFlag{
 		Name: "gas-costs-config",
-		Usage: "The `filepath` for the gas costs configuration file in TOML format. This file should contain gas costs" +
-			" used in SmartContract execution",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
+			"gas costs used in SmartContract execution",
 		Value: "./config/gasSchedule.toml",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.IntFlag{
 		Name:  "port",
-		Usage: "The port number on which the application will start",
+		Usage: "The `[p2p port]` number on which the application will start",
 		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
@@ -166,26 +167,26 @@ VERSION:
 	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
 	profileMode = cli.BoolFlag{
 		Name: "profile-mode",
-		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node" +
-			" for profiling the application.",
+		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
+			"on the node for profiling the application.",
 	}
 	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
-		Name: "sk-index",
-		Usage: "Private key `index` specifies the 0-th based index of the private key to be used from the PEM file which" +
-			" contains multiple private keys.",
+		Name:  "sk-index",
+		Usage: "The index in the PEM file of the private key to be used by the node.",
 		Value: 0,
 	}
 	// gopsEn used to enable diagnosis of running go processes
 	gopsEn = cli.BoolFlag{
 		Name:  "gops-enable",
-		Usage: "If set, will enable gops over the process. Stack can be viewed by calling 'gops stack <pid>'.",
+		Usage: "Boolean option for enabling gops over the process. If set, stack can be viewed by calling 'gops stack <pid>'.",
 	}
 	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
 	// it starts from the last state stored on disk
 	storageCleanup = cli.BoolFlag{
-		Name:  "storage-cleanup",
-		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk.",
+		Name: "storage-cleanup",
+		Usage: "Boolean option for starting the node with clean storage. If set, the Node will empty its storage " +
+			"before starting, otherwise it will start from the last state stored on disk..",
 	}
 
 	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
@@ -199,21 +200,23 @@ VERSION:
 	// restApiDebug defines a flag for starting the rest API engine in debug mode
 	restApiDebug = cli.BoolFlag{
 		Name:  "rest-api-debug",
-		Usage: "If set, the node will start with the rest API engine in debug mode.",
+		Usage: "Boolean option for starting the Rest API in debug mode.",
 	}
 
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
 	// the NodeDisplayName from config.toml
 	nodeDisplayName = cli.StringFlag{
-		Name:  "display-name",
-		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one.",
+		Name: "display-name",
+		Usage: "The user-friendly name for the node, appearing in the public monitoring tools. Will override the " +
+			"name set in the preferences TOML file.",
 		Value: "",
 	}
 
 	//useLogView is used when termui interface is not needed.
 	useLogView = cli.BoolFlag{
-		Name:  "use-log-view",
-		Usage: "If set, the node will not enable the user-friendly terminal view of the node.",
+		Name: "use-log-view",
+		Usage: "Boolean option for enabling the simple node's interface. If set, the node will not enable the " +
+			"user-friendly terminal view of the node.",
 	}
 
 	// initialNodesSkPemFile defines a flag for the path to the ...
@@ -234,12 +237,12 @@ VERSION:
 	//logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
-		Usage: "If set, it will automatically save all the logs into a file.",
+		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
 		Name:  "disable-ansi-color",
-		Usage: "If set, this flag specifies that the log output should not use ANSI colors.",
+		Usage: "Boolean option for disabling ANSI colors in the logging system.",
 	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.Uint64Flag{
@@ -251,8 +254,8 @@ VERSION:
 	//  so we provide the command line option to disable this behaviour
 	enableTxIndexing = cli.BoolTFlag{
 		Name: "tx-indexing",
-		Usage: "If set, it will enable transaction indexing. There can be cases when it's too expensive to index all" +
-			" transactions so this flag will disable this.",
+		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
+			"index all transactions so this flag will disable this.",
 	}
 
 	// workingDirectory defines a flag for the path for the working directory.
@@ -265,20 +268,21 @@ VERSION:
 	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
 	destinationShardAsObserver = cli.StringFlag{
 		Name: "destination-shard-as-observer",
-		Usage: "This flag specifies the shard to start in when running as an observer. It will override the configuration" +
-			" set in the preferences TOML config file.",
+		Usage: "This flag specifies the shard to start in when running as an observer. It will override the configuration " +
+			"set in the preferences TOML config file.",
 		Value: "",
 	}
 
 	isNodefullArchive = cli.BoolFlag{
-		Name:  "full-archive",
-		Usage: "If set, the node won't remove any database and will have a full history.",
+		Name: "full-archive",
+		Usage: "Boolean option for enabling a node to have full archive. If set, the node won't remove any database " +
+			"and will have a full history over epochs.",
 	}
 
 	numEpochsToSave = cli.Uint64Flag{
 		Name: "num-epochs-to-keep",
-		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if" +
-			" the full archive flag is not set.",
+		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
+			"the full archive flag is not set.",
 		Value: uint64(2),
 	}
 
