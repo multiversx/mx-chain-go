@@ -48,12 +48,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -1281,7 +1279,7 @@ func createNode(
 		return nil, err
 	}
 
-	networkShardingCollector, err := prepareNetworkShardingCollector(
+	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
 		network,
 		config,
 		nodesCoordinator,
@@ -1365,67 +1363,6 @@ func createNode(
 		}
 	}
 	return nd, nil
-}
-
-func prepareNetworkShardingCollector(
-	network *factory.Network,
-	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
-	coordinator sharding.Coordinator,
-	epochHandler sharding.EpochHandler,
-) (*networksharding.PeerShardMapper, error) {
-
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	localId := network.NetMessenger.ID()
-	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
-
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
-	if err != nil {
-		return nil, err
-	}
-
-	return networkShardingCollector, nil
-}
-
-func createNetworkShardingCollector(
-	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
-	epochHandler sharding.EpochHandler,
-) (*networksharding.PeerShardMapper, error) {
-
-	cacheConfig := config.PublicKeyPeerId
-	cachePkPid, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PublicKeyShardId
-	cachePkShardId, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PeerIdShardId
-	cachePidShardId, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return networksharding.NewPeerShardMapper(
-		cachePkPid,
-		cachePkShardId,
-		cachePidShardId,
-		nodesCoordinator,
-		epochHandler,
-	)
-}
-
-func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
 }
 
 func initStatsFileMonitor(
