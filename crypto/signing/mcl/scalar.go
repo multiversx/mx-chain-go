@@ -7,12 +7,20 @@ import (
 	"github.com/herumi/bls-go-binary/bls"
 )
 
+// MclScalar -
 type MclScalar struct {
 	Scalar *bls.Fr
 }
 
+// NewMclScalar --
 func NewMclScalar() *MclScalar {
-	return &MclScalar{Scalar: &bls.Fr{}}
+	scalar := &MclScalar{Scalar: &bls.Fr{}}
+	scalar.Scalar.SetByCSPRNG()
+	for scalar.Scalar.IsOne() || scalar.Scalar.IsZero() {
+		scalar.Scalar.SetByCSPRNG()
+	}
+
+	return scalar
 }
 
 // Equal tests if receiver is equal with the scalarInt s given as parameter.
@@ -51,6 +59,7 @@ func (sc *MclScalar) Clone() crypto.Scalar {
 	s := MclScalar{
 		Scalar: &bls.Fr{},
 	}
+
 	_ = s.Scalar.Deserialize(sc.Scalar.Serialize())
 
 	return &s
@@ -211,10 +220,18 @@ func (sc *MclScalar) SetBytes(s []byte) (crypto.Scalar, error) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s1 := MclScalar{ /*Scalar: sc.Scalar.Clone()*/ }
-	//_ = s1.Scalar.SetBytes(s)
+	s1 := sc.Clone()
+	s1Mcl, ok := s1.(*MclScalar)
+	if !ok {
+		return nil, crypto.ErrInvalidScalar
+	}
 
-	return &s1, nil
+	err := s1Mcl.Scalar.Deserialize(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return s1, nil
 }
 
 // GetUnderlyingObj returns the object the implementation wraps

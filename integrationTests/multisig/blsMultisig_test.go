@@ -8,8 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	llsig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	llsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -41,10 +41,10 @@ func createMultiSignersBls(
 	}
 
 	multiSigners := make([]crypto.MultiSigner, numOfSigners)
-	llSigner := &llsig.KyberMultiSignerBLS{}
+	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
 
 	for i := uint16(0); i < numOfSigners; i++ {
-		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, hasher, pubKeysStr, privKeys[i], kg, i)
+		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, pubKeysStr, privKeys[i], kg, i)
 	}
 
 	return pubKeysStr, multiSigners
@@ -159,7 +159,7 @@ func TestMultiSig_Bls(t *testing.T) {
 
 	hashSize := 16
 	hasher := blake2b.Blake2b{HashSize: hashSize}
-	suite := kyber.NewSuitePairingBn256()
+	suite := mcl.NewSuiteBLS12()
 
 	pubKeysStr, multiSigners := createMultiSignersBls(numOfSigners, consensusGroupSize, hasher, suite)
 

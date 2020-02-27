@@ -93,7 +93,7 @@ func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point,
 		return nil, nil, crypto.ErrNilSuite
 	}
 
-	private, public = suite.CreateKeyPair(nil)
+	private, public = suite.CreateKeyPair(suite.RandomStream())
 
 	return private, public, nil
 }
@@ -148,8 +148,5 @@ func (pk *publicKey) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pk *publicKey) IsInterfaceNil() bool {
-	if pk == nil {
-		return true
-	}
-	return false
+	return pk == nil
 }

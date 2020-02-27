@@ -16,6 +16,9 @@ var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
 // ErrInvalidScalar is raised when an invalid scalar is used
 var ErrInvalidScalar = errors.New("scalar is invalid")
 
+// ErrInvalidPoint is raised when an invalid point is used
+var ErrInvalidPoint = errors.New("point is invalid")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 

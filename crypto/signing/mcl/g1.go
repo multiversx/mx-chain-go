@@ -18,7 +18,7 @@ func (g1 *groupG1) ScalarLen() int {
 	return bls.GetFrByteSize()
 }
 
-// CreateScalar creates a new Scalar
+// CreateScalar creates a new Scalar initialized with base point on G1
 func (g1 *groupG1) CreateScalar() crypto.Scalar {
 	return NewMclScalar()
 }

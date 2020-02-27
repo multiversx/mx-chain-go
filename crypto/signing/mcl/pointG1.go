@@ -2,24 +2,28 @@ package mcl
 
 import (
 	"crypto/cipher"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
 )
 
-const baseG1Str = "1 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569"
-
+// PointG1 -
 type PointG1 struct {
 	*bls.G1
 }
 
-// creates a new point on G1 initialized with base point
+// NewPointG1 creates a new point on G1 initialized with base point
 func NewPointG1() *PointG1 {
 	point := &PointG1{
 		G1: &bls.G1{},
 	}
 
-	_ = point.G1.SetString(baseG1Str, 10)
+	basePointG1Str = BaseG1()
+	err := point.G1.SetString(basePointG1Str, 10)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	return point
 }
@@ -45,14 +49,21 @@ func (po *PointG1) Clone() crypto.Point {
 		G1: &bls.G1{},
 	}
 
-	bls.G1Dbl(po2.G1, po.G1)
+	strPo := po.G1.GetString(16)
+	_ = po2.G1.SetString(strPo, 16)
 
 	return &po2
 }
 
 // Null returns the neutral identity element.
 func (po *PointG1) Null() crypto.Point {
-	return NewPointG1()
+	p := &PointG1{
+		G1: &bls.G1{},
+	}
+
+	p.G1.Clear()
+
+	return p
 }
 
 // Set sets the receiver equal to another Point p.
@@ -66,7 +77,8 @@ func (po *PointG1) Set(p crypto.Point) error {
 		return crypto.ErrInvalidParam
 	}
 
-	bls.G1Dbl(po.G1, po1.G1)
+	strPo := po1.G1.GetString(16)
+	_ = po.G1.SetString(strPo, 16)
 
 	return nil
 }
@@ -101,7 +113,7 @@ func (po *PointG1) Sub(p crypto.Point) (crypto.Point, error) {
 
 	po1, ok := p.(*PointG1)
 	if !ok {
-		return nil, crypto.ErrNilParam
+		return nil, crypto.ErrInvalidParam
 	}
 
 	po2 := PointG1{
@@ -127,7 +139,7 @@ func (po *PointG1) Neg() crypto.Point {
 // Mul returns the result of multiplying receiver by the scalarInt s.
 func (po *PointG1) Mul(s crypto.Scalar) (crypto.Point, error) {
 	if s == nil {
-		return nil, crypto.ErrInvalidParam
+		return nil, crypto.ErrNilParam
 	}
 
 	po2 := PointG1{
@@ -136,7 +148,7 @@ func (po *PointG1) Mul(s crypto.Scalar) (crypto.Point, error) {
 
 	s1, ok := s.(*MclScalar)
 	if !ok {
-		return nil, crypto.ErrNilParam
+		return nil, crypto.ErrInvalidParam
 	}
 
 	bls.G1MulCT(po2.G1, po.G1, s1.Scalar)
@@ -153,7 +165,7 @@ func (po *PointG1) Pick(_ cipher.Stream) (crypto.Point, error) {
 		G1: &bls.G1{},
 	}
 
-	bls.G1Mul(po2.G1, po.G1, scalar)
+	bls.G1MulCT(po2.G1, po.G1, scalar)
 
 	return &po2, nil
 }

@@ -49,11 +49,9 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	if public == nil || public.IsInterfaceNil() {
 		return crypto.ErrNilPublicKey
 	}
-
 	if msg == nil {
 		return crypto.ErrNilMessage
 	}
-
 	if sig == nil {
 		return crypto.ErrNilSignature
 	}

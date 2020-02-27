@@ -2,24 +2,28 @@ package mcl
 
 import (
 	"crypto/cipher"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
 )
 
-const baseG2Str = "1 352701069587466618187139116011060144890029952792775240219908644239793785735715026873347600343865175952761926303160 3059144344244213709971259814753781636986470325476647558659373206291635324768958432433509563104347017837885763365758 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582"
-
+// PointG2 -
 type PointG2 struct {
 	*bls.G2
 }
 
-// creates a new point on G2 initialized with base point
+// NewPointG2 creates a new point on G2 initialized with base point
 func NewPointG2() *PointG2 {
 	point := &PointG2{
 		G2: &bls.G2{},
 	}
 
-	_ = point.G2.SetString(baseG2Str, 10)
+	basePointG2Str = BaseG2()
+	err := point.G2.SetString(basePointG2Str, 10)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	return point
 }
@@ -45,14 +49,18 @@ func (po *PointG2) Clone() crypto.Point {
 		G2: &bls.G2{},
 	}
 
-	bls.G2Dbl(po2.G2, po.G2)
+	strPo := po.G2.GetString(16)
+	_ = po2.G2.SetString(strPo, 16)
 
 	return &po2
 }
 
 // Null returns the neutral identity element.
 func (po *PointG2) Null() crypto.Point {
-	p := NewPointG2()
+	p := &PointG2{
+		G2: &bls.G2{},
+	}
+
 	p.G2.Clear()
 
 	return p
@@ -69,7 +77,8 @@ func (po *PointG2) Set(p crypto.Point) error {
 		return crypto.ErrInvalidParam
 	}
 
-	bls.G2Dbl(po.G2, po1.G2)
+	strPo := po1.G2.GetString(16)
+	_ = po.G2.SetString(strPo, 16)
 
 	return nil
 }
@@ -133,13 +142,13 @@ func (po *PointG2) Mul(s crypto.Scalar) (crypto.Point, error) {
 		return nil, crypto.ErrNilParam
 	}
 
+	po2 := PointG2{
+		G2: &bls.G2{},
+	}
+
 	s1, ok := s.(*MclScalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
-	}
-
-	po2 := PointG2{
-		G2: &bls.G2{},
 	}
 
 	bls.G2Mul(po2.G2, po.G2, s1.Scalar)

@@ -7,11 +7,12 @@ import (
 	"github.com/herumi/bls-go-binary/bls"
 )
 
+// PointGT -
 type PointGT struct {
 	*bls.GT
 }
 
-// creates a new point on GT initialized with identity
+// NewPointGT creates a new point on GT initialized with identity
 func NewPointGT() *PointGT {
 	point := &PointGT{
 		GT: &bls.GT{},
@@ -40,14 +41,19 @@ func (po *PointGT) Clone() crypto.Point {
 	po2 := PointGT{
 		GT: &bls.GT{},
 	}
-	_ = po2.Deserialize(po.GT.Serialize())
+
+	strPo := po.GT.GetString(16)
+	_ = po2.SetString(strPo, 16)
 
 	return &po2
 }
 
 // Null returns the neutral identity element.
 func (po *PointGT) Null() crypto.Point {
-	return NewPointGT()
+	p := NewPointGT()
+	p.GT.Clear()
+
+	return p
 }
 
 // Set sets the receiver equal to another Point p.
@@ -126,13 +132,13 @@ func (po *PointGT) Mul(s crypto.Scalar) (crypto.Point, error) {
 		return nil, crypto.ErrNilParam
 	}
 
+	po2 := PointGT{
+		GT: &bls.GT{},
+	}
+
 	s1, ok := s.(*MclScalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
-	}
-
-	po2 := PointGT{
-		GT: &bls.GT{},
 	}
 
 	bls.GTPow(po2.GT, po.GT, s1.Scalar)

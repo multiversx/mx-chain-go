@@ -212,14 +212,7 @@ type LowLevelSignerBLS interface {
 	// VerifySigBytes verifies if a byte array represents a BLS signature
 	VerifySigBytes(suite Suite, sig []byte) error
 	// AggregateSignatures aggregates BLS single signatures given as byte arrays
-	AggregateSignatures(suite Suite, sigs ...[]byte) ([]byte, error)
+	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
-	VerifyAggregatedSig(suite Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error
-	// AggregatePublicKeys aggregates a list of public key Points. Returns the byte array representation of the point
-	AggregatePublicKeys(suite Suite, pubKeys ...Point) ([]byte, error)
-	// ScalarMulSig provides the result of multiplying a scalar with a signature.
-	// This is used in the modified BLS multi-signature scheme
-	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
+	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
 }

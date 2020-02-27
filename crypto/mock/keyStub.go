@@ -64,8 +64,5 @@ func (pubKey *PublicKeyStub) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
-	if pubKey == nil {
-		return true
-	}
-	return false
+	return pubKey == nil
 }

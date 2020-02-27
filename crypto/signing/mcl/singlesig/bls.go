@@ -15,13 +15,10 @@ func NewBlsSigner() *BlsSingleSigner {
 }
 
 // Sign Signs a message using a single signature BLS scheme
-// TODO: check when mcl-bls-go lib updates that the secret key and public key types are exported and conversion is done
-// correctly between secret key and scalar and public key and point
 func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	if private == nil || private.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKey
 	}
-
 	if msg == nil {
 		return nil, crypto.ErrNilMessage
 	}
@@ -36,9 +33,8 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrInvalidPrivateKey
 	}
 
-	// TODO: check after lib update if conversion functions are available
 	sk := &bls.SecretKey{}
-	_ = sk.Deserialize(mclScalar.Scalar.Serialize())
+	bls.BlsFrToSecretKey(mclScalar.Scalar, sk)
 	sig := sk.Sign(string(msg))
 
 	return sig.Serialize(), nil
@@ -49,18 +45,11 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	if public == nil || public.IsInterfaceNil() {
 		return crypto.ErrNilPublicKey
 	}
-
 	if msg == nil {
 		return crypto.ErrNilMessage
 	}
-
 	if sig == nil {
 		return crypto.ErrNilSignature
-	}
-
-	suite := public.Suite()
-	if suite == nil || suite.IsInterfaceNil() {
-		return crypto.ErrNilSuite
 	}
 
 	point := public.Point()
@@ -73,11 +62,9 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrInvalidPublicKey
 	}
 
-	pubKeyPointBytes := pubKeyPoint.SerializeUncompressed()
+	mclPubKey := &bls.PublicKey{}
 
-	// TODO: check after lib update if conversion functions are available
-	pubKey := &bls.PublicKey{}
-	_ = pubKey.Deserialize(pubKeyPointBytes)
+	bls.BlsG2ToPublicKey(pubKeyPoint.G2, mclPubKey)
 	signature := &bls.Sign{}
 
 	err := signature.Deserialize(sig)
@@ -85,7 +72,7 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return err
 	}
 
-	if signature.Verify(pubKey, string(msg)) {
+	if signature.Verify(mclPubKey, string(msg)) {
 		return nil
 	}
 
