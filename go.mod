@@ -28,7 +28,6 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls-go-binary v0.0.0-20191119080710-898950e1a520
 	github.com/ipfs/go-log v1.0.1
 	github.com/jbenet/goprocess v0.1.3
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
@@ -49,7 +48,6 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli v1.22.2
-	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	go.dedis.ch/kyber/v3 v3.0.11
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d

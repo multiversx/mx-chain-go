@@ -2,7 +2,7 @@ package mcl
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/herumi/bls-go-binary/bls"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
 
 type groupG2 struct {

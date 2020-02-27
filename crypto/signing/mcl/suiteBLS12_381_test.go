@@ -4,11 +4,9 @@ import (
 	"crypto/cipher"
 	"testing"
 
-	"github.com/herumi/bls-go-binary/bls"
-
-	"github.com/stretchr/testify/require"
-
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSuiteBLS12(t *testing.T) {

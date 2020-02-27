@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	"github.com/herumi/bls-go-binary/bls"
 	"github.com/stretchr/testify/require"
 )
 

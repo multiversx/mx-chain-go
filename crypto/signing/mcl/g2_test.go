@@ -3,7 +3,8 @@ package mcl
 import (
 	"testing"
 
-	"github.com/herumi/bls-go-binary/bls"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
+
 	"github.com/stretchr/testify/require"
 )
 

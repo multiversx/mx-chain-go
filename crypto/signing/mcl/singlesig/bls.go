@@ -3,7 +3,7 @@ package singlesig
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/herumi/bls-go-binary/bls"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
 
 // BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
