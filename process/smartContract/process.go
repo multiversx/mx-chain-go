@@ -919,8 +919,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 		}
 
 		// if no change then continue
-		cmpWithZero := outAcc.BalanceDelta.Cmp(zero)
-		if outAcc.BalanceDelta == nil || cmpWithZero == 0 {
+		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 			continue
 		}
 
