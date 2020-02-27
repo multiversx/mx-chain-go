@@ -87,7 +87,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -1138,8 +1138,8 @@ func createMultiSigner(
 
 	switch config.Consensus.Type {
 	case BlsConsensusType:
-		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
-		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
+		blsSigner := &blsMultiSig.KyberMultiSignerBLS{Hasher: hasher}
+		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}

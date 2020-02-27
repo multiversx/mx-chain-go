@@ -196,15 +196,15 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Pk: ncp[nodeShardId][keyIndex].BlockSignPk,
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
-	llsig := &kmultisig.KyberMultiSignerBLS{}
+
 	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	llsig := &kmultisig.KyberMultiSignerBLS{Hasher: blsHasher}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)
 	kp := ncp[nodeShardId][keyIndex]
 	var err error
 	tpn.MultiSigner, err = multisig.NewBLSMultisig(
 		llsig,
-		blsHasher,
 		pubKeysMap[nodeShardId],
 		tpn.NodeKeys.Sk,
 		kp.BlockSignKeyGen,
