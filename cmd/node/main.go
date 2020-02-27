@@ -10,9 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -54,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -539,10 +538,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	currentEpoch, err = findLastEpochFromStorage(workingDir, nodesConfig.ChainID)
-	if err != nil {
+	var errNotCritical error
+	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
+		workingDir,
+		nodesConfig.ChainID,
+		defaultDBPath,
+		defaultEpochString,
+	)
+	if errNotCritical != nil {
 		currentEpoch = 0
-		log.Debug("no epoch db found in storage", "error", err.Error())
+		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	}
 
 	epochFoundInStorage := err == nil
@@ -554,7 +559,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	shouldSyncWithTheNetwork := !isCurrentTimeBeforeGenesis && !isEpochZero && !epochFoundInStorage
 	var networkComponents *factory.Network
 	// TODO: remove next line which is hardcoded for testing
-	//shouldSyncWithTheNetwork = true
+	shouldSyncWithTheNetwork = true
 	if shouldSyncWithTheNetwork {
 		//TODO : if the code reaches here, then we should request current epoch from network and build all the
 		// stuff after we received the information.
@@ -1530,53 +1535,4 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics)
-}
-
-// TODO: something similar should be done for determining the correct shardId
-// when booting from storage with an epoch > 0 or add ShardId in boot storer
-func findLastEpochFromStorage(workingDir string, chainID string) (uint32, error) {
-	parentDir := filepath.Join(
-		workingDir,
-		defaultDBPath,
-		chainID)
-
-	f, err := os.Open(parentDir)
-	if err != nil {
-		return 0, err
-	}
-
-	files, err := f.Readdir(-1)
-	_ = f.Close()
-
-	if err != nil {
-		return 0, err
-	}
-
-	epochDirs := make([]string, 0, len(files))
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-
-		isEpochDir := strings.HasPrefix(file.Name(), defaultEpochString)
-		if !isEpochDir {
-			continue
-		}
-
-		epochDirs = append(epochDirs, file.Name())
-	}
-
-	if len(epochDirs) == 0 {
-		return 0, nil
-	}
-
-	sort.Slice(epochDirs, func(i, j int) bool {
-		return epochDirs[i] > epochDirs[j]
-	})
-
-	re := regexp.MustCompile("[0-9]+")
-	epochStr := re.FindString(epochDirs[0])
-	epoch, err := strconv.ParseInt(epochStr, 10, 64)
-
-	return uint32(epoch), err
 }
