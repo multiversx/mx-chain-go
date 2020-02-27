@@ -28,7 +28,6 @@ var log = logger.GetOrCreate("process/sync")
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
-const tryRequestHeaderDelta = uint64(5)
 
 // HdrInfo hold the data related to a header
 type HdrInfo struct {
@@ -226,8 +225,9 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.chainHandler != nil && boot.chainHandler.GetCurrentBlockHeader() != nil {
-		nonce = boot.chainHandler.GetCurrentBlockHeader().GetNonce() + 1
+	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		nonce = currentBlockHeader.GetNonce() + 1
 	}
 	return nonce
 }
@@ -275,9 +275,6 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
-
-	boot.trySyncTrigger()
-
 	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
@@ -298,26 +295,36 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	}
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
+	boot.requestHeadersIfSyncIsStuck()
+
 	return !isNodeSynchronized
 }
 
-func (boot *baseBootstrap) trySyncTrigger() {
+func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
+	if !boot.isNodeSynchronized {
+		return
+	}
+
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if currHeader == nil {
 		return
 	}
 
 	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
-	if roundDiff < tryRequestHeaderDelta {
+	if roundDiff <= process.MaxRoundsWithoutNewBlockReceived {
 		return
 	}
 
-	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
+	fromNonce := boot.getNonceForNextBlock()
+	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
+	toNonce := fromNonce + numHeadersToRequest - 1
 
-	if shouldTrySync {
-		nonce := boot.getNonceForNextBlock()
-		boot.requestHeaderByNonce(nonce)
-	}
+	go boot.requestHeaders(fromNonce, toNonce)
+
+	log.Debug("requestHeadersIfSyncIsStuck",
+		"from nonce", fromNonce,
+		"to nonce", toNonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -386,29 +393,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	return nil
 }
 
-func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
-	nonce uint64,
-	haveHeaderInPoolWithNonce func(uint64) bool) {
-	nbRequestedHdrs := 0
-	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
-		haveHeader := haveHeaderInPoolWithNonce(nonce)
-		if haveHeader {
-			continue
-		}
-
-		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
-		nbRequestedHdrs++
-	}
-
-	if nbRequestedHdrs > 0 {
-		log.Trace("requested in advance headers",
-			"num headers", nbRequestedHdrs,
-			"from nonce", nonce,
-			"to", maxNonce,
-			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-		)
-	}
+func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
+	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+	go boot.requestHeaders(fromNonce, toNonce)
 }
 
 // StopSync method will stop SyncBlocks
@@ -514,7 +501,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce() + 1)
 
 	blockBody, err := boot.blockBootstrapper.getBlockBodyRequestingIfMissing(hdr)
 	if err != nil {
@@ -859,11 +846,24 @@ func (boot *baseBootstrap) init() {
 	boot.requestedHashes = process.RequiredDataPool{}
 }
 
-func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
-	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-		return
+func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
+	numRequestedHeaders := 0
+	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
+		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		if haveHeader {
+			continue
+		}
+
+		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		numRequestedHeaders++
 	}
 
-	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+	if numRequestedHeaders > 0 {
+		log.Trace("requestHeaders",
+			"num requested headers", numRequestedHeaders,
+			"from nonce", fromNonce,
+			"to nonce", toNonce,
+			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+		)
+	}
 }
