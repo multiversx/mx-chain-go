@@ -52,7 +52,7 @@ type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
 	nodesCoordinator             sharding.NodesCoordinator
 	specialAddressHandler        process.SpecialAddressHandler
-	accounts                     state.AccountsAdapter
+	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
 	forkDetector                 process.ForkDetector
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	hasher                       hashing.Hasher
@@ -73,8 +73,9 @@ type baseProcessor struct {
 
 	hdrsForCurrBlock hdrForBlock
 
-	appStatusHandler core.AppStatusHandler
-	blockProcessor   blockProcessor
+	appStatusHandler       core.AppStatusHandler
+	blockProcessor         blockProcessor
+	stateCheckpointModulus uint
 }
 
 type bootStorerDataArgs struct {
@@ -204,7 +205,7 @@ func (bp *baseProcessor) checkBlockValidity(
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
-	trieRootHash, err := bp.accounts.RootHash()
+	trieRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Debug("verify account.RootHash", "error", err.Error())
 	}
@@ -214,7 +215,7 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	rootHash, err := bp.accounts.RootHash()
+	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Trace("get account.RootHash", "error", err.Error())
 	}
@@ -346,8 +347,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if check.IfNil(arguments.Accounts) {
-		return process.ErrNilAccountsAdapter
+	for key := range arguments.AccountsDB {
+		if check.IfNil(arguments.AccountsDB[key]) {
+			return process.ErrNilAccountsAdapter
+		}
 	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
@@ -989,4 +992,93 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	}
 
 	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
+}
+
+func (bp *baseProcessor) updateStateStorage(
+	finalHeader data.HeaderHandler,
+	rootHash []byte,
+	prevRootHash []byte,
+	accounts state.AccountsAdapter,
+) {
+	if !accounts.IsPruningEnabled() {
+		return
+	}
+
+	accounts.CancelPrune(rootHash, data.NewRoot)
+
+	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "rootHash", rootHash)
+		accounts.SnapshotState(rootHash)
+	}
+
+	// TODO generate checkpoint on a trigger
+	if bp.stateCheckpointModulus != 0 {
+		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
+			log.Debug("trie checkpoint", "rootHash", rootHash)
+			accounts.SetStateCheckpoint(rootHash)
+		}
+	}
+
+	if bytes.Equal(prevRootHash, rootHash) {
+		return
+	}
+
+	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (bp *baseProcessor) RevertAccountState() {
+	for key := range bp.accountsDB {
+		err := bp.accountsDB[key].RevertToSnapshot(0)
+		if err != nil {
+			log.Debug("RevertToSnapshot", "error", err.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) commitAll() error {
+	for key := range bp.accountsDB {
+		_, err := bp.accountsDB[key].Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	for key := range bp.accountsDB {
+		if !bp.accountsDB[key].IsPruningEnabled() {
+			return
+		}
+
+		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
+
+		if bytes.Equal(rootHash, prevRootHash) {
+			return
+		}
+
+		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
+
+		errNotCritical := bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {
+	switch identifier {
+	case state.UserAccountsState:
+		return currHeader.GetRootHash(), prevHeader.GetRootHash()
+	case state.PeerAccountsState:
+		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
+	default:
+		return []byte{}, []byte{}
+	}
 }
