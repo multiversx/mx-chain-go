@@ -43,16 +43,16 @@ func CreateShardGenesisBlockFromInitialBalances(
 	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if check.IfNil(addrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
 	if initialBalances == nil {
 		return nil, process.ErrNilValue
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -76,6 +76,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		RandSeed:               rootHash,
 		TimeStamp:              genesisTime,
 		ValidatorStatsRootHash: validatorStatsRootHash,
+		AccumulatedFees:        big.NewInt(0),
 	}
 
 	return header, err
@@ -168,7 +169,7 @@ func CreateMetaGenesisBlock(
 	err = setStakedData(
 		txProcessor,
 		allNodes,
-		args.Economics.StakeValue(),
+		args.Economics.GenesisNodePrice(),
 	)
 	if err != nil {
 		return nil, err
@@ -180,10 +181,19 @@ func CreateMetaGenesisBlock(
 	}
 
 	header := &block.MetaBlock{
-		RootHash:     rootHash,
-		PrevHash:     rootHash,
-		RandSeed:     rootHash,
-		PrevRandSeed: rootHash,
+		RootHash:               rootHash,
+		PrevHash:               rootHash,
+		RandSeed:               rootHash,
+		PrevRandSeed:           rootHash,
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+	}
+	header.EpochStart.Economics = block.Economics{
+		TotalSupply:            big.NewInt(0).Set(args.Economics.GenesisTotalSupply()),
+		TotalToDistribute:      big.NewInt(0),
+		TotalNewlyMinted:       big.NewInt(0),
+		RewardsPerBlockPerNode: big.NewInt(0),
+		NodePrice:              big.NewInt(0).Set(args.Economics.GenesisNodePrice()),
 	}
 
 	header.SetTimeStamp(args.GenesisTime)
@@ -282,6 +292,7 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
+	genesisFeeHandler := NewGenesisFeeHandler()
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -292,8 +303,8 @@ func createProcessorsForMetaGenesisBlock(
 		args.AddrConv,
 		args.ShardCoordinator,
 		scForwarder,
-		&metachain.TransactionFeeHandler{},
-		&metachain.TransactionFeeHandler{},
+		genesisFeeHandler,
+		genesisFeeHandler,
 		txTypeHandler,
 		gasHandler,
 	)
@@ -301,14 +312,13 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	nilTxFeeHandler := &metachain.TransactionFeeHandler{}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
 		args.Accounts,
 		args.AddrConv,
 		args.ShardCoordinator,
 		scProcessor,
 		txTypeHandler,
-		nilTxFeeHandler, //we need the nil fee handler in order to process the the staking transactions
+		genesisFeeHandler,
 	)
 	if err != nil {
 		return nil, nil, process.ErrNilTxProcessor

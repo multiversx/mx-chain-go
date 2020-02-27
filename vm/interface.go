@@ -64,7 +64,7 @@ type MessageSignVerifier interface {
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBondPeriod() uint64
-	StakeValue() *big.Int
+	GenesisNodePrice() *big.Int
 	MinStepValue() *big.Int
 	UnJailValue() *big.Int
 	TotalSupply() *big.Int
