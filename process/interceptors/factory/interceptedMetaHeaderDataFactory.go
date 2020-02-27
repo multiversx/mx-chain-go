@@ -15,6 +15,8 @@ type interceptedMetaHeaderDataFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -34,8 +36,14 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
+	}
+	if check.IfNil(argument.ValidityAttester) {
+		return nil, process.ErrNilValidityAttester
 	}
 
 	return &interceptedMetaHeaderDataFactory{
@@ -44,6 +52,8 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
+		validityAttester:  argument.ValidityAttester,
+		epochStartTrigger: argument.EpochStartTrigger,
 	}, nil
 }
 
@@ -56,6 +66,8 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ShardCoordinator:  imhdf.shardCoordinator,
 		HeaderSigVerifier: imhdf.headerSigVerifier,
 		ChainID:           imhdf.chainID,
+		ValidityAttester:  imhdf.validityAttester,
+		EpochStartTrigger: imhdf.epochStartTrigger,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
@@ -63,8 +75,5 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (imhdf *interceptedMetaHeaderDataFactory) IsInterfaceNil() bool {
-	if imhdf == nil {
-		return true
-	}
-	return false
+	return imhdf == nil
 }

@@ -1,7 +1,9 @@
 package state
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -28,6 +30,7 @@ type AccountsDB struct {
 var log = logger.GetOrCreate("state")
 
 // NewAccountsDB creates a new account manager
+//TODO refactor this: remove the mutex from patricia merkle trie impl. Make all these methods concurrent safe
 func NewAccountsDB(
 	trie data.Trie,
 	hasher hashing.Hasher,
@@ -69,6 +72,7 @@ func (adb *AccountsDB) PutCode(accountHandler AccountHandler, code []byte) error
 	}
 
 	codeHash := adb.hasher.Compute(string(code))
+	log.Trace("accountsDB.PutCode", "code hash", codeHash)
 
 	err := adb.addCodeToTrieIfMissing(codeHash, code)
 	if err != nil {
@@ -91,7 +95,8 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	}
 	if val == nil {
 		//append a journal entry as the code needs to be inserted in the trie
-		entry, err := NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
+		var entry *BaseJournalEntryCreation
+		entry, err = NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -104,6 +109,8 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 
 // ClosePersister will close trie persister
 func (adb *AccountsDB) ClosePersister() error {
+	log.Trace("accountsDB.ClosePersister")
+
 	closedSuccessfully := true
 
 	err := adb.mainTrie.ClosePersister()
@@ -114,7 +121,7 @@ func (adb *AccountsDB) ClosePersister() error {
 
 	trees := adb.dataTries.GetAll()
 	for _, trie := range trees {
-		err := trie.ClosePersister()
+		err = trie.ClosePersister()
 		if err != nil {
 			log.Error("cannot close accounts trie persister", err)
 			closedSuccessfully = false
@@ -130,6 +137,8 @@ func (adb *AccountsDB) ClosePersister() error {
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
 func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
+	log.Trace("accountsDB.RemoveCode", "code hash", codeHash)
+
 	return adb.mainTrie.Update(codeHash, make([]byte, 0))
 }
 
@@ -165,6 +174,15 @@ func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
+	if check.IfNil(accountHandler) {
+		return fmt.Errorf("%w in SaveDataTrie", ErrNilAccountHandler)
+	}
+
+	log.Trace("accountsDB.SaveDataTrie",
+		"address", hex.EncodeToString(accountHandler.AddressContainer().Bytes()),
+		"nonce", accountHandler.GetNonce(),
+	)
+
 	flagHasDirtyData := false
 
 	if check.IfNil(accountHandler.DataTrie()) {
@@ -226,6 +244,14 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 // HasAccount searches for an account based on the address. Errors if something went wrong and
 // outputs if the account exists or not
 func (adb *AccountsDB) HasAccount(addressContainer AddressContainer) (bool, error) {
+	if check.IfNil(addressContainer) {
+		return false, fmt.Errorf("%w in HasAccount", ErrNilAddressContainer)
+	}
+
+	log.Trace("accountsDB.HasAccount",
+		"address", hex.EncodeToString(addressContainer.Bytes()),
+	)
+
 	val, err := adb.mainTrie.Get(addressContainer.Bytes())
 	if err != nil {
 		return false, err
@@ -260,9 +286,14 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHan
 
 // SaveAccount saves the account WITHOUT data trie inside main trie. Errors if something went wrong
 func (adb *AccountsDB) SaveAccount(accountHandler AccountHandler) error {
-	if accountHandler == nil || accountHandler.IsInterfaceNil() {
-		return errors.New("can not save nil account state")
+	if check.IfNil(accountHandler) {
+		return fmt.Errorf("%w in SaveAccount", ErrNilAccountHandler)
 	}
+
+	log.Trace("accountsDB.SaveAccount",
+		"address", hex.EncodeToString(accountHandler.AddressContainer().Bytes()),
+		"nonce", accountHandler.GetNonce(),
+	)
 
 	//pass the reference to marshalizer, otherwise it will fail marshalizing balance
 	buff, err := adb.marshalizer.Marshal(accountHandler)
@@ -276,11 +307,27 @@ func (adb *AccountsDB) SaveAccount(accountHandler AccountHandler) error {
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
 func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
+	if check.IfNil(addressContainer) {
+		return fmt.Errorf("%w in RemoveAccount", ErrNilAddressContainer)
+	}
+
+	log.Trace("accountsDB.RemoveAccount",
+		"address", hex.EncodeToString(addressContainer.Bytes()),
+	)
+
 	return adb.mainTrie.Update(addressContainer.Bytes(), make([]byte, 0))
 }
 
 // GetAccountWithJournal fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) GetAccountWithJournal(addressContainer AddressContainer) (AccountHandler, error) {
+	if check.IfNil(addressContainer) {
+		return nil, fmt.Errorf("%w in GetAccountWithJournal", ErrNilAddressContainer)
+	}
+
+	log.Trace("accountsDB.GetAccountWithJournal",
+		"address", hex.EncodeToString(addressContainer.Bytes()),
+	)
+
 	acnt, err := adb.getAccount(addressContainer)
 	if err != nil {
 		return nil, err
@@ -294,6 +341,14 @@ func (adb *AccountsDB) GetAccountWithJournal(addressContainer AddressContainer) 
 
 // GetExistingAccount returns an existing account if exists or nil if missing
 func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error) {
+	if check.IfNil(addressContainer) {
+		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddressContainer)
+	}
+
+	log.Trace("accountsDB.GetExistingAccount",
+		"address", hex.EncodeToString(addressContainer.Bytes()),
+	)
+
 	acnt, err := adb.getAccount(addressContainer)
 	if err != nil {
 		return nil, err
@@ -358,13 +413,20 @@ func (adb *AccountsDB) newAccountHandler(address AddressContainer) (AccountHandl
 // 0 index based. Calling this method with negative value will do nothing. Calling with 0 revert everything.
 // Concurrent safe.
 func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
+	log.Trace("accountsDB.RevertToSnapshot started",
+		"snapshot", snapshot,
+	)
+
+	adb.mutEntries.Lock()
+	defer func() {
+		log.Trace("accountsDB.RevertToSnapshot ended")
+		adb.mutEntries.Unlock()
+	}()
+
 	if snapshot > len(adb.entries) || snapshot < 0 {
 		//outside of bounds array, not quite error, just return
 		return nil
 	}
-
-	adb.mutEntries.Lock()
-	defer adb.mutEntries.Unlock()
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
@@ -374,6 +436,9 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 		if account != nil {
 			err = adb.SaveAccount(account)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -389,15 +454,22 @@ func (adb *AccountsDB) JournalLen() int {
 	length := len(adb.entries)
 	adb.mutEntries.RUnlock()
 
+	log.Trace("accountsDB.JournalLen",
+		"length", length,
+	)
+
 	return length
 }
 
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
-	adb.mutEntries.RLock()
+	log.Trace("accountsDB.Commit started")
+
+	adb.mutEntries.Lock()
 	jEntries := make([]JournalEntry, len(adb.entries))
 	copy(jEntries, adb.entries)
-	adb.mutEntries.RUnlock()
+	adb.entries = make([]JournalEntry, 0)
+	adb.mutEntries.Unlock()
 
 	oldHashes := make([][]byte, 0)
 	//Step 1. commit all data tries
@@ -413,10 +485,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	}
 	adb.dataTries.Reset()
 
-	//step 2. clean the journal
-	adb.clearJournal()
-
-	//Step 3. commit main trie
+	//TODO apply clean code here
+	//Step 2. commit main trie
 	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err := adb.mainTrie.Commit()
 	if err != nil {
@@ -425,8 +495,11 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	root, err := adb.mainTrie.Root()
 	if err != nil {
+		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
+
+	log.Trace("accountsDB.Commit ended", "root hash", root)
 
 	return root, nil
 }
@@ -452,11 +525,23 @@ func (adb *AccountsDB) loadCode(accountHandler AccountHandler) error {
 
 // RootHash returns the main trie's root hash
 func (adb *AccountsDB) RootHash() ([]byte, error) {
-	return adb.mainTrie.Root()
+	rootHash, err := adb.mainTrie.Root()
+
+	log.Trace("accountsDB.RootHash",
+		"root hash", rootHash,
+		"err", err,
+	)
+
+	return rootHash, err
 }
 
 // RecreateTrie is used to reload the trie based on an existing rootHash
 func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
+	log.Trace("accountsDB.RecreateTrie", "root hash", rootHash)
+	defer func() {
+		log.Trace("accountsDB.RecreateTrie ended")
+	}()
+
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return err
@@ -471,39 +556,42 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 
 // Journalize adds a new object to entries list. Concurrent safe.
 func (adb *AccountsDB) Journalize(entry JournalEntry) {
-	if entry == nil || entry.IsInterfaceNil() {
+	if check.IfNil(entry) {
 		return
 	}
 
 	adb.mutEntries.Lock()
 	adb.entries = append(adb.entries, entry)
-	adb.mutEntries.Unlock()
-}
 
-// Clear clears the data from this journal.
-func (adb *AccountsDB) clearJournal() {
-	adb.mutEntries.Lock()
-	adb.entries = make([]JournalEntry, 0)
+	log.Trace("accountsDB.Journalize", "new length", len(adb.entries))
 	adb.mutEntries.Unlock()
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
-	return adb.mainTrie.Prune(rootHash, data.OldRoot)
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
+	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
+
+	return adb.mainTrie.Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
-func (adb *AccountsDB) CancelPrune(rootHash []byte) {
-	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
+func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
+
+	adb.mainTrie.CancelPrune(rootHash, identifier)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
+
 	adb.mainTrie.TakeSnapshot(rootHash)
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
 func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
+
 	adb.mainTrie.SetCheckpoint(rootHash)
 }
 

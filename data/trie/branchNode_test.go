@@ -54,7 +54,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -178,7 +178,7 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
-	cfg := &config.DBConfig{}
+	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	trieStorage, _ := NewTrieStorageManager(db, cfg, &mock.EvictionWaitingList{})
@@ -1124,6 +1124,27 @@ func TestBranchNode_deepCloneShouldWork(t *testing.T) {
 	testSameBranchNodeContent(t, bn, cloned)
 }
 
+func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tr, _, _ := newEmptyTrie()
+	_ = tr.Update([]byte("aaa"), []byte("aaa"))
+	_ = tr.Update([]byte("nnn"), []byte("nnn"))
+	_ = tr.Update([]byte("zzz"), []byte("zzz"))
+	_ = tr.Commit()
+
+	tr.root, _ = tr.root.getCollapsed()
+	_ = tr.Delete([]byte("zzz"))
+
+	assert.True(t, tr.root.isDirty())
+	assert.True(t, tr.root.isCollapsed())
+
+	_ = tr.Commit()
+
+	assert.False(t, tr.root.isDirty())
+	assert.True(t, tr.root.isCollapsed())
+}
+
 func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
 	if !reflect.DeepEqual(expected, actual) {
 		assert.Fail(t, "not equal content")
@@ -1196,15 +1217,6 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = decodeNode(proof[0], marsh, hsh)
-	}
-}
-
-func BenchmarkMarshallNodeCapnp(b *testing.B) {
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
-	marsh := &marshal.CapnpMarshalizer{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = marsh.Marshal(bn)
 	}
 }
 

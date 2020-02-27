@@ -3,6 +3,8 @@ package track
 import (
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,42 +20,27 @@ type blockProcessor struct {
 	crossNotarizer                blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+	rounder                       process.Rounder
 
 	blockFinality uint64
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
-func NewBlockProcessor(
-	headerValidator process.HeaderConstructionValidator,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	blockTracker blockTrackerHandler,
-	crossNotarizer blockNotarizerHandler,
-	crossNotarizedHeadersNotifier blockNotifierHandler,
-	selfNotarizedHeadersNotifier blockNotifierHandler,
-) (*blockProcessor, error) {
-
-	err := checkBlockProcessorNilParameters(
-		headerValidator,
-		requestHandler,
-		shardCoordinator,
-		blockTracker,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
+	err := checkBlockProcessorNilParameters(arguments)
 	if err != nil {
 		return nil, err
 	}
 
 	bp := blockProcessor{
-		headerValidator:               headerValidator,
-		requestHandler:                requestHandler,
-		shardCoordinator:              shardCoordinator,
-		blockTracker:                  blockTracker,
-		crossNotarizer:                crossNotarizer,
-		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		headerValidator:               arguments.HeaderValidator,
+		requestHandler:                arguments.RequestHandler,
+		shardCoordinator:              arguments.ShardCoordinator,
+		blockTracker:                  arguments.BlockTracker,
+		crossNotarizer:                arguments.CrossNotarizer,
+		crossNotarizedHeadersNotifier: arguments.CrossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  arguments.SelfNotarizedHeadersNotifier,
+		rounder:                       arguments.Rounder,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -61,7 +48,8 @@ func NewBlockProcessor(
 	return &bp, nil
 }
 
-func (bp *blockProcessor) processReceivedHeader(header data.HeaderHandler) {
+// ProcessReceivedHeader processes the header which has been received
+func (bp *blockProcessor) ProcessReceivedHeader(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
@@ -75,23 +63,24 @@ func (bp *blockProcessor) processReceivedHeader(header data.HeaderHandler) {
 }
 
 func (bp *blockProcessor) doJobOnReceivedHeader(shardID uint32) {
-	_, _, selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.blockTracker.computeLongestSelfChain()
+	_, _, selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.blockTracker.ComputeLongestSelfChain()
 
 	if len(selfNotarizedHeaders) > 0 {
-		bp.selfNotarizedHeadersNotifier.callHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bp.selfNotarizedHeadersNotifier.CallHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 }
 
 func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bp.computeLongestChainFromLastCrossNotarized(shardID)
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
+	bp.blockTracker.ComputeNumPendingMiniBlocks(crossNotarizedHeaders)
 
 	if len(crossNotarizedHeaders) > 0 {
-		bp.crossNotarizedHeadersNotifier.callHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
+		bp.crossNotarizedHeadersNotifier.CallHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
 	}
 
 	if len(selfNotarizedHeaders) > 0 {
-		bp.selfNotarizedHeadersNotifier.callHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bp.selfNotarizedHeadersNotifier.CallHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 }
 
@@ -99,20 +88,20 @@ func (bp *blockProcessor) computeLongestChainFromLastCrossNotarized(
 	shardID uint32,
 ) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 
-	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.crossNotarizer.getLastNotarizedHeader(shardID)
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.crossNotarizer.GetLastNotarizedHeader(shardID)
 	if err != nil {
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := bp.computeLongestChain(shardID, lastCrossNotarizedHeader)
+	headers, hashes := bp.ComputeLongestChain(shardID, lastCrossNotarizedHeader)
 	return lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, headers, hashes
 }
 
 func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
-	selfNotarizedHeadersInfo := make([]*headerInfo, 0)
+	selfNotarizedHeadersInfo := make([]*HeaderInfo, 0)
 
 	for _, header := range headers {
-		selfHeadersInfo := bp.blockTracker.getSelfHeaders(header)
+		selfHeadersInfo := bp.blockTracker.GetSelfHeaders(header)
 		if len(selfHeadersInfo) > 0 {
 			selfNotarizedHeadersInfo = append(selfNotarizedHeadersInfo, selfHeadersInfo...)
 		}
@@ -120,7 +109,7 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 
 	if len(selfNotarizedHeadersInfo) > 1 {
 		sort.Slice(selfNotarizedHeadersInfo, func(i, j int) bool {
-			return selfNotarizedHeadersInfo[i].header.GetNonce() < selfNotarizedHeadersInfo[j].header.GetNonce()
+			return selfNotarizedHeadersInfo[i].Header.GetNonce() < selfNotarizedHeadersInfo[j].Header.GetNonce()
 		})
 	}
 
@@ -128,14 +117,15 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 	selfNotarizedHeadersHashes := make([][]byte, 0)
 
 	for _, selfNotarizedHeaderInfo := range selfNotarizedHeadersInfo {
-		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.header)
-		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.hash)
+		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.Header)
+		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.Hash)
 	}
 
 	return selfNotarizedHeaders, selfNotarizedHeadersHashes
 }
 
-func (bp *blockProcessor) computeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+// ComputeLongestChain computes the longest chain for a given shard starting from a given header
+func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
@@ -143,7 +133,14 @@ func (bp *blockProcessor) computeLongestChain(shardID uint32, header data.Header
 		return headers, headersHashes
 	}
 
-	sortedHeaders, sortedHeadersHashes := bp.blockTracker.sortHeadersFromNonce(shardID, header.GetNonce()+1)
+	var sortedHeaders []data.HeaderHandler
+	var sortedHeadersHashes [][]byte
+
+	defer func() {
+		bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
+	}()
+
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}
@@ -156,8 +153,6 @@ func (bp *blockProcessor) computeLongestChain(shardID uint32, header data.Header
 		headers = append(headers, sortedHeaders[index])
 		headersHashes = append(headersHashes, sortedHeadersHashes[index])
 	}
-
-	bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 
 	return headers, headersHashes
 }
@@ -238,31 +233,36 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 func (bp *blockProcessor) requestHeadersIfNeeded(
 	lastNotarizedHeader data.HeaderHandler,
-	sortedHeaders []data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
 	longestChainHeaders []data.HeaderHandler,
 ) {
 	if check.IfNil(lastNotarizedHeader) {
 		return
 	}
 
-	nbSortedHeaders := len(sortedHeaders)
-	if nbSortedHeaders == 0 {
+	shouldRequestHeaders := false
+
+	defer func() {
+		if !shouldRequestHeaders {
+			latestValidHeader := bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+			highestRound := bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+			bp.requestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
+		}
+	}()
+
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders == 0 {
 		return
 	}
 
-	highestNonceReceived := sortedHeaders[nbSortedHeaders-1].GetNonce()
+	highestNonceReceived := sortedReceivedHeaders[numSortedReceivedHeaders-1].GetNonce()
 	highestNonceInLongestChain := lastNotarizedHeader.GetNonce()
-	nbLongestChainHeaders := len(longestChainHeaders)
-	if nbLongestChainHeaders > 0 {
-		highestNonceInLongestChain = longestChainHeaders[nbLongestChainHeaders-1].GetNonce()
+	numLongestChainHeaders := len(longestChainHeaders)
+	if numLongestChainHeaders > 0 {
+		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
 
-	if highestNonceReceived <= highestNonceInLongestChain+bp.blockFinality {
-		return
-	}
-
-	shouldRequestHeaders := nbLongestChainHeaders == 0 ||
-		(nbLongestChainHeaders > 0 && highestNonceReceived%process.NonceModulusTrigger == 0)
+	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {
 		return
 	}
@@ -270,18 +270,76 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	log.Debug("requestHeadersIfNeeded",
 		"shard", lastNotarizedHeader.GetShardID(),
 		"last notarized nonce", lastNotarizedHeader.GetNonce(),
+		"numSortedReceivedHeaders", numSortedReceivedHeaders,
+		"numLongestChainHeaders", numLongestChainHeaders,
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
 
-	shardID := lastNotarizedHeader.GetShardID()
-	fromNonce := highestNonceInLongestChain + 1
-	toNonce := fromNonce + uint64(bp.blockFinality)
+	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1)
+}
+
+func (bp *blockProcessor) getLatestValidHeader(
+	lastNotarizedHeader data.HeaderHandler,
+	longestChainHeaders []data.HeaderHandler,
+) data.HeaderHandler {
+
+	latestValidHeader := lastNotarizedHeader
+	numLongestChainHeaders := len(longestChainHeaders)
+	if numLongestChainHeaders > 0 {
+		latestValidHeader = longestChainHeaders[numLongestChainHeaders-1]
+	}
+
+	return latestValidHeader
+}
+
+func (bp *blockProcessor) getHighestRoundInReceivedHeaders(
+	latestValidHeader data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
+) uint64 {
+
+	if check.IfNil(latestValidHeader) {
+		return 0
+	}
+
+	highestRound := latestValidHeader.GetRound()
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders > 0 {
+		highestRound = core.MaxUint64(highestRound, sortedReceivedHeaders[numSortedReceivedHeaders-1].GetRound())
+	}
+
+	return highestRound
+}
+
+func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
+	latestValidHeader data.HeaderHandler,
+	highestRoundInReceivedHeaders uint64,
+) {
+	if check.IfNil(latestValidHeader) {
+		return
+	}
+
+	shouldRequestHeaders := bp.rounder.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived
+	if !shouldRequestHeaders {
+		return
+	}
+
+	log.Debug("requestHeadersIfNothingNewIsReceived",
+		"shard", latestValidHeader.GetShardID(),
+		"latest valid header nonce", latestValidHeader.GetNonce(),
+		"chronology round", bp.rounder.Index(),
+		"highest round in received headers", highestRoundInReceivedHeaders)
+
+	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
+}
+
+func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
+	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Debug("request header",
 			"shard", shardID,
 			"nonce", nonce)
 
-		if shardID == sharding.MetachainShardId {
+		if shardID == core.MetachainShardId {
 			go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		} else {
 			go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
@@ -289,35 +347,35 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	}
 }
 
-func checkBlockProcessorNilParameters(
-	headerValidator process.HeaderConstructionValidator,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	blockTracker blockTrackerHandler,
-	crossNotarizer blockNotarizerHandler,
-	crossNotarizedHeadersNotifier blockNotifierHandler,
-	selfNotarizedHeadersNotifier blockNotifierHandler,
-) error {
-	if check.IfNil(headerValidator) {
+// IsInterfaceNil returns true if there is no value under the interface
+func (bp *blockProcessor) IsInterfaceNil() bool {
+	return bp == nil
+}
+
+func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
+	if check.IfNil(arguments.HeaderValidator) {
 		return process.ErrNilHeaderValidator
 	}
-	if check.IfNil(requestHandler) {
+	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if blockTracker == nil {
+	if check.IfNil(arguments.BlockTracker) {
 		return ErrNilBlockTrackerHandler
 	}
-	if crossNotarizer == nil {
+	if check.IfNil(arguments.CrossNotarizer) {
 		return ErrNilCrossNotarizer
 	}
-	if crossNotarizedHeadersNotifier == nil {
-		return ErrCrossNotarizedHeadersNotifier
+	if check.IfNil(arguments.CrossNotarizedHeadersNotifier) {
+		return ErrNilCrossNotarizedHeadersNotifier
 	}
-	if selfNotarizedHeadersNotifier == nil {
-		return ErrSelfNotarizedHeadersNotifier
+	if check.IfNil(arguments.SelfNotarizedHeadersNotifier) {
+		return ErrNilSelfNotarizedHeadersNotifier
+	}
+	if check.IfNil(arguments.Rounder) {
+		return ErrNilRounder
 	}
 
 	return nil

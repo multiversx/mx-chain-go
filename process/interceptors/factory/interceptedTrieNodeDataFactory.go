@@ -37,7 +37,6 @@ func NewInterceptedTrieNodeDataFactory(
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return trie.NewInterceptedTrieNode(buff, sidf.marshalizer, sidf.hasher)
-
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

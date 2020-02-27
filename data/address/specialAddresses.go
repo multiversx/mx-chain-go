@@ -3,6 +3,8 @@ package address
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -58,14 +60,14 @@ func NewSpecialAddressHolder(
 // SetShardConsensusData - sets the reward addresses for the current consensus group
 func (sp *specialAddresses) SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error {
 	// give transaction coordinator the consensus group validators addresses where to send the rewards.
-	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-		randomness, round, shardID,
+	consensusAddresses, err := sp.nodesCoordinator.GetConsensusValidatorsRewardsAddresses(
+		randomness, round, shardID, epoch,
 	)
 	if err != nil {
 		return err
 	}
 
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardID)
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardID, epoch)
 	if err != nil {
 		return err
 	}
@@ -102,15 +104,16 @@ func (sp *specialAddresses) ConsensusShardRewardData() *data.ConsensusRewardData
 
 // SetMetaConsensusData sets the rewards addresses for the metachain nodes
 func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error {
-	rewardAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+	rewardAddresses, err := sp.nodesCoordinator.GetConsensusValidatorsRewardsAddresses(
 		randomness,
 		round,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
+		epoch,
 	)
 	if err != nil {
 		return err
 	}
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, sharding.MetachainShardId)
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 	if err != nil {
 		return err
 	}
@@ -180,10 +183,7 @@ func (sp *specialAddresses) IsCurrentNodeInConsensus() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *specialAddresses) IsInterfaceNil() bool {
-	if sp == nil {
-		return true
-	}
-	return false
+	return sp == nil
 }
 
 func foundKey(key []byte, keys []string) bool {

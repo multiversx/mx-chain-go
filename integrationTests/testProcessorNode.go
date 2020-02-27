@@ -30,10 +30,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
-	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -49,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -109,8 +111,8 @@ var TimeSpanForBadHeaders = time.Second * 30
 // roundDuration defines the duration of the round
 const roundDuration = 5 * time.Second
 
-// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
-var IntegrationTestsChainID = []byte("integration tests chain ID")
+// ChainID is the chain ID identifier used in integration tests, processing nodes
+var ChainID = []byte("integration tests chain ID")
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -141,8 +143,7 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ShardDataPool dataRetriever.PoolsHolder
-	MetaDataPool  dataRetriever.MetaPoolsHolder
+	DataPool      dataRetriever.PoolsHolder
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
@@ -153,6 +154,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 
 	BlackListHandler      process.BlackListHandler
+	HeaderValidator       process.HeaderConstructionValidator
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -181,7 +183,8 @@ type TestProcessorNode struct {
 	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	EpochStartTrigger TestEpochStartTrigger
+	EpochStartTrigger  TestEpochStartTrigger
+	EpochStartNotifier notifier.EpochStartNotifier
 
 	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
@@ -215,9 +218,11 @@ func NewTestProcessorNode(
 
 	pkBytes := make([]byte, 128)
 	address := make([]byte, 32)
+	pkBytes[0] = 1
+	address[0] = 1
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -228,7 +233,7 @@ func NewTestProcessorNode(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -261,7 +266,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -270,8 +275,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-		tpn.ShardDataPool = dPool
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		tpn.DataPool = dPool
 	} else {
 		tpn.initDataPools()
 	}
@@ -297,16 +302,14 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -319,10 +322,14 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestMarshalizer,
 		TestHasher,
 		TestUint64Converter,
-		tpn.MetaDataPool,
+		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
+	tpn.initBlockTracker()
+	tpn.initInterceptors()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -339,15 +346,11 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.MetaDataPool = CreateTestMetaDataPool()
-	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool(nil)
-	}
+	tpn.DataPool = CreateTestDataPool(nil)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.Storage = CreateMetaStore(tpn.ShardCoordinator)
 	} else {
 		tpn.Storage = CreateShardStore(tpn.ShardCoordinator.NumberOfShards())
@@ -355,7 +358,7 @@ func (tpn *TestProcessorNode) initStorage() {
 }
 
 func (tpn *TestProcessorNode) initChainHandler() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.BlockChain = CreateMetaChain()
 	} else {
 		tpn.BlockChain = CreateShardChain()
@@ -387,8 +390,17 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "5",
+				StakeValue:               "500",
+				UnBondPeriod:             "5",
+				TotalSupply:              "200000000000",
+				MinStepValue:             "100000",
+				NumNodes:                 1000,
+				AuctionEnableNonce:       "100000",
+				StakeEnableNonce:         "0",
+				NumRoundsWithoutBleed:    "1000",
+				MaximumPercentageToBleed: "0.5",
+				BleedPercentagePerRound:  "0.00001",
+				UnJailValue:              "1000",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 500000,
@@ -411,57 +423,95 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			TestHasher,
-			TestMultiSig,
-			tpn.MetaDataPool,
-			tpn.AccntState,
-			TestAddressConverter,
-			tpn.OwnAccount.SingleSigner,
-			tpn.OwnAccount.BlockSingleSigner,
-			tpn.OwnAccount.KeygenTxSign,
-			tpn.OwnAccount.KeygenBlockSign,
-			maxTxNonceDeltaAllowed,
-			tpn.EconomicsData,
-			tpn.BlackListHandler,
-			tpn.HeaderSigVerifier,
-			tpn.ChainID,
-			sizeCheckDelta,
-		)
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime: tpn.Rounder.TimeStamp(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			Storage:            tpn.Storage,
+			Marshalizer:        TestMarshalizer,
+		}
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+			ShardCoordinator:       tpn.ShardCoordinator,
+			NodesCoordinator:       tpn.NodesCoordinator,
+			Messenger:              tpn.Messenger,
+			Store:                  tpn.Storage,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			MultiSigner:            TestMultiSig,
+			DataPool:               tpn.DataPool,
+			Accounts:               tpn.AccntState,
+			AddrConverter:          TestAddressConverter,
+			SingleSigner:           tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
+			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
+			BlockKeyGen:            tpn.OwnAccount.KeygenBlockSign,
+			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+			TxFeeHandler:           tpn.EconomicsData,
+			BlackList:              tpn.BlackListHandler,
+			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			ChainID:                tpn.ChainID,
+			SizeCheckDelta:         sizeCheckDelta,
+			ValidityAttester:       tpn.BlockTracker,
+			EpochStartTrigger:      tpn.EpochStartTrigger,
+		}
+		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
 	} else {
-		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			TestHasher,
-			tpn.OwnAccount.KeygenTxSign,
-			tpn.OwnAccount.KeygenBlockSign,
-			tpn.OwnAccount.SingleSigner,
-			tpn.OwnAccount.BlockSingleSigner,
-			TestMultiSig,
-			tpn.ShardDataPool,
-			TestAddressConverter,
-			maxTxNonceDeltaAllowed,
-			tpn.EconomicsData,
-			tpn.BlackListHandler,
-			tpn.HeaderSigVerifier,
-			tpn.ChainID,
-			sizeCheckDelta,
-		)
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    tpn.HeaderValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.DataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		}
+		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
+		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+			Accounts:               tpn.AccntState,
+			ShardCoordinator:       tpn.ShardCoordinator,
+			NodesCoordinator:       tpn.NodesCoordinator,
+			Messenger:              tpn.Messenger,
+			Store:                  tpn.Storage,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
+			BlockSignKeyGen:        tpn.OwnAccount.KeygenBlockSign,
+			SingleSigner:           tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
+			MultiSigner:            TestMultiSig,
+			DataPool:               tpn.DataPool,
+			AddrConverter:          TestAddressConverter,
+			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+			TxFeeHandler:           tpn.EconomicsData,
+			BlackList:              tpn.BlackListHandler,
+			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			ChainID:                tpn.ChainID,
+			SizeCheckDelta:         sizeCheckDelta,
+			ValidityAttester:       tpn.BlockTracker,
+			EpochStartTrigger:      tpn.EpochStartTrigger,
+		}
+		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
@@ -473,18 +523,20 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			tpn.MetaDataPool,
-			TestUint64Converter,
-			dataPacker,
-			tpn.TrieContainer,
-			100,
-		)
+	resolverContainerFactory := resolverscontainer.FactoryArgs{
+		ShardCoordinator:         tpn.ShardCoordinator,
+		Messenger:                tpn.Messenger,
+		Store:                    tpn.Storage,
+		Marshalizer:              TestMarshalizer,
+		DataPools:                tpn.DataPool,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		DataPacker:               dataPacker,
+		TriesContainer:           tpn.TrieContainer,
+		SizeCheckDelta:           100,
+	}
+
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
@@ -494,17 +546,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			100,
 		)
 	} else {
-		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
-			tpn.ShardCoordinator,
-			tpn.Messenger,
-			tpn.Storage,
-			TestMarshalizer,
-			tpn.ShardDataPool,
-			TestUint64Converter,
-			dataPacker,
-			tpn.TrieContainer,
-			100,
-		)
+		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
@@ -527,7 +569,7 @@ func createAndAddIeleVM(
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return
 	}
@@ -543,7 +585,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
-		tpn.ShardDataPool,
+		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
 
@@ -623,7 +665,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.Storage,
 		TestMarshalizer,
 		TestHasher,
-		tpn.ShardDataPool,
+		tpn.DataPool,
 		TestAddressConverter,
 		tpn.AccntState,
 		tpn.RequestHandler,
@@ -635,6 +677,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
+		tpn.BlockTracker,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -643,7 +686,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		tpn.ShardDataPool.MiniBlocks(),
+		tpn.DataPool.MiniBlocks(),
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
@@ -658,7 +701,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestHasher,
 		TestAddressConverter,
 		tpn.Storage,
-		tpn.MetaDataPool,
+		tpn.DataPool,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -674,7 +717,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Uint64Converter:  TestUint64Converter,
 	}
 
-	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData, &genesis.NilMessageSignVerifier{})
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -716,7 +759,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.Storage,
 		TestMarshalizer,
 		TestHasher,
-		tpn.MetaDataPool,
+		tpn.DataPool,
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
@@ -724,6 +767,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
+		tpn.BlockTracker,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -732,7 +776,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		tpn.MetaDataPool.MiniBlocks(),
+		tpn.DataPool.MiniBlocks(),
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
@@ -741,16 +785,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	var peerDataPool peer.DataPool = tpn.MetaDataPool
-	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
-		peerDataPool = tpn.ShardDataPool
-	}
-
 	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap := tpn.NodesCoordinator.GetAllValidatorsPublicKeys()
+	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk)
+			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
 			n := &sharding.InitialNode{
 				PubKey:   core.ToHex(validator.PubKey()),
 				Address:  core.ToHex(validator.Address()),
@@ -767,16 +806,17 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
-		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverterBLS,
-		NodesCoordinator: tpn.NodesCoordinator,
-		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         peerDataPool,
-		StorageService:   tpn.Storage,
-		Marshalizer:      TestMarshalizer,
-		StakeValue:       big.NewInt(500),
-		Rater:            rater,
+		InitialNodes:        initialNodes,
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -807,16 +847,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
-	}
-	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
-
-	tpn.initBlockTracker(headerValidator)
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 tpn.ForkDetector,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
@@ -829,18 +865,23 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
-		HeaderValidator:              headerValidator,
-		Rounder:                      &mock.RounderMock{},
+		HeaderValidator:              tpn.HeaderValidator,
+		Rounder:                      tpn.Rounder,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
 			},
 		},
-		BlockTracker: tpn.BlockTracker,
+		BlockTracker:           tpn.BlockTracker,
+		DataPool:               tpn.DataPool,
+		StateCheckpointModulus: stateCheckpointModulus,
 	}
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+	}
 
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: argumentsBase.Rounder.TimeStamp(),
 			Settings: &config.EpochStartConfig{
@@ -848,7 +889,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				RoundsPerEpoch:         10000,
 			},
 			Epoch:              0,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
 		}
@@ -870,34 +911,32 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			PeerState:   tpn.PeerState,
 			BaseState:   tpn.AccntState,
 			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.MetaDataPool.CurrentBlockTxs(),
+			CurrTxs:     tpn.DataPool.CurrentBlockTxs(),
 			ScQuery:     tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:   argumentsBase,
-			DataPool:           tpn.MetaDataPool,
-			SCDataGetter:       tpn.SCQueryService,
-			SCToProtocol:       scToProtocol,
-			PeerChangesHandler: scToProtocol,
-			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+			ArgBaseProcessor:         argumentsBase,
+			SCDataGetter:             tpn.SCQueryService,
+			SCToProtocol:             scToProtocol,
+			PeerChangesHandler:       scToProtocol,
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
-
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
-			HeaderValidator:    headerValidator,
+			HeaderValidator:    tpn.HeaderValidator,
 			Uint64Converter:    TestUint64Converter,
-			DataPool:           tpn.ShardDataPool,
+			DataPool:           tpn.DataPool,
 			Storage:            tpn.Storage,
 			RequestHandler:     tpn.RequestHandler,
 			Epoch:              0,
 			Validity:           1,
 			Finality:           1,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -907,10 +946,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor:       argumentsBase,
-			DataPool:               tpn.ShardDataPool,
-			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: stateCheckpointModulus,
+			ArgBaseProcessor: argumentsBase,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
@@ -926,6 +963,7 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 	_ = tpn.BlockChain.SetGenesisHeader(genesisBlock)
 	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, genesisBlock)
 	tpn.BlockChain.SetGenesisHeaderHash(hash)
+	fmt.Println(fmt.Sprintf("Set genesis hash shard %d %s", tpn.ShardCoordinator.SelfId(), core.ToHex(hash)))
 }
 
 func (tpn *TestProcessorNode) initNode() {
@@ -947,8 +985,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithUint64ByteSliceConverter(TestUint64Converter),
 		node.WithMultiSigner(tpn.MultiSigner),
 		node.WithSingleSigner(tpn.OwnAccount.SingleSigner),
-		node.WithTxSignPrivKey(tpn.OwnAccount.SkTxSign),
-		node.WithTxSignPubKey(tpn.OwnAccount.PkTxSign),
 		node.WithPrivKey(tpn.NodeKeys.Sk),
 		node.WithPubKey(tpn.NodeKeys.Pk),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
@@ -958,21 +994,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
+		node.WithDataPool(tpn.DataPool),
 	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
-
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = tpn.Node.ApplyOptions(
-			node.WithMetaDataPool(tpn.MetaDataPool),
-		)
-	} else {
-		err = tpn.Node.ApplyOptions(
-			node.WithDataPool(tpn.ShardDataPool),
-		)
-	}
-
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
 	}
@@ -998,8 +1021,8 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
 	}
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.MetaDataPool.Headers().RegisterHandler(hdrHandlers)
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
 		txHandler := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
@@ -1008,11 +1031,11 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
-		tpn.ShardDataPool.UnsignedTransactions().RegisterHandler(txHandler)
-		tpn.ShardDataPool.Transactions().RegisterHandler(txHandler)
-		tpn.ShardDataPool.RewardTransactions().RegisterHandler(txHandler)
-		tpn.ShardDataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
+		tpn.DataPool.UnsignedTransactions().RegisterHandler(txHandler)
+		tpn.DataPool.Transactions().RegisterHandler(txHandler)
+		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
+		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
+		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
 }
 
@@ -1043,7 +1066,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := tpn.BlockProcessor.CreateNewHeader()
+	blockHeader := tpn.BlockProcessor.CreateNewHeader(round)
 
 	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
 	blockHeader.SetRound(round)
@@ -1065,7 +1088,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
 	}
 	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
@@ -1106,12 +1129,12 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
-	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.Headers() == nil
+	invalidCachers := tpn.DataPool == nil || tpn.DataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	headerObjects, _, err := tpn.ShardDataPool.Headers().GetHeadersByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
+	headerObjects, _, err := tpn.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, tpn.ShardCoordinator.SelfId(), err.Error()))
 	}
@@ -1128,7 +1151,7 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 
 // GetBlockBody returns the body for provided header parameter
 func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.Body, error) {
-	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.MiniBlocks() == nil
+	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
@@ -1137,7 +1160,7 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
-		mbObject, ok := tpn.ShardDataPool.MiniBlocks().Get(miniBlockHash)
+		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {
 			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
@@ -1155,7 +1178,7 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 
 // GetMetaBlockBody returns the body for provided header parameter
 func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dataBlock.Body, error) {
-	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MiniBlocks() == nil
+	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
@@ -1164,7 +1187,7 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dat
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
-		mbObject, ok := tpn.MetaDataPool.MiniBlocks().Get(miniBlockHash)
+		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {
 			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
@@ -1182,21 +1205,21 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dat
 
 // GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
-	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.Headers() == nil
+	invalidCachers := tpn.DataPool == nil || tpn.DataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headerObjects, _, err := tpn.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, sharding.MetachainShardId, err.Error()))
+		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, core.MetachainShardId, err.Error()))
 	}
 
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.MetaBlock)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, sharding.MetachainShardId))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, core.MetachainShardId))
 	}
 
 	return header, nil
@@ -1204,7 +1227,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 
 // SyncNode tries to process and commit a block already stored in data pool with provided nonce
 func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		return tpn.syncMetaNode(nonce)
 	} else {
 		return tpn.syncShardNode(nonce)
@@ -1291,7 +1314,7 @@ func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
 
 // MiniBlocksPresent checks if the all the miniblocks are present in the pool
 func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
-	mbCacher := tpn.ShardDataPool.MiniBlocks()
+	mbCacher := tpn.DataPool.MiniBlocks()
 	for i := 0; i < len(hashes); i++ {
 		ok := mbCacher.Has(hashes[i])
 		if !ok {
@@ -1310,10 +1333,10 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }
 
-func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderConstructionValidator) {
+func (tpn *TestProcessorNode) initBlockTracker() {
 	argBaseTracker := track.ArgBaseTracker{
 		Hasher:           TestHasher,
-		HeaderValidator:  headerValidator,
+		HeaderValidator:  tpn.HeaderValidator,
 		Marshalizer:      TestMarshalizer,
 		RequestHandler:   tpn.RequestHandler,
 		Rounder:          tpn.Rounder,
@@ -1322,19 +1345,28 @@ func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderCon
 		StartHeaders:     tpn.GenesisBlocks,
 	}
 
-	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.ShardDataPool,
+			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
 	} else {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.MetaDataPool,
+			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
 	}
+}
+
+func (tpn *TestProcessorNode) initHeaderValidator() {
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+
+	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
 }

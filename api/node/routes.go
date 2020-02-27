@@ -14,7 +14,7 @@ import (
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	IsNodeRunning() bool
-	StartNode() error
+	StartNode(epoch uint32) error
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
@@ -36,14 +36,14 @@ type statisticsResponse struct {
 }
 
 type shardStatisticsResponse struct {
-	ShardID               uint32   `json:"shardID"`
 	LiveTPS               float64  `json:"liveTPS"`
 	AverageTPS            *big.Int `json:"averageTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
-	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
-	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
+	ShardID               uint32   `json:"shardID"`
+	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 }
 
 // Routes defines node related routes
@@ -51,6 +51,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
+	// placeholder for custom routes
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node

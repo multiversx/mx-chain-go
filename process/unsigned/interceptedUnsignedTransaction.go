@@ -35,7 +35,6 @@ func NewInterceptedUnsignedTransaction(
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedUnsignedTransaction, error) {
-
 	if uTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}

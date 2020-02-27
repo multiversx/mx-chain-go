@@ -37,17 +37,15 @@ type statusHandlersInfo struct {
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
 func NewStatusHandlersFactoryArgs(
 	logViewName string,
-	serversConfigurationFileName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
-		LogViewName:                  logViewName,
-		ServersConfigurationFileName: serversConfigurationFileName,
-		Ctx:                          ctx,
-		Marshalizer:                  marshalizer,
-		Uint64ByteSliceConverter:     uint64ByteSliceConverter,
+		LogViewName:              logViewName,
+		Ctx:                      ctx,
+		Marshalizer:              marshalizer,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}
 }
 
@@ -105,12 +103,12 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	statusHandlersInfo := new(statusHandlersInfo)
-	statusHandlersInfo.StatusHandler = handler
-	statusHandlersInfo.UseTermUI = useTermui
-	statusHandlersInfo.StatusMetrics = statusMetrics
-	statusHandlersInfo.PersistentHandler = persistentHandler
-	return statusHandlersInfo, nil
+	statusHandlersInfoObject := new(statusHandlersInfo)
+	statusHandlersInfoObject.StatusHandler = handler
+	statusHandlersInfoObject.UseTermUI = useTermui
+	statusHandlersInfoObject.StatusMetrics = statusMetrics
+	statusHandlersInfoObject.PersistentHandler = persistentHandler
+	return statusHandlersInfoObject, nil
 }
 
 // UpdateStorerAndMetricsForPersistentHandler will set storer for persistent status handler

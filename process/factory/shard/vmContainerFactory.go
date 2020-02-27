@@ -1,7 +1,7 @@
 package shard
 
 import (
-	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/context"
+	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -69,8 +69,5 @@ func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandle
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmf *vmContainerFactory) IsInterfaceNil() bool {
-	if vmf == nil {
-		return true
-	}
-	return false
+	return vmf == nil
 }

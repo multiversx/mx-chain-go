@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	ui "github.com/gizak/termui/v3"
@@ -109,7 +108,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	shardIdStr := fmt.Sprintf("%d", shardId)
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		shardIdStr = "meta"
 	}
 	wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
@@ -126,33 +125,30 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
 	}
 
-	pkTxSign := wr.presenter.GetPublicKeyTxSign()
-	rows[2] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
-
 	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
-	rows[3] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
+	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
 	var consensusInfo string
 	countConsensus := wr.presenter.GetCountConsensus()
 	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
 
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		consensusInfo = fmt.Sprintf("Count consensus participant: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
 
 	} else {
 		consensusInfo = fmt.Sprintf("Consensus accepted / signed blocks: %d / %d", countConsensusAcceptedBlocks, countConsensus)
 	}
 
-	rows[4] = []string{consensusInfo}
+	rows[3] = []string{consensusInfo}
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[5] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
+	rows[4] = []string{fmt.Sprintf("Blocks accepted / blocks proposed:  %d / %d", countAcceptedBlocks, countLeader)}
 
 	switch instanceType {
 	case string(core.NodeTypeValidator):
 		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-		rows[6] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+		rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
 
 		var rewardsInfo []string
 		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
@@ -164,11 +160,11 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
 			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
 		}
-		rows[7] = rewardsInfo
+		rows[6] = rewardsInfo
 
 	default:
+		rows[5] = []string{""}
 		rows[6] = []string{""}
-		rows[7] = []string{""}
 	}
 
 	wr.instanceInfo.Title = "Elrond instance info"
@@ -206,10 +202,10 @@ func (wr *WidgetsRender) prepareChainInfo() {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
 	}
 
-	rows[1] = []string{fmt.Sprintf("%s", remainingTimeMessage)}
+	rows[1] = []string{remainingTimeMessage}
 
 	shardId := wr.presenter.GetShardId()
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		numShardHeadersInPool := wr.presenter.GetNumShardHeadersInPool()
 		rows[2] = []string{fmt.Sprintf("Number of shard headers in pool: %d", numShardHeadersInPool)}
 		numShardHeaderProcessed := wr.presenter.GetNumShardHeadersProcessed()
@@ -265,13 +261,13 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
 
 	currentBlockHash := wr.presenter.GetCurrentBlockHash()
-	rows[3] = []string{fmt.Sprintf("Current block hash : %s", currentBlockHash)}
+	rows[3] = []string{fmt.Sprintf("Current block hash: %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
 
 	shardId := wr.presenter.GetShardId()
-	if shardId != uint64(sharding.MetachainShardId) {
+	if shardId != uint64(core.MetachainShardId) {
 		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
 		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlockInShard)
 	}
@@ -294,7 +290,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[7] = []string{fmt.Sprintf("Current round timestamp : %d", currentRoundTimestamp)}
+	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
 	wr.blockInfo.Title = "Block info"
 	wr.blockInfo.RowSeparator = false

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -59,8 +60,8 @@ func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.NotNil(t, tnRes)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(tnRes))
 }
 
 //------- ProcessReceivedMessage
@@ -202,7 +203,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, tnRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, tnRes.RequestDataFromHash(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: buffRequested,

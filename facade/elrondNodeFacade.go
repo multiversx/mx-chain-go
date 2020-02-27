@@ -72,13 +72,13 @@ func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 }
 
 // StartNode starts the underlying node
-func (ef *ElrondNodeFacade) StartNode() error {
+func (ef *ElrondNodeFacade) StartNode(epoch uint32) error {
 	err := ef.node.Start()
 	if err != nil {
 		return err
 	}
 
-	err = ef.node.StartConsensus()
+	err = ef.node.StartConsensus(epoch)
 	return err
 }
 
@@ -117,7 +117,6 @@ func (ef *ElrondNodeFacade) startRest() {
 	switch ef.RestApiInterface() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
-		break
 	default:
 		log.Debug("starting web server")
 		err := api.Start(ef)
@@ -212,8 +211,5 @@ func (ef *ElrondNodeFacade) PprofEnabled() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
-	if ef == nil {
-		return true
-	}
-	return false
+	return ef == nil
 }

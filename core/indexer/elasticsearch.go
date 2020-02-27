@@ -69,7 +69,6 @@ func NewElasticIndexer(
 	hasher hashing.Hasher,
 	options *Options,
 ) (Indexer, error) {
-
 	err := checkElasticSearchParams(
 		url,
 		shardCoordinator,
@@ -284,7 +283,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	valPubKeys := make(map[uint32][]string, 0)
+	valPubKeys := make(map[uint32][]string)
 	for shardId, shardPubKeys := range validatorsPubKeys {
 		for _, pubKey := range shardPubKeys {
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
@@ -566,23 +565,26 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 		log.Warn("elastic search: update TPS write serialized info", "error", err.Error())
 	}
 
+	var serializedShardInfo []byte
+	var serializedMetaInfo []byte
+	var res *esapi.Response
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
-		if serializedInfo == nil {
+		serializedShardInfo, serializedMetaInfo = ei.serializeShardInfo(shardInfo)
+		if serializedShardInfo == nil {
 			continue
 		}
 
-		buff.Grow(len(meta) + len(serializedInfo))
-		_, err = buff.Write(meta)
+		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
+		_, err = buff.Write(serializedMetaInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write meta", "error", err.Error())
 		}
-		_, err = buff.Write(serializedInfo)
+		_, err = buff.Write(serializedShardInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
 		}
 
-		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
+		res, err = ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
 			log.Warn("indexer: error indexing tps information")
 			continue
@@ -597,10 +599,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ei *elasticIndexer) IsInterfaceNil() bool {
-	if ei == nil {
-		return true
-	}
-	return false
+	return ei == nil
 }
 
 func closeESResponseBody(res *esapi.Response) {
@@ -703,8 +702,8 @@ func buildSmartContractResult(
 		Sender:        hex.EncodeToString(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
-		GasPrice:      0,
-		GasLimit:      0,
+		GasPrice:      scr.GasPrice,
+		GasLimit:      scr.GasLimit,
 		Data:          scr.Data,
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
@@ -720,7 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-
 	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
 
 	return &Transaction{

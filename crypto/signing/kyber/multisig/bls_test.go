@@ -269,7 +269,7 @@ func TestKyberMultiSignerBLS_VerifySigBytesInvalidSigShouldErr(t *testing.T) {
 	privKey, pubKey, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	// change the signature so that it becomes invalid
-	sig[0] = sig[0] ^ 0xFF
+	sig[0] ^= 0xFF
 	err := lls.VerifySigBytes(pubKey.Suite(), sig)
 
 	require.NotNil(t, err)
@@ -333,7 +333,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.
 	llSig := &multisig.KyberMultiSignerBLS{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
 	// make first sig share invalid
-	sigShares[0][0] = sigShares[0][0] ^ 0xFF
+	sigShares[0][0] ^= 0xFF
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares, pubKeys)
 
 	require.NotNil(t, err)
@@ -421,7 +421,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *t
 	aggSig, _ := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares, pubKeys)
 
 	//make aggregated sig invalid
-	aggSig[0] = aggSig[0] ^ 0xFF
+	aggSig[0] ^= 0xFF
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), pubKeys, aggSig, msg)
 
 	require.NotNil(t, err)

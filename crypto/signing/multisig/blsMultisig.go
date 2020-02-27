@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -292,8 +291,5 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bms *blsMultiSigner) IsInterfaceNil() bool {
-	if bms == nil {
-		return true
-	}
-	return false
+	return bms == nil
 }

@@ -1,167 +1,14 @@
 package block_test
 
 import (
-	"bytes"
 	"errors"
-	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestPeerData_SaveLoad(t *testing.T) {
-	pd := block.PeerData{
-		PublicKey:   []byte("public key"),
-		Action:      block.PeerRegistration,
-		TimeStamp:   uint64(1234),
-		ValueChange: big.NewInt(1),
-		Address:     []byte("address"),
-	}
-	var b bytes.Buffer
-	_ = pd.Save(&b)
-
-	loadPd := block.PeerData{}
-	_ = loadPd.Load(&b)
-
-	assert.Equal(t, loadPd, pd)
-}
-
-func TestShardData_SaveLoad(t *testing.T) {
-
-	mbh := block.ShardMiniBlockHeader{
-		Hash:            []byte("miniblock hash"),
-		SenderShardID:   uint32(0),
-		ReceiverShardID: uint32(1),
-		TxCount:         uint32(1),
-	}
-
-	sd := block.ShardData{
-		ShardID:               uint32(10),
-		HeaderHash:            []byte("header_hash"),
-		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-		PubKeysBitmap:         []byte{1},
-		Signature:             []byte{1},
-		PrevRandSeed:          []byte{1},
-		TxCount:               uint32(1),
-	}
-
-	var b bytes.Buffer
-	_ = sd.Save(&b)
-
-	loadSd := block.ShardData{}
-	_ = loadSd.Load(&b)
-
-	assert.Equal(t, loadSd, sd)
-}
-
-func TestEpochStart_SaveLoad(t *testing.T) {
-
-	mbh := block.ShardMiniBlockHeader{
-		Hash:            []byte("miniblock hash"),
-		SenderShardID:   uint32(0),
-		ReceiverShardID: uint32(1),
-		TxCount:         uint32(1),
-	}
-
-	lastFinalHdr := block.EpochStartShardData{
-		ShardId:                 0,
-		HeaderHash:              []byte("headerhash"),
-		RootHash:                []byte("roothash"),
-		FirstPendingMetaBlock:   []byte("firstPending"),
-		LastFinishedMetaBlock:   []byte("lastfinished"),
-		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-	}
-
-	epochStart := block.EpochStart{
-		LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
-	}
-
-	var b bytes.Buffer
-	_ = epochStart.Save(&b)
-
-	loadEpoch := block.EpochStart{}
-	_ = loadEpoch.Load(&b)
-
-	assert.Equal(t, loadEpoch, epochStart)
-}
-
-func TestMetaBlock_SaveLoad(t *testing.T) {
-	pd := block.PeerData{
-		Address:     []byte("address"),
-		PublicKey:   []byte("public key"),
-		Action:      block.PeerRegistration,
-		TimeStamp:   uint64(1234),
-		ValueChange: big.NewInt(1),
-	}
-
-	mbh := block.ShardMiniBlockHeader{
-		Hash:            []byte("miniblock hash"),
-		SenderShardID:   uint32(0),
-		ReceiverShardID: uint32(1),
-		TxCount:         uint32(1),
-	}
-
-	sd := block.ShardData{
-		ShardID:               uint32(10),
-		HeaderHash:            []byte("header_hash"),
-		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-		TxCount:               uint32(1),
-		PubKeysBitmap:         []byte("pkb"),
-		Signature:             []byte("sig"),
-		PrevRandSeed:          []byte("rand"),
-	}
-
-	mbHdr := block.MiniBlockHeader{
-		Hash:            []byte("mini block hash"),
-		ReceiverShardID: uint32(0),
-		SenderShardID:   uint32(10),
-		TxCount:         uint32(10),
-	}
-
-	lastFinalHdr := block.EpochStartShardData{
-		ShardId:                 0,
-		HeaderHash:              []byte("headerhash"),
-		RootHash:                []byte("roothash"),
-		FirstPendingMetaBlock:   []byte("firstPending"),
-		LastFinishedMetaBlock:   []byte("lastfinished"),
-		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-	}
-
-	mb := block.MetaBlock{
-		Nonce:                  uint64(1),
-		Epoch:                  uint32(1),
-		Round:                  uint64(1),
-		TimeStamp:              uint64(100000),
-		ShardInfo:              []block.ShardData{sd},
-		PeerInfo:               []block.PeerData{pd},
-		Signature:              []byte("signature"),
-		PubKeysBitmap:          []byte("pub keys"),
-		PrevHash:               []byte("previous hash"),
-		PrevRandSeed:           []byte("previous random seed"),
-		RandSeed:               []byte("random seed"),
-		RootHash:               []byte("root hash"),
-		TxCount:                uint32(1),
-		ValidatorStatsRootHash: []byte("rootHash"),
-		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
-		LeaderSignature:        []byte("leader_sign"),
-		ChainID:                []byte("chain ID"),
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
-		},
-	}
-	var b bytes.Buffer
-	err := mb.Save(&b)
-	assert.Nil(t, err)
-
-	loadMb := block.MetaBlock{}
-	err = loadMb.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, mb, loadMb)
-}
 
 func TestMetaBlock_GetEpoch(t *testing.T) {
 	t.Parallel()
@@ -179,7 +26,7 @@ func TestMetaBlock_GetShard(t *testing.T) {
 
 	m := block.MetaBlock{}
 
-	assert.Equal(t, sharding.MetachainShardId, m.GetShardID())
+	assert.Equal(t, core.MetachainShardId, m.GetShardID())
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {

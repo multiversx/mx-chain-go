@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -191,6 +193,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	time.Sleep(time.Second)
 	nrRoundsToTest := 10
 	for i := 0; i <= nrRoundsToTest; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -283,13 +286,14 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	time.Sleep(2 * time.Second)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() == core.MetachainShardId {
 			continue
 		}
 
@@ -307,6 +311,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	time.Sleep(time.Second)
 	numRoundsToTest := 6
 	for i := 0; i < numRoundsToTest; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -338,4 +343,91 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		account, _ := accWrp.(*state.Account)
 		assert.Equal(t, expectedReceiverValue, account.Balance)
 	}
+}
+
+func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
+	//TODO fix this test
+	t.Skip("TODO fix this test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	nodesPerShard := 2
+	shardConsensusGroupSize := 2
+	nbMetaNodes := 400
+	nbShards := 1
+	consensusGroupSize := 400
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	cacheMut := &sync.Mutex{}
+
+	putCounter := 0
+	cacheMap := make(map[string]interface{})
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		shardConsensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	roundsPerEpoch := uint64(1000)
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes[0:1])
+
+		for _, node := range nodes {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	roundDifference := 10
+	nonce := uint64(1)
+
+	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
+	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	// set bitmap for all consensus nodes signing
+	bitmap := make([]byte, consensusGroupSize/8+1)
+	for i := range bitmap {
+		bitmap[i] = 0xFF
+	}
+
+	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
+	header.SetPubKeysBitmap(bitmap)
+
+	firstNodeOnMeta.CommitBlock(body, header)
+
+	round += uint64(roundDifference)
+	nonce++
+	putCounter = 0
+
+	cacheMut.Lock()
+	for k := range cacheMap {
+		delete(cacheMap, k)
+	}
+	cacheMut.Unlock()
+
+	firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	assert.Equal(t, roundDifference, putCounter)
 }

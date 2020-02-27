@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -19,7 +21,6 @@ import (
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -183,56 +184,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	return sdp
 }
 
-func initMetaDataPool() *mock.MetaPoolsHolderStub {
-	mdp := &mock.MetaPoolsHolderStub{
-		MiniBlocksCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
-			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("mb_hash1"), key) {
-					return &block.Header{Nonce: 1}, true
-				}
-				return nil, false
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 300
-			}
-			cs.RemoveCalled = func(key []byte) {}
-			cs.KeysCalled = func() [][]byte {
-				return nil
-			}
-			return cs
-		},
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
-			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
-				if bytes.Equal([]byte("hdr_hash1"), hash) {
-					return &block.Header{Nonce: 1}, nil
-				}
-				return nil, errors.New("err")
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 1000
-			}
-			cs.RemoveHeaderByHashCalled = func(key []byte) {}
-			cs.NoncesCalled = func(shardId uint32) []uint64 {
-				return nil
-			}
-			return cs
-		},
-	}
-	return mdp
-}
-
 func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
@@ -301,10 +252,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wr *wrongBody) IsInterfaceNil() bool {
-	if wr == nil {
-		return true
-	}
-	return false
+	return wr == nil
 }
 
 func CreateMockArguments() blproc.ArgShardProcessor {
@@ -322,9 +270,13 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
+			AccountsDB:                   accountsDb,
 			ForkDetector:                 &mock.ForkDetectorMock{},
 			Hasher:                       &mock.HasherStub{},
 			Marshalizer:                  &mock.MarshalizerMock{},
@@ -346,9 +298,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
+			DataPool:     initDataPool([]byte("")),
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		},
-		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -420,10 +372,80 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	}
 
 	arguments := CreateMockArguments()
-	arguments.Accounts = accounts
+	arguments.AccountsDB[state.UserAccountsState] = accounts
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	assert.True(t, bp.VerifyStateRoot(rootHash))
+}
+
+//------- SetAppStatusHandler
+func TestBaseProcessor_SetAppStatusHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	err := bp.SetAppStatusHandler(nil)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
+}
+
+func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	ash := &mock.AppStatusHandlerStub{}
+	err := bp.SetAppStatusHandler(ash)
+	assert.Nil(t, err)
+}
+
+//------- RevertState
+func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("err")
+	arguments := CreateMockArguments()
+	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return expectedErr
+		},
+	}
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	hdr := block.Header{Nonce: 37}
+	err := bp.RevertStateToBlock(&hdr)
+	assert.Equal(t, expectedErr, err)
+}
+
+// removeHeadersBehindNonceFromPools
+func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
+	t.Parallel()
+
+	removeFromDataPoolWasCalled := false
+	arguments := CreateMockArguments()
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RemoveBlockDataFromPoolCalled: func(body block.Body) error {
+			removeFromDataPoolWasCalled = true
+			return nil
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	headersPool := &mock.HeadersCacherStub{
+		NoncesCalled: func(shardId uint32) []uint64 {
+			return []uint64{1, 2, 3}
+		},
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+			hdrs := make([]data.HeaderHandler, 0)
+			hdrs = append(hdrs, &block.Header{Nonce: 2})
+			return hdrs, nil, nil
+		},
+	}
+	bp.RemoveHeadersBehindNonceFromPools(true, headersPool, 0, 4)
+
+	assert.True(t, removeFromDataPoolWasCalled)
 }
 
 //------- ComputeNewNoncePrevHash
@@ -624,12 +646,12 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 
 	highestNonce := uint64(10)
-	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[sharding.MetachainShardId], arguments.Hasher, arguments.Marshalizer)
+	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[core.MetachainShardId], arguments.Hasher, arguments.Marshalizer)
 
-	err := sp.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
+	err := sp.SaveLastNotarizedHeader(core.MetachainShardId, prHdrs)
 	assert.Nil(t, err)
 
-	assert.Equal(t, highestNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
+	assert.Equal(t, highestNonce, sp.LastNotarizedHdrForShard(core.MetachainShardId).GetNonce())
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
@@ -649,7 +671,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
@@ -677,7 +699,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
@@ -708,5 +730,69 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
 
-	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMatch(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	hasher := &mock.HasherStub{ComputeCalled: func(s string) []byte {
+		return nil
+	}}
+	arguments.Hasher = hasher
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 5
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 100
+		},
+	}
+
+	randSeed := []byte("randseed")
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch:    3,
+				RandSeed: randSeed,
+			}
+		},
+	}
+	rootHash, _ := arguments.AccountsDB[state.UserAccountsState].RootHash()
+	epochStartHash := []byte("epochStartHash")
+	header := &block.Header{
+		Round:              10,
+		Nonce:              1,
+		Epoch:              3,
+		RandSeed:           randSeed,
+		PrevRandSeed:       randSeed,
+		EpochStartMetaHash: epochStartHash,
+		RootHash:           rootHash,
+	}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
+
+	metaHdr := &block.MetaBlock{}
+	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
+
+	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+
+	hasher.ComputeCalled = func(s string) []byte {
+		if bytes.Equal([]byte(s), metaHdrData) {
+			return epochStartHash
+		}
+		return nil
+	}
+
+	err = sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+	assert.Nil(t, err)
 }

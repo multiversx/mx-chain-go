@@ -16,7 +16,7 @@ func TestSha256(t *testing.T) {
 }
 
 func TestBlake2b(t *testing.T) {
-	Suite(t, blake2b.Blake2b{})
+	Suite(t, &blake2b.Blake2b{})
 }
 
 func TestKeccak(t *testing.T) {
@@ -28,30 +28,43 @@ func TestFnv(t *testing.T) {
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
-	TestingCalculateHash(t, h)
-	TestingCalculateEmptyHash(t, h)
-	TestingNilReturn(t, h)
+	testNilInterface(t, h)
+	testSize(t, h)
+	testCalculateHash(t, h)
+	testCalculateEmptyHash(t, h)
+	testNilReturn(t, h)
 
 }
 
-func TestingCalculateHash(t *testing.T, h hashing.Hasher) {
+func testNilInterface(t *testing.T, h hashing.Hasher) {
+	res := h.IsInterfaceNil()
 
+	assert.False(t, res)
+}
+
+func testSize(t *testing.T, h hashing.Hasher) {
+	input := "test"
+	res := h.Compute(input)
+	hasherSize := h.Size()
+
+	assert.Equal(t, hasherSize, len(res))
+}
+
+func testCalculateHash(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("a")
 	h2 := h.Compute("b")
 
 	assert.NotEqual(t, h1, h2)
-
 }
 
-func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
+func testCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("")
 	h2 := h.EmptyHash()
 
 	assert.Equal(t, h1, h2)
-
 }
 
-func TestingNilReturn(t *testing.T, h hashing.Hasher) {
+func testNilReturn(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("a")
 	assert.NotNil(t, h1)
 }

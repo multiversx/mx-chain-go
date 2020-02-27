@@ -23,24 +23,20 @@ const (
 	BlockHeaderUnit UnitType = 3
 	// MetaBlockUnit is the metachain blocks storage unit identifier
 	MetaBlockUnit UnitType = 4
-	// MetaShardDataUnit is the metachain shard data unit identifier
-	MetaShardDataUnit UnitType = 5
-	// MetaPeerDataUnit is the metachain peer data unit identifier
-	MetaPeerDataUnit UnitType = 6
 	// UnsignedTransactionUnit is the unsigned transaction unit identifier
-	UnsignedTransactionUnit UnitType = 7
+	UnsignedTransactionUnit UnitType = 5
 	// RewardTransactionUnit is the reward transaction unit identifier
-	RewardTransactionUnit UnitType = 8
+	RewardTransactionUnit UnitType = 6
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 9
+	MetaHdrNonceHashDataUnit UnitType = 7
 	// HeartbeatUnit is the heartbeat storage unit identifier
-	HeartbeatUnit UnitType = 10
+	HeartbeatUnit UnitType = 8
 	// MiniBlockHeaderUnit is the miniblock header data unit identifier
-	MiniBlockHeaderUnit UnitType = 11
+	MiniBlockHeaderUnit UnitType = 9
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 12
+	BootstrapUnit UnitType = 10
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 13
+	StatusMetricsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -52,7 +48,7 @@ const (
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte) error
+	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
@@ -60,7 +56,7 @@ type Resolver interface {
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromNonce(nonce uint64, epoch uint32) error
 	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
 }
@@ -68,7 +64,7 @@ type HeaderResolver interface {
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
-	RequestDataFromHashArray(hashes [][]byte) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
@@ -110,6 +106,12 @@ type ResolversContainerFactory interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
+type EpochProviderByNonce interface {
+	EpochForNonce(nonce uint64) (uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -232,17 +234,6 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
-	CurrentBlockTxs() TransactionCacher
-	IsInterfaceNil() bool
-}
-
-// MetaPoolsHolder defines getter for data pools for metachain
-type MetaPoolsHolder interface {
-	MiniBlocks() storage.Cacher
-	Headers() HeadersPool
-	TrieNodes() storage.Cacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

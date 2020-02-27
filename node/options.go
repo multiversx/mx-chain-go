@@ -1,7 +1,6 @@
 package node
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -111,17 +110,6 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithTxSignPrivKey sets up the single sign private key option for the Node
-func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
-	return func(n *Node) error {
-		if sk == nil || sk.IsInterfaceNil() {
-			return ErrNilPrivateKey
-		}
-		n.txSignPrivKey = sk
-		return nil
-	}
-}
-
 // WithPubKey sets up the multi sign pub key option for the Node
 func WithPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
@@ -170,18 +158,6 @@ func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
 func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
-		return nil
-	}
-}
-
-// WithTxSignPubKey sets up the single sign public key option for the Node
-func WithTxSignPubKey(pk crypto.PublicKey) Option {
-	return func(n *Node) error {
-		if pk == nil || pk.IsInterfaceNil() {
-			return ErrNilPublicKey
-		}
-
-		n.txSignPubKey = pk
 		return nil
 	}
 }
@@ -260,17 +236,6 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
-// WithMetaDataPool sets up the data pools option for the Node
-func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
-	return func(n *Node) error {
-		if dataPool == nil || dataPool.IsInterfaceNil() {
-			return ErrNilDataPool
-		}
-		n.metaDataPool = dataPool
-		return nil
-	}
-}
-
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
@@ -300,17 +265,6 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
-		return nil
-	}
-}
-
-// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]*big.Int) Option {
-	return func(n *Node) error {
-		if balances == nil {
-			return ErrNilBalances
-		}
-		n.initialNodesBalances = balances
 		return nil
 	}
 }
@@ -416,6 +370,16 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	}
 }
 
+func WithEpochStartSubscriber(epochStartSubscriber epochStart.EpochStartSubscriber) Option {
+	return func(n *Node) error {
+		if epochStartSubscriber == nil {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartSubscriber = epochStartSubscriber
+		return nil
+	}
+}
+
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
@@ -510,6 +474,28 @@ func WithBlockTracker(blockTracker process.BlockTracker) Option {
 			return ErrNilBlockTracker
 		}
 		n.blockTracker = blockTracker
+		return nil
+	}
+}
+
+// WithPendingMiniBlocksHandler sets up the pending miniblocks handler for the Node
+func WithPendingMiniBlocksHandler(pendingMiniBlocksHandler process.PendingMiniBlocksHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(pendingMiniBlocksHandler) {
+			return ErrNilPendingMiniBlocksHandler
+		}
+		n.pendingMiniBlocksHandler = pendingMiniBlocksHandler
+		return nil
+	}
+}
+
+// WithRequestHandler sets up the request handler for the Node
+func WithRequestHandler(requestHandler process.RequestHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(requestHandler) {
+			return ErrNilRequestHandler
+		}
+		n.requestHandler = requestHandler
 		return nil
 	}
 }

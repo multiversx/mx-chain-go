@@ -2,15 +2,17 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/vm"
 
+// SystemSCContainerStub -
 type SystemSCContainerStub struct {
-	GetCalled func(key []byte) (vm.SystemSmartContract, error)
-	AddCalled func(key []byte, val vm.SystemSmartContract) error
+	GetCalled     func(key []byte) (vm.SystemSmartContract, error)
+	AddCalled     func(key []byte, val vm.SystemSmartContract) error
 	ReplaceCalled func(key []byte, val vm.SystemSmartContract) error
-	RemoveCalled func(key []byte)
-	LenCalled func() int
-	KeysCalled func() [][]byte
+	RemoveCalled  func(key []byte)
+	LenCalled     func() int
+	KeysCalled    func() [][]byte
 }
 
+// Get -
 func (s *SystemSCContainerStub) Get(key []byte) (vm.SystemSmartContract, error) {
 	if s.GetCalled != nil {
 		return s.GetCalled(key)
@@ -18,6 +20,7 @@ func (s *SystemSCContainerStub) Get(key []byte) (vm.SystemSmartContract, error) 
 	return nil, vm.ErrUnknownSystemSmartContract
 }
 
+// Add -
 func (s *SystemSCContainerStub) Add(key []byte, val vm.SystemSmartContract) error {
 	if s.AddCalled != nil {
 		return s.AddCalled(key, val)
@@ -25,6 +28,7 @@ func (s *SystemSCContainerStub) Add(key []byte, val vm.SystemSmartContract) erro
 	return nil
 }
 
+// Replace -
 func (s *SystemSCContainerStub) Replace(key []byte, val vm.SystemSmartContract) error {
 	if s.ReplaceCalled != nil {
 		return s.ReplaceCalled(key, val)
@@ -32,13 +36,14 @@ func (s *SystemSCContainerStub) Replace(key []byte, val vm.SystemSmartContract) 
 	return nil
 }
 
+// Remove -
 func (s *SystemSCContainerStub) Remove(key []byte) {
 	if s.RemoveCalled != nil {
 		s.RemoveCalled(key)
 	}
-	return
 }
 
+// Len -
 func (s *SystemSCContainerStub) Len() int {
 	if s.LenCalled != nil {
 		return s.LenCalled()
@@ -46,6 +51,7 @@ func (s *SystemSCContainerStub) Len() int {
 	return 0
 }
 
+// Keys -
 func (s *SystemSCContainerStub) Keys() [][]byte {
 	if s.KeysCalled != nil {
 		return s.KeysCalled()
@@ -53,10 +59,7 @@ func (s *SystemSCContainerStub) Keys() [][]byte {
 	return nil
 }
 
+// IsInterfaceNil -
 func (s *SystemSCContainerStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
-

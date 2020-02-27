@@ -4,12 +4,15 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -25,7 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/genesis")
@@ -91,8 +94,9 @@ type ArgsMetaGenesisBlockCreator struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	MetaDatapool             dataRetriever.MetaPoolsHolder
+	DataPool                 dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
+	MessageSignVerifier      vm.MessageSignVerifier
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -100,10 +104,10 @@ func CreateMetaGenesisBlock(
 	args ArgsMetaGenesisBlockCreator,
 ) (data.HeaderHandler, error) {
 
-	if args.Accounts == nil || args.Accounts.IsInterfaceNil() {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if args.AddrConv == nil || args.AddrConv.IsInterfaceNil() {
+	if check.IfNil(args.AddrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
 	if args.NodesSetup == nil {
@@ -112,25 +116,25 @@ func CreateMetaGenesisBlock(
 	if args.Economics == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if args.Store == nil || args.Store.IsInterfaceNil() {
+	if check.IfNil(args.Store) {
 		return nil, process.ErrNilStore
 	}
-	if args.Blkc == nil || args.Blkc.IsInterfaceNil() {
+	if check.IfNil(args.Blkc) {
 		return nil, process.ErrNilBlockChain
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if args.Uint64ByteSliceConverter == nil || args.Uint64ByteSliceConverter.IsInterfaceNil() {
+	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
-	if args.MetaDatapool == nil || args.MetaDatapool.IsInterfaceNil() {
+	if check.IfNil(args.DataPool) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 
@@ -154,10 +158,16 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	err = setStakingData(
+	eligible, waiting := args.NodesSetup.InitialNodesInfo()
+	allNodes := make(map[uint32][]*sharding.NodeInfo)
+
+	for shard := range eligible {
+		allNodes[shard] = append(eligible[shard], waiting[shard]...)
+	}
+
+	err = setStakedData(
 		txProcessor,
-		args.ShardCoordinator,
-		args.NodesSetup.InitialNodesInfo(),
+		allNodes,
 		args.Economics.StakeValue(),
 	)
 	if err != nil {
@@ -179,7 +189,37 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(args.GenesisTime)
 	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
+	err = saveGenesisMetaToStorage(args.Store, args.Marshalizer, header)
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
+}
+
+func saveGenesisMetaToStorage(
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	genesisBlock data.HeaderHandler,
+) error {
+
+	epochStartID := core.EpochStartIdentifier(0)
+	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaHdrStorage) {
+		return epochStart.ErrNilStorage
+	}
+
+	marshaledData, err := marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createProcessorsForMetaGenesisBlock(
@@ -194,7 +234,8 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -215,7 +256,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.Hasher,
 		args.AddrConv,
 		args.Store,
-		args.MetaDatapool,
+		args.DataPool,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -324,25 +365,25 @@ func deploySystemSmartContracts(
 	return nil
 }
 
-// setStakingData sets the initial staked values to the staking smart contract
-func setStakingData(
+// setStakedData sets the initial staked values to the staking smart contract
+func setStakedData(
 	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
+	for i := range initialNodeInfo {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
 				Value:     big.NewInt(0).Set(stakeValue),
-				RcvAddr:   vmFactory.StakingSCAddress,
+				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,
-				Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
+				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
 
@@ -350,25 +391,6 @@ func setStakingData(
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	nodeInfoList := initialNodeInfo[sharding.MetachainShardId]
-	for _, nodeInfo := range nodeInfoList {
-		tx := &transaction.Transaction{
-			Nonce:     0,
-			Value:     big.NewInt(0).Set(stakeValue),
-			RcvAddr:   vmFactory.StakingSCAddress,
-			SndAddr:   nodeInfo.Address(),
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
-			Signature: nil,
-		}
-
-		err := txProcessor.ProcessTransaction(tx)
-		if err != nil {
-			return err
 		}
 	}
 
@@ -388,7 +410,7 @@ func setBalancesToTrie(
 	}
 
 	for i, v := range initialBalances {
-		err := setBalanceToTrie(accounts, shardCoordinator, addrConv, []byte(i), v)
+		err = setBalanceToTrie(accounts, shardCoordinator, addrConv, []byte(i), v)
 
 		if err != nil {
 			return nil, err
@@ -438,4 +460,15 @@ func setBalanceToTrie(
 	}
 
 	return account.SetBalanceWithJournal(balance)
+}
+
+type NilMessageSignVerifier struct {
+}
+
+func (n *NilMessageSignVerifier) Verify(_ []byte, _ []byte, _ []byte) error {
+	return nil
+}
+
+func (n *NilMessageSignVerifier) IsInterfaceNil() bool {
+	return n == nil
 }

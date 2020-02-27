@@ -1,6 +1,8 @@
 package heartbeat
 
-import "time"
+import (
+	"time"
+)
 
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages

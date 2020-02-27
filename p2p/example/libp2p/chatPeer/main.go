@@ -136,7 +136,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := host.Connect(ctx, *peerinfo); err != nil {
+			if err = host.Connect(ctx, *peerinfo); err != nil {
 				logger.Warning(err)
 			} else {
 				logger.Info("Connection established with bootstrap node:", *peerinfo)
@@ -167,7 +167,8 @@ func main() {
 		logger.Debug("Found peer:", p)
 
 		logger.Debug("Connecting to:", p)
-		stream, err := host.NewStream(ctx, p.ID, protocol.ID(protocolID))
+		var stream network.Stream
+		stream, err = host.NewStream(ctx, p.ID, protocol.ID(protocolID))
 
 		if err != nil {
 			logger.Warning("Connection failed:", err)
@@ -189,7 +190,8 @@ func main() {
 
 	for {
 		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
+		var sendData string
+		sendData, err = stdReader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading from stdin")
 			panic(err)

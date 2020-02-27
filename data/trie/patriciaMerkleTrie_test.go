@@ -2,6 +2,7 @@ package trie_test
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -36,7 +37,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -522,7 +523,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	key := base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))
 	err := fmt.Errorf("key: %s not found", key)
-	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, key)
+	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, hex.EncodeToString(append(rootHash, byte(data.OldRoot))))
 
 	err = tr.Prune(rootHash, data.OldRoot)
 	assert.Equal(t, expectedErr, err)
@@ -542,6 +543,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
+	tr.CancelPrune(rootHash, data.NewRoot)
 	_ = tr.Prune(rootHash, data.OldRoot)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))

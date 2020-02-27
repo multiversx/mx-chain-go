@@ -3,6 +3,7 @@ package containers_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -14,7 +15,7 @@ func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
 
 	c := containers.NewInterceptorsContainer()
 
-	assert.NotNil(t, c)
+	assert.False(t, check.IfNil(c))
 }
 
 //------- Add

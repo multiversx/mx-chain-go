@@ -57,18 +57,18 @@ func initNodesAndTest(
 
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
+			iCopy := i
 			nodes[0][i].blkProcessor.ProcessBlockCalled = func(
 				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				body data.BodyHandler,
 				haveTime func() time.Duration,
 			) error {
-
 				fmt.Println(
 					"process block invalid ",
 					header.GetRound(),
 					header.GetNonce(),
-					getPkEncoded(nodes[0][i].pk),
+					getPkEncoded(nodes[0][iCopy].pk),
 				)
 				return process.ErrBlockHashDoesNotMatch
 			}
@@ -92,8 +92,9 @@ func initNodesAndTest(
 
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
 	for _, n := range nodes {
+		nCopy := n
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
+			nCopy.blkProcessor.NrCommitBlockCalled++
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
 
@@ -104,7 +105,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
-		err := n.node.StartConsensus()
+		err := n.node.StartConsensus(0)
 		if err != nil {
 			return err
 		}
@@ -174,7 +175,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 	assert.Nil(t, err)
 
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint64(2)
@@ -188,14 +189,6 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 		mutex.Unlock()
 		return
 	}
-}
-
-func TestConsensusBNFullTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, bnConsensusType)
 }
 
 func TestConsensusBLSFullTest(t *testing.T) {
@@ -237,14 +230,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	mutex.Lock()
 	assert.Equal(t, 0, totalCalled)
 	mutex.Unlock()
-}
-
-func TestConsensusBNNotEnoughValidators(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runConsensusWithNotEnoughValidators(t, bnConsensusType)
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {

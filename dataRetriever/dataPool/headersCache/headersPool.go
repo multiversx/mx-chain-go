@@ -25,10 +25,10 @@ func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, erro
 		return nil, err
 	}
 
-	headersCache := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
+	headersCacheObject := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
 
 	return &headersPool{
-		cache:                headersCache,
+		cache:                headersCacheObject,
 		mutAddedDataHandlers: sync.RWMutex{},
 		mutHeadersPool:       sync.RWMutex{},
 		addedDataHandlers:    make([]func(headerHandler data.HeaderHandler, headerHash []byte), 0),
@@ -77,7 +77,6 @@ func (pool *headersPool) callAddedDataHandlers(headerHandler data.HeaderHandler,
 func (pool *headersPool) RemoveHeaderByHash(headerHash []byte) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
-
 	pool.cache.removeHeaderByHash(headerHash)
 }
 
@@ -85,7 +84,6 @@ func (pool *headersPool) RemoveHeaderByHash(headerHash []byte) {
 func (pool *headersPool) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
-
 	_ = pool.cache.removeHeaderByNonceAndShardId(hdrNonce, shardId)
 }
 

@@ -40,7 +40,7 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 	val, ok := s.db[string(key)]
 
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+		return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 	}
 
 	return val, nil

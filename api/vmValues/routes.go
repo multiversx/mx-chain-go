@@ -84,7 +84,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 	request := VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInvalidJSONRequest
 	}
 
 	command, err := createSCQuery(&request)
@@ -107,8 +107,9 @@ func createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {
 	}
 
 	arguments := make([][]byte, len(request.Args))
+	var argBytes []byte
 	for i, arg := range request.Args {
-		argBytes, err := hex.DecodeString(arg)
+		argBytes, err = hex.DecodeString(arg)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}

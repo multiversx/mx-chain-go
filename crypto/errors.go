@@ -76,9 +76,6 @@ var ErrNilSignaturesList = errors.New("signature list is nil")
 // ErrNilMessage is raised when trying to verify a nil signed message or trying to sign a nil message
 var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 
-// ErrNilSingleSigner is raised when using a nil single signer
-var ErrNilSingleSigner = errors.New("single signer is nil")
-
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
 

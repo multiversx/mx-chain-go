@@ -2,57 +2,17 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
-
-// Save saves the serialized data of a leaf node into a stream through Capnp protocol
-func (ln *leafNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	leafNodeGoToCapn(seg, ln)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a leaf node object through Capnp protocol
-func (ln *leafNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootLeafNodeCapn(capMsg)
-	leafNodeCapnToGo(z, ln)
-	return nil
-}
-
-func leafNodeGoToCapn(seg *capn.Segment, src *leafNode) capnp.LeafNodeCapn {
-	dest := capnp.AutoNewLeafNodeCapn(seg)
-
-	dest.SetKey(src.Key)
-	dest.SetValue(src.Value)
-
-	return dest
-}
-
-func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
-	if dest == nil {
-		dest = &leafNode{}
-	}
-
-	dest.Value = src.Value()
-	dest.Key = src.Key()
-
-	return dest
-}
 
 func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
 	if check.IfNil(marshalizer) {
@@ -222,6 +182,10 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 	}
 
 	if bytes.Equal(n.Key, ln.Key) {
+		if bytes.Equal(ln.Value, n.Value) {
+			return false, ln, [][]byte{}, nil
+		}
+
 		ln.Value = n.Value
 		ln.dirty = true
 		ln.hash = nil
@@ -265,8 +229,7 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 }
 
 func (ln *leafNode) delete(key []byte, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
-	keyMatchLen := prefixLen(key, ln.Key)
-	if keyMatchLen == len(key) {
+	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
 			oldHash = append(oldHash, ln.hash)
@@ -298,7 +261,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ data.DBWriteCacher) {
 	if ln == nil {
 		return
 	}
@@ -313,7 +276,7 @@ func (ln *leafNode) print(writer io.Writer, _ int) {
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L:(%s - %s)\n", key, val)
+	_, _ = fmt.Fprintf(writer, "L:(%v) - %v\n", hex.EncodeToString(ln.hash), ln.dirty)
 }
 
 func (ln *leafNode) deepClone() node {
@@ -345,20 +308,18 @@ func (ln *leafNode) deepClone() node {
 	return clonedNode
 }
 
-func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
+func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	dirtyHashes := make([][]byte, 0)
 
 	if !ln.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
-	dirtyHashes = append(dirtyHashes, ln.getHash())
-	return dirtyHashes, nil
+	hashes[hex.EncodeToString(ln.getHash())] = struct{}{}
+	return nil
 }
 
 func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {

@@ -7,20 +7,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// User account main trie identifier
+// UserAccountTrie represents the use account identifier
 const UserAccountTrie = "userAccount"
 
-// Peer account main trie identifier
+// PeerAccountTrie represents the peer account identifier
 const PeerAccountTrie = "peerAccount"
 
 // TrieFactoryArgs holds arguments for creating a trie factory
 type TrieFactoryArgs struct {
-	Cfg                    config.StorageConfig
 	EvictionWaitingListCfg config.EvictionWaitingListConfig
 	SnapshotDbCfg          config.DBConfig
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	PathManager            storage.PathManagerHandler
 	ShardId                string
-	PruningEnabled         bool
 }

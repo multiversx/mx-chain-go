@@ -1,68 +1,17 @@
 package trie
 
 import (
-	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
-
-// Save saves the serialized data of a branch node into a stream through Capnp protocol
-func (bn *branchNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	branchNodeGoToCapn(seg, bn)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a branch node object through Capnp protocol
-func (bn *branchNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootBranchNodeCapn(capMsg)
-	branchNodeCapnToGo(z, bn)
-	return nil
-}
-
-func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn {
-	dest := capnp.AutoNewBranchNodeCapn(seg)
-
-	children := seg.NewDataList(len(src.EncodedChildren))
-	for i := range src.EncodedChildren {
-		children.Set(i, src.EncodedChildren[i])
-	}
-	dest.SetEncodedChildren(children)
-
-	return dest
-}
-
-func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
-	if dest == nil {
-		dest = emptyDirtyBranchNode()
-	}
-	dest.dirty = false
-
-	for i := 0; i < nrOfChildren; i++ {
-		child := src.EncodedChildren().At(i)
-		if bytes.Equal(child, []byte{}) {
-			dest.EncodedChildren[i] = nil
-		} else {
-			dest.EncodedChildren[i] = child
-		}
-	}
-
-	return dest
-}
 
 func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
 	if check.IfNil(marshalizer) {
@@ -254,7 +203,6 @@ func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 		return
 	}
 	bn.hash = hash
-	return
 }
 
 func (bn *branchNode) hashChildren() error {
@@ -584,14 +532,19 @@ func (bn *branchNode) isEmptyOrNil() error {
 	return ErrEmptyNode
 }
 
-func (bn *branchNode) print(writer io.Writer, index int) {
+func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) {
 	if bn == nil {
 		return
 	}
 
-	str := fmt.Sprintf("B:")
+	str := fmt.Sprintf("B: %v - %v", hex.EncodeToString(bn.hash), bn.dirty)
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
+		err := resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			log.Debug("print trie err", "error", bn.EncodedChildren[i])
+		}
+
 		if bn.children[i] == nil {
 			continue
 		}
@@ -602,7 +555,8 @@ func (bn *branchNode) print(writer io.Writer, index int) {
 		}
 		str2 := fmt.Sprintf("+ %d: ", i)
 		_, _ = fmt.Fprint(writer, str2)
-		child.print(writer, index+len(str)-1+len(str2))
+		childIndex := index + len(str) - 1 + len(str2)
+		child.print(writer, childIndex, db)
 	}
 }
 
@@ -645,16 +599,14 @@ func (bn *branchNode) deepClone() node {
 	return clonedNode
 }
 
-func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
+func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	dirtyHashes := make([][]byte, 0)
-
 	if !bn.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
 	for i := range bn.children {
@@ -662,17 +614,14 @@ func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
 			continue
 		}
 
-		var hashes [][]byte
-		hashes, err = bn.children[i].getDirtyHashes()
+		err = bn.children[i].getDirtyHashes(hashes)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		dirtyHashes = append(dirtyHashes, hashes...)
 	}
 
-	dirtyHashes = append(dirtyHashes, bn.getHash())
-	return dirtyHashes, nil
+	hashes[hex.EncodeToString(bn.getHash())] = struct{}{}
+	return nil
 }
 
 func (bn *branchNode) getChildren(db data.DBWriteCacher) ([]node, error) {

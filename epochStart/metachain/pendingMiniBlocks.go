@@ -1,21 +1,20 @@
 package metachain
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-//ArgsPendingMiniBlocks is structure that contain components that are used to create a new pendingMiniBlockHeaders object
+// ArgsPendingMiniBlocks is a structure that contains components that are used to create a new pendingMiniBlockHeaders object
 type ArgsPendingMiniBlocks struct {
 	Marshalizer      marshal.Marshalizer
 	Storage          storage.Storer
@@ -24,12 +23,13 @@ type ArgsPendingMiniBlocks struct {
 }
 
 type pendingMiniBlockHeaders struct {
-	marshalizer         marshal.Marshalizer
-	metaBlockStorage    storage.Storer
-	metaBlockPool       dataRetriever.HeadersPool
-	storage             storage.Storer
-	mutPending          sync.RWMutex
-	mapMiniBlockHeaders map[string]block.ShardMiniBlockHeader
+	marshalizer           marshal.Marshalizer
+	metaBlockStorage      storage.Storer
+	metaBlockPool         dataRetriever.HeadersPool
+	storage               storage.Storer
+	mutPending            sync.RWMutex
+	mapMiniBlockHeaders   map[string]block.ShardMiniBlockHeader
+	mapShardNumMiniBlocks map[uint32]uint32
 }
 
 // NewPendingMiniBlocks will create a new pendingMiniBlockHeaders object
@@ -51,15 +51,16 @@ func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders
 	}
 
 	return &pendingMiniBlockHeaders{
-		marshalizer:         args.Marshalizer,
-		storage:             args.Storage,
-		mapMiniBlockHeaders: make(map[string]block.ShardMiniBlockHeader),
-		metaBlockPool:       args.MetaBlockPool,
-		metaBlockStorage:    args.MetaBlockStorage,
+		marshalizer:           args.Marshalizer,
+		storage:               args.Storage,
+		mapMiniBlockHeaders:   make(map[string]block.ShardMiniBlockHeader),
+		mapShardNumMiniBlocks: make(map[uint32]uint32),
+		metaBlockPool:         args.MetaBlockPool,
+		metaBlockStorage:      args.MetaBlockStorage,
 	}, nil
 }
 
-//PendingMiniBlockHeaders will return a sorted list of ShardMiniBlockHeaders
+// PendingMiniBlockHeaders will return a sorted list of ShardMiniBlockHeaders
 func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 	lastNotarizedHeaders []data.HeaderHandler,
 ) ([]block.ShardMiniBlockHeader, error) {
@@ -79,7 +80,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 		}
 	}
 
-	// pending miniblocks are only those which are still pending and ar from the aforementioned list
+	// pending miniblocks are only those which are still pending and are from the aforementioned list
 	p.mutPending.RLock()
 	defer p.mutPending.RUnlock()
 
@@ -91,7 +92,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 	}
 
 	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
-		return bytes.Compare(shardMiniBlockHeaders[i].Hash, shardMiniBlockHeaders[j].Hash) < 0
+		return string(shardMiniBlockHeaders[i].Hash) < string(shardMiniBlockHeaders[j].Hash)
 	})
 
 	return shardMiniBlockHeaders, nil
@@ -101,7 +102,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 	crossShard := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, miniBlockHeader := range metaHdr.MiniBlockHeaders {
-		if miniBlockHeader.ReceiverShardID != sharding.MetachainShardId {
+		if miniBlockHeader.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 
@@ -119,7 +120,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
-			if mbHeader.ReceiverShardID == sharding.MetachainShardId {
+			if mbHeader.ReceiverShardID == core.MetachainShardId {
 				continue
 			}
 
@@ -146,7 +147,7 @@ func (p *pendingMiniBlockHeaders) getLastUsedMetaBlockFromShardHeaders(
 		}
 
 		lastMetaBlockHash := shardHdr.MetaBlockHashes[numMetas-1]
-		if _, ok := mapLastUsedMetaBlocks[string(lastMetaBlockHash)]; ok {
+		if _, hashInMap := mapLastUsedMetaBlocks[string(lastMetaBlockHash)]; hashInMap {
 			continue
 		}
 
@@ -207,10 +208,12 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 	for key, mbHeader := range crossShard {
 		if _, ok = p.mapMiniBlockHeaders[key]; !ok {
 			p.mapMiniBlockHeaders[key] = mbHeader
+			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]++
 			continue
 		}
 
 		delete(p.mapMiniBlockHeaders, key)
+		p.decrementNumMiniBlocks(mbHeader.ReceiverShardID)
 
 		var buff []byte
 		buff, err = p.marshalizer.Marshal(mbHeader)
@@ -227,7 +230,7 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 	return nil
 }
 
-// RevertHeader will remove  all minibloks headers that are in metablock from pending
+// RevertHeader will remove all miniblocks headers that are in metablock from pending
 func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error {
 	if check.IfNil(handler) {
 		return epochStart.ErrNilHeaderHandler
@@ -244,15 +247,39 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 	for mbHash, mbHeader := range crossShard {
 		if _, ok = p.mapMiniBlockHeaders[mbHash]; ok {
 			delete(p.mapMiniBlockHeaders, mbHash)
+			p.decrementNumMiniBlocks(mbHeader.ReceiverShardID)
 			continue
 		}
 
 		_ = p.storage.Remove([]byte(mbHash))
 		p.mapMiniBlockHeaders[mbHash] = mbHeader
+		p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]++
 	}
 	p.mutPending.Unlock()
 
 	return nil
+}
+
+// GetNumPendingMiniBlocks will return the number of pending miniblocks for a given shard
+func (p *pendingMiniBlockHeaders) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	p.mutPending.RLock()
+	numPendingMiniBlocks := p.mapShardNumMiniBlocks[shardID]
+	p.mutPending.RUnlock()
+
+	return numPendingMiniBlocks
+}
+
+// SetNumPendingMiniBlocks will set the number of pending miniblocks for a given shard
+func (p *pendingMiniBlockHeaders) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	p.mutPending.Lock()
+	p.mapShardNumMiniBlocks[shardID] = numPendingMiniBlocks
+	p.mutPending.Unlock()
+}
+
+func (p *pendingMiniBlockHeaders) decrementNumMiniBlocks(shardID uint32) {
+	if p.mapShardNumMiniBlocks[shardID] > 0 {
+		p.mapShardNumMiniBlocks[shardID]--
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

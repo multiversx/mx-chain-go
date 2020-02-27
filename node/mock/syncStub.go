@@ -4,29 +4,30 @@ import (
 	"time"
 )
 
+// SyncStub -
 type SyncStub struct {
 }
 
+// StartSync -
 func (ss *SyncStub) StartSync() {
-	panic("implement me")
 }
 
+// ClockOffset -
 func (ss *SyncStub) ClockOffset() time.Duration {
-	panic("implement me")
+	return time.Second
 }
 
+// FormattedCurrentTime -
 func (ss *SyncStub) FormattedCurrentTime() string {
-	panic("implement me")
+	return ""
 }
 
+// CurrentTime -
 func (ss *SyncStub) CurrentTime() time.Time {
-	panic("implement me")
+	return time.Now()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *SyncStub) IsInterfaceNil() bool {
-	if ss == nil {
-		return true
-	}
-	return false
+	return ss == nil
 }

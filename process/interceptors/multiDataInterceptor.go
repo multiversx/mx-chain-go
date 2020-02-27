@@ -83,7 +83,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.interceptedData(dataBuff)
+		var interceptedData process.InterceptedData
+		interceptedData, err = mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
@@ -95,12 +96,17 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
 		if !interceptedData.IsForCurrentShard() {
-			log.Trace("intercepted data is for other shards")
+			log.Trace("intercepted data is for other shards",
+				"pid", p2p.MessageOriginatorPid(message),
+				"seq no", p2p.MessageOriginatorSeq(message),
+				"topics", message.TopicIDs(),
+				"hash", interceptedData.Hash(),
+			)
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess)
+		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
 	}
 
 	var buffToSend []byte
@@ -135,8 +141,5 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

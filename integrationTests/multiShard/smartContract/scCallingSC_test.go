@@ -3,6 +3,7 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -13,12 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,6 +91,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -116,8 +116,6 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
-
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
@@ -137,16 +135,18 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
+	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -174,6 +174,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -188,6 +189,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -197,7 +199,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{
@@ -212,6 +214,16 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 		}
 	}
+}
+
+func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
 }
 
 func putDeploySCToDataPool(
@@ -247,7 +259,7 @@ func putDeploySCToDataPool(
 			continue
 		}
 		strCache := process.ShardCacherIdentifier(shId, shId)
-		node.ShardDataPool.Transactions().AddData(txHash, tx, strCache)
+		node.DataPool.Transactions().AddData(txHash, tx, strCache)
 	}
 
 	return scAddressBytes

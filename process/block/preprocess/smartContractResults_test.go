@@ -16,7 +16,7 @@ import (
 )
 
 func haveTime() time.Duration {
-	return time.Duration(2000 * time.Millisecond)
+	return 2000 * time.Millisecond
 }
 
 func haveTimeTrue() bool {
@@ -404,15 +404,15 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 
-	transactions := []*smartContractResult.SmartContractResult{
+	txsSlice := []*smartContractResult.SmartContractResult{
 		{Nonce: 1},
 		{Nonce: 2},
 		{Nonce: 3},
 	}
-	transactionsHashes := make([][]byte, len(transactions))
+	transactionsHashes := make([][]byte, len(txsSlice))
 
 	//add defined transactions to sender-destination cacher
-	for idx, tx := range transactions {
+	for idx, tx := range txsSlice {
 		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
 
 		dataPool.UnsignedTransactions().AddData(
@@ -454,10 +454,10 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, haveTimeTrue)
 
 	assert.Nil(t, err)
-	assert.Equal(t, len(transactions), len(txsRetrieved))
-	assert.Equal(t, len(transactions), len(txHashesRetrieved))
+	assert.Equal(t, len(txsSlice), len(txsRetrieved))
+	assert.Equal(t, len(txsSlice), len(txHashesRetrieved))
 
-	for idx, tx := range transactions {
+	for idx, tx := range txsSlice {
 		//txReceived should be all txs in the same order
 		assert.Equal(t, txsRetrieved[idx], tx)
 		//verify corresponding transaction hashes
@@ -828,7 +828,6 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	shardedDataStub := &mock.ShardedDataStub{
 		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-			return
 		},
 		RegisterHandlerCalled: func(i func(key []byte)) {
 		},

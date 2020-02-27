@@ -25,9 +25,6 @@ var ErrNilConsensusData = errors.New("consensus data is nil")
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
-// ErrNilCommitment is raised when a valid commitment was expected but nil was used
-var ErrNilCommitment = errors.New("commitment is nil")
-
 // ErrNilKeyGenerator is raised when a valid key generator is expected but nil was used
 var ErrNilKeyGenerator = errors.New("key generator is nil")
 
@@ -36,9 +33,6 @@ var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
-
-// ErrInvalidMultiSigner is raised when an invalid multiSigner is used
-var ErrInvalidMultiSigner = errors.New("multiSigner is invalid")
 
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
@@ -76,9 +70,6 @@ var ErrInvalidKey = errors.New("map key is invalid")
 // ErrNilRoundState is raised when a valid round state is expected but nil used
 var ErrNilRoundState = errors.New("round state is nil")
 
-// ErrCommitmentHashDoesNotMatch is raised when the commitment hash does not match expected value
-var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")
-
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
@@ -91,8 +82,8 @@ var ErrNilWorker = errors.New("worker is nil")
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 
-// ErrNilValidatorGroupSelector is raised when a valid validator group selector is expected but nil used
-var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")
+// ErrNilNodesCoordinator is raised when a valid validator group selector is expected but nil used
+var ErrNilNodesCoordinator = errors.New("validator group selector is nil")
 
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")

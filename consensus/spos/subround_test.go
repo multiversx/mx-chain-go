@@ -28,9 +28,15 @@ func createEligibleList(size int) []string {
 func initConsensusState() *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
+
+	eligibleNodesKeys := make(map[string]struct{}, len(eligibleList))
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
+
 	indexLeader := 1
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesKeys,
 		consensusGroupSize,
 		eligibleList[indexLeader])
 
@@ -440,7 +446,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
@@ -527,7 +533,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return maxTime.Sub(time.Now())
+		return time.Until(maxTime)
 	}
 
 	r := sr.DoWork(rounderMock)
@@ -563,7 +569,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return maxTime.Sub(time.Now())
+		return time.Until(maxTime)
 	}
 
 	r := sr.DoWork(rounderMock)
@@ -600,7 +606,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return maxTime.Sub(time.Now())
+		return time.Until(maxTime)
 	}
 
 	r := sr.DoWork(rounderMock)
@@ -637,7 +643,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return maxTime.Sub(time.Now())
+		return time.Until(maxTime)
 	}
 
 	r := sr.DoWork(rounderMock)
@@ -682,7 +688,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	maxTime := time.Now().Add(2000 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return maxTime.Sub(time.Now())
+		return time.Until(maxTime)
 	}
 
 	go func() {
@@ -878,4 +884,24 @@ func TestSubround_Name(t *testing.T) {
 	}
 
 	assert.Equal(t, "(BLOCK)", sr.Name())
+}
+
+func TestSubround_AppStatusHandlerNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sr := &spos.Subround{}
+	err := sr.SetAppStatusHandler(nil)
+
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestSubround_AppStatusHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	sr := &spos.Subround{}
+	ash := &mock.AppStatusHandlerStub{}
+	err := sr.SetAppStatusHandler(ash)
+
+	assert.Nil(t, err)
+	assert.True(t, ash == sr.AppStatusHandler())
 }

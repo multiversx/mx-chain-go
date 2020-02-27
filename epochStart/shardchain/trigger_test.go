@@ -154,7 +154,7 @@ func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaHdrStorage, err)
+	assert.Equal(t, epochStart.ErrNilMetaBlockStorage, err)
 }
 
 func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
@@ -267,7 +267,37 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	assert.False(t, et.isEpochStart)
 	assert.False(t, et.newEpochHdrReceived)
 
-	et.Revert()
+	et.Revert(epochStartRound)
 	assert.True(t, et.isEpochStart)
 	assert.True(t, et.newEpochHdrReceived)
+}
+
+func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	called := false
+	args.RequestHandler = &mock.RequestHandlerStub{RequestStartOfEpochMetaBlockCalled: func(_ uint32) {
+		called = true
+	}}
+	et, _ := NewEpochStartTrigger(args)
+	et.epoch = 2
+
+	hash := []byte("hash")
+	et.RequestEpochStartIfNeeded(&block.Header{Epoch: 10})
+	assert.False(t, called)
+
+	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 3,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}}})
+	assert.False(t, called)
+
+	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 2})
+	assert.False(t, called)
+
+	et.mapEpochStartHdrs[string(hash)] = &block.MetaBlock{Epoch: 3}
+	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 3})
+	assert.False(t, called)
+
+	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 4})
+	assert.True(t, called)
 }

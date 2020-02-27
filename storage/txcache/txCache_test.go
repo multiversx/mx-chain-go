@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"testing"
@@ -9,13 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_AddTx(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	tx := createTx("alice", 1)
 
@@ -34,7 +32,7 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_AddNilTx_DoesNothing(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 
@@ -48,7 +46,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
@@ -67,18 +65,18 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
 	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
 
 	require.Equal(t, int64(3), cache.CountTx())
-	require.Equal(t, int(3), cache.Len())
+	require.Equal(t, 3, cache.Len())
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -98,13 +96,13 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := newCacheToTest()
 	err := cache.RemoveTxByHash([]byte("missing"))
 	require.Equal(t, err, ErrTxNotFound)
 }
 
 func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -118,7 +116,7 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 }
 
 func Test_Clear(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
@@ -130,7 +128,7 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_ForEachTransaction(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
@@ -142,8 +140,8 @@ func Test_ForEachTransaction(t *testing.T) {
 	require.Equal(t, 2, counter)
 }
 
-func Test_GetTransactions_Dummy(t *testing.T) {
-	cache := NewTxCache(16)
+func Test_SelectTransactions_Dummy(t *testing.T) {
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
 	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
@@ -154,12 +152,12 @@ func Test_GetTransactions_Dummy(t *testing.T) {
 	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
 	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted, _ := cache.GetTransactions(10, 2)
+	sorted, _ := cache.SelectTransactions(10, 2)
 	require.Len(t, sorted, 8)
 }
 
-func Test_GetTransactions(t *testing.T) {
-	cache := NewTxCache(16)
+func Test_SelectTransactions(t *testing.T) {
+	cache := newCacheToTest()
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
 	nSenders := 1000
@@ -179,7 +177,7 @@ func Test_GetTransactions(t *testing.T) {
 
 	require.Equal(t, int64(nTotalTransactions), cache.CountTx())
 
-	sorted, _ := cache.GetTransactions(nRequestedTransactions, 2)
+	sorted, _ := cache.SelectTransactions(nRequestedTransactions, 2)
 
 	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 
@@ -196,7 +194,7 @@ func Test_GetTransactions(t *testing.T) {
 }
 
 func Test_Keys(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := newCacheToTest()
 
 	cache.AddTx([]byte("alice-x"), createTx("alice", 42))
 	cache.AddTx([]byte("alice-y"), createTx("alice", 43))
@@ -211,28 +209,40 @@ func Test_Keys(t *testing.T) {
 	require.Contains(t, keys, []byte("bob-y"))
 }
 
-func Test_AddWithEviction_UniformDistribution(t *testing.T) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         10,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
+func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
+	config := CacheConfig{
+		NumChunksHint:              16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          math.MaxUint32,
+		CountThreshold:             100,
+		NumSendersToEvictInOneStep: 1,
+		LargeNumOfTxsForASender:    math.MaxUint32,
+		NumTxsToEvictFromASender:   0,
 	}
 
-	// 5000 * 100
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 5000, 100)
-	require.Equal(t, int64(240000), cache.CountTx())
+	// 11 * 10
+	cache := NewTxCache(config)
+	addManyTransactionsWithUniformDistribution(cache, 11, 10)
+	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
-	// 1000 * 1000
-	cache = NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
-	require.Equal(t, int64(240000), cache.CountTx())
+	config = CacheConfig{
+		NumChunksHint:              16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          math.MaxUint32,
+		CountThreshold:             250000,
+		NumSendersToEvictInOneStep: 1,
+		LargeNumOfTxsForASender:    math.MaxUint32,
+		NumTxsToEvictFromASender:   0,
+	}
+
+	// 100 * 1000
+	cache = NewTxCache(config)
+	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
+	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
@@ -250,7 +260,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := newCacheToTest()
 	require.False(t, check.IfNil(cache))
 
 	makeNil := func() storage.Cacher {
@@ -261,108 +271,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(thisIsNil))
 }
 
-// This seems to be the worst case in terms of eviction complexity
-// Eviction is triggered often and little eviction (only 10 senders) is done
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_10(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         10,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_100(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         100,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_1000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
-	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		sender := createFakeSenderAddress(senderTag)
-
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := createFakeTxHash(sender, txNonce)
-			tx := createTx(string(sender), uint64(txNonce))
-			cache.AddTx([]byte(txHash), tx)
-		}
-	}
-}
-
-func createTx(sender string, nonce uint64) data.TransactionHandler {
-	return &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
-	}
-}
-
-func createFakeSenderAddress(senderTag int) []byte {
-	bytes := make([]byte, 32)
-	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
-	binary.LittleEndian.PutUint64(bytes[24:], uint64(senderTag))
-	return bytes
-}
-
-func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
-	bytes := make([]byte, 32)
-	copy(bytes, fakeSenderAddress)
-	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
-	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
-	return bytes
+func newCacheToTest() *TxCache {
+	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16})
 }
