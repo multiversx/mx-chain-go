@@ -15,4 +15,5 @@ type ArgBlockProcessor struct {
 	CrossNotarizer                blockNotarizerHandler
 	CrossNotarizedHeadersNotifier blockNotifierHandler
 	SelfNotarizedHeadersNotifier  blockNotifierHandler
+	Rounder                       process.Rounder
 }

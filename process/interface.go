@@ -682,3 +682,9 @@ type RoundTimeDurationHandler interface {
 	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
+
+// Rounder defines the actions which should be handled by a round implementation
+type Rounder interface {
+	Index() int64
+	IsInterfaceNil() bool
+}

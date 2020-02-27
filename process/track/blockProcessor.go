@@ -20,6 +20,7 @@ type blockProcessor struct {
 	crossNotarizer                blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+	rounder                       process.Rounder
 
 	blockFinality uint64
 }
@@ -39,6 +40,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		crossNotarizer:                arguments.CrossNotarizer,
 		crossNotarizedHeadersNotifier: arguments.CrossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  arguments.SelfNotarizedHeadersNotifier,
+		rounder:                       arguments.Rounder,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -131,7 +133,14 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		return headers, headersHashes
 	}
 
-	sortedHeaders, sortedHeadersHashes := bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
+	var sortedHeaders []data.HeaderHandler
+	var sortedHeadersHashes [][]byte
+
+	defer func() {
+		bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
+	}()
+
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}
@@ -144,8 +153,6 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		headers = append(headers, sortedHeaders[index])
 		headersHashes = append(headersHashes, sortedHeadersHashes[index])
 	}
-
-	bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 
 	return headers, headersHashes
 }
@@ -226,26 +233,36 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 func (bp *blockProcessor) requestHeadersIfNeeded(
 	lastNotarizedHeader data.HeaderHandler,
-	sortedHeaders []data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
 	longestChainHeaders []data.HeaderHandler,
 ) {
 	if check.IfNil(lastNotarizedHeader) {
 		return
 	}
 
-	nbSortedHeaders := len(sortedHeaders)
-	if nbSortedHeaders == 0 {
+	shouldRequestHeaders := false
+
+	defer func() {
+		if !shouldRequestHeaders {
+			latestValidHeader := bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+			highestRound := bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+			bp.requestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
+		}
+	}()
+
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders == 0 {
 		return
 	}
 
-	highestNonceReceived := sortedHeaders[nbSortedHeaders-1].GetNonce()
+	highestNonceReceived := sortedReceivedHeaders[numSortedReceivedHeaders-1].GetNonce()
 	highestNonceInLongestChain := lastNotarizedHeader.GetNonce()
-	nbLongestChainHeaders := len(longestChainHeaders)
-	if nbLongestChainHeaders > 0 {
-		highestNonceInLongestChain = longestChainHeaders[nbLongestChainHeaders-1].GetNonce()
+	numLongestChainHeaders := len(longestChainHeaders)
+	if numLongestChainHeaders > 0 {
+		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
 
-	shouldRequestHeaders := highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && nbLongestChainHeaders == 0
+	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {
 		return
 	}
@@ -253,11 +270,69 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	log.Debug("requestHeadersIfNeeded",
 		"shard", lastNotarizedHeader.GetShardID(),
 		"last notarized nonce", lastNotarizedHeader.GetNonce(),
+		"numSortedReceivedHeaders", numSortedReceivedHeaders,
+		"numLongestChainHeaders", numLongestChainHeaders,
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
 
-	shardID := lastNotarizedHeader.GetShardID()
-	fromNonce := highestNonceInLongestChain + 1
+	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1)
+}
+
+func (bp *blockProcessor) getLatestValidHeader(
+	lastNotarizedHeader data.HeaderHandler,
+	longestChainHeaders []data.HeaderHandler,
+) data.HeaderHandler {
+
+	latestValidHeader := lastNotarizedHeader
+	numLongestChainHeaders := len(longestChainHeaders)
+	if numLongestChainHeaders > 0 {
+		latestValidHeader = longestChainHeaders[numLongestChainHeaders-1]
+	}
+
+	return latestValidHeader
+}
+
+func (bp *blockProcessor) getHighestRoundInReceivedHeaders(
+	latestValidHeader data.HeaderHandler,
+	sortedReceivedHeaders []data.HeaderHandler,
+) uint64 {
+
+	if check.IfNil(latestValidHeader) {
+		return 0
+	}
+
+	highestRound := latestValidHeader.GetRound()
+	numSortedReceivedHeaders := len(sortedReceivedHeaders)
+	if numSortedReceivedHeaders > 0 {
+		highestRound = core.MaxUint64(highestRound, sortedReceivedHeaders[numSortedReceivedHeaders-1].GetRound())
+	}
+
+	return highestRound
+}
+
+func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
+	latestValidHeader data.HeaderHandler,
+	highestRoundInReceivedHeaders uint64,
+) {
+	if check.IfNil(latestValidHeader) {
+		return
+	}
+
+	shouldRequestHeaders := bp.rounder.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived
+	if !shouldRequestHeaders {
+		return
+	}
+
+	log.Debug("requestHeadersIfNothingNewIsReceived",
+		"shard", latestValidHeader.GetShardID(),
+		"latest valid header nonce", latestValidHeader.GetNonce(),
+		"chronology round", bp.rounder.Index(),
+		"highest round in received headers", highestRoundInReceivedHeaders)
+
+	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
+}
+
+func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Debug("request header",
@@ -294,10 +369,13 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 		return ErrNilCrossNotarizer
 	}
 	if check.IfNil(arguments.CrossNotarizedHeadersNotifier) {
-		return ErrCrossNotarizedHeadersNotifier
+		return ErrNilCrossNotarizedHeadersNotifier
 	}
 	if check.IfNil(arguments.SelfNotarizedHeadersNotifier) {
-		return ErrSelfNotarizedHeadersNotifier
+		return ErrNilSelfNotarizedHeadersNotifier
+	}
+	if check.IfNil(arguments.Rounder) {
+		return ErrNilRounder
 	}
 
 	return nil
