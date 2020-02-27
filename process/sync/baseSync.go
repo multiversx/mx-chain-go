@@ -331,7 +331,7 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		log.Trace("request headers if sync is stuck",
 			"num requested headers", numRequestedHdrs,
 			"from nonce", nonce,
-			"to nonce", nonce+numHeadersToRequest,
+			"to nonce", nonce+numHeadersToRequest-1,
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
