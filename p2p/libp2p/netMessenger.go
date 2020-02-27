@@ -365,7 +365,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 	_, found := netMes.topics[name]
 	if found {
 		netMes.mutTopics.Unlock()
-		return p2p.ErrTopicAlreadyExists
+		return nil
 	}
 
 	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe

@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -26,14 +28,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -49,7 +54,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -292,6 +296,8 @@ var coreServiceContainer serviceContainer.Core
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = core.UnVersionedAppString
 
+var currentEpoch = uint32(0)
+
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	log := logger.GetOrCreate("main")
@@ -500,12 +506,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
-	if err != nil {
-		return err
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
 	}
-
-	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+	log.Trace("working directory", "path", workingDir)
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
@@ -529,18 +539,55 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var currentEpoch uint32
-	var errNotCritical error
-	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
-		workingDir,
-		nodesConfig.ChainID,
-		defaultDBPath,
-		defaultEpochString,
-	)
-	if errNotCritical != nil {
+	currentEpoch, err = findLastEpochFromStorage(workingDir, nodesConfig.ChainID)
+	if err != nil {
 		currentEpoch = 0
-		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
+		log.Debug("no epoch db found in storage", "error", err.Error())
 	}
+
+	epochFoundInStorage := err == nil
+
+	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
+	timeInFirstEpochAtMinRoundsPerEpoch := startTime.Add(time.Duration(nodesConfig.RoundDuration *
+		uint64(generalConfig.EpochStartConfig.MinRoundsBetweenEpochs)))
+	isEpochZero := time.Now().Sub(timeInFirstEpochAtMinRoundsPerEpoch) < 0
+	shouldSyncWithTheNetwork := !isCurrentTimeBeforeGenesis && !isEpochZero && !epochFoundInStorage
+	var networkComponents *factory.Network
+	// TODO: remove next line which is hardcoded for testing
+	//shouldSyncWithTheNetwork = true
+	if shouldSyncWithTheNetwork {
+		//TODO : if the code reaches here, then we should request current epoch from network and build all the
+		// stuff after we received the information.
+		// This section should be blocking.
+		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
+		if err != nil {
+			return err
+		}
+
+		err = networkComponents.NetMessenger.Bootstrap()
+		if err != nil {
+			return err
+		}
+
+		epochRes := bootstrap.NewEpochStartDataProvider(networkComponents.NetMessenger, &marshal.JsonMarshalizer{})
+		var metaBlockForEpochStart *block.MetaBlock
+		metaBlockForEpochStart, err = epochRes.RequestEpochStartMetaBlock(currentEpoch)
+		if err != nil {
+			return err
+		}
+		// TODO : using the same component, fetch the shard blocks based on received metablock
+
+		log.Info("received epoch start metablock from network",
+			"nonce", metaBlockForEpochStart.GetNonce(),
+			"epoch", metaBlockForEpochStart.GetEpoch())
+	}
+
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
+	if err != nil {
+		return err
+	}
+
+	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
 	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanupFlagValue {
@@ -694,10 +741,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
-	if err != nil {
-		return err
+	if !shouldSyncWithTheNetwork {
+		log.Trace("creating network components")
+		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Trace("creating tps benchmark components")
@@ -864,7 +913,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch)
+	err = ef.StartNode(currentEpoch, !shouldSyncWithTheNetwork)
 	if err != nil {
 		log.Error("starting node failed", err.Error())
 		return err
@@ -1481,4 +1530,53 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics)
+}
+
+// TODO: something similar should be done for determining the correct shardId
+// when booting from storage with an epoch > 0 or add ShardId in boot storer
+func findLastEpochFromStorage(workingDir string, chainID string) (uint32, error) {
+	parentDir := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		chainID)
+
+	f, err := os.Open(parentDir)
+	if err != nil {
+		return 0, err
+	}
+
+	files, err := f.Readdir(-1)
+	_ = f.Close()
+
+	if err != nil {
+		return 0, err
+	}
+
+	epochDirs := make([]string, 0, len(files))
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+
+		isEpochDir := strings.HasPrefix(file.Name(), defaultEpochString)
+		if !isEpochDir {
+			continue
+		}
+
+		epochDirs = append(epochDirs, file.Name())
+	}
+
+	if len(epochDirs) == 0 {
+		return 0, nil
+	}
+
+	sort.Slice(epochDirs, func(i, j int) bool {
+		return epochDirs[i] > epochDirs[j]
+	})
+
+	re := regexp.MustCompile("[0-9]+")
+	epochStr := re.FindString(epochDirs[0])
+	epoch, err := strconv.ParseInt(epochStr, 10, 64)
+
+	return uint32(epoch), err
 }

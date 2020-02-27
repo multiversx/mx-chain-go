@@ -72,13 +72,15 @@ func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 }
 
 // StartNode starts the underlying node
-func (ef *ElrondNodeFacade) StartNode(epoch uint32) error {
-	err := ef.node.Start()
-	if err != nil {
-		return err
+func (ef *ElrondNodeFacade) StartNode(epoch uint32, withP2pBootstrap bool) error {
+	if withP2pBootstrap {
+		err := ef.node.Start()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = ef.node.StartConsensus(epoch)
+	err := ef.node.StartConsensus(epoch)
 	return err
 }
 

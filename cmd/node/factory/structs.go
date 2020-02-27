@@ -473,10 +473,10 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, core *Core) (*Network, error) {
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, hasher hashing.Hasher) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
+		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
 	} else {
 		randReader = rand.Reader
 	}
