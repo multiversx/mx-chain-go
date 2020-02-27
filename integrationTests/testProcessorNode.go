@@ -310,24 +310,21 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	nodesWithRater, ok := tpn.NodesCoordinator.(*NodesWithRater)
-	if ok {
-		tpn.Rater = nodesWithRater.RaterHandler
-	} else {
-		tpn.Rater, _ = rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-	}
+	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     tpn.InitialNodes,
-		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverterBLS,
-		NodesCoordinator: tpn.NodesCoordinator,
-		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         tpn.DataPool,
-		StorageService:   tpn.Storage,
-		Marshalizer:      TestMarshalizer,
-		StakeValue:       big.NewInt(500),
-		Rater:            tpn.Rater,
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
+		RewardsHandler:      tpn.EconomicsData,
+		StartEpoch:          0,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -916,7 +913,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockTracker:           tpn.BlockTracker,
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:   			tpn.BlockChain,
+		BlockChain:             tpn.BlockChain,
 	}
 
 	if tpn.EpochStartNotifier == nil {

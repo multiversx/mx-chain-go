@@ -118,11 +118,6 @@ func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
 	panic("not implemented")
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize(_ uint32) int {
-	panic("implement me")
-}
-
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
 func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,

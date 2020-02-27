@@ -143,7 +143,7 @@ func (vs *validatorStatistics) saveInitialState(
 	startRating uint32,
 	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(startEpoch)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	}
 
 	vs.displayRatings(header.GetEpoch())
-	rootHash, err = vs.peerAdapter.RootHash()
+	rootHash, err := vs.peerAdapter.RootHash()
 	if err != nil {
 		log.Debug("UpdatePeerState - get root hash failed end", "error", err.Error())
 	}
@@ -789,7 +789,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}

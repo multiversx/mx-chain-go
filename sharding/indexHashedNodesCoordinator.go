@@ -263,9 +263,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
-	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
-
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,
 		"consensus size", consensusSize,
@@ -602,7 +599,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, _ *sync.RWMutex) []Validator {
 	//TODO implement an expand eligible list variant
 	return validators
 }
