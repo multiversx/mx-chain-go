@@ -7,14 +7,24 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled                    func(header data.HeaderHandler) error
-	IsInterfaceNilCalled                     func() bool
+	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled func(header data.HeaderHandler) error
+	IsInterfaceNilCalled  func() bool
 
-	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler,  error)
+	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ProcessCalled                            func(vid state.ValidatorInfo) error
+}
+
+// Process -
+func (vsp *ValidatorStatisticsProcessorMock) Process(vid state.ValidatorInfo) error {
+	if vsp.ProcessCalled != nil {
+		return vsp.ProcessCalled(vid)
+	}
+
+	return nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch -

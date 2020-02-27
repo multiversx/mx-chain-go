@@ -50,16 +50,21 @@ type trigger struct {
 	epochFinalityAttestingRound uint64
 	epochStartMeta              *block.MetaBlock
 
-	mutTrigger        sync.RWMutex
-	mapHashHdr        map[string]*block.MetaBlock
-	mapNonceHashes    map[uint64][]string
-	mapEpochStartHdrs map[string]*block.MetaBlock
+	mutTrigger                                  sync.RWMutex
+	mapHashHdr                                  map[string]*block.MetaBlock
+	mapNonceHashes                              map[uint64][]string
+	mapEpochStartHdrs                           map[string]*block.MetaBlock
+	mapEpochStartMiniBlockHashToHeaderBlockHash map[string]string
+	mapEpochStartPeerBlocks                     map[string]*block.MiniBlock
 
 	headersPool         dataRetriever.HeadersPool
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
-	uint64Converter     typeConverters.Uint64ByteSliceConverter
+	miniblocksPool      storage.Cacher
+	miniblocksStorage   storage.Storer
+
+	uint64Converter typeConverters.Uint64ByteSliceConverter
 
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
@@ -100,6 +105,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
+	if check.IfNil(args.DataPool.MiniBlocks()) {
+		return nil, epochStart.ErrNilMiniblocksPool
+	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
 	}
@@ -120,6 +128,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if check.IfNil(metaHdrNoncesStorage) {
 		return nil, epochStart.ErrNilMetaNonceHashStorage
+	}
+
+	miniblocksUnit := args.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+	if check.IfNil(miniblocksUnit) {
+		return nil, epochStart.ErrNilMiniBlocksStorage
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
@@ -149,6 +162,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
+		miniblocksPool:              args.DataPool.MiniBlocks(),
+		miniblocksStorage:           miniblocksUnit,
 	}
 
 	err := newTrigger.saveState(newTrigger.triggerStateKey)
@@ -275,7 +290,38 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	t.updateTriggerFromMeta(metaHdr, hdrHash)
+	if !metaHdr.IsStartOfEpochBlock() {
+		t.updateTriggerFromMeta(metaHdr, hdrHash)
+	}
+
+	mbHashes := make([][]byte, 0)
+
+	for _, miniblock := range metaHdr.MiniBlockHeaders {
+		if miniblock.Type == block.PeerBlock {
+			mbHashes = append(mbHashes, miniblock.Hash)
+			log.Debug("Searching for peerminiblock", "hash", miniblock.Hash)
+		}
+	}
+
+	if len(mbHashes) == 0 {
+		t.updateTriggerFromMeta(metaHdr, hdrHash)
+		return
+	}
+
+	for _, mbHash := range mbHashes {
+		mb, found := t.miniblocksPool.Get(mbHash)
+
+		if !found {
+			mb, err = t.miniblocksStorage.Get(mbHash)
+		}
+
+		_, ok := mb.(*block.MiniBlock)
+
+		if ok {
+			t.updateTriggerFromMeta(metaHdr, hdrHash)
+			return
+		}
+	}
 }
 
 // call only if mutex is locked before

@@ -77,9 +77,11 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	logger.SetLogLevel("*.TRACE")
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -153,10 +155,10 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	nodesPerShard := 3
-	nbMetaNodes := 2
-	nbShards := 2
-	consensusGroupSize := 2
+	nodesPerShard := 1
+	nbMetaNodes := 1
+	nbShards := 1
+	consensusGroupSize := 1
 	maxGasLimitPerBlock := uint64(100000)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
@@ -189,7 +191,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		}
 	}()
 
-	roundsPerEpoch := uint64(7)
+	roundsPerEpoch := uint64(8)
 	for _, nodes := range nodesMap {
 		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
@@ -202,7 +204,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	round := uint64(1)
 	nonce := uint64(1)
-	nbBlocksToProduce := uint64(20)
+	nbBlocksToProduce := uint64(12)
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 

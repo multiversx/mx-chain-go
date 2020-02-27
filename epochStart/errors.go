@@ -68,6 +68,9 @@ var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
+// ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
+var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
+
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
 
@@ -76,3 +79,6 @@ var ErrNilTriggerStorage = errors.New("nil trigger storage")
 
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
+
+// ErrNilMiniBlocksStorage signals that nil miniblocks storage has been provided
+var ErrNilMiniBlocksStorage = errors.New("nil miniblocks storage")

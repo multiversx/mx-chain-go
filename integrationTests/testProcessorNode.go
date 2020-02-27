@@ -916,22 +916,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			HeaderValidator:    tpn.HeaderValidator,
-			Uint64Converter:    TestUint64Converter,
-			DataPool:           tpn.DataPool,
-			Storage:            tpn.Storage,
-			RequestHandler:     tpn.RequestHandler,
-			Epoch:              0,
-			Validity:           1,
-			Finality:           1,
-			EpochStartNotifier: tpn.EpochStartNotifier,
+		if tpn.EpochStartTrigger == nil {
+			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+				Marshalizer:        TestMarshalizer,
+				Hasher:             TestHasher,
+				HeaderValidator:    tpn.HeaderValidator,
+				Uint64Converter:    TestUint64Converter,
+				DataPool:           tpn.DataPool,
+				Storage:            tpn.Storage,
+				RequestHandler:     tpn.RequestHandler,
+				Epoch:              0,
+				Validity:           1,
+				Finality:           1,
+				EpochStartNotifier: tpn.EpochStartNotifier,
+			}
+			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+			tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 		}
-		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
-		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
-		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook

@@ -27,6 +27,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return &mock.CacherStub{}
+			},
 		},
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

@@ -1775,6 +1775,7 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
+			validatorStatisticsProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1821,6 +1822,7 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	validatoStatiscProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
@@ -2014,26 +2016,27 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		AccountsDB:             accountsDb,
-		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher,
-		Marshalizer:            core.Marshalizer,
-		Store:                  data.Store,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		SpecialAddressHandler:  specialAddressHandler,
-		Uint64Converter:        core.Uint64ByteSliceConverter,
-		RequestHandler:         requestHandler,
-		Core:                   coreServiceContainer,
-		BlockChainHook:         vmFactory.BlockChainHookImpl(),
-		TxCoordinator:          txCoordinator,
-		Rounder:                rounder,
-		EpochStartTrigger:      epochStartTrigger,
-		HeaderValidator:        headerValidator,
-		BootStorer:             bootStorer,
-		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
-		StateCheckpointModulus: stateCheckpointModulus,
+		AccountsDB:                   accountsDb,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
+		Rounder:                      rounder,
+		EpochStartTrigger:            epochStartTrigger,
+		HeaderValidator:              headerValidator,
+		BootStorer:                   bootStorer,
+		BlockTracker:                 blockTracker,
+		DataPool:                     data.Datapool,
+		StateCheckpointModulus:       stateCheckpointModulus,
+		ValidatorStatisticsProcessor: validatoStatiscProcessor,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

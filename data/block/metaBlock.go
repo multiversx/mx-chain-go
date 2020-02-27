@@ -287,7 +287,9 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	}
 
 	for _, val := range m.MiniBlockHeaders {
-		if val.ReceiverShardID == destId && val.SenderShardID != destId {
+		if (val.ReceiverShardID == destId ||
+			val.ReceiverShardID == core.AllShardId) &&
+			val.SenderShardID != destId {
 			hashDst[string(val.Hash)] = val.SenderShardID
 		}
 	}

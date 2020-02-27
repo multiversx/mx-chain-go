@@ -178,6 +178,8 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 
+	log.Debug("Set nodes per shard")
+
 	return nil
 }
 

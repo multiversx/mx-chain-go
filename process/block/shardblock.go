@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -37,6 +38,9 @@ type shardProcessor struct {
 	txsPoolsCleaner     process.PoolsCleaner
 
 	lowestNonceInSelfNotarizedHeaders uint64
+
+	startOfEpochData      map[string]startOfEpochData
+	startOfEpochDataMutex sync.Mutex
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -112,7 +116,18 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if metaBlockPool == nil {
 		return nil, process.ErrNilMetaBlocksPool
 	}
+
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
+
+	miniBlockPool := sp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+	log.Debug("registering miniblock pool handler")
+	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
+
+	sp.startOfEpochData = map[string]startOfEpochData{}
+	sp.startOfEpochDataMutex = sync.Mutex{}
 
 	sp.metaBlockFinality = process.BlockFinality
 
@@ -1025,7 +1040,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 	header := &block.Header{}
 
 	if sp.epochStartTrigger.IsEpochStart() {
@@ -1391,6 +1406,10 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
+	if metaBlock.IsStartOfEpochBlock() {
+		sp.computeMissingPeerBlocks(metaBlock, metaBlockHash)
+	}
+
 	sp.epochStartTrigger.ReceivedHeader(metaBlock)
 	if sp.epochStartTrigger.IsEpochStart() {
 		sp.chRcvEpochStart <- true
@@ -1402,6 +1421,32 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	}
 
 	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
+}
+
+func (sp *shardProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock, metaBlockHash []byte) {
+	log.Debug("got a startEpochBlock", "miniblockHeaders len", len(metaBlock.MiniBlockHeaders))
+	peerMiniBlocks := make([][]byte, 0)
+	for _, mb := range metaBlock.MiniBlockHeaders {
+		if mb.Type == block.PeerBlock {
+			peerMiniBlocks = append(peerMiniBlocks, mb.Hash)
+		}
+	}
+
+	log.Debug("peerMiniblocks", "len", len(peerMiniBlocks))
+
+	sp.startOfEpochDataMutex.Lock()
+	defer sp.startOfEpochDataMutex.Unlock()
+	_, exists := sp.startOfEpochData[string(metaBlockHash)]
+	if exists {
+		return
+	}
+
+	sp.startOfEpochData[string(metaBlockHash)] = startOfEpochData{
+		peerMiniblocks: peerMiniBlocks,
+		stillMissing:   len(peerMiniBlocks),
+		headerHash:     metaBlockHash,
+		metaHeader:     metaBlock,
+	}
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
@@ -1898,4 +1943,58 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	}
 
 	return lastSelfNotarizedHeaders
+}
+
+func (sp *shardProcessor) receivedMiniBlock(key []byte) {
+	log.Debug("miniblock key", "key", key)
+	mb, ok := sp.dataPool.MiniBlocks().Get(key)
+	if ok {
+		peerMb, ok := mb.(*block.MiniBlock)
+		if ok && peerMb.Type == block.PeerBlock {
+			log.Debug(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
+
+			sp.startOfEpochDataMutex.Lock()
+
+			defer sp.startOfEpochDataMutex.Unlock()
+			for _, sod := range sp.startOfEpochData {
+				if sod.stillMissing > 0 {
+					for _, mbHash := range sod.peerMiniblocks {
+						if bytes.Equal(mbHash, key) {
+							sod.stillMissing--
+						}
+					}
+				}
+
+				if sod.stillMissing == 0 {
+					if sp.processPeerMiniBlocks(sod) {
+						return
+					}
+
+					sp.receivedMetaBlock(sod.metaHeader, sod.headerHash)
+					return
+				}
+			}
+		}
+	}
+}
+
+func (sp *shardProcessor) processPeerMiniBlocks(sod startOfEpochData) bool {
+	for _, peerMiniBlock := range sod.peerMiniblocks {
+		mb, _ := sp.dataPool.MiniBlocks().Get(peerMiniBlock)
+		if mb == nil {
+			mb, _ = sp.store.GetStorer(dataRetriever.MiniBlockUnit).Get(peerMiniBlock)
+		}
+
+		actualMiniblock, ok := mb.(*block.MiniBlock)
+		if !ok {
+			return true
+		}
+
+		for _, txHash := range actualMiniblock.TxHashes {
+			vid := &state.ValidatorInfoData{}
+			sp.marshalizer.Unmarshal(vid, txHash)
+			sp.validatorStatisticsProcessor.Process(vid)
+		}
+	}
+	return false
 }

@@ -1668,7 +1668,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -1683,6 +1683,10 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
 	mrsData := make(map[uint32][]byte, len(bodies))
+
+	if header.IsStartOfEpochBlock() {
+		log.Debug("broadcasting start of epoch block")
+	}
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(subsetBlockBody)
