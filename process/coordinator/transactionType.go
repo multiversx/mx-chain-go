@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -66,7 +67,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, err
 	}
 
-	if acntDst == nil {
+	if check.IfNil(acntDst) {
 		return process.MoveBalance, nil
 	}
 
