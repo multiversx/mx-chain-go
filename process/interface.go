@@ -500,7 +500,7 @@ type RewardsHandler interface {
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
-	UnBoundPeriod() uint64
+	UnBondPeriod() uint64
 	StakeValue() *big.Int
 	IsInterfaceNil() bool
 }
@@ -662,5 +662,11 @@ type ValidityAttester interface {
 type MiniBlocksResolver interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// Rounder defines the actions which should be handled by a round implementation
+type Rounder interface {
+	Index() int64
 	IsInterfaceNil() bool
 }
