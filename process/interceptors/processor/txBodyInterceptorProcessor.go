@@ -111,8 +111,5 @@ func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.Int
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tbip *TxBodyInterceptorProcessor) IsInterfaceNil() bool {
-	if tbip == nil {
-		return true
-	}
-	return false
+	return tbip == nil
 }
