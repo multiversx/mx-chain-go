@@ -439,7 +439,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	shouldNotProcessBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.Rounder().Index()
 	if shouldNotProcessBlock {
-		log.Debug("canceled round",
+		log.Debug("canceled round, extended has been called or round index has been changed",
 			"round", sr.Rounder().Index(),
 			"subround", sr.Name(),
 			"cnsDta round", cnsDta.RoundIndex,
@@ -467,12 +467,11 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	)
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {
-		log.Debug("canceled round, meantime round index has been changed",
+		log.Debug("canceled round, round index has been changed",
 			"round", sr.Rounder().Index(),
 			"subround", sr.Name(),
 			"cnsDta round", cnsDta.RoundIndex,
 		)
-
 		return false
 	}
 
