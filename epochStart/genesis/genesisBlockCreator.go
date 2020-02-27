@@ -2,6 +2,7 @@ package genesis
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -342,7 +343,7 @@ func deploySystemSmartContracts(
 		Value:     big.NewInt(0),
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
-		GasLimit:  0,
+		GasLimit:  math.MaxUint64,
 		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),
 		Signature: nil,
 	}
@@ -395,7 +396,7 @@ func setStakedData(
 				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
-				GasLimit:  0,
+				GasLimit:  math.MaxUint64,
 				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
