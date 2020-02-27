@@ -827,6 +827,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasSchedule,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
+		processComponents.TxTypeHandler,
 	)
 	if err != nil {
 		return err
@@ -1446,6 +1447,7 @@ func createApiResolver(
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
+	txTypeHandler process.TxTypeHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1477,7 +1479,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, txTypeHandler, economics)
 	if err != nil {
 		return nil, err
 	}

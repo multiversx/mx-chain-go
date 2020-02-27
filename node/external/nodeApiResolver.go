@@ -1,7 +1,10 @@
 package external
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -35,6 +38,11 @@ func (nar *NodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface
 func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 	return nar.statusMetricsHandler
+}
+
+//ComputeTransactionCost will calculate how many gas a transaction will consume
+func (nar *NodeApiResolver) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
+	return nar.scQueryService.ComputeTransactionCost(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

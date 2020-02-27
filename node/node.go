@@ -849,7 +849,7 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-// GetAccount will return acount details for a given address
+// GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter

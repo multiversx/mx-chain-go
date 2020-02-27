@@ -453,7 +453,14 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
+	txTypeHandler := &mock.TxTypeHandlerMock{}
+	feeHandler := &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
+		},
+	}
+
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, txTypeHandler, feeHandler)
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,

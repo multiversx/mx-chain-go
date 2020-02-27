@@ -58,6 +58,7 @@ type NodeWrapper interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
