@@ -607,11 +607,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return nil
 	}
 
-	if acntSnd.GetBalance().Cmp(cost) < 0 {
-		return process.ErrInsufficientFunds
-	}
-
-	err = acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
+	err = acntSnd.SubFromBalance(cost)
 	if err != nil {
 		return err
 	}
@@ -923,11 +919,13 @@ func (sc *scProcessor) processSCOutputAccounts(
 		}
 
 		// if no change then continue
-		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
+		cmpWithZero := outAcc.BalanceDelta.Cmp(zero)
+		if outAcc.BalanceDelta == nil || cmpWithZero == 0 {
 			continue
 		}
 
 		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+
 		err = acc.AddToBalance(outAcc.BalanceDelta)
 		if err != nil {
 			return nil, err

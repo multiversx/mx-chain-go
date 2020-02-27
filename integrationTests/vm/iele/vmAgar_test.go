@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -193,6 +194,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*TRACE")
+
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -222,7 +225,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(100000000)
 
-	noOfUsers := 10
+	noOfUsers := 1
 	usersAddresses := make([][]byte, noOfUsers)
 	transfer := big.NewInt(100)
 

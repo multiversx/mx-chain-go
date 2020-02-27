@@ -95,7 +95,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 		return nil, err
 	}
 
-	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	err = account.(*state.Account).AddToBalance(balance)
 	if err != nil {
 		return nil, err
 	}

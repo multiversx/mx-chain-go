@@ -25,6 +25,8 @@ type Account struct {
 	dataTrieTracker  DataTrieTracker
 }
 
+var zero = big.NewInt(0)
+
 // NewAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Account, error) {
 	if check.IfNil(addressContainer) {
@@ -80,7 +82,7 @@ func (a *Account) GetNonce() uint64 {
 }
 
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
-func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
+func (a *Account) setBalanceWithJournal(balance *big.Int) error {
 	entry, err := NewJournalEntryBalance(a, a.Balance)
 	if err != nil {
 		return err
@@ -225,11 +227,26 @@ func (a *Account) AddToDeveloperReward(value *big.Int) error {
 // AddToBalance adds new value to balance
 func (a *Account) AddToBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Add(a.Balance, value)
-	if newBalance.Cmp(big.NewInt(0)) < 0 {
+	if newBalance.Cmp(zero) < 0 {
 		return ErrInsufficientFunds
 	}
 
-	err := a.SetBalanceWithJournal(newBalance)
+	err := a.setBalanceWithJournal(newBalance)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SubFromBalance adds new value to balance
+func (a *Account) SubFromBalance(value *big.Int) error {
+	newBalance := big.NewInt(0).Sub(a.Balance, value)
+	if newBalance.Cmp(zero) < 0 {
+		return ErrInsufficientFunds
+	}
+
+	err := a.setBalanceWithJournal(newBalance)
 	if err != nil {
 		return err
 	}

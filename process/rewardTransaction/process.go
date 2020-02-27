@@ -1,8 +1,6 @@
 package rewardTransaction
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -85,10 +83,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
 
-	operation := big.NewInt(0)
-	operation = operation.Add(rTx.Value, rewardAcc.Balance)
-	err = rewardAcc.SetBalanceWithJournal(operation)
-
+	err = rewardAcc.AddToBalance(rTx.Value)
 	return err
 }
 
