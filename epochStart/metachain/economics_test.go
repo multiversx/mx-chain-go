@@ -266,7 +266,7 @@ func getArguments() ArgsNewEpochEconomics {
 		Marshalizer:      &mock.MarshalizerMock{},
 		Store:            &mock.ChainStorerStub{},
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
 		RewardsHandler:   &mock.RewardsHandlerStub{},
 		RoundTime:        &mock.RoundTimeDurationHandler{},
 	}

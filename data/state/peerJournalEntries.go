@@ -420,7 +420,7 @@ type PeerJournalEntryAccumulatedFee struct {
 	oldAccumulatedFees *big.Int
 }
 
-// NewPeerJournalEntryAccumulatedFee outputs a new PeerJournalEntryAccumulatedFee implementation used to revert an accumulated fee change
+// NewPeerJournalEntryAccumulatedFees outputs a new PeerJournalEntryAccumulatedFee implementation used to revert an accumulated fee change
 func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees *big.Int) (*PeerJournalEntryAccumulatedFee, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler

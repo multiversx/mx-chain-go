@@ -184,3 +184,34 @@ func TestNewJournalEntryDeveloperReward(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, oldDevReward, acc.DeveloperReward)
 }
+
+func TestNewJournalEntryOwnerAddress_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jeoa, err := state.NewJournalEntryOwnerAddress(nil, []byte{})
+
+	assert.True(t, check.IfNil(jeoa))
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestNewJournalEntryOwnerAddress_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	jeoa, err := state.NewJournalEntryOwnerAddress(accnt, []byte{})
+
+	assert.False(t, check.IfNil(jeoa))
+	assert.Nil(t, err)
+}
+
+func TestNewJournalEntryOwnerAddress_RevertShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldOwnerAddr := []byte("addr")
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	jeoa, _ := state.NewJournalEntryOwnerAddress(accnt, oldOwnerAddr)
+
+	_, err := jeoa.Revert()
+	assert.Nil(t, err)
+	assert.Equal(t, oldOwnerAddr, accnt.OwnerAddress)
+}
