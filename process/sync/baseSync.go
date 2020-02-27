@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -74,10 +75,11 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched     sync.RWMutex
-	isNodeSynchronized bool
-	hasLastBlock       bool
-	roundIndex         int64
+	mutNodeSynched        sync.RWMutex
+	isNodeSynchronized    bool
+	isNodeStateCalculated atomic.Flag
+	hasLastBlock          bool
+	roundIndex            int64
 
 	forkInfo *process.ForkInfo
 
@@ -224,7 +226,7 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.chainHandler != nil && boot.chainHandler.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		nonce = boot.chainHandler.GetCurrentBlockHeader().GetNonce() + 1
 	}
 	return nonce
@@ -259,14 +261,14 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
-	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
-	if isNodeSynchronizedInCurrentRound {
-		return false
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated.IsSet()
+	if isNodeStateCalculatedInCurrentRound {
+		return !boot.isNodeSynchronized
 	}
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if boot.chainHandler.GetCurrentBlockHeader() == nil {
+	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
@@ -285,6 +287,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
+	boot.isNodeStateCalculated.Set()
 	boot.roundIndex = boot.rounder.Index()
 
 	var result uint64
@@ -300,7 +303,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 func (boot *baseBootstrap) trySyncTrigger() {
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if currHeader == nil {
+	if check.IfNil(currHeader) {
 		return
 	}
 
@@ -309,7 +312,7 @@ func (boot *baseBootstrap) trySyncTrigger() {
 		return
 	}
 
-	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0 && !process.IsInProperRound(boot.rounder.Index())
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
 
 	if shouldTrySync {
 		nonce := boot.getNonceForNextBlock()
@@ -380,6 +383,7 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
 	}
+
 	return nil
 }
 
@@ -474,6 +478,10 @@ func (boot *baseBootstrap) syncBlock() error {
 		return nil
 	}
 
+	defer func() {
+		boot.isNodeStateCalculated.Unset()
+	}()
+
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
@@ -519,7 +527,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -529,7 +537,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -656,8 +664,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		if err != nil {
 			return err
 		}
-
-		boot.updateStateStorage(currHeader, prevHeader)
 	} else {
 		err = boot.setCurrentBlockInfo(nil, nil, nil)
 		if err != nil {
@@ -669,6 +675,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if err != nil {
 		return err
 	}
+	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
@@ -678,24 +685,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	boot.cleanCachesAndStorageOnRollback(currHeader)
 
 	return nil
-}
-
-func (boot *baseBootstrap) updateStateStorage(currHeader, prevHeader data.HeaderHandler) {
-	// TODO check if pruning should be done on rollback
-	if !boot.accounts.IsPruningEnabled() {
-		return
-	}
-
-	if bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
-		return
-	}
-
-	boot.accounts.CancelPrune(prevHeader.GetRootHash())
-
-	errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
 }
 
 func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
@@ -754,7 +743,7 @@ func (boot *baseBootstrap) restoreState(
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
-		log.Debug("RevertStateToBlock", "error", err.Error())
+		log.Debug("RevertState", "error", err.Error())
 	}
 }
 

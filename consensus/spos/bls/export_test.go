@@ -182,8 +182,8 @@ func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 }
 
 // CreateBody method creates the proposed block body in the subround Block
-func (sr *subroundBlock) CreateBody(hdr data.HeaderHandler) (data.BodyHandler, error) {
-	return sr.createBody(hdr)
+func (sr *subroundBlock) CreateBlock(hdr data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+	return sr.createBlock(hdr)
 }
 
 // SendBlockBody method sends the proposed block body in the subround Block
@@ -254,6 +254,30 @@ func (sr *subroundEndRound) DoEndRoundConsensusCheck() bool {
 // CheckSignaturesValidity method checks the signature validity for the nodes included in bitmap
 func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
+}
+
+func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
+	return sr.doEndRoundJobByParticipant(cnsDta)
+}
+
+func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
+	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
+}
+
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
+	sr.createAndBroadcastHeaderFinalInfo()
+}
+
+func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeaderFinalInfo(cnsDta)
+}
+
+func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
+	return sr.isConsensusHeaderReceived()
+}
+
+func (sr *subroundEndRound) IsOutOfTime() bool {
+	return sr.isOutOfTime()
 }
 
 // GetStringValue gets the name of the message type

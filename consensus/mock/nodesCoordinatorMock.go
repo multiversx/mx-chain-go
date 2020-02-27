@@ -38,6 +38,16 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return list, nil
 }
 
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
+}
+
+// ConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
+	return 1
+}
+
 // GetAllValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
@@ -125,6 +135,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Valid
 	return nil
 }
 
+// SetConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
+	panic("implement me")
+}
+
 // GetSelectedPublicKeys -
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uint32) (publicKeys []string, err error) {
 	panic("implement me")
@@ -142,8 +157,5 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
-	if ncm == nil {
-		return true
-	}
-	return false
+	return ncm == nil
 }

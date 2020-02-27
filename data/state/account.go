@@ -1,8 +1,10 @@
 package state
 
 import (
+	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -14,6 +16,9 @@ type Account struct {
 	RootHash []byte
 	Address  []byte
 
+	DeveloperReward *big.Int
+	OwnerAddress    []byte
+
 	addressContainer AddressContainer
 	code             []byte
 	accountTracker   AccountTracker
@@ -22,16 +27,17 @@ type Account struct {
 
 // NewAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Account, error) {
-	if addressContainer == nil || addressContainer.IsInterfaceNil() {
+	if check.IfNil(addressContainer) {
 		return nil, ErrNilAddressContainer
 	}
-	if tracker == nil || tracker.IsInterfaceNil() {
+	if check.IfNil(tracker) {
 		return nil, ErrNilAccountTracker
 	}
 
 	addressBytes := addressContainer.Bytes()
 
 	return &Account{
+		DeveloperReward:  big.NewInt(0),
 		Balance:          big.NewInt(0),
 		addressContainer: addressContainer,
 		Address:          addressBytes,
@@ -82,6 +88,31 @@ func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
 
 	a.accountTracker.Journalize(entry)
 	a.Balance = balance
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+func (a *Account) setDeveloperRewardWithJournal(developerReward *big.Int) error {
+	entry, err := NewJournalEntryDeveloperReward(a, a.DeveloperReward)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.DeveloperReward = developerReward
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetOwnerAddressWithJournal sets the owner address of an account, saving the old before changing
+func (a *Account) SetOwnerAddressWithJournal(ownerAddress []byte) error {
+	entry, err := NewJournalEntryOwnerAddress(a, a.OwnerAddress)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.OwnerAddress = ownerAddress
 
 	return a.accountTracker.SaveAccount(a)
 }
@@ -148,4 +179,70 @@ func (a *Account) DataTrieTracker() DataTrieTracker {
 	return a.dataTrieTracker
 }
 
-//TODO add Cap'N'Proto converter funcs
+// ClaimDeveloperRewards returns the accumulated developer rewards and sets it to 0 in the account
+func (a *Account) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
+	if !bytes.Equal(sndAddress, a.OwnerAddress) {
+		return nil, ErrOperationNotPermitted
+	}
+
+	oldValue := big.NewInt(0).Set(a.DeveloperReward)
+	err := a.setDeveloperRewardWithJournal(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return oldValue, nil
+}
+
+// ChangeOwnerAddress changes the owner account if operation is permitted
+func (a *Account) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error {
+	if !bytes.Equal(sndAddress, a.OwnerAddress) {
+		return ErrOperationNotPermitted
+	}
+	if len(newAddress) != len(a.addressContainer.Bytes()) {
+		return ErrInvalidAddressLength
+	}
+
+	err := a.SetOwnerAddressWithJournal(newAddress)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddToDeveloperReward adds new value to developer reward
+func (a *Account) AddToDeveloperReward(value *big.Int) error {
+	newDeveloperReward := big.NewInt(0).Add(a.DeveloperReward, value)
+	err := a.setDeveloperRewardWithJournal(newDeveloperReward)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddToBalance adds new value to balance
+func (a *Account) AddToBalance(value *big.Int) error {
+	newBalance := big.NewInt(0).Add(a.Balance, value)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return ErrInsufficientFunds
+	}
+
+	err := a.SetBalanceWithJournal(newBalance)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetOwnerAddress returns the owner address
+func (a *Account) GetOwnerAddress() []byte {
+	return a.OwnerAddress
+}
+
+// GetBalance returns the actual balance from the account
+func (a *Account) GetBalance() *big.Int {
+	return big.NewInt(0).Set(a.Balance)
+}

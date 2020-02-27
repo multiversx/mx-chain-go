@@ -30,8 +30,8 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-const refreshPeersOnTopic = time.Second * 60
-const ttlPeersOnTopic = time.Second * 120
+const refreshPeersOnTopic = time.Second * 5
+const ttlPeersOnTopic = time.Second * 30
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 const durationBetweenPeersPrints = time.Second * 20
@@ -473,8 +473,12 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		wrappedMsg := NewMessage(message)
-		err := handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
+		wrappedMsg, err := NewMessage(message)
+		if err != nil {
+			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
+			return false
+		}
+		err = handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
@@ -482,9 +486,11 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 				"pid", p2p.MessageOriginatorPid(wrappedMsg),
 				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
 			)
+
+			return false
 		}
 
-		return err == nil
+		return true
 	})
 	if err != nil {
 		return err

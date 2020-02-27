@@ -70,7 +70,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
@@ -143,7 +143,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+		},
 		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -246,7 +250,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+		},
 		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},

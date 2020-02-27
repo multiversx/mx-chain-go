@@ -194,6 +194,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -211,7 +212,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -250,6 +251,8 @@ func CreateMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
 }
@@ -293,7 +296,6 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		PeerInfo:               nil,
 		Signature:              nil,
 		PubKeysBitmap:          nil,
 		PrevHash:               rootHash,
@@ -574,7 +576,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
@@ -951,7 +953,10 @@ func CreateAndSendTransaction(
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
-	_, _ = node.SendTransaction(tx)
+	_, err := node.SendTransaction(tx)
+	if err != nil {
+		log.Warn("could not create transaction", "address", node.OwnAccount.Address.Bytes(), "error", err)
+	}
 	node.OwnAccount.Nonce++
 }
 
@@ -1377,8 +1382,6 @@ func generateValidTx(
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
 		node.WithTxSingleSigner(&singlesig.SchnorrSigner{}),
-		node.WithTxSignPrivKey(skSender),
-		node.WithTxSignPubKey(pkSender),
 		node.WithAccountsAdapter(accnts),
 	)
 
@@ -1387,6 +1390,7 @@ func generateValidTx(
 		hex.EncodeToString(pkRecvBuff),
 		big.NewInt(1),
 		"",
+		skSender,
 	)
 	assert.Nil(t, err)
 

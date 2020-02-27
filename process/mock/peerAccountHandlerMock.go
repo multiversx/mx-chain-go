@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -22,13 +24,76 @@ type PeerAccountHandlerMock struct {
 	RatingCalled                   func() uint32
 	SetCodeWithJournalCalled       func(codeHash []byte) error
 	SetRatingWithJournalCalled     func(rating uint32) error
-	TempRatingCalled               func() uint32
+	GetTempRatingCalled            func() uint32
 	SetTempRatingWithJournalCalled func(rating uint32) error
 
-	IncreaseLeaderSuccessRateWithJournalCalled    func() error
-	DecreaseLeaderSuccessRateWithJournalCalled    func() error
-	IncreaseValidatorSuccessRateWithJournalCalled func() error
-	DecreaseValidatorSuccessRateWithJournalCalled func() error
+	IncreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
+	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
+	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
+	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
+	AddToAccumulatedFeesCalled                    func(value *big.Int) error
+	IncreaseNumSelectedInSuccessBlocksCalled      func() error
+	ResetAtNewEpochCalled                         func() error
+	SetRewardAddressWithJournalCalled             func(address []byte) error
+	SetSchnorrPublicKeyWithJournalCalled          func(address []byte) error
+	SetBLSPublicKeyWithJournalCalled              func(address []byte) error
+	SetStakeWithJournalCalled                     func(stake *big.Int) error
+}
+
+// ResetAtNewEpoch -
+func (pahm *PeerAccountHandlerMock) ResetAtNewEpoch() error {
+	if pahm.ResetAtNewEpochCalled != nil {
+		return pahm.ResetAtNewEpochCalled()
+	}
+	return nil
+}
+
+// SetRewardAddressWithJournal -
+func (pahm *PeerAccountHandlerMock) SetRewardAddressWithJournal(address []byte) error {
+	if pahm.SetRewardAddressWithJournalCalled != nil {
+		return pahm.SetRewardAddressWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetSchnorrPublicKeyWithJournal -
+func (pahm *PeerAccountHandlerMock) SetSchnorrPublicKeyWithJournal(address []byte) error {
+	if pahm.SetSchnorrPublicKeyWithJournalCalled != nil {
+		return pahm.SetSchnorrPublicKeyWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetBLSPublicKeyWithJournal -
+func (pahm *PeerAccountHandlerMock) SetBLSPublicKeyWithJournal(address []byte) error {
+	if pahm.SetBLSPublicKeyWithJournalCalled != nil {
+		return pahm.SetBLSPublicKeyWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetStakeWithJournal -
+func (pahm *PeerAccountHandlerMock) SetStakeWithJournal(stake *big.Int) error {
+	if pahm.SetStakeWithJournalCalled != nil {
+		return pahm.SetStakeWithJournalCalled(stake)
+	}
+	return nil
+}
+
+// IncreaseNumSelectedInSuccessBlocks -
+func (pahm *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() error {
+	if pahm.IncreaseNumSelectedInSuccessBlocksCalled != nil {
+		return pahm.IncreaseNumSelectedInSuccessBlocks()
+	}
+	return nil
+}
+
+// AddToAccumulatedFees -
+func (pahm *PeerAccountHandlerMock) AddToAccumulatedFees(value *big.Int) error {
+	if pahm.AddToAccumulatedFeesCalled != nil {
+		return pahm.AddToAccumulatedFeesCalled(value)
+	}
+	return nil
 }
 
 // GetCodeHash -
@@ -108,33 +173,33 @@ func (pahm *PeerAccountHandlerMock) GetNonce() uint64 {
 }
 
 // IncreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
 	if pahm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseLeaderSuccessRateWithJournalCalled()
+		return pahm.IncreaseLeaderSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // DecreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
 	if pahm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseLeaderSuccessRateWithJournalCalled()
+		return pahm.DecreaseLeaderSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // IncreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
 	if pahm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseValidatorSuccessRateWithJournalCalled()
+		return pahm.IncreaseValidatorSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // DecreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
 	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
+		return pahm.DecreaseValidatorSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
@@ -157,8 +222,8 @@ func (pahm *PeerAccountHandlerMock) SetRatingWithJournal(rating uint32) error {
 
 // GetTempRating -
 func (pahm *PeerAccountHandlerMock) GetTempRating() uint32 {
-	if pahm.TempRatingCalled != nil {
-		return pahm.TempRatingCalled()
+	if pahm.GetTempRatingCalled != nil {
+		return pahm.GetTempRatingCalled()
 	}
 	return 10
 }
@@ -173,8 +238,5 @@ func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) erro
 
 // IsInterfaceNil -
 func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	if pahm == nil {
-		return true
-	}
-	return false
+	return pahm == nil
 }

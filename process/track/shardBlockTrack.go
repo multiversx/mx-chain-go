@@ -83,6 +83,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		CrossNotarizer:                crossNotarizer,
 		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		Rounder:                       arguments.Rounder,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
@@ -123,6 +124,11 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 	}
 
 	return selfHeadersInfo
+}
+
+// CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing
+func (sbt *shardBlockTrack) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
+	// no rule for shard
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard

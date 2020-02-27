@@ -184,3 +184,11 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 	hdrInfo.Nonce = nonce
 	hdrInfo.Hash = hash
 }
+
+func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
+	if state {
+		boot.isNodeStateCalculated.Set()
+	} else {
+		boot.isNodeStateCalculated.Unset()
+	}
+}

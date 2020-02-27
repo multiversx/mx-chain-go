@@ -2,7 +2,6 @@ package sharding
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"sync"
 
@@ -15,7 +14,7 @@ import (
 )
 
 const (
-	keyFormat = "%s_%v_%v"
+	keyFormat = "%s_%v_%v_%v"
 )
 
 // TODO: move this to config parameters
@@ -48,6 +47,7 @@ type indexHashedNodesCoordinator struct {
 	currentEpoch            uint32
 	savedStateKey           []byte
 	mutSavedStateKey        sync.RWMutex
+	numTotalEligible        uint64
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	nodesPerShardSetter     NodesPerShardSetter
@@ -157,24 +157,21 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	}
 
 	nodesList, ok := eligible[core.MetachainShardId]
-	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
+	if !ok || len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
 	}
 
-	if _, ok := eligible[core.MetachainShardId]; !ok || len(eligible[core.MetachainShardId]) == 0 {
-		return ErrMissingMetachainNodes
-	}
-
+	numTotalEligible := uint64(len(nodesList))
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
 		nbNodesShard := len(eligible[shardId])
 		if nbNodesShard < ihgs.shardConsensusGroupSize {
 			return ErrSmallShardEligibleListSize
 		}
+		numTotalEligible += uint64(nbNodesShard)
 	}
 
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
-
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 
@@ -188,6 +185,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
+	ihgs.numTotalEligible = numTotalEligible
 
 	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
 
@@ -231,6 +229,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
+		"shardId", shardId,
 		"randomness", randomness,
 		"round", round)
 
@@ -255,22 +254,27 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, ErrNilRandomness
 	}
 
-	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
 	validators := ihgs.searchConsensusForKey(key)
 	if validators != nil {
 		return validators, nil
 	}
 
-	tempList := make([]Validator, 0)
-	consensusSize := ihgs.consensusGroupSize(shardId)
-	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
+	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
-	lenExpandedList := len(expandedList)
+	// TODO: pre-compute eligible list and update only on rating change.
+	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
 
-	for startIdx := 0; startIdx < consensusSize; startIdx++ {
-		proposedIndex := ihgs.computeListIndex(startIdx, lenExpandedList, string(randomness))
-		checkedIndex := ihgs.checkIndex(proposedIndex, expandedList, tempList)
-		tempList = append(tempList, expandedList[checkedIndex])
+	log.Debug("ComputeValidatorsGroup",
+		"randomness", randomness,
+		"consensus size", consensusSize,
+		"eligible list length", len(expandedList))
+
+	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
+	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
+	if err != nil {
+		return nil, err
 	}
 
 	ihgs.consensusGroupCacher.Put(key, tempList)
@@ -281,8 +285,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
 	value, ok := ihgs.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, ok := value.([]Validator)
-		if ok {
+		consensusGroup, typeOk := value.([]Validator)
+		if typeOk {
 			return consensusGroup
 		}
 
@@ -394,7 +398,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	publicKeys = make([]string, consensusSize)
 	cnt := 0
 
@@ -630,40 +634,6 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *e
 	return selfShard
 }
 
-// computeListIndex computes a proposed index from expanded eligible list
-func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenList int, randomSource string) int {
-	buffCurrentIndex := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(currentIndex))
-
-	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
-
-	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
-	lenExpandedEligibleList := uint64(lenList)
-
-	computedListIndex := computedLargeIndex % lenExpandedEligibleList
-
-	return int(computedListIndex)
-}
-
-// checkIndex returns a checked index starting from a proposed index
-func (ihgs *indexHashedNodesCoordinator) checkIndex(
-	proposedIndex int,
-	eligibleList []Validator,
-	selectedList []Validator,
-) int {
-	for {
-		v := eligibleList[proposedIndex]
-
-		if ihgs.validatorIsInList(v, selectedList) {
-			proposedIndex++
-			proposedIndex %= len(eligibleList)
-			continue
-		}
-
-		return proposedIndex
-	}
-}
-
 // validatorIsInList returns true if a validator has been found in provided list
 func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []Validator) bool {
 	for i := 0; i < len(list); i++ {
@@ -675,7 +645,8 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	return false
 }
 
-func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(
+// ConsensusGroupSize returns the consensus group size for a specific shard
+func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(
 	shardId uint32,
 ) int {
 	if shardId == core.MetachainShardId {
@@ -685,6 +656,11 @@ func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(
 	return ihgs.shardConsensusGroupSize
 }
 
+// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
+func (ihgs *indexHashedNodesCoordinator) GetNumTotalEligible() uint64 {
+	return ihgs.numTotalEligible
+}
+
 // GetOwnPublicKey will return current node public key  for block sign
 func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 	return ihgs.selfPubKey
@@ -692,10 +668,7 @@ func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
-	if ihgs == nil {
-		return true
-	}
-	return false
+	return ihgs == nil
 }
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator) {

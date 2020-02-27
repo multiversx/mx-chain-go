@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	PubKeys = []string{
+	pubKeys = []string{
 		"41378f754e2c7b2745208c3ed21b151d297acdc84c3aca00b9e292cf28ec2d444771070157ea7760ed83c26f4fed387d0077e00b563a95825dac2cbc349fc0025ccf774e37b0a98ad9724d30e90f8c29b4091ccb738ed9ffc0573df776ee9ea30b3c038b55e532760ea4a8f152f2a52848020e5cee1cc537f2c2323399723081",
 		"52f3bf5c01771f601ec2137e267319ab6716ef6ff5dfddaea48b42d955f631167f2ce19296a202bb8fd174f4e94f8c85f619df85a7f9f8de0f3768e5e6d8c48187b767deccf9829be246aa331aa86d182eb8fa28ea8a3e45d357ed1647a9be020a5569d686253a6f89e9123c7f21f302e82f67d3e3cd69cf267b9910a663ef32",
 		"5e91c426c5c8f5f805f86de1e0653e2ec33853772e583b88e9f0f201089d03d8570759c3c3ab610ce573493c33ba0adf954c8939dba5d5ef7f2be4e87145d8153fc5b4fb91cecb8d9b1f62e080743fbf69c8c3096bf07980bb82cb450ba9b902673373d5b671ea73620cc5bc4d36f7a0f5ca3684d4c8aa5c1b425ab2a8673140",
@@ -18,7 +18,7 @@ var (
 		"24dea9b5c79174c558c38316b2df25b956c53f0d0128b7427d219834867cc1b0868b7faff0205fe23e5ffdf276acfad6423890c782c7be7b98a31d501e4276a015a54d9849109322130fc9a9cb61d183318d50fcde44fabcbf600051c7cb950304b05e82f90f2ac4647016f39439608cd64ccc82fe6e996289bb2150e4e3ab08",
 	}
 
-	Address = []string{
+	address = []string{
 		"9e95a4e46da335a96845b4316251fc1bb197e1b8136d96ecc62bf6604eca9e49",
 		"7a330039e77ca06bc127319fd707cc4911a80db489a39fcfb746283a05f61836",
 		"131e2e717f2d33bdf7850c12b03dfe41ea8a5e76fdd6d4f23aebe558603e746f",
@@ -32,10 +32,10 @@ func createAndAssignNodes(ns NodesSetup, noOfInitialNodes int) *NodesSetup {
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
-		lookupIndex := i % len(PubKeys)
+		lookupIndex := i % len(pubKeys)
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[lookupIndex]
-		ns.InitialNodes[i].Address = Address[lookupIndex]
+		ns.InitialNodes[i].PubKey = pubKeys[lookupIndex]
+		ns.InitialNodes[i].Address = address[lookupIndex]
 	}
 
 	err := ns.processConfig()
@@ -51,14 +51,52 @@ func createAndAssignNodes(ns NodesSetup, noOfInitialNodes int) *NodesSetup {
 }
 
 func createNodesSetupOneShardOneNodeWithOneMeta() *NodesSetup {
-	noOfInitialNodes := 2
 	ns := &NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
 	ns.MetaChainConsensusGroupSize = 1
 	ns.MetaChainMinNodes = 1
+	ns.InitialNodes = []*InitialNode{
+		{
+			PubKey:  pubKeys[0],
+			Address: address[0],
+		},
+		{
+			PubKey:  pubKeys[1],
+			Address: address[1],
+		},
+	}
 
-	return createAndAssignNodes(*ns, noOfInitialNodes)
+	err := ns.processConfig()
+	if err != nil {
+		return nil
+	}
+
+	ns.processMetaChainAssigment()
+	ns.processShardAssignment()
+	ns.createInitialNodesInfo()
+
+	return ns
+}
+
+func initNodesConfig(ns *NodesSetup, noOfInitialNodes int) bool {
+	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+
+	for i := 0; i < noOfInitialNodes; i++ {
+		ns.InitialNodes[i] = &InitialNode{}
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
+	}
+
+	err := ns.processConfig()
+	if err != nil {
+		return false
+	}
+
+	ns.processMetaChainAssigment()
+	ns.processShardAssignment()
+	ns.createInitialNodesInfo()
+	return true
 }
 
 func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
@@ -68,8 +106,12 @@ func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
 	ns.MinNodesPerShard = 2
 	ns.MetaChainConsensusGroupSize = 1
 	ns.MetaChainMinNodes = 2
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
+		return nil
+	}
 
-	return createAndAssignNodes(*ns, noOfInitialNodes)
+	return ns
 }
 
 func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
@@ -79,8 +121,12 @@ func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 	ns.MinNodesPerShard = 2
 	ns.MetaChainConsensusGroupSize = 1
 	ns.MetaChainMinNodes = 1
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
+		return nil
+	}
 
-	return createAndAssignNodes(*ns, noOfInitialNodes)
+	return ns
 }
 
 func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
@@ -90,38 +136,34 @@ func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 	ns.MinNodesPerShard = 2
 	ns.MetaChainMinNodes = 2
 	ns.MetaChainConsensusGroupSize = 2
+	ok := initNodesConfig(ns, noOfInitialNodes)
+	if !ok {
+		return nil
+	}
 
-	return createAndAssignNodes(*ns, noOfInitialNodes)
+	return ns
 }
 
 func TestNodesSetup_NewNodesSetupWrongFile(t *testing.T) {
-	ns, err := NewNodesSetup("", 0xFFFFFFFFFFFFFFFF)
+	ns, err := NewNodesSetup("")
 
 	assert.Nil(t, ns)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
-	ns, err := NewNodesSetup("mock/invalidNodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
+	ns, err := NewNodesSetup("mock/invalidNodesSetupMock.json")
 
 	assert.Nil(t, ns)
 	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
-	ns, err := NewNodesSetup("mock/nodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
+	ns, err := NewNodesSetup("mock/nodesSetupMock.json")
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
 	assert.Equal(t, 5, len(ns.InitialNodes))
-}
-
-func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
-	ns, err := NewNodesSetup("mock/nodesSetupMock.json", 2)
-
-	assert.NotNil(t, ns)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(ns.InitialNodes))
 }
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
@@ -142,8 +184,8 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 	ns.InitialNodes[0] = &InitialNode{}
 	ns.InitialNodes[1] = &InitialNode{}
 
-	ns.InitialNodes[0].PubKey = PubKeys[0]
-	ns.InitialNodes[0].Address = Address[0]
+	ns.InitialNodes[0].PubKey = pubKeys[0]
+	ns.InitialNodes[0].Address = address[0]
 
 	err := ns.processConfig()
 
@@ -162,8 +204,8 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -185,8 +227,8 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -206,8 +248,8 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -229,8 +271,8 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -250,8 +292,8 @@ func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) 
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -273,8 +315,8 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -294,8 +336,8 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -318,8 +360,8 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 
 	for i := 0; i < noOfInitialNodes; i++ {
 		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = PubKeys[i]
-		ns.InitialNodes[i].Address = Address[i]
+		ns.InitialNodes[i].PubKey = pubKeys[i]
+		ns.InitialNodes[i].Address = address[i]
 	}
 
 	err := ns.processConfig()
@@ -330,11 +372,11 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 
 func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 	ns := NodesSetup{}
-	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(0)
+	eligible, waiting, err := ns.InitialNodesInfoForShard(0)
 
 	assert.NotNil(t, ns)
-	assert.Nil(t, eligiblePK)
-	assert.Nil(t, waitingPK)
+	assert.Nil(t, eligible)
+	assert.Nil(t, waiting)
 	assert.NotNil(t, err)
 }
 
@@ -349,6 +391,7 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 	}
 
 	ns = createAndAssignNodes(*ns, 3000)
+
 	assert.Equal(t, 6, len(ns.eligible))
 	for shard, shardNodes := range ns.eligible {
 		assert.Equal(t, 400, len(shardNodes))
@@ -372,39 +415,39 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 	ns := createNodesSetupOneShardOneNodeWithOneMeta()
-	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(1)
+	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
-	assert.Nil(t, eligiblePK)
-	assert.Nil(t, waitingPK)
+	assert.Nil(t, eligible)
+	assert.Nil(t, waiting)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 	ns := createNodesSetupTwoShardTwoNodesWithOneMeta()
-	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(1)
+	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, 2, len(eligiblePK))
-	assert.Equal(t, 0, len(waitingPK))
+	assert.Equal(t, 2, len(eligible))
+	assert.Equal(t, 0, len(waiting))
 	assert.Nil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := core.MetachainShardId
-	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(metaId)
+	eligible, waiting, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, 2, len(eligiblePK))
-	assert.Equal(t, 0, len(waitingPK))
+	assert.Equal(t, 2, len(eligible))
+	assert.Equal(t, 0, len(waiting))
 	assert.Nil(t, err)
 }
 
 func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 
-	_, err := ns.GetShardIDForPubKey([]byte(PubKeys[0]))
+	_, err := ns.GetShardIDForPubKey([]byte(pubKeys[0]))
 
 	assert.NotNil(t, ns)
 	assert.NotNil(t, err)
@@ -412,7 +455,7 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
 	ns := createNodesSetupTwoShard5NodesWithMeta()
-	publicKey, err := hex.DecodeString(PubKeys[2])
+	publicKey, _ := hex.DecodeString(pubKeys[2])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 
@@ -423,7 +466,7 @@ func TestNodesSetup_PublicKeyGood(t *testing.T) {
 
 func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
-	publicKey, err := hex.DecodeString(PubKeys[2])
+	publicKey, _ := hex.DecodeString(pubKeys[2])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 
@@ -435,7 +478,7 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := core.MetachainShardId
-	publicKey, err := hex.DecodeString(PubKeys[0])
+	publicKey, _ := hex.DecodeString(pubKeys[0])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
 

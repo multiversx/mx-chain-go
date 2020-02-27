@@ -31,6 +31,8 @@ type NodesCoordinator interface {
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
+	ConsensusGroupSize(uint32) int
+	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
 }
 

@@ -4,9 +4,9 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// CheckForMissedBlocks -
 func (vs *validatorStatistics) CheckForMissedBlocks(
 	currentHeaderRound uint64,
 	previousHeaderRound uint64,
@@ -17,16 +17,24 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId, epoch)
 }
 
-func (vs *validatorStatistics) SaveInitialState(in []*sharding.InitialNode, stakeValue *big.Int, initialRating uint32) error {
-	return vs.saveInitialState(in, stakeValue, initialRating)
+// SaveInitialState -
+func (vs *validatorStatistics) SaveInitialState(stakeValue *big.Int, initialRating uint32, startEpoch uint32) error {
+	return vs.saveInitialState(stakeValue, initialRating, startEpoch)
 }
 
+// GetMatchingPrevShardData -
 func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
 	return vs.getMatchingPrevShardData(currentShardData, shardInfo)
 }
 
-func (vs *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
-	vs.mutPrevShardInfo.RLock()
-	defer vs.mutPrevShardInfo.RUnlock()
-	return vs.prevShardInfo
+// GetLeaderDecreaseCount -
+func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
+	vs.mutMissedBlocksCounters.RLock()
+	defer vs.mutMissedBlocksCounters.RUnlock()
+
+	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
+}
+
+func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
+	return vs.updateMissedBlocksCounters()
 }

@@ -27,7 +27,7 @@ type trieStorageManager struct {
 
 	snapshots       []storage.Persister
 	snapshotId      int
-	snapshotDbCfg   *config.DBConfig
+	snapshotDbCfg   config.DBConfig
 	snapshotsBuffer snapshotsBuffer
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -35,15 +35,12 @@ type trieStorageManager struct {
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
-func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
+func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
 	}
 	if check.IfNil(ewl) {
 		return nil, ErrNilEvictionWaitingList
-	}
-	if snapshotDbCfg == nil {
-		return nil, ErrNilSnapshotDbConfig
 	}
 
 	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(snapshotDbCfg)
@@ -62,7 +59,7 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig
 	}, nil
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persister, int, error) {
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persister, int, error) {
 	snapshots := make([]storage.Persister, 0)
 	snapshotId := 0
 
@@ -118,13 +115,6 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	defer tsm.storageOperationMutex.Unlock()
 
 	return tsm.db
-}
-
-// SetDatabase sets the provided database as the main database
-func (tsm *trieStorageManager) SetDatabase(db data.DBWriteCacher) {
-	tsm.storageOperationMutex.Lock()
-	tsm.db = db
-	tsm.storageOperationMutex.Unlock()
 }
 
 // Clone returns a new instance of trieStorageManager
@@ -187,7 +177,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 		return err
 	}
 
-	log.Trace("trie removeFromDb", "rootHash", rootHash)
+	log.Debug("trie removeFromDb", "rootHash", rootHash)
 
 	var hash []byte
 	var present bool
@@ -284,6 +274,8 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		tsm.storageOperationMutex.Lock()
 
 		snapshot := tsm.snapshotsBuffer.getFirst()
+		log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
+
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
 			tsm.storageOperationMutex.Unlock()
@@ -293,6 +285,10 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 			continue
 		}
 		db := tsm.getSnapshotDb(snapshot.newDb)
+		if check.IfNil(db) {
+			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+			continue
+		}
 
 		tsm.storageOperationMutex.Unlock()
 
@@ -305,6 +301,8 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		}
 
 		isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+
+		log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
 	}
 
 	tsm.removeKeysFromDb(keys)
@@ -388,7 +386,7 @@ func newSnapshotTrie(
 		return nil, err
 	}
 
-	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{})
+	trieStorage, err := NewTrieStorageManager(db, config.DBConfig{}, &mock.EvictionWaitingList{})
 	if err != nil {
 		return nil, err
 	}

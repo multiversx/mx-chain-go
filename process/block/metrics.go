@@ -79,14 +79,11 @@ func getMetricsFromHeader(
 
 func saveMetricsForACommittedBlock(
 	appStatusHandler core.AppStatusHandler,
-	isInConsensus bool,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
 	headerMeta data.HeaderHandler,
 ) {
-	if isInConsensus {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
-	}
+	// TODO: add consensus metrics from CONSENSUS
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(headerMeta.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)

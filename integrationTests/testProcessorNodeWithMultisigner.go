@@ -9,13 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -52,7 +53,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 
@@ -97,7 +98,7 @@ func CreateNodesWithNodesCoordinator(
 	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress)
 }
 
-// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
+// CreateNodesWithNodesCoordinatorWithCacher returns a map with nodes per shard each using a real nodes coordinator with cacher
 func CreateNodesWithNodesCoordinatorWithCacher(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -134,9 +135,9 @@ func CreateNodesWithNodesCoordinatorFactory(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
-		cache, _ := lrucache.NewCache(10000)
 
 		for i := range validatorList {
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesList[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -149,7 +150,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				i,
 				seedAddress,
 				cp,
-				cache,
+				dataCache,
 				nodesCoordinatorFactory,
 			)
 		}
@@ -443,7 +444,7 @@ func ProposeBlockWithConsensusSignature(
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
 
-	// set some randomness
+	// select nodes from map based on their pub keys
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
@@ -530,7 +531,7 @@ func AllShardsProposeBlock(
 	// propose blocks
 	for i := range nodesMap {
 		currentBlockHeader := nodesMap[i][0].BlockChain.GetCurrentBlockHeader()
-		if currentBlockHeader == nil {
+		if check.IfNil(currentBlockHeader) {
 			currentBlockHeader = nodesMap[i][0].BlockChain.GetGenesisHeader()
 		}
 

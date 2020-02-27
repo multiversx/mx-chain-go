@@ -6,7 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -31,7 +30,7 @@ type baseBlockTrack struct {
 	hasher           hashing.Hasher
 	headerValidator  process.HeaderConstructionValidator
 	marshalizer      marshal.Marshalizer
-	rounder          consensus.Rounder
+	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
@@ -65,6 +64,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 
 	log.Debug("received shard header from network in block tracker",
 		"shard", shardHeader.GetShardID(),
+		"epoch", shardHeader.GetEpoch(),
 		"round", shardHeader.GetRound(),
 		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
@@ -83,6 +83,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 
 	log.Debug("received meta block from network in block tracker",
 		"shard", metaBlock.GetShardID(),
+		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
@@ -370,6 +371,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 	}
 
 	return lastCrossNotarizedHeaders, nil
+}
+
+// GetLastSelfNotarizedHeader returns last self notarized header for a given shard
+func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
 }
 
 // GetTrackedHeaders returns tracked headers for a given shard

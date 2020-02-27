@@ -112,6 +112,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return err
 	}
 
+	process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
+
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -194,7 +196,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 	return process.ErrFailedTransaction
 }
 
-func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transaction, acntSnd *state.Account) error {
+func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transaction, acntSnd state.UserAccountHandler) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -233,15 +235,13 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	return nil
 }
 
-func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
+func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd state.UserAccountHandler) (*big.Int, error) {
 	if acntSnd == nil {
 		return big.NewInt(0), nil
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-
-	operation := big.NewInt(0)
-	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	err := acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
 	if err != nil {
 		return nil, err
 	}
@@ -321,23 +321,21 @@ func (txProc *txProcessor) processSCInvoking(
 	return err
 }
 
-func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
+func (txProc *txProcessor) moveBalances(
+	acntSrc, acntDst state.UserAccountHandler,
 	value *big.Int,
 ) error {
-	operation1 := big.NewInt(0)
-	operation2 := big.NewInt(0)
-
 	// is sender address in node shard
-	if acntSrc != nil {
-		err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.Balance, value))
+	if !check.IfNil(acntSrc) {
+		err := acntSrc.AddToBalance(big.NewInt(0).Neg(value))
 		if err != nil {
 			return err
 		}
 	}
 
 	// is receiver address in node shard
-	if acntDst != nil {
-		err := acntDst.SetBalanceWithJournal(operation2.Add(acntDst.Balance, value))
+	if !check.IfNil(acntDst) {
+		err := acntDst.AddToBalance(value)
 		if err != nil {
 			return err
 		}
@@ -346,8 +344,8 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 	return nil
 }
 
-func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
-	return acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+func (txProc *txProcessor) increaseNonce(acntSrc state.UserAccountHandler) error {
+	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

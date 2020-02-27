@@ -285,6 +285,10 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
+	if dbConf.MaxBatchSize > int(cacheConf.Size) {
+		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
+	}
+
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {
 		return nil, err
@@ -384,7 +388,7 @@ func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	case Keccak:
 		return keccak.Keccak{}, nil
 	case Blake2b:
-		return blake2b.Blake2b{}, nil
+		return &blake2b.Blake2b{}, nil
 	case Fnv:
 		return fnv.Fnv{}, nil
 	default:

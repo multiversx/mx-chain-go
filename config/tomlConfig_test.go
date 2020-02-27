@@ -115,8 +115,6 @@ func TestTomlParser(t *testing.T) {
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
-	communityAddress := "commAddr"
-	burnAddress := "burnAddr"
 	rewardsValue := "1000000000000000000000000000000000"
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
@@ -125,16 +123,9 @@ func TestTomlEconomicsParser(t *testing.T) {
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
 
-	cfgEconomicsExpected := ConfigEconomics{
-		EconomicsAddresses: EconomicsAddresses{
-			CommunityAddress: communityAddress,
-			BurnAddress:      burnAddress,
-		},
+	cfgEconomicsExpected := EconomicsConfig{
 		RewardsSettings: RewardsSettings{
-			RewardsValue:        rewardsValue,
-			CommunityPercentage: communityPercentage,
-			LeaderPercentage:    leaderPercentage,
-			BurnPercentage:      burnPercentage,
+			LeaderPercentage: leaderPercentage,
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -144,9 +135,6 @@ func TestTomlEconomicsParser(t *testing.T) {
 	}
 
 	testString := `
-[EconomicsAddresses]
-    CommunityAddress = "` + communityAddress + `"
-    BurnAddress = "` + burnAddress + `"
 [RewardsSettings]
     RewardsValue = "` + rewardsValue + `"
     CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
@@ -158,7 +146,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     MinGasLimit = "` + minGasLimit + `"
 `
 
-	cfg := ConfigEconomics{}
+	cfg := EconomicsConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
@@ -168,22 +156,54 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 func TestTomlPreferencesParser(t *testing.T) {
 	nodeDisplayName := "test-name"
+	destinationShardAsObs := "3"
 
-	cfgPreferencesExpected := ConfigPreferences{
+	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
-			NodeDisplayName: nodeDisplayName,
+			NodeDisplayName:            nodeDisplayName,
+			DestinationShardAsObserver: destinationShardAsObs,
 		},
 	}
 
 	testString := `
 [Preferences]
 	NodeDisplayName = "` + nodeDisplayName + `"
+	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 `
 
-	cfg := ConfigPreferences{}
+	cfg := Preferences{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
 	assert.Nil(t, err)
 	assert.Equal(t, cfgPreferencesExpected, cfg)
+}
+
+func TestTomlExternalParser(t *testing.T) {
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
+
+	cfgExternalExpected := ExternalConfig{
+		ElasticSearchConnector: ElasticSearchConfig{
+			Enabled:  true,
+			URL:      indexerURL,
+			Username: elasticUsername,
+			Password: elasticPassword,
+		},
+	}
+
+	testString := `
+[ElasticSearchConnector]
+    Enabled = true
+    URL = "` + indexerURL + `"
+    Username = "` + elasticUsername + `"
+    Password = "` + elasticPassword + `"`
+
+	cfg := ExternalConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, cfgExternalExpected, cfg)
 }

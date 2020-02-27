@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	nodeCmdFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -64,7 +63,6 @@ type Node struct {
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
 	initialNodesPubkeys      map[uint32][]string
-	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                P2PMessenger
@@ -84,8 +82,6 @@ type Node struct {
 	appStatusHandler         core.AppStatusHandler
 	validatorStatistics      process.ValidatorStatisticsProcessor
 
-	txSignPrivKey     crypto.PrivateKey
-	txSignPubKey      crypto.PublicKey
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
 	keyGen            crypto.KeyGenerator
@@ -420,11 +416,6 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	if err != nil {
-		return nil, err
-	}
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -472,7 +463,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            accountsWrapper,
+		Accounts:            n.accounts,
 		BlackListHandler:    n.blackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
@@ -495,10 +486,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	//TODO: Analyze if should be created accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	//to be used instead n.accounts as a parameter for sync.ArgBaseBootstrapper, exactly as it is done in method
-	//createShardBootstrapper
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -740,7 +727,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 }
 
 func (n *Node) validateTx(tx *transaction.Transaction) error {
-	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, core.MaxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil
 	}
@@ -862,15 +849,6 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-// GetCurrentPublicKey will return the current node's public key
-func (n *Node) GetCurrentPublicKey() string {
-	if n.txSignPubKey != nil {
-		pkey, _ := n.txSignPubKey.ToByteArray()
-		return fmt.Sprintf("%x", pkey)
-	}
-	return ""
-}
-
 // GetAccount will return acount details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
@@ -953,6 +931,10 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	timer := &heartbeat.RealTimer{}
 	netInputMarshalizer := n.marshalizer
 	if n.sizeCheckDelta > 0 {
