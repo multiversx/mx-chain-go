@@ -117,13 +117,13 @@ func NewPeerJournalEntryStake(account *PeerAccount, oldStake *big.Int) (*PeerJou
 
 	return &PeerJournalEntryStake{
 		account:  account,
-		oldStake: oldStake,
+		oldStake: big.NewInt(0).Set(oldStake),
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjes *PeerJournalEntryStake) Revert() (AccountHandler, error) {
-	pjes.account.Stake = pjes.oldStake
+	pjes.account.Stake = big.NewInt(0).Set(pjes.oldStake)
 
 	return pjes.account, nil
 }
@@ -428,13 +428,13 @@ func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees
 
 	return &PeerJournalEntryAccumulatedFee{
 		account:            account,
-		oldAccumulatedFees: oldAccumulatedFees,
+		oldAccumulatedFees: big.NewInt(0).Set(oldAccumulatedFees),
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
-	pjeaf.account.AccumulatedFees = pjeaf.oldAccumulatedFees
+	pjeaf.account.AccumulatedFees = big.NewInt(0).Set(pjeaf.oldAccumulatedFees)
 
 	return pjeaf.account, nil
 }
