@@ -304,11 +304,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.peerChanges.VerifyPeerChanges(header.PeerInfo)
-	if err != nil {
-		return err
-	}
-
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
 		return err
@@ -1520,12 +1515,6 @@ func (mp *metaProcessor) createShardInfo(
 	return shardInfo, nil
 }
 
-func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
-	peerInfo := mp.peerChanges.PeerChanges()
-
-	return peerInfo, nil
-}
-
 // ApplyBodyToHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
@@ -1559,16 +1548,8 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return nil, err
 	}
 
-	sw.Start("createPeerInfo")
-	peerInfo, err := mp.createPeerInfo()
-	sw.Stop("createPeerInfo")
-	if err != nil {
-		return nil, err
-	}
-
 	metaHdr.Epoch = mp.epochStartTrigger.Epoch()
 	metaHdr.ShardInfo = shardInfo
-	metaHdr.PeerInfo = peerInfo
 	metaHdr.RootHash = mp.getRootHash()
 	metaHdr.TxCount = getTxCount(shardInfo)
 

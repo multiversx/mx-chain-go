@@ -19,7 +19,16 @@
 
 [ValidatorSettings]
     StakeValue = "500000000000000000000000" #500000ERD
-    UnBoundPeriod = "100000"
+    UnBondPeriod = "100000"
+    MinStepValue = "10000000000000000000000"
+    TotalSupply = "20000000000000000000000000000" #20BIL ERD
+    NumNodes = 1000
+    AuctionEnableNonce = "100000000000"
+    StakeEnableNonce = "100000000000"
+    NumRoundsWithoutBleed = "100"
+    MaximumPercentageToBleed = "0.5"
+    BleedPercentagePerRound = "0.00001"
+    UnJailValue = "1000"
 
 [RatingSettings]
     StartRating = 500000
