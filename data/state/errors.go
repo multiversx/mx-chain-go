@@ -146,9 +146,6 @@ var ErrOperationNotPermitted = errors.New("operation in account not permitted")
 // ErrInvalidAddressLength signals that address length is invalid
 var ErrInvalidAddressLength = errors.New("invalid address length")
 
-// ErrOnlyPositiveValueAccepted signals that balance change operation was called with negative value
-var ErrOnlyPositiveValueAccepted = errors.New("insufficient funds")
-
 // ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
 // transaction fee is covered by the current balance
 var ErrInsufficientFunds = errors.New("insufficient funds")

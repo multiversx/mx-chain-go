@@ -531,6 +531,23 @@ func CreateTransferTokenTx(
 	}
 }
 
+func CreateMoveBalanceTx(
+	nonce uint64,
+	value *big.Int,
+	sndAddress []byte,
+	rcvAddress []byte,
+	gasLimit uint64,
+) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    big.NewInt(0).Set(value),
+		RcvAddr:  rcvAddress,
+		SndAddr:  sndAddress,
+		GasPrice: 1,
+		GasLimit: gasLimit,
+	}
+}
+
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
 	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
 	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)

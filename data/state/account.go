@@ -81,19 +81,6 @@ func (a *Account) GetNonce() uint64 {
 	return a.Nonce
 }
 
-// SetBalanceWithJournal sets the account's balance, saving the old balance before changing
-func (a *Account) setBalanceWithJournal(balance *big.Int) error {
-	entry, err := NewJournalEntryBalance(a, a.Balance)
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.Balance = balance
-
-	return a.accountTracker.SaveAccount(a)
-}
-
 func (a *Account) setDeveloperRewardWithJournal(developerReward *big.Int) error {
 	entry, err := NewJournalEntryDeveloperReward(a, a.DeveloperReward)
 	if err != nil {
@@ -231,27 +218,33 @@ func (a *Account) AddToBalance(value *big.Int) error {
 		return ErrInsufficientFunds
 	}
 
-	err := a.setBalanceWithJournal(newBalance)
+	entry, err := NewJournalEntryBalance(a, a.Balance)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	a.accountTracker.Journalize(entry)
+	a.Balance = newBalance
+
+	return a.accountTracker.SaveAccount(a)
 }
 
-// SubFromBalance adds new value to balance
+// SubFromBalance subtracts new value from balance
 func (a *Account) SubFromBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Sub(a.Balance, value)
 	if newBalance.Cmp(zero) < 0 {
 		return ErrInsufficientFunds
 	}
 
-	err := a.setBalanceWithJournal(newBalance)
+	entry, err := NewJournalEntryBalance(a, a.Balance)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	a.accountTracker.Journalize(entry)
+	a.Balance = newBalance
+
+	return a.accountTracker.SaveAccount(a)
 }
 
 // GetOwnerAddress returns the owner address
