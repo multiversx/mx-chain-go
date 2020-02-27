@@ -310,28 +310,28 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	}
 
 	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
-	if roundDiff <= process.MaxRoundsWithoutCommittedBlock {
+	if roundDiff <= process.MaxRoundsWithoutNewBlockReceived {
 		return
 	}
 
-	nbRequestedHdrs := 0
+	numRequestedHdrs := 0
 	nonce := boot.getNonceForNextBlock()
-	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, roundDiff)
-	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
+	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
+	for currentNonce := nonce; currentNonce < nonce+numHeadersToRequest; currentNonce++ {
 		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(nonce)
 		if haveHeader {
 			continue
 		}
 
 		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
-		nbRequestedHdrs++
+		numRequestedHdrs++
 	}
 
-	if nbRequestedHdrs > 0 {
+	if numRequestedHdrs > 0 {
 		log.Trace("request headers if sync is stuck",
-			"num headers", nbRequestedHdrs,
+			"num requested headers", numRequestedHdrs,
 			"from nonce", nonce,
-			"to", maxNonce,
+			"to nonce", nonce+numHeadersToRequest,
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
