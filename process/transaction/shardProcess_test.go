@@ -3,6 +3,7 @@ package transaction_test
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"testing"
@@ -1370,4 +1371,150 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	assert.False(t, wasCalled)
 	assert.Equal(t, 3, journalizeCalled)
 	assert.Equal(t, 3, saveAccountCalled)
+}
+
+func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
+	t.Parallel()
+
+	moveBalanceFee := big.NewInt(50)
+	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
+	execTx, _ := txproc.NewTxProcessor(
+		&mock.AccountsStub{},
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+		&mock.SCProcessorMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				return moveBalanceFee
+			},
+		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+	tx := &transaction.Transaction{
+		RcvAddr:  []byte("aaa"),
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+	}
+
+	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
+		return nil
+	}}
+	acntDst := &mock.UserAccountStub{}
+
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, acntDst)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+}
+
+func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
+	t.Parallel()
+
+	moveBalanceFee := big.NewInt(50)
+	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
+	execTx, _ := txproc.NewTxProcessor(
+		&mock.AccountsStub{},
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+		&mock.SCProcessorMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				return moveBalanceFee
+			},
+		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+	tx := &transaction.Transaction{
+		RcvAddr:  []byte("aaa"),
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+	}
+
+	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
+		return nil
+	}}
+
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+
+	tx = &transaction.Transaction{
+		RcvAddr:  []byte("aaa"),
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+		Data:     []byte("data"),
+	}
+
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+
+	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	tx = &transaction.Transaction{
+		RcvAddr:  scAddress,
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+	}
+
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+}
+
+func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
+	t.Parallel()
+
+	moveBalanceFee := big.NewInt(50)
+	execTx, _ := txproc.NewTxProcessor(
+		&mock.AccountsStub{},
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+		&mock.SCProcessorMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				return moveBalanceFee
+			},
+		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+
+	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	tx := &transaction.Transaction{
+		RcvAddr:  scAddress,
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+		Data:     []byte("data"),
+	}
+
+	totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
+	negTotalCost := big.NewInt(0).Neg(totalCost)
+	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+		assert.True(t, value.Cmp(negTotalCost) == 0)
+		return nil
+	}}
+
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }

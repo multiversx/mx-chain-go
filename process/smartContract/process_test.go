@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -47,8 +48,8 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap["BaseOperationCost"] = FillGasMapBaseOperationCosts(value)
-	gasMap["BuiltInCost"] = FillGasMapBuiltInCosts(value)
+	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
 
 	return gasMap
 }

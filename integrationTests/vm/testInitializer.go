@@ -10,6 +10,7 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -531,9 +532,9 @@ func CreateTransferTokenTx(
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap["BaseOperationCost"] = FillGasMapBaseOperationCosts(value)
-	gasMap["BuiltInCost"] = FillGasMapBuiltInCosts(value)
-	gasMap["MetaChainSystemSCsCost"] = FillGasMapMetaChainSystemSCsCosts(value)
+	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
+	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
 	return gasMap
 }

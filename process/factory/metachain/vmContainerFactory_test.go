@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -118,8 +119,8 @@ func makeGasSchedule() map[string]map[string]uint64 {
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap["BaseOperationCost"] = FillGasMapBaseOperationCosts(value)
-	gasMap["MetaChainSystemSCsCost"] = FillGasMapMetaChainSystemSCsCosts(value)
+	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
 	return gasMap
 }

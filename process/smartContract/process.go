@@ -145,23 +145,23 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 
 func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) error {
 	baseOps := &BaseOperationCost{}
-	err := mapstructure.Decode(gasMap["BaseOperationCost"], baseOps)
+	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
 	if err != nil {
 		return err
 	}
 
-	err = core.CheckForZeroUint64Fields(*baseOps)
+	err = check.ForZeroUintFields(*baseOps)
 	if err != nil {
 		return err
 	}
 
 	builtInOps := &BuiltInCost{}
-	err = mapstructure.Decode(gasMap["BuiltInCost"], builtInOps)
+	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInOps)
 	if err != nil {
 		return err
 	}
 
-	err = core.CheckForZeroUint64Fields(*builtInOps)
+	err = check.ForZeroUintFields(*builtInOps)
 	if err != nil {
 		return err
 	}

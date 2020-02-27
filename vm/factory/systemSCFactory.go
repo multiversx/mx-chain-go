@@ -50,23 +50,23 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 
 func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64) error {
 	baseOps := &vm.BaseOperationCost{}
-	err := mapstructure.Decode(gasMap["BaseOperationCost"], baseOps)
+	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
 	if err != nil {
 		return err
 	}
 
-	err = core.CheckForZeroUint64Fields(*baseOps)
+	err = check.ForZeroUintFields(*baseOps)
 	if err != nil {
 		return err
 	}
 
 	metaChainSCsOps := &vm.MetaChainSystemSCsCost{}
-	err = mapstructure.Decode(gasMap["MetaChainSystemSCsCost"], metaChainSCsOps)
+	err = mapstructure.Decode(gasMap[core.MetaChainSystemSCsCost], metaChainSCsOps)
 	if err != nil {
 		return err
 	}
 
-	err = core.CheckForZeroUint64Fields(*metaChainSCsOps)
+	err = check.ForZeroUintFields(*metaChainSCsOps)
 	if err != nil {
 		return err
 	}

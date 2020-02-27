@@ -195,7 +195,8 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 	for _, blsKey := range registrationData.BlsPubKeys {
 		vmOutput, err := s.executeOnStakingSC([]byte("changeRewardAddress@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		if isError {
 			log.LogIfError(err)
 			return vmcommon.UserError
 		}
@@ -274,7 +275,8 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 	}
 
 	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKeys@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
-	if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+	isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+	if isError {
 		return vm.ErrOnExecutionAtStakingSC
 	}
 
@@ -440,7 +442,8 @@ func (s *stakingAuctionSC) registerBLSKeys(registrationData *AuctionData, pubKey
 
 	for _, blsKey := range newKeys {
 		vmOutput, err := s.executeOnStakingSC([]byte("register@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		if isError {
 			return err
 		}
 
@@ -594,8 +597,8 @@ func (s *stakingAuctionSC) activateStakingFor(
 		}
 
 		vmOutput, err := s.executeOnStakingSC([]byte("stake@" + hex.EncodeToString(blsKeys[i]) + "@" + hex.EncodeToString(rewardAddress)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
-			numStaked--
+		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		if isError {
 			continue
 		}
 
@@ -708,9 +711,11 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		if err != nil {
 			return vmcommon.OutOfGas
 		}
-		_, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		if err != nil {
-			log.Debug("blsKey unStaking", "error", err)
+
+		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
+		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		if isError {
+			log.LogIfError(err)
 		}
 	}
 
@@ -770,7 +775,8 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		if isError {
 			continue
 		}
 

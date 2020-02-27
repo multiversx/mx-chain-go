@@ -241,7 +241,10 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 
 	returnCode := contract.Execute(input)
 
-	vmOutput := host.CreateVMOutput()
+	vmOutput := &vmcommon.VMOutput{}
+	if returnCode == vmcommon.Ok {
+		vmOutput = host.CreateVMOutput()
+	}
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil

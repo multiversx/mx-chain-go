@@ -29,3 +29,10 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *
 func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
 }
+
+func (txProc *txProcessor) ProcessTxFee(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) (*big.Int, error) {
+	return txProc.processTxFee(tx, acntSnd, acntDst)
+}
