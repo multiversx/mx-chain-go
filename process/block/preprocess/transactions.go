@@ -101,7 +101,11 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilAddressConverter
 	}
 
-	blockSizeComputation := NewBlockSizeComputation()
+	//TODO maybe inject this
+	bsc, err := NewBlockSizeComputation(marshalizer)
+	if err != nil {
+		return nil, err
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -109,7 +113,7 @@ func NewTransactionPreprocessor(
 		shardCoordinator:     shardCoordinator,
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
-		blockSizeComputation: blockSizeComputation,
+		blockSizeComputation: bsc,
 	}
 
 	txs := transactions{
@@ -510,8 +514,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
 	txs.mutAccountsInfo.RLock()
-	for senderAddress, txShardInfo := range txs.accountsInfo {
-		if txShardInfo.senderShardID != txs.shardCoordinator.SelfId() {
+	for senderAddress, txShardInfoValue := range txs.accountsInfo {
+		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -521,7 +525,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 			continue
 		}
 
-		strCache := process.ShardCacherIdentifier(txShardInfo.senderShardID, txShardInfo.receiverShardID)
+		strCache := process.ShardCacherIdentifier(txShardInfoValue.senderShardID, txShardInfoValue.receiverShardID)
 		txShardPool := txs.txPool.ShardDataStore(strCache)
 		if txShardPool == nil {
 			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
@@ -684,8 +688,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
-	num_badTxs := 0
-	num_sndAddressToSkip := 0
+	numBadTxs := 0
+	numSndAddressToSkip := 0
 	totalProcesssingTime := time.Duration(0)
 	totalComputeGasConsumedTime := time.Duration(0)
 	totalOnErrorTime := time.Duration(0)
@@ -726,7 +730,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 		}
 
 		if bytes.Equal(sndAddressToSkip, tx.GetSndAddress()) {
-			num_sndAddressToSkip++
+			numSndAddressToSkip++
 			continue
 		}
 
@@ -768,7 +772,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 				sndAddressToSkip = tx.GetSndAddress()
 			}
 
-			num_badTxs++
+			numBadTxs++
 			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
@@ -828,8 +832,8 @@ func (txs *transactions) createAndProcessMiniBlock(
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("COUNTS", "num_badTxs", num_badTxs)
-	log.Debug("COUNTS", "num_sndAddressToSkip", num_sndAddressToSkip)
+	log.Debug("COUNTS", "num_badTxs", numBadTxs)
+	log.Debug("COUNTS", "num_sndAddressToSkip", numSndAddressToSkip)
 	log.Debug("createAndProcessMiniBlock has been finished",
 		"num added txs", addedTxs,
 		"total txs", len(sortedTxs),
