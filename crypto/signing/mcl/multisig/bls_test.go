@@ -319,12 +319,6 @@ func TestMultiSignerBLS_VerifyAggregatedSigNilSuiteShouldErr(t *testing.T) {
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
 	aggSig, _ := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares, pubKeys)
-	pubKeysPoints := make([]crypto.Point, len(pubKeys))
-
-	for i := range pubKeys {
-		pubKeysPoints = append(pubKeysPoints, pubKeys[i].Point())
-	}
-
 	err := llSig.VerifyAggregatedSig(nil, pubKeys, aggSig, msg)
 
 	require.Equal(t, crypto.ErrNilSuite, err)
@@ -374,11 +368,10 @@ func TestMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *testin
 	msg := []byte("message")
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
-	pubKeys, sigShares := createSigSharesBLS(20, msg)
-	aggSig, _ := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares, pubKeys)
+	pubKeys, _ := createSigSharesBLS(20, msg)
 
 	//make aggregated sig invalid
-	aggSig = []byte("invalid aggregated signature")
+	aggSig := []byte("invalid aggregated signature")
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), pubKeys, aggSig, msg)
 
 	require.NotNil(t, err)

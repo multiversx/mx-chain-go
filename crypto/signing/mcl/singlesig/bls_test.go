@@ -110,6 +110,7 @@ func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	_, _, signature, err := signBLS(msg, signer, t)
+	require.Nil(t, err)
 
 	err = signer.Verify(nil, msg, signature)
 

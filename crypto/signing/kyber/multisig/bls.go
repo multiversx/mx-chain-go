@@ -256,9 +256,10 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 		return nil, err
 	}
 
-	pkPoint, err := pk.Mul(kScalar)
+	var pkPoint crypto.Point
+	pkPoint, err = pk.Mul(kScalar)
 
-	return pkPoint, nil
+	return pkPoint, err
 }
 
 // scalarMulSig returns the result of multiplying a scalar given as a bytes array, with a BLS single signature

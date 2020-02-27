@@ -37,7 +37,7 @@ func (bms *BlsMultiSigner) VerifySigBytes(suite crypto.Suite, sig []byte) error 
 	if check.IfNil(suite) {
 		return crypto.ErrNilSuite
 	}
-	if sig == nil || len(sig) == 0 {
+	if len(sig) == 0 {
 		return crypto.ErrNilSignature
 	}
 	_, ok := suite.GetUnderlyingSuite().(*mcl.SuiteBLS12)
@@ -95,7 +95,7 @@ func (bms *BlsMultiSigner) VerifyAggregatedSig(
 	if pubKeys == nil || len(pubKeys) == 0 {
 		return crypto.ErrNilPublicKeys
 	}
-	if aggSigBytes == nil || len(aggSigBytes) == 0 {
+	if len(aggSigBytes) == 0 {
 		return crypto.ErrNilSignature
 	}
 	if msg == nil || len(msg) == 0 {
@@ -172,7 +172,7 @@ func (bms *BlsMultiSigner) prepareSignatures(
 	prepSigs := make([]bls.Sign, 0)
 	for i, sig := range signatures {
 		sigBLS := &bls.Sign{}
-		if sig == nil || len(sig) == 0 {
+		if len(sig) == 0 {
 			return nil, crypto.ErrNilSignature
 		}
 
@@ -217,9 +217,10 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 		return nil, err
 	}
 
-	pkPoint, err := pk.Mul(scalar)
+	var pkPoint crypto.Point
+	pkPoint, err = pk.Mul(scalar)
 
-	return pkPoint, nil
+	return pkPoint, err
 }
 
 // ScalarMulSig returns the result of multiplication of a scalar with a BLS signature
