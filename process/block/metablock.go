@@ -1631,7 +1631,7 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr *block.MetaBlock)
 		}
 
 		if !lastHdr.IsStartOfEpochBlock() {
-			currentlyAccumulatedFeesInEpoch = lastMeta.AccumulatedFeesInEpoch
+			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastMeta.AccumulatedFeesInEpoch)
 		}
 	}
 
@@ -1755,7 +1755,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
-		AccumulatedFees: big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 

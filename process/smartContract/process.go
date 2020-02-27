@@ -372,6 +372,9 @@ func (sc *scProcessor) processIfError(
 		if err != nil {
 			return err
 		}
+	} else {
+		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		consumedFee.Sub(consumedFee, moveBalanceCost)
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
@@ -821,11 +824,11 @@ func (sc *scProcessor) createSCRForSender(
 	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
 	consumedFee := big.NewInt(0)
-	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
+	consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	consumedFee = consumedFee.Sub(consumedFee, refundErd)
+	consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddress()
 	if sc.isCallBack {
@@ -847,6 +850,9 @@ func (sc *scProcessor) createSCRForSender(
 	}
 
 	if check.IfNil(acntSnd) {
+		// cross shard move balance fee was already consumed at sender shard
+		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		consumedFee.Sub(consumedFee, moveBalanceCost)
 		return scTx, consumedFee, nil
 	}
 

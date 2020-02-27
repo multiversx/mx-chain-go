@@ -182,7 +182,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	}
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeRewardAddress +
-		uint64(len(args.Arguments[0]))*s.gasCost.BaseOperationCost.StorePerByte)
+		uint64(len(args.Arguments[0]))*s.gasCost.BaseOperationCost.DataCopyPerByte)
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
