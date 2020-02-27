@@ -27,10 +27,6 @@ const claimDeveloperRewardsFunctionName = "ClaimDeveloperRewards"
 // changeOwnerAddressFunctionName is a constant which defines the name for the change owner address function
 const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
 
-// builtInFunctionBaseCostMultiplier is a constant which defines the multiplier to calculate the transactions gas cost
-// when using built-in protocol functions
-const builtInFunctionBaseCostMultiplier = 2
-
 var log = logger.GetOrCreate("process/smartcontract")
 
 type scProcessor struct {

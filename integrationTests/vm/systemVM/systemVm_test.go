@@ -232,14 +232,14 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal *big.Int) {
+	expectedValue := big.NewInt(0).SetUint64(9999954880)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				expectedValue := big.NewInt(0).Sub(initialVal, node.EconomicsData.GenesisNodePrice())
-				assert.True(t, sndAcc.Balance.Cmp(expectedValue) > 0)
+				assert.True(t, sndAcc.Balance.Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -247,14 +247,14 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal *big.Int) {
+	expectedValue := big.NewInt(0).SetUint64(9499982750)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				expectedValue := big.NewInt(0).Sub(initialVal, node.EconomicsData.GenesisNodePrice())
-				assert.True(t, sndAcc.Balance.Cmp(expectedValue) < 0)
+				assert.True(t, sndAcc.Balance.Cmp(expectedValue) == 0)
 				break
 			}
 		}
