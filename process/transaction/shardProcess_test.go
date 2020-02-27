@@ -63,7 +63,7 @@ func createTxProcessor() txproc.TxProcessor {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -85,7 +85,7 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -106,7 +106,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -127,7 +127,7 @@ func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -148,7 +148,7 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -169,7 +169,7 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -190,7 +190,7 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -232,7 +232,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -257,7 +257,7 @@ func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -301,7 +301,7 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -330,7 +330,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -376,7 +376,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -431,7 +431,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -471,7 +471,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -502,7 +502,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -747,7 +747,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -772,7 +772,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -813,7 +813,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -869,7 +869,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -917,7 +917,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -975,7 +975,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -1033,7 +1033,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -1085,7 +1085,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -1150,7 +1150,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandler,
 		&mock.IntermediateTransactionHandlerMock{},
@@ -1204,7 +1204,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
 		wasCalled = true
 		return nil
 	}
@@ -1216,7 +1216,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
 				return process.SCInvoking, nil
@@ -1269,7 +1269,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1281,7 +1281,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
 			return process.SCInvoking, nil
 		}},
@@ -1341,7 +1341,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	scProcessorMock := &mock.SCProcessorMock{}
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1358,7 +1358,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		scProcessorMock,
-		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 		computeType,
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},

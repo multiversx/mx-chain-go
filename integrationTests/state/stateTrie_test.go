@@ -1416,9 +1416,9 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")

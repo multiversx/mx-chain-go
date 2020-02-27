@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -33,7 +34,6 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	InitialNodes        []*sharding.InitialNode
 	StakeValue          *big.Int
 	Marshalizer         marshal.Marshalizer
 	NodesCoordinator    sharding.NodesCoordinator
@@ -43,7 +43,9 @@ type ArgValidatorStatisticsProcessor struct {
 	AdrConv             state.AddressConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.RaterHandler
+	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
+	StartEpoch          uint32
 }
 
 type validatorStatistics struct {
@@ -54,35 +56,36 @@ type validatorStatistics struct {
 	shardCoordinator        sharding.Coordinator
 	adrConv                 state.AddressConverter
 	peerAdapter             state.AccountsAdapter
+	rater                   sharding.RaterHandler
+	rewardsHandler          process.RewardsHandler
+	initialNodes            map[uint32][]*sharding.NodeInfo
+	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
-	rater                   sharding.RaterHandler
-	initialNodes            []*sharding.InitialNode
-	maxComputableRounds     uint64
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
-	if arguments.PeerAdapter == nil || arguments.PeerAdapter.IsInterfaceNil() {
+	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
-	if arguments.AdrConv == nil || arguments.AdrConv.IsInterfaceNil() {
+	if check.IfNil(arguments.AdrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
+	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.StorageService == nil || arguments.StorageService.IsInterfaceNil() {
+	if check.IfNil(arguments.StorageService) {
 		return nil, process.ErrNilStorage
 	}
-	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
-	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(arguments.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if arguments.StakeValue == nil {
@@ -93,6 +96,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
+	}
+	if check.IfNil(arguments.RewardsHandler) {
+		return nil, process.ErrNilRewardsHandler
 	}
 
 	vs := &validatorStatistics{
@@ -105,6 +111,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		marshalizer:          arguments.Marshalizer,
 		missedBlocksCounters: make(validatorRoundCounters),
 		rater:                arguments.Rater,
+		rewardsHandler:       arguments.RewardsHandler,
 		maxComputableRounds:  arguments.MaxComputableRounds,
 	}
 
@@ -122,9 +129,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	vs.initialNodes = arguments.InitialNodes
-
-	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,26 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(
-	in []*sharding.InitialNode,
 	stakeValue *big.Int,
 	startRating uint32,
+	startEpoch uint32,
 ) error {
-	for _, node := range in {
-		err := vs.initializeNode(node, stakeValue, startRating)
-		if err != nil {
-			return err
+	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	if err != nil {
+		return err
+	}
+
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
+			if err != nil {
+				return err
+			}
+
+			err = vs.initializeNode(node, stakeValue, startRating)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -151,110 +168,6 @@ func (vs *validatorStatistics) saveInitialState(
 	}
 
 	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
-
-	return nil
-}
-
-// IsNodeValid calculates if a node that's present in the initial validator list
-//  contains all the required information in order to be able to participate in consensus
-func (vs *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
-	if len(node.PubKey) == 0 {
-		return false
-	}
-	if len(node.Address) == 0 {
-		return false
-	}
-
-	return true
-}
-
-func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
-	if vs.shardCoordinator.SelfId() == core.MetachainShardId {
-		return nil
-	}
-
-	metaBlock, ok := header.(*block.MetaBlock)
-	if !ok {
-		return nil
-	}
-
-	for _, peerChange := range metaBlock.PeerInfo {
-		err := vs.updatePeerData(peerChange)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (vs *validatorStatistics) updatePeerData(
-	peerChange block.PeerData,
-) error {
-	adrSrc, err := vs.adrConv.CreateAddressFromPublicKeyBytes(peerChange.PublicKey)
-	if err != nil {
-		return err
-	}
-
-	if peerChange.Action == block.PeerDeregistration {
-		return vs.peerAdapter.RemoveAccount(adrSrc)
-	}
-
-	accHandler, err := vs.peerAdapter.GetAccountWithJournal(adrSrc)
-	if err != nil {
-		return err
-	}
-
-	account, ok := accHandler.(*state.PeerAccount)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
-		err = account.SetRewardAddressWithJournal(peerChange.Address)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: Since the BLSPublicKey is the key in the peer accounts trie, this condition will never be met.
-	//  In order to be able to change the BLSPublicKey of a validator, we need to provide in the peer
-	//  change the old and the new public key. Also, important: the peer statistics data and the
-	//  rating from the old account needs to be associated to the new account
-	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err = account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
-		if err != nil {
-			return err
-		}
-	}
-
-	zero := big.NewInt(0)
-	if peerChange.ValueChange.Cmp(zero) != 0 {
-		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
-		err = account.SetStakeWithJournal(actualValue)
-		if err != nil {
-			return err
-		}
-	}
-
-	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
-		err = account.SetNonceWithJournal(peerChange.TimeStamp)
-		if err != nil {
-			return err
-		}
-
-		err = account.SetNodeInWaitingListWithJournal(true)
-		if err != nil {
-			return err
-		}
-	}
-
-	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
-		err = account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -270,26 +183,15 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	vs.missedBlocksCounters.reset()
 	vs.mutMissedBlocksCounters.Unlock()
 
-	err := vs.processPeerChanges(header)
-	if err != nil {
-		return nil, err
-	}
-
 	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()
 	if header.IsStartOfEpochBlock() && epoch > 0 {
 		epoch = epoch - 1
 	}
 
-	// TODO: This should be removed when we have the genesis block in the storage also
-	//  and make sure to calculate gaps for the first block also
-	if header.GetNonce() == 1 {
-		return vs.peerAdapter.RootHash()
-	}
-
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
-		log.Debug("UpdatePeerState after process.GetMetaHeader", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		log.Debug("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, err
 	}
 
@@ -323,7 +225,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap())
+	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees())
 	if err != nil {
 		return nil, err
 	}
@@ -334,6 +236,114 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) RootHash() ([]byte, error) {
 	return vs.peerAdapter.RootHash()
+}
+
+func (vs *validatorStatistics) getValidatorDataFromLeaves(
+	leaves map[string][]byte,
+) (map[uint32][]*state.ValidatorInfoData, error) {
+
+	validators := make(map[uint32][]*state.ValidatorInfoData, vs.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < vs.shardCoordinator.NumberOfShards(); i++ {
+		validators[i] = make([]*state.ValidatorInfoData, 0)
+	}
+	validators[core.MetachainShardId] = make([]*state.ValidatorInfoData, 0)
+
+	sortedLeaves := make([][]byte, len(leaves))
+	i := 0
+	for _, pa := range leaves {
+		sortedLeaves[i] = pa
+		i++
+	}
+
+	sort.Slice(sortedLeaves, func(i, j int) bool {
+		return bytes.Compare(sortedLeaves[i], sortedLeaves[j]) < 0
+	})
+
+	for _, pa := range sortedLeaves {
+		peerAccount := &state.PeerAccount{}
+		err := vs.marshalizer.Unmarshal(peerAccount, pa)
+		if err != nil {
+			return nil, err
+		}
+
+		currentShardId := peerAccount.CurrentShardId
+		validatorInfoData := &state.ValidatorInfoData{
+			PublicKey:                  peerAccount.BLSPublicKey,
+			ShardId:                    peerAccount.CurrentShardId,
+			List:                       "list",
+			Index:                      0,
+			TempRating:                 peerAccount.TempRating,
+			Rating:                     peerAccount.Rating,
+			RewardAddress:              peerAccount.RewardAddress,
+			LeaderSuccess:              peerAccount.LeaderSuccessRate.NrSuccess,
+			LeaderFailure:              peerAccount.LeaderSuccessRate.NrFailure,
+			ValidatorSuccess:           peerAccount.ValidatorSuccessRate.NrSuccess,
+			ValidatorFailure:           peerAccount.ValidatorSuccessRate.NrFailure,
+			NumSelectedInSuccessBlocks: peerAccount.NumSelectedInSuccessBlocks,
+			AccumulatedFees:            big.NewInt(0).Set(peerAccount.AccumulatedFees),
+		}
+
+		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+	}
+
+	return validators, nil
+}
+
+// GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
+func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+	sw := core.NewStopWatch()
+	sw.Start("GetValidatorInfoForRootHash")
+	defer func() {
+		sw.Stop("GetValidatorInfoForRootHash")
+		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
+	}()
+
+	allLeaves, err := vs.peerAdapter.GetAllLeaves(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	vInfos, err := vs.getValidatorDataFromLeaves(allLeaves)
+	if err != nil {
+		return nil, err
+	}
+
+	return vInfos, err
+}
+
+// ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
+func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+	sw := core.NewStopWatch()
+	sw.Start("ResetValidatorStatisticsAtNewEpoch")
+	defer func() {
+		sw.Stop("ResetValidatorStatisticsAtNewEpoch")
+		log.Debug("ResetValidatorStatisticsAtNewEpoch", sw.GetMeasurements()...)
+	}()
+
+	for _, validators := range vInfos {
+		for _, validator := range validators {
+			addrContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+			if err != nil {
+				return err
+			}
+			account, err := vs.peerAdapter.GetAccountWithJournal(addrContainer)
+			if err != nil {
+				return err
+			}
+
+			peerAccount, ok := account.(state.PeerAccountHandler)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
+			err = peerAccount.ResetAtNewEpoch()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(
@@ -457,7 +467,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap)
+		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -491,13 +501,12 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	return nil
 }
 
-func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int,
-	startRating uint32) error {
-	if !vs.IsNodeValid(node) {
-		return process.ErrInvalidInitialNodesState
-	}
-
-	peerAccount, err := vs.generatePeerAccount(node)
+func (vs *validatorStatistics) initializeNode(
+	node sharding.Validator,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
+	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
@@ -510,42 +519,23 @@ func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeV
 	return nil
 }
 
-func (vs *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := vs.adrConv.CreateAddressFromHex(node.PubKey)
-	if err != nil {
-		return nil, err
-	}
-
-	acc, err := vs.peerAdapter.GetAccountWithJournal(address)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccount, ok := acc.(*state.PeerAccount)
-	if !ok {
-		return nil, process.ErrInvalidPeerAccount
-	}
-
-	return peerAccount, nil
-}
-
 func (vs *validatorStatistics) savePeerAccountData(
-	peerAccount *state.PeerAccount,
-	data *sharding.InitialNode,
+	peerAccount state.PeerAccountHandler,
+	data sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	err := peerAccount.SetRewardAddressWithJournal([]byte(data.Address))
+	err := peerAccount.SetRewardAddressWithJournal(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetSchnorrPublicKeyWithJournal([]byte(data.Address))
+	err = peerAccount.SetSchnorrPublicKeyWithJournal(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKeyWithJournal([]byte(data.PubKey))
+	err = peerAccount.SetBLSPublicKeyWithJournal(data.PubKey())
 	if err != nil {
 		return err
 	}
@@ -568,10 +558,15 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
+		if err != nil {
+			return err
+		}
+
+		err = peerAcc.IncreaseNumSelectedInSuccessBlocks()
 		if err != nil {
 			return err
 		}
@@ -585,9 +580,12 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
-		case leaderFail:
-			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())
+			if err != nil {
+				return err
+			}
+
+			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())
