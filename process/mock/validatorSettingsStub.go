@@ -6,8 +6,8 @@ import "math/big"
 type ValidatorSettingsStub struct {
 }
 
-// UnBoundPeriod -
-func (v *ValidatorSettingsStub) UnBoundPeriod() uint64 {
+// UnBondPeriod -
+func (v *ValidatorSettingsStub) UnBondPeriod() uint64 {
 	return 10
 }
 
