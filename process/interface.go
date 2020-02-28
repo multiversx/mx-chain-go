@@ -219,8 +219,8 @@ type ValidatorStatisticsProcessor interface {
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -645,8 +645,8 @@ type EpochStartDataCreator interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body block.Body) map[string][][]byte
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body)

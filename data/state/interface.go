@@ -163,7 +163,8 @@ type TriesHolder interface {
 	IsInterfaceNil() bool
 }
 
-type ValidatorInfo interface {
+// ValidatorInfoHandler is used to store multiple validatorInfo properties
+type ValidatorInfoHandler interface {
 	GetPublicKey() []byte
 	GetShardId() uint32
 	GetList() string
@@ -171,4 +172,5 @@ type ValidatorInfo interface {
 	GetTempRating() uint32
 	GetRating() uint32
 	String() string
+	IsInterfaceNil() bool
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -96,7 +95,7 @@ func (r *rewardsCreator) clean() {
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
-func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error) {
+func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	r.clean()
 
 	miniBlocks := make(block.Body, r.shardCoordinator.NumberOfShards())
@@ -134,7 +133,7 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		})
 	}
 
-	finalMiniBlocks := make(block.Body, 0)
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
 	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
@@ -145,7 +144,7 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 }
 
 func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
-	validatorInfos map[uint32][]*state.ValidatorInfoData,
+	validatorInfos map[uint32][]*state.ValidatorInfo,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
@@ -198,13 +197,12 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error {
-	createdBody, err := r.CreateRewardsMiniBlocks(metaBlock, validatorInfos)
+func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	createdMiniBlocks, err := r.CreateRewardsMiniBlocks(metaBlock, validatorInfos)
 	if err != nil {
 		return err
 	}
 
-	createdMiniBlocks := createdBody.(block.Body)
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
 		if miniBlockHdr.Type != block.RewardsBlock {

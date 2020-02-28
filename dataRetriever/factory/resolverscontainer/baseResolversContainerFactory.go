@@ -173,7 +173,6 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-
 	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, emptyExcludePeersOnTopic)
 	if err != nil {
 		return err

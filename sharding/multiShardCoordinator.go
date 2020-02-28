@@ -127,5 +127,9 @@ func shardIdToString(shardId uint32) string {
 		return "_META"
 	}
 
+	if shardId == core.AllShardId {
+		return "_ALL"
+	}
+
 	return fmt.Sprintf("_%d", shardId)
 }

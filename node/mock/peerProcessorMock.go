@@ -7,18 +7,18 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled                    func(header data.HeaderHandler) error
-	IsInterfaceNilCalled                     func() bool
+	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled func(header data.HeaderHandler) error
+	IsInterfaceNilCalled  func() bool
 
-	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler,  error)
+	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 }
 
 // ResetValidatorStatisticsAtNewEpoch -
-func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
 	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
 		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
 	}
@@ -26,7 +26,7 @@ func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(
 }
 
 // GetValidatorInfoForRootHash -
-func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}

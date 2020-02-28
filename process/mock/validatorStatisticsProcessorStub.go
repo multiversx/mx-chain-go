@@ -12,12 +12,12 @@ type ValidatorStatisticsProcessorStub struct {
 	IsInterfaceNilCalled                     func() bool
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 }
 
 // ResetValidatorStatisticsAtNewEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error {
+func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
 	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
 		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
 	}
@@ -25,7 +25,7 @@ func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(
 }
 
 // GetValidatorInfoForRootHash -
-func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}

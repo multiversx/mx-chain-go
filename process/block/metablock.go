@@ -708,7 +708,16 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	return rewardMiniBlocks, nil
+	validatorMiniBlocks, err := mp.CreateValidatorMiniBlocks(allValidatorInfos)
+	if err != nil {
+		return nil, err
+	}
+
+	finalMiniBlocks := make(block.Body, 0)
+	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
+	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
+
+	return finalMiniBlocks, nil
 }
 
 // createBlockBody creates block body of metachain
@@ -1755,7 +1764,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
-		AccumulatedFees: big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
@@ -1868,21 +1877,7 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 	return pendingMiniBlocks
 }
 
-func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
-	validatorStatsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	validatorInfoDataList, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(validatorStatsRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return mp.createValidatorMiniBlocks(validatorInfoDataList)
-}
-
-func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]*state.ValidatorInfoData) ([]*block.MiniBlock, error) {
+func (mp *metaProcessor) CreateValidatorMiniBlocks(list map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	miniblocks := make([]*block.MiniBlock, 0)
 
 	for _, validators := range list {
