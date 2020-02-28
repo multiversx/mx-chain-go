@@ -764,9 +764,9 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	log.Debug("createAndProcessMiniBlock has been started")
 
 	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
-	num_txsAdded := 0
-	num_txsBad := 0
-	num_txsSkipped := 0
+	numTxsAdded := 0
+	numTxsBad := 0
+	numTxsSkipped := 0
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
@@ -796,7 +796,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		}
 		if txs.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, 1) {
 			log.Debug("max txs accepted in one block is reached",
-				"num txs added", num_txsAdded,
+				"num txs added", numTxsAdded,
 				"total txs", len(sortedTxs))
 			break
 		}
@@ -808,7 +808,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 		if len(senderAddressToSkip) > 0 {
 			if bytes.Equal(senderAddressToSkip, tx.GetSndAddress()) {
-				num_txsSkipped++
+				numTxsSkipped++
 				continue
 			}
 		}
@@ -857,7 +857,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 				senderAddressToSkip = tx.GetSndAddress()
 			}
 
-			num_txsBad++
+			numTxsBad++
 			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
@@ -897,7 +897,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 		mapMiniBlocks[receiverShardID].TxHashes = append(mapMiniBlocks[receiverShardID].TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
-		num_txsAdded++
+		numTxsAdded++
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
@@ -915,9 +915,9 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 	log.Debug("createAndProcessMiniBlock has been finished",
 		"total txs", len(sortedTxs),
-		"num txs added", num_txsAdded,
-		"num txs bad", num_txsBad,
-		"num txs skipped", num_txsSkipped,
+		"num txs added", numTxsAdded,
+		"num txs bad", numTxsBad,
+		"num txs skipped", numTxsSkipped,
 		"computeGasConsumed used time", totalTimeUsedForComputeGasConsumed,
 		"processAndRemoveBadTransaction used time", totalTimeUsedForProcesss)
 

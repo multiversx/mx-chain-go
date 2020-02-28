@@ -144,8 +144,3 @@ func (bsc *blockSizeComputation) MaxTransactionsInAMiniblock() int {
 func (bsc *blockSizeComputation) IsInterfaceNil() bool {
 	return bsc == nil
 }
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (bsc *blockSizeComputation) IsInterfaceNil() bool {
-	return bsc == nil
-}
