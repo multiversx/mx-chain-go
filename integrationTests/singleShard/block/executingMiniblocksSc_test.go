@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -110,18 +111,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	time.Sleep(1 * time.Second)
 }
 
-func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
-	x := new(big.Float).SetInt(value)
-	y := big.NewFloat(percentage)
-
-	z := new(big.Float).Mul(x, y)
-
-	op := big.NewInt(0)
-	result, _ := z.Int(op)
-
-	return result
-}
-
 func runMultipleRoundsOfTheGame(
 	t *testing.T,
 	nrRounds, numPlayers int,
@@ -142,9 +131,9 @@ func runMultipleRoundsOfTheGame(
 	totalWithdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(len(players)))
 	withdrawValues := make([]*big.Int, numRewardedPlayers)
 	winnerRate := 1.0 - 0.05*float64(numRewardedPlayers-1)
-	withdrawValues[0] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, winnerRate))
+	withdrawValues[0] = big.NewInt(0).Set(core.GetPercentageOfValue(totalWithdrawValue, winnerRate))
 	for i := 1; i < numRewardedPlayers; i++ {
-		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
+		withdrawValues[i] = big.NewInt(0).Set(core.GetPercentageOfValue(totalWithdrawValue, 0.05))
 	}
 
 	for currentRound := 0; currentRound < nrRounds; currentRound++ {

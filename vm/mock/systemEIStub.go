@@ -24,6 +24,15 @@ type SystemEIStub struct {
 	CryptoHookCalled                func() vmcommon.CryptoHook
 }
 
+// UseGas -
+func (s *SystemEIStub) UseGas(gasToConsume uint64) error {
+	return nil
+}
+
+// SetGasProvided -
+func (s *SystemEIStub) SetGasProvided(gasProvided uint64) {
+}
+
 // ExecuteOnDestContext -
 func (s *SystemEIStub) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	return &vmcommon.VMOutput{}, nil

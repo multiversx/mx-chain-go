@@ -68,17 +68,12 @@ func NewTestSyncNode(
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
+	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
-	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.NodesCoordinator,
-	)
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -131,12 +126,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Store:                        tpn.Storage,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		NodesCoordinator:             tpn.NodesCoordinator,
-		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		FeeHandler:                   tpn.FeeAccumulator,
 		Uint64Converter:              TestUint64Converter,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},
@@ -148,6 +143,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:           tpn.BlockTracker,
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockChain:   			tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -159,8 +155,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             &mock.ScQueryMock{},
 			SCToProtocol:             &mock.SCToProtocolStub{},
-			PeerChangesHandler:       &mock.PeerChangesHandler{},
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:           &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
