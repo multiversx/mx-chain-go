@@ -24,6 +24,29 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
+// TakeSnapshot -
+func (ts *TrieStub) TakeSnapshot(_ []byte) {
+}
+
+// SetCheckpoint -
+func (ts *TrieStub) SetCheckpoint(_ []byte) {
+}
+
+// GetAllLeaves -
+func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
+	return nil, nil
+}
+
+// IsPruningEnabled -
+func (ts *TrieStub) IsPruningEnabled() bool {
+	return false
+}
+
+// ClosePersister -
+func (ts *TrieStub) ClosePersister() error {
+	return nil
+}
+
 // Get -
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {
