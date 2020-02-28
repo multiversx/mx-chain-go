@@ -268,7 +268,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if boot.chainHandler.GetCurrentBlockHeader() == nil {
+	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
@@ -306,7 +306,7 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	}
 
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if currHeader == nil {
+	if check.IfNil(currHeader) {
 		return
 	}
 
@@ -390,6 +390,7 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
 	}
+
 	return nil
 }
 
@@ -513,7 +514,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -523,7 +524,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,

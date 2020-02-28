@@ -333,7 +333,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	blProcMock := mock.InitBlockProcessorMock()
 	blProcMock.CommitBlockCalled = func(
-		blockChain data.ChainHandler,
 		header data.HeaderHandler,
 		body data.BodyHandler,
 	) error {
