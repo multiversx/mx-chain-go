@@ -19,8 +19,8 @@ func NewPointG1() *PointG1 {
 		G1: &bls.G1{},
 	}
 
-	basePointG1Str = BaseG1()
-	err := point.G1.SetString(basePointG1Str, 10)
+	bpG1Str := BaseG1()
+	err := point.G1.SetString(bpG1Str, 10)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

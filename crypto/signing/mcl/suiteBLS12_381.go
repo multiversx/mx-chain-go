@@ -3,6 +3,7 @@ package mcl
 import (
 	"crypto/cipher"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
@@ -26,8 +27,8 @@ const bls_swap_g = false
 const g2str = "1 352701069587466618187139116011060144890029952792775240219908644239793785735715026873347600343865175952761926303160 3059144344244213709971259814753781636986470325476647558659373206291635324768958432433509563104347017837885763365758 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582"
 const g1str = "1 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569"
 
-var basePointG1Str string
-var basePointG2Str string
+var basePointG1Str atomic.Value
+var basePointG2Str atomic.Value
 
 func init() {
 	if err := bls.Init(bls.BLS12_381); err != nil {
@@ -39,13 +40,13 @@ func init() {
 	if bls_swap_g {
 		generatorG1 := &bls.G1{}
 		bls.BlsPublicKeyToG1(pubKey, generatorG1)
-		basePointG1Str = generatorG1.GetString(10)
-		basePointG2Str = g2str
+		basePointG1Str.Store(generatorG1.GetString(10))
+		basePointG2Str.Store(g2str)
 	} else {
 		generatorG2 := &bls.G2{}
 		bls.BlsPublicKeyToG2(pubKey, generatorG2)
-		basePointG1Str = g1str
-		basePointG2Str = generatorG2.GetString(10)
+		basePointG1Str.Store(g1str)
+		basePointG2Str.Store(generatorG2.GetString(10))
 	}
 }
 
@@ -121,10 +122,14 @@ func (s *SuiteBLS12) IsInterfaceNil() bool {
 
 // BaseG1 returns the generator point for G1
 func BaseG1() string {
-	return basePointG1Str
+	v := basePointG1Str.Load()
+	vStr := v.(string)
+	return vStr
 }
 
 // BaseG2 returns the generator point for G2
 func BaseG2() string {
-	return basePointG2Str
+	v := basePointG2Str.Load()
+	vStr := v.(string)
+	return vStr
 }

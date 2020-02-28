@@ -38,7 +38,7 @@ func TestGroupG1_PointLen(t *testing.T) {
 func TestGroupG1_CreatePoint(t *testing.T) {
 	t.Parallel()
 
-	baseG1Str := basePointG1Str
+	baseG1Str := BaseG1()
 
 	grG1 := &groupG1{}
 	point := &PointG1{
