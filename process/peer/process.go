@@ -734,14 +734,15 @@ func (vs *validatorStatistics) getRating(s string) uint32 {
 	return peer.GetRating()
 }
 
-func (vs *validatorStatistics) updateListAndIndex(pubKey string, list string, index int) error {
+// UpdateListAndIndex updates the list and the index for a given public key
+func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index int) error {
 	peer, err := vs.GetPeerAccount([]byte(pubKey))
 	if err != nil {
 		log.Debug("error getting peer account", "error", err, "key", pubKey)
 		return err
 	}
 
-	return peer.SetListAndIndexWithJournal(list, index)
+	return peer.SetListAndIndexWithJournal(shardID, list, index)
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {

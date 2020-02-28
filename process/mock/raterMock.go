@@ -100,11 +100,12 @@ func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
 	rm.RatingReader = reader
 }
 
+// SetListIndexUpdater -
 func (rm *RaterMock) SetListIndexUpdater(updater sharding.ListIndexUpdaterHandler) {
 }
 
 // UpdateListAndIndex -
-func (rm *RaterMock) UpdateListAndIndex(pubKey string, list string, index int) error {
+func (rm *RaterMock) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int) error {
 	if rm.UpdateListAndIndexCalled != nil {
 		return rm.UpdateListAndIndexCalled(pubKey, list, index)
 	}

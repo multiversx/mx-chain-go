@@ -1315,7 +1315,7 @@ func createNode(
 		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartSubscriber),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),

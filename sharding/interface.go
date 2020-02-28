@@ -74,7 +74,7 @@ type NodesShuffler interface {
 type PeerAccountListAndRatingHandler interface {
 	RatingReader
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, list string, index int) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
@@ -90,7 +90,7 @@ type PeerAccountListAndRatingHandler interface {
 // ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
 type ListIndexUpdaterHandler interface {
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, list string, index int) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

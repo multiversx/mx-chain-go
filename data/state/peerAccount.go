@@ -372,13 +372,14 @@ func (pa *PeerAccount) GetRating() uint32 {
 }
 
 // SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
-func (pa *PeerAccount) SetListAndIndexWithJournal(list string, index int) error {
-	entry, err := NewPeerJournalEntryListIndex(pa, pa.List, pa.IndexInList)
+func (pa *PeerAccount) SetListAndIndexWithJournal(shardID uint32, list string, index int) error {
+	entry, err := NewPeerJournalEntryListIndex(pa, pa.CurrentShardId, pa.List, pa.IndexInList)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
+	pa.CurrentShardId = shardID
 	pa.List = list
 	pa.IndexInList = index
 

@@ -109,6 +109,6 @@ func (bsr *BlockSigningRaterAndListIndexer) ComputeDecreaseValidator(val uint32)
 }
 
 // UpdateListAndIndex will update the list and the index for a peer
-func (bsr *BlockSigningRaterAndListIndexer) UpdateListAndIndex(pubKey string, list string, index int) error {
-	return bsr.ListIndexUpdaterHandler.UpdateListAndIndex(pubKey, list, index)
+func (bsr *BlockSigningRaterAndListIndexer) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int) error {
+	return bsr.ListIndexUpdaterHandler.UpdateListAndIndex(pubKey, shardID, list, index)
 }

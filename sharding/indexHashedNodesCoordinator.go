@@ -29,8 +29,8 @@ type epochNodesConfig struct {
 	mutNodesMaps sync.RWMutex
 }
 
-// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
-type EpochStartSubscriber interface {
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.EpochStartHandler)
 	UnregisterHandler(handler epochStart.EpochStartHandler)
 }
@@ -39,7 +39,7 @@ type indexHashedNodesCoordinator struct {
 	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
-	epochStartSubscriber    EpochStartSubscriber
+	epochStartSubscriber    EpochStartEventNotifier
 	listIndexUpdater        ListIndexUpdaterHandler
 	bootStorer              storage.Storer
 	selfPubKey              []byte
@@ -663,11 +663,15 @@ func (ihgs *indexHashedNodesCoordinator) updatePeerAccountsForGivenMap(
 	peers map[uint32][]Validator,
 	list core.PeerType,
 ) error {
-	for _, accountsPerShard := range peers {
+	for shardId, accountsPerShard := range peers {
 		for index, account := range accountsPerShard {
-			err := ihgs.listIndexUpdater.UpdateListAndIndex(string(account.PubKey()), string(list), index)
+			err := ihgs.listIndexUpdater.UpdateListAndIndex(
+				string(account.PubKey()),
+				shardId,
+				string(list),
+				index)
 			if err != nil {
-				log.Debug("error while updating list and index for peer",
+				log.Warn("error while updating list and index for peer",
 					"error", err,
 					"public key", account.PubKey())
 			}

@@ -5,7 +5,7 @@ type DisabledListIndexUpdater struct {
 }
 
 // UpdateListAndIndex will return nil
-func (n *DisabledListIndexUpdater) UpdateListAndIndex(pubKey string, list string, index int) error {
+func (n *DisabledListIndexUpdater) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int) error {
 	return nil
 }
 

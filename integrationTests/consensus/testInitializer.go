@@ -462,7 +462,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartSubscriber),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),

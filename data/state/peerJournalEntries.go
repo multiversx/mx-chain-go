@@ -355,18 +355,20 @@ func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
 // PeerJournalEntryListIndex is used to revert a list and index change
 type PeerJournalEntryListIndex struct {
 	account *PeerAccount
+	shardID uint32
 	list    string
 	index   int
 }
 
 // NewPeerJournalEntryListIndex outputs a new PeerJournalEntryListIndex implementation used to revert a state change
-func NewPeerJournalEntryListIndex(account *PeerAccount, list string, index int) (*PeerJournalEntryListIndex, error) {
+func NewPeerJournalEntryListIndex(account *PeerAccount, shardID uint32, list string, index int) (*PeerJournalEntryListIndex, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryListIndex{
 		account: account,
+		shardID: shardID,
 		list:    list,
 		index:   index,
 	}, nil
@@ -374,6 +376,7 @@ func NewPeerJournalEntryListIndex(account *PeerAccount, list string, index int) 
 
 // Revert applies undo operation
 func (pjeli *PeerJournalEntryListIndex) Revert() (AccountHandler, error) {
+	pjeli.account.CurrentShardId = pjeli.shardID
 	pjeli.account.List = pjeli.list
 	pjeli.account.IndexInList = pjeli.index
 

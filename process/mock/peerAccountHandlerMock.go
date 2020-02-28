@@ -174,7 +174,7 @@ func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) erro
 }
 
 // SetListAndIndexWithJournal -
-func (pahm *PeerAccountHandlerMock) SetListAndIndexWithJournal(list string, index int) error {
+func (pahm *PeerAccountHandlerMock) SetListAndIndexWithJournal(shardID uint32, list string, index int) error {
 	if pahm.SetListAndIndexWithJournalCalled != nil {
 		return pahm.SetListAndIndexWithJournalCalled(list, index)
 	}

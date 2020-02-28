@@ -1107,7 +1107,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1152,7 +1152,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1229,7 +1229,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1275,7 +1275,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1340,7 +1340,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1401,7 +1401,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1470,7 +1470,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1537,7 +1537,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2081,7 +2081,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithMultiSigner(&mock.MultisignMock{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
