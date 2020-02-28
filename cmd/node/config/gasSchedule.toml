@@ -1,3 +1,17 @@
+[BuiltInCost]
+    ChangeOwnerAddress    = 5000000
+    ClaimDeveloperRewards = 5000000
+
+[MetaChainSystemSCsCost]
+    Stake               = 5000000
+    UnStake             = 5000000
+    UnBond              = 5000000
+    Claim               = 5000000
+    Get                 = 5000000
+    ChangeRewardAddress = 5000000
+    ChangeValidatorKeys = 5000000
+    UnJail              = 5000000
+
 [BaseOperationCost]
     StorePerByte      = 50000
     ReleasePerByte    = 10000
@@ -51,8 +65,8 @@
     CallCode            = 160000
     CallDelegate        = 160000
     CallStatic          = 160000
-    StorageStore        = 200000
-    StorageLoad         = 50000
+    StorageStore        = 250000
+    StorageLoad         = 100000
     GetCaller           = 100
     GetCallValue        = 100
     CodeCopy            = 1000
