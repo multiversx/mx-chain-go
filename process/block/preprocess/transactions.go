@@ -102,7 +102,7 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilAddressConverter
 	}
 
-	//TODO maybe inject this
+	//TODO maybe inject this and check if this is needed to be used also for smartContractResults
 	bsc, err := NewBlockSizeComputation(marshalizer)
 	if err != nil {
 		return nil, err
@@ -763,14 +763,20 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	log.Debug("createAndProcessMiniBlock has been started")
 
 	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
+
 	numTxsAdded := 0
 	numTxsBad := 0
 	numTxsSkipped := 0
+
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
+
+	firstInvalidTxFound := false
+
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+
 	senderAddressToSkip := []byte("")
 
 	defer func() {
@@ -886,6 +892,12 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {
+			if !firstInvalidTxFound {
+				firstInvalidTxFound = true
+				txs.blockSizeComputation.AddNumMiniBlocks(1)
+			}
+
+			txs.blockSizeComputation.AddNumTxs(1)
 			continue
 		}
 
@@ -917,8 +929,8 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		"num txs added", numTxsAdded,
 		"num txs bad", numTxsBad,
 		"num txs skipped", numTxsSkipped,
-		"computeGasConsumed used time", totalTimeUsedForComputeGasConsumed,
-		"processAndRemoveBadTransaction used time", totalTimeUsedForProcesss)
+		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
+		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
 	return miniBlocks, nil
 }
