@@ -231,10 +231,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	}
 
 	vs.displayRatings(header.GetEpoch())
-	rootHash, err := vs.peerAdapter.RootHash()
-	if err != nil {
-		log.Warn("UpdatePeerState - get root hash failed end", "error", err.Error())
-	}
+	rootHash, _ := vs.peerAdapter.RootHash()
 
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
@@ -759,7 +756,10 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 			return err
 		}
 	}
-	rootHash, _ = vs.RootHash()
+	rootHash, err = vs.RootHash()
+	if err != nil {
+		log.Warn("updateRatingFromTempRating.getting root hash failed", "error", err)
+	}
 
 	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
 	return nil
