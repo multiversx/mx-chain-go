@@ -10,6 +10,7 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -94,7 +95,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 		return nil, err
 	}
 
-	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	err = account.(*state.Account).AddToBalance(balance)
 	if err != nil {
 		return nil, err
 	}
@@ -131,24 +132,33 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		accnts)
 
+	gasSchedule := make(map[string]map[string]uint64)
+	FillGasMapInternal(gasSchedule, 1)
+
 	argsParser, _ := vmcommon.NewAtArgumentParser()
-	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		testHasher,
-		testMarshalizer,
-		accnts,
-		blockChainHook,
-		addrConv,
-		oneShardCoordinator,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
-		txTypeHandler,
-		&mock.GasHandlerMock{
+	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:  vmContainer,
+		ArgsParser:   argsParser,
+		Hasher:       testHasher,
+		Marshalizer:  testMarshalizer,
+		AccountsDB:   accnts,
+		TempAccounts: blockChainHook,
+		AdrConv:      addrConv,
+		Coordinator:  oneShardCoordinator,
+		ScrForwarder: &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler: &mock.UnsignedTxHandlerMock{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+		},
+		TxTypeHandler: txTypeHandler,
+		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-	)
+		GasMap: gasSchedule,
+	}
+	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
@@ -214,6 +224,7 @@ func CreateVMAndBlockchainHook(
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
 		actualGasSchedule = arwenConfig.MakeGasMap(1)
+		FillGasMapInternal(actualGasSchedule, 1)
 	}
 
 	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
@@ -235,23 +246,31 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		oneShardCoordinator,
 		accnts)
 
-	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		testHasher,
-		testMarshalizer,
-		accnts,
-		blockChainHook,
-		addrConv,
-		oneShardCoordinator,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
-		txTypeHandler,
-		&mock.GasHandlerMock{
+	gasSchedule := make(map[string]map[string]uint64)
+	FillGasMapInternal(gasSchedule, 1)
+	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:  vmContainer,
+		ArgsParser:   argsParser,
+		Hasher:       testHasher,
+		Marshalizer:  testMarshalizer,
+		AccountsDB:   accnts,
+		TempAccounts: blockChainHook,
+		AdrConv:      addrConv,
+		Coordinator:  oneShardCoordinator,
+		ScrForwarder: &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler: &mock.UnsignedTxHandlerMock{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+		},
+		TxTypeHandler: txTypeHandler,
+		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-	)
+		GasMap: gasSchedule,
+	}
+	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
@@ -510,4 +529,62 @@ func CreateTransferTokenTx(
 		GasLimit: 5000000,
 		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
+}
+
+func CreateMoveBalanceTx(
+	nonce uint64,
+	value *big.Int,
+	sndAddress []byte,
+	rcvAddress []byte,
+	gasLimit uint64,
+) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    big.NewInt(0).Set(value),
+		RcvAddr:  rcvAddress,
+		SndAddr:  sndAddress,
+		GasPrice: 1,
+		GasLimit: gasLimit,
+	}
+}
+
+func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
+	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
+	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+
+	return gasMap
+}
+
+func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["StorePerByte"] = value
+	gasMap["DataCopyPerByte"] = value
+	gasMap["ReleasePerByte"] = value
+	gasMap["PersistPerByte"] = value
+	gasMap["CompilePerByte"] = value
+
+	return gasMap
+}
+
+func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["ClaimDeveloperRewards"] = value
+	gasMap["ChangeOwnerAddress"] = value
+
+	return gasMap
+}
+
+func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["Stake"] = value
+	gasMap["UnStake"] = value
+	gasMap["UnBond"] = value
+	gasMap["Claim"] = value
+	gasMap["Get"] = value
+	gasMap["ChangeRewardAddress"] = value
+	gasMap["ChangeValidatorKeys"] = value
+	gasMap["UnJail"] = value
+
+	return gasMap
 }

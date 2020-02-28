@@ -245,9 +245,6 @@ var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in co
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilInternalTransactionProducer signals that a nil system transactions producer was provided
-var ErrNilInternalTransactionProducer = errors.New("nil internal transaction producere")
-
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
@@ -341,9 +338,6 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrNilRewardTransaction signals that the reward transaction is nil
 var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 
-// ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
-var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -410,20 +404,8 @@ var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
-// ErrRewardTxsDoNotMatch signals that reward txs do not match
-var ErrRewardTxsDoNotMatch = errors.New("calculated reward tx with block reward tx does not match")
-
-// ErrRewardTxNotFound signals that the reward transaction was not found
-var ErrRewardTxNotFound = errors.New("reward transaction not found")
-
-// ErrRewardTxsMismatchCreatedReceived signals a mismatch between the nb of created and received reward transactions
-var ErrRewardTxsMismatchCreatedReceived = errors.New("mismatch between created and received reward transactions")
-
 // ErrNilTxTypeHandler signals that tx type handler is nil
 var ErrNilTxTypeHandler = errors.New("nil tx type handler")
-
-// ErrNilSpecialAddressHandler signals that special address handler is nil
-var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
 
 // ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
 var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
@@ -473,9 +455,6 @@ var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
 // ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
 var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
-
-// ErrNilEconomicsRewardsHandler signals that rewards handler is nil
-var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
@@ -650,6 +629,42 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrInvalidArguments signals that invalid arguments were given to process built-in function
+var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
+
+// ErrNilBuiltInFunction signals that built in function is nil
+var ErrNilBuiltInFunction = errors.New("built in function is nil")
+
+// ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")
+
+// ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
+var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
+
+// ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
+var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
+
+// ErrNilRewardsHandler signals that rewards handler is nil
+var ErrNilRewardsHandler = errors.New("rewards handler is nil")
+
+// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
+var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
+
+// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
+var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch econimics data does not match")
+
+// ErrNilEpochEconomics signals that nil end of epoch econimics was provided
+var ErrNilEpochEconomics = errors.New("nil epoch economics")
+
+// ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
+var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
+
+// ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
+var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
+
+// ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
+var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 
 // ErrInvalidAuctionEnableNonce signals that auction enable nonce is invalid
 var ErrInvalidAuctionEnableNonce = errors.New("invalid auction enable nonce")

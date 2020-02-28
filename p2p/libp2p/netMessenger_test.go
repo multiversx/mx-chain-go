@@ -540,12 +540,12 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
+func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
 	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
-	assert.Equal(t, p2p.ErrNilTopic, err)
+	assert.Nil(t, err)
 
 	_ = mes.Close()
 }
