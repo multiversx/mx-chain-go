@@ -1,6 +1,7 @@
 package resolverscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*shardResolversContainerFactory)(nil)
@@ -70,7 +70,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateTxResolvers(
+	err = srcf.generateRewardResolver(
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		srcf.dataPools.RewardTransactions(),
@@ -113,7 +113,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
 	//only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(srcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
@@ -215,7 +215,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(srcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
@@ -229,7 +229,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		peerListCreator,
 		srcf.marshalizer,
 		srcf.intRandomizer,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 	)
 	if err != nil {
 		return err
@@ -266,7 +266,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return err
@@ -275,7 +275,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return err
@@ -285,6 +285,31 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	return srcf.container.AddMultiple(keys, resolversSlice)
+}
+
+func (srcf *shardResolversContainerFactory) generateRewardResolver(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) error {
+
+	shardC := srcf.shardCoordinator
+
+	keys := make([]string, 0)
+	resolverSlice := make([]dataRetriever.Resolver, 0)
+
+	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool)
+	if err != nil {
+		return err
+	}
+
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTx)
+
+	return srcf.container.AddMultiple(keys, resolverSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	block2 "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 		CrossNotarizer:                &mock.BlockNotarizerHandlerMock{},
 		CrossNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{},
 		SelfNotarizedHeadersNotifier:  &mock.BlockNotifierHandlerMock{},
+		Rounder:                       &mock.RounderMock{},
 	}
 
 	return arguments
@@ -94,7 +96,7 @@ func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) 
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = nil
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
-	assert.Equal(t, track.ErrCrossNotarizedHeadersNotifier, err)
+	assert.Equal(t, track.ErrNilCrossNotarizedHeadersNotifier, err)
 	assert.Nil(t, bp)
 }
 
@@ -104,7 +106,17 @@ func TestNewBlockProcessor_ShouldErrSelfNotarizedHeadersNotifier(t *testing.T) {
 	blockProcessorArguments.SelfNotarizedHeadersNotifier = nil
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
-	assert.Equal(t, track.ErrSelfNotarizedHeadersNotifier, err)
+	assert.Equal(t, track.ErrNilSelfNotarizedHeadersNotifier, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrNilRounder(t *testing.T) {
+	t.Parallel()
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.Rounder = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, track.ErrNilRounder, err)
 	assert.Nil(t, bp)
 }
 
@@ -255,7 +267,7 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	bp.DoJobOnReceivedCrossNotarizedHeader(sharding.MetachainShardId)
+	bp.DoJobOnReceivedCrossNotarizedHeader(core.MetachainShardId)
 
 	assert.Equal(t, 2, called)
 }
@@ -740,5 +752,109 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 	mutCalled.RLock()
 	assert.True(t, calledMeta)
 	assert.False(t, calledShard)
+	mutCalled.RUnlock()
+}
+
+func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
+	t.Parallel()
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	called := false
+	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			called = true
+		},
+		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+			called = true
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{}}
+	longestChainHeaders := []data.HeaderHandler{&block2.Header{}}
+	latestValidHeader := bp.GetLatestValidHeader(nil, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
+	time.Sleep(50 * time.Millisecond)
+
+	assert.False(t, called)
+}
+
+func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFromReceivedHeadersIsNearToChronologyRound(t *testing.T) {
+	t.Parallel()
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	called := false
+	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			called = true
+		},
+		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+			called = true
+		},
+	}
+
+	blockProcessorArguments.Rounder = &mock.RounderMock{
+		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 3,
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
+	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2, Round: 2}}
+	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
+	time.Sleep(50 * time.Millisecond)
+
+	assert.False(t, called)
+}
+
+func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromReceivedHeadersIsFarFromChronologyRound(t *testing.T) {
+	t.Parallel()
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	var mutCalled sync.RWMutex
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+
+	mutCalled.Lock()
+	called := false
+	mutCalled.Unlock()
+
+	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			wg.Done()
+			mutCalled.Lock()
+			called = true
+			mutCalled.Unlock()
+		},
+		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+			wg.Done()
+			mutCalled.Lock()
+			called = true
+			mutCalled.Unlock()
+		},
+	}
+
+	blockProcessorArguments.Rounder = &mock.RounderMock{
+		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 4,
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
+	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2, Round: 2}}
+	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+	bp.RequestHeadersIfNothingNewIsReceived(latestValidHeader, highestRound)
+	wg.Wait()
+
+	mutCalled.RLock()
+	assert.True(t, called)
 	mutCalled.RUnlock()
 }

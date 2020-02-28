@@ -92,3 +92,7 @@ const MinForkRound = uint64(0)
 
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100
+
+// MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
+// before a special action to be applied
+const MaxRoundsWithoutNewBlockReceived = 10

@@ -131,9 +131,9 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(hav
 }
 
 // CreateMarshalizedData -
-func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
+func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body block.Body) map[string][][]byte {
 	if tcm.CreateMarshalizedDataCalled == nil {
-		return make(map[uint32]block.MiniBlockSlice), make(map[string][][]byte)
+		return make(map[string][][]byte)
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)
