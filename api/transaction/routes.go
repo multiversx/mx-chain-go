@@ -214,7 +214,7 @@ func GetTransactionCost(c *gin.Context) {
 
 	cost, err := ef.ComputeTransactionCost(tx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s", err.Error())})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
