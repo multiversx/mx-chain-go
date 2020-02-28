@@ -57,17 +57,10 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	return nil
 }
 
-func (brcf *baseResolversContainerFactory) createTopicAndAssignHandler(
+func (brcf *baseResolversContainerFactory) assignHandler(
 	topicName string,
 	resolver dataRetriever.Resolver,
-	createChannel bool,
 ) (dataRetriever.Resolver, error) {
-
-	err := brcf.messenger.CreateTopic(topicName, createChannel)
-	if err != nil {
-		return nil, err
-	}
-
 	return resolver, brcf.messenger.RegisterMessageProcessor(topicName, resolver)
 }
 
@@ -136,10 +129,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	}
 
 	//add on the request topic
-	return brcf.createTopicAndAssignHandler(
+	return brcf.assignHandler(
 		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 }
 
 func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
@@ -194,10 +187,10 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 	}
 
 	//add on the request topic
-	return brcf.createTopicAndAssignHandler(
+	return brcf.assignHandler(
 		topic+resolverSender.TopicRequestSuffix(),
 		txBlkResolver,
-		false)
+	)
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSender(
@@ -256,8 +249,8 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string,
 	}
 
 	//add on the request topic
-	return brcf.createTopicAndAssignHandler(
+	return brcf.assignHandler(
 		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 }

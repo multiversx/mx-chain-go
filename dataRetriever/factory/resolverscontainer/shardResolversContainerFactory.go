@@ -147,10 +147,10 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		return err
 	}
 	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
+	_, err = srcf.assignHandler(
 		identifierHdr+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 	if err != nil {
 		return err
 	}
@@ -194,10 +194,10 @@ func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolvers() e
 		return err
 	}
 	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
+	_, err = srcf.assignHandler(
 		identifierPeerCh+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 	if err != nil {
 		return err
 	}
@@ -249,10 +249,10 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	}
 
 	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
+	_, err = srcf.assignHandler(
 		identifierHdr+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 	if err != nil {
 		return err
 	}

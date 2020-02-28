@@ -203,58 +203,6 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 
 //------- Create
 
-func TestShardResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard(factory.TransactionTopic, "")
-	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard(factory.ShardBlocksTopic, "")
-	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardResolversContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard(factory.MiniBlocksTopic, "")
-	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardResolversContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard(factory.PeerChBodyTopic, "")
-	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 

@@ -163,10 +163,10 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic strin
 	}
 
 	//add on the request topic
-	return mrcf.createTopicAndAssignHandler(
+	return mrcf.assignHandler(
 		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 }
 
 //------- Meta header resolvers
@@ -215,10 +215,10 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(identif
 	}
 
 	//add on the request topic
-	return mrcf.createTopicAndAssignHandler(
+	return mrcf.assignHandler(
 		identifier+resolverSender.TopicRequestSuffix(),
 		resolver,
-		false)
+	)
 }
 
 func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
