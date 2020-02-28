@@ -569,6 +569,9 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte) error {
+	if len(signingBitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
+	}
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())

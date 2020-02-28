@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -24,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -354,7 +355,7 @@ func main() {
 func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
-		return kyber.NewSuitePairingBn256(), nil
+		return mcl.NewSuiteBLS12(), nil
 	default:
 		return nil, errors.New("no consensus provided in config file")
 	}

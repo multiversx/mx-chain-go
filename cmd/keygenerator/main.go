@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -177,7 +179,7 @@ func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
 	// Ex: crypto.NewSuite(consensusType) crypto.Suite
 	switch consensusType {
 	case "bls":
-		return kyber.NewSuitePairingBn256()
+		return mcl.NewSuiteBLS12()
 	case "bn":
 		return kyber.NewBlakeSHA256Ed25519()
 	default:

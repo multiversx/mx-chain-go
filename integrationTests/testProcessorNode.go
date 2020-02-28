@@ -78,7 +78,7 @@ var TestMarshalizer = &marshal.JsonMarshalizer{}
 var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 // TestAddressConverterBLS represents an address converter from BLS public keys
-var TestAddressConverterBLS, _ = addressConverters.NewPlainAddressConverter(128, "0x")
+var TestAddressConverterBLS, _ = addressConverters.NewPlainAddressConverter(96, "0x")
 
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)

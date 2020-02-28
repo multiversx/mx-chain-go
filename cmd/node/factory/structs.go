@@ -22,8 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	blsMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	kybersig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/address"
@@ -438,7 +439,7 @@ func NewCryptoComponentsFactoryArgs(
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
 	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &singlesig.SchnorrSigner{}
+	txSingleSigner := &kybersig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -1104,7 +1105,7 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
 	case BlsConsensusType:
-		return &singlesig.BlsSingleSigner{}, nil
+		return &mclsig.BlsSingleSigner{}, nil
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}
@@ -1138,7 +1139,7 @@ func createMultiSigner(
 
 	switch config.Consensus.Type {
 	case BlsConsensusType:
-		blsSigner := &blsMultiSig.KyberMultiSignerBLS{Hasher: hasher}
+		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
 	default:
 		return nil, errors.New("no consensus type provided in config file")

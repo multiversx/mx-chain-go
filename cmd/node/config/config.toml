@@ -232,7 +232,7 @@
     Prefix = "0x"
 
 [BLSPublicKey]
-    Length = 128
+    Length = 96
     Prefix = "0x"
 
 [Hasher]

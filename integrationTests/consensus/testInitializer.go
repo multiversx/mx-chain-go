@@ -11,12 +11,15 @@ import (
 	"strings"
 	"time"
 
+	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -259,7 +262,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 }
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
-	suite := kyber.NewSuitePairingBn256()
+	suite := mcl.NewSuiteBLS12()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
@@ -374,7 +377,7 @@ func createConsensusOnlyNode(
 	startTime := int64(0)
 
 	singlesigner := &singlesig.SchnorrSigner{}
-	singleBlsSigner := &singlesig.BlsSingleSigner{}
+	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()

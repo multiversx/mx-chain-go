@@ -181,22 +181,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	return nil
 }
 
-// GetNodesPerShard returns the eligible nodes per shard map
-func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uint32][]Validator, error) {
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
-	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-
-	return nodesConfig.eligibleMap, nil
-}
-
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:

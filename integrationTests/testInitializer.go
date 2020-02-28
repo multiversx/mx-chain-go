@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1535,7 +1537,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
-	suite := kyber.NewSuitePairingBn256()
+	suite := mcl.NewSuiteBLS12()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
