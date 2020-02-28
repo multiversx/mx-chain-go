@@ -123,7 +123,7 @@ func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	pubKey, _, signature, err := signBLS(msg, signer, t)
-
+	require.Nil(t, err)
 	err = signer.Verify(pubKey, nil, signature)
 
 	require.Equal(t, crypto.ErrNilMessage, err)
@@ -135,7 +135,7 @@ func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	pubKey, _, _, err := signBLS(msg, signer, t)
-
+	require.Nil(t, err)
 	err = signer.Verify(pubKey, msg, nil)
 
 	require.Equal(t, crypto.ErrNilSignature, err)
@@ -147,6 +147,7 @@ func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	pubKey, _, signature, err := signBLS(msg, signer, t)
+	require.Nil(t, err)
 
 	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
@@ -167,7 +168,7 @@ func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	pubKey, _, signature, err := signBLS(msg, signer, t)
-
+	require.Nil(t, err)
 	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
 		ToByteArrayStub: pubKey.ToByteArray,
@@ -187,6 +188,7 @@ func TestBLSSigner_VerifyOK(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := singlesig.NewBlsSigner()
 	pubKey, _, signature, err := signBLS(msg, signer, t)
+	require.Nil(t, err)
 
 	err = signer.Verify(pubKey, msg, signature)
 

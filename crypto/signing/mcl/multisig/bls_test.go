@@ -199,7 +199,6 @@ func TestMultiSignerBLS_VerifySigShareInvalidSigShouldErr(t *testing.T) {
 	err := lls.VerifySigShare(pubKey, msg2, sig)
 
 	require.Equal(t, crypto.ErrSigNotValid, err)
-	require.NotNil(t, err)
 }
 
 func TestMultiSignerBLS_VerifySigShareOK(t *testing.T) {
