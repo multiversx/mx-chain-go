@@ -38,6 +38,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/sirupsen/logrus v1.2.0
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0

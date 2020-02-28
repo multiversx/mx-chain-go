@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -23,7 +22,7 @@ type BlockSigningRater struct {
 }
 
 // NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
-func NewBlockSigningRater(ratingsData economics.RatingsInfo) (*BlockSigningRater, error) {
+func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, error) {
 	if ratingsData.MinRating() < 1 {
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
@@ -41,8 +40,8 @@ func NewBlockSigningRater(ratingsData economics.RatingsInfo) (*BlockSigningRater
 
 	for i, chance := range ratingsData.SelectionChances() {
 		ratingChances[i] = &selectionChance{
-			maxThreshold:     chance.MaxThreshold,
-			chancePercentage: chance.ChancePercent,
+			maxThreshold:     chance.GetMaxThreshold(),
+			chancePercentage: chance.GetChancePercent(),
 		}
 	}
 
@@ -95,8 +94,8 @@ func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 }
 
 // UpdateRatingFromTempRating returns the TempRating for the specified public keys
-func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) {
-	bsr.RatingReader.UpdateRatingFromTempRating(pks)
+func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) error {
+	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
 }
 
 // SetRatingReader sets the Reader that can read ratings

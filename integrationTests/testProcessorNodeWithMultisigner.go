@@ -282,9 +282,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := CreateMemUnit()
-
 	waitingMap := make(map[uint32][]sharding.Validator)
-
 	initialNodes := createInitialNodes(validatorsMap, waitingMap)
 
 	for shardId, validatorList := range validatorsMap {
@@ -364,9 +362,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
-
 		initialNodes := createInitialNodes(validatorsMap, waitingMap)
-
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{

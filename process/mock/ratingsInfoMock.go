@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type RatingsInfoMock struct {
@@ -12,7 +12,7 @@ type RatingsInfoMock struct {
 	ProposerDecreaseRatingStepVal  uint32
 	ValidatorIncreaseRatingStepVal uint32
 	ValidatorDecreaseRatingStepVal uint32
-	SelectionChancesVal            []economics.SelectionChance
+	SelectionChancesVal            []process.SelectionChance
 }
 
 // StartRating will return the start rating
@@ -51,6 +51,6 @@ func (rd *RatingsInfoMock) ValidatorDecreaseRatingStep() uint32 {
 }
 
 // SelectionChances will return the array of selectionChances and thresholds
-func (rd *RatingsInfoMock) SelectionChances() []economics.SelectionChance {
+func (rd *RatingsInfoMock) SelectionChances() []process.SelectionChance {
 	return rd.SelectionChancesVal
 }

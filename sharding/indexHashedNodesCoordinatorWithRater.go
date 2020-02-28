@@ -71,9 +71,9 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandAllLists(epoch uint32) e
 
 	shardsExpanded := make(map[uint32][]Validator)
 
-	err2 := ihgs.expandListsForEpochConfig(nodesConfig, shardsExpanded)
-	if err2 != nil {
-		return err2
+	err := ihgs.expandListsForEpochConfig(nodesConfig, shardsExpanded)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -119,6 +119,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
 		if chances == 0 {
+			//default chance if all validators need to be selected
 			chances = ihgs.GetChance(0)
 		}
 		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)

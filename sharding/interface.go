@@ -94,7 +94,7 @@ type RatingReader interface {
 	//GetRating gets the rating for the public key
 	GetRating(string) uint32
 	//UpdateRatingFromTempRating sets the rating to the value of the tempRating for the public keys
-	UpdateRatingFromTempRating([]string)
+	UpdateRatingFromTempRating([]string) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

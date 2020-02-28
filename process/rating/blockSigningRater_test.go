@@ -313,20 +313,20 @@ func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldE
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *testing.T) {
-	chances := make([]economics.SelectionChance, 0)
-	chances = append(chances, economics.SelectionChance{
+	chances := make([]process.SelectionChance, 0)
+	chances = append(chances, &economics.SelectionChance{
 		MaxThreshold:  10,
 		ChancePercent: 0,
 	})
-	chances = append(chances, economics.SelectionChance{
+	chances = append(chances, &economics.SelectionChance{
 		MaxThreshold:  20,
 		ChancePercent: 90,
 	})
-	chances = append(chances, economics.SelectionChance{
+	chances = append(chances, &economics.SelectionChance{
 		MaxThreshold:  20,
 		ChancePercent: 100,
 	})
-	chances = append(chances, economics.SelectionChance{
+	chances = append(chances, &economics.SelectionChance{
 		MaxThreshold:  100,
 		ChancePercent: 110,
 	})

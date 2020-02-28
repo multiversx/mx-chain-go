@@ -191,7 +191,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
-		log.Debug("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		log.Warn("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, err
 	}
 
@@ -233,12 +233,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	vs.displayRatings(header.GetEpoch())
 	rootHash, err := vs.peerAdapter.RootHash()
 	if err != nil {
-		log.Debug("UpdatePeerState - get root hash failed end", "error", err.Error())
+		log.Warn("UpdatePeerState - get root hash failed end", "error", err.Error())
 	}
 
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
-	return vs.peerAdapter.RootHash()
+	return rootHash, nil
 }
 
 func (vs *validatorStatistics) displayRatings(epoch uint32) {
@@ -738,13 +738,13 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
-func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
+func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 	rootHash, _ := vs.RootHash()
 	log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
 	for _, pk := range pks {
 		peer, err := vs.GetPeerAccount([]byte(pk))
 		if err != nil {
-			log.Warn("Error getting peer account", "error", err)
+			return err
 		}
 
 		tempRating := vs.getTempRating(pk)
@@ -752,11 +752,12 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
 		log.Trace("UpdateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
 		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
 		if err != nil {
-			log.Warn("Error setting rating with journal on peer account", "error", err)
+			return err
 		}
 	}
 	rootHash, _ = vs.RootHash()
 	log.Trace("UpdateRatingFromTempRating after", "rootHash", rootHash)
+	return nil
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {

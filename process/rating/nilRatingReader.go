@@ -16,7 +16,8 @@ func (nrr *nilRatingReader) GetRating(string) uint32 {
 }
 
 //UpdateRatingFromTempRating sets the new rating to the value of the tempRating
-func (nrr *nilRatingReader) UpdateRatingFromTempRating([]string) {
+func (nrr *nilRatingReader) UpdateRatingFromTempRating([]string) error {
+	return nil
 }
 
 //IsInterfaceNil verifies if the interface is nil

@@ -176,7 +176,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.waitingMap = waiting
 
 	eligibleCopy := make(map[uint32][]Validator)
-
 	for key, value := range eligible {
 		eligibleCopy[key] = value
 	}
@@ -597,11 +596,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	}
 
 	return shardEligible, nil
-}
-
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, _ *sync.RWMutex) []Validator {
-	//TODO implement an expand eligible list variant
-	return validators
 }
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {

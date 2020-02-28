@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"math"
@@ -987,7 +988,10 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	if err != nil {
+		logrus.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
 
 	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)

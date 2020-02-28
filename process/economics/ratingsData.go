@@ -5,11 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type SelectionChance struct {
-	MaxThreshold  uint32
-	ChancePercent uint32
-}
-
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
 	startRating                 uint32
@@ -19,7 +14,7 @@ type RatingsData struct {
 	proposerDecreaseRatingStep  uint32
 	validatorIncreaseRatingStep uint32
 	validatorDecreaseRatingStep uint32
-	selectionChances            []SelectionChance
+	selectionChances            []process.SelectionChance
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -36,9 +31,9 @@ func NewRatingsData(
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
 
-	chances := make([]SelectionChance, 0)
+	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.SelectionChance {
-		chances = append(chances, SelectionChance{
+		chances = append(chances, &SelectionChance{
 			MaxThreshold:  chance.MaxThreshold,
 			ChancePercent: chance.ChancePercent,
 		})
@@ -92,6 +87,6 @@ func (rd *RatingsData) ValidatorDecreaseRatingStep() uint32 {
 }
 
 // SelectionChances will return the array of selectionChances and thresholds
-func (rd *RatingsData) SelectionChances() []SelectionChance {
+func (rd *RatingsData) SelectionChances() []process.SelectionChance {
 	return rd.selectionChances
 }
