@@ -130,7 +130,7 @@ func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 }
 
 // NotifyAccountNonce isn't implemented for the generic cache
-func (adapter *adapterGenericCacheToSortedTransactionsProvider) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) NotifyAccountNonce(_ []byte, _ uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

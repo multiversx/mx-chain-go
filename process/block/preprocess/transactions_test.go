@@ -935,20 +935,20 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 }
 
 func ExampleSortTransactionsByNonceAndSender() {
-	transactions := []*txcache.WrappedTransaction{
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")}, TxHash: []byte("y")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")}, TxHash: []byte("z")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")}, TxHash: []byte("t")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")}, TxHash: []byte("a")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")}, TxHash: []byte("b")},
-		&txcache.WrappedTransaction{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
+	txs := []*txcache.WrappedTransaction{
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
+		{Tx: &transaction.Transaction{Nonce: 5, SndAddr: []byte("bbbb")}, TxHash: []byte("y")},
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")}, TxHash: []byte("z")},
+		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")}, TxHash: []byte("t")},
+		{Tx: &transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")}, TxHash: []byte("a")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("ffff")}, TxHash: []byte("b")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
 	}
 
-	sortTransactionsBySenderAndNonce(transactions)
+	sortTransactionsBySenderAndNonce(txs)
 
-	for _, item := range transactions {
+	for _, item := range txs {
 		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddress()), string(item.TxHash))
 	}
 
@@ -965,9 +965,9 @@ func ExampleSortTransactionsByNonceAndSender() {
 
 func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
 	numTx := 100000
-	transactions := make([]*txcache.WrappedTransaction, numTx)
+	txs := make([]*txcache.WrappedTransaction, numTx)
 	for i := 0; i < numTx; i++ {
-		transactions[i] = &txcache.WrappedTransaction{
+		txs[i] = &txcache.WrappedTransaction{
 			Tx: &transaction.Transaction{
 				Nonce:   uint64(numTx - i),
 				SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
@@ -978,7 +978,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		sortTransactionsBySenderAndNonce(transactions)
+		sortTransactionsBySenderAndNonce(txs)
 	}
 }
 

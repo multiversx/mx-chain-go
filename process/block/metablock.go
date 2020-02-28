@@ -836,15 +836,15 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := headerInfo.hdr.(*block.Header)
-		if !ok {
+		shardBlock, isOk := headerInfo.hdr.(*block.Header)
+		if !isOk {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
 
 		mp.updateShardHeadersNonce(shardBlock.ShardId, shardBlock.Nonce)
 
-		marshalizedHeader, err := mp.marshalizer.Marshal(shardBlock)
+		marshalizedHeader, err = mp.marshalizer.Marshal(shardBlock)
 		if err != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return err
