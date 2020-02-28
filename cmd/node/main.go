@@ -1028,8 +1028,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
-	cfg := &config.ConfigEconomics{}
+func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
+	cfg := &config.EconomicsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1486,7 +1486,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
 		if err != nil {
 			return nil, err
 		}

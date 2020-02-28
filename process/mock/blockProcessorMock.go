@@ -10,14 +10,13 @@ import (
 
 // BlockProcessorMock -
 type BlockProcessorMock struct {
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -37,17 +36,17 @@ func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 }
 
 // SetNumProcessedObj -
-func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 }
 
 // ProcessBlock -
-func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
+func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bpm.ProcessBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock -
-func (bpm *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-	return bpm.CommitBlockCalled(blockChain, header, body)
+func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
+	return bpm.CommitBlockCalled(header, body)
 }
 
 // RevertAccountState -
@@ -65,19 +64,14 @@ func (bpm *BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bpm.CreateGenesisBlockCalled(balances)
 }
 
-// CreateBlockBody -
-func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+// CreateBlock -
+func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
-}
-
-// ApplyBodyToHeader -
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bpm.ApplyBodyToHeaderCalled(header, body)
 }
 
 // MarshalizedDataToBroadcast -
@@ -105,9 +99,13 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-// SetConsensusData -
-func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	panic("implement me")
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
+	}
+
+	return nil
 }
 
 // PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
@@ -120,13 +118,4 @@ func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandle
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
-}
-
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if bpm.RevertStateToBlockCalled != nil {
-		return bpm.RevertStateToBlockCalled(header)
-	}
-
-	return nil
 }

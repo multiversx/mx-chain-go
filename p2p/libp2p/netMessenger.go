@@ -516,11 +516,8 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator, found := netMes.topics[topic]
-	if !found {
-		return p2p.ErrNilTopic
-	}
-	if validator != nil {
+	validator := netMes.topics[topic]
+	if !check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
@@ -557,12 +554,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
-
 	if !found {
 		return p2p.ErrNilTopic
 	}
-
-	if validator == nil {
+	if check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 

@@ -5,15 +5,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ValidatorStatisticsProcessorMock -
-type ValidatorStatisticsProcessorMock struct {
+// ValidatorStatisticsProcessorStub -
+type ValidatorStatisticsProcessorStub struct {
 	LoadInitialStateCalled func(in []*sharding.InitialNode) error
 	UpdatePeerStateCalled  func(header, previousHeader data.HeaderHandler) error
 	IsInterfaceNilCalled   func() bool
 }
 
 // LoadInitialState -
-func (pm *ValidatorStatisticsProcessorMock) LoadInitialState(in []*sharding.InitialNode) error {
+func (pm *ValidatorStatisticsProcessorStub) LoadInitialState(in []*sharding.InitialNode) error {
 	if pm.LoadInitialStateCalled != nil {
 		return pm.LoadInitialStateCalled(in)
 	}
@@ -21,7 +21,7 @@ func (pm *ValidatorStatisticsProcessorMock) LoadInitialState(in []*sharding.Init
 }
 
 // UpdatePeerState -
-func (pm *ValidatorStatisticsProcessorMock) UpdatePeerState(header, previousHeader data.HeaderHandler) error {
+func (pm *ValidatorStatisticsProcessorStub) UpdatePeerState(header, previousHeader data.HeaderHandler) error {
 	if pm.UpdatePeerStateCalled != nil {
 		return pm.UpdatePeerStateCalled(header, previousHeader)
 	}
@@ -29,7 +29,7 @@ func (pm *ValidatorStatisticsProcessorMock) UpdatePeerState(header, previousHead
 }
 
 // IsInterfaceNil -
-func (pm *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
+func (pm *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
 	if pm.IsInterfaceNilCalled != nil {
 		return pm.IsInterfaceNilCalled()
 	}

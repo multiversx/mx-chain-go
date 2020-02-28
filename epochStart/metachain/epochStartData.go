@@ -1,4 +1,4 @@
-package block
+package metachain
 
 import (
 	"bytes"
@@ -80,7 +80,9 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return err
 	}
 
-	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, metaBlock.EpochStart)
+	epochStartDataWithoutEconomics := metaBlock.EpochStart
+	epochStartDataWithoutEconomics.Economics = block.Economics{}
+	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, epochStartDataWithoutEconomics)
 	if err != nil {
 		return err
 	}
@@ -170,6 +172,8 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 
 		finalHeader := block.EpochStartShardData{
 			ShardId:               lastCrossNotarizedHeaderForShard.GetShardID(),
+			Round:                 lastCrossNotarizedHeaderForShard.GetRound(),
+			Nonce:                 lastCrossNotarizedHeaderForShard.GetNonce(),
 			HeaderHash:            hdrHash,
 			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
 			FirstPendingMetaBlock: lastMetaHash,

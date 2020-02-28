@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/address"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -64,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -1534,6 +1534,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		DataPool:                 dataComponents.Datapool,
 		Economics:                economicsData,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
+		GasMap:                   args.gasSchedule,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -1591,6 +1592,7 @@ func createInMemoryStoreBlkc(
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
@@ -1755,41 +1757,12 @@ func newBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
-	nodesCoordinator := processArgs.nodesCoordinator
-
-	communityAddr := processArgs.economicsData.CommunityAddress()
-	burnAddr := processArgs.economicsData.BurnAddress()
-	if communityAddr == "" || burnAddr == "" {
-		return nil, errors.New("rewards configuration missing")
-	}
-
-	communityAddress, err := hex.DecodeString(communityAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	burnAddress, err := hex.DecodeString(burnAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	specialAddressHolder, err := address.NewSpecialAddressHolder(
-		communityAddress,
-		burnAddress,
-		processArgs.state.AddressConverter,
-		shardCoordinator,
-		nodesCoordinator,
-	)
-	if err != nil {
-		return nil, err
-	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
-			specialAddressHolder,
 			processArgs.data,
 			processArgs.coreData,
 			processArgs.state,
@@ -1810,7 +1783,6 @@ func newBlockProcessor(
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
-			specialAddressHolder,
 			processArgs.data,
 			processArgs.coreData,
 			processArgs.state,
@@ -1826,6 +1798,7 @@ func newBlockProcessor(
 			pendingMiniBlocksHandler,
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
+			processArgs.gasSchedule,
 		)
 	}
 
@@ -1836,7 +1809,6 @@ func newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
 	data *Data,
 	core *Core,
 	stateComponents *State,
@@ -1880,7 +1852,6 @@ func newShardBlockProcessor(
 		core.Marshalizer,
 		core.Hasher,
 		stateComponents.AddressConverter,
-		specialAddressHandler,
 		data.Store,
 		data.Datapool,
 		economics,
@@ -1897,21 +1868,6 @@ func newShardBlockProcessor(
 	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
 		return nil, err
-	}
-
-	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	rewardsTxHandler, ok := rewardsTxInterim.(process.TransactionFeeHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	internalTransactionProducer, ok := rewardsTxInterim.(process.InternalTransactionProducer)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
 	}
 
 	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
@@ -1934,21 +1890,28 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		core.Hasher,
-		core.Marshalizer,
-		stateComponents.AccountsAdapter,
-		vmFactory.BlockChainHookImpl(),
-		stateComponents.AddressConverter,
-		shardCoordinator,
-		scForwarder,
-		rewardsTxHandler,
-		economics,
-		txTypeHandler,
-		gasHandler,
-	)
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   vmContainer,
+		ArgsParser:    argsParser,
+		Hasher:        core.Hasher,
+		Marshalizer:   core.Marshalizer,
+		AccountsDB:    stateComponents.AccountsAdapter,
+		TempAccounts:  vmFactory.BlockChainHookImpl(),
+		AdrConv:       stateComponents.AddressConverter,
+		Coordinator:   shardCoordinator,
+		ScrForwarder:  scForwarder,
+		TxFeeHandler:  txFeeHandler,
+		EconomicsFee:  economics,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    gasHandler,
+		GasMap:        gasSchedule,
+	}
+	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -1957,7 +1920,6 @@ func newShardBlockProcessor(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 		shardCoordinator,
-		rewardsTxInterim,
 	)
 	if err != nil {
 		return nil, err
@@ -1970,7 +1932,7 @@ func newShardBlockProcessor(
 		core.Marshalizer,
 		shardCoordinator,
 		scProcessor,
-		rewardsTxHandler,
+		txFeeHandler,
 		txTypeHandler,
 		economics,
 		receiptTxInterim,
@@ -1998,7 +1960,6 @@ func newShardBlockProcessor(
 		scProcessor,
 		scProcessor,
 		rewardsTxProcessor,
-		internalTransactionProducer,
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
@@ -2050,7 +2011,6 @@ func newShardBlockProcessor(
 		Store:                  data.Store,
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
-		SpecialAddressHandler:  specialAddressHandler,
 		Uint64Converter:        core.Uint64ByteSliceConverter,
 		RequestHandler:         requestHandler,
 		Core:                   coreServiceContainer,
@@ -2062,6 +2022,8 @@ func newShardBlockProcessor(
 		BootStorer:             bootStorer,
 		BlockTracker:           blockTracker,
 		DataPool:               data.Datapool,
+		FeeHandler:             txFeeHandler,
+		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 	}
 	arguments := block.ArgShardProcessor{
@@ -2086,13 +2048,12 @@ func newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
 	data *Data,
 	core *Core,
 	stateComponents *State,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
-	economics *economics.EconomicsData,
+	economicsData *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
@@ -2102,6 +2063,7 @@ func newMetaBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
+	gasSchedule map[string]map[string]uint64,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2113,7 +2075,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics, messageSignVerifier)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
 	if err != nil {
 		return nil, err
 	}
@@ -2155,26 +2117,33 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics)
+	gasHandler, err := preprocess.NewGasComputation(economicsData)
 	if err != nil {
 		return nil, err
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		core.Hasher,
-		core.Marshalizer,
-		stateComponents.AccountsAdapter,
-		vmFactory.BlockChainHookImpl(),
-		stateComponents.AddressConverter,
-		shardCoordinator,
-		scForwarder,
-		&metachain.TransactionFeeHandler{},
-		economics,
-		txTypeHandler,
-		gasHandler,
-	)
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   vmContainer,
+		ArgsParser:    argsParser,
+		Hasher:        core.Hasher,
+		Marshalizer:   core.Marshalizer,
+		AccountsDB:    stateComponents.AccountsAdapter,
+		TempAccounts:  vmFactory.BlockChainHookImpl(),
+		AdrConv:       stateComponents.AddressConverter,
+		Coordinator:   shardCoordinator,
+		ScrForwarder:  scForwarder,
+		TxFeeHandler:  txFeeHandler,
+		EconomicsFee:  economicsData,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    gasHandler,
+		GasMap:        gasSchedule,
+	}
+	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -2185,13 +2154,13 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
-		economics,
+		economicsData,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
+	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economicsData, shardCoordinator, gasHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -2206,7 +2175,7 @@ func newMetaBlockProcessor(
 		requestHandler,
 		transactionProcessor,
 		scProcessor,
-		economics,
+		economicsData,
 		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
@@ -2235,7 +2204,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}
@@ -2255,6 +2224,48 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
+		Marshalizer:       core.Marshalizer,
+		Hasher:            core.Hasher,
+		Store:             data.Store,
+		DataPool:          data.Datapool,
+		BlockTracker:      blockTracker,
+		ShardCoordinator:  shardCoordinator,
+		EpochStartTrigger: epochStartTrigger,
+	}
+	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
+		Marshalizer:      core.Marshalizer,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: nodesCoordinator,
+		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
+	}
+	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	if err != nil {
+		return nil, err
+	}
+
+	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
+	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
+		ShardCoordinator: shardCoordinator,
+		AddrConverter:    stateComponents.AddressConverter,
+		RewardsStorage:   rewardsStorage,
+		MiniBlockStorage: miniBlockStorage,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+	}
+	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
@@ -2267,7 +2278,6 @@ func newMetaBlockProcessor(
 		Store:                        data.Store,
 		ShardCoordinator:             shardCoordinator,
 		NodesCoordinator:             nodesCoordinator,
-		SpecialAddressHandler:        specialAddressHandler,
 		Uint64Converter:              core.Uint64ByteSliceConverter,
 		RequestHandler:               requestHandler,
 		Core:                         coreServiceContainer,
@@ -2280,14 +2290,18 @@ func newMetaBlockProcessor(
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
 		DataPool:                     data.Datapool,
+		FeeHandler:                   txFeeHandler,
+		BlockChain:                   data.Blkc,
 		StateCheckpointModulus:       stateCheckpointModulus,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:         argumentsBaseProcessor,
 		SCDataGetter:             scDataGetter,
 		SCToProtocol:             smartContractToProtocol,
-		PeerChangesHandler:       smartContractToProtocol,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
+		EpochStartDataCreator:    epochStartDataCreator,
+		EpochEconomics:           epochEconomics,
+		EpochRewardsCreator:      epochRewards,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
@@ -2307,7 +2321,6 @@ func newValidatorStatisticsProcessor(
 	processComponents *processComponentsFactoryArgs,
 ) (process.ValidatorStatisticsProcessor, error) {
 
-	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
 	var peerDataPool peer.DataPool = processComponents.data.Datapool
@@ -2316,7 +2329,6 @@ func newValidatorStatisticsProcessor(
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:        initialNodes,
 		PeerAdapter:         processComponents.state.PeerAccounts,
 		AdrConv:             processComponents.state.BLSAddressConverter,
 		NodesCoordinator:    processComponents.nodesCoordinator,
@@ -2324,9 +2336,11 @@ func newValidatorStatisticsProcessor(
 		DataPool:            peerDataPool,
 		StorageService:      storageService,
 		Marshalizer:         processComponents.coreData.Marshalizer,
-		StakeValue:          processComponents.economicsData.StakeValue(),
+		StakeValue:          processComponents.economicsData.GenesisNodePrice(),
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
+		RewardsHandler:      processComponents.economicsData,
+		StartEpoch:          processComponents.startEpochNum,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
