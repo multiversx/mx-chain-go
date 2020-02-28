@@ -630,9 +630,9 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 // UpdatePeersListAndIndex will update the list and the index for all peers
 func (ihgs *indexHashedNodesCoordinator) UpdatePeersListAndIndex() error {
 	ihgs.mutNodesConfig.RLock()
-	defer ihgs.mutNodesConfig.RUnlock()
-
 	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	ihgs.mutNodesConfig.RUnlock()
+
 	if !ok {
 		return ErrEpochNodesConfigDoesNotExist
 	}
