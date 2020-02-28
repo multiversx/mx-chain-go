@@ -739,8 +739,12 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
-	rootHash, _ := vs.RootHash()
-	log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
+	rootHash, err := vs.RootHash()
+	if err != nil {
+		log.Warn("updateRatingFromTempRating getRootHash failed", "error", err)
+	}
+
+	log.Trace("updateRatingFromTempRating before", "rootHash", rootHash)
 	for _, pk := range pks {
 		peer, err := vs.GetPeerAccount([]byte(pk))
 		if err != nil {
@@ -749,14 +753,15 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 
 		tempRating := vs.getTempRating(pk)
 		rating := vs.getRating(pk)
-		log.Trace("UpdateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
+		log.Trace("updateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
 		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
 		if err != nil {
 			return err
 		}
 	}
 	rootHash, _ = vs.RootHash()
-	log.Trace("UpdateRatingFromTempRating after", "rootHash", rootHash)
+
+	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
 	return nil
 }
 
