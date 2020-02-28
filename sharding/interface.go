@@ -23,8 +23,8 @@ type Validator interface {
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
+	NodesPerShardSetter
 	PublicKeysSelector
-	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, epoch uint32) error
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
 	LoadState(key []byte) error
@@ -39,7 +39,7 @@ type NodesCoordinator interface {
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
-	GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
@@ -63,9 +63,20 @@ type NodesShuffler interface {
 	IsInterfaceNil() bool
 }
 
+// NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
+type NodesPerShardSetter interface {
+	SetNodesPerShards(
+		eligible map[uint32][]Validator,
+		waiting map[uint32][]Validator,
+		epoch uint32,
+	) error
+}
+
 //RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type RaterHandler interface {
 	RatingReader
+	//GetChance returns the chances for the the rating
+	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
@@ -82,10 +93,24 @@ type RaterHandler interface {
 type RatingReader interface {
 	//GetRating gets the rating for the public key
 	GetRating(string) uint32
-	//GetRatings gets all the ratings as a map[pk] ratingValue
-	GetRatings([]string) map[string]uint32
+	//UpdateRatingFromTempRating sets the rating to the value of the tempRating for the public keys
+	UpdateRatingFromTempRating([]string) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
+}
+
+//ChanceComputer provides chance computation capabilities based on a rating
+type ChanceComputer interface {
+	//GetChance returns the chances for the the rating
+	GetChance(uint32) uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+//RatingReaderWithChanceComputer provides chance computation capabilities with Rater
+type RatingReaderWithChanceComputer interface {
+	RatingReader
+	GetChance(uint32) uint32
 }
 
 //RatingReaderSetter provides the capabilities to set a RatingReader
@@ -102,4 +127,14 @@ type Cacher interface {
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
+}
+
+//RatingChance provides the methods needed for the computation of chances from the Rating
+type RatingChance interface {
+	//GetMaxThreshold returns the threshold until this ChancePercentage holds
+	GetMaxThreshold() uint32
+	//GetChancePercentage returns the percentage for the RatingChance
+	GetChancePercentage() uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }

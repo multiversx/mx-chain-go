@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -811,7 +812,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -981,14 +982,17 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
-	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator, log logger.Logger) {
+	if check.IfNil(elasticIndexer) {
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
 
-	if validatorsPubKeys != nil {
+	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
 }

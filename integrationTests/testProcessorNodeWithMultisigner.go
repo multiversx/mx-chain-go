@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -35,6 +36,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	initialNodes []*sharding.InitialNode,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -46,6 +48,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           ChainID,
+		InitialNodes:      initialNodes,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -104,6 +107,21 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	metaConsensusGroupSize int,
 	seedAddress string,
 ) map[uint32][]*TestProcessorNode {
+	coordinatorFactory := &IndexHashedNodesCoordinatorFactory{}
+	return CreateNodesWithNodesCoordinatorFactory(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress, coordinatorFactory)
+
+}
+
+// CreateNodesWithNodesCoordinatorFactory returns a map with nodes per shard each using a real nodes coordinator
+func CreateNodesWithNodesCoordinatorFactory(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+	nodesCoordinatorFactory NodesCoordinatorFactory,
+) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
@@ -133,6 +151,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				seedAddress,
 				cp,
 				dataCache,
+				nodesCoordinatorFactory,
 			)
 		}
 
@@ -151,6 +170,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				seedAddress,
 				cpWaiting,
 				cache,
+				nodesCoordinatorFactory,
 			)
 		}
 
@@ -173,32 +193,31 @@ func createNode(
 	seedAddress string,
 	cp *CryptoParams,
 	cache sharding.Cacher,
+	coordinatorFactory NodesCoordinatorFactory,
 ) *TestProcessorNode {
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
-	nodeKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	initialNodes := createInitialNodes(validatorsMap, waitingMap)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := CreateMemUnit()
 
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Hasher:                  TestHasher,
-		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
-		BootStorer:              bootStorer,
-		ShardId:                 shardId,
-		NbShards:                uint32(nbShards),
-		EligibleNodes:           validatorsMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     cache}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
-	if err != nil {
-		fmt.Println("Error creating node coordinator")
+	argFactory := ArgIndexHashedNodesCoordinatorFactory{
+		nodesPerShard,
+		nbMetaNodes,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		shardId,
+		nbShards,
+		validatorsMap,
+		waitingMap,
+		keyIndex,
+		cp,
+		epochStartSubscriber,
+		TestHasher,
+		cache,
+		bootStorer,
 	}
+
+	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
 	return NewTestProcessorNodeWithCustomNodesCoordinator(
 		uint32(nbShards),
@@ -210,7 +229,39 @@ func createNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		initialNodes,
 	)
+}
+
+func createInitialNodes(validatorsMap map[uint32][]sharding.Validator, waitingMap map[uint32][]sharding.Validator) []*sharding.InitialNode {
+	initialNodes := make([]*sharding.InitialNode, 0)
+
+	for _, pks := range validatorsMap {
+		for _, validator := range pks {
+			n := &sharding.InitialNode{
+				PubKey:   core.ToHex(validator.PubKey()),
+				Address:  core.ToHex(validator.Address()),
+				NodeInfo: sharding.NodeInfo{},
+			}
+			initialNodes = append(initialNodes, n)
+		}
+	}
+
+	for _, pks := range waitingMap {
+		for _, validator := range pks {
+			n := &sharding.InitialNode{
+				PubKey:   core.ToHex(validator.PubKey()),
+				Address:  core.ToHex(validator.Address()),
+				NodeInfo: sharding.NodeInfo{},
+			}
+			initialNodes = append(initialNodes, n)
+		}
+	}
+
+	sort.Slice(initialNodes, func(i, j int) bool {
+		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
+	})
+	return initialNodes
 }
 
 // CreateNodesWithNodesCoordinatorAndHeaderSigVerifier returns a map with nodes per shard each using a real nodes coordinator and header sig verifier
@@ -231,6 +282,8 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := CreateMemUnit()
+	waitingMap := make(map[uint32][]sharding.Validator)
+	initialNodes := createInitialNodes(validatorsMap, waitingMap)
 
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
@@ -275,6 +328,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
+				initialNodes,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -308,6 +362,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
+		initialNodes := createInitialNodes(validatorsMap, waitingMap)
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
@@ -360,6 +415,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
+				initialNodes,
 			)
 		}
 		nodesMap[shardId] = nodesList

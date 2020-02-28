@@ -82,7 +82,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 
 //------- functionality tests
 
-func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldCallGetRating(t *testing.T) {
+func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldNotCallGetRating(t *testing.T) {
 	t.Parallel()
 
 	list := []Validator{
@@ -93,18 +93,27 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	arguments.EligibleNodes[0] = list
 
 	raterCalled := false
+	chancesCalled := false
 	rater := &mock.RaterMock{GetRatingCalled: func(string) uint32 {
 		raterCalled = true
 		return 1
-	}}
+	},
+		GetChancesCalled: func(u uint32) uint32 {
+			chancesCalled = true
+			return 1
+		}}
 
-	nc, _ := NewIndexHashedNodesCoordinator(arguments)
+	nc, err := NewIndexHashedNodesCoordinator(arguments)
+	assert.Nil(t, err)
+	assert.Equal(t, false, raterCalled)
+	assert.Equal(t, false, chancesCalled)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
+	assert.Equal(t, true, raterCalled)
+	assert.Equal(t, true, chancesCalled)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list2))
-	assert.Equal(t, true, raterCalled)
 }
 
 func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
@@ -144,21 +153,26 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 
 	ratingPk0 := uint32(5)
 	ratingPk1 := uint32(1)
-	rater := &mock.RaterMock{GetRatingCalled: func(pk string) uint32 {
-		if pk == "pk0" {
-			return ratingPk0
-		}
-		if pk == "pk1" {
-			return ratingPk1
-		}
-		return 1
-	}}
+	rater := &mock.RaterMock{
+		GetRatingCalled: func(pk string) uint32 {
+			if pk == "pk0" {
+				return ratingPk0
+			}
+			if pk == "pk1" {
+				return ratingPk1
+			}
+			return 1
+		},
+		GetChancesCalled: func(rating uint32) uint32 {
+			return rating
+		},
+	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 
 	eligibleNodes := ihgs.nodesConfig[0].eligibleMap[0]
-	expandedList := ihgs.expandEligibleList(eligibleNodes, &ihgs.nodesConfig[0].mutNodesMaps)
+	expandedList, _ := ihgs.expandEligibleList(eligibleNodes)
 	assert.Equal(t, int(ratingPk0+ratingPk1), len(expandedList))
 
 	occurences := make(map[string]uint32, 2)
@@ -344,7 +358,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	assert.Equal(t, []byte("addr2_shard1"), validator.Address())
 }
 
-func TestIndexHashedGroupSelectorWithRater_GetAllValidatorsPublicKeys(t *testing.T) {
+func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
 	t.Parallel()
 
 	shardZeroId := uint32(0)
@@ -400,7 +414,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllValidatorsPublicKeys(t *testing
 	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 	assert.Nil(t, err)
 
-	allValidatorsPublicKeys, err := ihgs.GetAllValidatorsPublicKeys(0)
+	allValidatorsPublicKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 }
