@@ -117,22 +117,6 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	return tsm.db
 }
 
-// Clone returns a new instance of trieStorageManager
-func (tsm *trieStorageManager) Clone() data.StorageManager {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	return &trieStorageManager{
-		db:                    tsm.db,
-		pruningBuffer:         tsm.pruningBuffer,
-		snapshots:             tsm.snapshots,
-		snapshotId:            tsm.snapshotId,
-		snapshotDbCfg:         tsm.snapshotDbCfg,
-		snapshotsBuffer:       tsm.snapshotsBuffer.clone(),
-		dbEvictionWaitingList: tsm.dbEvictionWaitingList,
-	}
-}
-
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	tsm.storageOperationMutex.Lock()

@@ -82,16 +82,6 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
 
-func TestTrieStorageManager_Clone(t *testing.T) {
-	t.Parallel()
-
-	ts, _ := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, &mock.EvictionWaitingList{})
-
-	newTs := ts.Clone()
-	newTs, _ = newTs.(*trieStorageManager)
-	assert.True(t, ts != newTs)
-}
-
 func TestTrieDatabasePruning(t *testing.T) {
 	t.Parallel()
 

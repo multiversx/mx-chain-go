@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
@@ -1198,26 +1197,6 @@ func getBranchNodeContents(bn *branchNode) string {
 		bn.dirty)
 
 	return str
-}
-
-func BenchmarkDecodeBranchNode(b *testing.B) {
-	marsh, hsh := getTestMarshAndHasher()
-	tr, _, _ := newEmptyTrie()
-
-	nrValuesInTrie := 100000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
-	}
-
-	proof, _ := tr.Prove(values[0])
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = decodeNode(proof[0], marsh, hsh)
-	}
 }
 
 func BenchmarkMarshallNodeJson(b *testing.B) {

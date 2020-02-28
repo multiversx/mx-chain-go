@@ -119,12 +119,9 @@ type Trie interface {
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	Root() ([]byte, error)
-	Prove(key []byte) ([][]byte, error)
-	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	Prune(rootHash []byte, identifier TriePruningIdentifier) error
 	TakeSnapshot(rootHash []byte)
@@ -172,7 +169,6 @@ type StorageManager interface {
 	CancelPrune([]byte)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
-	Clone() StorageManager
 	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }
