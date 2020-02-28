@@ -84,13 +84,14 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persist
 		}
 
 		var db storage.Persister
-		db, err = storageUnit.NewDB(
-			storageUnit.DBType(snapshotDbCfg.Type),
-			path.Join(snapshotDbCfg.FilePath, f.Name()),
-			snapshotDbCfg.BatchDelaySeconds,
-			snapshotDbCfg.MaxBatchSize,
-			snapshotDbCfg.MaxOpenFiles,
-		)
+		arg := storageUnit.ArgDB{
+			DBType:            storageUnit.DBType(snapshotDbCfg.Type),
+			Path:              path.Join(snapshotDbCfg.FilePath, f.Name()),
+			BatchDelaySeconds: snapshotDbCfg.BatchDelaySeconds,
+			MaxBatchSize:      snapshotDbCfg.MaxBatchSize,
+			MaxOpenFiles:      snapshotDbCfg.MaxOpenFiles,
+		}
+		db, err = storageUnit.NewDB(arg)
 		if err != nil {
 			return snapshots, snapshotId, err
 		}
@@ -406,13 +407,14 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 		snapshotPath = path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
 	}
 
-	db, err := storageUnit.NewDB(
-		storageUnit.DBType(tsm.snapshotDbCfg.Type),
-		snapshotPath,
-		tsm.snapshotDbCfg.BatchDelaySeconds,
-		tsm.snapshotDbCfg.MaxBatchSize,
-		tsm.snapshotDbCfg.MaxOpenFiles,
-	)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(tsm.snapshotDbCfg.Type),
+		Path:              snapshotPath,
+		BatchDelaySeconds: tsm.snapshotDbCfg.BatchDelaySeconds,
+		MaxBatchSize:      tsm.snapshotDbCfg.MaxBatchSize,
+		MaxOpenFiles:      tsm.snapshotDbCfg.MaxOpenFiles,
+	}
+	db, err := storageUnit.NewDB(arg)
 	if err != nil {
 		return nil, err
 	}
