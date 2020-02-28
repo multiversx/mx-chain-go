@@ -443,7 +443,7 @@ func TestMclScalar_UnmarshalBinary(t *testing.T) {
 	suite := NewSuiteBLS12()
 	scalar1, _ := suite.CreateScalar().Pick(randStream)
 	scalarBytes, err := scalar1.MarshalBinary()
-
+	require.Nil(t, err)
 	scalar2 := suite.CreateScalar().Zero()
 	err = scalar2.UnmarshalBinary(scalarBytes)
 	require.Nil(t, err)
