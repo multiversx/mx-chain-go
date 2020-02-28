@@ -116,7 +116,7 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
-	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error
+	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)

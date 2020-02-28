@@ -1,6 +1,8 @@
 package evictionWaitingList
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -9,12 +11,13 @@ import (
 
 // evictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
-// cacher and db will overwrite the previous values. This structure is not concurrent safe.
+// cacher and db will overwrite the previous values.
 type evictionWaitingList struct {
 	cache       map[string]data.ModifiedHashes
 	cacheSize   uint
 	db          storage.Persister
 	marshalizer marshal.Marshalizer
+	opMutex     sync.RWMutex
 }
 
 // NewEvictionWaitingList creates a new instance of evictionWaitingList
@@ -39,6 +42,9 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
 func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes) error {
+	ewl.opMutex.Lock()
+	defer ewl.opMutex.Unlock()
+
 	if uint(len(ewl.cache)) < ewl.cacheSize {
 		ewl.cache[string(rootHash)] = hashes
 		return nil
@@ -60,6 +66,9 @@ func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes)
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
 func (ewl *evictionWaitingList) Evict(rootHash []byte) (data.ModifiedHashes, error) {
+	ewl.opMutex.Lock()
+	defer ewl.opMutex.Unlock()
+
 	hashes, ok := ewl.cache[string(rootHash)]
 
 	if !ok {
@@ -94,13 +103,11 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// GetSize returns the size of the cache
-func (ewl *evictionWaitingList) GetSize() uint {
-	return ewl.cacheSize
-}
-
 // PresentInNewHashes searches for the given hash in all of the evictionWaitingList's newHashes
 func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
+	ewl.opMutex.Lock()
+	defer ewl.opMutex.Unlock()
+
 	for key := range ewl.cache {
 		if len(key) == 0 {
 			return false, ErrInvalidKey

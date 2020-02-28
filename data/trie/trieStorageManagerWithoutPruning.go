@@ -3,8 +3,6 @@ package trie
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
@@ -22,19 +20,18 @@ func NewTrieStorageManagerWithoutPruning(db data.DBWriteCacher) (*trieStorageMan
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot([]byte) {
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint([]byte) {
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
 }
 
 // Prune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) Prune([]byte) error {
+func (tsm *trieStorageManagerWithoutPruning) Prune([]byte) {
 	log.Trace("trieStorageManagerWithoutPruning - Prune:trie storage pruning is disabled")
-	return nil
 }
 
 // CancelPrune does nothing if pruning is disabled

@@ -44,11 +44,3 @@ type node interface {
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 }
-
-type snapshotsBuffer interface {
-	add([]byte, bool)
-	len() int
-	removeFirst()
-	getFirst() *snapshotsQueueEntry
-	clone() snapshotsBuffer
-}

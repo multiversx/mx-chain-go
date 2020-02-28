@@ -61,7 +61,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 		MaxOpenFiles:      10,
 	}
 
-	trieStorage, _ := NewTrieStorageManager(db, cfg, evictionWaitList)
+	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList)
 	tr := &patriciaMerkleTrie{
 		trieStorage: trieStorage,
 		marshalizer: marsh,
@@ -180,7 +180,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	trieStorage, _ := NewTrieStorageManager(db, cfg, &mock.EvictionWaitingList{})
+	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
 
 	tr1, _ := NewTrie(trieStorage, marsh, hsh)
 	tr2, _ := NewTrie(trieStorage, marsh, hsh)

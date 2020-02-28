@@ -2,7 +2,6 @@ package trie_test
 
 import (
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -46,7 +45,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList)
 
 	return trieStorageManager, marshalizer, hasher
 }
@@ -371,26 +370,6 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	rootHash, _ := tr.Root()
-
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
-	_ = tr.Commit()
-
-	tr.CancelPrune(rootHash, data.OldRoot)
-
-	key := base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))
-	err := fmt.Errorf("key: %s not found", key)
-	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, hex.EncodeToString(append(rootHash, byte(data.OldRoot))))
-
-	err = tr.Prune(rootHash, data.OldRoot)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
 
@@ -406,7 +385,8 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Commit()
 
 	tr.CancelPrune(rootHash, data.NewRoot)
-	_ = tr.Prune(rootHash, data.OldRoot)
+	tr.Prune(rootHash, data.OldRoot)
+	time.Sleep(time.Second)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
 	val, err := tr.Database().Get(rootHash)
@@ -450,8 +430,8 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.Root()
 
 	tr.TakeSnapshot(rootHash)
+	tr.Prune(rootHash, data.NewRoot)
 	time.Sleep(time.Second)
-	_ = tr.Prune(rootHash, data.NewRoot)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6

@@ -863,15 +863,12 @@ func TestAccountsDB_PruneTrie(t *testing.T) {
 
 	pruneTrieWasCalled := false
 	trieStub := &mock.TrieStub{
-		PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) error {
+		PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			pruneTrieWasCalled = true
-			return nil
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	err := adb.PruneTrie([]byte("roothash"), data.OldRoot)
-
-	assert.Nil(t, err)
+	adb.PruneTrie([]byte("roothash"), data.OldRoot)
 	assert.True(t, pruneTrieWasCalled)
 }
 

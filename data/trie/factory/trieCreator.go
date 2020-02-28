@@ -101,7 +101,7 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, tc.marshalizer, tc.hasher, snapshotDbCfg, ewl)
 	if err != nil {
 		return nil, err
 	}

@@ -4168,10 +4168,9 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) error {
+		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) {
 			pruneTrieWasCalled = true
 			assert.Equal(t, rootHash, rootHashParam)
-			return nil
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			cancelPruneWasCalled = true
