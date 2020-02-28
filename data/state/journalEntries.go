@@ -22,13 +22,13 @@ func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntr
 
 	return &JournalEntryBalance{
 		account:    account,
-		oldBalance: big.NewInt(0).Set(oldBalance),
+		oldBalance: oldBalance,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
-	jeb.account.Balance = big.NewInt(0).Set(jeb.oldBalance)
+	jeb.account.Balance = jeb.oldBalance
 
 	return jeb.account, nil
 }
@@ -54,13 +54,13 @@ func NewJournalEntryDeveloperReward(account *Account, oldDeveloperReward *big.In
 
 	return &JournalEntryDeveloperReward{
 		account:            account,
-		oldDeveloperReward: big.NewInt(0).Set(oldDeveloperReward),
+		oldDeveloperReward: oldDeveloperReward,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jed *JournalEntryDeveloperReward) Revert() (AccountHandler, error) {
-	jed.account.DeveloperReward = big.NewInt(0).Set(jed.oldDeveloperReward)
+	jed.account.DeveloperReward = jed.oldDeveloperReward
 
 	return jed.account, nil
 }

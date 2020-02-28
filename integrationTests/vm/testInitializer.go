@@ -95,7 +95,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 		return nil, err
 	}
 
-	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	err = account.(*state.Account).AddToBalance(balance)
 	if err != nil {
 		return nil, err
 	}
@@ -528,6 +528,23 @@ func CreateTransferTokenTx(
 		GasPrice: 0,
 		GasLimit: 5000000,
 		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
+	}
+}
+
+func CreateMoveBalanceTx(
+	nonce uint64,
+	value *big.Int,
+	sndAddress []byte,
+	rcvAddress []byte,
+	gasLimit uint64,
+) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    big.NewInt(0).Set(value),
+		RcvAddr:  rcvAddress,
+		SndAddr:  sndAddress,
+		GasPrice: 1,
+		GasLimit: gasLimit,
 	}
 }
 

@@ -428,13 +428,13 @@ func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees
 
 	return &PeerJournalEntryAccumulatedFee{
 		account:            account,
-		oldAccumulatedFees: big.NewInt(0).Set(oldAccumulatedFees),
+		oldAccumulatedFees: oldAccumulatedFees,
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
-	pjeaf.account.AccumulatedFees = big.NewInt(0).Set(pjeaf.oldAccumulatedFees)
+	pjeaf.account.AccumulatedFees = pjeaf.oldAccumulatedFees
 
 	return pjeaf.account, nil
 }

@@ -468,12 +468,12 @@ func setBalanceToTrie(
 		return err
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	return account.SetBalanceWithJournal(balance)
+	return account.AddToBalance(balance)
 }
 
 type NilMessageSignVerifier struct {

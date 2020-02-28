@@ -24,11 +24,20 @@ type UserAccountStub struct {
 	ChangeOwnerAddressCalled         func(sndAddress []byte, newAddress []byte) error
 	AddToDeveloperRewardCalled       func(value *big.Int) error
 	AddToBalanceCalled               func(value *big.Int) error
+	SubFromBalanceCalled             func(value *big.Int) error
 	GetBalanceCalled                 func() *big.Int
 	SetOwnerAddressWithJournalCalled func(ownerAddress []byte) error
 	GetOwnerAddressCalled            func() []byte
 	SetRootHashCalled                func([]byte)
 	SetDataTrieCalled                func(trie data.Trie)
+}
+
+// SubFromBalance -
+func (u *UserAccountStub) SubFromBalance(value *big.Int) error {
+	if u.SubFromBalanceCalled != nil {
+		return u.SubFromBalanceCalled(value)
+	}
+	return nil
 }
 
 // AddressContainer -
