@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -232,6 +233,8 @@ func CreateMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
 }
@@ -275,7 +278,6 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		PeerInfo:               nil,
 		Signature:              nil,
 		PubKeysBitmap:          nil,
 		PrevHash:               rootHash,
@@ -342,6 +344,9 @@ func CreateGenesisMetaBlock(
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	vm.FillGasMapInternal(gasSchedule, 1)
+
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
@@ -356,6 +361,7 @@ func CreateGenesisMetaBlock(
 		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
+		GasMap:                   gasSchedule,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -401,7 +407,7 @@ func CreateRandomAddress() state.AddressContainer {
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
-	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
+	_ = accnt.(*state.Account).AddToBalance(value)
 	_, _ = accnts.Commit()
 }
 
@@ -410,7 +416,7 @@ func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int)
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).AddToBalance(balance)
 
 	return address
 }
@@ -493,18 +499,16 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
 
 	srcVal := acntSrc.Balance
-	destVal := acntDest.Balance
-
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
 	}
 
-	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
+	err := acntSrc.SubFromBalance(value)
 	if err != nil {
 		return err
 	}
 
-	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
+	err = acntDest.AddToBalance(value)
 	if err != nil {
 		return err
 	}
@@ -929,7 +933,10 @@ func CreateAndSendTransaction(
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
-	_, _ = node.SendTransaction(tx)
+	_, err := node.SendTransaction(tx)
+	if err != nil {
+		log.Warn("could not create transaction", "address", node.OwnAccount.Address.Bytes(), "error", err)
+	}
 	node.OwnAccount.Nonce++
 }
 
@@ -1186,7 +1193,7 @@ func CreateMintingForSenders(
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 			account, _ := n.AccntState.GetAccountWithJournal(adr)
-			_ = account.(*state.Account).SetBalanceWithJournal(value)
+			_ = account.(*state.Account).AddToBalance(value)
 		}
 
 		_, _ = n.AccntState.Commit()

@@ -232,7 +232,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 
 func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if blockHeader == nil {
+	if check.IfNil(blockHeader) {
 		return nil, process.ErrNilBlockHeader
 	}
 

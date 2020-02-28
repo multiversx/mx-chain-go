@@ -39,7 +39,9 @@ type HeaderHandler interface {
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
+	GetAccumulatedFees() *big.Int
 
+	SetAccumulatedFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
