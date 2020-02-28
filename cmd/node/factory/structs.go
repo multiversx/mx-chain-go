@@ -2149,7 +2149,7 @@ func newMetaBlockProcessor(
 		economicsData,
 		gasHandler,
 		blockTracker,
-		state.AddressConverter,
+		stateComponents.AddressConverter,
 	)
 	if err != nil {
 		return nil, err

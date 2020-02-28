@@ -3,7 +3,7 @@ package process
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +24,7 @@ func TestIdentifiers_ParseShardCacherIdentifier(t *testing.T) {
 	assertParseShardCacherIdentifier(t, "1_0", 1, 0, nil)
 	assertParseShardCacherIdentifier(t, "2_2", 2, 2, nil)
 	assertParseShardCacherIdentifier(t, "4_3", 4, 3, nil)
-	assertParseShardCacherIdentifier(t, "0_4294967295", 0, sharding.MetachainShardId, nil)
+	assertParseShardCacherIdentifier(t, "0_4294967295", 0, core.MetachainShardId, nil)
 }
 
 func assertParseShardCacherIdentifier(t *testing.T, cacheID string, source uint32, destination uint32, err error) {

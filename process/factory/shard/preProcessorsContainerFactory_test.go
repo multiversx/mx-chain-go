@@ -309,32 +309,6 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 	assert.Nil(t, ppcm)
 }
 
-func TestNewPreProcessorsContainerFactory_NilInternalTransactionProducer(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
-		&mock.AccountsStub{},
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
-		nil,
-		&mock.FeeHandlerStub{},
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-	)
-
-	assert.Equal(t, process.ErrNilInternalTransactionProducer, err)
-	assert.Nil(t, ppcm)
-}
-
 func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 	t.Parallel()
 

@@ -949,7 +949,7 @@ func (txs *transactions) getMiniBlockSliceFromMap(mapMiniBlocks map[uint32]*bloc
 		}
 	}
 
-	if miniBlock, ok := mapMiniBlocks[sharding.MetachainShardId]; ok {
+	if miniBlock, ok := mapMiniBlocks[core.MetachainShardId]; ok {
 		if len(miniBlock.TxHashes) > 0 {
 			miniBlocks = append(miniBlocks, miniBlock)
 		}

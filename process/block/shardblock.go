@@ -1570,13 +1570,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (block.Body, er
 		return nil, process.ErrTimeIsOut
 	}
 
-	txPool := sp.dataPool.Transactions()
-	if txPool == nil {
-		return nil, process.ErrNilTransactionPool
-	}
-
 	startTime := time.Now()
-	destMeMiniBlocks, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
@@ -1585,35 +1580,35 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (block.Body, er
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
 
-	log.Debug("processed miniblocks and txs with destination in self shard",
-		"num miniblocks", len(destMeMiniBlocks),
-		"num txs", numTxs,
-		"num meta headers", numMetaHeaders,
-	)
+	if len(mbsToMe) > 0 {
+		miniBlocks = append(miniBlocks, mbsToMe...)
 
-	if len(destMeMiniBlocks) > 0 {
-		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
+		log.Debug("processed miniblocks and txs with destination in self shard",
+			"num miniblocks", len(mbsToMe),
+			"num txs", numTxs,
+			"num meta headers", numMetaHeaders,
+		)
 	}
 
 	startTime = time.Now()
-	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,
 	)
 
-	nbTxs = 0
-	for _, mb := range mbFromMe {
-		nbTxs += uint32(len(mb.TxHashes))
-	}
+	if len(mbsFromMe) > 0 {
+		miniBlocks = append(miniBlocks, mbsFromMe...)
 
-	log.Debug("processed miniblocks and txs with from me",
-		"num miniblocks", len(mbFromMe),
-		"num txs", nbTxs,
-	)
+		numTxs = 0
+		for _, mb := range mbsFromMe {
+			numTxs += uint32(len(mb.TxHashes))
+		}
 
-	if len(mbFromMe) > 0 {
-		miniBlocks = append(miniBlocks, mbFromMe...)
+		log.Debug("processed miniblocks and txs from self shard",
+			"num miniblocks", len(mbsFromMe),
+			"num txs", numTxs,
+		)
 	}
 
 	log.Debug("creating mini blocks has been finished",

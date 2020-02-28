@@ -387,8 +387,6 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
-	_ uint32,
-	_ uint32,
 	_ func() bool,
 ) (block.MiniBlockSlice, error) {
 	// rewards are created only by meta

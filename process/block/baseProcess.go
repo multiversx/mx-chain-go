@@ -911,7 +911,7 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 		Header data.HeaderHandler
 	}{
 		Body:   make(block.Body, 0),
-		Header: bp.blockProcessor.CreateNewHeader(),
+		Header: bp.blockProcessor.CreateNewHeader(0),
 	}
 
 	err := bp.marshalizer.Unmarshal(&bodyAndHeader, dta)
