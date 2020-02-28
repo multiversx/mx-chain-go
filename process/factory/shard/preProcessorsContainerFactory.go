@@ -135,16 +135,6 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	preproc, err = ppcm.createTxPreProcessor(block.InvalidBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(block.InvalidBlock, preproc)
-	if err != nil {
-		return nil, err
-	}
-
 	preproc, err = ppcm.createSmartContractResultPreProcessor()
 	if err != nil {
 		return nil, err

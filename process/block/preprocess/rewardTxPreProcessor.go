@@ -130,11 +130,7 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 
 // RemoveTxBlockFromPools removes reward transactions and miniblocks from associated pools
 func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil {
-		return process.ErrNilTxBlockBody
-	}
-
-	return rtp.removeDataFromPools(body, miniBlockPool, rtp.rewardTxPool, block.RewardsBlock)
+	return rtp.removeDataFromPools(body, miniBlockPool, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 
 // RestoreTxBlockIntoPools restores the reward transactions and miniblocks to associated pools
@@ -142,7 +138,7 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
-	if miniBlockPool == nil {
+	if check.IfNil(miniBlockPool) {
 		return 0, process.ErrNilMiniBlockPool
 	}
 
@@ -359,7 +355,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
-		block.RewardsBlock,
+		rtp.isMiniBlockCorrect,
 		rtp.rewardTxPool,
 	)
 
@@ -571,4 +567,8 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
 	return rtp == nil
+}
+
+func (rtp *rewardTxPreprocessor) isMiniBlockCorrect(mbType block.Type) bool {
+	return mbType == block.RewardsBlock
 }

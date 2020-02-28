@@ -131,13 +131,7 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 
 // RemoveTxBlockFromPools removes smartContractResults and miniblocks from associated pools
 func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil || body.IsInterfaceNil() {
-		return process.ErrNilTxBlockBody
-	}
-
-	err := scr.removeDataFromPools(body, miniBlockPool, scr.scrPool, block.SmartContractResultBlock)
-
-	return err
+	return scr.removeDataFromPools(body, miniBlockPool, scr.scrPool, scr.isMiniBlockCorrect)
 }
 
 // RestoreTxBlockIntoPools restores the smartContractResults and miniblocks to associated pools
@@ -145,7 +139,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
-	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+	if check.IfNil(miniBlockPool) {
 		return 0, process.ErrNilMiniBlockPool
 	}
 
@@ -221,7 +215,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			txInfoFromMap := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
 			if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.SmartContractResultBlock, "txHash", txHash)
+				log.Debug("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 
@@ -335,7 +329,7 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 		scrTxs,
 		&scr.scrForBlock,
 		scr.chRcvAllScrs,
-		block.SmartContractResultBlock,
+		scr.isMiniBlockCorrect,
 		scr.scrPool)
 
 	return missingTxsForShard
@@ -539,4 +533,8 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
 	return scr == nil
+}
+
+func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
+	return mbType == block.SmartContractResultBlock
 }

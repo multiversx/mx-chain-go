@@ -23,6 +23,10 @@ func haveTimeTrue() bool {
 	return true
 }
 
+func isShardStuckFalse(shardID uint32) bool {
+	return false
+}
+
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 

@@ -495,7 +495,9 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			TotalGasConsumedCalled: func() uint64 {
 				return 0
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
 	)
@@ -531,7 +533,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 	// should return err
 	err = sp.ProcessBlock(blkc, &hdr, body, haveTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
 
 func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
@@ -708,7 +710,9 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			TotalGasConsumedCalled: func() uint64 {
 				return 0
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
 	)
@@ -753,7 +757,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	// should return err
 	err2 := sp.ProcessBlock(blkc, &hdr, body, haveTime)
-	assert.Equal(t, err, err2)
+	assert.Equal(t, process.ErrReceiptsHashMissmatch, err2)
 	assert.True(t, wasCalled)
 }
 

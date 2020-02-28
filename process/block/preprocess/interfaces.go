@@ -23,4 +23,5 @@ type BlockSizeComputationHandler interface {
 	AddNumMiniBlocks(numMiniBlocks int)
 	AddNumTxs(numTxs int)
 	IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool
+	IsInterfaceNil() bool
 }
