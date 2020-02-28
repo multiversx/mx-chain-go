@@ -1,6 +1,7 @@
 package singlesig
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
@@ -13,7 +14,7 @@ type BlsSingleSigner struct {
 
 // Sign Signs a message using a single signature BLS scheme
 func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-	if private == nil || private.IsInterfaceNil() {
+	if check.IfNil(private) {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -22,7 +23,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	scalar := private.Scalar()
-	if scalar == nil || scalar.IsInterfaceNil() {
+	if check.IfNil(scalar) {
 		return nil, crypto.ErrNilPrivateKeyScalar
 	}
 
@@ -32,7 +33,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	suite := private.Suite()
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -46,7 +47,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 
 // Verify verifies a signature using a single signature BLS scheme
 func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	if public == nil || public.IsInterfaceNil() {
+	if check.IfNil(public) {
 		return crypto.ErrNilPublicKey
 	}
 	if msg == nil {
@@ -57,12 +58,12 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	suite := public.Suite()
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return crypto.ErrNilSuite
 	}
 
 	point := public.Point()
-	if point == nil || point.IsInterfaceNil() {
+	if check.IfNil(point) {
 		return crypto.ErrNilPublicKeyPoint
 	}
 

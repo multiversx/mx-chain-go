@@ -166,7 +166,7 @@ func TestMclScalar_AddOK(t *testing.T) {
 	scalar1 := suite.CreateScalar().One()
 	scalar2 := suite.CreateScalar().One()
 	sum, err := scalar1.Add(scalar2)
-
+	require.Nil(t, err)
 	scalar3 := suite.CreateScalar()
 	scalar3.SetInt64(2)
 	eq, err := scalar3.Equal(sum)
@@ -206,7 +206,7 @@ func TestMclScalar_SubOK(t *testing.T) {
 	scalar1.SetInt64(4)
 	scalar2 := suite.CreateScalar().One()
 	diff, err := scalar1.Sub(scalar2)
-
+	require.Nil(t, err)
 	scalar3 := suite.CreateScalar()
 	scalar3.SetInt64(3)
 	eq, err := scalar3.Equal(diff)
@@ -360,6 +360,7 @@ func TestMclScalar_InvOK(t *testing.T) {
 
 	one := suite.CreateScalar().One()
 	scalar1, err = scalar1.Inv(one)
+	require.Nil(t, err)
 	eq, _ = one.Equal(scalar1)
 
 	require.True(t, eq)

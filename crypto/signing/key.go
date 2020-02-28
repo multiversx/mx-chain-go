@@ -1,6 +1,7 @@
 package signing
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -86,7 +87,7 @@ func (kg *keyGenerator) IsInterfaceNil() bool {
 }
 
 func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point, err error) {
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return nil, nil, crypto.ErrNilSuite
 	}
 

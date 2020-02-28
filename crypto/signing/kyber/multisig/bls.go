@@ -157,7 +157,7 @@ func (kms *KyberMultiSignerBLS) prepareSignatures(
 
 // aggregatePreparedSignatures produces an aggregation of single BLS signatures over the same message
 func (kms *KyberMultiSignerBLS) aggregatePreparedSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -215,10 +215,9 @@ func preparePublicKeys(
 
 // aggregatePreparedPublicKeys produces an aggregation of BLS public keys (points)
 func (kms *KyberMultiSignerBLS) aggregatePreparedPublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, error) {
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
-
 	if len(pubKeys) == 0 {
 		return nil, crypto.ErrNilPublicKeys
 	}
@@ -247,7 +246,7 @@ func (kms *KyberMultiSignerBLS) aggregatePreparedPublicKeys(suite crypto.Suite, 
 
 // scalarMulPk returns the result of multiplying a scalar given as a bytes array, with a BLS public key (point)
 func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypto.Point, error) {
-	if pk == nil || pk.IsInterfaceNil() {
+	if check.IfNil(pk) {
 		return nil, crypto.ErrNilParam
 	}
 

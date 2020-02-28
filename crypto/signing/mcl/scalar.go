@@ -3,6 +3,8 @@ package mcl
 import (
 	"crypto/cipher"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
@@ -82,7 +84,7 @@ func (sc *MclScalar) Zero() crypto.Scalar {
 
 // Add returns the modular sum of receiver with scalarInt s given as parameter
 func (sc *MclScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

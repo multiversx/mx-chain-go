@@ -41,7 +41,7 @@ func (kp *kyberPoint) Null() crypto.Point {
 
 // Set sets the receiver equal to another Point p.
 func (kp *kyberPoint) Set(p crypto.Point) error {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return crypto.ErrNilParam
 	}
 
@@ -66,7 +66,7 @@ func (kp *kyberPoint) Clone() crypto.Point {
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (kp *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -85,7 +85,7 @@ func (kp *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
 func (kp *kyberPoint) Sub(p crypto.Point) (crypto.Point, error) {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -111,7 +111,7 @@ func (kp *kyberPoint) Neg() crypto.Point {
 
 // Mul returns the result of multiplying receiver by the scalar s.
 func (kp *kyberPoint) Mul(s crypto.Scalar) (crypto.Point, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

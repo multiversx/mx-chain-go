@@ -10,11 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
+// 16bytes output hasher!
 const hasherOutputSize = 16
 
 // BlsMultiSigner provides an implements of the crypto.LowLevelSignerBLS interface
 type BlsMultiSigner struct {
-	Hasher hashing.Hasher // 16bytes output hasher!
+	Hasher hashing.Hasher
 }
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message
@@ -92,13 +93,13 @@ func (bms *BlsMultiSigner) VerifyAggregatedSig(
 	if check.IfNil(suite) {
 		return crypto.ErrNilSuite
 	}
-	if pubKeys == nil || len(pubKeys) == 0 {
+	if len(pubKeys) == 0 {
 		return crypto.ErrNilPublicKeys
 	}
 	if len(aggSigBytes) == 0 {
 		return crypto.ErrNilSignature
 	}
-	if msg == nil || len(msg) == 0 {
+	if len(msg) == 0 {
 		return crypto.ErrNilMessage
 	}
 
@@ -225,7 +226,7 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 
 // ScalarMulSig returns the result of multiplication of a scalar with a BLS signature
 func (bms *BlsMultiSigner) scalarMulSig(suite crypto.Suite, scalarBytes []byte, sigPoint *mcl.PointG1) (*mcl.PointG1, error) {
-	if scalarBytes == nil || len(scalarBytes) == 0 {
+	if len(scalarBytes) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 	if sigPoint == nil {
