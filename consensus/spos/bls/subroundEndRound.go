@@ -156,7 +156,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.Header.SetLeaderSignature(leaderSignature)
 
 	// broadcast section
-
+	if sr.RoundIndex%5 == 0 {
+		time.Sleep(time.Duration(float64(sr.Rounder().TimeDuration()) * float64(2)))
+	}
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
 

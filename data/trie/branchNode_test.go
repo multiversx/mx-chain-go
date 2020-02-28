@@ -180,10 +180,11 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
+	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
+	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
 
-	tr1, _ := NewTrie(trieStorage, marsh, hsh)
-	tr2, _ := NewTrie(trieStorage, marsh, hsh)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh)
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh)
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {

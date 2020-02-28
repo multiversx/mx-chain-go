@@ -86,7 +86,10 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	tr.TakeSnapshot(rootHash)
 
 	time.Sleep(snapshotDelay)
+
+	trieStorage.storageOperationMutex.Lock()
 	_ = trieStorage.snapshots[0].Close()
+	trieStorage.storageOperationMutex.Unlock()
 
 	newTrieStorage, _ := NewTrieStorageManager(memorydb.New(), msh, hsh, cfg, evictionWaitList)
 	snapshot := newTrieStorage.GetDbThatContainsHash(rootHash)
@@ -185,13 +188,17 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 		tr.TakeSnapshot(tr.root.getHash())
 		time.Sleep(snapshotDelay)
 
+		trieStorage.storageOperationMutex.Lock()
 		snapshotId := strconv.Itoa(trieStorage.snapshotId - 1)
 		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, snapshotId)
+		trieStorage.storageOperationMutex.Unlock()
 		f, _ := os.Stat(snapshotPath)
 		assert.True(t, f.IsDir())
 	}
 
+	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, len(testVals), trieStorage.snapshotId)
+	trieStorage.storageOperationMutex.Unlock()
 }
 
 func TestDeleteOldSnapshots(t *testing.T) {
@@ -296,7 +303,9 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 	tr.SetCheckpoint(tr.root.getHash())
 	time.Sleep(snapshotDelay)
 
+	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, 1, len(trieStorage.snapshots))
+	trieStorage.storageOperationMutex.Unlock()
 }
 
 func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
@@ -340,10 +349,12 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	checkpointWg.Wait()
 	time.Sleep(snapshotDelay)
 
+	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)
 
 	lastSnapshot := len(trieStorage.snapshots) - 1
 	val, err := trieStorage.snapshots[lastSnapshot].Get(tr.root.getHash())
+	trieStorage.storageOperationMutex.Unlock()
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
 }
