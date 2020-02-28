@@ -739,7 +739,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlock(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocks(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -809,7 +809,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlock(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocks(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -886,7 +886,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlock(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocks(haveTimeTrue, isShardStuckFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0

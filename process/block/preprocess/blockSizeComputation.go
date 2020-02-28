@@ -45,3 +45,8 @@ func (bsc *blockSizeComputation) IsMaxBlockSizeReached(numNewMiniBlocks int, num
 
 	return isMaxBlockSizeReached
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bsc *blockSizeComputation) IsInterfaceNil() bool {
+	return bsc == nil
+}

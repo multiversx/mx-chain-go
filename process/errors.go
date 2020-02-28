@@ -635,3 +635,12 @@ var ErrInvalidShardCacherIdentifier = errors.New("invalid identifier for shard c
 
 // ErrMaxBlockSizeReached signals that max block size has been reached
 var ErrMaxBlockSizeReached = errors.New("max block size has been reached")
+
+// ErrBlockBodyHashMismatch signals that block body hashes does not match
+var ErrBlockBodyHashMismatch = errors.New("block bodies does not match")
+
+// ErrInvalidMiniBlockType signals that an invalid miniblock type has been provided
+var ErrInvalidMiniBlockType = errors.New("invalid miniblock type")
+
+// ErrInvalidBody signals that an invalid body has been provided
+var ErrInvalidBody = errors.New("invalid body")

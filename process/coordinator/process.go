@@ -133,11 +133,16 @@ func (tc *transactionCoordinator) separateBodyByType(body block.Body) map[block.
 	for i := 0; i < len(body); i++ {
 		mb := body[i]
 
-		if separatedBodies[mb.Type] == nil {
-			separatedBodies[mb.Type] = block.Body{}
+		mbType := mb.Type
+		if mb.Type == block.InvalidBlock {
+			mbType = block.TxBlock
 		}
 
-		separatedBodies[mb.Type] = append(separatedBodies[mb.Type], mb)
+		if separatedBodies[mbType] == nil {
+			separatedBodies[mbType] = block.Body{}
+		}
+
+		separatedBodies[mbType] = append(separatedBodies[mbType], mb)
 	}
 
 	return separatedBodies
