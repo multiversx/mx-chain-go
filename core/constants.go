@@ -213,6 +213,12 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 
+// MetricMinGasPrice is the metric that specify min gas price
+const MetricMinGasPrice = "erd_min_gas_price"
+
+// MetricChainId is the metric that specify current chain id
+const MetricChainId = "erd_chain_id"
+
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 

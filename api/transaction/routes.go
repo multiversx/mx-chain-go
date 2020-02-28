@@ -190,15 +190,29 @@ func GetTransactionCost(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
-
-	var tx transaction.Transaction
-	err := c.ShouldBindJSON(&tx)
+	var gtx SendTxRequest
+	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
 		return
 	}
 
-	cost, err := ef.ComputeTransactionCost(&tx)
+	tx, err := ef.CreateTransaction(
+		gtx.Nonce,
+		gtx.Value,
+		gtx.Receiver,
+		gtx.Sender,
+		gtx.GasPrice,
+		gtx.GasLimit,
+		gtx.Data,
+		gtx.Signature,
+	)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	cost, err := ef.ComputeTransactionCost(tx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s", err.Error())})
 		return
