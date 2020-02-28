@@ -171,6 +171,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
@@ -464,7 +465,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
@@ -482,7 +482,6 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
-		&mock.SpecialAddressHandlerMock{},
 		initStore(),
 		initDataPool([]byte("test_hash1")),
 		economicsData,
@@ -515,7 +514,6 @@ func createPreProcessorContainerWithDataPool(
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -620,9 +618,8 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(nil)
+	mrTxs := tc.CreateMarshalizedData(nil)
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 0, len(mrBody))
 }
 
 func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash []byte) *block.MiniBlock {
@@ -662,10 +659,8 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
+	mrTxs := tc.CreateMarshalizedData(createTestBody())
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 1, len(mrBody))
-	assert.Equal(t, len(createTestBody()), len(mrBody[1]))
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T) {
@@ -708,7 +703,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 	scrInterimProc, _ := interimContainer.Get(block.SmartContractResultBlock)
 	_ = scrInterimProc.AddIntermediateTransactions(scrs)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(body)
+	mrTxs := tc.CreateMarshalizedData(body)
 	assert.Equal(t, 1, len(mrTxs))
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -720,8 +715,6 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 
 		assert.Equal(t, unMrsScr, scrs[i])
 	}
-
-	assert.Equal(t, 1, len(mrBody))
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNilHeader(t *testing.T) {
@@ -862,7 +855,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -978,7 +970,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1604,7 +1595,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1742,7 +1732,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
@@ -1867,7 +1856,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1998,7 +1986,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -2067,7 +2054,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
-		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2120,7 +2106,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
-		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,

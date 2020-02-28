@@ -9,7 +9,6 @@ import (
 // SystemSmartContract interface defines the function a system smart contract should have
 type SystemSmartContract interface {
 	Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
-	ValueOf(key interface{}) interface{}
 	IsInterfaceNil() bool
 }
 
@@ -32,30 +31,56 @@ type SystemSCContainer interface {
 
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
+	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
 	GetStorage(key []byte) []byte
-	SelfDestruct(beneficiary []byte)
 	Finish(value []byte)
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 
+	IsInterfaceNil() bool
+}
+
+// ContextHandler defines the methods needed to execute system smart contracts
+type ContextHandler interface {
+	SystemEI
+
+	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
 	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
+}
 
+// MessageSignVerifier is used to verify if message was signed with given public key
+type MessageSignVerifier interface {
+	Verify(message []byte, signedMessage []byte, pubKey []byte) error
 	IsInterfaceNil() bool
 }
 
-// PeerChangesEI defines the environment interface system smart contract can use to write peer changes
-type PeerChangesEI interface {
-	GetPeerState()
-	SetPeerState()
+// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
+type ValidatorSettingsHandler interface {
+	UnBondPeriod() uint64
+	GenesisNodePrice() *big.Int
+	MinStepValue() *big.Int
+	UnJailValue() *big.Int
+	TotalSupply() *big.Int
+	NumNodes() uint32
+	AuctionEnableNonce() uint64
+	StakeEnableNonce() uint64
+	NumRoundsWithoutBleed() uint64
+	BleedPercentagePerRound() float64
+	MaximumPercentageToBleed() float64
+	IsInterfaceNil() bool
+}
 
-	CleanCache()
-	CreatePeerChangesOutput()
+// ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
+type ArgumentsParser interface {
+	GetArguments() ([][]byte, error)
+	GetFunction() (string, error)
+	ParseData(data string) error
 	IsInterfaceNil() bool
 }

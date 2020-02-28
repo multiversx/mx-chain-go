@@ -1,5 +1,10 @@
 package preprocess
 
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 func (txs *transactions) ReceivedTransaction(txHash []byte) {
 	txs.receivedTransaction(txHash)
 }
@@ -54,4 +59,18 @@ func (scr *smartContractResults) SetMissingScr(missingTxs int) {
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.missingTxs = missingTxs
 	scr.scrForBlock.mutTxsForBlock.Unlock()
+}
+
+func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.TransactionHandler) {
+	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
+
+	for i := 0; i < len(txHashes); i++ {
+		hash := txHashes[i]
+		tx := txs[i]
+		rtp.rewardTxsForBlock.txHashAndInfo[string(hash)] = &txInfo{
+			tx:          tx,
+			txShardInfo: &txShardInfo{receiverShardID: core.MetachainShardId, senderShardID: 0},
+		}
+	}
+	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 }
