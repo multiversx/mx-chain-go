@@ -27,11 +27,10 @@ func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, err := state.NewJournalEntryBalance(accnt, nil)
+	entry, err := state.NewJournalEntryBalance(accnt, big.NewInt(0))
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
-
 }
 
 func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {

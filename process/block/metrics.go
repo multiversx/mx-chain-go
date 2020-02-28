@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -159,7 +160,7 @@ func saveRoundInfoInElastic(
 
 	go elasticIndexer.SaveRoundInfo(roundInfo)
 
-	if lastHeader == nil {
+	if check.IfNil(lastHeader) {
 		return
 	}
 

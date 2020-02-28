@@ -37,6 +37,7 @@ type SystemEI interface {
 	SetStorage(key []byte, value []byte)
 	GetStorage(key []byte) []byte
 	Finish(value []byte)
+	UseGas(gasToConsume uint64) error
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 
@@ -53,6 +54,7 @@ type ContextHandler interface {
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
 	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
+	SetGasProvided(gasProvided uint64)
 }
 
 // MessageSignVerifier is used to verify if message was signed with given public key
