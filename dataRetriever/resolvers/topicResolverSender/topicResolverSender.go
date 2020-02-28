@@ -9,15 +9,13 @@ import (
 // topicRequestSuffix represents the topic name suffix
 const topicRequestSuffix = "_REQUEST"
 
-// NumPeersToQuery number of peers to send the message
-const NumPeersToQuery = 2
-
 type topicResolverSender struct {
 	messenger       dataRetriever.MessageHandler
 	marshalizer     marshal.Marshalizer
 	topicName       string
 	peerListCreator dataRetriever.PeerListCreator
 	randomizer      dataRetriever.IntRandomizer
+	numPeersToQuery int
 	targetShardId   uint32
 }
 
@@ -28,6 +26,7 @@ func NewTopicResolverSender(
 	peerListCreator dataRetriever.PeerListCreator,
 	marshalizer marshal.Marshalizer,
 	randomizer dataRetriever.IntRandomizer,
+	numPeersToQuery int,
 	targetShardId uint32,
 ) (*topicResolverSender, error) {
 
@@ -43,6 +42,9 @@ func NewTopicResolverSender(
 	if peerListCreator == nil || peerListCreator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilPeerListCreator
 	}
+	if numPeersToQuery < 1 {
+		return nil, dataRetriever.ErrInvalidNumberOfPeersToQuery
+	}
 
 	resolver := &topicResolverSender{
 		messenger:       messenger,
@@ -51,6 +53,7 @@ func NewTopicResolverSender(
 		marshalizer:     marshalizer,
 		randomizer:      randomizer,
 		targetShardId:   targetShardId,
+		numPeersToQuery: numPeersToQuery,
 	}
 
 	return resolver, nil
@@ -87,7 +90,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		}
 
 		msgSentCounter++
-		if msgSentCounter == NumPeersToQuery {
+		if msgSentCounter == trs.numPeersToQuery {
 			break
 		}
 	}

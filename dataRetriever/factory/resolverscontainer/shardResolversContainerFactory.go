@@ -127,6 +127,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		peerListCreator,
 		srcf.marshalizer,
 		srcf.intRandomizer,
+		numPeersToQuery,
 		shardC.SelfId(),
 	)
 	if err != nil {
@@ -178,6 +179,7 @@ func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolvers() e
 		peerListCreator,
 		srcf.marshalizer,
 		srcf.intRandomizer,
+		numPeersToQuery,
 		shardC.SelfId(),
 	)
 	if err != nil {
@@ -229,6 +231,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		peerListCreator,
 		srcf.marshalizer,
 		srcf.intRandomizer,
+		numPeersToQuery,
 		core.MetachainShardId,
 	)
 	if err != nil {

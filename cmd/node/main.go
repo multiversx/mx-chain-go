@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -297,6 +296,8 @@ var appVersion = core.UnVersionedAppString
 
 var currentEpoch = uint32(0)
 
+var networkComponents *factory.Network
+
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	log := logger.GetOrCreate("main")
@@ -550,20 +551,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	}
 
-	epochFoundInStorage := err == nil
+	epochFoundInStorage := errNotCritical == nil
 
-	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
-	timeInFirstEpochAtMinRoundsPerEpoch := startTime.Add(time.Duration(nodesConfig.RoundDuration *
-		uint64(generalConfig.EpochStartConfig.MinRoundsBetweenEpochs)))
-	isEpochZero := time.Now().Sub(timeInFirstEpochAtMinRoundsPerEpoch) < 0
-	shouldSyncWithTheNetwork := !isCurrentTimeBeforeGenesis && !isEpochZero && !epochFoundInStorage
-	var networkComponents *factory.Network
-	// TODO: remove next line which is hardcoded for testing
-	shouldSyncWithTheNetwork = true
-	if shouldSyncWithTheNetwork {
-		//TODO : if the code reaches here, then we should request current epoch from network and build all the
-		// stuff after we received the information.
-		// This section should be blocking.
+	shouldCallEpochStartDataProvider := bootstrap.ShouldSyncWithTheNetwork(
+		startTime,
+		epochFoundInStorage,
+		nodesConfig,
+		generalConfig,
+	)
+	shouldCallEpochStartDataProvider = true
+	if shouldCallEpochStartDataProvider {
 		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
 		if err != nil {
 			return err
@@ -573,18 +570,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
+		time.Sleep(2 * time.Second)
 
-		epochRes := bootstrap.NewEpochStartDataProvider(networkComponents.NetMessenger, &marshal.JsonMarshalizer{})
-		var metaBlockForEpochStart *block.MetaBlock
-		metaBlockForEpochStart, err = epochRes.RequestEpochStartMetaBlock(currentEpoch)
+		epochRes, err := bootstrap.NewEpochStartDataProvider(networkComponents.NetMessenger, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{})
 		if err != nil {
 			return err
 		}
-		// TODO : using the same component, fetch the shard blocks based on received metablock
+		var bootstrapComponents *bootstrap.ComponentsNeededForBootstrap
+		bootstrapComponents, err = epochRes.Bootstrap()
+		if err != nil {
+			return err
+		}
 
 		log.Info("received epoch start metablock from network",
-			"nonce", metaBlockForEpochStart.GetNonce(),
-			"epoch", metaBlockForEpochStart.GetEpoch())
+			"nonce", bootstrapComponents.EpochStartMetaBlock.GetNonce(),
+			"epoch", bootstrapComponents.EpochStartMetaBlock.GetEpoch())
 	}
 
 	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
@@ -746,7 +746,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	if !shouldSyncWithTheNetwork {
+	if !shouldCallEpochStartDataProvider {
 		log.Trace("creating network components")
 		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
 		if err != nil {
@@ -918,7 +918,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch, !shouldSyncWithTheNetwork)
+	err = ef.StartNode(currentEpoch, !shouldCallEpochStartDataProvider)
 	if err != nil {
 		log.Error("starting node failed", err.Error())
 		return err

@@ -125,9 +125,6 @@ var ErrCacheConfigInvalidEconomics = errors.New("cache-economics parameter is no
 // ErrCacheConfigInvalidSharding signals that a sharding parameter required by the cache is invalid
 var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not valid")
 
-// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
-
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
 
@@ -151,6 +148,9 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
+
+// ErrInvalidNumberOfPeersToQuery signals that an invalid number of peers to query has been provided
+var ErrInvalidNumberOfPeersToQuery = errors.New("invalid number of peers to query provided")
 
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")

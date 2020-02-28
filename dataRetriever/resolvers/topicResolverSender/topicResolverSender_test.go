@@ -23,6 +23,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -39,6 +40,7 @@ func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -55,6 +57,7 @@ func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.PeerListCreatorStub{},
 		nil,
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -71,11 +74,29 @@ func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		nil,
+		2,
 		0,
 	)
 
 	assert.Nil(t, trs)
 	assert.Equal(t, dataRetriever.ErrNilRandomizer, err)
+}
+
+func TestNewTopicResolverSender_InvalidNumberOfPeersToQueryShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trs, err := topicResolverSender.NewTopicResolverSender(
+		&mock.MessageHandlerStub{},
+		"topic",
+		&mock.PeerListCreatorStub{},
+		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
+		0,
+		0,
+	)
+
+	assert.Nil(t, trs)
+	assert.Equal(t, dataRetriever.ErrInvalidNumberOfPeersToQuery, err)
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
@@ -87,6 +108,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -112,6 +134,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 			},
 		},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -133,6 +156,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 		},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -165,6 +189,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 		},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 
@@ -198,6 +223,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		2,
 		0,
 	)
 

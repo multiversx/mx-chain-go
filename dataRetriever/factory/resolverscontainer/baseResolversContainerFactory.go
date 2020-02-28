@@ -13,6 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// numPeersToQuery number of peers to send the message
+const numPeersToQuery = 2
+
 const emptyExcludePeersOnTopic = ""
 
 type baseResolversContainerFactory struct {
@@ -218,6 +221,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 		peerListCreator,
 		brcf.marshalizer,
 		brcf.intRandomizer,
+		numPeersToQuery,
 		uint32(0),
 	)
 	if err != nil {
@@ -239,6 +243,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string,
 		peerListCreator,
 		brcf.marshalizer,
 		brcf.intRandomizer,
+		numPeersToQuery,
 		brcf.shardCoordinator.SelfId(),
 	)
 	if err != nil {
