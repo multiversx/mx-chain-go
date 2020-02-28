@@ -175,13 +175,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 
-	eligibleCopy := make(map[uint32][]Validator)
-	for key, value := range eligible {
-		eligibleCopy[key] = value
-	}
-
-	nodesConfig.expandedEligibleMap = eligibleCopy
-
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
@@ -238,7 +231,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
-		expandedList = nodesConfig.expandedEligibleMap[shardId]
+		expandedList = nodesConfig.eligibleMap[shardId]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 

@@ -83,6 +83,8 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandListsForEpochConfig(node
 	nodesConfig.mutNodesMaps.Lock()
 	defer nodesConfig.mutNodesMaps.Unlock()
 
+	nodesConfig.expandedEligibleMap = make(map[uint32][]Validator)
+
 	nrShards := len(nodesConfig.eligibleMap)
 	metaChainExpanded, err := ihgs.expandList(nodesConfig, core.MetachainShardId)
 	if err != nil {
