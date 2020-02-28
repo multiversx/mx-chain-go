@@ -58,7 +58,6 @@ type validatorStatistics struct {
 	peerAdapter             state.AccountsAdapter
 	rater                   sharding.RaterHandler
 	rewardsHandler          process.RewardsHandler
-	initialNodes            map[uint32][]*sharding.NodeInfo
 	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
