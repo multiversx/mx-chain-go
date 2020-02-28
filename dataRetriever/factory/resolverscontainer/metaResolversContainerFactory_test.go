@@ -195,19 +195,6 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 //------- Create
 
-func TestMetaResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.Messenger = createStubTopicMessageHandlerForMeta(factory.ShardBlocksTopic, "")
-	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
