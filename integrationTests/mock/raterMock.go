@@ -23,17 +23,6 @@ type RaterMock struct {
 	RatingReader                     sharding.RatingReader
 }
 
-func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
-	newVal := int64(val) + int64(ratingStep)
-	if newVal < int64(rm.MinRating) {
-		return rm.MinRating
-	}
-	if newVal > int64(rm.MaxRating) {
-		return rm.MaxRating
-	}
-	return uint32(newVal)
-}
-
 // GetRating -
 func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
