@@ -395,13 +395,12 @@ func (txs *transactions) processTxsToMe(
 		receiverShardID := txInfoFromMap.receiverShardID
 		txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-		err := txs.processAndRemoveBadTransaction(
+		err = txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
 			senderShardID,
 			receiverShardID,
 		)
-
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			return err
 		}

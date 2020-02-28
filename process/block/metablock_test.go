@@ -608,8 +608,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			return errPersister
 		},
 		GetCalled: func(key []byte) (i []byte, e error) {
-			hdr, _ := marshalizer.Marshal(&block.MetaBlock{})
-			return hdr, nil
+			hdrBuff, _ := marshalizer.Marshal(&block.MetaBlock{})
+			return hdrBuff, nil
 		},
 	}
 	store := initStore()
@@ -1113,7 +1113,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	notarizedHdrs := mp.NotarizedHdrs()
@@ -1160,7 +1160,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -1218,7 +1218,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -1311,7 +1311,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -1369,7 +1369,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -1462,7 +1462,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)

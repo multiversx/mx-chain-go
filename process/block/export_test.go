@@ -75,7 +75,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
+	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
@@ -94,7 +94,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-			HeaderValidator:              headerValidator,
+			HeaderValidator:              hdrValidator,
 			Rounder:                      &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -107,8 +107,8 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
-	shardProcessor, err := NewShardProcessor(arguments)
-	return shardProcessor, err
+	shardProc, err := NewShardProcessor(arguments)
+	return shardProc, err
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
@@ -143,12 +143,12 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)]
+	hdrInfoValue, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)]
 	if !ok {
 		return true
 	}
 
-	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
+	return check.IfNil(hdrInfoValue.hdr)
 }
 
 func (mp *metaProcessor) CreateShardInfo(round uint64) ([]block.ShardData, error) {

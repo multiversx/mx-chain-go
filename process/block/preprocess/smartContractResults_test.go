@@ -23,7 +23,7 @@ func haveTimeTrue() bool {
 	return true
 }
 
-func isShardStuckFalse(shardID uint32) bool {
+func isShardStuckFalse(_ uint32) bool {
 	return false
 }
 
