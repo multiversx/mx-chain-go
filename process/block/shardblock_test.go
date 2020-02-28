@@ -2328,7 +2328,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	factory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initStore(),
-		marshalizer,
+		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
 		&mock.AddressConverterMock{},

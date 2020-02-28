@@ -132,7 +132,7 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
-	return miniblocksSize+txsSize < maxAllowedBytes
+	return miniblocksSize+txsSize > maxAllowedBytes
 }
 
 // MaxTransactionsInAMiniblock returns the maximum transactions in a single miniblock
