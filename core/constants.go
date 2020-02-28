@@ -225,6 +225,15 @@ const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
 
+// BaseOperationCost represents the field name for base operation costs
+const BaseOperationCost = "BaseOperationCost"
+
+// BuiltInCost represents the field name for built in operation costs
+const BuiltInCost = "BuiltInCost"
+
+// MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
+const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
+
 // MetricP2pPeerInfo is the metric for the node's p2p info
 const MetricP2pPeerInfo = "erd_p2p_peer_info"
 

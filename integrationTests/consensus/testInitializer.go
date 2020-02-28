@@ -152,6 +152,7 @@ func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
@@ -295,19 +296,17 @@ func createConsensusOnlyNode(
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
 
+	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
-			return &dataBlock.Body{}, nil
-		},
-		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-			return body, nil
+		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			return header, &dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
@@ -319,14 +318,13 @@ func createConsensusOnlyNode(
 		},
 	}
 
-	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
 		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
 		Nonce:         0,

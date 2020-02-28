@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -140,12 +141,13 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a reward Transaction
+	_, pubKey, _ := integrationTests.GenerateSkAndPkInShard(nRequester.ShardCoordinator, nRequester.ShardCoordinator.SelfId())
+	pubKeyArray, _ := pubKey.ToByteArray()
 	tx := rewardTx.RewardTx{
 		Value:   big.NewInt(0),
-		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
+		RcvAddr: pubKeyArray,
 		Round:   0,
 		Epoch:   0,
-		ShardId: 0,
 	}
 
 	marshaledTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
@@ -159,7 +161,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	//step 2. wire up a received handler for requester
 	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+			process.ShardCacherIdentifier(core.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
 		if reflect.DeepEqual(rewardTxStored, &tx) {
@@ -174,11 +176,11 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
-		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), core.MetachainShardId),
 	)
 
 	//Step 4. request tx
-	rewardTxResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
+	rewardTxResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, core.MetachainShardId)
 	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 

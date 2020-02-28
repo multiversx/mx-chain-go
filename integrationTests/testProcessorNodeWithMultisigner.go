@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
@@ -469,7 +470,7 @@ func AllShardsProposeBlock(
 	// propose blocks
 	for i := range nodesMap {
 		currentBlockHeader := nodesMap[i][0].BlockChain.GetCurrentBlockHeader()
-		if currentBlockHeader == nil {
+		if check.IfNil(currentBlockHeader) {
 			currentBlockHeader = nodesMap[i][0].BlockChain.GetGenesisHeader()
 		}
 

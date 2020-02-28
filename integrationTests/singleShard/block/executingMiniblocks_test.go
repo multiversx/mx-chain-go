@@ -259,7 +259,7 @@ func testTxIsInNotInBody(t *testing.T, proposer *integrationTests.TestProcessorN
 
 func proposeAndCommitBlock(node *integrationTests.TestProcessorNode, round uint64, nonce uint64) error {
 	body, hdr, _ := node.ProposeBlock(round, nonce)
-	err := node.BlockProcessor.CommitBlock(node.BlockChain, hdr, body)
+	err := node.BlockProcessor.CommitBlock(hdr, body)
 	if err != nil {
 		return err
 	}
