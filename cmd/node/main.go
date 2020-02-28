@@ -194,10 +194,10 @@ VERSION:
 	}
 
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
-	// the NodeDisplayName from config.toml
+	// the NodeDisplayName from prefs.toml
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
-		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the prefs.toml one",
 		Value: "",
 	}
 
@@ -1202,7 +1202,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
 	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
-		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil
