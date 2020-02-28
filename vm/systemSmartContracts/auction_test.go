@@ -356,7 +356,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.StakeValue()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
@@ -615,7 +615,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.StakeValue()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
@@ -632,7 +632,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	arguments.Function = "stake"
 	arguments.CallerAddr = stakerAddress.Bytes()
 	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
-	arguments.CallValue = big.NewInt(100).Set(args.ValidatorSettings.StakeValue())
+	arguments.CallValue = big.NewInt(100).Set(args.ValidatorSettings.GenesisNodePrice())
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -745,7 +745,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		Staked:        false,
 		UnStakedNonce: 0,
 		RewardAddress: callerAddress,
-		StakeValue:    args.ValidatorSettings.StakeValue(),
+		StakeValue:    args.ValidatorSettings.GenesisNodePrice(),
 		JailedRound:   math.MaxUint64,
 	}
 
@@ -761,7 +761,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.StakeValue()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
@@ -790,9 +790,9 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		RegisterNonce:   0,
 		Epoch:           0,
 		BlsPubKeys:      [][]byte{arguments.Arguments[0]},
-		TotalStakeValue: args.ValidatorSettings.StakeValue(),
-		LockedStake:     args.ValidatorSettings.StakeValue(),
-		MaxStakePerNode: args.ValidatorSettings.StakeValue(),
+		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
+		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
+		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -803,7 +803,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		UnStakedNonce: 0,
 		UnStakedEpoch: 0,
 		RewardAddress: arguments.CallerAddr,
-		StakeValue:    args.ValidatorSettings.StakeValue(),
+		StakeValue:    args.ValidatorSettings.GenesisNodePrice(),
 		JailedRound:   math.MaxUint64,
 	}
 	marshaledStakedData, _ := json.Marshal(stakedData)
@@ -985,7 +985,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	}
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.StakeValue()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
@@ -1010,9 +1010,9 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 		RegisterNonce:   0,
 		Epoch:           0,
 		BlsPubKeys:      [][]byte{arguments.Arguments[0]},
-		TotalStakeValue: args.ValidatorSettings.StakeValue(),
-		LockedStake:     args.ValidatorSettings.StakeValue(),
-		MaxStakePerNode: args.ValidatorSettings.StakeValue(),
+		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
+		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
+		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1078,7 +1078,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	}
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.StakeValue()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
@@ -1110,9 +1110,9 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		RegisterNonce:   0,
 		Epoch:           0,
 		BlsPubKeys:      [][]byte{arguments.Arguments[0]},
-		TotalStakeValue: args.ValidatorSettings.StakeValue(),
-		LockedStake:     args.ValidatorSettings.StakeValue(),
-		MaxStakePerNode: args.ValidatorSettings.StakeValue(),
+		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
+		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
+		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetSCAddress(args.AuctionSCAddress)
@@ -1223,7 +1223,7 @@ func TestAuctionStakingSC_Claim(t *testing.T) {
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.UserError)
 
 	//do stake
-	stake(t, sc, args.ValidatorSettings.StakeValue(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
+	stake(t, sc, args.ValidatorSettings.GenesisNodePrice(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
 	//do claim all stake is locked should return UserError
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.UserError)
@@ -1315,7 +1315,7 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	newRewardAddr := []byte("newAddr")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
 	//do stake
-	stake(t, sc, args.ValidatorSettings.StakeValue(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
+	stake(t, sc, args.ValidatorSettings.GenesisNodePrice(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
 	// change reward address should error because new reward address is equal with old reward address
 	changeRewardAddress(t, sc, stakerAddress, stakerAddress, vmcommon.UserError)
@@ -1344,7 +1344,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	// changeValidatorKeys should error because address is not belongs to any validator
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
 	//do stake
-	stake(t, sc, args.ValidatorSettings.StakeValue(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
+	stake(t, sc, args.ValidatorSettings.GenesisNodePrice(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 	// changeValidatorKeys should error not enough arguments
 	nodesToRunBytes = big.NewInt(2).Bytes()
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
