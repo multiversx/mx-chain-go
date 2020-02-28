@@ -362,8 +362,9 @@ func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
 		return err
 	}
 
+	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
 	pa.accountTracker.Journalize(entry)
-	pa.AccumulatedFees.Add(pa.AccumulatedFees, value)
+	pa.AccumulatedFees = newAccumulatedFees
 
 	return pa.accountTracker.SaveAccount(pa)
 }
@@ -375,8 +376,9 @@ func (pa *PeerAccount) ResetAtNewEpoch() error {
 		return err
 	}
 
+	newAccumulatedFees := big.NewInt(0)
 	pa.accountTracker.Journalize(entryAccFee)
-	pa.AccumulatedFees = big.NewInt(0)
+	pa.AccumulatedFees = newAccumulatedFees
 
 	err = pa.accountTracker.SaveAccount(pa)
 	if err != nil {

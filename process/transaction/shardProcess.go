@@ -144,27 +144,20 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 func (txProc *txProcessor) executingFailedTransaction(
 	tx *transaction.Transaction,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
 	txError error,
 ) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
 
-	account, ok := acntSnd.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	txFee := txProc.economicsFee.ComputeFee(tx)
-
-	operation := big.NewInt(0)
-	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, txFee))
+	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
 	}
 
-	err = txProc.increaseNonce(account)
+	err = txProc.increaseNonce(acntSnd)
 	if err != nil {
 		return err
 	}
@@ -235,15 +228,28 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	return nil
 }
 
-func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd state.UserAccountHandler) (*big.Int, error) {
-	if acntSnd == nil {
+func (txProc *txProcessor) processTxFee(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) (*big.Int, error) {
+	if check.IfNil(acntSnd) {
 		return big.NewInt(0), nil
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-	err := acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
-	if err != nil {
-		return nil, err
+
+	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRecvAddress())
+	if isCrossShardSCCall {
+		totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+		err := acntSnd.SubFromBalance(totalCost)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := acntSnd.SubFromBalance(cost)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cost, nil
@@ -261,7 +267,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txFee, err := txProc.processTxFee(tx, acntSrc)
+	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst)
 	if err != nil {
 		return err
 	}
@@ -327,7 +333,7 @@ func (txProc *txProcessor) moveBalances(
 ) error {
 	// is sender address in node shard
 	if !check.IfNil(acntSrc) {
-		err := acntSrc.AddToBalance(big.NewInt(0).Neg(value))
+		err := acntSrc.SubFromBalance(value)
 		if err != nil {
 			return err
 		}

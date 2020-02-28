@@ -17,6 +17,7 @@ type vmContext struct {
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
+	gasRemaining   uint64
 
 	output [][]byte
 }
@@ -240,7 +241,10 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 
 	returnCode := contract.Execute(input)
 
-	vmOutput := host.CreateVMOutput()
+	vmOutput := &vmcommon.VMOutput{}
+	if returnCode == vmcommon.Ok {
+		vmOutput = host.CreateVMOutput()
+	}
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil
@@ -266,6 +270,21 @@ func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte)
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
+	host.gasRemaining = 0
+}
+
+// SetGasProvided sets the provided gas
+func (host *vmContext) SetGasProvided(gasProvided uint64) {
+	host.gasRemaining = gasProvided
+}
+
+// UseGas subs from the provided gas the value to consume
+func (host *vmContext) UseGas(gasToConsume uint64) error {
+	if host.gasRemaining < gasToConsume {
+		return vm.ErrNotEnoughGas
+	}
+	host.gasRemaining = host.gasRemaining - gasToConsume
+	return nil
 }
 
 func (host *vmContext) softCleanCache() {
@@ -276,7 +295,7 @@ func (host *vmContext) softCleanCache() {
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
 func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput := &vmcommon.VMOutput{}
-	// save storage updates
+
 	outAccs := make(map[string]*vmcommon.OutputAccount)
 	for addr, updates := range host.storageUpdate {
 		if _, ok := outAccs[addr]; !ok {
@@ -318,10 +337,9 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		outAccs[addr].GasLimit = outAcc.GasLimit
 	}
 
-	// save to the output finally
 	vmOutput.OutputAccounts = outAccs
 
-	vmOutput.GasRemaining = 0
+	vmOutput.GasRemaining = host.gasRemaining
 	vmOutput.GasRefund = big.NewInt(0)
 
 	if len(host.output) > 0 {

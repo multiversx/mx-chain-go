@@ -757,7 +757,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	go sp.saveBody(body)
+	//TODO: Analyze if this could be called on go routine but keep the txsForCurrBlock unchanged until save is done
+	sp.saveBody(body)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
