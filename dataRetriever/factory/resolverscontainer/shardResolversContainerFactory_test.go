@@ -242,19 +242,6 @@ func TestShardResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t
 	assert.Equal(t, errExpected, err)
 }
 
-func TestShardResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.PeerChBodyTopic)
-	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -300,10 +287,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverRewardTxs := 1
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards + 1
-	numResolverPeerChanges := 1
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 2
-	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
+	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks +
 		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes
 
 	assert.Equal(t, totalResolvers, container.Len())

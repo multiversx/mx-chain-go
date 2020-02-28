@@ -162,11 +162,13 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic strin
 		return nil, err
 	}
 
-	//add on the request topic
-	return mrcf.assignHandler(
-		topic+resolverSender.TopicRequestSuffix(),
-		resolver,
-	)
+	topicIdentifier := topic + resolverSender.TopicRequestSuffix()
+	err = mrcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver, nil
 }
 
 //------- Meta header resolvers
@@ -214,11 +216,13 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(identif
 		return nil, err
 	}
 
-	//add on the request topic
-	return mrcf.assignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
-		resolver,
-	)
+	topicIdentifier := identifier + resolverSender.TopicRequestSuffix()
+	err = mrcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver, nil
 }
 
 func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
