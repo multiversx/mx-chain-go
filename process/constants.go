@@ -48,6 +48,7 @@ const MaxHeaderRequestsAllowed = 10
 
 // MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
+// TODO might remove this and make use of the blockSizeComputation
 const MaxItemsInBlock = 15000
 
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
@@ -88,10 +89,6 @@ const MaxRoundsWithoutCommittedBlock = 10
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
-
-// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
-// to be stored in advance in block tracker
-const MaxNonceDifferences = uint64(1000)
 
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100

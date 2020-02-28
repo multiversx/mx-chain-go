@@ -1,5 +1,7 @@
 package preprocess
 
+import "sync/atomic"
+
 func (txs *transactions) ReceivedTransaction(txHash []byte) {
 	txs.receivedTransaction(txHash)
 }
@@ -54,4 +56,20 @@ func (scr *smartContractResults) SetMissingScr(missingTxs int) {
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.missingTxs = missingTxs
 	scr.scrForBlock.mutTxsForBlock.Unlock()
+}
+
+func (bsc *blockSizeComputation) MiniblockSize() uint32 {
+	return bsc.miniblockSize
+}
+
+func (bsc *blockSizeComputation) TxSize() uint32 {
+	return bsc.txSize
+}
+
+func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
+	return atomic.LoadUint32(&bsc.numMiniBlocks)
+}
+
+func (bsc *blockSizeComputation) NumTxs() uint32 {
+	return atomic.LoadUint32(&bsc.numTxs)
 }

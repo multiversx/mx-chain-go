@@ -102,7 +102,11 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilAddressConverter
 	}
 
-	blockSizeComputation := NewBlockSizeComputation()
+	//TODO maybe inject this
+	bsc, err := NewBlockSizeComputation(marshalizer)
+	if err != nil {
+		return nil, err
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -110,7 +114,7 @@ func NewTransactionPreprocessor(
 		shardCoordinator:     shardCoordinator,
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
-		blockSizeComputation: blockSizeComputation,
+		blockSizeComputation: bsc,
 	}
 
 	txs := transactions{
@@ -596,8 +600,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
 	txs.mutAccountsInfo.RLock()
-	for senderAddress, txShardInfo := range txs.accountsInfo {
-		if txShardInfo.senderShardID != txs.shardCoordinator.SelfId() {
+	for senderAddress, txShardInfoValue := range txs.accountsInfo {
+		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -607,7 +611,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 			continue
 		}
 
-		strCache := process.ShardCacherIdentifier(txShardInfo.senderShardID, txShardInfo.receiverShardID)
+		strCache := process.ShardCacherIdentifier(txShardInfoValue.senderShardID, txShardInfoValue.receiverShardID)
 		txShardPool := txs.txPool.ShardDataStore(strCache)
 		if txShardPool == nil {
 			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
