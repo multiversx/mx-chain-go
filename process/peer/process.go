@@ -231,7 +231,10 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	}
 
 	vs.displayRatings(header.GetEpoch())
-	rootHash, _ := vs.peerAdapter.RootHash()
+	rootHash, err := vs.peerAdapter.RootHash()
+	if err != nil {
+		return nil, err
+	}
 
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
