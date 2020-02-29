@@ -10,6 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
+const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
+
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {
 	*spos.Subround
@@ -116,7 +119,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 		return false
 	}
 
-	if sr.canBeSentTogether(marshalizedBody, marshalizedHeader) {
+	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
 		return sr.sendBlockBodyAndHeader(body, header)
 	}
 
@@ -127,14 +130,14 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 	return true
 }
 
-func (sr *subroundBlock) canBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
-	bodyAndHeaderSize := len(marshalizedBody) + len(marshalizedHeader)
-	log.Trace("consensus block message",
+func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
+	bodyAndHeaderSize := uint32(len(marshalizedBody) + len(marshalizedHeader))
+	log.Debug("couldBeSentTogether",
 		"body size", len(marshalizedBody),
 		"header size", len(marshalizedHeader),
-		"body and header size", bodyAndHeaderSize)
-	maxAllowedBytes := core.MegabyteSize * 0.9
-	return bodyAndHeaderSize <= int(maxAllowedBytes)
+		"body and header size", bodyAndHeaderSize,
+		"max allowed size in bytes", maxAllowedSizeInBytes)
+	return bodyAndHeaderSize <= maxAllowedSizeInBytes
 }
 
 func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {

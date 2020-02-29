@@ -11,9 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// maxAllowedBytes defines how many bytes are allowed as payload in a message. We can not have 1MB of data
+// maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message. We can not have 1MB of data
 // as there are cases when extra data is needed (consensus data fields and p2p message fields)
-const maxAllowedBytes = uint32(core.MegabyteSize * 0.75)
+const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 75 / 100)
 
 // blockSizeComputation is able to estimate the size in bytes of a block body given the number of contained
 // transactions hashes and the number of miniblocks. It uses the marshalizer to compute the size as precise as possible.
@@ -132,12 +132,12 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
-	return miniblocksSize+txsSize > maxAllowedBytes
+	return miniblocksSize+txsSize > maxAllowedSizeInBytes
 }
 
 // MaxTransactionsInAMiniblock returns the maximum transactions in a single miniblock
 func (bsc *blockSizeComputation) MaxTransactionsInAMiniblock() int {
-	return int((maxAllowedBytes - bsc.miniblockSize) / bsc.txSize)
+	return int((maxAllowedSizeInBytes - bsc.miniblockSize) / bsc.txSize)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
