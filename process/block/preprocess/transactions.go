@@ -353,14 +353,6 @@ func (txs *transactions) processTxsToMe(
 	haveTime func() bool,
 ) error {
 
-	startTime := time.Now()
-	defer func() {
-		elapsedTime := time.Since(startTime)
-		log.Debug("elapsed time to processTxsToMe",
-			"time [s]", elapsedTime,
-		)
-	}()
-
 	txsToMe, err := txs.computeTxsToMe(body)
 	if err != nil {
 		return err
@@ -426,14 +418,6 @@ func (txs *transactions) processTxsFromMe(
 	body block.Body,
 	haveTime func() bool,
 ) error {
-
-	startTime := time.Now()
-	defer func() {
-		elapsedTime := time.Since(startTime)
-		log.Debug("elapsed time to processTxsFromMe",
-			"time [s]", elapsedTime,
-		)
-	}()
 
 	txsFromMe, err := txs.computeTxsFromMe(body)
 	if err != nil {

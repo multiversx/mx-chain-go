@@ -364,7 +364,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
-	mbIndex, err := tc.processMiniBlocksDestinationMe(body, haveTime)
+	startTime := time.Now()
+	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to processMiniBlocksToMe",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -374,7 +379,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body[mbIndex:]
+	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(miniBlocksFromMe, haveTime)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to processMiniBlocksFromMe",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -414,7 +424,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	return nil
 }
 
-func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
+func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body block.Body,
 	haveTime func() bool,
 ) (int, error) {
