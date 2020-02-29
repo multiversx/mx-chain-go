@@ -110,9 +110,9 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 		{numNewMiniBlocks: 1000000, numNewTxs: 0, expected: true, name: "with miniblocks 1000000 and txs 0"},
 		{numNewMiniBlocks: 0, numNewTxs: 1000000, expected: true, name: "with miniblocks 0 and txs 1000000"},
 		{numNewMiniBlocks: 15, numNewTxs: 1000, expected: false, name: "with miniblocks 15 and txs 1000"},
-		{numNewMiniBlocks: 1, numNewTxs: 16731, expected: false, name: "with miniblocks 1 and txs 19607"},
-		{numNewMiniBlocks: 1, numNewTxs: 16732, expected: true, name: "with miniblocks 1 and txs 19608"},
-		{numNewMiniBlocks: 2, numNewTxs: 16731, expected: true, name: "with miniblocks 2 and txs 19607"},
+		{numNewMiniBlocks: 1, numNewTxs: 14500, expected: false, name: "with miniblocks 1 and txs 19607"},
+		{numNewMiniBlocks: 1, numNewTxs: 14501, expected: true, name: "with miniblocks 1 and txs 19608"},
+		{numNewMiniBlocks: 2, numNewTxs: 14500, expected: true, name: "with miniblocks 2 and txs 19607"},
 	}
 
 	for _, td := range testData {
@@ -122,12 +122,12 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	}
 }
 
-func TestBlockSizeComputation_MaxTransactionsInAMiniblock(t *testing.T) {
+func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
 
-	maxTxs := bsc.MaxTransactionsInAMiniblock()
+	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 
-	assert.Equal(t, 16731, maxTxs)
+	assert.Equal(t, 14500, maxTxs)
 }

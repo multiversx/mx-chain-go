@@ -13,7 +13,7 @@ import (
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message. We can not have 1MB of data
 // as there are cases when extra data is needed (consensus data fields and p2p message fields)
-const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 75 / 100)
+const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 65 / 100)
 
 // blockSizeComputation is able to estimate the size in bytes of a block body given the number of contained
 // transactions hashes and the number of miniblocks. It uses the marshalizer to compute the size as precise as possible.
@@ -135,8 +135,8 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	return miniblocksSize+txsSize > maxAllowedSizeInBytes
 }
 
-// MaxTransactionsInAMiniblock returns the maximum transactions in a single miniblock
-func (bsc *blockSizeComputation) MaxTransactionsInAMiniblock() int {
+// MaxTransactionsInOneMiniblock returns the maximum transactions in a single miniblock
+func (bsc *blockSizeComputation) MaxTransactionsInOneMiniblock() int {
 	return int((maxAllowedSizeInBytes - bsc.miniblockSize) / bsc.txSize)
 }
 
