@@ -133,7 +133,7 @@ func (sr *subroundBlock) canBeSentTogether(marshalizedBody []byte, marshalizedHe
 		"body size", len(marshalizedBody),
 		"header size", len(marshalizedHeader),
 		"body and header size", bodyAndHeaderSize)
-	return bodyAndHeaderSize <= core.MegabyteSize
+	return bodyAndHeaderSize <= int(float64(core.MegabyteSize)*0.9)
 }
 
 func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
