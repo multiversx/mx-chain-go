@@ -247,35 +247,43 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	sortedLeaves := vs.convertMapToSortedSlice(leaves)
+	sliceLeaves := vs.convertMapToSortedSlice(leaves)
 
-	for _, pa := range sortedLeaves {
+	sort.Slice(sliceLeaves, func(i, j int) bool {
+		return bytes.Compare(sliceLeaves[i], sliceLeaves[j]) < 0
+	})
+
+	for _, pa := range sliceLeaves {
 		peerAccount, err := vs.unmarshalPeer(pa)
 		if err != nil {
 			return nil, err
 		}
 
 		currentShardId := peerAccount.CurrentShardId
-		validatorInfoData := &state.ValidatorInfo{
-			PublicKey:                  peerAccount.BLSPublicKey,
-			ShardId:                    peerAccount.CurrentShardId,
-			List:                       "list",
-			Index:                      0,
-			TempRating:                 peerAccount.TempRating,
-			Rating:                     peerAccount.Rating,
-			RewardAddress:              peerAccount.RewardAddress,
-			LeaderSuccess:              peerAccount.LeaderSuccessRate.NrSuccess,
-			LeaderFailure:              peerAccount.LeaderSuccessRate.NrFailure,
-			ValidatorSuccess:           peerAccount.ValidatorSuccessRate.NrSuccess,
-			ValidatorFailure:           peerAccount.ValidatorSuccessRate.NrFailure,
-			NumSelectedInSuccessBlocks: peerAccount.NumSelectedInSuccessBlocks,
-			AccumulatedFees:            big.NewInt(0).Set(peerAccount.AccumulatedFees),
-		}
+		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
 
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
 	return validators, nil
+}
+
+func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount *state.PeerAccount) *state.ValidatorInfo {
+	return &state.ValidatorInfo{
+		PublicKey:                  peerAccount.BLSPublicKey,
+		ShardId:                    peerAccount.CurrentShardId,
+		List:                       "list",
+		Index:                      0,
+		TempRating:                 peerAccount.TempRating,
+		Rating:                     peerAccount.Rating,
+		RewardAddress:              peerAccount.RewardAddress,
+		LeaderSuccess:              peerAccount.LeaderSuccessRate.NrSuccess,
+		LeaderFailure:              peerAccount.LeaderSuccessRate.NrFailure,
+		ValidatorSuccess:           peerAccount.ValidatorSuccessRate.NrSuccess,
+		ValidatorFailure:           peerAccount.ValidatorSuccessRate.NrFailure,
+		NumSelectedInSuccessBlocks: peerAccount.NumSelectedInSuccessBlocks,
+		AccumulatedFees:            big.NewInt(0).Set(peerAccount.AccumulatedFees),
+	}
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (*state.PeerAccount, error) {
@@ -288,17 +296,14 @@ func (vs *validatorStatistics) unmarshalPeer(pa []byte) (*state.PeerAccount, err
 }
 
 func (vs *validatorStatistics) convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	sortedLeaves := make([][]byte, len(leaves))
+	newLeaves := make([][]byte, len(leaves))
 	i := 0
 	for _, pa := range leaves {
-		sortedLeaves[i] = pa
+		newLeaves[i] = pa
 		i++
 	}
 
-	sort.Slice(sortedLeaves, func(i, j int) bool {
-		return bytes.Compare(sortedLeaves[i], sortedLeaves[j]) < 0
-	})
-	return sortedLeaves
+	return newLeaves
 }
 
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash

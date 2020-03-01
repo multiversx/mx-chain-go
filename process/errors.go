@@ -654,6 +654,9 @@ var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 // ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
 var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
 
+// ErrNilEpochStartRewardsCreator signals that nil epoch start validator info creator was provided
+var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
+
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 

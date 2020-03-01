@@ -142,7 +142,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:           tpn.BlockTracker,
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:   			tpn.BlockChain,
+		BlockChain:             tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -151,13 +151,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:         argumentsBase,
-			SCDataGetter:             &mock.ScQueryMock{},
-			SCToProtocol:             &mock.SCToProtocolStub{},
-			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
-			EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
-			EpochEconomics:           &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
+			ArgBaseProcessor:          argumentsBase,
+			SCDataGetter:              &mock.ScQueryMock{},
+			SCToProtocol:              &mock.SCToProtocolStub{},
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:            &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:       &mock.EpochRewardsCreatorStub{},
+			EpochValidatorInfoCreator: &mock.EpochValidatorInfoCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

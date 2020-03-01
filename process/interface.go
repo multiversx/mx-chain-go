@@ -653,6 +653,15 @@ type EpochStartRewardsCreator interface {
 	IsInterfaceNil() bool
 }
 
+// EpochValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+type EpochStartValidatorInfoCreator interface {
+	CreateValidatorInfoMiniBlocks(validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
+	IsInterfaceNil() bool
+}
+
 // ValidityAttester is able to manage the valid blocks
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error

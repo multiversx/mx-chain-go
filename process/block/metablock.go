@@ -32,6 +32,7 @@ type metaProcessor struct {
 	epochStartDataCreator    process.EpochStartDataCreator
 	epochEconomics           process.EndOfEpochEconomics
 	epochRewardsCreator      process.EpochStartRewardsCreator
+	validatorInfoCreator     process.EpochStartValidatorInfoCreator
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
@@ -69,6 +70,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.EpochRewardsCreator) {
 		return nil, process.ErrNilEpochStartRewardsCreator
+	}
+	if check.IfNil(arguments.EpochValidatorInfoCreator) {
+		return nil, process.ErrNilEpochStartValidatorInfoCreator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -112,6 +116,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		epochStartDataCreator:    arguments.EpochStartDataCreator,
 		epochEconomics:           arguments.EpochEconomics,
 		epochRewardsCreator:      arguments.EpochRewardsCreator,
+		validatorInfoCreator:     arguments.EpochValidatorInfoCreator,
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
@@ -338,6 +343,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorInfos)
+	if err != nil {
+		return err
+	}
+
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(header, allValidatorInfos)
 	if err != nil {
 		return err
 	}
@@ -590,6 +600,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	if metaBlock.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.Revert(metaBlock.GetRound())
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
+		mp.validatorInfoCreator.DeleteValidatorInfoBlocksFromStorage(metaBlock)
 		return nil
 	}
 
@@ -708,7 +719,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	validatorMiniBlocks, err := mp.CreateValidatorMiniBlocks(allValidatorInfos)
+	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -1193,6 +1204,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body block.Bo
 		mp.epochStartTrigger.SetProcessed(header)
 
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
+		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {

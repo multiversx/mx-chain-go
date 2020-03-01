@@ -996,6 +996,7 @@ func (bp *baseProcessor) updateStateStorage(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
+	log.Info("UpdateStateStorage", "hash", core.ToHex(rootHash))
 	if !accounts.IsPruningEnabled() {
 		return
 	}
@@ -1018,7 +1019,7 @@ func (bp *baseProcessor) updateStateStorage(
 	if bytes.Equal(prevRootHash, rootHash) {
 		return
 	}
-
+	log.Info("Got to pruneTrie", "hash", core.ToHex(rootHash))
 	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())

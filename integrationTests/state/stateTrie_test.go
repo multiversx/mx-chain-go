@@ -26,6 +26,7 @@ import (
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -1552,6 +1553,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
+		fmt.Println(fmt.Sprintf("Should be pruned!!! hash: %v", core.ToHex(prunedRootHashes[i])))
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)

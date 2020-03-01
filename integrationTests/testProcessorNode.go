@@ -934,14 +934,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
+		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
+			ShardCoordinator: tpn.ShardCoordinator,
+			MiniBlockStorage: miniBlockStorage,
+			Hasher:           TestHasher,
+			Marshalizer:      TestMarshalizer,
+		}
+
+		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:         argumentsBase,
-			SCDataGetter:             tpn.SCQueryService,
-			SCToProtocol:             scToProtocol,
-			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
-			EpochEconomics:           epochEconomics,
-			EpochStartDataCreator:    epochStartDataCreator,
-			EpochRewardsCreator:      epochStartRewards,
+			ArgBaseProcessor:          argumentsBase,
+			SCDataGetter:              tpn.SCQueryService,
+			SCToProtocol:              scToProtocol,
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochEconomics:            epochEconomics,
+			EpochStartDataCreator:     epochStartDataCreator,
+			EpochRewardsCreator:       epochStartRewards,
+			EpochValidatorInfoCreator: epochStartValidatorInfo,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
