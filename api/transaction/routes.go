@@ -61,7 +61,7 @@ type TxResponse struct {
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/send", SendTransaction)
-	router.POST("/cost", GetTransactionCost)
+	router.POST("/cost", ComputeTransactionCost)
 	router.POST("/send-multiple", SendMultipleTransactions)
 	router.GET("/:txhash", GetTransaction)
 }
@@ -183,8 +183,8 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	return response
 }
 
-// GetTransactionCost returns how many gas a transaction wil consume
-func GetTransactionCost(c *gin.Context) {
+// ComputeTransactionCost returns how many gas units a transaction wil consume
+func ComputeTransactionCost(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})

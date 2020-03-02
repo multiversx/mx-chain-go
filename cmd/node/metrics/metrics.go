@@ -74,11 +74,14 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
-// SaveNodeNameChainIdAndMinGasPrice will save metric in status handler with nodeName, chainId and min gas price
-func SaveNodeNameChainIdAndMinGasPrice(ash core.AppStatusHandler, nodeName string, chainId string, minGasPrice uint64) {
-	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
-	ash.SetStringValue(core.MetricChainId, chainId)
-	ash.SetUInt64Value(core.MetricMinGasPrice, minGasPrice)
+// SaveUint64Metric will save a uint64 metric in status handler
+func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
+	ash.SetUInt64Value(key, value)
+}
+
+// SaveStringMetric will save a string metric in status handler
+func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
+	ash.SetStringValue(key, value)
 }
 
 // StartStatusPolling will start save information in status handler about network

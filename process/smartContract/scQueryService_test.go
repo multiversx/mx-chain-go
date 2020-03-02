@@ -25,6 +25,24 @@ func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNoVM, err)
 }
 
+func TestNewSCQueryService_NilTxTypeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil, &mock.FeeHandlerStub{})
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilTxTypeHandler, err)
+}
+
+func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.TxTypeHandlerMock{}, nil)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 

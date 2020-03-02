@@ -8,14 +8,14 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// ScQueryMock -
-type ScQueryMock struct {
+// ScQueryStub -
+type ScQueryStub struct {
 	ExecuteQueryCalled           func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionCostCalled func(tx *transaction.Transaction) (*big.Int, error)
 }
 
 // ExecuteQuery -
-func (s *ScQueryMock) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (s *ScQueryStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	if s.ExecuteQueryCalled != nil {
 		return s.ExecuteQueryCalled(query)
 	}
@@ -23,11 +23,11 @@ func (s *ScQueryMock) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, 
 }
 
 // ComputeTransactionCost --
-func (s *ScQueryMock) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
+func (s *ScQueryStub) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
 	return s.ComputeTransactionCostCalled(tx)
 }
 
 // IsInterfaceNil -
-func (s *ScQueryMock) IsInterfaceNil() bool {
+func (s *ScQueryStub) IsInterfaceNil() bool {
 	return s == nil
 }

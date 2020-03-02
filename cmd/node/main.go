@@ -660,10 +660,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	metrics.SaveNodeNameChainIdAndMinGasPrice(coreComponents.StatusHandler,
-		preferencesConfig.Preferences.NodeDisplayName,
-		nodesConfig.ChainID,
-		economicsData.MinGasPrice())
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, nodesConfig.ChainID)
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),

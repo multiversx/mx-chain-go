@@ -142,7 +142,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:           tpn.BlockTracker,
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:   			tpn.BlockChain,
+		BlockChain:             tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -152,7 +152,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:         argumentsBase,
-			SCDataGetter:             &mock.ScQueryMock{},
+			SCDataGetter:             &mock.ScQueryStub{},
 			SCToProtocol:             &mock.SCToProtocolStub{},
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 			EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},

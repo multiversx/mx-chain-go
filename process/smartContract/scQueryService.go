@@ -27,9 +27,14 @@ func NewSCQueryService(
 	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
 ) (*SCQueryService, error) {
-
 	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
+	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &SCQueryService{
