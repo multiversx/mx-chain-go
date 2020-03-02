@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,8 +92,8 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 	scCode, err := getBytecode(wasm_filename)
 	assert.Nil(t, err)
 
-	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	scCodeString := hex.EncodeToString(scCode)
 
@@ -105,12 +105,10 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 		gasLimit,
 		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
 	)
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(accnts, nil)
-	wasmVM, _ := vmContainer.Get(factory.ArwenVirtualMachine)
-
+	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)
 	return wasmVM, scAddressBytes
 }
 

@@ -32,6 +32,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &marshal.JsonMarshalizer{}
@@ -329,17 +330,26 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+) VMTestContext {
+	accounts := CreateInMemoryShardAccountsDB()
+	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil)
+	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	require.NotNil(tb, txProcessor)
 
-	accnts := CreateInMemoryShardAccountsDB()
-	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	return VMTestContext{
+		TxProcessor:    txProcessor,
+		Accounts:       accounts,
+		BlockchainHook: blockchainHook,
+		VMContainer:    vmContainer,
+	}
+}
 
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
-
-	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
-	assert.NotNil(tb, txProcessor)
-
-	return txProcessor, accnts, blockChainHook
+type VMTestContext struct {
+	TxProcessor    process.TransactionProcessor
+	Accounts       state.AccountsAdapter
+	BlockchainHook vmcommon.BlockchainHook
+	VMContainer    process.VirtualMachinesContainer
 }
 
 func CreateTxProcessorArwenVMWithGasSchedule(

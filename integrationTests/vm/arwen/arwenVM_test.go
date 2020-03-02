@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"os/exec"
 	"path"
 	"testing"
 	"time"
@@ -42,12 +43,12 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(99999699)
@@ -55,7 +56,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 
 	vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
@@ -75,8 +76,8 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	assert.Nil(t, err)
 	scCodeString := hex.EncodeToString(scCode)
 
-	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
 
 	tx := vm.CreateTx(t,
@@ -88,10 +89,10 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		gasLimit,
 		"")
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	ownerNonce++
@@ -106,16 +107,16 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	expectedBalance := ownerBalance.Uint64() - 2*transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+1,
 		big.NewInt(0).SetUint64(expectedBalance))
@@ -123,7 +124,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	expectedBalance = 2 * transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		scAddressBytes,
 		0,
 		big.NewInt(0).SetUint64(expectedBalance))
@@ -302,6 +303,8 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
 	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", bob).Uint64())
+
+	exec.Command("killall", "arwen").Output()
 }
 
 func TestWASMNamespacing(t *testing.T) {
@@ -333,19 +336,19 @@ func TestWASMNamespacing(t *testing.T) {
 		Signature: nil,
 	}
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	aliceInitialBalance := uint64(3000)
-	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
@@ -362,7 +365,7 @@ func TestWASMNamespacing(t *testing.T) {
 		Signature: nil,
 	}
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 }
 
@@ -391,19 +394,19 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	aliceInitialBalance := uint64(3000)
-	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
@@ -420,7 +423,7 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	err = txProc.ProcessTransaction(tx)
+	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(2090)
@@ -428,7 +431,7 @@ func TestWASMMetering(t *testing.T) {
 
 	actualBalanceBigInt := vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		alice,
 		expectedNonce,
 		expectedBalance)
