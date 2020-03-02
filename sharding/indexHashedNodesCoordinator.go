@@ -576,7 +576,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 			shardEligible[string(pubKey)] = struct{}{}
 		}
 	} else {
-		log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
+		log.Trace("not critical error getting shardId for epoch", "epoch", epoch-1, "error", err)
 	}
 
 	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
