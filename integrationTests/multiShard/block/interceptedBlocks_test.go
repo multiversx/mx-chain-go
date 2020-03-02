@@ -125,7 +125,6 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		Round:         1,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),
@@ -142,7 +141,6 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		Round:         2,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),
@@ -175,9 +173,9 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	assert.Nil(t, retrievedHeader)
 }
 
-// TestMetaHeadersAreRequstedByAMetachainNode tests the metaheader request is served by a metachain node and
+// TestMetaHeadersAreRequestedByAMetachainNode tests the metaheader request is served by a metachain node and
 // by a shard node
-func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
+func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -214,7 +212,6 @@ func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
 		Round:         1,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),
@@ -231,7 +228,6 @@ func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
 		Round:         2,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),

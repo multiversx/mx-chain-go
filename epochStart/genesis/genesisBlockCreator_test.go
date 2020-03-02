@@ -236,6 +236,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 			PrevRandSeed:           rootHash,
 			RandSeed:               rootHash,
 			ValidatorStatsRootHash: validatorStatsRootHash,
+			AccumulatedFees:        big.NewInt(0),
 		},
 		header,
 	)
