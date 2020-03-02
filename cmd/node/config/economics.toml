@@ -1,13 +1,12 @@
 #Econimics config of the node
-[EconomicsAddresses]
-    CommunityAddress = "1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420"
-    BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+[GlobalSettings]
+    TotalSupply = "20000000000000000000000000000" #20BILERD
+    MinimumInflation = 0.0
+    MaximumInflation = 0.1 #fraction of value 1 - 10%
 
 [RewardsSettings]
-    RewardsValue = "20000000000000000000" #20ERD
-    CommunityPercentage = 0.10
-    LeaderPercentage = 0.50
-    BurnPercentage = 0.40
+    LeaderPercentage = 0.10 #fraction of value 1 - 10%
+    DeveloperPercentage = 0.30 #fraction of value 1 - 30%
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
@@ -18,44 +17,56 @@
     DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    StakeValue = "500000000000000000000000" #500000ERD
-    UnBoundPeriod = "100000"
+    GenesisNodePrice = "500000000000000000000000" #500000ERD
+    UnBondPeriod = "100000"
+    MinStepValue = "10000000000000000000000"
+    TotalSupply = "20000000000000000000000000000" #20BIL ERD
+    NumNodes = 1000
+    AuctionEnableNonce = "100000000000"
+    StakeEnableNonce = "100000000000"
+    NumRoundsWithoutBleed = "100"
+    MaximumPercentageToBleed = "0.5"
+    BleedPercentagePerRound = "0.00001"
+    UnJailValue = "1000"
 
 [RatingSettings]
     StartRating = 500000
     MaxRating = 1000000
     MinRating = 1
-    ProposerIncreaseRatingStep = 25000
-    ProposerDecreaseRatingStep = 50000
-    ValidatorIncreaseRatingStep = 1000
-    ValidatorDecreaseRatingStep = 2000
-    [[RatingSettings.Chance]]
+    ProposerIncreaseRatingStep = 1929
+    ProposerDecreaseRatingStep = 3858
+    ValidatorIncreaseRatingStep = 31
+    ValidatorDecreaseRatingStep = 61
+    [[RatingSettings.SelectionChance]]
+    MaxThreshold = 0
+    ChancePercent = 5
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 100000
     ChancePercent = 0
-    [[RatingSettings.Chance]]
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 200000
-    ChancePercent = 80
-    [[RatingSettings.Chance]]
+    ChancePercent = 16
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 300000
-    ChancePercent = 85
-    [[RatingSettings.Chance]]
+    ChancePercent = 17
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 400000
-    ChancePercent = 90
-    [[RatingSettings.Chance]]
+    ChancePercent = 18
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 500000
-    ChancePercent = 95
-    [[RatingSettings.Chance]]
+    ChancePercent = 19
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 600000
-    ChancePercent = 100
-    [[RatingSettings.Chance]]
+    ChancePercent = 20
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 700000
-    ChancePercent = 105
-    [[RatingSettings.Chance]]
+    ChancePercent = 21
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 800000
-    ChancePercent = 110
-    [[RatingSettings.Chance]]
+    ChancePercent = 22
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 900000
-    ChancePercent = 115
-    [[RatingSettings.Chance]]
+    ChancePercent = 23
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 1000000
-    ChancePercent = 120
+    ChancePercent = 24

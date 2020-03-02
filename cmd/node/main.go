@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -53,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -810,7 +812,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -825,6 +827,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
+		cryptoComponents.MessageSignVerifier,
 	)
 	if err != nil {
 		return err
@@ -979,14 +982,17 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
-	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator, log logger.Logger) {
+	if check.IfNil(elasticIndexer) {
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
 
-	if validatorsPubKeys != nil {
+	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
 }
@@ -1016,8 +1022,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
-	cfg := &config.ConfigEconomics{}
+func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
+	cfg := &config.EconomicsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1104,7 +1110,7 @@ func createNodesCoordinator(
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	_ sharding.RaterHandler,
+	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
 
@@ -1170,12 +1176,12 @@ func createNodesCoordinator(
 
 	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
 	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	//if err != nil {
-	//	return nil, err
-	//}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	if err != nil {
+		return nil, err
+	}
 
-	return baseNodesCoordinator, nil
+	return nodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
@@ -1443,6 +1449,7 @@ func createApiResolver(
 	statusMetrics external.StatusMetricsHandler,
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
+	messageSigVerifier vm.MessageSignVerifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1458,7 +1465,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
 		if err != nil {
 			return nil, err
 		}

@@ -1,17 +1,16 @@
 package config
 
-// EconomicsAddresses will hold economics addresses
-type EconomicsAddresses struct {
-	CommunityAddress string
-	BurnAddress      string
+// GlobalSettings will hold general economic values
+type GlobalSettings struct {
+	TotalSupply      string
+	MinimumInflation float64
+	MaximumInflation float64
 }
 
 // RewardsSettings will hold economics rewards settings
 type RewardsSettings struct {
-	RewardsValue                   string
-	CommunityPercentage            float64
 	LeaderPercentage               float64
-	BurnPercentage                 float64
+	DeveloperPercentage            float64
 	DenominationCoefficientForView string
 }
 
@@ -26,8 +25,17 @@ type FeeSettings struct {
 
 // ValidatorSettings will hold the validator settings
 type ValidatorSettings struct {
-	StakeValue    string
-	UnBoundPeriod string
+	GenesisNodePrice string
+	UnBondPeriod             string
+	TotalSupply              string
+	MinStepValue             string
+	NumNodes                 uint32
+	AuctionEnableNonce       string
+	StakeEnableNonce         string
+	NumRoundsWithoutBleed    string
+	MaximumPercentageToBleed string
+	BleedPercentagePerRound  string
+	UnJailValue              string
 }
 
 // RatingSettings will hold rating settings
@@ -39,19 +47,26 @@ type RatingSettings struct {
 	ProposerDecreaseRatingStep  uint32
 	ValidatorIncreaseRatingStep uint32
 	ValidatorDecreaseRatingStep uint32
+	SelectionChance             []SelectionChance
 }
 
-//RatingValue will hold different rating options with increase and decresea steps
+//RatingValue will hold different rating options with increase and decrease steps
 type RatingValue struct {
 	Name  string
 	Value int32
 }
 
-// ConfigEconomics will hold economics config
-type ConfigEconomics struct {
-	EconomicsAddresses EconomicsAddresses
-	RewardsSettings    RewardsSettings
-	FeeSettings        FeeSettings
-	ValidatorSettings  ValidatorSettings
-	RatingSettings     RatingSettings
+// EconomicsConfig will hold economics config
+type EconomicsConfig struct {
+	GlobalSettings    GlobalSettings
+	RewardsSettings   RewardsSettings
+	FeeSettings       FeeSettings
+	ValidatorSettings ValidatorSettings
+	RatingSettings    RatingSettings
+}
+
+//RatingValue will hold different rating options with increase and decresea steps
+type SelectionChance struct {
+	MaxThreshold  uint32
+	ChancePercent uint32
 }

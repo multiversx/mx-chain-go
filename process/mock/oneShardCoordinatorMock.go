@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -52,7 +51,7 @@ func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) 
 	}
 
 	if destShardID == core.AllShardId {
-		return fmt.Sprintf("_%d", core.AllShardId)
+		return "_ALL"
 	}
 
 	return "_0"

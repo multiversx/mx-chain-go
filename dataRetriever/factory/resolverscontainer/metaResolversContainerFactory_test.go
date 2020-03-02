@@ -16,10 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	allShardNumber = 1
-)
-
 func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
@@ -60,6 +56,9 @@ func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 			return &mock.ShardedDataStub{}
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
 		},
 	}
@@ -196,19 +195,6 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 //------- Create
 
-func TestMetaResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.Messenger = createStubTopicMessageHandlerForMeta(factory.ShardBlocksTopic, "")
-	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -249,12 +235,13 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	container, _ := rcf.Create()
 	numResolversShardHeadersForMetachain := noOfShards
 	numResolverMetablocks := 1
-	numResolversMiniBlocks := noOfShards + 1 + allShardNumber
+	numResolversMiniBlocks := noOfShards + 2
 	numResolversUnsigned := noOfShards + 1
+	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := (noOfShards + 1) * 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

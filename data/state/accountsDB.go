@@ -37,16 +37,16 @@ func NewAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 ) (*AccountsDB, error) {
-	if trie == nil || trie.IsInterfaceNil() {
+	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if accountFactory == nil || accountFactory.IsInterfaceNil() {
+	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
 	}
 

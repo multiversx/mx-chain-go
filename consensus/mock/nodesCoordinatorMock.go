@@ -38,13 +38,18 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return list, nil
 }
 
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
+}
+
 // ConsensusGroupSize -
 func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	return 1
 }
 
 // GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -123,6 +128,11 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
+}
+
+// SetConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
+	panic("implement me")
 }
 
 // GetSelectedPublicKeys -

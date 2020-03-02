@@ -56,13 +56,18 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
+}
+
 // GetValidatorsIndexes -
 func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
 	return nil, nil
 }
 
 // GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 

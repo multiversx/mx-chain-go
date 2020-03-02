@@ -162,7 +162,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil {
+			if check.IfNil(preproc) {
 				wg.Done()
 				return
 			}
@@ -192,7 +192,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 	for key, value := range tc.requestedTxs {
 		go func(blockType block.Type, requestedTxs int) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil {
+			if check.IfNil(preproc) {
 				wg.Done()
 				return
 			}
@@ -228,7 +228,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil {
+			if check.IfNil(preproc) {
 				wg.Done()
 				return
 			}
@@ -249,7 +249,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	for _, blockType := range tc.keysInterimProcs {
 		go func(blockType block.Type) {
 			intermediateProc := tc.getInterimProcessor(blockType)
-			if intermediateProc == nil {
+			if check.IfNil(intermediateProc) {
 				wg.Done()
 				return
 			}
@@ -286,7 +286,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil {
+			if check.IfNil(preproc) {
 				wg.Done()
 				return
 			}
@@ -327,7 +327,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil || preproc.IsInterfaceNil() {
+			if check.IfNil(preproc) {
 				wg.Done()
 				return
 			}
@@ -479,6 +479,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
+			log.Error("no preprocessor for miniblock found", "type", miniBlock.Type)
 			continue
 		}
 
@@ -524,7 +525,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
 		txPreProc := tc.getPreProcessor(blockType)
-		if txPreProc == nil || txPreProc.IsInterfaceNil() {
+		if check.IfNil(txPreProc) {
 			return nil
 		}
 
@@ -561,7 +562,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 		}
 
 		interimProc := tc.getInterimProcessor(blockType)
-		if interimProc == nil {
+		if check.IfNil(interimProc) {
 			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
 			continue
 		}
@@ -639,9 +640,8 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 }
 
 // CreateMarshalizedData creates marshalized data for broadcasting
-func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
+func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
-	bodies := make(map[uint32]block.MiniBlockSlice)
 
 	for i := 0; i < len(body); i++ {
 		miniblock := body[i]
@@ -663,8 +663,6 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
 		if !check.IfNil(preproc) {
-			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
-			appended = true
 
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
@@ -680,9 +678,6 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
 		if !check.IfNil(interimProc) {
-			if !appended {
-				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
-			}
 
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
@@ -697,7 +692,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		}
 	}
 
-	return bodies, mrsTxs
+	return mrsTxs
 }
 
 func (tc *transactionCoordinator) appendMarshalizedItems(
@@ -741,7 +736,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 
 // RequestMiniBlocks request miniblocks if missing
 func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return
 	}
 
