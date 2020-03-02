@@ -335,7 +335,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
-		log.Debug("request header",
+		log.Trace("blockProcessor.requestHeaders",
 			"shard", shardID,
 			"nonce", nonce)
 
