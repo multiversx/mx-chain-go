@@ -921,6 +921,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
 			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
 			Store:            tpn.Storage,
 			ShardCoordinator: tpn.ShardCoordinator,
 			NodesCoordinator: tpn.NodesCoordinator,

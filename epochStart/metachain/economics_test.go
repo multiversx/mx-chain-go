@@ -264,6 +264,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
 		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           mock.HasherMock{},
 		Store:            &mock.ChainStorerStub{},
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
 		NodesCoordinator: &mock.NodesCoordinatorStub{},

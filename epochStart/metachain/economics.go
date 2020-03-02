@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -19,6 +20,7 @@ const numberOfSecondsInDay = 86400
 
 type economics struct {
 	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
@@ -29,6 +31,7 @@ type economics struct {
 // ArgsNewEpochEconomics holds the arguments needed when creating a new end of epoch economics data creator
 type ArgsNewEpochEconomics struct {
 	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
 	Store            dataRetriever.StorageService
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
@@ -40,6 +43,9 @@ type ArgsNewEpochEconomics struct {
 func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, epochStart.ErrNilHasher
 	}
 	if check.IfNil(args.Store) {
 		return nil, epochStart.ErrNilStorage
@@ -59,6 +65,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 
 	e := &economics{
 		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
 		store:            args.Store,
 		shardCoordinator: args.ShardCoordinator,
 		nodesCoordinator: args.NodesCoordinator,
@@ -112,13 +119,19 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock = big.NewInt(0).Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
+	if err != nil {
+		return nil, err
+	}
+
 	computedEconomics := block.Economics{
 		TotalSupply:            big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
 		TotalToDistribute:      big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
-		NodePrice: big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		NodePrice:          big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		PrevEpochStartHash: prevEpochStartHash,
 	}
 
 	return &computedEconomics, nil
