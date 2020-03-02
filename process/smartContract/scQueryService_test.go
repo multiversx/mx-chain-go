@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -8,10 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
@@ -139,13 +143,13 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
 
-	data := [][]byte{[]byte("90"), []byte("91")}
+	d := [][]byte{[]byte("90"), []byte("91")}
 
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
 				ReturnCode: vmcommon.Ok,
-				ReturnData: data,
+				ReturnData: d,
 			}, nil
 		},
 	}
@@ -172,8 +176,8 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	vmOutput, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, err)
-	assert.Equal(t, data[0], vmOutput.ReturnData[0])
-	assert.Equal(t, data[1], vmOutput.ReturnData[1])
+	assert.Equal(t, d[0], vmOutput.ReturnData[0])
+	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
 func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
@@ -263,4 +267,104 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestSCQueryService_ComputeTransactionCostWrongTxType(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("invalidTx")
+	txTypeHandler := &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
+			return process.InvalidTransaction, localErr
+		},
+	}
+	tx := &transaction.Transaction{}
+
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, txTypeHandler, &mock.FeeHandlerStub{})
+
+	_, err := target.ComputeTransactionCost(tx)
+	require.Equal(t, localErr, err)
+}
+
+func TestSCQueryService_ComputeTransactionCostMoveBalance(t *testing.T) {
+	t.Parallel()
+
+	expectedCost := big.NewInt(1000)
+	txTypeHandler := &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
+			return process.MoveBalance, nil
+		},
+	}
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, txTypeHandler, &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return expectedCost
+		},
+	})
+
+	tx := &transaction.Transaction{}
+	cost, err := target.ComputeTransactionCost(tx)
+	require.Nil(t, err)
+	require.Equal(t, expectedCost, cost)
+}
+
+func TestSCQueryService_ComputeTxCostScDeploy(t *testing.T) {
+	t.Parallel()
+
+	expectedCost := big.NewInt(1000)
+	txTypeHandler := &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
+			return process.SCDeployment, nil
+		},
+	}
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, txTypeHandler, &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return expectedCost
+		},
+	})
+
+	tx := &transaction.Transaction{}
+	cost, err := target.ComputeTransactionCost(tx)
+	require.Nil(t, err)
+	require.Equal(t, expectedCost, cost)
+}
+
+func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
+	t.Parallel()
+
+	consumedGas := uint64(10000)
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				GasRemaining: uint64(math.MaxUint64) - consumedGas,
+				ReturnCode:   vmcommon.Ok,
+			}, nil
+		},
+	}
+	txTypeHandler := &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
+			return process.SCInvoking, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		txTypeHandler,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+	)
+
+	tx := &transaction.Transaction{
+		RcvAddr: []byte(DummyScAddress),
+		Data:    []byte("increment"),
+	}
+	cost, err := target.ComputeTransactionCost(tx)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0).SetUint64(consumedGas), cost)
 }
