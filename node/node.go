@@ -229,7 +229,7 @@ func (n *Node) CreateShardedStores() error {
 }
 
 // StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus(epoch uint32) error {
+func (n *Node) StartConsensus() error {
 	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
@@ -252,6 +252,12 @@ func (n *Node) StartConsensus(epoch uint32) error {
 	}
 
 	bootstrapper.StartSync()
+	epoch := uint32(0)
+	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(crtBlockHeader) {
+		epoch = crtBlockHeader.GetEpoch()
+		log.Debug("starting consensus", "epoch", epoch)
+	}
 
 	consensusState, err := n.createConsensusState(epoch)
 	if err != nil {
