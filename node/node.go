@@ -230,8 +230,8 @@ func (n *Node) CreateShardedStores() error {
 
 // StartConsensus will start the consensus service for the current node
 func (n *Node) StartConsensus(epoch uint32) error {
-	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
-		n.blkc.GetGenesisHeader() == nil
+	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
+		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
 		return ErrGenesisBlockNotInitialized
 	}
