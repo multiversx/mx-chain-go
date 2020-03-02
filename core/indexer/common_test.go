@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -57,7 +56,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 		Receiver:  hex.EncodeToString(rcvAddr),
 		Status:    "Success",
 		Value:     "<nil>",
-		Sender:    fmt.Sprintf("Shard%d", 0),
+		Sender:    metachainTpsDocID,
 		Data:      []byte(""),
 	}
 	require.Equal(t, expectedTx, resultTx)
