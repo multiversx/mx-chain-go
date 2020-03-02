@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
@@ -113,7 +113,7 @@ func initP2PAntiFloodAndBlackList(
 	topicMaxMessages := mainConfig.Antiflood.Topic.MaxMessages
 	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
-	p2pAntiflood, err := antiflood2.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,11 +135,14 @@ func startResettingFloodPreventers(
 	topicFloodPreventer p2p.TopicFloodPreventer,
 	topicMaxMessages []config.TopicMaxMessagesConfig,
 ) {
+	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
+	copy(localTopicMaxMessages, topicMaxMessages)
+
 	go func() {
 		for {
 			time.Sleep(time.Second)
 			floodPreventer.Reset()
-			for _, topicMaxMsg := range topicMaxMessages {
+			for _, topicMaxMsg := range localTopicMaxMessages {
 				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
 			}
 		}
