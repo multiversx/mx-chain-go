@@ -12,7 +12,7 @@
 [FeeSettings]
     MaxGasLimitPerBlock = "1500000000"
     MinGasPrice = "100000000000000" #will yield min tx fee of 10ERD
-    MinGasLimit = "75000"
+    MinGasLimit = "60000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
 
