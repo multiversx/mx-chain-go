@@ -228,7 +228,7 @@
     Type = "LRU"
 
 [Antiflood]
-    Enabled = false
+    Enabled = true
     PeerMaxMessagesPerSecond = 75
     PeerMaxTotalSizePerSecond = 2097152
     MaxMessagesPerSecond = 400
@@ -237,9 +237,10 @@
         Size = 5000
         Type = "LRU"
     [Antiflood.Topic]
-        DefaultMaxMessagesPerSec = 75
-        HeartbeatMaxMessagesPerSec = 10
-        HeadersRequestsPerSec = 20
+        DefaultMaxMessagesPerSec = 10000
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 5 },
+                       { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
+                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
     [Antiflood.BlackList]
         ThresholdNumMessagesPerSecond = 150
         ThresholdSizePerSecond = 4194304

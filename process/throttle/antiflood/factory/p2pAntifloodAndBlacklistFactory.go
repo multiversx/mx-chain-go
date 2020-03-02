@@ -110,26 +110,38 @@ func initP2PAntiFloodAndBlackList(
 		"numFloodingRounds", mainConfig.Antiflood.BlackList.NumFloodingRounds,
 	)
 
-	topicFloodPreventer.SetMaxMessagesForTopic("heartbeat", mainConfig.Antiflood.Topic.HeartbeatMaxMessagesPerSec)
+	topicMaxMessages := mainConfig.Antiflood.Topic.MaxMessages
+	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
 	p2pAntiflood, err := antiflood2.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	startResettingFloodPreventers(floodPreventer, topicFloodPreventer)
+	startResettingFloodPreventers(floodPreventer, topicFloodPreventer, topicMaxMessages)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
 	return p2pAntiflood, p2pPeerBlackList, nil
 }
 
-func startResettingFloodPreventers(floodPreventer p2p.FloodPreventer, topicFloodPreventer p2p.TopicFloodPreventer) {
+func setMaxMessages(topicFloodPreventer p2p.TopicFloodPreventer, topicMaxMessages []config.TopicMaxMessagesConfig) {
+	for _, topicMaxMsg := range topicMaxMessages {
+		topicFloodPreventer.SetMaxMessagesForTopic(topicMaxMsg.Topic, topicMaxMsg.NumMessagesPerSec)
+	}
+}
+
+func startResettingFloodPreventers(
+	floodPreventer p2p.FloodPreventer,
+	topicFloodPreventer p2p.TopicFloodPreventer,
+	topicMaxMessages []config.TopicMaxMessagesConfig,
+) {
 	go func() {
 		for {
 			time.Sleep(time.Second)
 			floodPreventer.Reset()
-			topicFloodPreventer.ResetForTopic("heartbeat")
-			topicFloodPreventer.ResetForTopic("headers*")
+			for _, topicMaxMsg := range topicMaxMessages {
+				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
+			}
 		}
 	}()
 }

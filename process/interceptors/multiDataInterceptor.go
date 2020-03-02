@@ -14,6 +14,7 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
+	topic            string
 	marshalizer      marshal.Marshalizer
 	factory          process.InterceptedDataFactory
 	processor        process.InterceptorProcessor
@@ -23,13 +24,16 @@ type MultiDataInterceptor struct {
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
 func NewMultiDataInterceptor(
+	topic string,
 	marshalizer marshal.Marshalizer,
 	factory process.InterceptedDataFactory,
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
 ) (*MultiDataInterceptor, error) {
-
+	if len(topic) == 0 {
+		return nil, process.ErrEmptyTopic
+	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -47,6 +51,7 @@ func NewMultiDataInterceptor(
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
+		topic:            topic,
 		marshalizer:      marshalizer,
 		factory:          factory,
 		processor:        processor,
@@ -60,7 +65,7 @@ func NewMultiDataInterceptor(
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer)
+	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer, mdi.topic)
 	if err != nil {
 		return err
 	}

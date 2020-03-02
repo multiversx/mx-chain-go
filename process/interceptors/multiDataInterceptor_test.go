@@ -17,19 +17,29 @@ import (
 )
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var testTopic = "test topic"
 
-func createMockAntifloodHandler() *mock.P2PAntifloodHandlerStub {
-	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-			return nil
-		},
-	}
+func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mdi, err := interceptors.NewMultiDataInterceptor(
+		"",
+		&mock.MarshalizerMock{},
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+	)
+
+	assert.Nil(t, mdi)
+	assert.Equal(t, process.ErrEmptyTopic, err)
 }
 
 func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		nil,
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
@@ -45,6 +55,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 	t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.InterceptorProcessorStub{},
@@ -60,6 +71,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing
 	t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		&mock.InterceptedDataFactoryStub{},
 		nil,
@@ -75,6 +87,7 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 	t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
@@ -90,6 +103,7 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
@@ -106,6 +120,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 
 	factory := &mock.InterceptedDataFactoryStub{}
 	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		factory,
 		&mock.InterceptorProcessorStub{},
@@ -115,6 +130,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 
 	require.False(t, check.IfNil(mdi))
 	require.Nil(t, err)
+	assert.Equal(t, testTopic, mdi.Topic())
 }
 
 //------- ProcessReceivedMessage
@@ -123,11 +139,12 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 	t.Parallel()
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerMock{},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	err := mdi.ProcessReceivedMessage(nil, fromConnectedPeerId)
@@ -140,6 +157,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 
 	errExpeced := errors.New("expected error")
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return errExpeced
@@ -148,7 +166,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -163,6 +181,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	t.Parallel()
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return nil
@@ -171,7 +190,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -193,6 +212,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 	throttler := createMockThrottler()
 	errExpected := errors.New("expected err")
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		marshalizer,
 		&mock.InterceptedDataFactoryStub{
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
@@ -201,7 +221,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -240,6 +260,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		marshalizer,
 		&mock.InterceptedDataFactoryStub{
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
@@ -252,7 +273,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -289,6 +310,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		marshalizer,
 		&mock.InterceptedDataFactoryStub{
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
@@ -297,7 +319,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -333,6 +355,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		marshalizer,
 		&mock.InterceptedDataFactoryStub{
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
@@ -341,7 +364,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -377,6 +400,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
 		marshalizer,
 		&mock.InterceptedDataFactoryStub{
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
@@ -385,7 +409,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		createMockAntifloodHandler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)

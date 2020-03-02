@@ -209,8 +209,15 @@ type PeerDiscoveryFactory interface {
 // MessageOriginatorPid will output the message peer id in a pretty format
 // If it can, it will display the last displayLastPidChars (12) characters from the pid
 func MessageOriginatorPid(msg MessageP2P) string {
-	prettyPid := msg.Peer().Pretty()
+	return PeerIdToShortString(msg.Peer())
+}
+
+// PeerIdToShortString trims the first displayLastPidChars characters of the provided peer ID after
+// converting the peer ID to string using the Pretty functionality
+func PeerIdToShortString(pid PeerID) string {
+	prettyPid := pid.Pretty()
 	lenPrettyPid := len(prettyPid)
+
 	if lenPrettyPid > displayLastPidChars {
 		return "..." + prettyPid[lenPrettyPid-displayLastPidChars:]
 	}

@@ -201,11 +201,16 @@ type BlackListConfig struct {
 	PeerBanDurationInSeconds      uint32
 }
 
+// TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
+type TopicMaxMessagesConfig struct {
+	Topic             string
+	NumMessagesPerSec uint32
+}
+
 // TopicAntifloodConfig will hold the maximum values per second to be used in certain topics
 type TopicAntifloodConfig struct {
-	DefaultMaxMessagesPerSec   uint32
-	HeartbeatMaxMessagesPerSec uint32
-	HeadersRequestsPerSec      uint32
+	DefaultMaxMessagesPerSec uint32
+	MaxMessages              []TopicMaxMessagesConfig
 }
 
 // TxAccumulatorConfig will hold the tx accumulator config values

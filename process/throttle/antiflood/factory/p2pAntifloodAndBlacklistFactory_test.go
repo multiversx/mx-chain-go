@@ -55,9 +55,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 			MaxMessagesPerSecond:      10,
 			MaxTotalSizePerSecond:     10,
 			Topic: config.TopicAntifloodConfig{
-				DefaultMaxMessagesPerSec:   10,
-				HeartbeatMaxMessagesPerSec: 10,
-				HeadersRequestsPerSec:      10,
+				DefaultMaxMessagesPerSec: 10,
 			},
 			BlackList: config.BlackListConfig{
 				ThresholdNumMessagesPerSecond: 10,

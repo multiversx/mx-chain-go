@@ -410,9 +410,6 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 // ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
 var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
 
-// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
-var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
-
 // ErrInvalidPeerAccount signals that a peer account is invalid
 var ErrInvalidPeerAccount = errors.New("invalid peer account")
 
@@ -510,17 +507,11 @@ var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 // ErrNilSCDataGetter signals that a nil sc data getter has been provided
 var ErrNilSCDataGetter = errors.New("nil sc data getter")
 
-// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
-var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
-
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
 
 // ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
 var ErrNilSCToProtocol = errors.New("nil sc to protocol")
-
-// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
-var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
 
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
@@ -609,9 +600,6 @@ var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match"
 // ErrInvalidMinStepValue signals the min step value is invalid
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
-// ErrInvalidTotalSupply signals that total supply is invalid
-var ErrInvalidTotalSupply = errors.New("invalid total supply")
-
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
@@ -629,6 +617,9 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrEmptyTopic signals that an empty topic has been provided
+var ErrEmptyTopic = errors.New("empty topic")
 
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")

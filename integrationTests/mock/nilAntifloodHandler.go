@@ -8,20 +8,20 @@ type NilAntifloodHandler struct {
 }
 
 // ResetForTopic won't do anything
-func (nah *NilAntifloodHandler) ResetForTopic(topic string) {
+func (nah *NilAntifloodHandler) ResetForTopic(_ string) {
 }
 
 // SetMaxMessagesForTopic won't do anything
-func (nah *NilAntifloodHandler) SetMaxMessagesForTopic(topic string, maxNum uint32) {
+func (nah *NilAntifloodHandler) SetMaxMessagesForTopic(_ string, _ uint32) {
 }
 
 // CanProcessMessage will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (nah *NilAntifloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID) error {
 	return nil
 }
 
 // CanProcessMessageOnTopic will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
+func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(_ p2p.PeerID, _ string) error {
 	return nil
 }
 

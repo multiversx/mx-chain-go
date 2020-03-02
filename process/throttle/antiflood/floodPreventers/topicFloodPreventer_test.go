@@ -174,3 +174,50 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic1, id))
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic2, id))
 }
+
+func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicWorks(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
+
+	heartbeatTopic := "heartbeat"
+	heartbeatMaxMessages := uint32(200)
+	tfp.SetMaxMessagesForTopic(heartbeatTopic, heartbeatMaxMessages)
+
+	//testing for the the wildcard topic
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic))
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic+"suffix"))
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic("prefix"+headersTopic))
+
+	//testing for the topic without wildcard
+	assert.Equal(t, heartbeatMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic))
+	assert.Equal(t, defaultMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic+"suffix"))
+}
+
+func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
+
+	maxMessagesMap := tfp.TopicMaxMessages()
+	_, ok := maxMessagesMap[headersTopic]
+
+	assert.False(t, ok)
+
+	_ = tfp.MaxMessagesForTopic(headersTopic)
+
+	maxMessagesMap = tfp.TopicMaxMessages()
+	_, ok = maxMessagesMap[headersTopic]
+
+	assert.True(t, ok)
+}

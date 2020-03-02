@@ -114,10 +114,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return err
 	}
 
-	err = hdrRes.antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, hdrRes.topicNameForAntiflood())
-	if err != nil {
-		return err
-	}
+	//TODO add antiflooding capabilities on resolvers
 
 	rd, err := hdrRes.parseReceivedMessage(message)
 	if err != nil {
