@@ -115,7 +115,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
-	mp.blockProcessor = &mp
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
@@ -737,7 +736,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
-	) (block.Body, error) {
+) (block.Body, error) {
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1714,15 +1713,18 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
+func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
-	mp.epochStartTrigger.Update(round)
-
 	return metaHeader
+}
+
+// UpdateEpochStartTriggerRound updates round in epoch start trigger
+func (mp *metaProcessor) UpdateEpochStartTriggerRound(round uint64) {
+	mp.epochStartTrigger.Update(round)
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

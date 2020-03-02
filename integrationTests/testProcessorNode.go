@@ -1088,7 +1088,8 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := tpn.BlockProcessor.CreateNewHeader(round)
+	blockHeader := tpn.BlockProcessor.CreateNewHeader()
+	tpn.BlockProcessor.UpdateEpochStartTriggerRound(round)
 
 	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
 	blockHeader.SetRound(round)

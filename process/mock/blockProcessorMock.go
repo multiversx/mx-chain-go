@@ -10,21 +10,19 @@ import (
 
 // BlockProcessorMock -
 type BlockProcessorMock struct {
-	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
-	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
-	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
-	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func() data.HeaderHandler
-	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	ProcessBlockCalled                 func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                  func(header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled           func()
+	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (data.HeaderHandler, error)
+	CreateBlockCalled                  func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled        func(header data.HeaderHandler, body data.BodyHandler) error
+	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
+	MarshalizedDataToBroadcastCalled   func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	AddLastNotarizedHdrCalled          func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled              func() data.HeaderHandler
+	UpdateEpochStartTriggerRoundCalled func(round uint64)
+	PruneStateOnRollbackCalled         func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	RevertStateToBlockCalled           func(header data.HeaderHandler) error
 }
 
 // ApplyProcessedMiniBlocks -
@@ -55,8 +53,15 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
+func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
+}
+
+// UpdateEpochStartTriggerRound -
+func (bpm *BlockProcessorMock) UpdateEpochStartTriggerRound(round uint64) {
+	if bpm.UpdateEpochStartTriggerRoundCalled != nil {
+		bpm.UpdateEpochStartTriggerRoundCalled(round)
+	}
 }
 
 // CreateGenesisBlock -
@@ -77,21 +82,6 @@ func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, 
 // MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
-}
-
-// DecodeBlockBodyAndHeader -
-func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	return bpm.DecodeBlockBodyAndHeaderCalled(dta)
-}
-
-// DecodeBlockBody -
-func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
-	return bpm.DecodeBlockBodyCalled(dta)
-}
-
-// DecodeBlockHeader -
-func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	return bpm.DecodeBlockHeaderCalled(dta)
 }
 
 // AddLastNotarizedHdr -

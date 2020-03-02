@@ -335,7 +335,7 @@ func createConsensusOnlyNode(
 		RevertAccountStateCalled: func() {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-			return header, &dataBlock.Body{}, nil
+			return header, dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)

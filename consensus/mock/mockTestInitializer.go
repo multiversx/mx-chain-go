@@ -30,12 +30,6 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.DecodeBlockBodyCalled = func(dta []byte) data.BodyHandler {
-		return block.Body{}
-	}
-	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
-		return &block.Header{}
-	}
 	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}

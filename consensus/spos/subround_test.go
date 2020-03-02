@@ -12,6 +12,7 @@ import (
 )
 
 var chainID = []byte("chain ID")
+var wrongChainID = []byte("wrong chain ID")
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {

@@ -130,7 +130,8 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 		return remainingTime > 0
 	}
 
-	blockHeader := node.BlockProcessor.CreateNewHeader(round)
+	blockHeader := node.BlockProcessor.CreateNewHeader()
+	node.BlockProcessor.UpdateEpochStartTriggerRound(round)
 
 	blockHeader.SetShardID(0)
 	blockHeader.SetRound(round)

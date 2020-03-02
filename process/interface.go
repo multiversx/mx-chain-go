@@ -200,14 +200,12 @@ type BlockProcessor interface {
 	RevertAccountState()
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader(round uint64) data.HeaderHandler
+	CreateNewHeader() data.HeaderHandler
+	UpdateEpochStartTriggerRound(round uint64)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
-	DecodeBlockBody(dta []byte) data.BodyHandler
-	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
 }

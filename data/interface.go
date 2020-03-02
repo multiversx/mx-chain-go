@@ -184,9 +184,3 @@ type TrieFactory interface {
 	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
 }
-
-// BodyAndHeader holds body and header
-type BodyAndHeader struct {
-	Body   BodyHandler
-	Header HeaderHandler
-}

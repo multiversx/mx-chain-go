@@ -1961,82 +1961,6 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
-	t.Parallel()
-
-	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := createMockMetaArguments()
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	body := block.Body{}
-	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
-
-	hdr := &block.MetaBlock{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(0)
-	hdr.Signature = []byte("A")
-
-	bodyAndHeader := data.BodyAndHeader{
-		Body:   body,
-		Header: hdr,
-	}
-
-	message, err := marshalizerMock.Marshal(&bodyAndHeader)
-	assert.Nil(t, err)
-
-	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
-	assert.Nil(t, dcdBlk)
-	assert.Nil(t, dcdHdr)
-
-	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
-	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
-	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
-}
-
-func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
-	t.Parallel()
-
-	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := createMockMetaArguments()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	body := block.Body{}
-	message, err := marshalizerMock.Marshal(body)
-	assert.Nil(t, err)
-
-	dcdBlk := mp.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
-
-	dcdBlk = mp.DecodeBlockBody(message)
-	assert.Equal(t, body, dcdBlk)
-}
-
-func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
-	t.Parallel()
-
-	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := createMockMetaArguments()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	hdr := &block.MetaBlock{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(0)
-	hdr.Signature = []byte("A")
-	_, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	message, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	dcdHdr := mp.DecodeBlockHeader(nil)
-	assert.Nil(t, dcdHdr)
-
-	dcdHdr = mp.DecodeBlockHeader(message)
-	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
-}
-
 func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2432,7 +2356,8 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader(round)
+	headerHandler := mp.CreateNewHeader()
+	mp.UpdateEpochStartTriggerRound(round)
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)

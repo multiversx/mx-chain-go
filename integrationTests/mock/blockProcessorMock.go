@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
@@ -19,11 +18,9 @@ type BlockProcessorMock struct {
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeaderCalled          func(dta []byte) (data.BodyHandler, data.HeaderHandler)
-	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled                   func() data.HeaderHandler
+	UpdateEpochStartTriggerRoundCalled      func(round uint64)
 	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
@@ -56,8 +53,15 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
+func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
+}
+
+// UpdateEpochStartTriggerRound -
+func (bpm *BlockProcessorMock) UpdateEpochStartTriggerRound(round uint64) {
+	if bpm.UpdateEpochStartTriggerRoundCalled != nil {
+		bpm.UpdateEpochStartTriggerRoundCalled(round)
+	}
 }
 
 // CreateBlock -
@@ -92,57 +96,6 @@ func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 // MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
-}
-
-// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
-func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	if dta == nil {
-		return nil, nil
-	}
-
-	bodyAndHeader := data.BodyAndHeader{
-		Body:   &block.Body{},
-		Header: &block.Header{},
-	}
-
-	err := bpm.Marshalizer.Unmarshal(&bodyAndHeader, dta)
-	if err != nil {
-		return nil, nil
-	}
-
-	return bodyAndHeader.Body, bodyAndHeader.Header
-}
-
-// DecodeBlockBody method decodes block body from a given byte array
-func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var body block.Body
-
-	err := bpm.Marshalizer.Unmarshal(&body, dta)
-	if err != nil {
-		return nil
-	}
-
-	return body
-}
-
-// DecodeBlockHeader method decodes block header from a given byte array
-func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var header block.Header
-
-	err := bpm.Marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		return nil
-	}
-
-	return &header
 }
 
 // AddLastNotarizedHdr -

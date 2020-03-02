@@ -1,12 +1,19 @@
 package consensus
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
+
 // MessageType specifies what type of message was received
 type MessageType int
 
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 type Message struct {
 	BlockHeaderHash    []byte
-	SubRoundData       []byte
+	SignatureShare     []byte
+	Body               block.Body
+	Header             data.HeaderHandler
 	PubKey             []byte
 	Signature          []byte
 	MsgType            int
@@ -20,7 +27,9 @@ type Message struct {
 // NewConsensusMessage creates a new Message object
 func NewConsensusMessage(
 	blHeaderHash []byte,
-	subRoundData []byte,
+	signatureShare []byte,
+	body block.Body,
+	headerHandler data.HeaderHandler,
 	pubKey []byte,
 	sig []byte,
 	msg int,
@@ -32,7 +41,9 @@ func NewConsensusMessage(
 ) *Message {
 	return &Message{
 		BlockHeaderHash:    blHeaderHash,
-		SubRoundData:       subRoundData,
+		SignatureShare:     signatureShare,
+		Body:               body,
+		Header:             headerHandler,
 		PubKey:             pubKey,
 		Signature:          sig,
 		MsgType:            msg,

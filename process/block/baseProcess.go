@@ -75,7 +75,6 @@ type baseProcessor struct {
 	hdrsForCurrBlock hdrForBlock
 
 	appStatusHandler       core.AppStatusHandler
-	blockProcessor         blockProcessor
 	stateCheckpointModulus uint
 }
 
@@ -863,64 +862,6 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	return noncesToFinal
-}
-
-// DecodeBlockBody method decodes block body from a given byte array
-func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var body block.Body
-
-	err := bp.marshalizer.Unmarshal(&body, dta)
-	if err != nil {
-		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return body
-}
-
-// DecodeBlockHeader method decodes block header from a given byte array
-func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	header := bp.blockProcessor.CreateNewHeader(0)
-
-	err := bp.marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return header
-}
-
-// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
-func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	if dta == nil {
-		return nil, nil
-	}
-
-	//TODO refactor this hack when data.Body will be an actual structure (protobuf feat)
-	bodyAndHeader := struct {
-		Body   block.Body
-		Header data.HeaderHandler
-	}{
-		Body:   make(block.Body, 0),
-		Header: bp.blockProcessor.CreateNewHeader(0),
-	}
-
-	err := bp.marshalizer.Unmarshal(&bodyAndHeader, dta)
-	if err != nil {
-		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
-		return nil, nil
-	}
-
-	return bodyAndHeader.Body, bodyAndHeader.Header
 }
 
 func (bp *baseProcessor) saveBody(body block.Body) {

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -278,7 +279,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return ErrNilDataToProcess
 	}
 
-	cnsDta := &consensus.Message{}
+	cnsDta := &consensus.Message{
+		Body:   make(block.Body, 0),
+		Header: wrk.blockProcessor.CreateNewHeader(),
+	}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
 		return err
@@ -329,14 +333,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
 		headerHash := cnsDta.BlockHeaderHash
-		var header data.HeaderHandler
-		if isMessageWithBlockHeader {
-			header = wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
-		} else {
-			_, header = wrk.blockProcessor.DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
-		}
-
-		isHeaderInvalid := check.IfNil(header) || headerHash == nil
+		header := cnsDta.Header
+		isHeaderInvalid := headerHash == nil || check.IfNil(header)
 		if isHeaderInvalid {
 			return fmt.Errorf("%w : received header from consensus topic is invalid",
 				ErrInvalidHeader)
