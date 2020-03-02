@@ -655,12 +655,11 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) map[str
 			log.Trace("createBroadcastTopic", "error", err.Error())
 			continue
 		}
+		//
+		//if miniblock.Type == block.PeerBlock {
+		//	bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+		//}
 
-		if miniblock.Type == block.PeerBlock {
-			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
-		}
-
-		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
 		if !check.IfNil(preproc) {
 

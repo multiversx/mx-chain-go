@@ -1931,7 +1931,7 @@ func (sp *shardProcessor) processPeerMiniBlocks(sod startOfEpochData) bool {
 		}
 
 		for _, txHash := range actualMiniblock.TxHashes {
-			vid := &state.ValidatorInfoData{}
+			vid := &state.ValidatorInfo{}
 			sp.marshalizer.Unmarshal(vid, txHash)
 			sp.validatorStatisticsProcessor.Process(vid)
 		}

@@ -868,7 +868,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 }
 
 // Process - processes a validatorInfo and updates fields
-func (vsp *validatorStatistics) Process(vid state.ValidatorInfo) error {
+func (vsp *validatorStatistics) Process(vid *state.ValidatorInfo) error {
 	log.Trace("ValidatorInfoData", "pk", vid.GetPublicKey(), "rating", vid.GetRating(), "tempRating", vid.GetTempRating())
 
 	pa, err := vsp.GetPeerAccount(vid.GetPublicKey())

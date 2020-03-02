@@ -7,18 +7,18 @@ import (
 
 // ValidatorStatisticsProcessorStub -
 type ValidatorStatisticsProcessorStub struct {
-	UpdatePeerStateCalled func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled func(header data.HeaderHandler) error
-	IsInterfaceNilCalled  func() bool
+	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled                    func(header data.HeaderHandler) error
+	IsInterfaceNilCalled                     func() bool
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessCalled                            func(vid state.ValidatorInfo) error
+	ProcessCalled                            func(vid *state.ValidatorInfo) error
 }
 
 // Process -
-func (vsp *ValidatorStatisticsProcessorMock) Process(vid state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorStub) Process(vid *state.ValidatorInfo) error {
 	if vsp.ProcessCalled != nil {
 		return vsp.ProcessCalled(vid)
 	}
