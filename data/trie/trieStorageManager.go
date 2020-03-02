@@ -147,6 +147,7 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) {
+	log.Trace("trie storage manager prune", "root", rootHash)
 	tsm.pruneReq <- rootHash
 }
 
@@ -204,13 +205,17 @@ func (tsm *trieStorageManager) GetDbThatContainsHash(rootHash []byte) data.DBWri
 		return tsm.db
 	}
 
+	return tsm.getSnapshotDbThatContainsHash(rootHash)
+}
+
+func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	for i := range tsm.snapshots {
-		_, err = tsm.snapshots[i].Get(rootHash)
+		_, err := tsm.snapshots[i].Get(rootHash)
 
-		hashPresent = err == nil
+		hashPresent := err == nil
 		if hashPresent {
 			return tsm.snapshots[i]
 		}
@@ -235,6 +240,11 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
+		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
+		return
+	}
+
 	log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
 
 	tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
