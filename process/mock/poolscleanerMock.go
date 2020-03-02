@@ -10,7 +10,7 @@ type TxPoolsCleanerMock struct {
 
 // Clean will check if in pools exits transactions with nonce low that transaction sender account nonce
 // and if tx have low nonce will be removed from pools
-func (tpc *TxPoolsCleanerMock) Clean(duration time.Duration) (bool, error) {
+func (tpc *TxPoolsCleanerMock) Clean(_ time.Duration) (bool, error) {
 	return false, nil
 }
 

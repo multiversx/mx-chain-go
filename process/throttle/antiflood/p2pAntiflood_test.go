@@ -7,14 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewP2PAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood2.NewP2PAntiflood(nil, &mock.TopicAntiFloodStub{})
+	afm, err := antiflood.NewP2PAntiflood(nil, &mock.TopicAntiFloodStub{})
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, p2p.ErrNilFloodPreventer))
 }
@@ -22,7 +22,7 @@ func TestNewP2PAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
 func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{}, nil)
+	afm, err := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, nil)
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, p2p.ErrNilTopicFloodPreventer))
 }
@@ -30,7 +30,7 @@ func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
 func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
+	afm, err := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
 	assert.False(t, check.IfNil(afm))
 	assert.Nil(t, err)
@@ -39,7 +39,7 @@ func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 func TestP2PAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
 	afm.FloodPreventer = nil
 	assert.True(t, check.IfNil(afm))
@@ -50,7 +50,7 @@ func TestP2PAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 func TestP2PAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 	afm.FloodPreventer = nil
 
 	err := afm.CanProcessMessage(&mock.P2PMessageMock{}, "connected peer")
@@ -60,7 +60,7 @@ func TestP2PAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T
 func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
 	err := afm.CanProcessMessage(nil, "connected peer")
 	assert.Equal(t, p2p.ErrNilMessage, err)
@@ -75,7 +75,7 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 		DataField: []byte("data"),
 		FromField: messageOriginator,
 	}
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			if identifier != fromConnectedPeer.Pretty() {
 				assert.Fail(t, "should have been the connected peer")
@@ -101,7 +101,7 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 		FromField: messageOriginator,
 		PeerField: p2p.PeerID(messageOriginator),
 	}
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			return identifier == fromConnectedPeer.Pretty()
 		},
@@ -125,7 +125,7 @@ func TestP2PAntiflood_ShouldWork(t *testing.T) {
 		DataField: []byte("data"),
 		PeerField: p2p.PeerID(messageOriginator),
 	}
-	afm, _ := antiflood2.NewP2PAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			return true
 		},
