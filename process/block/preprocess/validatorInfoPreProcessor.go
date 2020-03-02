@@ -112,9 +112,9 @@ func (rtp *validatorInfoPreprocessor) CreateMarshalizedData(txHashes [][]byte) (
 
 // GetAllCurrentUsedTxs does nothing
 func (rtp *validatorInfoPreprocessor) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
-	rewardTxPool := make(map[string]data.TransactionHandler, 0)
+	validatorInfoTxPool := make(map[string]data.TransactionHandler)
 
-	return rewardTxPool
+	return validatorInfoTxPool
 }
 
 // IsInterfaceNil does nothing

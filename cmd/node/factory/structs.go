@@ -2254,6 +2254,9 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
