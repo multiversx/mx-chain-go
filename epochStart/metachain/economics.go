@@ -258,16 +258,16 @@ func (e *economics) IsInterfaceNil() bool {
 }
 
 func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
-	log.Debug("VerifyRewardsPerBlock error",
-		"computed total to distribute", computed.TotalToDistribute,
-		"received total to distribute", received.TotalToDistribute,
+	log.Info("VerifyRewardsPerBlock error",
+		"\ncomputed total to distribute", computed.TotalToDistribute,
 		"computed total newly minted", computed.TotalNewlyMinted,
-		"received total newly minted", received.TotalNewlyMinted,
 		"computed total supply", computed.TotalSupply,
-		"received total supply", received.TotalSupply,
 		"computed rewards per block per node", computed.RewardsPerBlockPerNode,
-		"received rewards per block per node", received.RewardsPerBlockPerNode,
 		"computed node price", computed.NodePrice,
+		"\nreceived total to distribute", received.TotalToDistribute,
+		"received total newly minted", received.TotalNewlyMinted,
+		"received total supply", received.TotalSupply,
+		"received rewards per block per node", received.RewardsPerBlockPerNode,
 		"received node price", received.NodePrice,
 	)
 }
