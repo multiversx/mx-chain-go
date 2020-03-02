@@ -232,7 +232,6 @@ func (e *economics) VerifyRewardsPerBlock(
 	if err != nil {
 		return err
 	}
-	computedEconomics.PrevEpochStartHash = nil
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -190,29 +191,29 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+	hdrPrevEpochStart := block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:            totalSupply,
+				TotalToDistribute:      big.NewInt(10),
+				TotalNewlyMinted:       big.NewInt(10),
+				RewardsPerBlockPerNode: big.NewInt(10),
+				NodePrice:              big.NewInt(10),
+			},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardId: 0, Nonce: 0},
+				{ShardId: 1, Nonce: 0},
+			},
+		},
+	}
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
-				hdr := block.MetaBlock{
-					Round: 0,
-					Nonce: 0,
-					Epoch: 0,
-					EpochStart: block.EpochStart{
-						Economics: block.Economics{
-							TotalSupply:            totalSupply,
-							TotalToDistribute:      big.NewInt(10),
-							TotalNewlyMinted:       big.NewInt(10),
-							RewardsPerBlockPerNode: big.NewInt(10),
-							NodePrice:              big.NewInt(10),
-						},
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{ShardId: 0, Nonce: 0},
-							{ShardId: 1, Nonce: 0},
-						},
-					},
-				}
-				hdrBytes, _ := json.Marshal(hdr)
+				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}
 		},
@@ -231,6 +232,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		63,                                    // random
 	}
 
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
 	for _, numBlocksInEpoch := range numBlocksInEpochSlice {
 		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
 		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
@@ -250,6 +252,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					TotalNewlyMinted:       expectedTotalNewlyMinted,
 					RewardsPerBlockPerNode: big.NewInt(int64(expRwdPerBlock)),
 					NodePrice:              big.NewInt(10),
+					PrevEpochStartHash:     hdrPrevEpochStartHash,
 				},
 			},
 			Epoch:                  1,

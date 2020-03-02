@@ -173,9 +173,9 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	assert.Nil(t, retrievedHeader)
 }
 
-// TestMetaHeadersAreRequstedByAMetachainNode tests the metaheader request is served by a metachain node and
+// TestMetaHeadersAreRequestedByAMetachainNode tests the metaheader request is served by a metachain node and
 // by a shard node
-func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
+func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
