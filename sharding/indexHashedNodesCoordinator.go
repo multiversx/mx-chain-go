@@ -144,7 +144,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	defer ihgs.mutNodesConfig.Unlock()
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
-
 	if !ok {
 		nodesConfig = &epochNodesConfig{}
 	}
@@ -221,9 +220,10 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"randomness", randomness,
 		"round", round)
 
-	if randomness == nil {
+	if len(randomness) == 0 {
 		return nil, ErrNilRandomness
 	}
+
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
@@ -237,10 +237,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
-	}
-
-	if ihgs == nil {
-		return nil, ErrNilRandomness
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
