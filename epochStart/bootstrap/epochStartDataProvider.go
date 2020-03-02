@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("registration")
@@ -23,20 +25,7 @@ const numRequestsToSendOnce = 4
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
 	EpochStartMetaBlock *block.MetaBlock
-}
-
-type metaBlockInterceptorHandler interface {
-	process.Interceptor
-	GetMetaBlock(target int) (*block.MetaBlock, error)
-}
-
-type shardHeaderInterceptorHandler interface {
-	process.Interceptor
-	GetAllReceivedShardHeaders() []block.ShardData
-}
-
-type metaBlockResolverHandler interface {
-	RequestEpochStartMetaBlock() error
+	NodesConfig         *sharding.NodesSetup
 }
 
 // epochStartDataProvider will handle requesting the needed data to start when joining late the network
@@ -44,6 +33,7 @@ type epochStartDataProvider struct {
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	messenger              p2p.Messenger
+	nodesConfigProvider    NodesConfigProviderHandler
 	metaBlockInterceptor   metaBlockInterceptorHandler
 	shardHeaderInterceptor shardHeaderInterceptorHandler
 	metaBlockResolver      metaBlockResolverHandler
@@ -54,6 +44,7 @@ func NewEpochStartDataProvider(
 	messenger p2p.Messenger,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
+	nodesConfigProvider NodesConfigProviderHandler,
 ) (*epochStartDataProvider, error) {
 	metaBlockInterceptor := NewSimpleMetaBlockInterceptor(marshalizer, hasher)
 	shardHdrInterceptor := NewSimpleShardHeaderInterceptor(marshalizer)
@@ -66,6 +57,7 @@ func NewEpochStartDataProvider(
 		marshalizer:            marshalizer,
 		hasher:                 hasher,
 		messenger:              messenger,
+		nodesConfigProvider:    nodesConfigProvider,
 		metaBlockInterceptor:   metaBlockInterceptor,
 		shardHeaderInterceptor: shardHdrInterceptor,
 		metaBlockResolver:      metaBlockResolver,
@@ -74,62 +66,85 @@ func NewEpochStartDataProvider(
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, error) {
-	metaBlock, err := esdp.getEpochStartMetaBlock()
+	err := esdp.initTopicsAndInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		esdp.resetTopicsAndInterceptors()
+	}()
+
+	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
+	metaBlock, err := esdp.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
+	if err != nil {
+		return nil, err
+	}
+	prevMetaBlock, err := esdp.getEpochStartMetaBlock(metaBlock.Epoch - 1)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("previous meta block", "epoch", prevMetaBlock.Epoch)
+	nodesConfig, err := esdp.nodesConfigProvider.GetNodesConfigForMetaBlock(metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: metaBlock,
+		NodesConfig:         nodesConfig,
 	}, nil
 }
 
-func (esdp *epochStartDataProvider) getEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (esdp *epochStartDataProvider) initTopicsAndInterceptors() error {
 	err := esdp.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = esdp.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, esdp.metaBlockInterceptor)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer func() {
-		err = esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
-		if err != nil {
-			log.Info("error unregistering message processor", "error", err)
-		}
-		err = esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic + requestSuffix)
-		if err != nil {
-			log.Info("error unregistering message processor", "error", err)
-		}
-	}()
 
-	err = esdp.requestMetaBlock()
+	return nil
+}
+
+func (esdp *epochStartDataProvider) resetTopicsAndInterceptors() {
+	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
+	if err != nil {
+		log.Info("error unregistering message processor", "error", err)
+	}
+	err = esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic + requestSuffix)
+	if err != nil {
+		log.Info("error unregistering message processor", "error", err)
+	}
+}
+
+func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block.MetaBlock, error) {
+	err := esdp.requestMetaBlock(epoch)
 	if err != nil {
 		return nil, err
 	}
-
 	for {
 		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(len(esdp.messenger.Peers())))
-		mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(threshold)
+		mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(threshold, epoch)
 		if errConsensusNotReached == nil {
 			return mb, nil
 		}
 		log.Info("consensus not reached for epoch start meta block. re-requesting and trying again...")
-		err = esdp.requestMetaBlock()
+		err = esdp.requestMetaBlock(epoch)
 		if err != nil {
 			return nil, err
 		}
 	}
 }
 
-func (esdp *epochStartDataProvider) requestMetaBlock() error {
+func (esdp *epochStartDataProvider) requestMetaBlock(epoch uint32) error {
 	// send more requests
 	for i := 0; i < numRequestsToSendOnce; i++ {
 		time.Sleep(delayBetweenRequests)
 		log.Debug("sent request for epoch start metablock...")
-		err := esdp.metaBlockResolver.RequestEpochStartMetaBlock()
+		err := esdp.metaBlockResolver.RequestEpochStartMetaBlock(epoch)
 		if err != nil {
 			return err
 		}

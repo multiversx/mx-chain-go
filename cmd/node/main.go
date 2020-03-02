@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -572,7 +573,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 		time.Sleep(2 * time.Second)
 
-		epochRes, err := bootstrap.NewEpochStartDataProvider(networkComponents.NetMessenger, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{})
+		simpleNodesConfigProvider := nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig)
+		epochRes, err := bootstrap.NewEpochStartDataProvider(
+			networkComponents.NetMessenger,
+			&marshal.JsonMarshalizer{},
+			&blake2b.Blake2b{},
+			simpleNodesConfigProvider,
+		)
 		if err != nil {
 			return err
 		}
@@ -581,6 +588,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
+
+		// override already defined node config
+		nodesConfig = bootstrapComponents.NodesConfig
 
 		log.Info("received epoch start metablock from network",
 			"nonce", bootstrapComponents.EpochStartMetaBlock.GetNonce(),

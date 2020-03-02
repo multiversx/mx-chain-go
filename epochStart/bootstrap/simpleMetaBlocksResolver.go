@@ -3,8 +3,6 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
-	"math"
-
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -90,6 +88,6 @@ func (smbr *simpleMetaBlocksResolver) init() error {
 }
 
 // RequestEpochStartMetaBlock will request the metablock to the peers
-func (smbr *simpleMetaBlocksResolver) RequestEpochStartMetaBlock() error {
-	return smbr.mbResolver.RequestDataFromEpoch([]byte(fmt.Sprintf("epochStartBlock_%d", math.MaxUint32)))
+func (smbr *simpleMetaBlocksResolver) RequestEpochStartMetaBlock(epoch uint32) error {
+	return smbr.mbResolver.RequestDataFromEpoch([]byte(fmt.Sprintf("epochStartBlock_%d", epoch)))
 }

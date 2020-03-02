@@ -63,7 +63,7 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode(0)
+	err := ef.StartNode(0, true)
 	assert.Nil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -83,7 +83,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode(0)
+	err := ef.StartNode(0, true)
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -111,7 +111,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode(0)
+	err := ef.StartNode(0, true)
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()

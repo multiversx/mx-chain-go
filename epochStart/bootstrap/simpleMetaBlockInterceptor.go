@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"errors"
+	"math"
 	"sync"
 	"time"
 
@@ -75,12 +76,15 @@ func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 }
 
 // GetMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
-func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int) (*block.MetaBlock, error) {
+func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int, epoch uint32) (*block.MetaBlock, error) {
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedMetaBlocks)
 		s.mutReceivedMetaBlocks.RLock()
 		for hash, peersList := range s.mapMetaBlocksFromPeers {
-			if len(peersList) >= target {
+			mb := s.mapReceivedMetaBlocks[hash]
+			epochCheckNotRequired := epoch == math.MaxUint32
+			isEpochOk := epochCheckNotRequired || mb.Epoch == epoch
+			if len(peersList) >= target && isEpochOk {
 				s.mutReceivedMetaBlocks.RUnlock()
 				log.Info("got consensus for metablock", "len", len(peersList))
 				return s.mapReceivedMetaBlocks[hash], nil
