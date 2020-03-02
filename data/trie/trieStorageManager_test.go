@@ -326,23 +326,32 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 
 	var snapshotWg sync.WaitGroup
 	var checkpointWg sync.WaitGroup
+	mut := sync.Mutex{}
 	snapshotWg.Add(numSnapshots)
 	checkpointWg.Add(numCheckpoints)
 
 	for i := 0; i < numSnapshots; i++ {
-		go func() {
+		go func(j int) {
+			mut.Lock()
+			_ = tr.Update([]byte(strconv.Itoa(j)), []byte(strconv.Itoa(j)))
+			_ = tr.Commit()
 			rootHash, _ := tr.Root()
 			tr.TakeSnapshot(rootHash)
+			mut.Unlock()
 			snapshotWg.Done()
-		}()
+		}(i)
 	}
 
 	for i := 0; i < numCheckpoints; i++ {
-		go func() {
+		go func(j int) {
+			mut.Lock()
+			_ = tr.Update([]byte(strconv.Itoa(j+numSnapshots)), []byte(strconv.Itoa(j+numSnapshots)))
+			_ = tr.Commit()
 			rootHash, _ := tr.Root()
 			tr.SetCheckpoint(rootHash)
+			mut.Unlock()
 			checkpointWg.Done()
-		}()
+		}(i)
 	}
 
 	snapshotWg.Wait()
