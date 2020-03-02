@@ -2,7 +2,7 @@ package containers
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/cornelk/hashmap"
 )
 
@@ -99,6 +99,20 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 		keys = append(keys, byteKey)
 	}
 	return keys
+}
+
+func (vmc *virtualMachinesContainer) Close() error {
+	for item := range vmc.objects.Iter() {
+		asCloser, ok := item.Value.(process.Closer)
+		if ok {
+			err := asCloser.Close()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

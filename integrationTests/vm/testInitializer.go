@@ -49,6 +49,10 @@ type VMTestContext struct {
 	VMContainer    process.VirtualMachinesContainer
 }
 
+func (vmTestContext *VMTestContext) Close() {
+	vmTestContext.VMContainer.Close()
+}
+
 type accountFactory struct {
 }
 
@@ -467,6 +471,8 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
+	defer vmContainer.Close()
+
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{

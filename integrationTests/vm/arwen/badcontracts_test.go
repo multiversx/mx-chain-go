@@ -6,6 +6,7 @@ import (
 
 func Test_Bad_C_NoPanic(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	context.deploySC("./testdata/bad/bad.wasm", "")
 
@@ -29,6 +30,7 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 
 func Test_Empty_C_NoPanic(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	context.deploySC("./testdata/bad/empty.wasm", "")
 	context.executeSC(&context.Owner, "thisDoesNotExist")
@@ -36,6 +38,7 @@ func Test_Empty_C_NoPanic(t *testing.T) {
 
 func Test_Corrupt_NoPanic(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	context.deploySC("./testdata/bad/corrupt.wasm", "")
 	context.executeSC(&context.Owner, "thisDoesNotExist")
@@ -43,6 +46,7 @@ func Test_Corrupt_NoPanic(t *testing.T) {
 
 func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	context.deploySC("./testdata/bad/nomemory/nomemory.wasm", "")
 	context.executeSC(&context.Owner, "memoryFault")
@@ -50,6 +54,7 @@ func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
 
 func Test_BadFunctionNames_NoPanic(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	context.deploySC("./testdata/bad/badFunctionNames/badFunctionNames.wasm", "")
 }

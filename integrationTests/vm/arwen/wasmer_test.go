@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ var ownerAddressBytes = []byte("12345678901234567890123456789012")
 
 func TestAllowNonFloatingPointSC(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "floating_point/non_fp.wasm")
+	defer wasmvm.(process.Closer).Close()
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -31,6 +33,7 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 
 func TestDisallowFloatingPointSC(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "floating_point/fp.wasm")
+	defer wasmvm.(process.Closer).Close()
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -46,6 +49,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	defer wasmvm.(process.Closer).Close()
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
 	// call to int64finish(100).
@@ -66,6 +70,7 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 
 func TestSCAbortExecution_Abort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	defer wasmvm.(process.Closer).Close()
 
 	arguments := make([][]byte, 0)
 	arguments = append(arguments, []byte{0x01})

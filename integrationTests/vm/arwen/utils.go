@@ -33,6 +33,7 @@ type testContext struct {
 	Accounts     *state.AccountsDB
 	TxProcessor  process.TransactionProcessor
 	QueryService external.SCQueryService
+	VMContainer  process.VirtualMachinesContainer
 }
 
 type testParticipant struct {
@@ -60,8 +61,13 @@ func setupTestContext(t *testing.T) testContext {
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, math.MaxInt32)
+	context.VMContainer = vmContainer
 
 	return context
+}
+
+func (context *testContext) close() {
+	context.VMContainer.Close()
 }
 
 func (context *testContext) initAccounts() {

@@ -7,7 +7,9 @@ import (
 )
 
 func Test_SOL_002(t *testing.T) {
+	t.Skip()
 	context := setupTestContext(t)
+	defer context.close()
 
 	owner := &context.Owner
 	alice := &context.Alice
@@ -43,7 +45,9 @@ func Test_SOL_002(t *testing.T) {
 }
 
 func Test_SOL_003(t *testing.T) {
+	t.Skip()
 	context := setupTestContext(t)
+	defer context.close()
 
 	owner := &context.Owner
 	alice := &context.Alice
@@ -70,6 +74,7 @@ func Test_SOL_003(t *testing.T) {
 
 func Test_C_001(t *testing.T) {
 	context := setupTestContext(t)
+	defer context.close()
 
 	owner := &context.Owner
 	alice := &context.Alice
