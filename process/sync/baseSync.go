@@ -301,10 +301,6 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
-	//if !boot.isNodeSynchronized {
-	//	return
-	//}
-
 	lastSyncedRound := uint64(0)
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currHeader) {
