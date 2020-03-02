@@ -256,7 +256,7 @@ func (n *Node) StartConsensus() error {
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
-		log.Debug("starting consensus", "epoch", epoch)
+		log.Info("starting consensus", "epoch", epoch)
 	}
 
 	consensusState, err := n.createConsensusState(epoch)
