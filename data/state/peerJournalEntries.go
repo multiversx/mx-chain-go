@@ -117,13 +117,13 @@ func NewPeerJournalEntryStake(account *PeerAccount, oldStake *big.Int) (*PeerJou
 
 	return &PeerJournalEntryStake{
 		account:  account,
-		oldStake: oldStake,
+		oldStake: big.NewInt(0).Set(oldStake),
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjes *PeerJournalEntryStake) Revert() (AccountHandler, error) {
-	pjes.account.Stake = pjes.oldStake
+	pjes.account.Stake = big.NewInt(0).Set(pjes.oldStake)
 
 	return pjes.account, nil
 }

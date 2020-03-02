@@ -11,6 +11,7 @@ import (
 )
 
 type claimDeveloperRewards struct {
+	gasCost uint64
 }
 
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
@@ -41,6 +42,11 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 
 	return value, nil
+}
+
+// GasUsed returns the gas used for processing the change
+func (c *claimDeveloperRewards) GasUsed() uint64 {
+	return c.gasCost
 }
 
 // IsInterfaceNil returns true if underlying object is nil
