@@ -89,11 +89,6 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generatePeerChBlockBodyResolvers()
-	if err != nil {
-		return nil, err
-	}
-
 	err = srcf.generateMetablockHeaderResolvers()
 	if err != nil {
 		return nil, err
@@ -146,63 +141,14 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	if err != nil {
 		return err
 	}
-	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
-		identifierHdr+resolverSender.TopicRequestSuffix(),
-		resolver,
-		false)
+
+	topicIdentifier := identifierHdr + resolverSender.TopicRequestSuffix()
+	err = srcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
 	if err != nil {
 		return err
 	}
 
 	return srcf.container.Add(identifierHdr, resolver)
-}
-
-//------- PeerChBlocks resolvers
-
-func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolvers() error {
-	shardC := srcf.shardCoordinator
-
-	//only one intrashard peer change blocks topic
-	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	peerBlockBodyStorer := srcf.store.GetStorer(dataRetriever.PeerChangesUnit)
-
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(srcf.messenger, identifierPeerCh, emptyExcludePeersOnTopic)
-	if err != nil {
-		return err
-	}
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		srcf.messenger,
-		identifierPeerCh,
-		peerListCreator,
-		srcf.marshalizer,
-		srcf.intRandomizer,
-		shardC.SelfId(),
-	)
-	if err != nil {
-		return err
-	}
-
-	resolver, err := resolvers.NewGenericBlockBodyResolver(
-		resolverSender,
-		srcf.dataPools.MiniBlocks(),
-		peerBlockBodyStorer,
-		srcf.marshalizer,
-	)
-	if err != nil {
-		return err
-	}
-	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
-		identifierPeerCh+resolverSender.TopicRequestSuffix(),
-		resolver,
-		false)
-	if err != nil {
-		return err
-	}
-
-	return srcf.container.Add(identifierPeerCh, resolver)
 }
 
 //------- MetaBlockHeaderResolvers
@@ -248,11 +194,8 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		return err
 	}
 
-	//add on the request topic
-	_, err = srcf.createTopicAndAssignHandler(
-		identifierHdr+resolverSender.TopicRequestSuffix(),
-		resolver,
-		false)
+	topicIdentifier := identifierHdr + resolverSender.TopicRequestSuffix()
+	err = srcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
 	if err != nil {
 		return err
 	}
