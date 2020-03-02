@@ -683,6 +683,7 @@ type BuiltinFunction interface {
 		acntSnd, acntDst state.UserAccountHandler,
 		vmInput *vmcommon.ContractCallInput,
 	) (*big.Int, error)
+	GasUsed() uint64
 	IsInterfaceNil() bool
 }
 

@@ -106,6 +106,7 @@ type UserAccountHandler interface {
 	ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error
 	AddToDeveloperReward(value *big.Int) error
 	AddToBalance(value *big.Int) error
+	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
 	SetOwnerAddressWithJournal(ownerAddress []byte) error
 	GetOwnerAddress() []byte

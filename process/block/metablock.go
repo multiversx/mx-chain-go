@@ -1010,7 +1010,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	go mp.saveBody(body)
+	//TODO: Analyze if this could be called on go routine but keep the txsForCurrBlock unchanged until save is done
+	mp.saveBody(body)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
@@ -1652,7 +1653,7 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr *block.MetaBlock)
 		}
 
 		if !lastHdr.IsStartOfEpochBlock() {
-			currentlyAccumulatedFeesInEpoch = lastMeta.AccumulatedFeesInEpoch
+			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastMeta.AccumulatedFeesInEpoch)
 		}
 	}
 

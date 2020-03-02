@@ -20,6 +20,7 @@ type vmContainerFactory struct {
 	systemContracts    vm.SystemSCContainer
 	economics          *economics.EconomicsData
 	messageSigVerifier vm.MessageSignVerifier
+	gasSchedule        map[string]map[string]uint64
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -27,6 +28,7 @@ func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
 	economics *economics.EconomicsData,
 	messageSignVerifier vm.MessageSignVerifier,
+	gasSchedule map[string]map[string]uint64,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
@@ -46,6 +48,7 @@ func NewVMContainerFactory(
 		cryptoHook:         cryptoHook,
 		economics:          economics,
 		messageSigVerifier: messageSignVerifier,
+		gasSchedule:        gasSchedule,
 	}, nil
 }
 
@@ -77,7 +80,13 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI, vmf.economics, vmf.messageSigVerifier)
+	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
+		SystemEI:          systemEI,
+		ValidatorSettings: vmf.economics,
+		SigVerifier:       vmf.messageSigVerifier,
+		GasMap:            vmf.gasSchedule,
+	}
+	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -207,7 +207,7 @@ func TestAccount_SetBalanceWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	balance := big.NewInt(15)
-	err = acc.SetBalanceWithJournal(balance)
+	err = acc.AddToBalance(balance)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -333,21 +333,48 @@ func TestAccount_AddToBalance(t *testing.T) {
 
 	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
 
-	balance := big.NewInt(1000)
-	err := acc.AddToBalance(balance)
+	value := big.NewInt(1000)
+	err := acc.AddToBalance(value)
 	require.Nil(t, err)
 
 	result := acc.GetBalance()
-	require.Equal(t, balance, result)
+	require.Equal(t, value, result)
 
-	balance = big.NewInt(-500)
-	err = acc.AddToBalance(balance)
+	value = big.NewInt(-500)
+	expected := big.NewInt(0).Add(acc.GetBalance(), value)
+	err = acc.AddToBalance(value)
+	require.Nil(t, err)
+	require.Equal(t, expected, acc.GetBalance())
+
+	value = big.NewInt(-1000)
+	err = acc.AddToBalance(value)
+	require.Equal(t, state.ErrInsufficientFunds, err)
+}
+
+func TestAccount_SubFromBalance(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{}
+
+	acc, _ := state.NewAccount(mock.NewAddressMock(), tracker)
+
+	_ = acc.AddToBalance(big.NewInt(10000))
+
+	value := big.NewInt(1000)
+	expectedResult := big.NewInt(0).Sub(acc.Balance, value)
+	err := acc.SubFromBalance(value)
 	require.Nil(t, err)
 
-	result2 := acc.GetBalance()
-	require.Equal(t, result2.Sub(result, balance), result2)
+	result := acc.GetBalance()
+	require.Equal(t, expectedResult, result)
 
-	balance = big.NewInt(-1000)
-	err = acc.AddToBalance(balance)
+	value = big.NewInt(-500)
+	expected := big.NewInt(0).Sub(acc.GetBalance(), value)
+	err = acc.SubFromBalance(value)
+	require.Nil(t, err)
+	require.Equal(t, expected, acc.GetBalance())
+
+	value = big.NewInt(10000000)
+	err = acc.SubFromBalance(value)
 	require.Equal(t, state.ErrInsufficientFunds, err)
 }
