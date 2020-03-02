@@ -23,17 +23,14 @@ type NodeWrapper interface {
 	IsRunning() bool
 
 	// StartConsensus will start the consesus service for the current node
-	StartConsensus() error
+	StartConsensus(epoch uint32) error
 
 	//GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error)
-
-	//SendTransaction will send a new transaction on the 'send transactions pipe' channel
-	SendTransaction(nonce uint64, senderHex string, receiverHex string, value string, gasPrice uint64, gasLimit uint64, transactionData []byte, signature []byte) (string, error)
+		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)

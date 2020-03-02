@@ -1,8 +1,8 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -26,10 +26,6 @@ func (bbt *baseBlockTrack) InitNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return bbt.initNotarizedHeaders(startHeaders)
 }
 
-func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
-}
-
 func (bbt *baseBlockTrack) ReceivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
 	bbt.receivedShardHeader(headerHandler, shardHeaderHash)
 }
@@ -50,7 +46,7 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 	bbt.displayTrackedHeadersForShard(shardID, message)
 }
 
-func (bbt *baseBlockTrack) SetRounder(rounder consensus.Rounder) {
+func (bbt *baseBlockTrack) SetRounder(rounder process.Rounder) {
 	bbt.rounder = rounder
 }
 
@@ -130,4 +126,16 @@ func (bp *blockProcessor) CheckHeaderFinality(header data.HeaderHandler, sortedH
 
 func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler) {
 	bp.requestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+}
+
+func (bp *blockProcessor) GetLatestValidHeader(lastNotarizedHeader data.HeaderHandler, longestChainHeaders []data.HeaderHandler) data.HeaderHandler {
+	return bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+}
+
+func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader data.HeaderHandler, sortedReceivedHeaders []data.HeaderHandler) uint64 {
+	return bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+}
+
+func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
+	bp.requestHeadersIfNothingNewIsReceived(latestValidHeader, highestRoundInReceivedHeaders)
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -25,8 +26,8 @@ type ConsensusCoreHandler interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
-	// GetAntiFloodPreventer returns the antiflood handler which will be used in subrounds
-	GetAntiFloodPreventer() consensus.P2PAntifloodHandler
+	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
+	GetAntiFloodHandler() consensus.P2PAntifloodHandler
 	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
@@ -41,6 +42,8 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() sharding.NodesCoordinator
+	// EpochStartSubscriber gets the EpochStartSubscriber stored in the ConsensusCore
+	EpochStartSubscriber() epochStart.EpochStartSubscriber
 	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation

@@ -16,7 +16,7 @@ func TestSha256(t *testing.T) {
 }
 
 func TestBlake2b(t *testing.T) {
-	Suite(t, blake2b.Blake2b{})
+	Suite(t, &blake2b.Blake2b{})
 }
 
 func TestKeccak(t *testing.T) {

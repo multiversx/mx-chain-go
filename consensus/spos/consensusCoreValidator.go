@@ -41,7 +41,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilSyncTimer
 	}
 	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
-		return ErrNilValidatorGroupSelector
+		return ErrNilNodesCoordinator
 	}
 	if container.PrivateKey() == nil || container.PrivateKey().IsInterfaceNil() {
 		return ErrNilBlsPrivateKey
@@ -49,7 +49,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.SingleSigner() == nil || container.SingleSigner().IsInterfaceNil() {
 		return ErrNilBlsSingleSigner
 	}
-	if check.IfNil(container.GetAntiFloodPreventer()) {
+	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
 

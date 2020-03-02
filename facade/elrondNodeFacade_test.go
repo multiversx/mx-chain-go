@@ -151,7 +151,7 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode()
+	err := ef.StartNode(0)
 	assert.Nil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -171,7 +171,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode()
+	err := ef.StartNode(0)
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -199,7 +199,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode()
+	err := ef.StartNode(0)
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -321,18 +321,6 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 	sync := &mock.SyncTimerMock{}
 	ef.SetSyncer(sync)
 	assert.Equal(t, sync, ef.GetSyncer())
-}
-
-func TestElrondNodeFacade_SendTransaction(t *testing.T) {
-	called := 0
-	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount string, txData []byte, signature []byte) (string, error) {
-		called++
-		return "", nil
-	}
-	ef := createElrondNodeFacadeWithMockResolver(node)
-	_, _ = ef.SendTransaction(1, "test", "test", "0", 0, 0, []byte("code"), []byte{})
-	assert.Equal(t, called, 1)
 }
 
 func TestElrondNodeFacade_GetAccount(t *testing.T) {
@@ -541,13 +529,13 @@ func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
 	nodeCreateTxWasCalled := false
 	nodeMock := &mock.NodeMock{
 		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
-			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error) {
+			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
-			return nil, nil
+			return nil, nil, nil
 		},
 	}
 	ef := createElrondNodeFacadeWithMockResolver(nodeMock)
-	_, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
+	_, _, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
 
 	assert.True(t, nodeCreateTxWasCalled)
 }

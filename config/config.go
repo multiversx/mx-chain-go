@@ -58,6 +58,7 @@ type NTPConfig struct {
 	Hosts               []string
 	Port                int
 	TimeoutMilliseconds int
+	SyncPeriodSeconds   int
 	Version             int
 }
 
@@ -93,7 +94,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
-	StateTrieConfig         StateTrieConfig
+	StateTriesConfig        StateTriesConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -114,7 +115,6 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
-	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
 	NTPConfig         NTPConfig
@@ -169,26 +169,8 @@ type HeartbeatConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	DestinationShardAsObserver string
-	StatusPollingIntervalSec   int
-	MaxComputableRounds        uint64
-}
-
-// ExplorerConfig will hold the configuration for the explorer indexer
-type ExplorerConfig struct {
-	Enabled    bool
-	IndexerURL string
-}
-
-// ServersConfig will hold all the confidential settings for servers
-type ServersConfig struct {
-	ElasticSearch ElasticSearchConfig
-}
-
-// ElasticSearchConfig will hold the configuration for the elastic search
-type ElasticSearchConfig struct {
-	Username string
-	Password string
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -197,10 +179,11 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// StateTrieConfig will hold information about state trie
-type StateTrieConfig struct {
-	RoundsModulus  uint
-	PruningEnabled bool
+// StateTriesConfig will hold information about state tries
+type StateTriesConfig struct {
+	CheckpointRoundsModulus     uint
+	AccountsStatePruningEnabled bool
+	PeerStatePruningEnabled     bool
 }
 
 // WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
@@ -225,6 +208,12 @@ type TopicAntifloodConfig struct {
 	HeadersRequestsPerSec      uint32
 }
 
+// TxAccumulatorConfig will hold the tx accumulator config values
+type TxAccumulatorConfig struct {
+	MaxAllowedTimeInMilliseconds   uint32
+	MaxDeviationTimeInMilliseconds uint32
+}
+
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
 	Enabled                   bool
@@ -236,4 +225,5 @@ type AntifloodConfig struct {
 	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
+	TxAccumulator             TxAccumulatorConfig
 }

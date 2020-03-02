@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -77,11 +77,14 @@ type ShardData struct {
 	NumPendingMiniBlocks  uint32
 	ShardID               uint32
 	TxCount               uint32
+	AccumulatedFees       *big.Int
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash
 type EpochStartShardData struct {
 	ShardId                 uint32
+	Round                   uint64
+	Nonce                   uint64
 	HeaderHash              []byte
 	RootHash                []byte
 	FirstPendingMetaBlock   []byte
@@ -89,9 +92,19 @@ type EpochStartShardData struct {
 	PendingMiniBlockHeaders []ShardMiniBlockHeader
 }
 
+// Economics holds the block information for total supply and rewards
+type Economics struct {
+	TotalSupply            *big.Int
+	TotalToDistribute      *big.Int
+	TotalNewlyMinted       *big.Int
+	RewardsPerBlockPerNode *big.Int
+	NodePrice              *big.Int
+}
+
 // EpochStart holds the block information for end-of-epoch
 type EpochStart struct {
 	LastFinalizedHeaders []EpochStartShardData
+	Economics            Economics
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -100,7 +113,6 @@ type MetaBlock struct {
 	Round                  uint64
 	TimeStamp              uint64
 	ShardInfo              []ShardData
-	PeerInfo               []PeerData
 	Signature              []byte
 	LeaderSignature        []byte
 	PubKeysBitmap          []byte
@@ -115,11 +127,13 @@ type MetaBlock struct {
 	ChainID                []byte
 	Epoch                  uint32
 	TxCount                uint32
+	AccumulatedFees        *big.Int
+	AccumulatedFeesInEpoch *big.Int
 }
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
-	return sharding.MetachainShardId
+	return core.MetachainShardId
 }
 
 // GetNonce return header nonce
@@ -195,6 +209,16 @@ func (m *MetaBlock) GetTxCount() uint32 {
 // GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
 func (m *MetaBlock) GetReceiptsHash() []byte {
 	return m.ReceiptsHash
+}
+
+// GetAccumulatedFees returns the accumulated fees in the header
+func (m *MetaBlock) GetAccumulatedFees() *big.Int {
+	return big.NewInt(0).Set(m.AccumulatedFees)
+}
+
+// SetAccumulatedFees sets the accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	m.AccumulatedFees.Set(value)
 }
 
 // SetShardID sets header shard ID
@@ -310,7 +334,6 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(m.PeerInfo)
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)

@@ -39,7 +39,9 @@ type HeaderHandler interface {
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
+	GetAccumulatedFees() *big.Int
 
+	SetAccumulatedFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -166,7 +168,6 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	SetDatabase(cacher DBWriteCacher)
 	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
 	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error

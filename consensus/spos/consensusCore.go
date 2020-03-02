@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -14,58 +15,64 @@ import (
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
 //  for the rest of the consensus structures
 type ConsensusCore struct {
-	blockChain         data.ChainHandler
-	blockProcessor     process.BlockProcessor
-	bootstrapper       process.Bootstrapper
-	broadcastMessenger consensus.BroadcastMessenger
-	chronologyHandler  consensus.ChronologyHandler
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	blsPrivateKey      crypto.PrivateKey
-	blsSingleSigner    crypto.SingleSigner
-	multiSigner        crypto.MultiSigner
-	rounder            consensus.Rounder
-	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   sharding.NodesCoordinator
-	syncTimer          ntp.SyncTimer
-	antifloodHandler   consensus.P2PAntifloodHandler
+	blockChain           data.ChainHandler
+	blockProcessor       process.BlockProcessor
+	bootstrapper         process.Bootstrapper
+	broadcastMessenger   consensus.BroadcastMessenger
+	chronologyHandler    consensus.ChronologyHandler
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	blsPrivateKey        crypto.PrivateKey
+	blsSingleSigner      crypto.SingleSigner
+	multiSigner          crypto.MultiSigner
+	rounder              consensus.Rounder
+	shardCoordinator     sharding.Coordinator
+	nodesCoordinator     sharding.NodesCoordinator
+	syncTimer            ntp.SyncTimer
+	epochStartSubscriber epochStart.EpochStartSubscriber
+	antifloodHandler     consensus.P2PAntifloodHandler
+}
+type ConsensusCoreArgs struct {
+	BlockChain           data.ChainHandler
+	BlockProcessor       process.BlockProcessor
+	Bootstrapper         process.Bootstrapper
+	BroadcastMessenger   consensus.BroadcastMessenger
+	ChronologyHandler    consensus.ChronologyHandler
+	Hasher               hashing.Hasher
+	Marshalizer          marshal.Marshalizer
+	BlsPrivateKey        crypto.PrivateKey
+	BlsSingleSigner      crypto.SingleSigner
+	MultiSigner          crypto.MultiSigner
+	Rounder              consensus.Rounder
+	ShardCoordinator     sharding.Coordinator
+	NodesCoordinator     sharding.NodesCoordinator
+	SyncTimer            ntp.SyncTimer
+	EpochStartSubscriber epochStart.EpochStartSubscriber
+	AntifloodHandler     consensus.P2PAntifloodHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
 func NewConsensusCore(
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstrapper process.Bootstrapper,
-	broadcastMessenger consensus.BroadcastMessenger,
-	chronologyHandler consensus.ChronologyHandler,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	blsPrivateKey crypto.PrivateKey,
-	blsSingleSigner crypto.SingleSigner,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	syncTimer ntp.SyncTimer,
-	antifloodHandler consensus.P2PAntifloodHandler,
+	args *ConsensusCoreArgs,
 ) (*ConsensusCore, error) {
 
 	consensusCore := &ConsensusCore{
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessor,
-		bootstrapper:       bootstrapper,
-		broadcastMessenger: broadcastMessenger,
-		chronologyHandler:  chronologyHandler,
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		blsSingleSigner:    blsSingleSigner,
-		blsPrivateKey:      blsPrivateKey,
-		multiSigner:        multiSigner,
-		rounder:            rounder,
-		shardCoordinator:   shardCoordinator,
-		nodesCoordinator:   nodesCoordinator,
-		syncTimer:          syncTimer,
-		antifloodHandler:   antifloodHandler,
+		blockChain:           args.BlockChain,
+		blockProcessor:       args.BlockProcessor,
+		bootstrapper:         args.Bootstrapper,
+		broadcastMessenger:   args.BroadcastMessenger,
+		chronologyHandler:    args.ChronologyHandler,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		blsPrivateKey:        args.BlsPrivateKey,
+		blsSingleSigner:      args.BlsSingleSigner,
+		multiSigner:          args.MultiSigner,
+		rounder:              args.Rounder,
+		shardCoordinator:     args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
+		syncTimer:            args.SyncTimer,
+		epochStartSubscriber: args.EpochStartSubscriber,
+		antifloodHandler:     args.AntifloodHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -81,8 +88,8 @@ func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cc.blockChain
 }
 
-// GetAntiFloodPreventer will return the antiflood handler which will be used in subrounds
-func (cc *ConsensusCore) GetAntiFloodPreventer() consensus.P2PAntifloodHandler {
+// GetAntiFloodHandler will return the antiflood handler which will be used in subrounds
+func (cc *ConsensusCore) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
 	return cc.antifloodHandler
 }
 
@@ -139,6 +146,11 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
 	return cc.nodesCoordinator
+}
+
+// EpochStartSubscriber returns the epoch start subscriber
+func (cc *ConsensusCore) EpochStartSubscriber() epochStart.EpochStartSubscriber {
+	return cc.epochStartSubscriber
 }
 
 // PrivateKey returns the BLS private key stored in the ConsensusStore
