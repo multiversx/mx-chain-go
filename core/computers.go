@@ -1,5 +1,7 @@
 package core
 
+import "math/big"
+
 // MaxInt32 returns the maximum of two given numbers
 func MaxInt32(a int32, b int32) int32 {
 	if a > b {
@@ -62,4 +64,17 @@ func MinUint64(a uint64, b uint64) uint64 {
 		return a
 	}
 	return b
+}
+
+// GetPercentageOfValue returns the percentage part of the value
+func GetPercentageOfValue(value *big.Int, percentage float64) *big.Int {
+	x := new(big.Float).SetInt(value)
+	y := big.NewFloat(percentage)
+
+	z := new(big.Float).Mul(x, y)
+
+	op := big.NewInt(0)
+	result, _ := z.Int(op)
+
+	return result
 }

@@ -54,7 +54,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
@@ -178,7 +178,7 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
-	cfg := &config.DBConfig{}
+	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	trieStorage, _ := NewTrieStorageManager(db, cfg, &mock.EvictionWaitingList{})
