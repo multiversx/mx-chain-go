@@ -249,7 +249,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					TotalToDistribute:      expectedTotalToDistribute,
 					TotalNewlyMinted:       expectedTotalNewlyMinted,
 					RewardsPerBlockPerNode: big.NewInt(int64(expRwdPerBlock)),
-					NodePrice:              big.NewInt(12),
+					NodePrice:              big.NewInt(10),
 				},
 			},
 			Epoch:                  1,

@@ -1,7 +1,7 @@
 package metachain
 
 import (
-	"fmt"
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -232,23 +232,21 @@ func (e *economics) VerifyRewardsPerBlock(
 	if err != nil {
 		return err
 	}
+	computedEconomics.PrevEpochStartHash = nil
+	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
+	if err != nil {
+		return err
+	}
 
 	receivedEconomics := metaBlock.EpochStart.Economics
-	if computedEconomics.TotalToDistribute.Cmp(receivedEconomics.TotalToDistribute) != 0 {
-		return fmt.Errorf("%w total to distribute computed %d received %d",
-			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalToDistribute, receivedEconomics.TotalToDistribute)
+	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, &receivedEconomics)
+	if err != nil {
+		return err
 	}
-	if computedEconomics.TotalNewlyMinted.Cmp(receivedEconomics.TotalNewlyMinted) != 0 {
-		return fmt.Errorf("%w total newly minted computed %d received %d",
-			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalNewlyMinted, receivedEconomics.TotalNewlyMinted)
-	}
-	if computedEconomics.TotalSupply.Cmp(receivedEconomics.TotalSupply) != 0 {
-		return fmt.Errorf("%w total supply computed %d received %d",
-			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalSupply, receivedEconomics.TotalSupply)
-	}
-	if computedEconomics.RewardsPerBlockPerNode.Cmp(receivedEconomics.RewardsPerBlockPerNode) != 0 {
-		return fmt.Errorf("%wrewards per block per node computed %d received %d",
-			epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.RewardsPerBlockPerNode, receivedEconomics.RewardsPerBlockPerNode)
+
+	if !bytes.Equal(receivedEconomicsHash, computedEconomicsHash) {
+		logEconomicsDifferences(computedEconomics, &receivedEconomics)
+		return epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch
 	}
 
 	return nil
@@ -257,4 +255,19 @@ func (e *economics) VerifyRewardsPerBlock(
 // IsInterfaceNil returns true if underlying object is nil
 func (e *economics) IsInterfaceNil() bool {
 	return e == nil
+}
+
+func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
+	log.Debug("VerifyRewardsPerBlock error",
+		"computed total to distribute", computed.TotalToDistribute,
+		"received total to distribute", received.TotalToDistribute,
+		"computed total newly minted", computed.TotalNewlyMinted,
+		"received total newly minted", received.TotalNewlyMinted,
+		"computed total supply", computed.TotalSupply,
+		"received total supply", received.TotalSupply,
+		"computed rewards per block per node", computed.RewardsPerBlockPerNode,
+		"received rewards per block per node", received.RewardsPerBlockPerNode,
+		"computed node price", computed.NodePrice,
+		"received node price", received.NodePrice,
+	)
 }
