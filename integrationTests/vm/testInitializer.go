@@ -42,6 +42,13 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 var log = logger.GetOrCreate("integrationtests")
 
+type VMTestContext struct {
+	TxProcessor    process.TransactionProcessor
+	Accounts       state.AccountsAdapter
+	BlockchainHook vmcommon.BlockchainHook
+	VMContainer    process.VirtualMachinesContainer
+}
+
 type accountFactory struct {
 }
 
@@ -337,19 +344,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 	require.NotNil(tb, txProcessor)
 
-	return VMTestContext{
-		TxProcessor:    txProcessor,
-		Accounts:       accounts,
-		BlockchainHook: blockchainHook,
-		VMContainer:    vmContainer,
-	}
-}
-
-type VMTestContext struct {
-	TxProcessor    process.TransactionProcessor
-	Accounts       state.AccountsAdapter
-	BlockchainHook vmcommon.BlockchainHook
-	VMContainer    process.VirtualMachinesContainer
+	return VMTestContext{TxProcessor: txProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
 
 func CreateTxProcessorArwenVMWithGasSchedule(
@@ -358,16 +353,14 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	gasSchedule map[string]map[string]uint64,
-) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+) VMTestContext {
+	accounts := CreateInMemoryShardAccountsDB()
+	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule)
+	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	require.NotNil(tb, txProcessor)
 
-	accnts := CreateInMemoryShardAccountsDB()
-	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
-
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
-	assert.NotNil(tb, txProcessor)
-
-	return txProcessor, accnts, blockChainHook
+	return VMTestContext{TxProcessor: txProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
 
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
