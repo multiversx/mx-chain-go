@@ -258,7 +258,7 @@ func (e *economics) IsInterfaceNil() bool {
 }
 
 func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
-	log.Info("VerifyRewardsPerBlock error",
+	log.Warn("VerifyRewardsPerBlock error",
 		"\ncomputed total to distribute", computed.TotalToDistribute,
 		"computed total newly minted", computed.TotalNewlyMinted,
 		"computed total supply", computed.TotalSupply,
