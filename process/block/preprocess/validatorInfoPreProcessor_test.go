@@ -47,7 +47,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_OkValsShouldWork(t *testing.T)
 func TestNewValidatorInfoPreprocessorPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rtp, err := NewValidatorInfoPreprocessor(
+	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -62,7 +62,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_CreateMarshalizedDataShouldWor
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rtp, err := NewValidatorInfoPreprocessor(
+	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -75,14 +75,14 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockInvalidMiniBlo
 		Type:            0,
 	}
 
-	err = rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rtp, err := NewValidatorInfoPreprocessor(
+	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -95,14 +95,14 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockShouldWork(t *
 		Type:            block.PeerBlock,
 	}
 
-	err = rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Nil(t, err)
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	t.Parallel()
 
-	rtp, err := NewValidatorInfoPreprocessor(
+	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -115,6 +115,6 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockNotFromMeta(t 
 		Type:            block.PeerBlock,
 	}
 
-	err = rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
-	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }

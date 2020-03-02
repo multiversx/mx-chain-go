@@ -630,6 +630,9 @@ var ErrNilBuiltInFunction = errors.New("built in function is nil")
 // ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
 var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")
 
+// ErrValidatorInfoMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks should come only from meta")
+
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
