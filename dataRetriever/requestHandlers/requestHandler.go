@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -20,6 +21,7 @@ type resolverRequestHandler struct {
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
+	mutSweepTime          sync.Mutex
 }
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
@@ -529,6 +531,9 @@ func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byt
 }
 
 func (rrh *resolverRequestHandler) sweepIfNeeded() {
+	rrh.mutSweepTime.Lock()
+	defer rrh.mutSweepTime.Unlock()
+
 	if time.Since(rrh.sweepTime) <= time.Second {
 		return
 	}

@@ -118,3 +118,33 @@ var ErrNilTransactionsSyncHandler = errors.New("nil transaction sync handler")
 
 // ErrWrongUnfinishedMetaHdrsMap signals that wrong unfinished meta headers map was provided
 var ErrWrongUnfinishedMetaHdrsMap = errors.New("wrong unfinished meta headers map")
+
+// ErrNilAccounts signals that nil accounts was provided
+var ErrNilAccounts = errors.New("nil accounts")
+
+// ErrNilMultiSigner signals that nil multi signer was provided
+var ErrNilMultiSigner = errors.New("nil multi signer")
+
+// ErrNilNodesCoordinator signals that nil nodes coordinator was provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNilSingleSigner signals that nil single signer was provided
+var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrNilAddressConverter signals that nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrNilBlockKeyGen signals that nil block key gen was provided
+var ErrNilBlockKeyGen = errors.New("nil block key gen")
+
+// ErrNilKeyGenerator signals that nil key generator was provided
+var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrNilBlockSigner signals the nil block signer was provided
+var ErrNilBlockSigner = errors.New("nil block signer")
+
+// ErrNilHeaderSigVerifier signals that nil header sig verifier was provided
+var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
+
+// ErrNilValidityAttester signals that nil validity was provided
+var ErrNilValidityAttester = errors.New("nil validity attester")

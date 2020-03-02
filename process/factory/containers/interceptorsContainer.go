@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
 )
@@ -36,12 +37,11 @@ func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 
 	ok := ic.objects.Insert(key, interceptor)
-
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -57,6 +57,10 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 	}
 
 	for idx, key := range keys {
+		if len(key) == 0 {
+			continue
+		}
+
 		err := ic.Add(key, interceptors[idx])
 		if err != nil {
 			return err
@@ -68,7 +72,7 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ic *interceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 

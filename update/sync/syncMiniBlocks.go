@@ -60,6 +60,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		requestHandler: args.RequestHandler,
 		stopSyncing:    true,
 		syncedAll:      false,
+		marshalizer:    args.Marshalizer,
 	}
 
 	p.pool.RegisterHandler(p.receivedMiniBlock)
@@ -246,7 +247,9 @@ func (p *pendingMiniBlocks) getMiniBlockFromPoolOrStorage(hash []byte) (*block.M
 		return nil, false
 	}
 
-	mb := &block.MiniBlock{}
+	mb := &block.MiniBlock{
+		TxHashes: make([][]byte, 0),
+	}
 	err = p.marshalizer.Unmarshal(mb, mbData)
 	if err != nil {
 		return nil, false

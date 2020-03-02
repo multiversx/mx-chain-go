@@ -1,14 +1,18 @@
 package factory
 
 import (
+	"math"
 	"path"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	genesis2 "github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -19,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/files"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -44,6 +49,17 @@ type ArgsExporter struct {
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.InterceptedDataWhiteList
 	InterceptorsContainer    process.InterceptorsContainer
+	Accounts                 state.AccountsAdapter
+	MultiSigner              crypto.MultiSigner
+	NodesCoordinator         sharding.NodesCoordinator
+	SingleSigner             crypto.SingleSigner
+	AddrConverter            state.AddressConverter
+	BlockKeyGen              crypto.KeyGenerator
+	KeyGen                   crypto.KeyGenerator
+	BlockSigner              crypto.SingleSigner
+	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
+	ChainID                  []byte
+	ValidityAttester         process.ValidityAttester
 }
 
 type exportHandlerFactory struct {
@@ -64,6 +80,19 @@ type exportHandlerFactory struct {
 	whiteListHandler         process.InterceptedDataWhiteList
 	interceptorsContainer    process.InterceptorsContainer
 	existingResolvers        dataRetriever.ResolversContainer
+	epochStartTrigger        epochStart.TriggerHandler
+	accounts                 state.AccountsAdapter
+	multiSigner              crypto.MultiSigner
+	nodesCoordinator         sharding.NodesCoordinator
+	singleSigner             crypto.SingleSigner
+	addrConverter            state.AddressConverter
+	blockKeyGen              crypto.KeyGenerator
+	keyGen                   crypto.KeyGenerator
+	blockSigner              crypto.SingleSigner
+	addrConv                 state.AddressConverter
+	headerSigVerifier        process.InterceptedHeaderSigVerifier
+	chainID                  []byte
+	validityAttester         process.ValidityAttester
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -107,6 +136,36 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
+	if check.IfNil(args.Accounts) {
+		return nil, update.ErrNilAccounts
+	}
+	if check.IfNil(args.MultiSigner) {
+		return nil, update.ErrNilMultiSigner
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, update.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.SingleSigner) {
+		return nil, update.ErrNilSingleSigner
+	}
+	if check.IfNil(args.AddrConverter) {
+		return nil, update.ErrNilAddressConverter
+	}
+	if check.IfNil(args.BlockKeyGen) {
+		return nil, update.ErrNilBlockKeyGen
+	}
+	if check.IfNil(args.KeyGen) {
+		return nil, update.ErrNilKeyGenerator
+	}
+	if check.IfNil(args.BlockSigner) {
+		return nil, update.ErrNilBlockSigner
+	}
+	if check.IfNil(args.HeaderSigVerifier) {
+		return nil, update.ErrNilHeaderSigVerifier
+	}
+	if check.IfNil(args.ValidityAttester) {
+		return nil, update.ErrNilValidityAttester
+	}
 
 	e := &exportHandlerFactory{
 		marshalizer:              args.Marshalizer,
@@ -126,6 +185,17 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
 		existingResolvers:        args.ExistingResolvers,
+		accounts:                 args.Accounts,
+		multiSigner:              args.MultiSigner,
+		nodesCoordinator:         args.NodesCoordinator,
+		singleSigner:             args.SingleSigner,
+		addrConv:                 args.AddrConverter,
+		blockKeyGen:              args.BlockKeyGen,
+		keyGen:                   args.KeyGen,
+		blockSigner:              args.BlockSigner,
+		headerSigVerifier:        args.HeaderSigVerifier,
+		validityAttester:         args.ValidityAttester,
+		chainID:                  args.ChainID,
 	}
 
 	return e, nil
@@ -273,13 +343,61 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		StateSyncer:      stateSyncer,
 		Marshalizer:      e.marshalizer,
 		Writer:           writer,
+		Hasher:           e.hasher,
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
 	if err != nil {
 		return nil, err
 	}
 
+	e.epochStartTrigger = epochHandler
+	err = e.createInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
 	return exportHandler, nil
+}
+
+func (e *exportHandlerFactory) createInterceptors() error {
+	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
+		Accounts:               e.accounts,
+		ShardCoordinator:       e.shardCoordinator,
+		NodesCoordinator:       e.nodesCoordinator,
+		Messenger:              e.messenger,
+		Store:                  e.storageService,
+		Marshalizer:            e.marshalizer,
+		Hasher:                 e.hasher,
+		KeyGen:                 e.keyGen,
+		BlockSignKeyGen:        e.blockKeyGen,
+		SingleSigner:           e.singleSigner,
+		BlockSingleSigner:      e.blockSigner,
+		MultiSigner:            e.multiSigner,
+		DataPool:               e.dataPool,
+		AddrConverter:          e.addrConv,
+		MaxTxNonceDeltaAllowed: math.MaxInt32,
+		TxFeeHandler:           genesis2.NewGenesisFeeHandler(),
+		BlackList:              timecache.NewTimeCache(time.Second),
+		HeaderSigVerifier:      e.headerSigVerifier,
+		ChainID:                e.chainID,
+		SizeCheckDelta:         math.MaxUint32,
+		ValidityAttester:       e.validityAttester,
+		EpochStartTrigger:      e.epochStartTrigger,
+		WhiteListHandler:       e.whiteListHandler,
+		InterceptorsContainer:  e.interceptorsContainer,
+	}
+	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
+	if err != nil {
+		return err
+	}
+
+	interceptorsContainer, err := fullSyncInterceptors.Create()
+	if err != nil {
+		return err
+	}
+
+	e.interceptorsContainer = interceptorsContainer
+	return nil
 }
 
 func createFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
