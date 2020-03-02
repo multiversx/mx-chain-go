@@ -252,12 +252,12 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotCommitBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.Rounder().Index()
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.Rounder().Index()
 	if shouldNotCommitBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
 			"round", sr.Rounder().Index(),
 			"subround", sr.Name(),
-			"cnsDta round", cnsDta.RoundIndex,
+			"header round", header.GetRound(),
 			"extended called", sr.ExtendedCalled,
 		)
 		return false
