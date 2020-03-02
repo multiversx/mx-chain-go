@@ -14,6 +14,7 @@ type RatingsData struct {
 	proposerDecreaseRatingStep  uint32
 	validatorIncreaseRatingStep uint32
 	validatorDecreaseRatingStep uint32
+	selectionChances            []process.SelectionChance
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -30,6 +31,14 @@ func NewRatingsData(
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
 
+	chances := make([]process.SelectionChance, 0)
+	for _, chance := range settings.SelectionChance {
+		chances = append(chances, &SelectionChance{
+			MaxThreshold:  chance.MaxThreshold,
+			ChancePercent: chance.ChancePercent,
+		})
+	}
+
 	return &RatingsData{
 		startRating:                 settings.StartRating,
 		maxRating:                   settings.MaxRating,
@@ -38,6 +47,7 @@ func NewRatingsData(
 		proposerDecreaseRatingStep:  settings.ProposerDecreaseRatingStep,
 		validatorIncreaseRatingStep: settings.ValidatorIncreaseRatingStep,
 		validatorDecreaseRatingStep: settings.ValidatorDecreaseRatingStep,
+		selectionChances:            chances,
 	}, nil
 }
 
@@ -74,4 +84,9 @@ func (rd *RatingsData) ValidatorIncreaseRatingStep() uint32 {
 // ValidatorDecreaseRatingStep will return the rating step decrease for validator
 func (rd *RatingsData) ValidatorDecreaseRatingStep() uint32 {
 	return rd.validatorDecreaseRatingStep
+}
+
+// SelectionChances will return the array of selectionChances and thresholds
+func (rd *RatingsData) SelectionChances() []process.SelectionChance {
+	return rd.selectionChances
 }
