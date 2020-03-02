@@ -479,6 +479,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
+			log.Error("no preprocessor for miniblock found", "type", miniBlock.Type)
 			continue
 		}
 
