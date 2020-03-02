@@ -22,11 +22,12 @@ const nodeCoordinatorStoredEpochs = 2
 
 // TODO: add a parameter for shardId  when acting as observer
 type epochNodesConfig struct {
-	nbShards     uint32
-	shardId      uint32
-	eligibleMap  map[uint32][]Validator
-	waitingMap   map[uint32][]Validator
-	mutNodesMaps sync.RWMutex
+	nbShards            uint32
+	shardId             uint32
+	eligibleMap         map[uint32][]Validator
+	waitingMap          map[uint32][]Validator
+	expandedEligibleMap map[uint32][]Validator
+	mutNodesMaps        sync.RWMutex
 }
 
 // EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
@@ -36,7 +37,6 @@ type EpochStartSubscriber interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
@@ -50,6 +50,7 @@ type indexHashedNodesCoordinator struct {
 	numTotalEligible        uint64
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	nodesPerShardSetter     NodesPerShardSetter
 	consensusGroupCacher    Cacher
 }
 
@@ -86,9 +87,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
-	ihgs.doExpandEligibleList = ihgs.expandEligibleList
-
-	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
+	ihgs.nodesPerShardSetter = ihgs
+	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +174,14 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
+
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
+
+	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
+
+	displayNodesConfiguration(eligible, waiting)
 
 	return nil
 }
@@ -212,8 +217,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
-	var eligibleShardList []Validator
-	var mut *sync.RWMutex
+	var expandedList []Validator
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
@@ -227,8 +231,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
-		eligibleShardList = nodesConfig.eligibleMap[shardId]
-		mut = &nodesConfig.mutNodesMaps
+		expandedList = nodesConfig.eligibleMap[shardId]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 
@@ -251,9 +254,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 
 	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
-
-	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
 
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,
@@ -413,8 +413,8 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 	return publicKeys, nil
 }
 
-// GetAllValidatorsPublicKeys will return all validators public keys for all shards
-func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+// GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
@@ -444,7 +444,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 ) ([]uint64, error) {
 	signersIndexes := make([]uint64, 0)
 
-	validatorsPubKeys, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	validatorsPubKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -496,7 +496,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 
 	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	_ = ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	_ = ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	err := ihgs.saveState(randomness)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
@@ -556,13 +556,13 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	var err error
 
 	if epoch > 0 {
-		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
+		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	publicKeysNewEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -589,11 +589,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	}
 
 	return shardEligible, nil
-}
-
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
-	//TODO implement an expand eligible list variant
-	return validators
 }
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
@@ -658,4 +653,20 @@ func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
+}
+
+func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator) {
+	for shardId, validators := range eligible {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Eligible", "shardId", shardId, "pk", pk)
+		}
+	}
+
+	for shardId, validators := range waiting {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Waiting", "shardId", shardId, "pk", pk)
+		}
+	}
 }

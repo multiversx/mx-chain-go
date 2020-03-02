@@ -698,3 +698,21 @@ type Rounder interface {
 	Index() int64
 	IsInterfaceNil() bool
 }
+
+// Rounder defines the actions which should be handled by a round implementation
+type SelectionChance interface {
+	GetMaxThreshold() uint32
+	GetChancePercent() uint32
+}
+
+// Ratingsinfo defines the information needed for the rating computation
+type RatingsInfo interface {
+	StartRating() uint32
+	MaxRating() uint32
+	MinRating() uint32
+	ProposerIncreaseRatingStep() uint32
+	ProposerDecreaseRatingStep() uint32
+	ValidatorIncreaseRatingStep() uint32
+	ValidatorDecreaseRatingStep() uint32
+	SelectionChances() []SelectionChance
+}

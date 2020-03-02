@@ -191,6 +191,7 @@ type TestProcessorNode struct {
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rater                        sharding.RaterHandler
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -200,6 +201,8 @@ type TestProcessorNode struct {
 	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
+
+	InitialNodes []*sharding.InitialNode
 
 	ChainID []byte
 }
@@ -307,6 +310,27 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
 }
 
+func (tpn *TestProcessorNode) initValidatorStatistics() {
+	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
+		RewardsHandler:      tpn.EconomicsData,
+		StartEpoch:          0,
+	}
+
+	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
+}
+
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
@@ -372,6 +396,14 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
+	economicsData := CreateEconomicsData()
+
+	tpn.EconomicsData = &economics.TestEconomicsData{
+		EconomicsData: economicsData,
+	}
+}
+
+func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
@@ -415,13 +447,56 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				ProposerIncreaseRatingStep:  1929,
 				ValidatorDecreaseRatingStep: 61,
 				ValidatorIncreaseRatingStep: 31,
+				SelectionChance: []config.SelectionChance{
+					{
+						MaxThreshold:  0,
+						ChancePercent: 0,
+					},
+					{
+						MaxThreshold:  100000,
+						ChancePercent: 0,
+					},
+					{
+						MaxThreshold:  200000,
+						ChancePercent: 16,
+					},
+					{
+						MaxThreshold:  300000,
+						ChancePercent: 17,
+					},
+					{
+						MaxThreshold:  400000,
+						ChancePercent: 18,
+					},
+					{
+						MaxThreshold:  500000,
+						ChancePercent: 19,
+					},
+					{
+						MaxThreshold:  600000,
+						ChancePercent: 20,
+					},
+					{
+						MaxThreshold:  700000,
+						ChancePercent: 21,
+					},
+					{
+						MaxThreshold:  800000,
+						ChancePercent: 22,
+					},
+					{
+						MaxThreshold:  900000,
+						ChancePercent: 23,
+					},
+					{
+						MaxThreshold:  1000000,
+						ChancePercent: 24,
+					},
+				},
 			},
 		},
 	)
-
-	tpn.EconomicsData = &economics.TestEconomicsData{
-		EconomicsData: economicsData,
-	}
+	return economicsData
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {
@@ -790,27 +865,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
 	)
-}
-
-func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-
-	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         tpn.PeerState,
-		AdrConv:             TestAddressConverterBLS,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		DataPool:            tpn.DataPool,
-		StorageService:      tpn.Storage,
-		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
-		Rater:               rater,
-		MaxComputableRounds: 1000,
-		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
-	}
-
-	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {

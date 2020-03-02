@@ -668,3 +668,15 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
+
+// ErrDupplicateThreshold signals that two thresholds are the same
+var ErrDupplicateThreshold = errors.New("two thresholds are the same")
+
+// ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
+var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")
+
+// ErrNoChancesProvided signals that there were no chances provided
+var ErrNoChancesProvided = errors.New("no chances are provided")
+
+// ErrNilMinChanceIfZero signals that there was no min chance provided if a chance is still needed
+var ErrNilMinChanceIfZero = errors.New("no min chance ")

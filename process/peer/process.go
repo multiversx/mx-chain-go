@@ -123,7 +123,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	log.Debug("setting ratingReader")
 
 	rr := &RatingReader{
-		getRating: vs.getRating,
+		getRating:                  vs.getRating,
+		updateRatingFromTempRating: vs.updateRatingFromTempRating,
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
@@ -142,7 +143,7 @@ func (vs *validatorStatistics) saveInitialState(
 	startRating uint32,
 	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(startEpoch)
 	if err != nil {
 		return err
 	}
@@ -190,7 +191,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
-		log.Debug("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		log.Warn("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, err
 	}
 
@@ -229,7 +230,35 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	return vs.peerAdapter.RootHash()
+	vs.displayRatings(header.GetEpoch())
+	rootHash, err := vs.peerAdapter.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
+
+	return rootHash, nil
+}
+
+func (vs *validatorStatistics) displayRatings(epoch uint32) {
+	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)
+		return
+	}
+	log.Trace("started printing tempRatings")
+	for shardId, list := range validatorPKs {
+		for _, pk := range list {
+			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardId)
+		}
+	}
+	log.Trace("finished printing tempRatings")
+}
+
+// Commit commits the validator statistics trie and returns the root hash
+func (vs *validatorStatistics) Commit() ([]byte, error) {
+	return vs.peerAdapter.Commit()
 }
 
 // RootHash returns the root hash of the validator statistics trie
@@ -430,10 +459,6 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 			return err
 		}
 		sw.Add(swInner)
-
-		for _, val := range consensusGroup {
-			vs.display(string(val.PubKey()))
-		}
 	}
 	return nil
 }
@@ -619,8 +644,6 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		if err != nil {
 			return err
 		}
-
-		vs.display(string(validatorList[i].PubKey()))
 	}
 
 	return nil
@@ -733,6 +756,36 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
+func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
+	rootHash, err := vs.RootHash()
+	if err != nil {
+		log.Warn("updateRatingFromTempRating getRootHash failed", "error", err)
+	}
+
+	log.Trace("updateRatingFromTempRating before", "rootHash", rootHash)
+	for _, pk := range pks {
+		peer, err := vs.GetPeerAccount([]byte(pk))
+		if err != nil {
+			return err
+		}
+
+		tempRating := vs.getTempRating(pk)
+		rating := vs.getRating(pk)
+		log.Trace("updateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
+		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
+		if err != nil {
+			return err
+		}
+	}
+	rootHash, err = vs.RootHash()
+	if err != nil {
+		log.Warn("updateRatingFromTempRating.getting root hash failed", "error", err)
+	}
+
+	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
+	return nil
+}
+
 func (vs *validatorStatistics) display(validatorKey string) {
 	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
 
@@ -763,7 +816,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}

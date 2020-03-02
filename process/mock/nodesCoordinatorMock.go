@@ -67,11 +67,10 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 }
 
 // GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllValidatorsPublicKeysCalled()
 	}
-
 	return nil, nil
 }
 
