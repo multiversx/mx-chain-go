@@ -114,9 +114,9 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 
 	wrongChainID := []byte("wrong chain ID")
 	hdr1, hdr2 := generateTwoHeaders(wrongChainID)
-	hdrBuff1, _ := marshalizer.Marshal(&hdr1)
+	hdrBuff1, _ := marshalizer.Marshal(hdr1)
 	hdrHash1 := hasher.Compute(string(hdrBuff1))
-	hdrBuff2, _ := marshalizer.Marshal(&hdr2)
+	hdrBuff2, _ := marshalizer.Marshal(hdr2)
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers

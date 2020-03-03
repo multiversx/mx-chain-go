@@ -82,7 +82,7 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 
 	epochStartDataWithoutEconomics := metaBlock.EpochStart
 	epochStartDataWithoutEconomics.Economics = block.Economics{}
-	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, epochStartDataWithoutEconomics)
+	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, &epochStartDataWithoutEconomics)
 	if err != nil {
 		return err
 	}
