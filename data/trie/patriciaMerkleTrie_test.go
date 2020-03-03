@@ -370,6 +370,24 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
+func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_ = tr.Commit()
+
+	tr.CancelPrune(rootHash, data.OldRoot)
+	tr.Prune(rootHash, data.OldRoot)
+
+	newTr, err := tr.Recreate(rootHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, newTr)
+}
+
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
 

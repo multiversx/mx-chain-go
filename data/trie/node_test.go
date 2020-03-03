@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var snapshotDelay = time.Second
-
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
 	t.Parallel()
 

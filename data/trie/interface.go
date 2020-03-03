@@ -44,3 +44,10 @@ type node interface {
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 }
+
+type atomicBuffer interface {
+	len() int
+	add(rootHash []byte)
+	contains(rootHash []byte) bool
+	remove(rootHash []byte)
+}

@@ -17,15 +17,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+const (
+	snapshotBufferLen = 10
+	pruningBufferLen  = 100
+)
+
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	db       data.DBWriteCacher
 	pruneReq chan []byte
 
-	snapshots     []storage.Persister
-	snapshotId    int
-	snapshotDbCfg config.DBConfig
-	snapshotReq   chan snapshotsQueueEntry
+	snapshots       []storage.Persister
+	snapshotId      int
+	snapshotDbCfg   config.DBConfig
+	snapshotReq     chan snapshotsQueueEntry
+	snapshotsBuffer atomicBuffer
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -67,9 +73,10 @@ func NewTrieStorageManager(
 		snapshots:             snapshots,
 		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
+		snapshotsBuffer:       newSnapshotsBuffer(),
 		dbEvictionWaitingList: ewl,
-		snapshotReq:           make(chan snapshotsQueueEntry),
-		pruneReq:              make(chan []byte),
+		snapshotReq:           make(chan snapshotsQueueEntry, snapshotBufferLen),
+		pruneReq:              make(chan []byte, pruningBufferLen),
 	}
 
 	go tsm.storageProcessLoop(marshalizer, hasher)
@@ -81,10 +88,15 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 		select {
 		case snapshot := <-tsm.snapshotReq:
 			tsm.takeSnapshot(snapshot, msh, hsh)
-		case rootHash := <-tsm.pruneReq:
-			err := tsm.removeFromDb(rootHash)
-			if err != nil {
-				log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
+		default:
+			select {
+			case snapshot := <-tsm.snapshotReq:
+				tsm.takeSnapshot(snapshot, msh, hsh)
+			case rootHash := <-tsm.pruneReq:
+				err := tsm.removeFromDb(rootHash)
+				if err != nil {
+					log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
+				}
 			}
 		}
 	}
@@ -149,7 +161,22 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) {
 	log.Trace("trie storage manager prune", "root", rootHash)
-	tsm.pruneReq <- rootHash
+
+	if tsm.snapshotsBuffer.contains(rootHash[:len(rootHash)-1]) {
+		select {
+		case tsm.pruneReq <- rootHash:
+			log.Trace("added root hash to pruning buffer", "rootHash", rootHash)
+			return
+		default:
+			log.Trace("pruning buffer is full")
+			return
+		}
+	}
+
+	err := tsm.removeFromDb(rootHash)
+	if err != nil {
+		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
+	}
 }
 
 // CancelPrune removes the given hash from the eviction waiting list
@@ -228,8 +255,8 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
-	checkpointEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: true}
-	tsm.snapshotReq <- checkpointEntry
+	snapshotEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: true}
+	tsm.writeOnChan(snapshotEntry)
 }
 
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
@@ -237,7 +264,18 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 	checkpointEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: false}
-	tsm.snapshotReq <- checkpointEntry
+	tsm.writeOnChan(checkpointEntry)
+}
+
+func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
+	select {
+	case tsm.snapshotReq <- entry:
+		tsm.snapshotsBuffer.add(entry.rootHash)
+		return
+	default:
+		log.Error("snapshots buffer is full")
+		return
+	}
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
@@ -263,6 +301,8 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh ma
 		log.Error("trie storage manager: commit", "error", err.Error())
 		return
 	}
+
+	tsm.snapshotsBuffer.remove(snapshot.rootHash)
 
 	log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
 }
