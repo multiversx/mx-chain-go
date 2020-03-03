@@ -11,8 +11,8 @@ func (v *ValidatorSettingsStub) UnBondPeriod() uint64 {
 	return 10
 }
 
-// StakeValue -
-func (v *ValidatorSettingsStub) StakeValue() *big.Int {
+// GenesisNodePrice -
+func (v *ValidatorSettingsStub) GenesisNodePrice() *big.Int {
 	return big.NewInt(10)
 }
 

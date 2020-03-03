@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
@@ -23,7 +24,7 @@ func NewRound(
 	syncTimer ntp.SyncTimer,
 ) (*round, error) {
 
-	if syncTimer == nil || syncTimer.IsInterfaceNil() {
+	if check.IfNil(syncTimer) {
 		return nil, ErrNilSyncTimer
 	}
 

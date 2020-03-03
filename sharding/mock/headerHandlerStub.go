@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -9,6 +11,14 @@ type HeaderHandlerStub struct {
 	GetRandSeedCalled         func() []byte
 	IsStartOfEpochBlockCalled func() bool
 	GetEpochCaled             func() uint32
+}
+
+func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) SetAccumulatedFees(value *big.Int) {
+	panic("implement me")
 }
 
 func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
