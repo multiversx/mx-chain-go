@@ -88,7 +88,7 @@ func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
 
 func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	shardCoordinator.SetSelfId(core.MetachainShardId)
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 
 	argsNewEpochEconomics := ArgsNewValidatorInfoCreator{
 		ShardCoordinator: shardCoordinator,
@@ -116,12 +116,11 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 	for i, txHash := range bl.TxHashes {
 		vi := validatorCopy[i]
 		unmarshaledVi := &state.ValidatorInfo{}
-		marshalizer.Unmarshal(unmarshaledVi, txHash)
+		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
 
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
 		}
-
 	}
 
 	return true
