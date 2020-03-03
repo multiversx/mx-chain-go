@@ -3015,6 +3015,7 @@ func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
 
 	marshalizedBody, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
@@ -3077,6 +3078,7 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
 	_, err = marshalizerMock.Marshal(hdr)
 	assert.Nil(t, err)
 

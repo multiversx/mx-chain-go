@@ -759,7 +759,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		"num txs", nbTxs,
 	)
 
-	miniBlocks := make(block.MiniBlockSlice, len(destMeMiniBlocks))
+	miniBlocks := make(block.MiniBlockSlice, 0, len(destMeMiniBlocks))
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}

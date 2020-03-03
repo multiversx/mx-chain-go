@@ -1976,6 +1976,8 @@ func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
+	hdr.AccumulatedFeesInEpoch = new(big.Int)
 
 	marshalizedBody, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
@@ -2029,6 +2031,8 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
+	hdr.AccumulatedFeesInEpoch = new(big.Int)
 	_, err := marshalizerMock.Marshal(hdr)
 	assert.Nil(t, err)
 
@@ -2181,6 +2185,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	b, _ := bodyHandler.(*block.Body)
 
+	t.Logf("The block: %#v", b)
 	assert.Equal(t, expectedMiniBlock1, b.MiniBlocks[0])
 	assert.Equal(t, expectedMiniBlock2, b.MiniBlocks[1])
 	assert.Nil(t, err)
