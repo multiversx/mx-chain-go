@@ -37,6 +37,7 @@ func NewRewardTxPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
+	blockSizeComputation BlockSizeComputationHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -63,12 +64,16 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	bpp := &basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
-		gasHandler:       gasHandler,
+		hasher:               hasher,
+		marshalizer:          marshalizer,
+		shardCoordinator:     shardCoordinator,
+		gasHandler:           gasHandler,
+		blockSizeComputation: blockSizeComputation,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -190,9 +195,9 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 
 			txHash := miniBlock.TxHashes[j]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
-			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
+			txData, ok := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
-			if txData == nil || check.IfNil(txData.tx) {
+			if !ok || check.IfNil(txData.tx) {
 				log.Debug("missing rewardsTransaction in ProcessBlockTransactions ", "type", block.RewardsBlock, "hash", txHash)
 				return process.ErrMissingTransaction
 			}
@@ -412,6 +417,10 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		return err
 	}
 
+	if rtp.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockRewardTxs)) {
+		return process.ErrMaxBlockSizeReached
+	}
+
 	for index := range miniBlockRewardTxs {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -430,6 +439,9 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockRewardTxs[index], txShardInfo: txShardData}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
+
+	rtp.blockSizeComputation.AddNumMiniBlocks(1)
+	rtp.blockSizeComputation.AddNumTxs(len(miniBlockRewardTxs))
 
 	return nil
 }

@@ -43,6 +43,7 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
+	blockSizeComputation BlockSizeComputationHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -75,13 +76,17 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	bpp := &basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
-		gasHandler:       gasHandler,
-		economicsFee:     economicsFee,
+		hasher:               hasher,
+		marshalizer:          marshalizer,
+		shardCoordinator:     shardCoordinator,
+		gasHandler:           gasHandler,
+		economicsFee:         economicsFee,
+		blockSizeComputation: blockSizeComputation,
 	}
 
 	scr := &smartContractResults{
@@ -212,9 +217,9 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 			txHash := miniBlock.TxHashes[j]
 			scr.scrForBlock.mutTxsForBlock.RLock()
-			txInfoFromMap := scr.scrForBlock.txHashAndInfo[string(txHash)]
+			txInfoFromMap, ok := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
-			if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+			if !ok || check.IfNil(txInfoFromMap.tx) {
 				log.Debug("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
@@ -452,6 +457,10 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		return err
 	}
 
+	if scr.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockScrs)) {
+		return process.ErrMaxBlockSizeReached
+	}
+
 	processedTxHashes := make([][]byte, 0)
 
 	defer func() {
@@ -504,6 +513,9 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfoToSet}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
+
+	scr.blockSizeComputation.AddNumMiniBlocks(1)
+	scr.blockSizeComputation.AddNumTxs(len(miniBlockScrs))
 
 	return nil
 }

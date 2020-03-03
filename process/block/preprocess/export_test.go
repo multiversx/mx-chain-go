@@ -1,9 +1,10 @@
 package preprocess
 
 import (
+	"sync/atomic"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"sync/atomic"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte) {

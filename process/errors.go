@@ -677,3 +677,6 @@ var ErrInvalidMiniBlockType = errors.New("invalid miniblock type")
 
 // ErrInvalidBody signals that an invalid body has been provided
 var ErrInvalidBody = errors.New("invalid body")
+
+// ErrNilBlockSizeComputationHandler signals that a nil block size computation handler has been provided
+var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation handler")

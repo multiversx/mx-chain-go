@@ -111,7 +111,6 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		// Discard the notification
 		return
 	}
 

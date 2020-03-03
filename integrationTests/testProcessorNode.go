@@ -90,6 +90,9 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519(
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestBlockSizeComputation represents a block size computation handler
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer)
+
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
 
@@ -678,6 +681,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
+		TestBlockSizeComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -770,6 +774,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestAddressConverter,
+		TestBlockSizeComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

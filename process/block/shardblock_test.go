@@ -486,6 +486,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -699,6 +700,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2218,6 +2220,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2326,6 +2329,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2728,6 +2732,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2908,6 +2913,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 

@@ -46,6 +46,7 @@ type transactions struct {
 	addressConverter     state.AddressConverter
 	accountsInfo         map[string]*txShardInfo
 	mutAccountsInfo      sync.RWMutex
+	emptyAddress         []byte
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -63,6 +64,7 @@ func NewTransactionPreprocessor(
 	blockTracker BlockTracker,
 	blockType block.Type,
 	addressConverter state.AddressConverter,
+	blockSizeComputation BlockSizeComputationHandler,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -101,11 +103,8 @@ func NewTransactionPreprocessor(
 	if check.IfNil(addressConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-
-	//TODO maybe inject this and check if this is needed to be used also for smartContractResults
-	bsc, err := NewBlockSizeComputation(marshalizer)
-	if err != nil {
-		return nil, err
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
 	}
 
 	bpp := basePreProcess{
@@ -114,7 +113,7 @@ func NewTransactionPreprocessor(
 		shardCoordinator:     shardCoordinator,
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
-		blockSizeComputation: bsc,
+		blockSizeComputation: blockSizeComputation,
 	}
 
 	txs := transactions{
@@ -136,6 +135,8 @@ func NewTransactionPreprocessor(
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountsInfo = make(map[string]*txShardInfo)
+
+	txs.emptyAddress = make([]byte, txs.addressConverter.AddressLen())
 
 	return &txs, nil
 }
@@ -298,10 +299,10 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
 		txHash := miniBlock.TxHashes[i]
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 		txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		if !ok || check.IfNil(txInfoFromMap.tx) {
 			log.Debug("missing transaction in computeTxsFromMiniBlock", "type", miniBlock.Type, "txHash", txHash)
 			return nil, process.ErrMissingTransaction
 		}
@@ -335,7 +336,7 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 }
 
 func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
-	isEmptyAddress := bytes.Equal(address, make([]byte, txs.addressConverter.AddressLen()))
+	isEmptyAddress := bytes.Equal(address, txs.emptyAddress)
 	if isEmptyAddress {
 		return txs.shardCoordinator.SelfId(), nil
 	}
@@ -376,8 +377,8 @@ func (txs *transactions) processTxsToMe(
 		txHash := txsToMe[index].TxHash
 
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		if !ok || check.IfNil(txInfoFromMap.tx) {
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 			log.Debug("missing transaction in processTxsToMe", "txHash", txHash)
 			return process.ErrMissingTransaction
@@ -391,9 +392,8 @@ func (txs *transactions) processTxsToMe(
 			txHash,
 			tx,
 			senderShardID,
-			receiverShardID,
-		)
-		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
+			receiverShardID)
+		if err != nil {
 			return err
 		}
 
@@ -405,7 +405,6 @@ func (txs *transactions) processTxsToMe(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
 			&totalGasConsumedInSelfShard)
-
 		if err != nil {
 			return err
 		}
@@ -596,12 +595,8 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 
 		strCache := process.ShardCacherIdentifier(txShardInfoValue.senderShardID, txShardInfoValue.receiverShardID)
 		txShardPool := txs.txPool.ShardDataStore(strCache)
-		if txShardPool == nil {
+		if check.IfNil(txShardPool) {
 			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
-			continue
-		}
-		if txShardPool.Len() == 0 {
-			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrEmptyTxDataPool)
 			continue
 		}
 
@@ -775,7 +770,15 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		}
 
 		txHandler := sortedTxs[index].Tx
-		tx := txHandler.(*transaction.Transaction)
+		tx, ok := txHandler.(*transaction.Transaction)
+		if !ok {
+			log.Debug("wrong type assertion",
+				"hash", sortedTxs[index].TxHash,
+				"sender shard", sortedTxs[index].SenderShardID,
+				"receiver shard", sortedTxs[index].ReceiverShardID)
+			continue
+		}
+
 		txHash := sortedTxs[index].TxHash
 		senderShardID := sortedTxs[index].SenderShardID
 		receiverShardID := sortedTxs[index].ReceiverShardID
@@ -899,14 +902,16 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
+	log.Debug("mini block info",
+		"self shard", txs.shardCoordinator.SelfId(),
+		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,
+		"total gas consumed in self shard", totalGasConsumedInSelfShard)
+
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
 			"sender shard", miniBlock.SenderShardID,
-			"gas consumed", gasConsumedByMiniBlocksInSenderShard,
 			"receiver shard", miniBlock.ReceiverShardID,
-			"gas consumed", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID],
-			"self shard", txs.shardCoordinator.SelfId(),
-			"gas consumed", totalGasConsumedInSelfShard,
+			"gas consumed in receiver shard", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID],
 			"txs added", len(miniBlock.TxHashes))
 	}
 
@@ -928,11 +933,12 @@ func (txs *transactions) createEmptyMiniBlock(
 	blockType block.Type,
 ) *block.MiniBlock {
 
-	miniBlock := &block.MiniBlock{}
-	miniBlock.SenderShardID = senderShardID
-	miniBlock.ReceiverShardID = receiverShardID
-	miniBlock.TxHashes = make([][]byte, 0)
-	miniBlock.Type = blockType
+	miniBlock := &block.MiniBlock{
+		Type:            blockType,
+		SenderShardID:   senderShardID,
+		ReceiverShardID: receiverShardID,
+		TxHashes:        make([][]byte, 0),
+	}
 
 	return miniBlock
 }
@@ -964,7 +970,7 @@ func (txs *transactions) computeSortedTxs(
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
-	if txShardPool == nil {
+	if check.IfNil(txShardPool) {
 		return nil, process.ErrNilTxDataPool
 	}
 	if txShardPool.Len() == 0 {

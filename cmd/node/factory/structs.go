@@ -1924,6 +1924,11 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
+	blockSizeComputation, err := preprocess.NewBlockSizeComputation(core.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1940,6 +1945,7 @@ func newShardBlockProcessor(
 		economics,
 		gasHandler,
 		blockTracker,
+		blockSizeComputation,
 	)
 	if err != nil {
 		return nil, err
@@ -2136,6 +2142,11 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	blockSizeComputation, err := preprocess.NewBlockSizeComputation(core.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -2150,6 +2161,7 @@ func newMetaBlockProcessor(
 		gasHandler,
 		blockTracker,
 		stateComponents.AddressConverter,
+		blockSizeComputation,
 	)
 	if err != nil {
 		return nil, err

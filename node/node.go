@@ -705,11 +705,10 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 			continue
 		}
 
-		//TODO: Remove this commented code before opening PR
-		//err = n.validateTx(tx)
-		//if err != nil {
-		//	continue
-		//}
+		err = n.validateTx(tx)
+		if err != nil {
+			continue
+		}
 
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
 	}

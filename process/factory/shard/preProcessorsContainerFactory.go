@@ -14,21 +14,22 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator   sharding.Coordinator
-	store              dataRetriever.StorageService
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	dataPool           dataRetriever.PoolsHolder
-	addressConverter   state.AddressConverter
-	txProcessor        process.TransactionProcessor
-	scProcessor        process.SmartContractProcessor
-	scResultProcessor  process.SmartContractResultProcessor
-	rewardsTxProcessor process.RewardTransactionProcessor
-	accounts           state.AccountsAdapter
-	requestHandler     process.RequestHandler
-	economicsFee       process.FeeHandler
-	gasHandler         process.GasHandler
-	blockTracker       preprocess.BlockTracker
+	shardCoordinator     sharding.Coordinator
+	store                dataRetriever.StorageService
+	marshalizer          marshal.Marshalizer
+	hasher               hashing.Hasher
+	dataPool             dataRetriever.PoolsHolder
+	addressConverter     state.AddressConverter
+	txProcessor          process.TransactionProcessor
+	scProcessor          process.SmartContractProcessor
+	scResultProcessor    process.SmartContractResultProcessor
+	rewardsTxProcessor   process.RewardTransactionProcessor
+	accounts             state.AccountsAdapter
+	requestHandler       process.RequestHandler
+	economicsFee         process.FeeHandler
+	gasHandler           process.GasHandler
+	blockTracker         preprocess.BlockTracker
+	blockSizeComputation preprocess.BlockSizeComputationHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -48,6 +49,7 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
+	blockSizeComputation preprocess.BlockSizeComputationHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -95,23 +97,27 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:   shardCoordinator,
-		store:              store,
-		marshalizer:        marshalizer,
-		hasher:             hasher,
-		dataPool:           dataPool,
-		addressConverter:   addressConverter,
-		txProcessor:        txProcessor,
-		accounts:           accounts,
-		scProcessor:        scProcessor,
-		scResultProcessor:  scResultProcessor,
-		rewardsTxProcessor: rewardsTxProcessor,
-		requestHandler:     requestHandler,
-		economicsFee:       economicsFee,
-		gasHandler:         gasHandler,
-		blockTracker:       blockTracker,
+		shardCoordinator:     shardCoordinator,
+		store:                store,
+		marshalizer:          marshalizer,
+		hasher:               hasher,
+		dataPool:             dataPool,
+		addressConverter:     addressConverter,
+		txProcessor:          txProcessor,
+		accounts:             accounts,
+		scProcessor:          scProcessor,
+		scResultProcessor:    scResultProcessor,
+		rewardsTxProcessor:   rewardsTxProcessor,
+		requestHandler:       requestHandler,
+		economicsFee:         economicsFee,
+		gasHandler:           gasHandler,
+		blockTracker:         blockTracker,
+		blockSizeComputation: blockSizeComputation,
 	}, nil
 }
 
@@ -167,6 +173,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.blockTracker,
 		block.TxBlock,
 		ppcm.addressConverter,
+		ppcm.blockSizeComputation,
 	)
 
 	return txPreprocessor, err
@@ -184,6 +191,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
+		ppcm.blockSizeComputation,
 	)
 
 	return scrPreprocessor, err
@@ -199,6 +207,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.shardCoordinator,
 		ppcm.requestHandler.RequestRewardTransactions,
 		ppcm.gasHandler,
+		ppcm.blockSizeComputation,
 	)
 
 	return rewardTxPreprocessor, err

@@ -458,6 +458,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -548,6 +549,7 @@ func createPreProcessorContainerWithDataPool(
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -854,6 +856,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -956,6 +959,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1567,6 +1571,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1695,6 +1700,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1832,6 +1838,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1963,6 +1970,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
