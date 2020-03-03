@@ -3,14 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.12
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200303114000-ce544d69ba3d
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200303121821-1e70c5d76cbd
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.10
 	github.com/beevik/ntp v0.2.0
+	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d
+	github.com/dgraph-io/badger v1.6.0 // indirect
 	github.com/elastic/go-elasticsearch/v7 v7.1.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.2.0
@@ -23,6 +25,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.3.1
 	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-discovery v0.1.0
