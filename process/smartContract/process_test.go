@@ -767,21 +767,10 @@ func TestScProcessor_DetermineCallType(t *testing.T) {
 
 	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.TemporaryAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
-		&mock.GasHandlerMock{},
-	)
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	sc, err := NewSmartContractProcessor(arguments)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1310,7 +1299,16 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1335,14 +1333,32 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err := sc.createSCRForSender(vmOutput, tx, txHash, nil, vmcommon.DirectCall)
+	sctx, consumed, err := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		nil,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
 	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
+	sctx, consumed, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
@@ -1374,7 +1390,16 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * minGasPrice
