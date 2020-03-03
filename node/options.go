@@ -371,12 +371,12 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 }
 
 // WithEpochStartEventNotifier sets up the notifier for the epoch start event
-func WithEpochStartEventNotifier(epochStartSubscriber epochStart.EpochStartSubscriber) Option {
+func WithEpochStartEventNotifier(epochStartEventNotifier epochStart.RegistrationHandler) Option {
 	return func(n *Node) error {
-		if epochStartSubscriber == nil {
+		if epochStartEventNotifier == nil {
 			return ErrNilEpochStartTrigger
 		}
-		n.epochStartSubscriber = epochStartSubscriber
+		n.epochStartRegistrationHandler = epochStartEventNotifier
 		return nil
 	}
 }

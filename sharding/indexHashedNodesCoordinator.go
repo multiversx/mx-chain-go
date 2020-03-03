@@ -31,26 +31,26 @@ type epochNodesConfig struct {
 
 // EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
 type EpochStartEventNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 }
 
 type indexHashedNodesCoordinator struct {
-	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
-	hasher                  hashing.Hasher
-	shuffler                NodesShuffler
-	epochStartSubscriber    EpochStartEventNotifier
-	listIndexUpdater        ListIndexUpdaterHandler
-	bootStorer              storage.Storer
-	selfPubKey              []byte
-	nodesConfig             map[uint32]*epochNodesConfig
-	mutNodesConfig          sync.RWMutex
-	currentEpoch            uint32
-	savedStateKey           []byte
-	mutSavedStateKey        sync.RWMutex
-	shardConsensusGroupSize int
-	metaConsensusGroupSize  int
-	consensusGroupCacher    Cacher
+	doExpandEligibleList          func(validators []Validator, mut *sync.RWMutex) []Validator
+	hasher                        hashing.Hasher
+	shuffler                      NodesShuffler
+	epochStartRegistrationHandler EpochStartEventNotifier
+	listIndexUpdater              ListIndexUpdaterHandler
+	bootStorer                    storage.Storer
+	selfPubKey                    []byte
+	nodesConfig                   map[uint32]*epochNodesConfig
+	mutNodesConfig                sync.RWMutex
+	currentEpoch                  uint32
+	savedStateKey                 []byte
+	mutSavedStateKey              sync.RWMutex
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	consensusGroupCacher          Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -73,18 +73,18 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihgs := &indexHashedNodesCoordinator{
-		hasher:                  arguments.Hasher,
-		shuffler:                arguments.Shuffler,
-		epochStartSubscriber:    arguments.EpochStartSubscriber,
-		bootStorer:              arguments.BootStorer,
-		listIndexUpdater:        arguments.ListIndexUpdater,
-		selfPubKey:              arguments.SelfPublicKey,
-		nodesConfig:             nodesConfig,
-		currentEpoch:            arguments.Epoch,
-		savedStateKey:           savedKey,
-		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:    arguments.ConsensusGroupCache,
+		hasher:                        arguments.Hasher,
+		shuffler:                      arguments.Shuffler,
+		epochStartRegistrationHandler: arguments.EpochStartNotifier,
+		bootStorer:                    arguments.BootStorer,
+		listIndexUpdater:              arguments.ListIndexUpdater,
+		selfPubKey:                    arguments.SelfPublicKey,
+		nodesConfig:                   nodesConfig,
+		currentEpoch:                  arguments.Epoch,
+		savedStateKey:                 savedKey,
+		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:          arguments.ConsensusGroupCache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -100,7 +100,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 			"error", err.Error())
 	}
 
-	ihgs.epochStartSubscriber.RegisterHandler(ihgs)
+	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil
 }
@@ -165,7 +165,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		return ErrSmallMetachainEligibleListSize
 	}
 
-	if _, ok := eligible[core.MetachainShardId]; !ok || len(eligible[core.MetachainShardId]) == 0 {
+	if _, metachainNodesExist := eligible[core.MetachainShardId]; !metachainNodesExist || len(eligible[core.MetachainShardId]) == 0 {
 		return ErrMissingMetachainNodes
 	}
 
@@ -689,9 +689,9 @@ func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validat
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := uint32(0)
-	epochNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	nodesConfigForEpoch, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		selfShard = epochNodesConfig.shardId
+		selfShard = nodesConfigForEpoch.shardId
 	}
 
 	for shard, validators := range nodesConfig.eligibleMap {

@@ -84,9 +84,9 @@ func (ptp *PeerTypeProvider) populateCache(epoch uint32) error {
 
 // ComputeForPubKey returns the peer type for a given public key and shard id
 func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte, shardID uint32) (core.PeerType, error) {
-	ptp.mutCache.Lock()
+	ptp.mutCache.RLock()
 	peerType, ok := ptp.cache[string(pubKey)]
-	ptp.mutCache.Unlock()
+	ptp.mutCache.RUnlock()
 	if ok {
 		return peerType, nil
 	}
@@ -129,7 +129,7 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte, shardID uint32) (cor
 	return peerType, nil
 }
 
-func (ptp *PeerTypeProvider) epochStartEventHandler() epochStart.EpochStartHandler {
+func (ptp *PeerTypeProvider) epochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		err := ptp.populateCache(hdr.GetEpoch())
 		if err != nil {

@@ -43,7 +43,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
-	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
+	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }

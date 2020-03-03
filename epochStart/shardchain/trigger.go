@@ -32,7 +32,7 @@ type ArgsShardEpochStartTrigger struct {
 	DataPool           dataRetriever.PoolsHolder
 	Storage            dataRetriever.StorageService
 	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.EpochStartNotifier
+	EpochStartNotifier epochStart.Notifier
 
 	Epoch    uint32
 	Validity uint64
@@ -64,7 +64,7 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.EpochStartNotifier
+	epochStartNotifier epochStart.Notifier
 
 	epoch uint32
 
