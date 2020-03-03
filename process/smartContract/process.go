@@ -597,12 +597,7 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
-		if len(scr.Data) > 0 {
-			if scr.Data[0] == '@' {
-				return vmcommon.AsynchronousCallBack
-			}
-			return vmcommon.AsynchronousCall
-		}
+		return scr.CallType
 	}
 	return vmcommon.DirectCall
 }
@@ -869,6 +864,10 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
 	for _, retData := range returnData {
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
+	}
+
+	if callType == vmcommon.AsynchronousCall {
+		scTx.CallType = vmcommon.AsynchronousCallBack
 	}
 
 	if check.IfNil(acntSnd) {
