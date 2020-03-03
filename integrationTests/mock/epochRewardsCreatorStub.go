@@ -10,9 +10,9 @@ import (
 type EpochRewardsCreatorStub struct {
 	CreateRewardsMiniBlocksCalled func(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
 	VerifyRewardsMiniBlocksCalled func(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
-	CreateMarshalizedDataCalled   func(body block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled    func(metaBlock *block.MetaBlock, body block.Body)
-	DeleteTxsFromStorageCalled    func(metaBlock *block.MetaBlock, body block.Body)
+	CreateMarshalizedDataCalled   func(body *block.Body) map[string][][]byte
+	SaveTxBlockToStorageCalled    func(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorageCalled    func(metaBlock *block.MetaBlock, body *block.Body)
 }
 
 // CreateRewardsMiniBlocks -
@@ -20,7 +20,7 @@ func (e *EpochRewardsCreatorStub) CreateRewardsMiniBlocks(metaBlock *block.MetaB
 	if e.CreateRewardsMiniBlocksCalled != nil {
 		return e.CreateRewardsMiniBlocksCalled(metaBlock, validatorInfos)
 	}
-	return make(block.Body, 0), nil
+	return &block.Body{}, nil
 }
 
 // VerifyRewardsMiniBlocks -
@@ -32,7 +32,7 @@ func (e *EpochRewardsCreatorStub) VerifyRewardsMiniBlocks(metaBlock *block.MetaB
 }
 
 // CreateMarshalizedData -
-func (e *EpochRewardsCreatorStub) CreateMarshalizedData(body block.Body) map[string][][]byte {
+func (e *EpochRewardsCreatorStub) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	if e.CreateMarshalizedDataCalled != nil {
 		return e.CreateMarshalizedDataCalled(body)
 	}
@@ -40,14 +40,14 @@ func (e *EpochRewardsCreatorStub) CreateMarshalizedData(body block.Body) map[str
 }
 
 // SaveTxBlockToStorage -
-func (e *EpochRewardsCreatorStub) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body) {
+func (e *EpochRewardsCreatorStub) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	if e.SaveTxBlockToStorageCalled != nil {
 		e.SaveTxBlockToStorageCalled(metaBlock, body)
 	}
 }
 
 // DeleteTxsFromStorage -
-func (e *EpochRewardsCreatorStub) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body) {
+func (e *EpochRewardsCreatorStub) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	if e.DeleteTxsFromStorageCalled != nil {
 		e.DeleteTxsFromStorageCalled(metaBlock, body)
 	}

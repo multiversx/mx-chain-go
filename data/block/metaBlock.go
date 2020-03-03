@@ -5,8 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	io "io"
-	"io/ioutil"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -78,6 +77,11 @@ func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 // SetChainID sets the chain ID on which this block is valid on
 func (m *MetaBlock) SetChainID(chainID []byte) {
 	m.ChainID = chainID
+}
+
+// SetAccumulatedFees sets the accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	m.AccumulatedFees.Set(value)
 }
 
 // SetTimeStamp sets header timestamp

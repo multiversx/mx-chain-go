@@ -20,7 +20,7 @@ func (e *EpochRewardsCreatorStub) CreateRewardsMiniBlocks(metaBlock *block.MetaB
 	if e.CreateRewardsMiniBlocksCalled != nil {
 		return e.CreateRewardsMiniBlocksCalled(metaBlock, validatorInfos)
 	}
-	return make(block.Body, 0), nil
+	return &block.Body{}, nil
 }
 
 // VerifyRewardsMiniBlocks -

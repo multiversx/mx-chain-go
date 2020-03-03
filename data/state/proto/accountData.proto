@@ -13,9 +13,11 @@ option go_package = "state";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message AccountData {
-	uint64 Nonce    = 1;
-	bytes  Balance  = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
-	bytes  CodeHash = 3;
-	bytes  RootHash = 4;
-	bytes  Address  = 5;
+	uint64 Nonce           = 1;
+	bytes  Balance         = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
+	bytes  CodeHash        = 3;
+	bytes  RootHash        = 4;
+	bytes  Address         = 5;
+	bytes  DeveloperReward = 6 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  OwnerAddress    = 7;
 }

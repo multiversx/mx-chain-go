@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -949,7 +949,7 @@ func (sc *scProcessor) updateSmartContractCode(
 
 	isDeployment := len(account.GetCode()) == 0
 	if isDeployment {
-		err := account.SetOwnerAddressWithJournal(tx.GetSndAddress())
+		err := account.SetOwnerAddressWithJournal(tx.GetSndAddr())
 		if err != nil {
 			return err
 		}
@@ -964,7 +964,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	// TODO: implement upgradable flag for smart contracts
-	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddress())
+	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
 	if isUpgradeEnabled {
 		err := sc.accounts.PutCode(account, outAcc.Code)
 		if err != nil {

@@ -72,7 +72,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, nil
 	}
 
-	if len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRecvAddress()) {
+	if len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		return process.SCInvoking, nil
 	}
 

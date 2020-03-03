@@ -87,7 +87,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -2221,14 +2221,15 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:     stateComponents.BLSAddressConverter,
-		Hasher:      core.Hasher,
-		Marshalizer: core.ProtoMarshalizer,
-		PeerState:   stateComponents.PeerAccounts,
-		BaseState:   stateComponents.AccountsAdapter,
-		ArgParser:   argsParser,
-		CurrTxs:     data.Datapool.CurrentBlockTxs(),
-		ScQuery:     scDataGetter,
+		AdrConv:          stateComponents.BLSAddressConverter,
+		Hasher:           core.Hasher,
+		ProtoMarshalizer: core.ProtoMarshalizer,
+		VmMarshalizer:    core.VmMarshalizer,
+		PeerState:        stateComponents.PeerAccounts,
+		BaseState:        stateComponents.AccountsAdapter,
+		ArgParser:        argsParser,
+		CurrTxs:          data.Datapool.CurrentBlockTxs(),
+		ScQuery:          scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -2236,7 +2237,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
-		Marshalizer:       core.Marshalizer,
+		Marshalizer:       core.ProtoMarshalizer,
 		Hasher:            core.Hasher,
 		Store:             data.Store,
 		DataPool:          data.Datapool,
@@ -2250,7 +2251,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      core.Marshalizer,
+		Marshalizer:      core.ProtoMarshalizer,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
@@ -2270,7 +2271,7 @@ func newMetaBlockProcessor(
 		RewardsStorage:   rewardsStorage,
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
-		Marshalizer:      core.Marshalizer,
+		Marshalizer:      core.ProtoMarshalizer,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

@@ -190,9 +190,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
-
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}

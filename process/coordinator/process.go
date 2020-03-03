@@ -650,7 +650,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	mrsTxs := make(map[string][][]byte)
 
 	if body == nil {
-		return bodies, mrsTxs
+		return mrsTxs
 	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {

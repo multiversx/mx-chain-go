@@ -647,9 +647,9 @@ type EpochStartDataCreator interface {
 type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
-	CreateMarshalizedData(body block.Body) map[string][][]byte
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body)
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
 

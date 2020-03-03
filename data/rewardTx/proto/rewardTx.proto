@@ -28,8 +28,5 @@ message RewardTx {
 	uint64   Round     = 1 [(gogoproto.jsontag) = "round"];
 	bytes    Value     = 3 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
 	bytes    RcvAddr   = 4 [(gogoproto.jsontag) = "receiver"];
-	uint32   ShardID   = 5 [(gogoproto.jsontag) = "shardId"];
 	uint32   Epoch     = 2 [(gogoproto.jsontag) = "epoch"];
-	Type     Type      = 7 [(gogoproto.jsontag) = "type"];
-	uint32   CnsIndex  = 6 [(gogoproto.jsontag) = "cnsIndex", (gogoproto.casttype) = "uint16"];
 }

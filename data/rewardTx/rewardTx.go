@@ -2,8 +2,6 @@
 package rewardTx
 
 import (
-	io "io"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -58,4 +56,3 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 // SetSndAddr sets the sender address of the reward transaction
 func (_ *RewardTx) SetSndAddr(addr []byte) {
 }
-

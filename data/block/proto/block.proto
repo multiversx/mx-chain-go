@@ -64,6 +64,7 @@ message Header  {
 	bytes                    ChainID                = 21;
 	repeated MiniBlockHeader MiniBlockHeaders       = 13 [(gogoproto.nullable) = false];
 	repeated PeerChange      PeerChanges            = 14 [(gogoproto.nullable) = false];
+	bytes                    AccumulatedFees        = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	uint32                   Epoch                  = 9;
 	uint32                   TxCount                = 18;
 	uint32                   ShardID                = 6;

@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -58,15 +57,15 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		adrConv:     args.AdrConv,
-		hasher:      args.Hasher,
+		adrConv:          args.AdrConv,
+		hasher:           args.Hasher,
 		protoMarshalizer: args.ProtoMarshalizer,
 		vmMarshalizer:    args.VmMarshalizer,
-		peerState:   args.PeerState,
-		baseState:   args.BaseState,
-		argParser:   args.ArgParser,
-		currTxs:     args.CurrTxs,
-		scQuery:     args.ScQuery,
+		peerState:        args.PeerState,
+		baseState:        args.BaseState,
+		argParser:        args.ArgParser,
+		currTxs:          args.CurrTxs,
+		scQuery:          args.ScQuery,
 	}
 
 	return st, nil

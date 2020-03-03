@@ -309,7 +309,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
 	header *block.MetaBlock,
-	body block.Body,
+	body *block.Body,
 ) error {
 	err := mp.epochStartDataCreator.VerifyEpochStartDataForMetablock(header)
 	if err != nil {
@@ -759,7 +759,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		"num txs", nbTxs,
 	)
 
-	miniBlocks := make(block.Body, 0)
+	miniBlocks := make(block.MiniBlockSlice, len(destMeMiniBlocks))
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
@@ -1180,7 +1180,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.Heade
 func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
-func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body block.Body) {
+func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header)
 
@@ -1790,7 +1790,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	}
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.ReceiverShardID == mp.shardCoordinator.SelfId() {
 			continue
 		}

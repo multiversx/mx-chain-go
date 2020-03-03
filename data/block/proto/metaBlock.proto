@@ -29,7 +29,7 @@ message PeerData {
 	bytes      PublicKey   = 2;
 	PeerAction Action      = 3;
 	uint64     TimeStamp   = 4;
-	bytes      ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
+	bytes      ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header
@@ -50,6 +50,7 @@ message ShardData {
 	uint64                 Round                 = 8;
 	bytes                  PrevHash              = 9;
 	uint64                 Nonce                 = 10;
+	bytes                  AccumulatedFees       = 12 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	uint32                 NumPendingMiniBlocks  = 11;
 	uint32                 ShardID               = 1;
 	uint32                 TxCount               = 7;
@@ -58,6 +59,8 @@ message ShardData {
 // EpochStartShardData hold the last finalized headers hash and state root hash
 message EpochStartShardData {
 	uint32                        ShardID                  = 1;
+	uint64                        Round                    = 7;
+	uint64                        Nonce                    = 8;
 	bytes                         HeaderHash               = 2;
 	bytes                         RootHash                 = 3;
 	bytes                         FirstPendingMetaBlock    = 4;
@@ -65,9 +68,19 @@ message EpochStartShardData {
 	repeated ShardMiniBlockHeader PendingMiniBlockHeaders  = 6 [(gogoproto.nullable) = false];
 }
 
+// Economics holds the block information for total supply and rewards
+message Economics {
+	bytes TotalSupply            = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes TotalToDistribute      = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes NodePrice              = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
 // EpochStart holds the block information for end-of-epoch
 message EpochStart {
 	repeated EpochStartShardData LastFinalizedHeaders = 1 [(gogoproto.nullable) = false];
+	Economics                    Economics            = 2 [(gogoproto.nullable) = false];
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -89,6 +102,8 @@ message MetaBlock {
 	 bytes             ReceiptsHash             = 17;
 	 EpochStart        EpochStart               = 18 [(gogoproto.nullable) = false];
 	 bytes             ChainID                  = 19;
+	 bytes             AccumulatedFees          = 20 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             AccumulatedFeesInEpoch   = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	 uint32            Epoch                    = 2;
 	 uint32            TxCount                  = 15;
 }

@@ -1754,7 +1754,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
 			continue
 		}
