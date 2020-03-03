@@ -44,6 +44,12 @@ func NewMultiFileWriter(args ArgsNewMultiFileWriter) (*multiFileWriter, error) {
 		exportStore:  args.ExportStore,
 	}
 
+	err := os.Mkdir(m.exportFolder, os.ModePerm)
+	if err != nil {
+		_ = os.Remove(m.exportFolder)
+		return nil, err
+	}
+
 	return m, nil
 }
 
@@ -53,8 +59,9 @@ func (m *multiFileWriter) NewFile(fileName string) error {
 		return nil
 	}
 
-	file, err := os.OpenFile(m.exportFolder+"/"+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(m.exportFolder+"/"+fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
+		_ = os.Remove(m.exportFolder + "/" + fileName)
 		log.Debug("unable to open file")
 		return err
 	}

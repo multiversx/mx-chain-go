@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -81,6 +82,13 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	verifyIfNodesHaveCorrectEpoch(t, epoch, nodes)
 	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
+
+	defer func() {
+		for _, node := range nodes {
+			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.Remove(node.ExportFolder)
+		}
+	}()
 
 	createHardForkExporter(t, nodes)
 
@@ -165,6 +173,13 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
+	defer func() {
+		for _, node := range nodes {
+			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.Remove(node.ExportFolder)
+		}
+	}()
+
 	createHardForkExporter(t, nodes)
 
 	for _, node := range nodes {
@@ -181,6 +196,7 @@ func createHardForkExporter(
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for id, node := range nodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 		argsExportHandler := factory.ArgsExporter{
 			Marshalizer:      integrationTests.TestMarshalizer,
 			Hasher:           integrationTests.TestHasher,
@@ -192,7 +208,7 @@ func createHardForkExporter(
 			ShardCoordinator: node.ShardCoordinator,
 			Messenger:        node.Messenger,
 			ActiveTries:      node.TrieContainer,
-			ExportFolder:     "export" + fmt.Sprintf("%d", id),
+			ExportFolder:     node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Size: 10000, Type: "LRU", Shards: 1,

@@ -146,6 +146,7 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
+	ExportFolder  string
 	DataPool      dataRetriever.PoolsHolder
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
