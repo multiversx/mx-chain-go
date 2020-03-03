@@ -751,6 +751,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	numTxsAdded := 0
 	numTxsBad := 0
 	numTxsSkipped := 0
+	numTxsFailed := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
@@ -882,6 +883,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 			}
 
 			txs.blockSizeComputation.AddNumTxs(1)
+			numTxsFailed++
 			continue
 		}
 
@@ -912,6 +914,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		"total txs", len(sortedTxs),
 		"num txs added", numTxsAdded,
 		"num txs bad", numTxsBad,
+		"num txs failed", numTxsFailed,
 		"num txs skipped", numTxsSkipped,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)

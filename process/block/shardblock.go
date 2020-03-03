@@ -1498,6 +1498,13 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
+		if hdrsAdded > process.MaxMetaHeadersAllowedInOneShardBlock {
+			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
+				"meta headers added", hdrsAdded,
+			)
+			break
+		}
+
 		currMetaHdr := orderedMetaBlocks[i]
 		if currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
 			log.Debug("skip searching",

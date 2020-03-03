@@ -119,7 +119,7 @@ func NewPreProcessorsContainerFactory(
 func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
 	container := containers.NewPreProcessorsContainer()
 
-	preproc, err := ppcm.createTxPreProcessor(block.TxBlock)
+	preproc, err := ppcm.createTxPreProcessor()
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	return container, nil
 }
 
-func (ppcm *preProcessorsContainerFactory) createTxPreProcessor(blockType block.Type) (process.PreProcessor, error) {
+func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
 		ppcm.dataPool.Transactions(),
 		ppcm.store,
@@ -165,7 +165,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor(blockType block.
 		ppcm.economicsFee,
 		ppcm.gasHandler,
 		ppcm.blockTracker,
-		blockType,
+		block.TxBlock,
 		ppcm.addressConverter,
 	)
 

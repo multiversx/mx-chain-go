@@ -813,6 +813,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		return nil, 0, 0, err
 	}
 
+	maxShardHeadersFromSameShard := process.MaxShardHeadersAllowedInOneMetaBlock / mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -824,12 +825,27 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
+		if hdrsAdded > process.MaxShardHeadersAllowedInOneMetaBlock {
+			log.Debug("maximum shard headers allowed to be included in one meta block has been reached",
+				"shard headers added", hdrsAdded,
+			)
+			break
+		}
+
 		currShardHdr := orderedHdrs[i]
 		if currShardHdr.GetNonce() > lastShardHdr[currShardHdr.GetShardID()].GetNonce()+1 {
-			log.Debug("skip searching",
+			log.Trace("skip searching",
 				"shard", currShardHdr.GetShardID(),
 				"last shard hdr nonce", lastShardHdr[currShardHdr.GetShardID()].GetNonce(),
 				"curr shard hdr nonce", currShardHdr.GetNonce())
+			continue
+		}
+
+		if hdrsAddedForShard[currShardHdr.GetShardID()] > maxShardHeadersFromSameShard {
+			log.Trace("maximum shard headers from same shard allowed to be included in one meta block has been reached",
+				"shard", currShardHdr.GetShardID(),
+				"shard headers added", hdrsAddedForShard[currShardHdr.GetShardID()],
+			)
 			continue
 		}
 

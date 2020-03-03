@@ -96,3 +96,9 @@ const MaxNumPendingMiniBlocks = 100
 // MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
 // before a special action to be applied
 const MaxRoundsWithoutNewBlockReceived = 10
+
+// MaxMetaHeadersAllowedInOneShardBlock defines the maximum meta headers allowed to be included in one shard block
+const MaxMetaHeadersAllowedInOneShardBlock = 100
+
+// MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
+const MaxShardHeadersAllowedInOneMetaBlock = 100
