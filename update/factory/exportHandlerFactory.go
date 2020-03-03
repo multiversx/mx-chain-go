@@ -85,7 +85,6 @@ type exportHandlerFactory struct {
 	multiSigner              crypto.MultiSigner
 	nodesCoordinator         sharding.NodesCoordinator
 	singleSigner             crypto.SingleSigner
-	addrConverter            state.AddressConverter
 	blockKeyGen              crypto.KeyGenerator
 	keyGen                   crypto.KeyGenerator
 	blockSigner              crypto.SingleSigner
