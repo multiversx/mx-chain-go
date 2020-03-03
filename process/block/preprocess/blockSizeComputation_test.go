@@ -110,9 +110,9 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 		{numNewMiniBlocks: 1000000, numNewTxs: 0, expected: true, name: "with miniblocks 1000000 and txs 0"},
 		{numNewMiniBlocks: 0, numNewTxs: 1000000, expected: true, name: "with miniblocks 0 and txs 1000000"},
 		{numNewMiniBlocks: 15, numNewTxs: 1000, expected: false, name: "with miniblocks 15 and txs 1000"},
-		{numNewMiniBlocks: 1, numNewTxs: 21193, expected: false, name: "with miniblocks 1 and txs 21193"},
-		{numNewMiniBlocks: 1, numNewTxs: 21194, expected: true, name: "with miniblocks 1 and txs 21194"},
-		{numNewMiniBlocks: 2, numNewTxs: 21193, expected: true, name: "with miniblocks 2 and txs 21193"},
+		{numNewMiniBlocks: 1, numNewTxs: 20077, expected: false, name: "with miniblocks 1 and txs 20077"},
+		{numNewMiniBlocks: 1, numNewTxs: 20078, expected: true, name: "with miniblocks 1 and txs 20078"},
+		{numNewMiniBlocks: 2, numNewTxs: 20077, expected: true, name: "with miniblocks 2 and txs 20077"},
 	}
 
 	for _, td := range testData {
@@ -129,5 +129,5 @@ func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 
 	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 
-	assert.Equal(t, 21193, maxTxs)
+	assert.Equal(t, 20077, maxTxs)
 }
