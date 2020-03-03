@@ -842,7 +842,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		txs.mutAccountsInfo.Unlock()
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			if err == process.ErrHigherNonceInTransaction {
+			if errors.Is(err, process.ErrHigherNonceInTransaction) {
 				senderAddressToSkip = tx.GetSndAddress()
 			}
 
