@@ -25,7 +25,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
 		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(
@@ -92,7 +92,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
 		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	//deploy will transfer 0 and will succeed

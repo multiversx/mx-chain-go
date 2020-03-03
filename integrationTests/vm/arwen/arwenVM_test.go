@@ -42,7 +42,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -76,7 +76,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	assert.Nil(t, err)
 	scCodeString := hex.EncodeToString(scCode)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	defer testContext.Close()
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
@@ -175,7 +175,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -256,7 +256,7 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -310,9 +310,9 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	assert.Nil(t, err)
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func TestWASMNamespacing(t *testing.T) {
@@ -344,7 +344,7 @@ func TestWASMNamespacing(t *testing.T) {
 		Signature: nil,
 	}
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -404,7 +404,7 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -477,7 +477,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -529,9 +529,9 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	assert.Nil(t, err)
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func generateRandomByteArray(size int) []byte {
@@ -567,7 +567,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)

@@ -97,7 +97,7 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 	scCode, err := getBytecode(wasm_filename)
 	assert.Nil(t, err)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	scCodeString := hex.EncodeToString(scCode)

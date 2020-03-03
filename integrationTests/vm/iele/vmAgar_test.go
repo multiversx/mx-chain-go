@@ -25,7 +25,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(
@@ -60,7 +60,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(
@@ -119,7 +119,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(
@@ -208,7 +208,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(100000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(
@@ -343,7 +343,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(b, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	deployContract(

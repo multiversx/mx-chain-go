@@ -57,7 +57,7 @@ func setupTestContext(t *testing.T) testContext {
 	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
 	require.Nil(t, err)
 
-	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(t, context.Accounts, gasSchedule)
+	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, math.MaxInt32)

@@ -22,7 +22,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	assert.Equal(t, 0, testContext.Accounts.JournalLen())
@@ -70,7 +70,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -121,7 +121,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)

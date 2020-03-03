@@ -32,7 +32,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &marshal.JsonMarshalizer{}
@@ -208,7 +207,6 @@ func createAndAddIeleVM(
 }
 
 func CreateVMAndBlockchainHook(
-	tb testing.TB,
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
@@ -238,7 +236,9 @@ func CreateVMAndBlockchainHook(
 	}
 
 	vmContainer, err := vmFactory.Create()
-	require.Nil(tb, err)
+	if err != nil {
+		panic(err)
+	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(vmContainer, blockChainHook)
@@ -336,22 +336,19 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 }
 
 func CreatePreparedTxProcessorAndAccountsWithVMs(
-	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 ) VMTestContext {
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(tb, accounts, nil)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil)
 	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
-	require.NotNil(tb, txProcessor)
 
 	return VMTestContext{TxProcessor: txProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
 
 func CreateTxProcessorArwenVMWithGasSchedule(
-	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
@@ -359,9 +356,8 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 ) VMTestContext {
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(tb, accounts, gasSchedule)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule)
 	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
-	require.NotNil(tb, txProcessor)
 
 	return VMTestContext{TxProcessor: txProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
@@ -468,8 +464,8 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	return shardAccnt.Balance
 }
 
-func GetIntValueFromSC(tb testing.TB, gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, _ := CreateVMAndBlockchainHook(tb, accnts, gasSchedule)
+func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
+	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	defer vmContainer.Close()
 
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
