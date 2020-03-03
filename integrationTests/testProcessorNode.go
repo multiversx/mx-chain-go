@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -64,6 +65,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 )
 
 // TestHasher represents a Sha256 hasher
@@ -561,7 +563,7 @@ func createAndAddIeleVM(
 	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
 }
 
-func (tpn *TestProcessorNode) initInnerProcessors() {
+func (tpn *TestProcessorNode) initInnerProcessors(tb testing.TB) {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return
@@ -608,7 +610,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
 
-	tpn.VMContainer, _ = vmFactory.Create()
+	var err error
+	tpn.VMContainer, err = vmFactory.Create()
+	require.Nil(tb, err)
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 

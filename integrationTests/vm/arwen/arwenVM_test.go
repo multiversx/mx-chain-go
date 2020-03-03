@@ -310,9 +310,9 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	assert.Nil(t, err)
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func TestWASMNamespacing(t *testing.T) {
@@ -529,9 +529,9 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	assert.Nil(t, err)
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(t, gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func generateRandomByteArray(size int) []byte {
