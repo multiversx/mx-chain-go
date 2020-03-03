@@ -873,7 +873,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
-	go sp.prepareDataForBootStorer(args)
+	sp.prepareDataForBootStorer(args)
 
 	go sp.cleanTxsPools()
 
