@@ -1682,7 +1682,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{
 			CheckForkCalled: func() *process.ForkInfo {
 				return &process.ForkInfo{}
