@@ -1552,7 +1552,6 @@ func testNodeStateCheckpointSnapshotAndPruning(
 
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
-		fmt.Println(fmt.Sprintf("Should be pruned!!! hash: %v", core.ToHex(prunedRootHashes[i])))
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)

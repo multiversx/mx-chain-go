@@ -80,6 +80,9 @@ var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
 
+// ErrTxHashDoesNotMatch signals that created and received tx hash does not match
+var ErrTxHashDoesNotMatch = errors.New("validatorInfo miniblock tx hash does not match")
+
 // ErrRewardMiniBlockHashDoesNotMatch signals that created and received rewards miniblock hash does not match
 var ErrRewardMiniBlockHashDoesNotMatch = errors.New("reward miniblock hash does not match")
 
@@ -91,3 +94,9 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
+
+// ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
+var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
+
+// ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
+var ErrNilValidatorInfo = errors.New("validator info is nil")

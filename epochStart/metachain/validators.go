@@ -25,12 +25,11 @@ type ArgsNewValidatorInfoCreator struct {
 type validatorInfoCreator struct {
 	shardCoordinator sharding.Coordinator
 	miniBlockStorage storage.Storer
-
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
 }
 
-// NewEpochStartRewardsCreator creates a new rewards creator object
+// NewEpochStartRewardsCreator creates a new ValidatorInfo creator object
 func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCreator, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
@@ -56,17 +55,21 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 }
 
 // CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the validatorInfo
-func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+	if validatorInfo == nil {
+		return nil, epochStart.ErrNilValidatorInfo
+	}
+
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	for shardId, validators := range validatorInfos {
+	for _, validators := range validatorInfo {
 		if len(validators) == 0 {
 			continue
 		}
 
 		miniBlock := &block.MiniBlock{}
 		miniBlock.SenderShardID = r.shardCoordinator.SelfId()
-		miniBlock.ReceiverShardID = shardId
+		miniBlock.ReceiverShardID = core.AllShardId
 		miniBlock.TxHashes = make([][]byte, len(validators))
 		miniBlock.Type = block.PeerBlock
 
@@ -90,34 +93,51 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfos map[
 	return miniblocks, nil
 }
 
-// VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error {
+// VerifyRewardsMiniBlocks verifies if received peer miniblocks are correct
+func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
+	miniblocks []*block.MiniBlock,
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+) error {
 	createdMiniBlocks, err := r.CreateValidatorInfoMiniBlocks(validatorInfos)
 	if err != nil {
 		return err
 	}
 
-	numReceivedRewardsMBs := 0
-	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
-		if miniBlockHdr.Type != block.PeerBlock {
+	hashesToMiniBlocks := make(map[string]*block.MiniBlock)
+	for _, mb := range createdMiniBlocks {
+		hash, _ := core.CalculateHash(r.marshalizer, r.hasher, mb)
+		hashesToMiniBlocks[string(hash)] = mb
+	}
+
+	numReceivedValidatorInfoMBs := 0
+	for _, receivedMb := range miniblocks {
+		if receivedMb.Type != block.PeerBlock {
 			continue
 		}
 
-		numReceivedRewardsMBs++
-		createdMiniBlock := createdMiniBlocks[miniBlockHdr.ReceiverShardID]
-		createdMBHash, err := core.CalculateHash(r.marshalizer, r.hasher, createdMiniBlock)
+		numReceivedValidatorInfoMBs++
+		receivedMbHash, err := core.CalculateHash(r.marshalizer, r.hasher, receivedMb)
 		if err != nil {
 			return err
 		}
 
-		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
+		createdMiniBlock, ok := hashesToMiniBlocks[string(receivedMbHash)]
+
+		if !ok {
 			// TODO: add display debug prints of miniblocks contents
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
+
+		for i, receivedTxHash := range receivedMb.TxHashes {
+			computedTxHash := createdMiniBlock.TxHashes[i]
+			if !bytes.Equal(receivedTxHash, computedTxHash) {
+				return epochStart.ErrTxHashDoesNotMatch
+			}
+		}
 	}
 
-	if len(createdMiniBlocks) != numReceivedRewardsMBs {
-		return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
+	if len(createdMiniBlocks) != numReceivedValidatorInfoMBs {
+		return epochStart.ErrValidatorInfoMiniBlocksNumDoesNotMatch
 	}
 
 	return nil

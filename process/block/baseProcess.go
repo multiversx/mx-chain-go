@@ -1019,7 +1019,7 @@ func (bp *baseProcessor) updateStateStorage(
 	if bytes.Equal(prevRootHash, rootHash) {
 		return
 	}
-	log.Info("Got to pruneTrie", "hash", core.ToHex(rootHash))
+
 	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())

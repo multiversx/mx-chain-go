@@ -380,6 +380,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
+// ErrNilPreProcessor signals that preprocessors is nil
+var ErrNilPreProcessor = errors.New("preprocessor is nil")
+
 // ErrNilGasHandler signals that gas handler is nil
 var ErrNilGasHandler = errors.New("nil gas handler")
 

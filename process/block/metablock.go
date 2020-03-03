@@ -347,7 +347,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(header, allValidatorInfos)
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body, allValidatorInfos)
 	if err != nil {
 		return err
 	}
@@ -900,12 +900,16 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
-			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currMBProcessed, currTxsAdded, hdrProcessFinished, err := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currShardHdr,
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				haveTime)
+
+			if err != nil {
+				return nil, 0, 0, err
+			}
 
 			if !hdrProcessFinished {
 				log.Debug("shard header cannot be fully processed",
@@ -1888,32 +1892,4 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 	}
 
 	return pendingMiniBlocks
-}
-
-func (mp *metaProcessor) CreateValidatorMiniBlocks(list map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-	miniblocks := make([]*block.MiniBlock, 0)
-
-	for _, validators := range list {
-		if len(validators) == 0 {
-			continue
-		}
-
-		miniBlock := &block.MiniBlock{}
-		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
-		miniBlock.ReceiverShardID = core.AllShardId
-		miniBlock.TxHashes = make([][]byte, len(validators))
-		miniBlock.Type = block.PeerBlock
-
-		for index, validator := range validators {
-			marshalizedValidator, err := mp.marshalizer.Marshal(validator)
-			if err != nil {
-				return nil, err
-			}
-			miniBlock.TxHashes[index] = marshalizedValidator
-		}
-
-		miniblocks = append(miniblocks, miniBlock)
-	}
-
-	return miniblocks, nil
 }

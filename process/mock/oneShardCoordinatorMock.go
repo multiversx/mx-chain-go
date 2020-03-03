@@ -7,6 +7,7 @@ import (
 
 type oneShardCoordinatorMock struct {
 	noShards        uint32
+	selfId          uint32
 	ComputeIdCalled func(state.AddressContainer) uint32
 }
 
@@ -31,11 +32,12 @@ func (scm *oneShardCoordinatorMock) ComputeId(address state.AddressContainer) ui
 
 // SelfId -
 func (scm *oneShardCoordinatorMock) SelfId() uint32 {
-	return 0
+	return scm.selfId
 }
 
 // SetSelfId -
-func (scm *oneShardCoordinatorMock) SetSelfId(_ uint32) error {
+func (scm *oneShardCoordinatorMock) SetSelfId(selfId uint32) error {
+	scm.selfId = selfId
 	return nil
 }
 
