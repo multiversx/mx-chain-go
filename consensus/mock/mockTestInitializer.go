@@ -18,21 +18,17 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 // InitBlockProcessorMock -
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
-	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
-
-		return emptyBlock, nil
+		header.SetRootHash([]byte{})
+		return header, emptyBlock, nil
 	}
-	blockProcessorMock.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
 	blockProcessorMock.RevertAccountStateCalled = func() {}
-	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
-	}
-	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-		hdr.SetRootHash([]byte{})
-		return body, nil
 	}
 	blockProcessorMock.DecodeBlockBodyCalled = func(dta []byte) data.BodyHandler {
 		return &block.Body{}

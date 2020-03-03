@@ -702,8 +702,8 @@ func buildSmartContractResult(
 		Sender:        hex.EncodeToString(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
-		GasPrice:      0,
-		GasLimit:      0,
+		GasPrice:      scr.GasPrice,
+		GasLimit:      scr.GasLimit,
 		Data:          scr.Data,
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
@@ -719,8 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardID)
-
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
@@ -729,7 +727,7 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        shardIdStr,
+		Sender:        metachainTpsDocID,
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,

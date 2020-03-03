@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -76,6 +77,11 @@ func (h *Header) SetChainID(chainID []byte) {
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
+}
+
+// SetAccumulatedFees sets the accumulated fees in the header
+func (h *Header) SetAccumulatedFees(value *big.Int) {
+	h.AccumulatedFees.Set(value)
 }
 
 // SetTxCount sets the transaction count of the block associated with this header

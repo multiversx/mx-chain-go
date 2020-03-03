@@ -210,7 +210,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 
 func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if blockHeader == nil {
+	if check.IfNil(blockHeader) {
 		return nil, process.ErrNilBlockHeader
 	}
 

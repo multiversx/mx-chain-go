@@ -59,21 +59,3 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 func (_ *RewardTx) SetSndAddr(addr []byte) {
 }
 
-// ----- for compatibility only ----
-
-func (t *RewardTx) Save(w io.Writer) error {
-	b, err := t.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (t *RewardTx) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return t.Unmarshal(b)
-}

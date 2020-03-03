@@ -419,11 +419,6 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	if err != nil {
-		return nil, err
-	}
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -471,7 +466,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            accountsWrapper,
+		Accounts:            n.accounts,
 		BlackListHandler:    n.blackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
@@ -494,10 +489,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	//TODO: Analyze if should be created accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	//to be used instead n.accounts as a parameter for sync.ArgBaseBootstrapper, exactly as it is done in method
-	//createShardBootstrapper
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,

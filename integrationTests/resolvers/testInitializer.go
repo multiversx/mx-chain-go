@@ -80,7 +80,6 @@ func createMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 		Nonce:         nonce,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),
@@ -112,13 +111,12 @@ func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	return miniblock, hash
 }
 
-func createReward(round uint64, shardId uint32) (data.TransactionHandler, []byte) {
+func createReward(round uint64) (data.TransactionHandler, []byte) {
 	reward := &rewardTx.RewardTx{
 		Round:   round,
 		Epoch:   0,
 		Value:   big.NewInt(1),
 		RcvAddr: make([]byte, integrationTests.TestHasher.Size()),
-		ShardID: shardId,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)

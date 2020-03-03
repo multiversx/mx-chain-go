@@ -64,6 +64,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		TrieNodesCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{}
+		},
 	}
 
 	return pools
@@ -422,9 +425,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1
 	numInterceptorsUnsignedTxsForMetachain := noOfShards
+	numInterceptorsRewardsTxsForMetachain := noOfShards
 	numInterceptorsTrieNodes := (noOfShards + 1) * 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
-		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain
+		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
+		numInterceptorsRewardsTxsForMetachain
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

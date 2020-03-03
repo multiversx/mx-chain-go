@@ -961,7 +961,7 @@ func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{})
+	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{})
 	err := opt(node)
 
 	assert.Nil(t, err)

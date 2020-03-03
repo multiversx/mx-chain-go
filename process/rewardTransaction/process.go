@@ -1,11 +1,7 @@
 package rewardTransaction
 
 import (
-	"math/big"
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,9 +12,6 @@ type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
 	adrConv          state.AddressConverter
 	shardCoordinator sharding.Coordinator
-
-	mutRewardsForwarder sync.Mutex
-	rewardTxForwarder   process.IntermediateTransactionHandler
 }
 
 // NewRewardTxProcessor creates a rewardTxProcessor instance
@@ -26,30 +19,25 @@ func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
-	rewardTxForwarder process.IntermediateTransactionHandler,
 ) (*rewardTxProcessor, error) {
-	if accountsDB == nil {
+	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if adrConv == nil {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
-	}
-	if rewardTxForwarder == nil {
-		return nil, process.ErrNilIntermediateTransactionHandler
 	}
 
 	return &rewardTxProcessor{
-		accounts:          accountsDB,
-		adrConv:           adrConv,
-		shardCoordinator:  coordinator,
-		rewardTxForwarder: rewardTxForwarder,
+		accounts:         accountsDB,
+		adrConv:          adrConv,
+		shardCoordinator: coordinator,
 	}, nil
 }
 
-func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
+func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
 	addr, err := rtp.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
@@ -66,7 +54,12 @@ func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.Accou
 		return nil, err
 	}
 
-	return acnt, nil
+	userAcnt, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcnt, nil
 }
 
 // ProcessRewardTransaction updates the account state from the reward transaction
@@ -76,13 +69,6 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	}
 	if rTx.Value == nil {
 		return process.ErrNilValueFromRewardTransaction
-	}
-
-	rtp.mutRewardsForwarder.Lock()
-	err := rtp.rewardTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{rTx})
-	rtp.mutRewardsForwarder.Unlock()
-	if err != nil {
-		return err
 	}
 
 	accHandler, err := rtp.getAccountFromAddress(rTx.RcvAddr)
@@ -95,17 +81,9 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return nil
 	}
 
-	rewardAcc, ok := accHandler.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
 
-	operation := big.NewInt(0)
-	operation = operation.Add(rTx.GetValue(), rewardAcc.Balance)
-	err = rewardAcc.SetBalanceWithJournal(operation)
-
+	err = accHandler.AddToBalance(rTx.Value)
 	return err
 }
 

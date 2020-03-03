@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -86,7 +87,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
 		forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
 			continue
 		}
 

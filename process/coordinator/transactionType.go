@@ -3,6 +3,8 @@ package coordinator
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,13 +24,13 @@ func NewTxTypeHandler(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*txTypeHandler, error) {
-	if adrConv == nil {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if shardCoordinator == nil {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 
@@ -66,11 +68,11 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, err
 	}
 
-	if acntDst == nil {
+	if check.IfNil(acntDst) {
 		return process.MoveBalance, nil
 	}
 
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 && len(tx.GetData()) > 0 {
+	if len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRecvAddress()) {
 		return process.SCInvoking, nil
 	}
 
@@ -103,7 +105,7 @@ func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHa
 }
 
 func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 

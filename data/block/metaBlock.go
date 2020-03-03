@@ -133,7 +133,6 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(m.PeerInfo)
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)
@@ -168,57 +167,4 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 	}
 
 	return nil
-}
-
-// ----- for compatibility only ----
-
-func (pd *PeerData) Save(w io.Writer) error {
-	b, err := pd.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (pd *PeerData) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return pd.Unmarshal(b)
-}
-
-func (sd *ShardData) Save(w io.Writer) error {
-	b, err := sd.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (sd *ShardData) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return sd.Unmarshal(b)
-}
-
-func (mb *MetaBlock) Save(w io.Writer) error {
-	b, err := mb.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (mb *MetaBlock) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return mb.Unmarshal(b)
 }

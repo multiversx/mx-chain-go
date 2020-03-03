@@ -3,6 +3,7 @@ package rewardTransaction
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -80,7 +81,7 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 	}
 
 	inRTx.rcvShard = inRTx.coordinator.ComputeId(rcvAddr)
-	inRTx.sndShard = inRTx.rTx.ShardID
+	inRTx.sndShard = core.MetachainShardId
 
 	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
 	isForCurrentShardSender := inRTx.sndShard == inRTx.coordinator.SelfId()
