@@ -536,12 +536,12 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 
-	resolver := &mock.TrieNodesResolverStub{}
+	resolver := &mock.RequestHandlerStub{}
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
+	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second, 0, "trie")
 	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
 		syncer.chRcvTrieNodes <- true
 	})

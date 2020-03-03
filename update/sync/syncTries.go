@@ -138,7 +138,6 @@ func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, ro
 
 	trieSyncer, err := st.trieSyncers.Get(accAdapterIdentifier)
 	if err != nil {
-		// critical error - should not happen - maybe recreate trie syncer here
 		return err
 	}
 

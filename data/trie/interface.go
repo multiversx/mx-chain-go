@@ -52,3 +52,9 @@ type snapshotsBuffer interface {
 	getFirst() *snapshotsQueueEntry
 	clone() snapshotsBuffer
 }
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	IsInterfaceNil() bool
+}

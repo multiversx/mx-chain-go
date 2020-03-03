@@ -27,7 +27,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -86,11 +86,12 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.Remove(node.ExportFolder)
 		}
 	}()
 
 	createHardForkExporter(t, nodes)
+
+	_ = logger.SetLogLevel("*:TRACE")
 
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
@@ -176,7 +177,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.Remove(node.ExportFolder)
 		}
 	}()
 
