@@ -83,20 +83,20 @@ func TestBigIntCaster_BadUnmarshal(t *testing.T) {
 		caster := &BigIntCaster{}
 		v0, err := caster.Unmarshal(nil)
 		assert.NotNil(t, err)
-		assert.Equal(t, int64(0), v0.Int64())
+		assert.Nil(t, nil, v0)
 	})
 
 	t.Run("Empty buffer", func(t *testing.T) {
 		caster := &BigIntCaster{}
 		v0, err := caster.Unmarshal([]byte{})
 		assert.NotNil(t, err)
-		assert.Equal(t, int64(0), v0.Int64())
+		assert.Nil(t, v0)
 	})
 
 	t.Run("Bad sign", func(t *testing.T) {
 		caster := &BigIntCaster{}
 		v0, err := caster.Unmarshal([]byte{2, 3, 4})
 		assert.NotNil(t, err)
-		assert.Equal(t, int64(0), v0.Int64())
+		assert.Nil(t, v0)
 	})
 }

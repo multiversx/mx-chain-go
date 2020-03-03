@@ -15,18 +15,23 @@ func (c *BigIntCaster) Equal(a, b *big.Int) bool {
 }
 
 func (c *BigIntCaster) Size(a *big.Int) int {
-	return len(a.Bytes()) + 1
+	if a == nil {
+		return 1
+	}
+	if size := len(a.Bytes()); size > 0 {
+		return size + 1
+	}
+	return 2
 }
 
 func (c *BigIntCaster) MarshalTo(a *big.Int, buf []byte) (int, error) {
+	if a == nil {
+		buf[0] = 0
+		return 1, nil
+	}
 	bytes := a.Bytes()
 	if len(buf) <= len(bytes) {
 		return 0, ErrInvalidValue
-	}
-	if a == nil {
-		buf[0] = 0
-		buf[1] = 0
-		return 2, nil
 	}
 	copy(buf[1:], bytes)
 	if a.Sign() < 0 {
@@ -34,12 +39,24 @@ func (c *BigIntCaster) MarshalTo(a *big.Int, buf []byte) (int, error) {
 	} else {
 		buf[0] = 0
 	}
-	return len(bytes) + 1, nil
+	bsize := len(bytes)
+	if bsize > 0 {
+		return bsize + 1, nil
+	}
+	return 2, nil
 }
 
 func (c *BigIntCaster) Unmarshal(buf []byte) (*big.Int, error) {
-	if len(buf) == 0 {
-		return big.NewInt(0), fmt.Errorf("bad input")
+	switch len(buf) {
+	case 0:
+		return nil, fmt.Errorf("bad input")
+	case 1:
+		return nil, nil
+	case 2:
+		if buf[1] == 0 {
+			return big.NewInt(0), nil
+		}
+
 	}
 	ret := new(big.Int).SetBytes(buf[1:])
 	switch buf[0] {
@@ -48,7 +65,7 @@ func (c *BigIntCaster) Unmarshal(buf []byte) (*big.Int, error) {
 	case 1:
 		ret = ret.Neg(ret)
 	default:
-		return big.NewInt(0), fmt.Errorf("invalid sign byte %x", buf[0])
+		return nil, fmt.Errorf("invalid sign byte %x", buf[0])
 	}
 
 	return ret, nil
