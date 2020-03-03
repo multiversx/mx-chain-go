@@ -762,62 +762,6 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 	return acntSrc.(*state.Account), acntDst.(*state.Account), tx
 }
 
-func TestScProcessor_DetermineCallType(t *testing.T) {
-	t.Parallel()
-
-	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.VmContainer = vm
-	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	// DirectCall
-	tx := &transaction.Transaction{}
-	tx.Nonce = 54
-	tx.Data = []byte("sc function")
-	vmInput, err := sc.createVMCallInput(tx)
-	require.Nil(t, err)
-	require.NotNil(t, vmInput)
-	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
-
-	// DirectCall
-	tx = &transaction.Transaction{}
-	tx.Nonce = 54
-	tx.Data = nil
-	vmInput, err = sc.createVMCallInput(tx)
-	require.Nil(t, err)
-	require.NotNil(t, vmInput)
-	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
-
-	// DirectCall
-	scr := &smartContractResult.SmartContractResult{}
-	tx.Nonce = 54
-	tx.Data = nil
-	vmInput, err = sc.createVMCallInput(scr)
-	require.Nil(t, err)
-	require.NotNil(t, vmInput)
-	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
-
-	// AsynchronousCall
-	scr = &smartContractResult.SmartContractResult{}
-	scr.Data = []byte("call async@argument")
-	vmInput, err = sc.createVMCallInput(scr)
-	require.Nil(t, err)
-	require.NotNil(t, vmInput)
-	require.Equal(t, vmcommon.AsynchronousCall, vmInput.CallType)
-
-	// AsynchronousCallBack
-	scr = &smartContractResult.SmartContractResult{}
-	scr.Data = []byte("@argument")
-	vmInput, err = sc.createVMCallInput(scr)
-	require.Nil(t, err)
-	require.NotNil(t, vmInput)
-	require.Equal(t, vmcommon.AsynchronousCallBack, vmInput.CallType)
-}
-
 func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	t.Parallel()
 
