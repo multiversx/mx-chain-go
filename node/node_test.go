@@ -2407,9 +2407,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			for _, txBuff := range txsBuff {
 				tx := transaction.Transaction{}
 				errMarshal := marshalizer.Unmarshal(&tx, txBuff)
-				if errMarshal != nil {
-					assert.Fail(t, errMarshal.Error())
-				}
+				require.Nil(t, errMarshal)
 
 				mutRecoveredTransactions.Lock()
 				sId := shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
