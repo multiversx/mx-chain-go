@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -11,9 +9,9 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler         func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler          func() external.StatusMetricsHandler
-	ComputeTransactionCostHandler func(tx *transaction.Transaction) (*big.Int, error)
+	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler              func() external.StatusMetricsHandler
+	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteSCQuery -
@@ -26,9 +24,9 @@ func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
 	return ars.StatusMetricsHandler()
 }
 
-// ComputeTransactionCost -
-func (ars *ApiResolverStub) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
-	return ars.ComputeTransactionCostHandler(tx)
+// ComputeTransactionGasLimit -
+func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return ars.ComputeTransactionGasLimitHandler(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

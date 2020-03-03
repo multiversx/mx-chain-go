@@ -2188,7 +2188,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, txTypeHandler, economicsData)
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData)
 	if err != nil {
 		return nil, err
 	}

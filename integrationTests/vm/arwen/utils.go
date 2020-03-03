@@ -60,7 +60,7 @@ func setupTestContext(t *testing.T) testContext {
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, &mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{
+	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},

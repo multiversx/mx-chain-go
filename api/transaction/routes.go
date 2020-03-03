@@ -17,7 +17,7 @@ type TxService interface {
 	SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, txData []byte, signature []byte) (string, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
-	ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	IsInterfaceNil() bool
 }
 
@@ -61,7 +61,7 @@ type TxResponse struct {
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/send", SendTransaction)
-	router.POST("/cost", ComputeTransactionCost)
+	router.POST("/cost", ComputeTransactionGasLimit)
 	router.POST("/send-multiple", SendMultipleTransactions)
 	router.GET("/:txhash", GetTransaction)
 }
@@ -183,8 +183,8 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	return response
 }
 
-// ComputeTransactionCost returns how many gas units a transaction wil consume
-func ComputeTransactionCost(c *gin.Context) {
+// ComputeTransactionGasLimit returns how many gas units a transaction wil consume
+func ComputeTransactionGasLimit(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
@@ -212,11 +212,11 @@ func ComputeTransactionCost(c *gin.Context) {
 		return
 	}
 
-	cost, err := ef.ComputeTransactionCost(tx)
+	cost, err := ef.ComputeTransactionGasLimit(tx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"txGasUnits": cost.String()})
+	c.JSON(http.StatusOK, gin.H{"txGasUnits": cost})
 }

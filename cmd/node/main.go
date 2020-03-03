@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -1481,10 +1482,15 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, txTypeHandler, economics)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
 }

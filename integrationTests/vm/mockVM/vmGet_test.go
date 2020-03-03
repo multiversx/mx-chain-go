@@ -25,7 +25,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil
 		}}
-	service, _ := smartContract.NewSCQueryService(vmContainer, &mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{
+	service, _ := smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},

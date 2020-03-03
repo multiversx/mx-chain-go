@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -10,8 +8,8 @@ import (
 
 // ScQueryStub -
 type ScQueryStub struct {
-	ExecuteQueryCalled           func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ComputeTransactionCostCalled func(tx *transaction.Transaction) (*big.Int, error)
+	ExecuteQueryCalled      func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ComputeScCallCostCalled func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteQuery -
@@ -22,9 +20,12 @@ func (s *ScQueryStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, 
 	return &vmcommon.VMOutput{}, nil
 }
 
-// ComputeTransactionCost --
-func (s *ScQueryStub) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
-	return s.ComputeTransactionCostCalled(tx)
+// ComputeScCallCost --
+func (s *ScQueryStub) ComputeScCallCost(tx *transaction.Transaction) (uint64, error) {
+	if s.ComputeScCallCostCalled != nil {
+		return s.ComputeScCallCostCalled(tx)
+	}
+	return 100, nil
 }
 
 // IsInterfaceNil -

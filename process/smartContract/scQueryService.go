@@ -15,32 +15,26 @@ import (
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer   process.VirtualMachinesContainer
-	txTypeHandler process.TxTypeHandler
-	economicsFee  process.FeeHandler
-	mutRunSc      sync.Mutex
+	vmContainer  process.VirtualMachinesContainer
+	economicsFee process.FeeHandler
+	mutRunSc     sync.Mutex
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
 	vmContainer process.VirtualMachinesContainer,
-	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
 ) (*SCQueryService, error) {
 	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
-	}
-	if check.IfNil(txTypeHandler) {
-		return nil, process.ErrNilTxTypeHandler
 	}
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &SCQueryService{
-		vmContainer:   vmContainer,
-		txTypeHandler: txTypeHandler,
-		economicsFee:  economicsFee,
+		vmContainer:  vmContainer,
+		economicsFee: economicsFee,
 	}, nil
 }
 
@@ -115,53 +109,23 @@ func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error 
 	return nil
 }
 
-// ComputeTransactionCost will estimate how many gas a transaction will consume
-func (service *SCQueryService) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
-	txType, err := service.txTypeHandler.ComputeTransactionType(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	tx.GasPrice = 1
-
-	switch txType {
-	case process.MoveBalance:
-		return service.estimateMoveBalance(tx)
-	case process.SCDeployment:
-		return service.estimateSCDeployment(tx)
-	case process.SCInvoking:
-		return service.estimateSCInvoking(tx)
-	default:
-		return nil, process.ErrWrongTransaction
-	}
-}
-
-func (service *SCQueryService) estimateMoveBalance(tx *transaction.Transaction) (*big.Int, error) {
-	cost := service.economicsFee.ComputeFee(tx)
-	return cost, nil
-}
-
-func (service *SCQueryService) estimateSCDeployment(tx *transaction.Transaction) (*big.Int, error) {
-	cost := service.economicsFee.ComputeFee(tx)
-	return cost, nil
-}
-
-func (service *SCQueryService) estimateSCInvoking(tx *transaction.Transaction) (*big.Int, error) {
+// ComputeScCallCost will estimate how many gas a transaction will consume
+func (service *SCQueryService) ComputeScCallCost(tx *transaction.Transaction) (uint64, error) {
 	argumentParser, _ := vmcommon.NewAtArgumentParser()
 
 	err := argumentParser.ParseData(string(tx.Data))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	function, err := argumentParser.GetFunction()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	arguments, err := argumentParser.GetArguments()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	query := &process.SCQuery{
@@ -175,12 +139,12 @@ func (service *SCQueryService) estimateSCInvoking(tx *transaction.Transaction) (
 
 	vmOutput, err := service.executeScCall(query, 1)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	gasConsumed := service.economicsFee.MaxGasLimitPerBlock() - vmOutput.GasRemaining
 
-	return big.NewInt(0).SetUint64(gasConsumed), nil
+	return gasConsumed, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

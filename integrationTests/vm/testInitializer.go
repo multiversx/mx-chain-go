@@ -472,14 +472,13 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	txTypeHandler := &mock.TxTypeHandlerMock{}
 	feeHandler := &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
 
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, txTypeHandler, feeHandler)
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler)
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
@@ -488,18 +487,6 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 	})
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-}
-
-func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
-	return &dataTransaction.Transaction{
-		Nonce:    nonce,
-		Value:    value,
-		RcvAddr:  scAddrress,
-		SndAddr:  sndAddress,
-		GasPrice: 0,
-		GasLimit: 5000000,
-		Data:     []byte("topUp@00"),
-	}
 }
 
 func CreateTransferTx(

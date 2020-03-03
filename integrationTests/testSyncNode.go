@@ -90,7 +90,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, &mock.TxTypeHandlerMock{}, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }

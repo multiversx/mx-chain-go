@@ -335,7 +335,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, &mock.TxTypeHandlerMock{}, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -346,7 +346,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, &mock.TxTypeHandlerMock{}, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }

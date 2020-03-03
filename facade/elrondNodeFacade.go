@@ -178,9 +178,9 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 	return ef.node.GetTransaction(hash)
 }
 
-// ComputeTransactionCost will estimate how many gas a transaction will consume
-func (ef *ElrondNodeFacade) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
-	return ef.apiResolver.ComputeTransactionCost(tx)
+// ComputeTransactionGasLimit will estimate how many gas a transaction will consume
+func (ef *ElrondNodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return ef.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
 // GetAccount returns an accountResponse containing information

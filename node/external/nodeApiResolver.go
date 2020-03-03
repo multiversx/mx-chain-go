@@ -1,8 +1,6 @@
 package external
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,20 +11,29 @@ import (
 type NodeApiResolver struct {
 	scQueryService       SCQueryService
 	statusMetricsHandler StatusMetricsHandler
+	txCostHandler        TransactionCostHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(scQueryService SCQueryService, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
+func NewNodeApiResolver(
+	scQueryService SCQueryService,
+	statusMetricsHandler StatusMetricsHandler,
+	txCostHandler TransactionCostHandler,
+) (*NodeApiResolver, error) {
 	if check.IfNil(scQueryService) {
 		return nil, ErrNilSCQueryService
 	}
 	if check.IfNil(statusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
+	if check.IfNil(txCostHandler) {
+		return nil, ErrNilTransactionCostHandler
+	}
 
 	return &NodeApiResolver{
 		scQueryService:       scQueryService,
 		statusMetricsHandler: statusMetricsHandler,
+		txCostHandler:        txCostHandler,
 	}, nil
 }
 
@@ -40,9 +47,9 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 	return nar.statusMetricsHandler
 }
 
-//ComputeTransactionCost will calculate how many gas a transaction will consume
-func (nar *NodeApiResolver) ComputeTransactionCost(tx *transaction.Transaction) (*big.Int, error) {
-	return nar.scQueryService.ComputeTransactionCost(tx)
+//ComputeTransactionGasLimit will calculate how many gas a transaction will consume
+func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
