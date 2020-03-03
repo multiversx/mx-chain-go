@@ -24,7 +24,7 @@ func (sskgm *SingleSignKeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.Pub
 }
 
 // PrivateKeyFromByteArray -
-func (sskgm *SingleSignKeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+func (sskgm *SingleSignKeyGenMock) PrivateKeyFromByteArray(_ []byte) (crypto.PrivateKey, error) {
 	panic("implement me")
 }
 

@@ -24,7 +24,7 @@ func (rcs *ResolversContainerStub) Add(key string, val dataRetriever.Resolver) e
 }
 
 // AddMultiple -
-func (rcs *ResolversContainerStub) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
+func (rcs *ResolversContainerStub) AddMultiple(_ []string, _ []dataRetriever.Resolver) error {
 	panic("implement me")
 }
 

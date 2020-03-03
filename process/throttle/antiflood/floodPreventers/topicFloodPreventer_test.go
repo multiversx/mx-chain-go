@@ -1,18 +1,18 @@
-package antiflood_test
+package floodPreventers_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTopicFloodPreventer_InvalidMaxNumOfMessagesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tfp, err := antiflood.NewTopicFloodPreventer(0)
+	tfp, err := floodPreventers.NewTopicFloodPreventer(0)
 
 	assert.Nil(t, tfp)
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
@@ -21,7 +21,7 @@ func TestNewTopicFloodPreventer_InvalidMaxNumOfMessagesShouldErr(t *testing.T) {
 func TestNewTopicFloodPreventer_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tfp, err := antiflood.NewTopicFloodPreventer(10)
+	tfp, err := floodPreventers.NewTopicFloodPreventer(10)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tfp)
@@ -31,7 +31,7 @@ func TestNewTopicFloodPreventer_OkValsShouldWork(t *testing.T) {
 func TestTopicFloodPreventer_AccumulateOnceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tfp, _ := antiflood.NewTopicFloodPreventer(10)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(10)
 
 	ok := tfp.Accumulate("ion", "topic_1")
 	assert.True(t, ok)
@@ -41,7 +41,7 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceeded(t *te
 	t.Parallel()
 
 	defaultMaxMessages := uint32(2)
-	tfp, _ := antiflood.NewTopicFloodPreventer(defaultMaxMessages)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
 	// no max limit is set for the topic, so the default value given as a parameter on the constructor will be used
 
@@ -64,7 +64,7 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceededUsingC
 
 	defaultMaxMessages := uint32(2)
 	customMaxMessages := uint32(3)
-	tfp, _ := antiflood.NewTopicFloodPreventer(defaultMaxMessages)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
 	id := "identifier"
 	topic := "topic_1"
@@ -91,7 +91,7 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 	t.Parallel()
 
 	maxMessages := uint32(2)
-	tfp, _ := antiflood.NewTopicFloodPreventer(maxMessages)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
 	id := "identifier"
 	topic := "topic_1"
@@ -116,7 +116,7 @@ func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *
 	t.Parallel()
 
 	maxMessages := uint32(2)
-	tfp, _ := antiflood.NewTopicFloodPreventer(maxMessages)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
 	id := "identifier"
 	topic1 := "topic_1"
@@ -151,7 +151,7 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 	t.Parallel()
 
 	maxMessages := uint32(2)
-	tfp, _ := antiflood.NewTopicFloodPreventer(maxMessages)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
 	id := "identifier"
 	topic1 := "topic_1"
@@ -173,4 +173,51 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 	// check the values again
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic1, id))
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic2, id))
+}
+
+func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicWorks(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
+
+	heartbeatTopic := "heartbeat"
+	heartbeatMaxMessages := uint32(200)
+	tfp.SetMaxMessagesForTopic(heartbeatTopic, heartbeatMaxMessages)
+
+	//testing for the the wildcard topic
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic))
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic+"suffix"))
+	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic("prefix"+headersTopic))
+
+	//testing for the topic without wildcard
+	assert.Equal(t, heartbeatMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic))
+	assert.Equal(t, defaultMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic+"suffix"))
+}
+
+func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
+
+	maxMessagesMap := tfp.TopicMaxMessages()
+	_, ok := maxMessagesMap[headersTopic]
+
+	assert.False(t, ok)
+
+	_ = tfp.MaxMessagesForTopic(headersTopic)
+
+	maxMessagesMap = tfp.TopicMaxMessages()
+	_, ok = maxMessagesMap[headersTopic]
+
+	assert.True(t, ok)
 }

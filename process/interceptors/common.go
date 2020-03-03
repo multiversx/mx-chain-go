@@ -12,6 +12,7 @@ func preProcessMesage(
 	antifloodHandler process.P2PAntifloodHandler,
 	message p2p.MessageP2P,
 	fromConnectedPeer p2p.PeerID,
+	topic string,
 ) error {
 
 	if message == nil {
@@ -24,6 +25,11 @@ func preProcessMesage(
 	if err != nil {
 		return err
 	}
+	err = antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, topic)
+	if err != nil {
+		return err
+	}
+
 	if !throttler.CanProcess() {
 		return process.ErrSystemBusy
 	}

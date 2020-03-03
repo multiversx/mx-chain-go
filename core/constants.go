@@ -30,6 +30,9 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -191,9 +194,6 @@ const MetricNumValidators = "erd_metric_num_validators"
 
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
-
-//MetricCommunityPercentage is the metric for community rewards percentage
-const MetricCommunityPercentage = "erd_metric_community_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"

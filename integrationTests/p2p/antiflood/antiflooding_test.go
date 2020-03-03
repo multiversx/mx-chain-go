@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -210,7 +210,7 @@ func checkMessagesOnPeers(
 
 func createTopicsAndMockInterceptors(
 	peers []p2p.Messenger,
-	blacklistHandlers []antiflood.QuotaStatusHandler,
+	blacklistHandlers []floodPreventers.QuotaStatusHandler,
 	topic string,
 	peerMaxNumMessages uint32,
 	peerMaxSize uint64,
@@ -230,11 +230,11 @@ func createTopicsAndMockInterceptors(
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
-		statusHandlers := []antiflood.QuotaStatusHandler{&nilQuotaStatusHandler{}}
+		statusHandlers := []floodPreventers.QuotaStatusHandler{&nilQuotaStatusHandler{}}
 		if len(blacklistHandlers) == len(peers) {
 			statusHandlers = append(statusHandlers, blacklistHandlers[idx])
 		}
-		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
+		interceptors[idx].floodPreventer, _ = floodPreventers.NewQuotaFloodPreventer(
 			antifloodPool,
 			statusHandlers,
 			peerMaxNumMessages,

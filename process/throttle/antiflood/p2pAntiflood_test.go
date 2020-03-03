@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/antiflood"
-	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/stretchr/testify/assert"
 )
 

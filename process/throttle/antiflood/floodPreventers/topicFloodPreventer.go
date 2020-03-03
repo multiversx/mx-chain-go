@@ -1,4 +1,4 @@
-package antiflood
+package floodPreventers
 
 import (
 	"fmt"
@@ -10,7 +10,9 @@ import (
 )
 
 const topicMinMessages = 1
-const wildcardCharacter = "*"
+
+// WildcardCharacter is the character string used to specify that the topic refers to a
+const WildcardCharacter = "*"
 
 var log = logger.GetOrCreate("process/throttle/antiflood")
 
@@ -80,14 +82,14 @@ func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
 	tfp.mutTopicMaxMessages.Lock()
 	defer tfp.mutTopicMaxMessages.Unlock()
 
-	if strings.Contains(topic, wildcardCharacter) {
+	if strings.Contains(topic, WildcardCharacter) {
 		tfp.resetTopicWithWildCard(topic)
 	}
 	tfp.counterMap[topic] = make(map[string]uint32)
 }
 
 func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {
-	topicWithoutWildcard := strings.Replace(topic, wildcardCharacter, "", 1)
+	topicWithoutWildcard := strings.Replace(topic, WildcardCharacter, "", 1)
 	for topicKey := range tfp.counterMap {
 		if strings.Contains(topicKey, topicWithoutWildcard) {
 			tfp.counterMap[topicKey] = make(map[string]uint32)
@@ -98,11 +100,26 @@ func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {
 func (tfp *topicFloodPreventer) maxMessagesForTopic(topic string) uint32 {
 	maxMessages, ok := tfp.topicMaxMessages[topic]
 	if !ok {
-		tfp.topicMaxMessages[topic] = tfp.defaultMaxMessagesPerPeer
-		return tfp.defaultMaxMessagesPerPeer
+		maxMessages = tfp.maxMessagesForTopicWildcard(topic)
+		tfp.topicMaxMessages[topic] = maxMessages
 	}
 
 	return maxMessages
+}
+
+func (tfp *topicFloodPreventer) maxMessagesForTopicWildcard(topic string) uint32 {
+	for t, maxMessages := range tfp.topicMaxMessages {
+		if !strings.Contains(t, WildcardCharacter) {
+			continue
+		}
+
+		topicWithoutWildcard := strings.Replace(t, WildcardCharacter, "", 1)
+		if strings.Contains(topic, topicWithoutWildcard) {
+			return maxMessages
+		}
+	}
+
+	return tfp.defaultMaxMessagesPerPeer
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

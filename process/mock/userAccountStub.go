@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// UserAccountStub -
 type UserAccountStub struct {
 	AddressContainerCalled           func() state.AddressContainer
 	GetCodeHashCalled                func() []byte

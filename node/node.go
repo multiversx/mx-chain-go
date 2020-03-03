@@ -46,9 +46,6 @@ import (
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
-// HeartbeatTopic is the topic used for heartbeat signaling
-const HeartbeatTopic = "heartbeat"
-
 var log = logger.GetOrCreate("node")
 
 // Option represents a functional configuration parameter that can operate
@@ -895,12 +892,12 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	if n.messenger.HasTopicValidator(HeartbeatTopic) {
+	if n.messenger.HasTopicValidator(core.HeartbeatTopic) {
 		return ErrValidatorAlreadySet
 	}
 
-	if !n.messenger.HasTopic(HeartbeatTopic) {
-		err = n.messenger.CreateTopic(HeartbeatTopic, true)
+	if !n.messenger.HasTopic(core.HeartbeatTopic) {
+		err = n.messenger.CreateTopic(core.HeartbeatTopic, true)
 		if err != nil {
 			return err
 		}
@@ -911,7 +908,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.singleSigner,
 		n.privKey,
 		n.marshalizer,
-		HeartbeatTopic,
+		core.HeartbeatTopic,
 		n.shardCoordinator,
 		versionNumber,
 		nodeDisplayName,
@@ -959,7 +956,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
+	err = n.messenger.RegisterMessageProcessor(core.HeartbeatTopic, n.heartbeatMonitor)
 	if err != nil {
 		return err
 	}

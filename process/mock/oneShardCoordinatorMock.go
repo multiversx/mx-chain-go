@@ -35,12 +35,12 @@ func (scm *oneShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (scm *oneShardCoordinatorMock) SetSelfId(shardId uint32) error {
+func (scm *oneShardCoordinatorMock) SetSelfId(_ uint32) error {
 	return nil
 }
 
 // SameShard -
-func (scm *oneShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (scm *oneShardCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 

@@ -53,22 +53,22 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+func (sm *StorerMock) HasInEpoch(_ []byte, _ uint32) error {
 	return errors.New("not implemented")
 }
 
 // SearchFirst -
-func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
+func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Has -
-func (sm *StorerMock) Has(key []byte) error {
+func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
 // Remove -
-func (sm *StorerMock) Remove(key []byte) error {
+func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 

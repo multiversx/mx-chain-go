@@ -11,7 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/stretchr/testify/assert"
@@ -158,15 +159,15 @@ func createBlacklistHandlersAndProcessors(
 	thresholdNumReceived uint32,
 	thresholdSizeReceived uint64,
 	maxFloodingRounds uint32,
-) ([]antiflood.QuotaStatusHandler, []process.BlackListHandler) {
+) ([]floodPreventers.QuotaStatusHandler, []process.BlackListHandler) {
 
-	blacklistProcessors := make([]antiflood.QuotaStatusHandler, len(peers))
+	blacklistProcessors := make([]floodPreventers.QuotaStatusHandler, len(peers))
 	blacklistHandlers := make([]process.BlackListHandler, len(peers))
 	for i := range peers {
 		blacklistCache, _ := lrucache.NewCache(5000)
 		blacklistHandlers[i] = timecache.NewTimeCache(time.Minute * 5)
 
-		blacklistProcessors[i], _ = antiflood.NewP2PBlackListProcessor(
+		blacklistProcessors[i], _ = blackList.NewP2PBlackListProcessor(
 			blacklistCache,
 			blacklistHandlers[i],
 			thresholdNumReceived,

@@ -193,6 +193,7 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() er
 
 	//only one metachain header topic
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		identifierHdr,
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
@@ -257,6 +258,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		topic,
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,

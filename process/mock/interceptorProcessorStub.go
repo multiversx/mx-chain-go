@@ -19,7 +19,7 @@ func (ips *InterceptorProcessorStub) Save(data process.InterceptedData) error {
 }
 
 // SignalEndOfProcessing -
-func (ips *InterceptorProcessorStub) SignalEndOfProcessing(data []process.InterceptedData) {
+func (ips *InterceptorProcessorStub) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil -

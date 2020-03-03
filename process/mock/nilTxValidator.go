@@ -14,7 +14,7 @@ func NewNilTxValidator() (*nilTxValidator, error) {
 }
 
 // CheckTxValidity is a nil implementation that will return nil
-func (ntv *nilTxValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
+func (ntv *nilTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
 	return nil
 }
 
