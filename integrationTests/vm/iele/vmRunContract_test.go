@@ -25,7 +25,8 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
 		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	defer testContext.Close()
 
 	deployContract(
 		t,
@@ -35,11 +36,11 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		txProc,
-		accnts,
+		testContext.TxProcessor,
+		testContext.Accounts,
 	)
 
-	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+	destinationAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@00%X", addValue)
 	//contract call tx
@@ -54,16 +55,16 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	err := testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(0).SetUint64(99999791)
 	vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		senderAddressBytes,
 		senderNonce+2,
 		//2*gasLimit because we do 2 operations: deploy and call
@@ -73,7 +74,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
-		accnts,
+		testContext.Accounts,
 		transferOnCalls,
 		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})
@@ -91,7 +92,9 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
 		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	defer testContext.Close()
+
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
@@ -101,11 +104,11 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		txProc,
-		accnts,
+		testContext.TxProcessor,
+		testContext.Accounts,
 	)
 
-	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+	destinationAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@00%X", addValue)
 	//contract call tx that will fail with out of gas
@@ -121,17 +124,17 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	err := testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
-	_, err = accnts.Commit()
+	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(0).SetUint64(99999851)
 	//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 	vm.TestAccount(
 		t,
-		accnts,
+		testContext.Accounts,
 		senderAddressBytes,
 		senderNonce+2,
 		expectedBalance)
@@ -141,7 +144,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
-		accnts,
+		testContext.Accounts,
 		big.NewInt(0),
 		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})

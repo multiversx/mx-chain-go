@@ -43,6 +43,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	)
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
+	defer testContext.Close()
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
@@ -76,6 +77,8 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	defer testContext.Close()
+
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
 
@@ -343,6 +346,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
 	defer testContext.Close()
+
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)

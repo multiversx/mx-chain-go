@@ -7,7 +7,6 @@ import (
 )
 
 func Test_SOL_002(t *testing.T) {
-	t.Skip()
 	context := setupTestContext(t)
 	defer context.close()
 
@@ -45,7 +44,6 @@ func Test_SOL_002(t *testing.T) {
 }
 
 func Test_SOL_003(t *testing.T) {
-	t.Skip()
 	context := setupTestContext(t)
 	defer context.close()
 

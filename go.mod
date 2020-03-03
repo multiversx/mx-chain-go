@@ -23,7 +23,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
-	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.3.1
 	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-discovery v0.1.0
@@ -46,4 +45,4 @@ require (
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
-replace github.com/ElrondNetwork/arwen-wasm-vm => github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200302150626-6b821f0b75cc
+replace github.com/ElrondNetwork/arwen-wasm-vm => /home/andrei/Desktop/workspaces/go/arwen-wasm-vm
