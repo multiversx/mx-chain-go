@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,8 +21,8 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -60,27 +61,11 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 5
 	/////////----- wait for epoch end period
-	for i := uint64(0); i <= roundsPerEpoch; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	round, nonce = createAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
 
-	time.Sleep(time.Second)
-
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := uint64(5)
+	_, _ = createAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, idxProposers)
 
 	epoch := uint32(1)
 	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
@@ -161,6 +146,106 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
 
+func TestEpochChangeWithNodesShuffling(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	nodesPerShard := 3
+	nbMetaNodes := 2
+	nbShards := 2
+	consensusGroupSize := 2
+	maxGasLimitPerBlock := uint64(100000)
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(100)
+	mintValue := big.NewInt(1000000)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	roundsPerEpoch := uint64(7)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes)
+		for _, node := range nodes {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+
+	round := uint64(1)
+	nonce := uint64(1)
+	nbBlocksToProduce := uint64(20)
+	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
+	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
+
+	for i := uint64(0); i < nbBlocksToProduce; i++ {
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
+
+		//integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		round++
+		nonce++
+
+		time.Sleep(5 * time.Second)
+	}
+
+	for _, nodes := range nodesMap {
+		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
+	}
+}
+
+func createAndPropagateBlocks(
+	t *testing.T,
+	nbRounds uint64,
+	currentRound uint64,
+	currentNonce uint64,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+) (uint64, uint64) {
+	for i := uint64(0); i <= nbRounds; i++ {
+		integrationTests.UpdateRound(nodes, currentRound)
+		integrationTests.ProposeBlock(nodes, idxProposers, currentRound, currentNonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, currentRound)
+		currentRound = integrationTests.IncrementAndPrintRound(currentRound)
+		currentNonce++
+	}
+	time.Sleep(time.Second)
+
+	return currentRound, currentNonce
+}
+
 func verifyIfNodesHasCorrectEpoch(
 	t *testing.T,
 	epoch uint32,
@@ -185,7 +270,7 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 
@@ -268,14 +353,13 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksProduced := 2 * roundsPerEpoch
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksProduced; i++ {
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
@@ -284,18 +368,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	}
 
 	time.Sleep(5 * time.Second)
-}
-
-func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
-	randomness := make(map[uint32][]byte)
-
-	for i := uint32(0); i < nbShards; i++ {
-		randomness[i] = []byte("root hash")
-	}
-
-	randomness[sharding.MetachainShardId] = []byte("root hash")
-
-	return randomness
 }
 
 func getBlockProposersIndexes(

@@ -294,7 +294,14 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
+	argDB := ArgDB{
+		DBType:            dbConf.Type,
+		Path:              dbConf.FilePath,
+		BatchDelaySeconds: dbConf.BatchDelaySeconds,
+		MaxBatchSize:      dbConf.MaxBatchSize,
+		MaxOpenFiles:      dbConf.MaxOpenFiles,
+	}
+	db, err = NewDB(argDB)
 	if err != nil {
 		return nil, err
 	}
@@ -337,16 +344,25 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, 
 	return cacher, nil
 }
 
+// ArgDB is a structure that is used to create a new storage.Persister implementation
+type ArgDB struct {
+	DBType            DBType
+	Path              string
+	BatchDelaySeconds int
+	MaxBatchSize      int
+	MaxOpenFiles      int
+}
+
 // NewDB creates a new database from database config
-func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (storage.Persister, error) {
+func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	switch dbType {
+	switch argDB.DBType {
 	case LvlDB:
-		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+		db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
 	case LvlDbSerial:
-		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+		db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
