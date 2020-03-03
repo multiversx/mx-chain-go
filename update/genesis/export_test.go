@@ -50,7 +50,6 @@ func TestExportAll(t *testing.T) {
 	testPath := "./" + testFolderName
 	defer func() {
 		_ = os.RemoveAll(testPath)
-		_ = os.Remove(testPath)
 	}()
 
 	storer := mock.NewStorerMock()

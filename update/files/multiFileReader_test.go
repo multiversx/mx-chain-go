@@ -31,8 +31,7 @@ func TestMultiFileReader_ReadFiles(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
-		_ = os.RemoveAll("./testDir/")
-		_ = os.Remove("./testDir")
+		_ = os.RemoveAll("./testDir")
 	}()
 
 	filePath := "./testDir"

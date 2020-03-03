@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	genesis2 "github.com/ElrondNetwork/elrond-go/epochStart/genesis"
+	epochStartGenesis "github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -375,7 +375,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:               e.dataPool,
 		AddrConverter:          e.addrConv,
 		MaxTxNonceDeltaAllowed: math.MaxInt32,
-		TxFeeHandler:           genesis2.NewGenesisFeeHandler(),
+		TxFeeHandler:           epochStartGenesis.NewGenesisFeeHandler(),
 		BlackList:              timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:      e.headerSigVerifier,
 		ChainID:                e.chainID,

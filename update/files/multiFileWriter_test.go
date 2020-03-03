@@ -44,8 +44,7 @@ func TestNewFile(t *testing.T) {
 
 	//remove created file
 	defer func() {
-		_ = os.Remove(exportFolderPath + fileName)
-		_ = os.Remove(exportFolderPath)
+		_ = os.RemoveAll(exportFolderPath)
 	}()
 
 	args := ArgsNewMultiFileWriter{
@@ -85,8 +84,7 @@ func TestWrite(t *testing.T) {
 
 	//remove created file
 	defer func() {
-		_ = os.Remove(exportFolderPath + "/" + fileName)
-		_ = os.Remove(exportFolderPath)
+		_ = os.RemoveAll(exportFolderPath)
 	}()
 
 	key := "dataKey"

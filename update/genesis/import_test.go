@@ -131,7 +131,6 @@ func TestImportAll(t *testing.T) {
 	folderName := "./files"
 	defer func() {
 		_ = os.RemoveAll(folderName)
-		_ = os.Remove(folderName)
 	}()
 
 	storer := mock.NewStorerMock()
