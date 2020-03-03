@@ -1,12 +1,12 @@
 package bootstrap
 
 import (
-	"errors"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -25,14 +25,21 @@ type simpleMetaBlockInterceptor struct {
 }
 
 // NewSimpleMetaBlockInterceptor will return a new instance of simpleMetaBlockInterceptor
-func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashing.Hasher) *simpleMetaBlockInterceptor {
+func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*simpleMetaBlockInterceptor, error) {
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(hasher) {
+		return nil, ErrNilHasher
+	}
+
 	return &simpleMetaBlockInterceptor{
 		marshalizer:            marshalizer,
 		hasher:                 hasher,
 		mutReceivedMetaBlocks:  sync.RWMutex{},
 		mapReceivedMetaBlocks:  make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers: make(map[string][]p2p.PeerID),
-	}
+	}, nil
 }
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps
@@ -93,7 +100,7 @@ func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int, epoch uint32) (*bl
 		s.mutReceivedMetaBlocks.RUnlock()
 	}
 
-	return nil, errors.New("num of tries exceeded. try re-request")
+	return nil, ErrNumTriesExceeded
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

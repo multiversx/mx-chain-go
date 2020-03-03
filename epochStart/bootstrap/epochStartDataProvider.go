@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -34,33 +35,53 @@ type epochStartDataProvider struct {
 	hasher                 hashing.Hasher
 	messenger              p2p.Messenger
 	nodesConfigProvider    NodesConfigProviderHandler
-	metaBlockInterceptor   metaBlockInterceptorHandler
-	shardHeaderInterceptor shardHeaderInterceptorHandler
-	metaBlockResolver      metaBlockResolverHandler
+	metaBlockInterceptor   MetaBlockInterceptorHandler
+	shardHeaderInterceptor ShardHeaderInterceptorHandler
+	metaBlockResolver      MetaBlockResolverHandler
+}
+
+// ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
+type ArgsEpochStartDataProvider struct {
+	Messenger              p2p.Messenger
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	NodesConfigProvider    NodesConfigProviderHandler
+	MetaBlockInterceptor   MetaBlockInterceptorHandler
+	ShardHeaderInterceptor ShardHeaderInterceptorHandler
+	MetaBlockResolver      MetaBlockResolverHandler
 }
 
 // NewEpochStartDataProvider will return a new instance of epochStartDataProvider
-func NewEpochStartDataProvider(
-	messenger p2p.Messenger,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	nodesConfigProvider NodesConfigProviderHandler,
-) (*epochStartDataProvider, error) {
-	metaBlockInterceptor := NewSimpleMetaBlockInterceptor(marshalizer, hasher)
-	shardHdrInterceptor := NewSimpleShardHeaderInterceptor(marshalizer)
-	metaBlockResolver, err := NewSimpleMetaBlocksResolver(messenger, marshalizer)
-	if err != nil {
-		return nil, err
+func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartDataProvider, error) {
+	if check.IfNil(args.Messenger) {
+		return nil, ErrNilMessenger
 	}
-
+	if check.IfNil(args.Marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, ErrNilHasher
+	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, ErrNilNodesConfigProvider
+	}
+	if check.IfNil(args.MetaBlockInterceptor) {
+		return nil, ErrNilMetaBlockInterceptor
+	}
+	if check.IfNil(args.ShardHeaderInterceptor) {
+		return nil, ErrNilShardHeaderInterceptor
+	}
+	if check.IfNil(args.MetaBlockResolver) {
+		return nil, ErrNilMetaBlockResolver
+	}
 	return &epochStartDataProvider{
-		marshalizer:            marshalizer,
-		hasher:                 hasher,
-		messenger:              messenger,
-		nodesConfigProvider:    nodesConfigProvider,
-		metaBlockInterceptor:   metaBlockInterceptor,
-		shardHeaderInterceptor: shardHdrInterceptor,
-		metaBlockResolver:      metaBlockResolver,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
+		messenger:              args.Messenger,
+		nodesConfigProvider:    args.NodesConfigProvider,
+		metaBlockInterceptor:   args.MetaBlockInterceptor,
+		shardHeaderInterceptor: args.ShardHeaderInterceptor,
+		metaBlockResolver:      args.MetaBlockResolver,
 	}, nil
 }
 
@@ -126,7 +147,8 @@ func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block
 		return nil, err
 	}
 	for {
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(len(esdp.messenger.Peers())))
+		numConnectedPeers := len(esdp.messenger.Peers())
+		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
 		mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(threshold, epoch)
 		if errConsensusNotReached == nil {
 			return mb, nil
@@ -151,4 +173,9 @@ func (esdp *epochStartDataProvider) requestMetaBlock(epoch uint32) error {
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (esdp *epochStartDataProvider) IsInterfaceNil() bool {
+	return esdp == nil
 }

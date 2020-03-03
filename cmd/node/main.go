@@ -573,13 +573,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 		time.Sleep(2 * time.Second)
 
+		marshalizer := &marshal.JsonMarshalizer{}
+		hasher := &blake2b.Blake2b{}
 		simpleNodesConfigProvider := nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig)
-		epochRes, err := bootstrap.NewEpochStartDataProvider(
-			networkComponents.NetMessenger,
-			&marshal.JsonMarshalizer{},
-			&blake2b.Blake2b{},
-			simpleNodesConfigProvider,
-		)
+		metaBlockInterceptor, err := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		shardHdrInterceptor := bootstrap.NewSimpleShardHeaderInterceptor(marshalizer)
+		metaBlockResolver, err := bootstrap.NewSimpleMetaBlocksResolver(networkComponents.NetMessenger, marshalizer)
+		epochStartDataArgs := bootstrap.ArgsEpochStartDataProvider{
+			Messenger:              networkComponents.NetMessenger,
+			Marshalizer:            marshalizer,
+			Hasher:                 hasher,
+			NodesConfigProvider:    simpleNodesConfigProvider,
+			MetaBlockInterceptor:   metaBlockInterceptor,
+			ShardHeaderInterceptor: shardHdrInterceptor,
+			MetaBlockResolver:      metaBlockResolver,
+		}
+		epochRes, err := bootstrap.NewEpochStartDataProvider(epochStartDataArgs)
 		if err != nil {
 			return err
 		}
