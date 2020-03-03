@@ -4,6 +4,7 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkBy
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.4/go.mod h1:pH2AXUsZiSMCxPKJz7YBx+ZcXp4FGIQwXFHuJttulzY=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.5 h1:MwoitdsXUvev1sEWXQImTEPX7kZK7fWlvOuwVg1Zlic=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.5/go.mod h1:9UL42+YcyowDTb6lgIGH00shNqLV8VD2g6BufLoOsCk=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.6 h1:RolK7A28MbZPpGi1GIuBhA34dHMDz+9BXfWJ1f5fUjs=
@@ -12,6 +13,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200302103613-c23567d02fd2 h1:1
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200302103613-c23567d02fd2/go.mod h1:9UL42+YcyowDTb6lgIGH00shNqLV8VD2g6BufLoOsCk=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200302150626-6b821f0b75cc h1:tQo0qzIsNErCQ6eHlKow073Ykf+MtfRmTL/IQTjNoEI=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200302150626-6b821f0b75cc/go.mod h1:9UL42+YcyowDTb6lgIGH00shNqLV8VD2g6BufLoOsCk=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200303103458-7c812a8fe942 h1:datTv0GNukuod4iw5L1u8illvdMn2sf/ME/Nc2C6cm8=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.7-0.20200303103458-7c812a8fe942/go.mod h1:CCjJ/kelWCHCwvO8sazXlZb2AfmT1ZNo3epckFWkYDA=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
@@ -173,6 +176,7 @@ github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlT
 github.com/json-iterator/go v1.1.5 h1:gL2yXlmiIo4+t+y32d4WGwOjKGYcGOuyrg46vadswDE=
 github.com/json-iterator/go v1.1.5/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/kami-zh/go-capturer v0.0.0-20171211120116-e492ea43421d/go.mod h1:P2viExyCEfeWGU259JnaQ34Inuec4R38JCyBx2edgD0=
+github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 h1:PJPDf8OUfOK1bb/NeTKd4f1QXZItOX389VN3B6qC8ro=
 github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1/go.mod h1:1NbS8ALrpOvjt0rHPNLyCIeMtbizbir8U//inJ+zuB8=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 h1:iQTw/8FWTuc7uiaSepXwyf3o52HaUYcV+Tu66S3F5GA=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0/go.mod h1:1NbS8ALrpOvjt0rHPNLyCIeMtbizbir8U//inJ+zuB8=
