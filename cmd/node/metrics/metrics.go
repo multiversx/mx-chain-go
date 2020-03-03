@@ -22,7 +22,7 @@ func InitMetrics(
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
-	economicsConfig *config.ConfigEconomics,
+	economicsConfig *config.EconomicsConfig,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration
@@ -52,34 +52,30 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
 	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
 
 	var consensusGroupSize uint32
 	switch {
 	case shardCoordinator.SelfId() < shardCoordinator.NumberOfShards():
 		consensusGroupSize = nodesConfig.ConsensusGroupSize
-	case shardCoordinator.SelfId() == sharding.MetachainShardId:
+	case shardCoordinator.SelfId() == core.MetachainShardId:
 		consensusGroupSize = nodesConfig.MetaChainConsensusGroupSize
 	default:
 		consensusGroupSize = 0
 	}
 
-	validatorsNodes := nodesConfig.InitialNodesInfo()
+	validatorsNodes, _ := nodesConfig.InitialNodesInfo()
 	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
-// SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
-func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, txSignPk string, nodeName string) {
-	ash.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+// SaveCurrentNodeName will save metric in status handler with nodeName
+func SaveCurrentNodeName(ash core.AppStatusHandler, nodeName string) {
 	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
 }
 

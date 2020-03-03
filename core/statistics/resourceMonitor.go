@@ -67,9 +67,16 @@ func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, path
 	evictionWaitingListDbFilePath := filepath.Join(trieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
 	snapshotsDbFilePath := filepath.Join(trieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
 
+	peerTrieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.PeerAccountsTrieStorage.DB.FilePath))
+
+	peerTrieDbFilePath := filepath.Join(peerTrieStoragePath, mainDb)
+	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
+	peerTrieSnapshotsDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
+
 	return fmt.Sprintf("timestamp: %d, uptime: %v, num go: %d, alloc: %s, heap alloc: %s, heap idle: %s"+
 		", heap inuse: %s, heap sys: %s, heap released: %s, heap num objs: %d, sys mem: %s, "+
-		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d, accountsTrieDbMem: %s, evictionDbMem: %s, snapshotsDbMem: %s\n",
+		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d,"+
+		" accountsTrieDbMem: %s, evictionDbMem: %s, snapshotsDbMem: %s, peerTrieDbMem: %s, peerTrieEvictionDbMem: %s, peerTrieSnapshotsDbMem: %s\n",
 		time.Now().Unix(),
 		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
 		runtime.NumGoroutine(),
@@ -89,6 +96,9 @@ func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, path
 		getDirMemSize(trieDbFilePath),
 		getDirMemSize(evictionWaitingListDbFilePath),
 		getDirMemSize(snapshotsDbFilePath),
+		getDirMemSize(peerTrieDbFilePath),
+		getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
+		getDirMemSize(peerTrieSnapshotsDbFilePath),
 	)
 }
 

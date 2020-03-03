@@ -58,7 +58,7 @@ func (nm *NodeMock) ConnectToAddresses(addresses []string) error {
 }
 
 // StartConsensus -
-func (nm *NodeMock) StartConsensus() error {
+func (nm *NodeMock) StartConsensus(_ uint32) error {
 	return nm.StartConsensusHandler()
 }
 
@@ -126,8 +126,5 @@ func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResp
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nm *NodeMock) IsInterfaceNil() bool {
-	if nm == nil {
-		return true
-	}
-	return false
+	return nm == nil
 }

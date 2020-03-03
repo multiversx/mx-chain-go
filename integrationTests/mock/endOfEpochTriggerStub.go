@@ -16,6 +16,10 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+// RequestEpochStartIfNeeded -
+func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
+}
+
 // SetCurrentEpochStartRound -
 func (e *EpochStartTriggerStub) SetCurrentEpochStartRound(_ uint64) {
 }
@@ -35,6 +39,16 @@ func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
 
 // EpochStartMetaHdrHash -
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
+	return nil
+}
+
+// GetSavedStateKey -
+func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
+	return []byte("epoch start trigger key")
+}
+
+// LoadState -
+func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
 	return nil
 }
 

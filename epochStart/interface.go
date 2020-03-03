@@ -16,11 +16,14 @@ type TriggerHandler interface {
 	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	SetProcessed(header data.HeaderHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	Revert(round uint64)
 	SetCurrentEpochStartRound(round uint64)
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -55,11 +58,25 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
+	RequestStartOfEpochMetaBlock(epoch uint32)
 	IsInterfaceNil() bool
 }
 
-// StartOfEpochNotifier defines what triggers should do for subscribed functions
-type StartOfEpochNotifier interface {
+// EpochStartHandler defines the action taken on epoch start event
+type EpochStartHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler)
+}
+
+// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
+type EpochStartSubscriber interface {
+	RegisterHandler(handler EpochStartHandler)
+	UnregisterHandler(handler EpochStartHandler)
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

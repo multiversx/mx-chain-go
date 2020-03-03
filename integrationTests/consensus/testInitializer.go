@@ -5,9 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"io/ioutil"
-	"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -31,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -47,6 +47,7 @@ import (
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -55,7 +56,6 @@ import (
 )
 
 const blsConsensusType = "bls"
-const bnConsensusType = "bn"
 
 var r *rand.Rand
 var consensusChainID = []byte("consensus chain ID")
@@ -92,7 +92,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
 			address := fmt.Sprintf("addr_%d_%d", shardId, i)
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(address))
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), []byte(address))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -181,6 +181,7 @@ func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
@@ -240,7 +241,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -280,7 +281,7 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 		kp.sk, kp.pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[sharding.MetachainShardId] = keyPairs
+	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
 		keys:         keysMap,
@@ -293,9 +294,9 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return blake2b.Blake2b{HashSize: 16}
+		return &blake2b.Blake2b{HashSize: 16}
 	}
-	return blake2b.Blake2b{}
+	return &blake2b.Blake2b{}
 }
 
 func createConsensusOnlyNode(
@@ -310,6 +311,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
+	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -323,19 +325,17 @@ func createConsensusOnlyNode(
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
 
+	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
-			return &dataBlock.Body{}, nil
-		},
-		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-			return body, nil
+		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			return header, &dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
@@ -347,14 +347,13 @@ func createConsensusOnlyNode(
 		},
 	}
 
-	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
 		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
 		Nonce:         0,
@@ -375,7 +374,7 @@ func createConsensusOnlyNode(
 	singlesigner := &singlesig.SchnorrSigner{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), time.Hour, nil)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
 
 	rounder, err := round.NewRound(
@@ -453,7 +452,6 @@ func createConsensusOnlyNode(
 		node.WithBlockChain(blockChain),
 		node.WithMultiSigner(testMultiSig),
 		node.WithTxSingleSigner(singlesigner),
-		node.WithTxSignPrivKey(privKey),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(createTestShardDataPool()),
@@ -462,11 +460,14 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
+		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithChainID(consensusChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	if err != nil {
@@ -487,8 +488,11 @@ func createNodes(
 	nodes := make(map[uint32][]*testNode)
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
-	validatorsMap := genValidatorsFromPubKeys(keysMap)
+	eligibleMap := genValidatorsFromPubKeys(keysMap)
+	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
+
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	pubKeys := make([]crypto.PublicKey, len(cp.keys[0]))
 	for idx, keyPairShard := range cp.keys[0] {
@@ -502,13 +506,20 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
+
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
+			BootStorer:              bootStorer,
 			NbShards:                1,
-			Nodes:                   validatorsMap,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
 		}
@@ -526,6 +537,7 @@ func createNodes(
 			pubKeys,
 			cp.keyGen,
 			consensusType,
+			epochStartSubscriber,
 		)
 
 		testNodeObject.node = n
