@@ -1805,10 +1805,7 @@ func newShardBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
@@ -2062,10 +2059,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
