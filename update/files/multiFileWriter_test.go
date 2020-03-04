@@ -22,6 +22,11 @@ func TestNewMultiFileWriter_CheckArgs(t *testing.T) {
 		{name: "NilStorer", args: ArgsNewMultiFileWriter{ExportFolder: "folder", ExportStore: nil}, expectedError: update.ErrNilStorage},
 		{name: "Ok", args: ArgsNewMultiFileWriter{ExportFolder: "folder", ExportStore: mock.NewStorerMock()}, expectedError: nil},
 	}
+
+	defer func() {
+		_ = os.Remove("folder")
+	}()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewMultiFileWriter(tt.args)
@@ -33,8 +38,14 @@ func TestNewMultiFileWriter_CheckArgs(t *testing.T) {
 func TestNewFile(t *testing.T) {
 	t.Parallel()
 
-	exportFolderPath := "./"
+	exportFolderPath := "./something"
+	fileName := "/metablock"
 	storer := mock.NewStorerMock()
+
+	//remove created file
+	defer func() {
+		_ = os.RemoveAll(exportFolderPath)
+	}()
 
 	args := ArgsNewMultiFileWriter{
 		ExportFolder: exportFolderPath,
@@ -42,13 +53,6 @@ func TestNewFile(t *testing.T) {
 	}
 	mfw, _ := NewMultiFileWriter(args)
 	require.False(t, mfw.IsInterfaceNil())
-
-	fileName := "metablock"
-
-	//remove created file
-	defer func() {
-		_ = os.Remove(exportFolderPath + fileName)
-	}()
 
 	err := mfw.NewFile(fileName)
 	require.Nil(t, err)
@@ -66,7 +70,7 @@ func TestNewFile(t *testing.T) {
 func TestWrite(t *testing.T) {
 	t.Parallel()
 
-	exportFolderPath := "./"
+	exportFolderPath := "./test"
 	storer := mock.NewStorerMock()
 
 	args := ArgsNewMultiFileWriter{
@@ -80,7 +84,7 @@ func TestWrite(t *testing.T) {
 
 	//remove created file
 	defer func() {
-		_ = os.Remove(exportFolderPath + fileName)
+		_ = os.RemoveAll(exportFolderPath)
 	}()
 
 	key := "dataKey"
@@ -93,11 +97,11 @@ func TestWrite(t *testing.T) {
 
 	mfw.Finish()
 
-	if _, err := os.Stat(exportFolderPath + fileName); err != nil {
+	if _, err := os.Stat(exportFolderPath + "/" + fileName); err != nil {
 		require.Fail(t, "file wasn't created")
 	}
 
-	file, _ := os.Open(exportFolderPath + fileName)
+	file, _ := os.Open(exportFolderPath + "/" + fileName)
 	b, _ := ioutil.ReadAll(file)
 	b = b[:len(b)-1]
 	require.Equal(t, []byte(hex.EncodeToString([]byte(key))), b)

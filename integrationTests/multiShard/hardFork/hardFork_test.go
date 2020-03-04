@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -22,10 +23,9 @@ import (
 var log = logger.GetOrCreate("integrationTests/hardfork")
 
 func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
-	//TODO continue writing the tests in the next PR
-	//if testing.Short() {
-	t.Skip("this is not a short test")
-	//}
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfShards := 2
 	nodesPerShard := 1
@@ -74,18 +74,23 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
 	epoch := uint32(1)
 	verifyIfNodesHaveCorrectEpoch(t, epoch, nodes)
-	verifyIfNodesHaveCorrectNonce(t, nonce, nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
-	createHardForkExporter(t, nodes)
+	defer func() {
+		for _, node := range nodes {
+			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.Remove(node.ExportFolder)
+		}
+	}()
 
-	_ = logger.SetLogLevel("*:TRACE")
+	createHardForkExporter(t, nodes)
 
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
@@ -97,10 +102,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
-	//TODO continue writing the tests in the next PR
-	//if testing.Short() {
-	t.Skip("this is not a short test")
-	//}
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -149,7 +153,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	_ = logger.SetLogLevel("*:TRACE")
 	/////////----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
@@ -167,14 +170,24 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	verifyIfNodesHaveCorrectEpoch(t, epoch, nodes)
-	verifyIfNodesHaveCorrectNonce(t, nonce, nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
+
+	defer func() {
+		for _, node := range nodes {
+			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.Remove(node.ExportFolder)
+		}
+	}()
 
 	createHardForkExporter(t, nodes)
 
 	for _, node := range nodes {
+		log.Warn("***********************************************************************************")
+		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
 		err := node.ExportHandler.ExportAll(2)
 		assert.Nil(t, err)
+		log.Warn("***********************************************************************************")
 	}
 }
 
@@ -183,6 +196,7 @@ func createHardForkExporter(
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for id, node := range nodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 		argsExportHandler := factory.ArgsExporter{
 			Marshalizer:      integrationTests.TestMarshalizer,
 			Hasher:           integrationTests.TestHasher,
@@ -194,14 +208,14 @@ func createHardForkExporter(
 			ShardCoordinator: node.ShardCoordinator,
 			Messenger:        node.Messenger,
 			ActiveTries:      node.TrieContainer,
-			ExportFolder:     "export" + fmt.Sprintf("%d", id),
+			ExportFolder:     node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Size: 10000, Type: "LRU", Shards: 1,
 				},
 				DB: config.DBConfig{
 					FilePath:          "ExportTrie" + fmt.Sprintf("%d", id),
-					Type:              "LvlDBSerial",
+					Type:              "MemDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,
@@ -216,7 +230,7 @@ func createHardForkExporter(
 				},
 				DB: config.DBConfig{
 					FilePath:          "ExportState" + fmt.Sprintf("%d", id),
-					Type:              "LvlDBSerial",
+					Type:              "MemDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,
@@ -225,6 +239,17 @@ func createHardForkExporter(
 			WhiteListHandler:      node.WhiteListHandler,
 			InterceptorsContainer: node.InterceptorsContainer,
 			ExistingResolvers:     node.ResolversContainer,
+			Accounts:              node.AccntState,
+			MultiSigner:           node.MultiSigner,
+			NodesCoordinator:      node.NodesCoordinator,
+			SingleSigner:          node.OwnAccount.SingleSigner,
+			AddrConverter:         integrationTests.TestAddressConverter,
+			BlockKeyGen:           node.OwnAccount.KeygenBlockSign,
+			KeyGen:                node.OwnAccount.KeygenTxSign,
+			BlockSigner:           node.OwnAccount.BlockSingleSigner,
+			HeaderSigVerifier:     node.HeaderSigVerifier,
+			ChainID:               node.ChainID,
+			ValidityAttester:      node.BlockTracker,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

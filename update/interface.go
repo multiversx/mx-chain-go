@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -144,4 +145,12 @@ type DataReader interface {
 	Text() string
 	Scan() bool
 	Err() error
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsForCurrentShard(interceptedData process.InterceptedData) bool
+	IsInterfaceNil() bool
 }

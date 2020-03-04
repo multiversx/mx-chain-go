@@ -63,10 +63,7 @@ func createMbMap() map[string]*block.MiniBlock {
 }
 
 func createTestImportFile(t *testing.T, folderName string, storer storage.Storer) {
-	testFolderName := folderName
-	_ = os.Mkdir(testFolderName, 0755)
-	testPath := "./" + folderName
-	argsWriter := files.ArgsNewMultiFileWriter{ExportFolder: testPath, ExportStore: storer}
+	argsWriter := files.ArgsNewMultiFileWriter{ExportFolder: folderName, ExportStore: storer}
 	writer, _ := files.NewMultiFileWriter(argsWriter)
 
 	metaBlock := &block.MetaBlock{Round: 1, ChainID: []byte("chainId")}
@@ -98,13 +95,13 @@ func createTestImportFile(t *testing.T, folderName string, storer storage.Storer
 	require.Nil(t, err)
 
 	// check if export files was created
-	if _, err = os.Stat(testPath + "/" + MetaBlockFileName); err != nil {
+	if _, err = os.Stat(folderName + "/" + MetaBlockFileName); err != nil {
 		require.Fail(t, "file wasn't created"+MetaBlockFileName)
 	}
-	if _, err = os.Stat(testPath + "/" + MiniBlocksFileName); err != nil {
+	if _, err = os.Stat(folderName + "/" + MiniBlocksFileName); err != nil {
 		require.Fail(t, "file wasn't created"+MiniBlocksFileName)
 	}
-	if _, err = os.Stat(testPath + "/" + TransactionsFileName); err != nil {
+	if _, err = os.Stat(folderName + "/" + TransactionsFileName); err != nil {
 		require.Fail(t, "file wasn't created"+TransactionsFileName)
 	}
 }
@@ -131,7 +128,11 @@ func TestNewStateImport(t *testing.T) {
 func TestImportAll(t *testing.T) {
 	t.Parallel()
 
-	folderName := "files"
+	folderName := "./files"
+	defer func() {
+		_ = os.RemoveAll(folderName)
+	}()
+
 	storer := mock.NewStorerMock()
 	createTestImportFile(t, folderName, storer)
 
@@ -145,10 +146,6 @@ func TestImportAll(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-
-	defer func() {
-		_ = os.RemoveAll("./" + folderName + "/")
-	}()
 
 	importState, _ := NewStateImport(args)
 	require.False(t, check.IfNil(importState))

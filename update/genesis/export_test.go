@@ -47,8 +47,11 @@ func TestExportAll(t *testing.T) {
 	t.Parallel()
 
 	testFolderName := "testFiles"
-	_ = os.Mkdir(testFolderName, 0755)
 	testPath := "./" + testFolderName
+	defer func() {
+		_ = os.RemoveAll(testPath)
+	}()
+
 	storer := mock.NewStorerMock()
 	argsWriter := files.ArgsNewMultiFileWriter{ExportFolder: testPath, ExportStore: storer}
 	writer, _ := files.NewMultiFileWriter(argsWriter)
