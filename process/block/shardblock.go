@@ -816,7 +816,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	sp.updateState(selfNotarizedHeaders)
+	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -904,7 +904,9 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
+	sp.snapShotEpochStartFromMeta(currentHeader)
+
 	for i := range headers {
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
@@ -912,48 +914,45 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
 			return
 		}
 
-		rootHash, err := sp.getRootHashForSnapshot(headers[i])
-		if err != nil {
-			return
-		}
-
 		sp.updateStateStorage(
 			headers[i],
-			rootHash,
+			headers[i].GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
 	}
 }
 
-func (sp *shardProcessor) getRootHashForSnapshot(header data.HeaderHandler) ([]byte, error) {
-	if header.IsStartOfEpochBlock() {
-		shardHdr, ok := header.(*block.Header)
-		if !ok {
-			log.Warn("wrong type assertion")
-			return nil, process.ErrWrongTypeAssertion
-		}
+func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
+	accounts := sp.accountsDB[state.UserAccountsState]
+	if !accounts.IsPruningEnabled() {
+		return
+	}
 
+	if header.IsStartOfEpochBlock() {
 		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
 		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
 		if err != nil {
 			log.Warn("could not find epoch start metablock for", "epoch", header.GetEpoch(), "err", err)
-			return nil, err
+			return
 		}
 
 		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
-			if epochStartShData.ShardId != shardHdr.ShardId {
+			if epochStartShData.ShardId != header.ShardId {
 				continue
 			}
 
-			return epochStartShData.RootHash, nil
+			rootHash := epochStartShData.RootHash
+			accounts.CancelPrune(rootHash, data.NewRoot)
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
+			accounts.SnapshotState(rootHash)
+
+			return
 		}
 
 		log.Warn("could not find epoch start shard data in metaBlock for", "epoch", header.GetEpoch(), "err", err)
-		return nil, process.ErrGettingShardDataFromEpochStartData
+		return
 	}
-
-	return header.GetRootHash(), nil
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {

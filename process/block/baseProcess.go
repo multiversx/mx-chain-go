@@ -1001,7 +1001,6 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHash, data.NewRoot)
-
 	if finalHeader.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", rootHash)
 		accounts.SnapshotState(rootHash)
