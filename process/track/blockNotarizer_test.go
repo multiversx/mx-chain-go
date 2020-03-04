@@ -82,6 +82,16 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenShardIsInvali
 	assert.Equal(t, 1, len(bn.GetNotarizedHeaders()[0]))
 }
 
+func TestCleanupNotarizedHeadersBehindNonce_ShouldKeepAtLeastOneHeader(t *testing.T) {
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	bn.AddNotarizedHeader(0, &block.Header{}, nil)
+	bn.CleanupNotarizedHeadersBehindNonce(0, 1)
+
+	assert.Equal(t, 1, len(bn.GetNotarizedHeaders()[0]))
+}
+
 func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})

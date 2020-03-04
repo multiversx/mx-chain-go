@@ -1031,8 +1031,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.commitEpochStart(header, body)
 
-	mp.cleanupBlockTrackerPools(headerHandler)
-
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err
@@ -1139,6 +1137,7 @@ func (mp *metaProcessor) CommitBlock(
 		"headers pool capacity", mp.dataPool.Headers().MaxSize(),
 	)
 
+	mp.cleanupBlockTrackerPools(headerHandler)
 	go mp.cleanupPools(headerHandler)
 
 	return nil

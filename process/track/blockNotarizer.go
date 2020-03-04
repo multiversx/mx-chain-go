@@ -51,12 +51,17 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 
 	bn.mutNotarizedHeaders.Lock()
 	bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
-	if len(bn.notarizedHeaders[shardID]) > 1 {
+	numNotarizedHeadersForShard := len(bn.notarizedHeaders[shardID])
+	if numNotarizedHeadersForShard > 1 {
 		sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
 			return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
 		})
 	}
 	bn.mutNotarizedHeaders.Unlock()
+
+	if numNotarizedHeadersForShard > maxNumHeadersToKeepPerShard {
+		bn.cleanupWhenMaxCapacityIsReached(shardID)
+	}
 }
 
 // CleanupNotarizedHeadersBehindNonce cleanups notarized headers for a given shard behind a given nonce
@@ -77,6 +82,15 @@ func (bn *blockNotarizer) CleanupNotarizedHeadersBehindNonce(shardID uint32, non
 	for _, hdrInfo := range notarizedHeaders {
 		if hdrInfo.Header.GetNonce() < nonce {
 			continue
+		}
+
+		headersInfo = append(headersInfo, hdrInfo)
+	}
+
+	if len(headersInfo) == 0 {
+		hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
+		if hdrInfo == nil {
+			return
 		}
 
 		headersInfo = append(headersInfo, hdrInfo)
@@ -246,4 +260,13 @@ func (bn *blockNotarizer) RestoreNotarizedHeadersToGenesis() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *blockNotarizer) IsInterfaceNil() bool {
 	return bn == nil
+}
+
+func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
+	bn.mutNotarizedHeaders.Lock()
+	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+	if notarizedHeadersCount > maxNumHeadersToKeepPerShard {
+		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][numHeadersToRemovePerShard:]
+	}
+	bn.mutNotarizedHeaders.Unlock()
 }
