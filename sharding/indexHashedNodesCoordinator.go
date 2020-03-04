@@ -356,63 +356,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
-// GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap
-// TODO: This function needs to be revised when the requirements are clarified
-func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
-	selection []byte,
-	shardId uint32,
-	epoch uint32,
-) (publicKeys []string, err error) {
-
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
-	}
-
-	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
-		return nil, ErrInvalidShardId
-	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-
-	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
-	shardEligibleLen := uint16(len(nodesConfig.eligibleMap[shardId]))
-	invalidSelection := selectionLen < shardEligibleLen
-
-	if invalidSelection {
-		return nil, ErrEligibleSelectionMismatch
-	}
-
-	consensusSize := ihgs.ConsensusGroupSize(shardId)
-	publicKeys = make([]string, consensusSize)
-	cnt := 0
-
-	for i := uint16(0); i < shardEligibleLen; i++ {
-		isSelected := (selection[i/8] & (1 << (i % 8))) != 0
-
-		if !isSelected {
-			continue
-		}
-
-		publicKeys[cnt] = string(nodesConfig.eligibleMap[shardId][i].PubKey())
-		cnt++
-
-		if cnt > consensusSize {
-			return nil, ErrEligibleTooManySelections
-		}
-	}
-
-	if cnt < consensusSize {
-		return nil, ErrEligibleTooFewSelections
-	}
-
-	return publicKeys, nil
-}
-
 // GetAllValidatorsPublicKeys will return all validators public keys for all shards
 func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
@@ -463,7 +406,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 
 	if len(publicKeys) != len(signersIndexes) {
 		log.Error("public keys not found", "len pubKeys", len(publicKeys), "len signers", len(signersIndexes))
-		return nil, ErrNotInvalidNumberPubKeys
+		return nil, ErrInvalidNumberPubKeys
 	}
 
 	return signersIndexes, nil
@@ -552,31 +495,35 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	epoch uint32,
 ) (map[string]struct{}, error) {
-	publicKeysPrevEpoch := make(map[uint32][][]byte)
+
 	var err error
+	shardEligible := make(map[string]struct{})
+	publicKeysPrevEpoch := make(map[uint32][][]byte)
+	prevEpochConfigExists := false
 
 	if epoch > 0 {
 		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			prevEpochConfigExists = true
+		} else {
+			log.Warn("get consensus whitelisted nodes", "error", err.Error())
+		}
+	}
+
+	if prevEpochConfigExists {
+		prevEpochShardId, err := ihgs.ShardIdForEpoch(epoch - 1)
+		if err == nil {
+			for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
+				shardEligible[string(pubKey)] = struct{}{}
+			}
+		} else {
+			log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
 		}
 	}
 
 	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
-	}
-
-	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
-	shardEligible := make(map[string]struct{}, estimatedMapSize)
-
-	prevEpochShardId, err := ihgs.ShardIdForEpoch(epoch - 1)
-	if err == nil {
-		for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
-			shardEligible[string(pubKey)] = struct{}{}
-		}
-	} else {
-		log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
 	}
 
 	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
@@ -621,17 +568,6 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *e
 	}
 
 	return selfShard
-}
-
-// validatorIsInList returns true if a validator has been found in provided list
-func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []Validator) bool {
-	for i := 0; i < len(list); i++ {
-		if bytes.Equal(v.PubKey(), list[i].PubKey()) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // ConsensusGroupSize returns the consensus group size for a specific shard
