@@ -887,9 +887,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch)
+	err = ef.StartNode()
 	if err != nil {
-		log.Error("starting node failed", err.Error())
+		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
 		return err
 	}
 
