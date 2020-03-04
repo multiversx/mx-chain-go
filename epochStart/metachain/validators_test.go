@@ -530,3 +530,11 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 		require.Nil(t, err)
 	}
 }
+
+func TestEpochValidatorInfoCreator_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+	require.False(t, vic.IsInterfaceNil())
+}

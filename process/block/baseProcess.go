@@ -521,6 +521,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
+		if miniBlock == nil {
+			return process.ErrNilMiniBlock
+		}
 
 		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
