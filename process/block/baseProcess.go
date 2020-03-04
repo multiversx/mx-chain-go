@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -40,14 +39,6 @@ type hdrInfo struct {
 	hdr         data.HeaderHandler
 }
 
-type hdrForBlock struct {
-	missingHdrs                  uint32
-	missingFinalityAttestingHdrs uint32
-	highestHdrNonce              map[uint32]uint64
-	mutHdrsForBlock              sync.RWMutex
-	hdrHashAndInfo               map[string]*hdrInfo
-}
-
 type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
 	nodesCoordinator             sharding.NodesCoordinator
@@ -71,8 +62,7 @@ type baseProcessor struct {
 	dataPool                     dataRetriever.PoolsHolder
 	feeHandler                   process.TransactionFeeHandler
 	blockChain                   data.ChainHandler
-
-	hdrsForCurrBlock hdrForBlock
+	hdrsForCurrBlock             *hdrForBlock
 
 	appStatusHandler       core.AppStatusHandler
 	blockProcessor         blockProcessor
@@ -393,20 +383,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 }
 
 func (bp *baseProcessor) createBlockStarted() {
-	bp.resetMissingHdrs()
-	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	bp.hdrsForCurrBlock.resetMissingHdrs()
+	bp.hdrsForCurrBlock.initMaps()
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted()
-}
-
-func (bp *baseProcessor) resetMissingHdrs() {
-	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	bp.hdrsForCurrBlock.missingHdrs = 0
-	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
-	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
 func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error {

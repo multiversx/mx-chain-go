@@ -117,8 +117,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.baseProcessor.requestBlockBodyHandler = &mp
 	mp.blockProcessor = &mp
 
-	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	mp.hdrsForCurrBlock = newHdrForBlock()
 
 	headerPool := mp.dataPool.Headers()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -227,7 +226,7 @@ func (mp *metaProcessor) ProcessBlock(
 		missingShardHdrs := mp.hdrsForCurrBlock.missingHdrs
 		mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-		mp.resetMissingHdrs()
+		mp.hdrsForCurrBlock.resetMissingHdrs()
 
 		if requestedShardHdrs > 0 {
 			log.Debug("received missing shard headers",
@@ -1002,8 +1001,8 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := headerInfo.hdr.(*block.Header)
-		if !ok {
+		shardBlock, okTypeAssertion := headerInfo.hdr.(*block.Header)
+		if !okTypeAssertion {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
@@ -1709,7 +1708,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")
-	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -1723,7 +1722,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
 	if err != nil {
 		return err
 	}

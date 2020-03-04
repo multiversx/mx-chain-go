@@ -173,7 +173,7 @@ func (vs *validatorStatistics) saveInitialState(
 
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
-func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
 	}
@@ -205,7 +205,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateShardDataPeerState(header)
+	err = vs.updateShardDataPeerState(header, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +448,7 @@ func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error 
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
-func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
+func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler, cacheMap map[string]data.HeaderHandler) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
@@ -475,14 +475,17 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			continue
 		}
 
-		prevShardData, shardInfoErr := process.GetShardHeader(
-			h.PrevHash,
-			vs.dataPool.Headers(),
-			vs.marshalizer,
-			vs.storageService,
-		)
+		prevShardData, shardInfoErr := vs.searchInMap(h.PrevHash, cacheMap)
 		if shardInfoErr != nil {
-			return shardInfoErr
+			prevShardData, shardInfoErr = process.GetShardHeader(
+				h.PrevHash,
+				vs.dataPool.Headers(),
+				vs.marshalizer,
+				vs.storageService,
+			)
+			if shardInfoErr != nil {
+				return shardInfoErr
+			}
 		}
 
 		shardInfoErr = vs.checkForMissedBlocks(
@@ -498,6 +501,20 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	}
 
 	return nil
+}
+
+func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (*block.Header, error) {
+	blkHandler := cacheMap[string(hash)]
+	if check.IfNil(blkHandler) {
+		return nil, process.ErrMissingHeader
+	}
+
+	blk, ok := blkHandler.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return blk, nil
 }
 
 func (vs *validatorStatistics) initializeNode(

@@ -106,8 +106,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
-	sp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	sp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	sp.hdrsForCurrBlock = newHdrForBlock()
 	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
 	metaBlockPool := sp.dataPool.Headers()
@@ -208,7 +207,7 @@ func (sp *shardProcessor) ProcessBlock(
 		missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
 		sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-		sp.resetMissingHdrs()
+		sp.hdrsForCurrBlock.resetMissingHdrs()
 
 		if requestedMetaHdrs > 0 {
 			log.Debug("received missing meta headers",
@@ -1224,9 +1223,9 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		}
 
 		// metablock was processed and finalized
-		marshalizedHeader, err := sp.marshalizer.Marshal(hdr)
-		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", err.Error())
+		marshalizedHeader, errMarshal := sp.marshalizer.Marshal(hdr)
+		if errMarshal != nil {
+			log.Debug("marshalizer.Marshal", "error", errMarshal.Error())
 			continue
 		}
 
