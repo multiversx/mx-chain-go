@@ -171,7 +171,7 @@ func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block
 			}
 
 			mbHash := r.hasher.Compute(string(marshaledData))
-			if len(mbHash) == 0 || !bytes.Equal(mbHeader.Hash, mbHash) {
+			if !bytes.Equal(mbHeader.Hash, mbHash) {
 				continue
 			}
 
