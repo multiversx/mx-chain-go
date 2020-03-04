@@ -642,12 +642,6 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
-// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
-var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
-
-// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
-var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch econimics data does not match")
-
 // ErrNilEpochEconomics signals that nil end of epoch econimics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
 

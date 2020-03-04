@@ -88,3 +88,21 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
+
+// ErrNilRewardsHandler signals that rewards handler is nil
+var ErrNilRewardsHandler = errors.New("rewards handler is nil")
+
+// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
+var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
+
+// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
+var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
+
+// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
+var ErrNilRounder = errors.New("nil Rounder")
+
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNotEpochStartBlock signals that block is not of type epoch start
+var ErrNotEpochStartBlock = errors.New("not epoch start block")

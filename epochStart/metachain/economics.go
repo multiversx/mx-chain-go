@@ -1,13 +1,15 @@
 package metachain
 
 import (
-	"fmt"
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -18,6 +20,7 @@ const numberOfSecondsInDay = 86400
 
 type economics struct {
 	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
@@ -25,9 +28,10 @@ type economics struct {
 	roundTime        process.RoundTimeDurationHandler
 }
 
-// ArgsNewEpochEconomics
+// ArgsNewEpochEconomics holds the arguments needed when creating a new end of epoch economics data creator
 type ArgsNewEpochEconomics struct {
 	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
 	Store            dataRetriever.StorageService
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
@@ -38,19 +42,22 @@ type ArgsNewEpochEconomics struct {
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
 func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, error) {
 	if check.IfNil(args.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, epochStart.ErrNilHasher
 	}
 	if check.IfNil(args.Store) {
-		return nil, process.ErrNilStore
+		return nil, epochStart.ErrNilStorage
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+		return nil, epochStart.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
+		return nil, epochStart.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.RewardsHandler) {
-		return nil, process.ErrNilRewardsHandler
+		return nil, epochStart.ErrNilRewardsHandler
 	}
 	if check.IfNil(args.RoundTime) {
 		return nil, process.ErrNilRounder
@@ -58,6 +65,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 
 	e := &economics{
 		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
 		store:            args.Store,
 		shardCoordinator: args.ShardCoordinator,
 		nodesCoordinator: args.NodesCoordinator,
@@ -67,18 +75,18 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	return e, nil
 }
 
-// ComputeRewardsPerBlock calculates the rewards per block value for the current epoch
+// ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
 	if check.IfNil(metaBlock) {
-		return nil, process.ErrNilHeaderHandler
+		return nil, epochStart.ErrNilHeaderHandler
 	}
 	if metaBlock.AccumulatedFeesInEpoch == nil {
-		return nil, process.ErrNilTotalAccumulatedFeesInEpoch
+		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
-		return nil, process.ErrNotEpochStartBlock
+		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
 	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
@@ -111,13 +119,19 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock = big.NewInt(0).Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
+	if err != nil {
+		return nil, err
+	}
+
 	computedEconomics := block.Economics{
 		TotalSupply:            big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
 		TotalToDistribute:      big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
-		NodePrice: big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		NodePrice:          big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		PrevEpochStartHash: prevEpochStartHash,
 	}
 
 	return &computedEconomics, nil
@@ -218,23 +232,20 @@ func (e *economics) VerifyRewardsPerBlock(
 	if err != nil {
 		return err
 	}
+	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
+	if err != nil {
+		return err
+	}
 
 	receivedEconomics := metaBlock.EpochStart.Economics
-	if computedEconomics.TotalToDistribute.Cmp(receivedEconomics.TotalToDistribute) != 0 {
-		return fmt.Errorf("%w total to distribute computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalToDistribute, receivedEconomics.TotalToDistribute)
+	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, &receivedEconomics)
+	if err != nil {
+		return err
 	}
-	if computedEconomics.TotalNewlyMinted.Cmp(receivedEconomics.TotalNewlyMinted) != 0 {
-		return fmt.Errorf("%w total newly minted computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalNewlyMinted, receivedEconomics.TotalNewlyMinted)
-	}
-	if computedEconomics.TotalSupply.Cmp(receivedEconomics.TotalSupply) != 0 {
-		return fmt.Errorf("%w total supply computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.TotalSupply, receivedEconomics.TotalSupply)
-	}
-	if computedEconomics.RewardsPerBlockPerNode.Cmp(receivedEconomics.RewardsPerBlockPerNode) != 0 {
-		return fmt.Errorf("%wrewards per block per node computed %d received %d",
-			process.ErrEndOfEpochEconomicsDataDoesNotMatch, computedEconomics.RewardsPerBlockPerNode, receivedEconomics.RewardsPerBlockPerNode)
+
+	if !bytes.Equal(receivedEconomicsHash, computedEconomicsHash) {
+		logEconomicsDifferences(computedEconomics, &receivedEconomics)
+		return epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch
 	}
 
 	return nil
@@ -243,4 +254,19 @@ func (e *economics) VerifyRewardsPerBlock(
 // IsInterfaceNil returns true if underlying object is nil
 func (e *economics) IsInterfaceNil() bool {
 	return e == nil
+}
+
+func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
+	log.Warn("VerifyRewardsPerBlock error",
+		"\ncomputed total to distribute", computed.TotalToDistribute,
+		"computed total newly minted", computed.TotalNewlyMinted,
+		"computed total supply", computed.TotalSupply,
+		"computed rewards per block per node", computed.RewardsPerBlockPerNode,
+		"computed node price", computed.NodePrice,
+		"\nreceived total to distribute", received.TotalToDistribute,
+		"received total newly minted", received.TotalNewlyMinted,
+		"received total supply", received.TotalSupply,
+		"received rewards per block per node", received.RewardsPerBlockPerNode,
+		"received node price", received.NodePrice,
+	)
 }

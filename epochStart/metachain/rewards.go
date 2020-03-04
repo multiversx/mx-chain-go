@@ -213,9 +213,9 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 
 		numReceivedRewardsMBs++
 		createdMiniBlock := createdMiniBlocks[miniBlockHdr.ReceiverShardID]
-		createdMBHash, err := core.CalculateHash(r.marshalizer, r.hasher, createdMiniBlock)
-		if err != nil {
-			return err
+		createdMBHash, errHashCalculate := core.CalculateHash(r.marshalizer, r.hasher, createdMiniBlock)
+		if errHashCalculate != nil {
+			return errHashCalculate
 		}
 
 		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
