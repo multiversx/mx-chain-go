@@ -68,6 +68,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 
 	container, err := vmf.Create()
+	defer container.Close()
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
