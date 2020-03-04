@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -31,6 +33,69 @@ type PeerAccountHandlerMock struct {
 	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
+	AddToAccumulatedFeesCalled                    func(value *big.Int) error
+	IncreaseNumSelectedInSuccessBlocksCalled      func() error
+	ResetAtNewEpochCalled                         func() error
+	SetRewardAddressWithJournalCalled             func(address []byte) error
+	SetSchnorrPublicKeyWithJournalCalled          func(address []byte) error
+	SetBLSPublicKeyWithJournalCalled              func(address []byte) error
+	SetStakeWithJournalCalled                     func(stake *big.Int) error
+}
+
+// ResetAtNewEpoch -
+func (pahm *PeerAccountHandlerMock) ResetAtNewEpoch() error {
+	if pahm.ResetAtNewEpochCalled != nil {
+		return pahm.ResetAtNewEpochCalled()
+	}
+	return nil
+}
+
+// SetRewardAddressWithJournal -
+func (pahm *PeerAccountHandlerMock) SetRewardAddressWithJournal(address []byte) error {
+	if pahm.SetRewardAddressWithJournalCalled != nil {
+		return pahm.SetRewardAddressWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetSchnorrPublicKeyWithJournal -
+func (pahm *PeerAccountHandlerMock) SetSchnorrPublicKeyWithJournal(address []byte) error {
+	if pahm.SetSchnorrPublicKeyWithJournalCalled != nil {
+		return pahm.SetSchnorrPublicKeyWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetBLSPublicKeyWithJournal -
+func (pahm *PeerAccountHandlerMock) SetBLSPublicKeyWithJournal(address []byte) error {
+	if pahm.SetBLSPublicKeyWithJournalCalled != nil {
+		return pahm.SetBLSPublicKeyWithJournalCalled(address)
+	}
+	return nil
+}
+
+// SetStakeWithJournal -
+func (pahm *PeerAccountHandlerMock) SetStakeWithJournal(stake *big.Int) error {
+	if pahm.SetStakeWithJournalCalled != nil {
+		return pahm.SetStakeWithJournalCalled(stake)
+	}
+	return nil
+}
+
+// IncreaseNumSelectedInSuccessBlocks -
+func (pahm *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() error {
+	if pahm.IncreaseNumSelectedInSuccessBlocksCalled != nil {
+		return pahm.IncreaseNumSelectedInSuccessBlocks()
+	}
+	return nil
+}
+
+// AddToAccumulatedFees -
+func (pahm *PeerAccountHandlerMock) AddToAccumulatedFees(value *big.Int) error {
+	if pahm.AddToAccumulatedFeesCalled != nil {
+		return pahm.AddToAccumulatedFeesCalled(value)
+	}
+	return nil
 }
 
 // SetListAndIndexWithJournal -

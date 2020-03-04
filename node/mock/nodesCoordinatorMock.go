@@ -63,6 +63,11 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return list, nil
 }
 
+// GetNumTotalEligible -
+func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	return 1
+}
+
 // ConsensusGroupSize -
 func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	return 1
@@ -148,6 +153,11 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
 ) (map[string]struct{}, error) {
 	return make(map[string]struct{}), nil
+}
+
+// SetConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
+	panic("implement me")
 }
 
 // GetSelectedPublicKeys -

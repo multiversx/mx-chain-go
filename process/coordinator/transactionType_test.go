@@ -186,11 +186,10 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255}
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
