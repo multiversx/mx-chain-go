@@ -354,7 +354,7 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMiniBlocks := noOfShards + 1
 	numResolverPeerChanges := 1
 	numResolverMetaBlockHeaders := 1
-	numResolverTrieNodes := 2
+	numResolverTrieNodes := 3
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
 		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes
 

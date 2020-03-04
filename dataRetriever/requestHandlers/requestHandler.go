@@ -328,7 +328,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []b
 		"hash", hash,
 	)
 
-	resolver, err := rrh.resolversFinder.CrossShardResolver(topic, destShardID)
+	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),

@@ -227,17 +227,8 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	trieInterceptors := make([]process.Interceptor, 0)
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
-		if err != nil {
-			return err
-		}
-
-		keys = append(keys, identifierTrieNodes)
-		trieInterceptors = append(trieInterceptors, interceptor)
-
-		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
 		}
@@ -246,7 +237,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err
@@ -255,7 +246,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err

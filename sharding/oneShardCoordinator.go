@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -13,7 +14,7 @@ func (osc *OneShardCoordinator) NumberOfShards() uint32 {
 }
 
 // ComputeId gets shard for the given address
-func (osc *OneShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
+func (osc *OneShardCoordinator) ComputeId(_ state.AddressContainer) uint32 {
 	return 0
 }
 
@@ -23,14 +24,14 @@ func (osc *OneShardCoordinator) SelfId() uint32 {
 }
 
 // SameShard returns weather two addresses belong to the same shard
-func (osc *OneShardCoordinator) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (osc *OneShardCoordinator) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // for this implementation, it will always return "_0" as there is a single shard
 func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
-	return communicationIdentifierBetweenShards(destShardID, 0)
+	return core.CommunicationIdentifierBetweenShards(destShardID, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

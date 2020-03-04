@@ -27,7 +27,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -105,9 +105,11 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	_ = logger.SetLogLevel("*:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -154,7 +156,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	/////////----- wait for epoch end period
 	epoch := uint32(2)
-	nrRoundsToPropagateMultiShard := uint64(5)
+	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -179,8 +181,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	}()
 
 	createHardForkExporter(t, nodes)
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")

@@ -341,7 +341,7 @@ func (t *trigger) isMetaBlockValid(_ string, metaHdr *block.MetaBlock) bool {
 	return true
 }
 
-func (t *trigger) IsMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
+func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.Round
 	currHdr := metaHdr
@@ -384,7 +384,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
-	isMetaHdrFinal, finalityAttestingRound := t.IsMetaBlockFinal(hash, metaHdr)
+	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
 }
 
@@ -590,6 +590,14 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	defer t.mutTrigger.RUnlock()
 
 	return t.epochMetaBlockHash
+}
+
+// EpochStartMeta returns the epoch start announcing meta header
+func (t *trigger) EpochStartMeta() *block.MetaBlock {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.epochStartMeta
 }
 
 // GetSavedStateKey returns the last saved trigger state key

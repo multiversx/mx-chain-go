@@ -252,7 +252,7 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversUnsigned := noOfShards + 1
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := (noOfShards + 1) * 2
+	numResolversTrieNodes := noOfShards + 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 

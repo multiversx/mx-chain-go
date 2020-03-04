@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -46,6 +47,12 @@ func (rf *resolversFinder) MetaChainResolver(baseTopic string) (dataRetriever.Re
 // baseTopic will be one of the constants defined in factory.go: TransactionTopic, HeadersTopic and so on
 func (rf *resolversFinder) CrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
 	topic := baseTopic + rf.coordinator.CommunicationIdentifier(crossShard)
+	return rf.Get(topic)
+}
+
+// MetaCrossShardResolver fetches the cross shard Resolver between crossShard and meta
+func (rf *resolversFinder) MetaCrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+	topic := baseTopic + core.CommunicationIdentifierBetweenShards(crossShard, core.MetachainShardId)
 	return rf.Get(topic)
 }
 

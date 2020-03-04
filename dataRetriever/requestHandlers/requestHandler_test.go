@@ -868,7 +868,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return resolverMock, nil
 			},
 		},
@@ -889,7 +889,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 	called := false
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
+			MetaCrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
 				called = true
 				return nil, localError
 			},
@@ -918,7 +918,7 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return resolverMock, nil
 			},
 		},

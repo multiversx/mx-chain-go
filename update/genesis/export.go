@@ -142,8 +142,6 @@ func (se *stateExport) exportAllTries() error {
 		}
 	}
 
-	se.writer.Finish()
-
 	return nil
 }
 
