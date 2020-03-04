@@ -38,7 +38,6 @@ type scProcessor struct {
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
-	isCallBack       bool
 	builtInFunctions map[string]process.BuiltinFunction
 
 	scrForwarder  process.IntermediateTransactionHandler
@@ -385,14 +384,13 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	sc.isCallBack = false
 	dataToParse := tx.GetData()
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
-	if isSCRResultFromCrossShardCall {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-		sc.isCallBack = true
+	if ok {
+		if scr.CallType == vmcommon.AsynchronousCallBack {
+			dataToParse = append([]byte("callBack"), tx.GetData()...)
+		}
 	}
 
 	err := sc.argsParser.ParseData(string(dataToParse))
