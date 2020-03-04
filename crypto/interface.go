@@ -117,6 +117,8 @@ type Suite interface {
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	// GetPublicKeyPoint will generate a Point that will be the representation of the implemented signature scheme
+	GetPublicKeyPoint(scalar Scalar) (Point, error)
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
@@ -169,7 +170,7 @@ func generateFiles(ctx *cli.Context) error {
 }
 
 func getSuiteForBalanceSk() crypto.Suite {
-	return kyber.NewBlakeSHA256Ed25519()
+	return ed25519.NewEd25519()
 }
 
 func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
@@ -179,7 +180,7 @@ func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
 	case "bls":
 		return kyber.NewSuitePairingBn256()
 	case "bn":
-		return kyber.NewBlakeSHA256Ed25519()
+		return ed25519.NewEd25519()
 	default:
 		return nil
 	}

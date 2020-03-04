@@ -7,8 +7,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -46,7 +46,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 
 	twa := &TestWalletAccount{}
 
-	twa.SingleSigner = &singlesig.SchnorrSigner{}
+	twa.SingleSigner = &ed25519SingleSig.Ed25519Signer{}
 	sk, pk, _ := GenerateSkAndPkInShard(coordinator, shardId)
 
 	pkBuff, _ := pk.ToByteArray()
@@ -56,7 +56,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 	twa.PkTxSign = pk
 	twa.PkTxSignBytes, _ = pk.ToByteArray()
 
-	twa.KeygenTxSign = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	twa.KeygenTxSign = signing.NewKeyGenerator(ed25519.NewEd25519())
 	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
 
 	twa.KeygenBlockSign = keyGenBlockSign
@@ -67,7 +67,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 
 // initCrypto initializes the crypto for the account
 func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shardId uint32) {
-	twa.SingleSigner = &singlesig.SchnorrSigner{}
+	twa.SingleSigner = &ed25519SingleSig.Ed25519Signer{}
 	twa.BlockSingleSigner = &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return nil

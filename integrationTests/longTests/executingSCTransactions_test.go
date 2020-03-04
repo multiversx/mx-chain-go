@@ -69,7 +69,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -150,7 +150,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -236,7 +236,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -327,7 +327,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)

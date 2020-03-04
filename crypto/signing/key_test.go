@@ -75,6 +75,10 @@ func createMockSuite() crypto.Suite {
 		CreateKeyPairStub: createKeyPair,
 		CreateScalarStub:  createScalar,
 		CreatePointStub:   createPoint,
+		GetPublicKeyPointStub: func(scalar crypto.Scalar) (crypto.Point, error) {
+			point, _ := createPoint().Base().Mul(scalar)
+			return point, nil
+		},
 	}
 
 	return suite
@@ -237,7 +241,9 @@ func TestPrivateKey_GeneratePublicOK(t *testing.T) {
 	pubkey := privKey.GeneratePublic() // pubKey = privKey * BasePoint.Y
 	pubKeyBytes, _ := pubkey.Point().MarshalBinary()
 
-	assert.Equal(t, []byte(fmt.Sprintf("%d%d", initScalar, initScalar)), pubKeyBytes)
+	exBytes := []byte(fmt.Sprintf("%d%d", initScalar, initScalar))
+
+	assert.Equal(t, exBytes, pubKeyBytes)
 }
 
 func TestPrivateKey_SuiteOK(t *testing.T) {

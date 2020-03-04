@@ -11,6 +11,7 @@ type PointMock struct {
 	X int
 	Y int
 
+	GetUnderlyingObjStub func() interface{}
 	MarshalBinaryStub   func(x, y int) ([]byte, error)
 	UnmarshalBinaryStub func([]byte) (x, y int, err error)
 }
@@ -97,6 +98,9 @@ func (po *PointMock) Pick(rand cipher.Stream) (crypto.Point, error) {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (po *PointMock) GetUnderlyingObj() interface{} {
+	if po.GetUnderlyingObjStub != nil {
+		return po.GetUnderlyingObjStub()
+	}
 	return 0
 }
 

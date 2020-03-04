@@ -10,8 +10,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -188,8 +188,8 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 }
 
 func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*heartbeat.Sender, crypto.PublicKey) {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	signer := &singlesig.SchnorrSigner{}
+	suite := ed25519.NewEd25519()
+	signer := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
@@ -207,8 +207,8 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 }
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singlesigner := &singlesig.SchnorrSigner{}
+	suite := ed25519.NewEd25519()
+	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.JsonMarshalizer{}
 

@@ -16,6 +16,7 @@ type SuiteMock struct {
 	RandomStreamStub       func() cipher.Stream
 	CreateKeyPairStub      func(cipher.Stream) (crypto.Scalar, crypto.Point)
 	GetUnderlyingSuiteStub func() interface{}
+	GetPublicKeyPointStub  func(scalar crypto.Scalar) (crypto.Point, error)
 }
 
 // String -
@@ -57,6 +58,11 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 // CreateKeyPair -
 func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
 	return s.CreateKeyPairStub(c)
+}
+
+// GetPublicKeyPoint -
+func (s *SuiteMock) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
+	return  s.GetPublicKeyPointStub(scalar)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

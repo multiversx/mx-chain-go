@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"math/big"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -90,7 +91,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		randomReceiverId := getRandomIndex(accountsByShard[0])
 		receiver := accountsByShard[0][randomReceiverId]
 
-		tx := generateTx(sender.sk, receiver.pk)
+		tx := generateTx(sender.sk, receiver.pk, txs)
 		txs = append(txs, tx)
 
 		sendersSks = append(sendersSks, sender.sk)
@@ -105,7 +106,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		randomReceiverId := getRandomIndex(accountsByShard[1])
 		receiver := accountsByShard[1][randomReceiverId]
 
-		tx := generateTx(sender.sk, receiver.pk)
+		tx := generateTx(sender.sk, receiver.pk, txs)
 		txs = append(txs, tx)
 		sendersSks = append(sendersSks, sender.sk)
 	}
@@ -155,7 +156,7 @@ func getRandomIndex(accSlice []keyPair) int {
 func generateAccounts(numOfAccounts int) []keyPair {
 	var accounts []keyPair
 	for idx := 0; idx < numOfAccounts; idx++ {
-		kg := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+		kg := signing.NewKeyGenerator(ed25519.NewEd25519())
 		sk, pk := kg.GeneratePair()
 		accounts = append(accounts, keyPair{
 			pk: pk,
@@ -166,11 +167,19 @@ func generateAccounts(numOfAccounts int) []keyPair {
 	return accounts
 }
 
-func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transaction.Transaction {
+func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, txs []*transaction.Transaction) *transaction.Transaction {
+	nonce := uint64(1)
 	receiverBytes, _ := receiver.ToByteArray()
 	senderBytes, _ := sender.GeneratePublic().ToByteArray()
+
+	for _, tx := range txs {
+		if bytes.Equal(senderBytes, tx.SndAddr) {
+			nonce++
+		}
+	}
+
 	tx := &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     nonce,
 		Value:     new(big.Int).SetInt64(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
@@ -180,7 +189,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 		Signature: nil,
 	}
 	marshalizedTxBeforeSigning, _ := json.Marshal(tx)
-	signer := singlesig.SchnorrSigner{}
+	signer := ed25519SingleSig.Ed25519Signer{}
 
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
 	tx.Signature = signature

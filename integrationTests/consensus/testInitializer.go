@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -259,7 +260,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
 	suite := kyber.NewSuitePairingBn256()
-	singleSigner := &singlesig.SchnorrSigner{}
+	singleSigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*keyPair)
@@ -371,7 +372,7 @@ func createConsensusOnlyNode(
 
 	startTime := int64(0)
 
-	singlesigner := &singlesig.SchnorrSigner{}
+	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), time.Hour, nil)
@@ -526,7 +527,6 @@ func createNodes(
 			consensusType,
 		)
 
-		testNodeObject.node = n
 		testNodeObject.node = n
 		testNodeObject.sk = kp.sk
 		testNodeObject.mesenger = mes

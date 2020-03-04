@@ -34,6 +34,18 @@ func (s *suitePairingBn256) CreatePoint() crypto.Point {
 	return &po
 }
 
+// GetPublicKeyPoint returns a Point that is the representation of a public key corresponding
+//  to the provided Scalar in the Bn256 signature scheme
+func (s *suitePairingBn256) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
+	point := s.CreatePoint().Base()
+	pubKeyPoint, err := point.Mul(scalar)
+	if err != nil {
+		return nil, err
+	}
+
+	return pubKeyPoint, nil
+}
+
 // String returns the string for the group
 func (s *suitePairingBn256) String() string {
 	return s.suite.String()

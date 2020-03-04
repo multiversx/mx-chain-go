@@ -10,7 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -1038,7 +1038,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		block.TxBlock,
 	)
 
-	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	keygen := signing.NewKeyGenerator(ed25519.NewEd25519())
 	_, accPk := keygen.GeneratePair()
 	pkBytes, _ := accPk.ToByteArray()
 

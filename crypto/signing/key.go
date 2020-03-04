@@ -104,8 +104,7 @@ func (spk *privateKey) ToByteArray() ([]byte, error) {
 
 // GeneratePublic builds a public key for the current private key
 func (spk *privateKey) GeneratePublic() crypto.PublicKey {
-	point := spk.suite.CreatePoint().Base()
-	pubKeyPoint, _ := point.Mul(spk.sk)
+	pubKeyPoint, _ := spk.suite.GetPublicKeyPoint(spk.sk)
 	return &publicKey{
 		suite: spk.suite,
 		pk:    pubKeyPoint,

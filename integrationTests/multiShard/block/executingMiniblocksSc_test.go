@@ -171,7 +171,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
 
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(
@@ -310,7 +310,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000100f79b7a0bb9c9b78e2f2abc03c81c1ab32b4a56114849")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)

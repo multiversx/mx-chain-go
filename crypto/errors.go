@@ -105,3 +105,9 @@ var ErrEmptyPubKeyString = errors.New("public key string is empty")
 
 // ErrInvalidSigner is raised when the signer is invalid
 var ErrInvalidSigner = errors.New("signer is invalid")
+
+// ErrEd25519InvalidSignature will be returned when ed25519 signature verification fails
+var ErrEd25519InvalidSignature = errors.New("ed25519: invalid signature")
+
+// ErrGeneratingPubFromPriv signals that there was an error generating a public key corresponding to a provided private key
+var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from provided private key")
