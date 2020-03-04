@@ -423,7 +423,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
-	sortTransactionsBySenderAndNonce(txsFromMe)
+	SortTransactionsBySenderAndNonce(txsFromMe)
 
 	isShardStuckFalse := func(uint32) bool {
 		return false
@@ -784,7 +784,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		receiverShardID := sortedTxs[index].ReceiverShardID
 
 		numNewMiniBlocks := 0
-		if _, ok := mapMiniBlocks[receiverShardID]; !ok {
+		if _, ok = mapMiniBlocks[receiverShardID]; !ok {
 			numNewMiniBlocks = 1
 		}
 		if txs.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, 1) {
@@ -890,7 +890,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 			continue
 		}
 
-		if _, ok := mapMiniBlocks[receiverShardID]; !ok {
+		if _, ok = mapMiniBlocks[receiverShardID]; !ok {
 			mapMiniBlocks[receiverShardID] = txs.createEmptyMiniBlock(senderShardID, receiverShardID, block.TxBlock)
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
@@ -981,7 +981,7 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	sortTransactionsBySenderAndNonce(sortedTxs)
+	SortTransactionsBySenderAndNonce(sortedTxs)
 	return sortedTxs, nil
 }
 
@@ -1094,8 +1094,8 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil
 }
 
-// sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
+// SortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx

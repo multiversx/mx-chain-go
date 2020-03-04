@@ -976,7 +976,7 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 	assert.Nil(t, err)
 }
 
-func ExampleSortTransactionsByNonceAndSender() {
+func ExampleSortTransactionsBySenderAndNonce() {
 	txs := []*txcache.WrappedTransaction{
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
 		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
@@ -988,7 +988,7 @@ func ExampleSortTransactionsByNonceAndSender() {
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
 	}
 
-	sortTransactionsBySenderAndNonce(txs)
+	SortTransactionsBySenderAndNonce(txs)
 
 	for _, item := range txs {
 		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddress()), string(item.TxHash))
@@ -1020,7 +1020,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		sortTransactionsBySenderAndNonce(txs)
+		SortTransactionsBySenderAndNonce(txs)
 	}
 }
 
