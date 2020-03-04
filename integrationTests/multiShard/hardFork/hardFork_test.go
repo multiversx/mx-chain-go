@@ -105,11 +105,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
