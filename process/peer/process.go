@@ -140,14 +140,12 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	listIndexUpdaterSetter.SetListIndexUpdater(liu)
 
-	vs.initialNodes = arguments.InitialNodes
-
 	err := vs.nodesCoordinator.UpdatePeersListAndIndex()
 	if err != nil {
 		return nil, err
 	}
 
-	err = vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
+	err = vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +159,7 @@ func (vs *validatorStatistics) saveInitialState(
 	startRating uint32,
 	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	nodesMap, err := vs.nodesCoordinator.GetEligiblePublicKeysPerShard(startEpoch)
 	if err != nil {
 		return err
 	}

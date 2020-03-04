@@ -22,7 +22,7 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 // GetWaitingPublicKeysPerShard -
 func (ncm *NodesCoordinatorMock) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
 	if ncm.GetWaitingPublicKeysPerShardCalled != nil {
-		return ncm.GetAllValidatorsPublicKeysCalled()
+		return ncm.GetWaitingPublicKeysPerShardCalled()
 	}
 
 	return nil, nil
@@ -35,8 +35,8 @@ func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
 
 // GetEligiblePublicKeysPerShard -
 func (ncm *NodesCoordinatorMock) GetEligiblePublicKeysPerShard(_ uint32) (map[uint32][][]byte, error) {
-	if ncm.GetAllValidatorsPublicKeysCalled != nil {
-		return ncm.GetAllValidatorsPublicKeysCalled()
+	if ncm.GetEligiblePublicKeysPerShardCalled != nil {
+		return ncm.GetEligiblePublicKeysPerShardCalled()
 	}
 
 	return nil, nil

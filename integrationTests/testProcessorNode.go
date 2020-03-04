@@ -226,7 +226,7 @@ func NewTestProcessorNode(
 			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], pkBytes)
@@ -793,7 +793,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+	rater, _ := rating.NewBlockSigningRaterAndListIndexer(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         tpn.PeerState,
