@@ -3,6 +3,11 @@ package metachain
 import (
 	"bytes"
 	"errors"
+	"math/big"
+	"reflect"
+	"sort"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -10,10 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"reflect"
-	"sort"
-	"testing"
 )
 
 func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
@@ -262,7 +263,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNumberNoMatch(t 
 
 	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
 
-	err := vic.VerifyValidatorInfoMiniBlocks(miniblocks[0:0], validatorInfo)
+	err := vic.VerifyValidatorInfoMiniBlocks(miniblocks[0:1], validatorInfo)
 	require.NotNil(t, err)
 	require.Equal(t, epochStart.ErrValidatorInfoMiniBlocksNumDoesNotMatch, err)
 }
@@ -280,6 +281,30 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashNoMatchT(t
 	err := vic.VerifyValidatorInfoMiniBlocks(miniblocks, validatorInfo)
 	require.NotNil(t, err)
 	require.Equal(t, epochStart.ErrValidatorMiniBlockHashDoesNotMatch, err)
+}
+
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+	err := vic.VerifyValidatorInfoMiniBlocks(nil, validatorInfo)
+	require.NotNil(t, err)
+	require.Equal(t, epochStart.ErrNilMiniblocks, err)
+}
+
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilOneMiniblock(t *testing.T) {
+	t.Parallel()
+
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	miniblocks[1] = nil
+	err := vic.VerifyValidatorInfoMiniBlocks(miniblocks, validatorInfo)
+	require.NotNil(t, err)
+	require.Equal(t, epochStart.ErrNilMiniblock, err)
 }
 
 func createValidatorInfoMiniBlocks(
@@ -312,4 +337,196 @@ func createValidatorInfoMiniBlocks(
 		miniblocks = append(miniblocks, miniBlock)
 	}
 	return miniblocks
+}
+
+func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T) {
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.MiniBlockStorage = mock.NewStorerMock()
+
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	miniblockHeaders := make([]block.MiniBlockHeader, 0)
+
+	hasher := arguments.Hasher
+	marshalizer := arguments.Marshalizer
+	storage := arguments.MiniBlockStorage
+
+	for _, mb := range miniblocks {
+		mMb, _ := marshalizer.Marshal(mb)
+		hash := hasher.Compute(string(mMb))
+		mbHeader := block.MiniBlockHeader{
+			Hash:            hash,
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			TxCount:         uint32(len(mb.TxHashes)),
+			Type:            block.PeerBlock,
+		}
+		miniblockHeaders = append(miniblockHeaders, mbHeader)
+	}
+
+	meta := &block.MetaBlock{
+		Nonce:                  0,
+		Round:                  0,
+		TimeStamp:              0,
+		ShardInfo:              nil,
+		Signature:              nil,
+		LeaderSignature:        nil,
+		PubKeysBitmap:          nil,
+		PrevHash:               nil,
+		PrevRandSeed:           nil,
+		RandSeed:               nil,
+		RootHash:               nil,
+		ValidatorStatsRootHash: nil,
+		MiniBlockHeaders:       miniblockHeaders,
+		ReceiptsHash:           nil,
+		EpochStart:             block.EpochStart{},
+		ChainID:                nil,
+		Epoch:                  0,
+		TxCount:                0,
+		AccumulatedFees:        nil,
+		AccumulatedFeesInEpoch: nil,
+	}
+
+	vic.SaveValidatorInfoBlocksToStorage(meta, miniblocks)
+
+	for i, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := storage.Get(mbHeader.Hash)
+		require.Nil(t, err)
+
+		unmarshaledMiniblock := &block.MiniBlock{}
+		_ = marshalizer.Unmarshal(unmarshaledMiniblock, mb)
+
+		require.True(t, reflect.DeepEqual(miniblocks[i], unmarshaledMiniblock))
+	}
+}
+
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorage(t *testing.T) {
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.MiniBlockStorage = mock.NewStorerMock()
+
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	miniblockHeaders := make([]block.MiniBlockHeader, 0)
+
+	hasher := arguments.Hasher
+	marshalizer := arguments.Marshalizer
+	storage := arguments.MiniBlockStorage
+
+	for _, mb := range miniblocks {
+		mMb, _ := marshalizer.Marshal(mb)
+		hash := hasher.Compute(string(mMb))
+		mbHeader := block.MiniBlockHeader{
+			Hash:            hash,
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			TxCount:         uint32(len(mb.TxHashes)),
+			Type:            block.PeerBlock,
+		}
+		miniblockHeaders = append(miniblockHeaders, mbHeader)
+		_ = storage.Put(hash, mMb)
+	}
+
+	meta := &block.MetaBlock{
+		Nonce:                  0,
+		Round:                  0,
+		TimeStamp:              0,
+		ShardInfo:              nil,
+		Signature:              nil,
+		LeaderSignature:        nil,
+		PubKeysBitmap:          nil,
+		PrevHash:               nil,
+		PrevRandSeed:           nil,
+		RandSeed:               nil,
+		RootHash:               nil,
+		ValidatorStatsRootHash: nil,
+		MiniBlockHeaders:       miniblockHeaders,
+		ReceiptsHash:           nil,
+		EpochStart:             block.EpochStart{},
+		ChainID:                nil,
+		Epoch:                  0,
+		TxCount:                0,
+		AccumulatedFees:        nil,
+		AccumulatedFeesInEpoch: nil,
+	}
+
+	for _, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := storage.Get(mbHeader.Hash)
+		require.NotNil(t, mb)
+		require.Nil(t, err)
+	}
+
+	vic.DeleteValidatorInfoBlocksFromStorage(meta)
+
+	for _, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := storage.Get(mbHeader.Hash)
+		require.Nil(t, mb)
+		require.NotNil(t, err)
+	}
+}
+
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.MiniBlockStorage = mock.NewStorerMock()
+
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	miniblockHeaders := make([]block.MiniBlockHeader, 0)
+
+	hasher := arguments.Hasher
+	marshalizer := arguments.Marshalizer
+	storage := arguments.MiniBlockStorage
+
+	for _, mb := range miniblocks {
+		mMb, _ := marshalizer.Marshal(mb)
+		hash := hasher.Compute(string(mMb))
+		mbHeader := block.MiniBlockHeader{
+			Hash:            hash,
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			TxCount:         uint32(len(mb.TxHashes)),
+			Type:            block.TxBlock,
+		}
+		miniblockHeaders = append(miniblockHeaders, mbHeader)
+		_ = storage.Put(hash, mMb)
+	}
+
+	meta := &block.MetaBlock{
+		Nonce:                  0,
+		Round:                  0,
+		TimeStamp:              0,
+		ShardInfo:              nil,
+		Signature:              nil,
+		LeaderSignature:        nil,
+		PubKeysBitmap:          nil,
+		PrevHash:               nil,
+		PrevRandSeed:           nil,
+		RandSeed:               nil,
+		RootHash:               nil,
+		ValidatorStatsRootHash: nil,
+		MiniBlockHeaders:       miniblockHeaders,
+		ReceiptsHash:           nil,
+		EpochStart:             block.EpochStart{},
+		ChainID:                nil,
+		Epoch:                  0,
+		TxCount:                0,
+		AccumulatedFees:        nil,
+		AccumulatedFeesInEpoch: nil,
+	}
+
+	for _, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := storage.Get(mbHeader.Hash)
+		require.NotNil(t, mb)
+		require.Nil(t, err)
+	}
+
+	vic.DeleteValidatorInfoBlocksFromStorage(meta)
+
+	for _, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := storage.Get(mbHeader.Hash)
+		require.NotNil(t, mb)
+		require.Nil(t, err)
+	}
 }

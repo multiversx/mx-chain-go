@@ -1224,9 +1224,9 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		}
 
 		// metablock was processed and finalized
-		marshalizedHeader, err := sp.marshalizer.Marshal(hdr)
-		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", err.Error())
+		marshalizedHeader, marshalErr := sp.marshalizer.Marshal(hdr)
+		if marshalErr != nil {
+			log.Debug("marshalizer.Marshal", "error", marshalErr.Error())
 			continue
 		}
 

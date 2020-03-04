@@ -745,12 +745,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	crossNotarizedNonce := uint64(0)
 
 	if shardID != bp.shardCoordinator.SelfId() {
-		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
-		if err != nil {
+		crossNotarizedHeader, _, crossNotarizedErr := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+		if crossNotarizedErr != nil {
 			log.Warn("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
 				"shard", shardID,
 				"nonces to final", noncesToFinal,
-				"error", err.Error())
+				"error", crossNotarizedErr.Error())
 			return
 		}
 
@@ -937,9 +937,9 @@ func (bp *baseProcessor) saveBody(body block.Body) {
 	}
 
 	for i := 0; i < len(body); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body[i])
-		if errNotCritical != nil {
-			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
+		marshalizedMiniBlock, marshalErr := bp.marshalizer.Marshal(body[i])
+		if marshalErr != nil {
+			log.Warn("saveBody.Marshal", "error", marshalErr.Error())
 			continue
 		}
 
@@ -996,7 +996,6 @@ func (bp *baseProcessor) updateStateStorage(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
-	log.Info("UpdateStateStorage", "hash", core.ToHex(rootHash))
 	if !accounts.IsPruningEnabled() {
 		return
 	}

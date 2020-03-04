@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -479,8 +480,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			log.Warn("no preprocessor for miniblock found", "type", miniBlock.Type)
-			return nil, 0, false, process.ErrNilPreProcessor
+			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		// overflow would happen if processing would continue

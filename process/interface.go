@@ -659,7 +659,7 @@ type EpochStartRewardsCreator interface {
 	IsInterfaceNil() bool
 }
 
-// EpochValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+// EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
@@ -705,13 +705,13 @@ type Rounder interface {
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
+// SelectionChance defines the actions which should be handled by a round implementation
 type SelectionChance interface {
 	GetMaxThreshold() uint32
 	GetChancePercent() uint32
 }
 
-// Ratingsinfo defines the information needed for the rating computation
+// RatingsInfo defines the information needed for the rating computation
 type RatingsInfo interface {
 	StartRating() uint32
 	MaxRating() uint32

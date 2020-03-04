@@ -43,28 +43,28 @@ func (rtp *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 }
 
 // RemoveTxBlockFromPools does nothing
-func (rtp *validatorInfoPreprocessor) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
+func (rtp *validatorInfoPreprocessor) RemoveTxBlockFromPools(_ block.Body, _ storage.Cacher) error {
 	return nil
 }
 
 // RestoreTxBlockIntoPools does nothing
 func (rtp *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
-	body block.Body,
-	miniBlockPool storage.Cacher,
+	_ block.Body,
+	_ storage.Cacher,
 ) (int, error) {
 	return 0, nil
 }
 
 // ProcessBlockTransactions does nothing
 func (rtp *validatorInfoPreprocessor) ProcessBlockTransactions(
-	body block.Body,
-	haveTime func() bool,
+	_ block.Body,
+	_ func() bool,
 ) error {
 	return nil
 }
 
 // SaveTxBlockToStorage does nothing
-func (rtp *validatorInfoPreprocessor) SaveTxBlockToStorage(body block.Body) error {
+func (rtp *validatorInfoPreprocessor) SaveTxBlockToStorage(_ block.Body) error {
 	return nil
 }
 
@@ -73,12 +73,12 @@ func (rtp *validatorInfoPreprocessor) CreateBlockStarted() {
 }
 
 // RequestBlockTransactions does nothing
-func (rtp *validatorInfoPreprocessor) RequestBlockTransactions(body block.Body) int {
+func (rtp *validatorInfoPreprocessor) RequestBlockTransactions(_ block.Body) int {
 	return 0
 }
 
 // RequestTransactionsForMiniBlock does nothing
-func (rtp *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+func (rtp *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.MiniBlock) int {
 	return 0
 }
 
@@ -93,7 +93,7 @@ func (rtp *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(
 }
 
 // ProcessMiniBlock does nothing
-func (rtp *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error {
+func (rtp *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool) error {
 	if miniBlock.Type != block.PeerBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
@@ -105,7 +105,7 @@ func (rtp *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBloc
 }
 
 // CreateMarshalizedData does nothing
-func (rtp *validatorInfoPreprocessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+func (rtp *validatorInfoPreprocessor) CreateMarshalizedData(_ [][]byte) ([][]byte, error) {
 	marshalized := make([][]byte, 0)
 	return marshalized, nil
 }

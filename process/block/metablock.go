@@ -900,15 +900,15 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
-			currMBProcessed, currTxsAdded, hdrProcessFinished, err := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currMBProcessed, currTxsAdded, hdrProcessFinished, createErr := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currShardHdr,
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				haveTime)
 
-			if err != nil {
-				return nil, 0, 0, err
+			if createErr != nil {
+				return nil, 0, 0, createErr
 			}
 
 			if !hdrProcessFinished {
@@ -1026,8 +1026,8 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := headerInfo.hdr.(*block.Header)
-		if !ok {
+		shardBlock, headerOk := headerInfo.hdr.(*block.Header)
+		if !headerOk {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}

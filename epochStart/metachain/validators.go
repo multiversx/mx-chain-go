@@ -2,6 +2,8 @@ package metachain
 
 import (
 	"bytes"
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -11,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"sort"
 )
 
 // ArgsNewValidatorInfoCreator defines the arguments structure needed to create a new validatorInfo creator
@@ -29,7 +30,7 @@ type validatorInfoCreator struct {
 	marshalizer      marshal.Marshalizer
 }
 
-// NewEpochStartRewardsCreator creates a new ValidatorInfo creator object
+// NewValidatorInfoCreator creates a new validatorInfo creator object
 func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCreator, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
@@ -54,7 +55,7 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	return vic, nil
 }
 
-// CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the validatorInfo
+// CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the provided validatorInfo map
 func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	if validatorInfo == nil {
 		return nil, epochStart.ErrNilValidatorInfo
@@ -93,11 +94,15 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[u
 	return miniblocks, nil
 }
 
-// VerifyRewardsMiniBlocks verifies if received peer miniblocks are correct
+// VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct
 func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	miniblocks []*block.MiniBlock,
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 ) error {
+	if len(miniblocks) == 0 {
+		return epochStart.ErrNilMiniblocks
+	}
+
 	createdMiniBlocks, err := r.CreateValidatorInfoMiniBlocks(validatorInfos)
 	if err != nil {
 		return err
@@ -110,13 +115,18 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	}
 
 	numReceivedValidatorInfoMBs := 0
+	var receivedMbHash []byte
 	for _, receivedMb := range miniblocks {
+		if receivedMb == nil {
+			return epochStart.ErrNilMiniblock
+		}
+
 		if receivedMb.Type != block.PeerBlock {
 			continue
 		}
 
 		numReceivedValidatorInfoMBs++
-		receivedMbHash, err := core.CalculateHash(r.marshalizer, r.hasher, receivedMb)
+		receivedMbHash, err = core.CalculateHash(r.marshalizer, r.hasher, receivedMb)
 		if err != nil {
 			return err
 		}
@@ -143,7 +153,7 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	return nil
 }
 
-// SaveValidatorInfoBlockToStorage saves created data to storage
+// SaveValidatorInfoBlocksToStorage saves created data to storage
 func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body block.Body) {
 	for _, miniBlock := range body {
 		if miniBlock.Type != block.PeerBlock {
@@ -160,15 +170,22 @@ func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block
 				continue
 			}
 
+			mbHash := r.hasher.Compute(string(marshaledData))
+			if len(mbHash) == 0 || !bytes.Equal(mbHeader.Hash, mbHash) {
+				continue
+			}
+
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
 		}
 	}
 }
 
-// DeleteValidatorInfoBlockFromStorage deletes data from storage
+// DeleteValidatorInfoBlocksFromStorage deletes data from storage
 func (r *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock) {
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		_ = r.miniBlockStorage.Remove(mbHeader.Hash)
+		if mbHeader.Type == block.PeerBlock {
+			_ = r.miniBlockStorage.Remove(mbHeader.Hash)
+		}
 	}
 }
 

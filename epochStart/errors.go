@@ -44,6 +44,12 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 // ErrNilArgsPendingMiniblocks signals that nil argument was passed
 var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
 
+// ErrNilMiniblocks signals that nil argument was passed
+var ErrNilMiniblocks = errors.New("nil arguments for miniblocks object")
+
+// ErrNilMiniblock signals that nil miniblock has been provided
+var ErrNilMiniblock = errors.New("nil miniblock")
+
 // ErrMetaHdrNotFound signals that metaheader was not found
 var ErrMetaHdrNotFound = errors.New("meta header not found")
 
