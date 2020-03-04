@@ -1557,7 +1557,7 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 		}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 
 	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
 
@@ -1581,7 +1581,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithGenesisTime(time.Now().Local()),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, chronology.ErrNilSyncTimer, err)
 }
 
@@ -1661,7 +1661,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
 }
 
@@ -1704,7 +1704,7 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, localErr, err)
 }
 
@@ -1752,7 +1752,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1797,7 +1797,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1828,7 +1828,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(store),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, sharding.ErrShardIdOutOfRange, err)
 }
 
@@ -1917,7 +1917,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, localErr, err)
 }
 
@@ -2005,7 +2005,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
 
@@ -2120,7 +2120,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	)
 
 	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
-	err := n.StartConsensus(0)
+	err := n.StartConsensus()
 	assert.Nil(t, err)
 }
 
@@ -2427,10 +2427,8 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			}
 			for _, txBuff := range txsBuff {
 				tx := transaction.Transaction{}
-				err := marshalizer.Unmarshal(&tx, txBuff)
-				if err != nil {
-					assert.Fail(t, err.Error())
-				}
+				errMarshal := marshalizer.Unmarshal(&tx, txBuff)
+				require.Nil(t, errMarshal)
 
 				mutRecoveredTransactions.Lock()
 				sId := shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
