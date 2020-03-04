@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testing.T) {
@@ -80,7 +81,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	miniblock, hash := createMiniblock(shardId, shardId)
 
 	//add miniblock in pool
@@ -97,7 +98,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, sharding.MetachainShardId)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
@@ -112,8 +113,8 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
-	miniblock, hash := createMiniblock(shardId, sharding.MetachainShardId)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
+	miniblock, hash := createMiniblock(shardId, core.MetachainShardId)
 
 	//add miniblock in pool
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)

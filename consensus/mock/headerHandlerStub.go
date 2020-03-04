@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -16,6 +18,15 @@ type HeaderHandlerStub struct {
 	CloneCalled                      func() data.HeaderHandler
 	GetChainIDCalled                 func() []byte
 	CheckChainIDCalled               func(reference []byte) error
+}
+
+// GetAccumulatedFees -
+func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
+	return big.NewInt(0)
+}
+
+// SetAccumulatedFees -
+func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
 }
 
 // GetReceiptsHash -
@@ -104,7 +115,7 @@ func (hhs *HeaderHandlerStub) GetChainID() []byte {
 
 // GetTxCount -
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
-	panic("implement me")
+	return 0
 }
 
 // SetNonce -
@@ -179,7 +190,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
-	panic("implement me")
+	return []byte("vs root hash")
 }
 
 // SetValidatorStatsRootHash -

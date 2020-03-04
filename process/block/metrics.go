@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -79,14 +80,11 @@ func getMetricsFromHeader(
 
 func saveMetricsForACommittedBlock(
 	appStatusHandler core.AppStatusHandler,
-	isInConsensus bool,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
 	headerMeta data.HeaderHandler,
 ) {
-	if isInConsensus {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
-	}
+	// TODO: add consensus metrics from CONSENSUS
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(headerMeta.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
@@ -102,7 +100,19 @@ func saveMetachainCommitBlockMetrics(
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
+
+	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
+		header.PrevRandSeed,
+		header.Round,
+		core.MetachainShardId,
+		epoch,
+	)
 	if err != nil {
 		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
@@ -150,7 +160,7 @@ func saveRoundInfoInElastic(
 
 	go elasticIndexer.SaveRoundInfo(roundInfo)
 
-	if lastHeader == nil {
+	if check.IfNil(lastHeader) {
 		return
 	}
 
@@ -158,11 +168,16 @@ func saveRoundInfoInElastic(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		publicKeys, err := nodesCoordinator.GetValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId)
+		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
 		if err != nil {
 			continue
 		}
-		signersIndexes = nodesCoordinator.GetValidatorsIndexes(publicKeys)
+		signersIndexes, err = nodesCoordinator.GetValidatorsIndexes(publicKeys, lastHeader.GetEpoch())
+		if err != nil {
+			log.Error(err.Error(), "round", i)
+			continue
+		}
+
 		roundInfo = indexer.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,

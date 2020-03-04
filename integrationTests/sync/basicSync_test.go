@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +38,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 
 	metachainNode := integrationTests.NewTestSyncNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		shardId,
 		advertiserAddr,
 	)
@@ -173,7 +173,7 @@ func proposeBlockWithPubKeyBitmap(n *integrationTests.TestProcessorNode, round u
 func testAllNodesHaveTheSameBlockHeightInBlockchain(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
 	for i := 1; i < len(nodes); i++ {
-		if nodes[i].BlockChain.GetCurrentBlockHeader() == nil {
+		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
 			assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())

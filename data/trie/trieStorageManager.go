@@ -27,7 +27,7 @@ type trieStorageManager struct {
 
 	snapshots       []storage.Persister
 	snapshotId      int
-	snapshotDbCfg   *config.DBConfig
+	snapshotDbCfg   config.DBConfig
 	snapshotsBuffer snapshotsBuffer
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -35,15 +35,12 @@ type trieStorageManager struct {
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
-func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
+func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
 	}
 	if check.IfNil(ewl) {
 		return nil, ErrNilEvictionWaitingList
-	}
-	if snapshotDbCfg == nil {
-		return nil, ErrNilSnapshotDbConfig
 	}
 
 	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(snapshotDbCfg)
@@ -62,7 +59,7 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig
 	}, nil
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persister, int, error) {
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persister, int, error) {
 	snapshots := make([]storage.Persister, 0)
 	snapshotId := 0
 
@@ -87,13 +84,14 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persis
 		}
 
 		var db storage.Persister
-		db, err = storageUnit.NewDB(
-			storageUnit.DBType(snapshotDbCfg.Type),
-			path.Join(snapshotDbCfg.FilePath, f.Name()),
-			snapshotDbCfg.BatchDelaySeconds,
-			snapshotDbCfg.MaxBatchSize,
-			snapshotDbCfg.MaxOpenFiles,
-		)
+		arg := storageUnit.ArgDB{
+			DBType:            storageUnit.DBType(snapshotDbCfg.Type),
+			Path:              path.Join(snapshotDbCfg.FilePath, f.Name()),
+			BatchDelaySeconds: snapshotDbCfg.BatchDelaySeconds,
+			MaxBatchSize:      snapshotDbCfg.MaxBatchSize,
+			MaxOpenFiles:      snapshotDbCfg.MaxOpenFiles,
+		}
+		db, err = storageUnit.NewDB(arg)
 		if err != nil {
 			return snapshots, snapshotId, err
 		}
@@ -118,13 +116,6 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	defer tsm.storageOperationMutex.Unlock()
 
 	return tsm.db
-}
-
-// SetDatabase sets the provided database as the main database
-func (tsm *trieStorageManager) SetDatabase(db data.DBWriteCacher) {
-	tsm.storageOperationMutex.Lock()
-	tsm.db = db
-	tsm.storageOperationMutex.Unlock()
 }
 
 // Clone returns a new instance of trieStorageManager
@@ -268,9 +259,9 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, msh marshal.Marshal
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
-
 	tsm.snapshotsBuffer.add(rootHash, false)
 	if tsm.snapshotsBuffer.len() > 1 {
+
 		return
 	}
 
@@ -284,6 +275,8 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		tsm.storageOperationMutex.Lock()
 
 		snapshot := tsm.snapshotsBuffer.getFirst()
+		log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
+
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
 			tsm.storageOperationMutex.Unlock()
@@ -293,6 +286,10 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 			continue
 		}
 		db := tsm.getSnapshotDb(snapshot.newDb)
+		if check.IfNil(db) {
+			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+			continue
+		}
 
 		tsm.storageOperationMutex.Unlock()
 
@@ -390,7 +387,7 @@ func newSnapshotTrie(
 		return nil, err
 	}
 
-	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{})
+	trieStorage, err := NewTrieStorageManager(db, config.DBConfig{}, &mock.EvictionWaitingList{})
 	if err != nil {
 		return nil, err
 	}
@@ -410,13 +407,14 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 		snapshotPath = path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
 	}
 
-	db, err := storageUnit.NewDB(
-		storageUnit.DBType(tsm.snapshotDbCfg.Type),
-		snapshotPath,
-		tsm.snapshotDbCfg.BatchDelaySeconds,
-		tsm.snapshotDbCfg.MaxBatchSize,
-		tsm.snapshotDbCfg.MaxOpenFiles,
-	)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(tsm.snapshotDbCfg.Type),
+		Path:              snapshotPath,
+		BatchDelaySeconds: tsm.snapshotDbCfg.BatchDelaySeconds,
+		MaxBatchSize:      tsm.snapshotDbCfg.MaxBatchSize,
+		MaxOpenFiles:      tsm.snapshotDbCfg.MaxOpenFiles,
+	}
+	db, err := storageUnit.NewDB(arg)
 	if err != nil {
 		return nil, err
 	}

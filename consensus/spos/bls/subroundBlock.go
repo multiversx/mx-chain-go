@@ -83,15 +83,9 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	body, err := sr.createBody(header)
+	header, body, err := sr.createBlock(header)
 	if err != nil {
-		log.Debug("doBlockJob.createBody", "error", err.Error())
-		return false
-	}
-
-	body, err = sr.BlockProcessor().ApplyBodyToHeader(header, body)
-	if err != nil {
-		log.Debug("doBlockJob.ApplyBodyToHeader", "error", err.Error())
+		log.Debug("doBlockJob.createBlock", "error", err.Error())
 		return false
 	}
 
@@ -142,22 +136,22 @@ func (sr *subroundBlock) canBeSentTogether(marshalizedBody []byte, marshalizedHe
 	return bodyAndHeaderSize <= core.MegabyteSize
 }
 
-func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler, error) {
+func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	startTime := sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
-	blockBody, err := sr.BlockProcessor().CreateBlockBody(
+	finalHeader, blockBody, err := sr.BlockProcessor().CreateBlock(
 		header,
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return blockBody, nil
+	return finalHeader, blockBody, nil
 }
 
 // sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
@@ -277,10 +271,10 @@ func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler, marshalizedH
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr := sr.BlockProcessor().CreateNewHeader()
+	hdr := sr.BlockProcessor().CreateNewHeader(uint64(sr.Rounder().Index()))
 
 	var prevRandSeed []byte
-	if sr.Blockchain().GetCurrentBlockHeader() == nil {
+	if check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
 
@@ -438,7 +432,6 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
-		sr.Blockchain(),
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,
@@ -532,7 +525,7 @@ func (sr *subroundBlock) isBlockReceived(threshold int) bool {
 
 func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 	roundInLastCommittedBlock := int64(0)
-	if sr.Blockchain().GetCurrentBlockHeader() != nil {
+	if !check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
 		roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
 	}
 
