@@ -384,20 +384,6 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	dataToParse := tx.GetData()
-
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	if ok {
-		if scr.CallType == vmcommon.AsynchronousCallBack {
-			dataToParse = append([]byte("callBack"), tx.GetData()...)
-		}
-	}
-
-	err := sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return err
-	}
-
 	nonce := tx.GetNonce()
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()

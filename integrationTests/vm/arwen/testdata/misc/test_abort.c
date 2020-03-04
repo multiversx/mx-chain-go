@@ -11,7 +11,7 @@ void testFunc() {
 
   if (arg == 1) {
     int64finish(98);
-		char msg[] = "abort here";
+    byte msg[] = "abort here";
     signalError(msg, 10);
     int64finish(99);
   } else {
