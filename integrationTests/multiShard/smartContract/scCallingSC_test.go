@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSCCallingInIntraShard(t *testing.T) {
+func TestSCCallingIntraShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -407,8 +407,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
 		}
-
-		fmt.Printf("Investigating Node %d from Shard %d\n", index, shId)
 
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
 		assert.NotNil(t, numCalled)
