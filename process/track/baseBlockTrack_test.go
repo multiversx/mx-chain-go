@@ -1799,8 +1799,8 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
 	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
-	longestChain := uint64(1000)
 	chains := uint64(10)
+	longestChain := uint64(1000 - chains)
 
 	for j := uint64(0); j < chains; j++ {
 		prevHash := startHeaderHash
