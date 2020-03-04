@@ -9,7 +9,6 @@ import (
 type ValidatorStatisticsProcessorStub struct {
 	UpdatePeerStateCalled                    func(header data.HeaderHandler) ([]byte, error)
 	RevertPeerStateCalled                    func(header data.HeaderHandler) error
-	IsInterfaceNilCalled                     func() bool
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
@@ -77,8 +76,5 @@ func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (sta
 
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
-	if vsp.IsInterfaceNilCalled != nil {
-		return vsp.IsInterfaceNilCalled()
-	}
 	return false
 }

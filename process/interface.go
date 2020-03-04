@@ -119,7 +119,13 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksHashes map[string]struct{},
+		maxTxSpaceRemained uint32,
+		maxMbSpaceRemained uint32,
+		haveTime func() bool,
+	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body block.Body) map[string][][]byte
@@ -654,10 +660,10 @@ type EpochStartRewardsCreator interface {
 	IsInterfaceNil() bool
 }
 
-// EpochValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+// EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
-	CreateValidatorInfoMiniBlocks(validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body block.Body)
 	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
@@ -700,13 +706,13 @@ type Rounder interface {
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
+// SelectionChance defines the actions which should be handled by a round implementation
 type SelectionChance interface {
 	GetMaxThreshold() uint32
 	GetChancePercent() uint32
 }
 
-// Ratingsinfo defines the information needed for the rating computation
+// RatingsInfo defines the information needed for the rating computation
 type RatingsInfo interface {
 	StartRating() uint32
 	MaxRating() uint32

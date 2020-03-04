@@ -764,9 +764,9 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 
 	log.Trace("updateRatingFromTempRating before", "rootHash", rootHash)
 	for _, pk := range pks {
-		peer, err := vs.GetPeerAccount([]byte(pk))
-		if err != nil {
-			return err
+		peer, getAccountErr := vs.GetPeerAccount([]byte(pk))
+		if getAccountErr != nil {
+			return getAccountErr
 		}
 
 		tempRating := vs.getTempRating(pk)

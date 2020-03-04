@@ -308,6 +308,81 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, mp)
 }
 
+//------- CheckHeaderBodyCorrelation
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr.MiniBlockHeaders[0].ReceiverShardID = body[0].ReceiverShardID + 1
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr.MiniBlockHeaders[0].SenderShardID = body[0].SenderShardID + 1
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body[0].TxHashes) + 1)
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationHashMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr.MiniBlockHeaders[0].Hash = []byte("wrongHash")
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body[0] = nil
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrNilMiniBlock, err)
+}
+
 //------- ProcessBlock
 
 func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
@@ -2162,8 +2237,8 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
-			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{expectedMiniBlock2}
@@ -2320,8 +2395,8 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
-			return block.MiniBlockSlice{miniBlock1}, 0, true
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{miniBlock2}
@@ -2413,8 +2488,8 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool) {
-			return block.MiniBlockSlice{miniBlock1}, 0, true
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
 

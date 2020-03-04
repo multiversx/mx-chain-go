@@ -403,6 +403,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 	}
 }
 
+// CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)

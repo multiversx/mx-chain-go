@@ -1174,8 +1174,6 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
-	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 	if err != nil {
 		return nil, err

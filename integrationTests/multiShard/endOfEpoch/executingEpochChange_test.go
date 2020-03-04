@@ -308,7 +308,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	for _, nodes := range nodesMap {

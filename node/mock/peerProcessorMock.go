@@ -78,8 +78,5 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
-	if vsp.IsInterfaceNilCalled != nil {
-		return vsp.IsInterfaceNilCalled()
-	}
 	return false
 }
