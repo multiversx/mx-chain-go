@@ -1524,14 +1524,14 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 			return nil, err
 		}
 
-		newStore, newBlkc, errPoolCreation := createInMemoryStoreBlkc(newShardCoordinator)
-		if errPoolCreation != nil {
-			return nil, errPoolCreation
+		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+		newBlkc, errNewMetachain := blockchain.NewMetaChain(cache)
+		if errNewMetachain != nil {
+			return nil, errNewMetachain
 		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
 	}
 
@@ -1550,32 +1550,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	genesisBlocks[core.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
-}
-
-func createInMemoryStoreBlkc(
-	shardCoordinator sharding.Coordinator,
-) (dataRetriever.StorageService, data.ChainHandler, error) {
-
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	blkc, err := blockchain.NewMetaChain(cache)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
-	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
-		store.AddStorer(hdrNonceHashDataUnit, createMemUnit())
-	}
-	store.AddStorer(dataRetriever.HeartbeatUnit, createMemUnit())
-
-	return store, blkc, nil
 }
 
 func createGenesisBlockAndApplyInitialBalances(

@@ -382,8 +382,6 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newStore := CreateMetaStore(newShardCoordinator)
-
 		newDataPool := CreateTestDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
@@ -392,7 +390,6 @@ func CreateGenesisMetaBlock(
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
 		argsMetaGenesis.DataPool = newDataPool
 	}

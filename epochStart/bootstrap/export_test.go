@@ -5,16 +5,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-func (smbi *simpleMetaBlockInterceptor) GetReceivedMetablocks() map[string]*block.MetaBlock {
-	smbi.mutReceivedMetaBlocks.RLock()
-	defer smbi.mutReceivedMetaBlocks.RUnlock()
+func (s *simpleMetaBlockInterceptor) GetReceivedMetablocks() map[string]*block.MetaBlock {
+	s.mutReceivedMetaBlocks.RLock()
+	defer s.mutReceivedMetaBlocks.RUnlock()
 
-	return smbi.mapReceivedMetaBlocks
+	return s.mapReceivedMetaBlocks
 }
 
-func (smbi *simpleMetaBlockInterceptor) GetPeersSliceForMetablocks() map[string][]p2p.PeerID {
-	smbi.mutReceivedMetaBlocks.RLock()
-	defer smbi.mutReceivedMetaBlocks.RUnlock()
+func (s *simpleMetaBlockInterceptor) GetPeersSliceForMetablocks() map[string][]p2p.PeerID {
+	s.mutReceivedMetaBlocks.RLock()
+	defer s.mutReceivedMetaBlocks.RUnlock()
 
-	return smbi.mapMetaBlocksFromPeers
+	return s.mapMetaBlocksFromPeers
 }
