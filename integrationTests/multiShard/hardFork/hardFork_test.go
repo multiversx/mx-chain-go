@@ -91,8 +91,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	createHardForkExporter(t, nodes)
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
@@ -108,8 +106,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -182,6 +180,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	createHardForkExporter(t, nodes)
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
@@ -220,9 +220,6 @@ func createHardForkExporter(
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,
 				},
-			},
-			ExportTriesCacheConfig: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			ExportStateStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{

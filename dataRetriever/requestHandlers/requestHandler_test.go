@@ -889,7 +889,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 	called := false
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+			CrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
 				called = true
 				return nil, localError
 			},

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	factoryTrieContainer "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -107,12 +108,12 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 }
 
 func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
-	err := st.syncTrieOfType(factory.UserAccount, core.MetachainShardId, meta.RootHash)
+	err := st.syncTrieOfType(factory.UserAccount, factoryTrieContainer.UserAccountTrie, core.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return err
 	}
 
-	err = st.syncTrieOfType(factory.ValidatorAccount, core.MetachainShardId, meta.ValidatorStatsRootHash)
+	err = st.syncTrieOfType(factory.ValidatorAccount, factoryTrieContainer.PeerAccountTrie, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -121,17 +122,17 @@ func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncTries) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncTrieOfType(factory.UserAccount, shardData.ShardId, shardData.RootHash)
+	err := st.syncTrieOfType(factory.UserAccount, factoryTrieContainer.UserAccountTrie, shardData.ShardId, shardData.RootHash)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, rootHash []byte) error {
+func (st *syncTries) syncTrieOfType(accountType factory.Type, trieID string, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
-	success := st.tryRecreateTrie(accAdapterIdentifier, rootHash)
+	success := st.tryRecreateTrie(accAdapterIdentifier, trieID, rootHash)
 	if success {
 		return nil
 	}
@@ -151,7 +152,7 @@ func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, ro
 	return nil
 }
 
-func (st *syncTries) tryRecreateTrie(id string, rootHash []byte) bool {
+func (st *syncTries) tryRecreateTrie(id string, trieID string, rootHash []byte) bool {
 	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
 		currHash, err := savedTrie.Root()
@@ -160,12 +161,12 @@ func (st *syncTries) tryRecreateTrie(id string, rootHash []byte) bool {
 		}
 	}
 
-	accounts := st.activeTries.Get([]byte(id))
-	if check.IfNil(accounts) {
+	activeTrie := st.activeTries.Get([]byte(trieID))
+	if check.IfNil(activeTrie) {
 		return false
 	}
 
-	trie, err := accounts.Recreate(rootHash)
+	trie, err := activeTrie.Recreate(rootHash)
 	if err != nil {
 		return false
 	}

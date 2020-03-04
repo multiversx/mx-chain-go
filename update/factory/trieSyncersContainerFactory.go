@@ -3,7 +3,6 @@ package factory
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -12,7 +11,6 @@ import (
 	factoryTrie "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -20,7 +18,7 @@ import (
 
 // ArgsNewTrieSyncersContainerFactory defines the arguments needed to create trie syncers container
 type ArgsNewTrieSyncersContainerFactory struct {
-	CacheConfig       config.CacheConfig
+	TrieCacher        storage.Cacher
 	SyncFolder        string
 	RequestHandler    update.RequestHandler
 	DataTrieContainer state.TriesHolder
@@ -48,19 +46,13 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 	if check.IfNil(args.DataTrieContainer) {
 		return nil, update.ErrNilDataTrieContainer
 	}
-
-	trieCacher, err := storageUnit.NewCache(
-		storageUnit.CacheType(args.CacheConfig.Type),
-		args.CacheConfig.Size,
-		args.CacheConfig.Shards,
-	)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.TrieCacher) {
+		return nil, update.ErrNilCacher
 	}
 
 	t := &trieSyncersContainerFactory{
 		shardCoordinator: args.ShardCoordinator,
-		trieCacher:       trieCacher,
+		trieCacher:       args.TrieCacher,
 		requestHandler:   args.RequestHandler,
 		trieContainer:    args.DataTrieContainer,
 	}

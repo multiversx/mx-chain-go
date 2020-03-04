@@ -45,7 +45,6 @@ type ArgsExporter struct {
 	ExistingResolvers        dataRetriever.ResolversContainer
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
-	ExportTriesCacheConfig   config.CacheConfig
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.InterceptedDataWhiteList
 	InterceptorsContainer    process.InterceptorsContainer
@@ -75,7 +74,6 @@ type exportHandlerFactory struct {
 	activeTries              state.TriesHolder
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
-	exportTriesCacheConfig   config.CacheConfig
 	exportStateStorageConfig config.StorageConfig
 	whiteListHandler         process.InterceptedDataWhiteList
 	interceptorsContainer    process.InterceptorsContainer
@@ -180,7 +178,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		activeTries:              args.ActiveTries,
 		exportFolder:             args.ExportFolder,
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
-		exportTriesCacheConfig:   args.ExportTriesCacheConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
@@ -254,7 +251,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsTrieSyncers := ArgsNewTrieSyncersContainerFactory{
-		CacheConfig:       e.exportTriesCacheConfig,
+		TrieCacher:        e.dataPool.TrieNodes(),
 		SyncFolder:        e.exportFolder,
 		RequestHandler:    e.requestHandler,
 		DataTrieContainer: dataTries,

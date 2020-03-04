@@ -3,7 +3,7 @@ package genesis
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -99,11 +99,17 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 		return factory.UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
-	accType := getAccountType(int(accTypeUint64))
+	accTypeInt64, err := strconv.ParseInt(splitString[1], 10, 0)
+	if err != nil {
+		return factory.UserAccount, 0, err
+	}
+	accType := getAccountType(int(accTypeInt64))
 
-	shId := uint32(big.NewInt(0).SetBytes([]byte(splitString[2])).Uint64())
-	return accType, shId, nil
+	shId, err := strconv.ParseInt(splitString[1], 10, 0)
+	if err != nil {
+		return factory.UserAccount, 0, err
+	}
+	return accType, uint32(shId), nil
 }
 
 func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
@@ -139,8 +145,11 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 		return Unknown, nil, update.ErrUnknownType
 	}
 
-	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
-	accType := getAccountType(int(accTypeUint64))
+	accTypeInt64, err := strconv.ParseInt(splitString[1], 10, 0)
+	if err != nil {
+		return Unknown, nil, err
+	}
+	accType := getAccountType(int(accTypeInt64))
 
 	convertedType := Unknown
 	switch accType {
