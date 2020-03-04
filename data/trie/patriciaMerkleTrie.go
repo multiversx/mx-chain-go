@@ -303,7 +303,7 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 }
 
 func emptyTrie(root []byte) bool {
-	if bytes.Equal(root, make([]byte, 0)) {
+	if len(root) == 0 {
 		return true
 	}
 	if bytes.Equal(root, emptyTrieHash) {

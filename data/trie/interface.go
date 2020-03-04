@@ -51,3 +51,7 @@ type atomicBuffer interface {
 	contains(rootHash []byte) bool
 	remove(rootHash []byte)
 }
+
+type snapshotNode interface {
+	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+}

@@ -97,6 +97,7 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 				if err != nil {
 					log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
 				}
+				tsm.snapshotsBuffer.remove(rootHash)
 			}
 		}
 	}
@@ -286,7 +287,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh ma
 
 	log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
 
-	tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
+	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, snapshot.rootHash)
 	if err != nil {
 		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 		return
@@ -296,7 +297,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh ma
 		return
 	}
 
-	err = tr.root.commit(true, 0, tsm.db, db)
+	err = newRoot.commit(true, 0, tsm.db, db)
 	if err != nil {
 		log.Error("trie storage manager: commit", "error", err.Error())
 		return
@@ -350,12 +351,12 @@ func removeDirectory(path string) {
 	}
 }
 
-func newSnapshotTrie(
+func newSnapshotNode(
 	db data.DBWriteCacher,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	rootHash []byte,
-) (*patriciaMerkleTrie, error) {
+) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
 		return nil, err
@@ -365,12 +366,14 @@ func newSnapshotTrie(
 		db: db,
 	}
 
-	return &patriciaMerkleTrie{
+	snapshotPmt := &patriciaMerkleTrie{
 		root:        newRoot,
 		trieStorage: trieStorage,
 		marshalizer: msh,
 		hasher:      hsh,
-	}, nil
+	}
+
+	return snapshotPmt.root, nil
 }
 
 func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
