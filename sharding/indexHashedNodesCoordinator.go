@@ -180,22 +180,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	return nil
 }
 
-// GetNodesPerShard returns the eligible nodes per shard map
-func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uint32][]Validator, error) {
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
-	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-
-	return nodesConfig.eligibleMap, nil
-}
-
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
@@ -506,8 +490,9 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 		}
 	}
 
+	var prevEpochShardId uint32
 	if prevEpochConfigExists {
-		prevEpochShardId, err := ihgs.ShardIdForEpoch(epoch - 1)
+		prevEpochShardId, err = ihgs.ShardIdForEpoch(epoch - 1)
 		if err == nil {
 			for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
 				shardEligible[string(pubKey)] = struct{}{}
@@ -534,7 +519,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, _ *sync.RWMutex) []Validator {
 	//TODO implement an expand eligible list variant
 	return validators
 }
@@ -542,9 +527,9 @@ func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validat
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := uint32(0)
-	epochNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		selfShard = epochNodesConfig.shardId
+		selfShard = epNodesConfig.shardId
 	}
 
 	for shard, validators := range nodesConfig.eligibleMap {
