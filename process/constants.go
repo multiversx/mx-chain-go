@@ -56,6 +56,9 @@ const MaxItemsInBlock = 15000
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
 const NumTxPerSenderBatchForFillingMiniblock = 10
 
+// NumTxFactorForSelectTransactions is used to compute the number of transactions that should be selected from the cache
+const NumTxFactorForSelectTransactions = float32(2)
+
 // MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
 const MinItemsInBlock = 15000

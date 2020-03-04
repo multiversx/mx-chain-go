@@ -177,6 +177,9 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	detectedGap := listForSender.copyDetectedGap
 	previousNonce := listForSender.copyPreviousNonce
 
+	// If a nonce gap is detected, no transaction is returned in this read.
+	// There is an exception though: if this is the first read operation for the sender in the current selection process and the sender is in the grace period,
+	// then one transaction will be returned. But subsequent reads for this sender will return nothing.
 	if detectedGap {
 		if isFirstBatch && listForSender.isInGracePeriod() {
 			batchSize = 1

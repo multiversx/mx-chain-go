@@ -78,6 +78,8 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, uint32(500), pool.cacheConfigPrototype.LargeNumOfTxsForASender)
 	require.Equal(t, uint32(100), pool.cacheConfigPrototype.NumTxsToEvictFromASender)
 	require.Equal(t, uint32(100), pool.cacheConfigPrototype.MinGasPriceMicroErd)
+	require.Equal(t, uint32(291271110), pool.cacheConfigPrototypeForSelfShard.NumBytesThreshold)
+	require.Equal(t, uint32(500000), pool.cacheConfigPrototypeForSelfShard.CountThreshold)
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
@@ -299,6 +301,26 @@ func Test_routeToCacheUnions(t *testing.T) {
 	require.Equal(t, "42", pool.routeToCacheUnions("42_42"))
 	require.Equal(t, "2_5", pool.routeToCacheUnions("2_5"))
 	require.Equal(t, "foobar", pool.routeToCacheUnions("foobar"))
+}
+
+func Test_getCacheConfig(t *testing.T) {
+	config := storageUnit.CacheConfig{Size: 150, SizeInBytes: 61440, Shards: 16}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 8, SelfShardID: 4}
+	poolAsInterface, _ := NewShardedTxPool(args)
+	pool := poolAsInterface.(*shardedTxPool)
+
+	numBytesAccumulator := uint32(0)
+	countAccumulator := uint32(0)
+
+	for i := 0; i < 8; i++ {
+		cacheConfig := pool.getCacheConfig(fmt.Sprint(i))
+		numBytesAccumulator += cacheConfig.NumBytesThreshold
+		countAccumulator += cacheConfig.CountThreshold
+	}
+
+	// Cache configurations are complementary, they use the whole allocated space (size, count)
+	require.Equal(t, 61440, int(numBytesAccumulator))
+	require.Equal(t, 150, int(countAccumulator))
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {

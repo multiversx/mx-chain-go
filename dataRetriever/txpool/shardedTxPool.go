@@ -16,13 +16,13 @@ var log = logger.GetOrCreate("txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
-	mutex                sync.RWMutex
-	backingMap           map[string]*txPoolShard
-	mutexAddCallbacks    sync.RWMutex
-	onAddCallbacks       []func(key []byte)
-	cacheConfigPrototype txcache.CacheConfig
-	selfShardID          uint32
-	numberOfShards       uint32
+	mutex                            sync.RWMutex
+	backingMap                       map[string]*txPoolShard
+	mutexAddCallbacks                sync.RWMutex
+	onAddCallbacks                   []func(key []byte)
+	cacheConfigPrototype             txcache.CacheConfig
+	cacheConfigPrototypeForSelfShard txcache.CacheConfig
+	selfShardID                      uint32
 }
 
 type txPoolShard struct {
@@ -54,14 +54,18 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
+	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
+	cacheConfigPrototypeForSelfShard.CountThreshold *= args.NumberOfShards
+	cacheConfigPrototypeForSelfShard.NumBytesThreshold *= args.NumberOfShards
+
 	shardedTxPoolObject := &shardedTxPool{
-		mutex:                sync.RWMutex{},
-		backingMap:           make(map[string]*txPoolShard),
-		mutexAddCallbacks:    sync.RWMutex{},
-		onAddCallbacks:       make([]func(key []byte), 0),
-		cacheConfigPrototype: cacheConfigPrototype,
-		selfShardID:          args.SelfShardID,
-		numberOfShards:       args.NumberOfShards,
+		mutex:                            sync.RWMutex{},
+		backingMap:                       make(map[string]*txPoolShard),
+		mutexAddCallbacks:                sync.RWMutex{},
+		onAddCallbacks:                   make([]func(key []byte), 0),
+		cacheConfigPrototype:             cacheConfigPrototype,
+		cacheConfigPrototypeForSelfShard: cacheConfigPrototypeForSelfShard,
+		selfShardID:                      args.SelfShardID,
 	}
 
 	return shardedTxPoolObject, nil
@@ -100,16 +104,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		// Here we clone the config structure
-		cacheConfig := txPool.cacheConfigPrototype
-		cacheConfig.Name = cacheID
-
-		isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
-		if isForSelfShard {
-			cacheConfig.CountThreshold *= txPool.numberOfShards
-			cacheConfig.NumBytesThreshold *= txPool.numberOfShards
-		}
-
+		cacheConfig := txPool.getCacheConfig(cacheID)
 		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
@@ -120,6 +115,20 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	}
 
 	return shard
+}
+
+func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
+	var cacheConfig txcache.CacheConfig
+
+	isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
+	if isForSelfShard {
+		cacheConfig = txPool.cacheConfigPrototypeForSelfShard
+	} else {
+		cacheConfig = txPool.cacheConfigPrototype
+	}
+
+	cacheConfig.Name = cacheID
+	return cacheConfig
 }
 
 // AddData adds the transaction to the cache
