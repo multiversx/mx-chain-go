@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+//TODO: add functionality if needed
 type validatorInfoPreprocessor struct {
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer

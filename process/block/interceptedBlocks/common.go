@@ -102,9 +102,11 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
 		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards() &&
-			smbh.SenderShardID != core.MetachainShardId
+			smbh.SenderShardID != core.MetachainShardId &&
+			smbh.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards() &&
-			smbh.ReceiverShardID != core.MetachainShardId
+			smbh.ReceiverShardID != core.MetachainShardId &&
+			smbh.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
@@ -117,9 +119,11 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
 		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != core.MetachainShardId
+			miniblock.SenderShardID != core.MetachainShardId &&
+			miniblock.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != core.MetachainShardId
+			miniblock.ReceiverShardID != core.MetachainShardId &&
+			miniblock.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId

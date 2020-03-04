@@ -126,7 +126,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(0, 0, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 

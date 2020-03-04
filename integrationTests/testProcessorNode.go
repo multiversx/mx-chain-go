@@ -503,7 +503,9 @@ func CreateEconomicsData() *economics.EconomicsData {
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
-
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+	}
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -513,7 +515,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 				RoundsPerEpoch:         10000,
 			},
 			Epoch:              0,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
 		}
@@ -562,7 +564,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Epoch:              0,
 			Validity:           1,
 			Finality:           1,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1153,7 +1155,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 2000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)

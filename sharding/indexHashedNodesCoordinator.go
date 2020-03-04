@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -52,6 +53,7 @@ type indexHashedNodesCoordinator struct {
 	metaConsensusGroupSize  int
 	nodesPerShardSetter     NodesPerShardSetter
 	consensusGroupCacher    Cacher
+	name                    string
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -86,6 +88,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
+
+	ihgs.name = fmt.Sprint(time.Now().UnixNano())
 
 	ihgs.nodesPerShardSetter = ihgs
 	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
@@ -179,7 +183,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
+	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey, "epoch", epoch, "name", ihgs.name)
 
 	displayNodesConfiguration(eligible, waiting)
 
@@ -225,7 +229,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"epoch", epoch,
 		"shardId", shardId,
 		"randomness", randomness,
-		"round", round)
+		"round", round,
+		"name", ihgs.name)
 
 	if randomness == nil {
 		return nil, ErrNilRandomness

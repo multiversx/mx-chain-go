@@ -736,7 +736,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
-	log.Debug("started creating block body",
+	log.Debug("started creating meta block body",
 		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),

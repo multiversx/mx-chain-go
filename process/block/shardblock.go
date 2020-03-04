@@ -118,7 +118,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if check.IfNil(metaBlockPool) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
-
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 
 	miniBlockPool := sp.dataPool.MiniBlocks()
@@ -698,9 +697,11 @@ func (sp *shardProcessor) CreateBlock(
 func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
 	sp.blockSizeThrottler.ComputeMaxItems()
 
+	round := shardHdr.GetRound()
+
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),
-		"round", shardHdr.GetRound(),
+		"round", round,
 		"nonce", shardHdr.GetNonce(),
 	)
 
@@ -1369,7 +1370,12 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 }
 
 func (sp *shardProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock, metaBlockHash []byte) {
-	log.Debug("got a startEpochBlock", "miniblockHeaders len", len(metaBlock.MiniBlockHeaders))
+	_, exists := sp.startOfEpochData[string(metaBlockHash)]
+	if exists {
+		return
+	}
+
+	log.Debug("got a startEpochBlock", "shardId", sp.shardCoordinator.SelfId(), "miniblockHeaders len", len(metaBlock.MiniBlockHeaders))
 	peerMiniBlocks := make([][]byte, 0)
 	for _, mb := range metaBlock.MiniBlockHeaders {
 		if mb.Type == block.PeerBlock {
@@ -1381,10 +1387,6 @@ func (sp *shardProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock, m
 
 	sp.startOfEpochDataMutex.Lock()
 	defer sp.startOfEpochDataMutex.Unlock()
-	_, exists := sp.startOfEpochData[string(metaBlockHash)]
-	if exists {
-		return
-	}
 
 	sp.startOfEpochData[string(metaBlockHash)] = startOfEpochData{
 		peerMiniblocks: peerMiniBlocks,

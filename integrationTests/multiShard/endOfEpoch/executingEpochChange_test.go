@@ -22,6 +22,8 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:TRACE, state:DEBUG")
+
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
@@ -79,11 +81,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*.TRACE")
-
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -157,10 +157,10 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	nodesPerShard := 1
-	nbMetaNodes := 1
-	nbShards := 1
-	consensusGroupSize := 1
+	nodesPerShard := 3
+	nbMetaNodes := 2
+	nbShards := 2
+	consensusGroupSize := 2
 	maxGasLimitPerBlock := uint64(100000)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
