@@ -90,6 +90,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		GasPrice:    gasPrice,
 		GasProvided: service.economicsFee.MaxGasLimitPerBlock(),
 		Arguments:   query.Arguments,
+		CallType:    vmcommon.DirectCall,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
