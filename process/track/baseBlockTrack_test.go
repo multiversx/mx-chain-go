@@ -661,7 +661,6 @@ func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGeLastNotarizedHeaderErr(t
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
-	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
 
 	result := sbt.ShouldAddHeaderForSelfShard(&block.Header{Nonce: 1200, ShardId: 2})
 	assert.False(t, result)
@@ -671,7 +670,6 @@ func TestShouldAddHeaderForShard_ShouldReturnFalseWhenHeaderIsOutOfRange(t *test
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
-	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
 
 	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: 1201})
 	assert.False(t, result)
@@ -684,7 +682,6 @@ func TestShouldAddHeaderForShard_ShouldReturnTrueWhenHeaderIsInRange(t *testing.
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
-	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
 
 	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: 1200})
 	assert.True(t, result)
