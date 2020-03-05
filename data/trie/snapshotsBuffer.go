@@ -20,7 +20,7 @@ func (sb *snapshotsBuffer) add(rootHash []byte) {
 	defer sb.mutOp.Unlock()
 
 	sb.buffer[string(rootHash)] = struct{}{}
-	log.Trace("snapshots buffer add", "len", len(sb.buffer))
+	log.Trace("snapshots buffer add", "rootHash", rootHash)
 }
 
 func (sb *snapshotsBuffer) contains(rootHash []byte) bool {
@@ -36,7 +36,7 @@ func (sb *snapshotsBuffer) remove(rootHash []byte) {
 	defer sb.mutOp.Unlock()
 
 	delete(sb.buffer, string(rootHash))
-	log.Trace("snapshots buffer remove", "len", len(sb.buffer))
+	log.Trace("snapshots buffer remove", "rootHash", rootHash)
 }
 
 func (sb *snapshotsBuffer) len() int {

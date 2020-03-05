@@ -97,7 +97,6 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 				if err != nil {
 					log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
 				}
-				tsm.snapshotsBuffer.remove(rootHash)
 			}
 		}
 	}
@@ -282,6 +281,7 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
+		tsm.snapshotsBuffer.remove(snapshot.rootHash)
 		return
 	}
 
