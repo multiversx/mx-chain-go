@@ -3,6 +3,7 @@ package mock
 import (
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -22,11 +23,20 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
-	PruneTrieCalled             func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte, identifier data.TriePruningIdentifier) error
 	SnapshotStateCalled         func(rootHash []byte)
 	SetStateCheckpointCalled    func(rootHash []byte)
-	CancelPruneCalled           func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
 	IsPruningEnabledCalled      func() bool
+	GetAllLeavesCalled          func(rootHash []byte) (map[string][]byte, error)
+}
+
+// GetAllLeaves -
+func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+	if as.GetAllLeavesCalled != nil {
+		return as.GetAllLeavesCalled(rootHash)
+	}
+	return nil, nil
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -161,18 +171,18 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 }
 
 // PruneTrie -
-func (as *AccountsStub) PruneTrie(rootHash []byte) error {
+func (as *AccountsStub) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
 	if as.PruneTrieCalled != nil {
-		return as.PruneTrieCalled(rootHash)
+		return as.PruneTrieCalled(rootHash, identifier)
 	}
 
 	return errNotImplemented
 }
 
 // CancelPrune -
-func (as *AccountsStub) CancelPrune(rootHash []byte) {
+func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	if as.CancelPruneCalled != nil {
-		as.CancelPruneCalled(rootHash)
+		as.CancelPruneCalled(rootHash, identifier)
 	}
 }
 

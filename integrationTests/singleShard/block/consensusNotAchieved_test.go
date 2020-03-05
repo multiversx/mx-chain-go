@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -52,10 +52,6 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	for _, nodes := range nodesMap {
 		integrationTests.DisplayAndStartNodes(nodes)
 		integrationTests.SetEconomicsParameters(nodes, integrationTests.MaxGasLimitPerBlock, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
-		//set rewards = 0 so we can easily test the balances taking into account only the tx fee
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0))
-		}
 	}
 
 	defer func() {
@@ -134,14 +130,14 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 		return remainingTime > 0
 	}
 
-	blockHeader := &block.Header{}
+	blockHeader := node.BlockProcessor.CreateNewHeader(round)
 
 	blockHeader.SetShardID(0)
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap(bitmap)
 	currHdr := node.BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
+	if check.IfNil(currHdr) {
 		currHdr = node.BlockChain.GetGenesisHeader()
 	}
 
@@ -153,11 +149,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(node.ChainID)
 
-	blockBody, err := node.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockHeader, blockBody, err := node.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

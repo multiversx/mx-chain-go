@@ -85,8 +85,20 @@ func TestMinIntShouldReturnB(t *testing.T) {
 	assert.Equal(t, b, core.MinInt(a, b))
 }
 
-func TestMinIntReturnA(t *testing.T) {
+func TestMinIntShouldReturnA(t *testing.T) {
 	a := 10
 	b := 11
 	assert.Equal(t, a, core.MinInt(a, b))
+}
+
+func TestMaxIntShouldReturnA(t *testing.T) {
+	a := 11
+	b := 10
+	assert.Equal(t, a, core.MaxInt(a, b))
+}
+
+func TestMaxIntShouldReturnB(t *testing.T) {
+	a := 10
+	b := 11
+	assert.Equal(t, b, core.MaxInt(a, b))
 }

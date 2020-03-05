@@ -3,6 +3,7 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -11,24 +12,22 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSCCallingInIntraShard(t *testing.T) {
+func TestSCCallingIntraShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:INFO")
 
 	numOfShards := 1
 	nodesPerShard := 2
@@ -106,6 +105,229 @@ func TestSCCallingInIntraShard(t *testing.T) {
 			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d", index))
 		}
 	}
+}
+
+func TestScDeployAndChangeScOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	sleepDuration := time.Second
+	numShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numShards+1)
+	for i := 0; i < numShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numShards] = numShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	initialVal := big.NewInt(1000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
+
+	// deploy the smart contracts
+	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// make smart contract call to shard 1 which will do in shard 0
+	for _, node := range nodes {
+		txData := "increment"
+		for i := 0; i < 10; i++ {
+			integrationTests.CreateAndSendTransaction(node, big.NewInt(0), firstSCAddress, txData)
+		}
+	}
+
+	time.Sleep(sleepDuration)
+
+	numRoundsToPropagateMultiShard := 15
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != shId {
+			continue
+		}
+
+		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "get", nil)
+		require.NotNil(t, numCalled)
+	}
+
+	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	require.Equal(t, big.NewInt(0), account.DeveloperReward)
+
+	newOwnerAddress := []byte("12345678123456781234567812345678")
+	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
+	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData)
+
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	// check new owner address is set
+	account = getAccountFromAddrBytes(nodes[0].AccntState, firstSCAddress)
+	require.Equal(t, newOwnerAddress, account.OwnerAddress)
+	require.True(t, account.DeveloperReward.Cmp(big.NewInt(0)) == 1)
+}
+
+func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numShards+1)
+	for i := 0; i < numShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numShards] = numShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	initialVal := big.NewInt(1000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
+
+	// deploy the smart contracts
+	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// make smart contract call to shard 1 which will do in shard 0
+	for _, node := range nodes {
+		txData := "increment"
+		for i := 0; i < 10; i++ {
+			integrationTests.CreateAndSendTransaction(node, big.NewInt(0), firstSCAddress, txData)
+		}
+	}
+
+	time.Sleep(time.Second)
+
+	numRoundsToPropagateMultiShard := 15
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != shId {
+			continue
+		}
+
+		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "get", nil)
+		require.NotNil(t, numCalled)
+	}
+
+	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	require.Equal(t, big.NewInt(0), account.DeveloperReward)
+	fmt.Println("smart contract owner before claim", account.Balance)
+	oldOwnerBalance := big.NewInt(0).Set(account.Balance)
+
+	account = getAccountFromAddrBytes(nodes[0].AccntState, firstSCAddress)
+	fmt.Println("smart contract rewards balance", account.DeveloperReward)
+
+	for _, node := range nodes {
+		node.EconomicsData.SetGasPerDataByte(0)
+		node.EconomicsData.SetMinGasLimit(0)
+		node.EconomicsData.SetMinGasPrice(0)
+	}
+
+	txData := "ClaimDeveloperRewards"
+	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData)
+
+	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	fmt.Println("smart contract owner after claim", account.Balance)
+	require.True(t, account.Balance.Cmp(oldOwnerBalance) == 1)
+}
+
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {
+	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
+	sndrAcc, _ := accState.GetExistingAccount(addrCont)
+
+	sndAccSt, _ := sndrAcc.(*state.Account)
+
+	return sndAccSt
 }
 
 func TestSCCallingInCrossShard(t *testing.T) {
@@ -186,8 +408,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 			continue
 		}
 
-		fmt.Printf("Investigating Node %d from Shard %d\n", index, shId)
-
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
 		assert.NotNil(t, numCalled)
 		if numCalled != nil {
@@ -200,8 +420,6 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -222,16 +440,18 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
+	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -264,7 +484,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
 	node := nodes[0]
 	txData := "sendToStaking"
-	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
+	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.GenesisNodePrice(), delegateSCAddress, txData)
 
 	time.Sleep(time.Second)
 
@@ -274,7 +494,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{
@@ -289,6 +509,16 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 		}
 	}
+}
+
+func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
 }
 
 func putDeploySCToDataPool(

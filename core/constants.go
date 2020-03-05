@@ -60,10 +60,6 @@ const MetricIsSyncing = "erd_is_syncing"
 // MetricPublicKeyBlockSign is the metric for monitoring public key of a node used in block signing
 const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
 
-// MetricPublicKeyTxSign is the metric for monitoring public key of a node used in tx signing
-// (balance account held by the node)
-const MetricPublicKeyTxSign = "erd_public_key_tx_sign"
-
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
 
@@ -217,5 +213,17 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
+
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
+
+// BaseOperationCost represents the field name for base operation costs
+const BaseOperationCost = "BaseOperationCost"
+
+// BuiltInCost represents the field name for built in operation costs
+const BuiltInCost = "BuiltInCost"
+
+// MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
+const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"

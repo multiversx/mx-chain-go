@@ -82,6 +82,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		CrossNotarizer:                crossNotarizer,
 		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		Rounder:                       arguments.Rounder,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
@@ -118,6 +119,50 @@ func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*H
 	}
 
 	return selfMetaBlocksInfo
+}
+
+// CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing
+// For metachain some shard headers may become invalid if the attesting header for a start of epoch block changes
+// due to a rollback
+func (mbt *metaBlockTrack) CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64) {
+	for shardID := uint32(0); shardID < mbt.shardCoordinator.NumberOfShards(); shardID++ {
+		shardHeader, _, err := mbt.crossNotarizer.GetLastNotarizedHeader(shardID)
+		if err != nil {
+			log.Warn("get last notarized headers", "error", err.Error())
+			continue
+		}
+
+		mbt.removeInvalidShardHeadersDueToEpochChange(shardID, shardHeader.GetNonce(), metaRoundAttestingEpoch, metaNewEpoch)
+	}
+}
+
+func (mbt *metaBlockTrack) removeInvalidShardHeadersDueToEpochChange(
+	shardID uint32,
+	shardNotarizedNonce uint64,
+	metaRoundAttestingEpoch uint64,
+	metaNewEpoch uint32,
+) {
+	mbt.mutHeaders.Lock()
+	defer mbt.mutHeaders.Unlock()
+
+	for nonce, headersInfo := range mbt.headers[shardID] {
+		if nonce <= shardNotarizedNonce {
+			continue
+		}
+
+		newHeadersInfo := make([]*HeaderInfo, 0, len(headersInfo))
+
+		for _, headerInfo := range headersInfo {
+			round := headerInfo.Header.GetRound()
+			epoch := headerInfo.Header.GetEpoch()
+			isInvalidHeader := round > metaRoundAttestingEpoch+process.EpochChangeGracePeriod && epoch < metaNewEpoch
+			if !isInvalidHeader {
+				newHeadersInfo = append(newHeadersInfo, headerInfo)
+			}
+		}
+
+		mbt.headers[shardID][nonce] = newHeadersInfo
+	}
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard

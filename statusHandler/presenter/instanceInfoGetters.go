@@ -19,11 +19,6 @@ func (psh *PresenterStatusHandler) GetNodeType() string {
 	return psh.getFromCacheAsString(core.MetricNodeType)
 }
 
-// GetPublicKeyTxSign will return node public key for sign transaction
-func (psh *PresenterStatusHandler) GetPublicKeyTxSign() string {
-	return psh.getFromCacheAsString(core.MetricPublicKeyTxSign)
-}
-
 // GetPublicKeyBlockSign will return node public key for sign blocks
 func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 	return psh.getFromCacheAsString(core.MetricPublicKeyBlockSign)

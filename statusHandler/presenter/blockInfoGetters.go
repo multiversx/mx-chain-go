@@ -1,6 +1,8 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // GetNumTxInBlock will return how many transactions are in block
 func (psh *PresenterStatusHandler) GetNumTxInBlock() uint64 {

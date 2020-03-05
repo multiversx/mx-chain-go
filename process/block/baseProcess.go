@@ -51,8 +51,7 @@ type hdrForBlock struct {
 type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
 	nodesCoordinator             sharding.NodesCoordinator
-	specialAddressHandler        process.SpecialAddressHandler
-	accounts                     state.AccountsAdapter
+	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
 	forkDetector                 process.ForkDetector
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	hasher                       hashing.Hasher
@@ -70,26 +69,35 @@ type baseProcessor struct {
 	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
 	dataPool                     dataRetriever.PoolsHolder
+	feeHandler                   process.TransactionFeeHandler
+	blockChain                   data.ChainHandler
 
 	hdrsForCurrBlock hdrForBlock
 
-	appStatusHandler core.AppStatusHandler
-	blockProcessor   blockProcessor
+	appStatusHandler       core.AppStatusHandler
+	blockProcessor         blockProcessor
+	stateCheckpointModulus uint
+}
+
+type bootStorerDataArgs struct {
+	headerInfo                 bootstrapStorage.BootstrapHeaderInfo
+	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
+	round                      uint64
+	highestFinalBlockNonce     uint64
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
+	nodesCoordinatorConfigKey  []byte
+	epochStartTriggerConfigKey []byte
 }
 
 func checkForNils(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-
-	if chainHandler == nil || chainHandler.IsInterfaceNil() {
-		return process.ErrNilBlockChain
-	}
-	if headerHandler == nil || headerHandler.IsInterfaceNil() {
+	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
-	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+	if check.IfNil(bodyHandler) {
 		return process.ErrNilBlockBody
 	}
 	return nil
@@ -97,7 +105,7 @@ func checkForNils(
 
 // SetAppStatusHandler method is used to set appStatusHandler
 func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return process.ErrNilAppStatusHandler
 	}
 
@@ -107,27 +115,26 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
-	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
 
-	err := checkForNils(chainHandler, headerHandler, bodyHandler)
+	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
 
-	if currentBlockHeader == nil {
+	if check.IfNil(currentBlockHeader) {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
-			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
+			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
 				return nil
 			}
 
 			log.Debug("hash does not match",
-				"local block hash", chainHandler.GetGenesisHeaderHash(),
+				"local block hash", bp.blockChain.GetGenesisHeaderHash(),
 				"received previous hash", headerHandler.GetPrevHash())
 
 			return process.ErrBlockHashDoesNotMatch
@@ -156,14 +163,9 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, currentBlockHeader)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
+	if !bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetCurrentBlockHeaderHash()) {
 		log.Debug("hash does not match",
-			"local block hash", prevHeaderHash,
+			"local block hash", bp.blockChain.GetCurrentBlockHeaderHash(),
 			"received previous hash", headerHandler.GetPrevHash())
 
 		return process.ErrBlockHashDoesNotMatch
@@ -177,23 +179,18 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-	if bodyHandler != nil {
-		// TODO: add bodyHandler verification here
-	}
-
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
 	}
 
-	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
 
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
-	trieRootHash, err := bp.accounts.RootHash()
+	trieRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Debug("verify account.RootHash", "error", err.Error())
 	}
@@ -203,7 +200,7 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	rootHash, err := bp.accounts.RootHash()
+	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Trace("get account.RootHash", "error", err.Error())
 	}
@@ -335,8 +332,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if check.IfNil(arguments.Accounts) {
-		return process.ErrNilAccountsAdapter
+	for key := range arguments.AccountsDB {
+		if check.IfNil(arguments.AccountsDB[key]) {
+			return process.ErrNilAccountsAdapter
+		}
 	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
@@ -355,9 +354,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
-	}
-	if check.IfNil(arguments.SpecialAddressHandler) {
-		return process.ErrNilSpecialAddressHandler
 	}
 	if check.IfNil(arguments.Uint64Converter) {
 		return process.ErrNilUint64Converter
@@ -386,6 +382,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
+	if check.IfNil(arguments.FeeHandler) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(arguments.BlockChain) {
+		return process.ErrNilBlockChain
+	}
 
 	return nil
 }
@@ -397,6 +399,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	bp.txCoordinator.CreateBlockStarted()
+	bp.feeHandler.CreateBlockStarted()
 }
 
 func (bp *baseProcessor) resetMissingHdrs() {
@@ -404,6 +407,13 @@ func (bp *baseProcessor) resetMissingHdrs() {
 	bp.hdrsForCurrBlock.missingHdrs = 0
 	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error {
+	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
+		return process.ErrAccumulatedFeesDoNotMatch
+	}
+	return nil
 }
 
 //TODO: remove bool parameter and give instead the set to sort
@@ -598,7 +608,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 }
 
 func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
-	if targetShardID == sharding.MetachainShardId {
+	if targetShardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
 		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
@@ -615,12 +625,12 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
 
@@ -712,12 +722,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 
 	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+		bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
@@ -761,35 +771,28 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 
 func (bp *baseProcessor) getShardForSelfNotarized(shardID uint32) uint32 {
 	isSelfShard := shardID == bp.shardCoordinator.SelfId()
-	if isSelfShard && bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		return sharding.MetachainShardId
+	if isSelfShard && bp.shardCoordinator.SelfId() != core.MetachainShardId {
+		return core.MetachainShardId
 	}
 
 	return shardID
 }
 
-func (bp *baseProcessor) prepareDataForBootStorer(
-	headerInfo bootstrapStorage.BootstrapHeaderInfo,
-	round uint64,
-	lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
-	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
-	highestFinalBlockNonce uint64,
-	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
-) {
-	//TODO add end of epoch stuff
-
+func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:                headerInfo,
-		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
-		PendingMiniBlocks:         pendingMiniBlocks,
-		HighestFinalBlockNonce:    highestFinalBlockNonce,
-		ProcessedMiniBlocks:       processedMiniBlocks,
+		LastHeader:                 args.headerInfo,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
+		LastSelfNotarizedHeaders:   args.lastSelfNotarizedHeaders,
+		PendingMiniBlocks:          args.pendingMiniBlocks,
+		ProcessedMiniBlocks:        args.processedMiniBlocks,
+		HighestFinalBlockNonce:     args.highestFinalBlockNonce,
+		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
+		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	err := bp.bootStorer.Put(int64(round), bootData)
+	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
 			"error", err.Error())
@@ -806,7 +809,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		}
 	}
 
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(sharding.MetachainShardId)
+	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
@@ -897,7 +900,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header := bp.blockProcessor.CreateNewHeader()
+	header := bp.blockProcessor.CreateNewHeader(0)
 
 	err := bp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {
@@ -985,4 +988,93 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	}
 
 	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
+}
+
+func (bp *baseProcessor) updateStateStorage(
+	finalHeader data.HeaderHandler,
+	rootHash []byte,
+	prevRootHash []byte,
+	accounts state.AccountsAdapter,
+) {
+	if !accounts.IsPruningEnabled() {
+		return
+	}
+
+	accounts.CancelPrune(rootHash, data.NewRoot)
+
+	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "rootHash", rootHash)
+		accounts.SnapshotState(rootHash)
+	}
+
+	// TODO generate checkpoint on a trigger
+	if bp.stateCheckpointModulus != 0 {
+		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
+			log.Debug("trie checkpoint", "rootHash", rootHash)
+			accounts.SetStateCheckpoint(rootHash)
+		}
+	}
+
+	if bytes.Equal(prevRootHash, rootHash) {
+		return
+	}
+
+	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (bp *baseProcessor) RevertAccountState() {
+	for key := range bp.accountsDB {
+		err := bp.accountsDB[key].RevertToSnapshot(0)
+		if err != nil {
+			log.Debug("RevertToSnapshot", "error", err.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) commitAll() error {
+	for key := range bp.accountsDB {
+		_, err := bp.accountsDB[key].Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
+func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	for key := range bp.accountsDB {
+		if !bp.accountsDB[key].IsPruningEnabled() {
+			return
+		}
+
+		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
+
+		if bytes.Equal(rootHash, prevRootHash) {
+			return
+		}
+
+		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
+
+		errNotCritical := bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {
+	switch identifier {
+	case state.UserAccountsState:
+		return currHeader.GetRootHash(), prevHeader.GetRootHash()
+	case state.PeerAccountsState:
+		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
+	default:
+		return []byte{}, []byte{}
+	}
 }

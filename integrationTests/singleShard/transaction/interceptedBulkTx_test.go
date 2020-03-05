@@ -90,6 +90,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		integrationTests.CreateRandomHexString(64),
 		big.NewInt(1),
 		uint64(noOfTx),
+		n.OwnAccount.SkTxSign,
 	)
 
 	assert.Nil(t, err)

@@ -11,13 +11,14 @@ import (
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr              *block.MetaBlock
-	sigVerifier      process.InterceptedHeaderSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
-	hash             []byte
-	chainID          []byte
-	validityAttester process.ValidityAttester
+	hdr               *block.MetaBlock
+	sigVerifier       process.InterceptedHeaderSigVerifier
+	hasher            hashing.Hasher
+	shardCoordinator  sharding.Coordinator
+	hash              []byte
+	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -33,12 +34,13 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	}
 
 	inHdr := &InterceptedMetaHeader{
-		hdr:              hdr,
-		hasher:           arg.Hasher,
-		sigVerifier:      arg.HeaderSigVerifier,
-		shardCoordinator: arg.ShardCoordinator,
-		chainID:          arg.ChainID,
-		validityAttester: arg.ValidityAttester,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -48,7 +50,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
 	hdr := &block.MetaBlock{
 		ShardInfo: make([]block.ShardData, 0),
-		PeerInfo:  make([]block.PeerData, 0),
 	}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
@@ -88,6 +89,8 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	if err != nil {
 		return err
 	}
+
+	imh.epochStartTrigger.ReceivedHeader(imh.hdr)
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {

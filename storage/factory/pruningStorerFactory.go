@@ -212,6 +212,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var miniBlockUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
+	var rewardTxUnit *pruning.PruningStorer
 	var miniBlockHeadersUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnits []*pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
@@ -300,6 +301,13 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
+	rewardTxUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.RewardTxStorage)
+	rewardTxUnit, err = pruning.NewPruningStorer(rewardTxUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, rewardTxUnit)
+
 	miniBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MiniBlocksStorage)
 	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
@@ -328,6 +336,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
+	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
 	store.AddStorer(dataRetriever.MiniBlockHeaderUnit, miniBlockHeadersUnit)
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -346,7 +355,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
 	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
-	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, 0, storageConfig.DB.FilePath))
+	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
 		Identifier:            storageConfig.DB.FilePath,
 		PruningEnabled:        pruningEnabled,
