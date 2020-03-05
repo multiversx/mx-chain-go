@@ -241,7 +241,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.True(t, sndAcc.Balance.Cmp(expectedValue) == 0)
+				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -256,7 +256,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.True(t, sndAcc.Balance.Cmp(expectedValue) == 0)
+				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -277,7 +277,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 	}
 }
 
-func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
