@@ -25,6 +25,14 @@ type TrieStub struct {
 	GetAllLeavesCalled       func() (map[string][]byte, error)
 }
 
+// EnterSnapshotMode -
+func (ts *TrieStub) EnterSnapshotMode() {
+}
+
+// ExitSnapshotMode -
+func (ts *TrieStub) ExitSnapshotMode() {
+}
+
 func (ts *TrieStub) ClosePersister() error {
 	return nil
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -81,11 +80,11 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType factory.Type) (state.AccountHandler, error) {
+func NewEmptyAccount(accType state.Type) (state.AccountHandler, error) {
 	switch accType {
-	case factory.UserAccount:
+	case state.UserAccount:
 		return &state.Account{}, nil
-	case factory.ValidatorAccount:
+	case state.ValidatorAccount:
 		return &state.PeerAccount{}, nil
 
 	}
@@ -93,21 +92,21 @@ func NewEmptyAccount(accType factory.Type) (state.AccountHandler, error) {
 }
 
 // GetTrieTypeAndShId returns the type and shard Id for a given account according to the saved key
-func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
+func GetTrieTypeAndShId(key string) (state.Type, uint32, error) {
 	splitString := strings.Split(key, atSep)
 	if len(splitString) < 3 {
-		return factory.UserAccount, 0, update.ErrUnknownType
+		return state.UserAccount, 0, update.ErrUnknownType
 	}
 
 	accTypeInt64, err := strconv.ParseInt(splitString[1], 10, 0)
 	if err != nil {
-		return factory.UserAccount, 0, err
+		return state.UserAccount, 0, err
 	}
 	accType := getAccountType(int(accTypeInt64))
 
 	shId, err := strconv.ParseInt(splitString[1], 10, 0)
 	if err != nil {
-		return factory.UserAccount, 0, err
+		return state.UserAccount, 0, err
 	}
 	return accType, uint32(shId), nil
 }
@@ -129,11 +128,11 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
-func getAccountType(intType int) factory.Type {
-	accType := factory.UserAccount
-	for currType := range factory.SupportedAccountTypes {
+func getAccountType(intType int) state.Type {
+	accType := state.UserAccount
+	for currType := range state.SupportedAccountTypes {
 		if currType == intType {
-			accType = factory.Type(currType)
+			accType = state.Type(currType)
 			break
 		}
 	}
@@ -153,9 +152,9 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 
 	convertedType := Unknown
 	switch accType {
-	case factory.UserAccount:
+	case state.UserAccount:
 		convertedType = UserAccount
-	case factory.ValidatorAccount:
+	case state.ValidatorAccount:
 		convertedType = PeerAccount
 	default:
 		return convertedType, nil, update.ErrUnknownType
@@ -216,7 +215,7 @@ func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
 }
 
 // CreateAccountKey creates a key for an account according to its type, shard ID and address
-func CreateAccountKey(accType factory.Type, shId uint32, address string) string {
+func CreateAccountKey(accType state.Type, shId uint32, address string) string {
 	key := CreateTrieIdentifier(shId, accType)
 	return key + atSep + address
 }
@@ -227,7 +226,7 @@ func CreateRootHashKey(trieIdentifier string) string {
 }
 
 // CreateTrieIdentifier creates a trie identifier according to trie type and shard id
-func CreateTrieIdentifier(shID uint32, accountType factory.Type) string {
+func CreateTrieIdentifier(shID uint32, accountType state.Type) string {
 	return fmt.Sprint("tr", atSep, shID, atSep, accountType)
 }
 

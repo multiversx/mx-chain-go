@@ -23,6 +23,14 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
+// EnterSnapshotMode -
+func (ts *TrieStub) EnterSnapshotMode() {
+}
+
+// ExitSnapshotMode -
+func (ts *TrieStub) ExitSnapshotMode() {
+}
+
 // ClosePersister -
 func (ts *TrieStub) ClosePersister() error {
 	return nil

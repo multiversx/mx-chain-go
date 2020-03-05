@@ -188,7 +188,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+func CreateAccountsDB(accountType state.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
@@ -374,7 +374,7 @@ func CreateGenesisMetaBlock(
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
-		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
+		newAccounts, _, _ := CreateAccountsDB(state.UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -471,7 +471,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(factory.UserAccount)
+	adb, _, _ := CreateAccountsDB(state.UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -1351,7 +1351,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(factory.UserAccount)
+	accnts, _, _ := CreateAccountsDB(state.UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()

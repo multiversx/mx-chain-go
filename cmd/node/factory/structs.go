@@ -306,7 +306,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create bls address converter: " + err.Error())
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(state.UserAccount)
 	if err != nil {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
@@ -322,7 +322,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	accountFactory, err = factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
+	accountFactory, err = factoryState.NewAccountFactoryCreator(state.ValidatorAccount)
 	if err != nil {
 		return nil, errors.New("could not create peer account factory: " + err.Error())
 	}
@@ -1601,7 +1601,7 @@ func createInMemoryShardCoordinatorAndAccount(
 		return nil, nil, err
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(state.UserAccount)
 	if err != nil {
 		return nil, nil, err
 	}

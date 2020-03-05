@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	factoryTrieContainer "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -108,12 +107,12 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 }
 
 func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
-	err := st.syncTrieOfType(factory.UserAccount, factoryTrieContainer.UserAccountTrie, core.MetachainShardId, meta.RootHash)
+	err := st.syncTrieOfType(state.UserAccount, factoryTrieContainer.UserAccountTrie, core.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return err
 	}
 
-	err = st.syncTrieOfType(factory.ValidatorAccount, factoryTrieContainer.PeerAccountTrie, core.MetachainShardId, meta.ValidatorStatsRootHash)
+	err = st.syncTrieOfType(state.ValidatorAccount, factoryTrieContainer.PeerAccountTrie, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -122,14 +121,14 @@ func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncTries) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncTrieOfType(factory.UserAccount, factoryTrieContainer.UserAccountTrie, shardData.ShardId, shardData.RootHash)
+	err := st.syncTrieOfType(state.UserAccount, factoryTrieContainer.UserAccountTrie, shardData.ShardId, shardData.RootHash)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (st *syncTries) syncTrieOfType(accountType factory.Type, trieID string, shardId uint32, rootHash []byte) error {
+func (st *syncTries) syncTrieOfType(accountType state.Type, trieID string, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
 	success := st.tryRecreateTrie(accAdapterIdentifier, trieID, rootHash)
