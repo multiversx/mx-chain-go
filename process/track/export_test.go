@@ -1,6 +1,7 @@
 package track
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -34,8 +35,36 @@ func (bbt *baseBlockTrack) ReceivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.receivedMetaBlock(headerHandler, metaBlockHash)
 }
 
+func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
+	return bbt.shouldAddHeader(headerHandler)
+}
+
+func (bbt *baseBlockTrack) ShouldAddHeaderForCrossShard(headerHandler data.HeaderHandler) bool {
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer, headerHandler.GetShardID())
+}
+
+func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.HeaderHandler) bool {
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
+}
+
 func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) {
 	bbt.addHeader(header, hash)
+}
+
+func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler) {
+	bbt.mutHeaders.Lock()
+	headersForShard, ok := bbt.headers[headerHandler.GetShardID()]
+	if !ok {
+		headersForShard = make(map[uint64][]*HeaderInfo)
+		bbt.headers[headerHandler.GetShardID()] = headersForShard
+	}
+
+	headersForShard[headerHandler.GetNonce()] = append(headersForShard[headerHandler.GetNonce()], &HeaderInfo{Header: headerHandler})
+	bbt.mutHeaders.Unlock()
+}
+
+func (bbt *baseBlockTrack) CleanupWhenMaxCapacityIsReached(shardID uint32) {
+	bbt.cleanupWhenMaxCapacityIsReached(shardID)
 }
 
 func (bbt *baseBlockTrack) CleanupTrackedHeadersBehindNonce(shardID uint32, nonce uint64) {
@@ -77,6 +106,16 @@ func (bn *blockNotifier) GetNotarizedHeadersHandlers() []func(shardID uint32, he
 }
 
 // blockNotarizer
+
+func (bn *blockNotarizer) AppendNotarizedHeader(headerHandler data.HeaderHandler) {
+	bn.mutNotarizedHeaders.Lock()
+	bn.notarizedHeaders[headerHandler.GetShardID()] = append(bn.notarizedHeaders[headerHandler.GetShardID()], &HeaderInfo{Header: headerHandler})
+	bn.mutNotarizedHeaders.Unlock()
+}
+
+func (bn *blockNotarizer) CleanupWhenMaxCapacityIsReached(shardID uint32) {
+	bn.cleanupWhenMaxCapacityIsReached(shardID)
+}
 
 func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*HeaderInfo {
 	bn.mutNotarizedHeaders.RLock()

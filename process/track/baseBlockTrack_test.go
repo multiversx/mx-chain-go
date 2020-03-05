@@ -570,6 +570,19 @@ func TestReceivedShardHeader_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T)
 	assert.Equal(t, 0, len(headers))
 }
 
+func TestReceivedShardHeader_ShouldNotAddWhenShardHeaderIsOutOfRange(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header := &block.Header{Nonce: 1201}
+	headerHash := []byte("hash")
+	sbt.ReceivedShardHeader(header, headerHash)
+	headers, _ := sbt.GetTrackedHeaders(header.GetShardID())
+
+	assert.Equal(t, 0, len(headers))
+}
+
 func TestReceivedShardHeader_ShouldWork(t *testing.T) {
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
@@ -597,6 +610,19 @@ func TestReceivedMetaBlock_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T) {
 	assert.Equal(t, 0, len(headers))
 }
 
+func TestReceivedMetaBlock_ShouldNotAddWhenMetaBlockIsOutOfRange(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	metaBlock := &block.MetaBlock{Nonce: 1201}
+	metaBlockHash := []byte("hash")
+	sbt.ReceivedMetaBlock(metaBlock, metaBlockHash)
+	headers, _ := sbt.GetTrackedHeaders(metaBlock.GetShardID())
+
+	assert.Equal(t, 0, len(headers))
+}
+
 func TestReceivedMetaBlock_ShouldWork(t *testing.T) {
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
@@ -609,6 +635,62 @@ func TestReceivedMetaBlock_ShouldWork(t *testing.T) {
 
 	require.Equal(t, 1, len(headers))
 	assert.Equal(t, metaBlock, headers[0])
+}
+
+func TestShouldAddHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	assert.True(t, sbt.ShouldAddHeader(&block.Header{Nonce: 1200}))
+	assert.False(t, sbt.ShouldAddHeader(&block.Header{Nonce: 1201}))
+	assert.True(t, sbt.ShouldAddHeader(&block.MetaBlock{Nonce: 1200}))
+	assert.False(t, sbt.ShouldAddHeader(&block.MetaBlock{Nonce: 1201}))
+}
+
+func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGetFirstNotarizedHeaderErr(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: 1200, ShardId: 2})
+	assert.False(t, result)
+}
+
+func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGeLastNotarizedHeaderErr(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
+
+	result := sbt.ShouldAddHeaderForSelfShard(&block.Header{Nonce: 1200, ShardId: 2})
+	assert.False(t, result)
+}
+
+func TestShouldAddHeaderForShard_ShouldReturnFalseWhenHeaderIsOutOfRange(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
+
+	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: 1201})
+	assert.False(t, result)
+
+	result = sbt.ShouldAddHeaderForSelfShard(&block.Header{Nonce: 1201})
+	assert.False(t, result)
+}
+
+func TestShouldAddHeaderForShard_ShouldReturnTrueWhenHeaderIsInRange(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	sbt.InitNotarizedHeaders(shardArguments.StartHeaders)
+
+	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: 1200})
+	assert.True(t, result)
+
+	result = sbt.ShouldAddHeaderForSelfShard(&block.Header{Nonce: 1200})
+	assert.True(t, result)
 }
 
 func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
@@ -629,6 +711,27 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 
 	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
+}
+
+func TestAddHeader_ShouldCleanupWhenMaxCapacityIsReached(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	maxNumHeadersToKeepPerShard := 1200
+	numHeadersToRemovePerShard := 200
+
+	for i := uint64(0); i < uint64(maxNumHeadersToKeepPerShard); i++ {
+		sbt.AddHeader(&block.Header{Nonce: i, ShardId: shardArguments.ShardCoordinator.SelfId()}, nil)
+	}
+
+	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
+	require.Equal(t, maxNumHeadersToKeepPerShard, len(headers))
+
+	sbt.AddHeader(&block.Header{Nonce: uint64(maxNumHeadersToKeepPerShard), ShardId: shardArguments.ShardCoordinator.SelfId()}, nil)
+
+	headers, _ = sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
+	require.Equal(t, maxNumHeadersToKeepPerShard-numHeadersToRemovePerShard, len(headers))
 }
 
 func TestAddHeader_ShouldWork(t *testing.T) {
@@ -656,6 +759,72 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(headers))
 	assert.Equal(t, hdr1, headers[0])
 	assert.Equal(t, hdr2, headers[1])
+}
+
+func TestCleanupWhenMaxCapacityIsReached_ShouldNotCleanTrackedHeadersWhenMaxCapacityIsNotReached(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	maxNumHeadersToKeepPerShard := 1200
+
+	for i := uint64(0); i < uint64(maxNumHeadersToKeepPerShard); i++ {
+		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardId: shardArguments.ShardCoordinator.SelfId()})
+	}
+
+	sbt.CleanupWhenMaxCapacityIsReached(shardArguments.ShardCoordinator.SelfId())
+	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
+	require.Equal(t, maxNumHeadersToKeepPerShard, len(headers))
+}
+
+func TestCleanupWhenMaxCapacityIsReached_ShouldCleanOldestTrackedHeaders(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	maxNumHeadersToKeepPerShard := 1200
+	numHeadersToRemovePerShard := 200
+	notarizedHeadersCount := maxNumHeadersToKeepPerShard + 1
+	shardID := shardArguments.ShardCoordinator.SelfId()
+
+	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
+		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardId: shardID})
+	}
+
+	sbt.CleanupWhenMaxCapacityIsReached(shardID)
+	headers, _ := sbt.GetTrackedHeaders(shardID)
+	require.Equal(t, maxNumHeadersToKeepPerShard-numHeadersToRemovePerShard, len(headers))
+
+	firstNonce := notarizedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+	require.Equal(t, uint64(firstNonce), headers[0].GetNonce())
+
+	lastNonce := notarizedHeadersCount - 1
+	require.Equal(t, uint64(lastNonce), headers[len(headers)-1].GetNonce())
+}
+
+func TestCleanupWhenMaxCapacityIsReached_ShouldCleanNewestTrackedHeaders(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	maxNumHeadersToKeepPerShard := 1200
+	numHeadersToRemovePerShard := 200
+	notarizedHeadersCount := maxNumHeadersToKeepPerShard + 1
+	shardID := uint32(1)
+
+	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
+		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardId: shardID})
+	}
+
+	sbt.CleanupWhenMaxCapacityIsReached(shardID)
+	headers, _ := sbt.GetTrackedHeaders(shardID)
+	require.Equal(t, maxNumHeadersToKeepPerShard-numHeadersToRemovePerShard, len(headers))
+
+	firstNonce := 0
+	require.Equal(t, uint64(firstNonce), headers[0].GetNonce())
+
+	lastNonce := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard - 1
+	require.Equal(t, uint64(lastNonce), headers[len(headers)-1].GetNonce())
 }
 
 func TestAddCrossNotarizedHeader_ShouldWork(t *testing.T) {

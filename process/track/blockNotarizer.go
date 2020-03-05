@@ -10,28 +10,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type blockNotarizer struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
 
 	mutNotarizedHeaders sync.RWMutex
 	notarizedHeaders    map[uint32][]*HeaderInfo
 }
 
 // NewBlockNotarizer creates a block notarizer object which implements blockNotarizerHandler interface
-func NewBlockNotarizer(hasher hashing.Hasher, marshalizer marshal.Marshalizer) (*blockNotarizer, error) {
+func NewBlockNotarizer(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	shardCoordinator sharding.Coordinator,
+) (*blockNotarizer, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	bn := blockNotarizer{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
 	}
 
 	bn.notarizedHeaders = make(map[uint32][]*HeaderInfo)
@@ -61,6 +71,24 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 
 	if numNotarizedHeadersForShard > maxNumHeadersToKeepPerShard {
 		bn.cleanupWhenMaxCapacityIsReached(shardID)
+	}
+}
+
+func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
+	bn.mutNotarizedHeaders.Lock()
+	defer bn.mutNotarizedHeaders.Unlock()
+
+	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+	if notarizedHeadersCount <= maxNumHeadersToKeepPerShard {
+		return
+	}
+
+	if bn.shardCoordinator.SelfId() == shardID {
+		index := notarizedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][index:]
+	} else {
+		index := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard
+		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:index]
 	}
 }
 
@@ -260,13 +288,4 @@ func (bn *blockNotarizer) RestoreNotarizedHeadersToGenesis() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *blockNotarizer) IsInterfaceNil() bool {
 	return bn == nil
-}
-
-func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
-	bn.mutNotarizedHeaders.Lock()
-	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
-	if notarizedHeadersCount > maxNumHeadersToKeepPerShard {
-		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][numHeadersToRemovePerShard:]
-	}
-	bn.mutNotarizedHeaders.Unlock()
 }

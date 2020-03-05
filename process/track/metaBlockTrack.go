@@ -25,12 +25,12 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
