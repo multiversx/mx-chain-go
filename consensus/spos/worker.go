@@ -281,7 +281,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	cnsDta := &consensus.Message{
 		Body:   make(block.Body, 0),
-		Header: wrk.blockProcessor.CreateNewHeader(),
+		Header: wrk.blockChain.CreateNewHeader(),
 	}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {

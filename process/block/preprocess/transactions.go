@@ -303,7 +303,7 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 		txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 		if !ok || check.IfNil(txInfoFromMap.tx) {
-			log.Debug("missing transaction in computeTxsFromMiniBlock", "type", miniBlock.Type, "txHash", txHash)
+			log.Warn("missing transaction in computeTxsFromMiniBlock", "type", miniBlock.Type, "txHash", txHash)
 			return nil, process.ErrMissingTransaction
 		}
 
@@ -359,10 +359,6 @@ func (txs *transactions) processTxsToMe(
 		return err
 	}
 
-	//TODO: Should be verified if gas computation should be done here (before the next for) and should be done
-	//separately per miniblock, exactly as in the initial implementation. Also should be checked if with the last
-	//change, which call ProcessBlockTransactions method two times, first for mini blocks with destination in self shard
-	// and afterward with miniblocks from self shard, the gas computation is still correct.
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
@@ -380,7 +376,7 @@ func (txs *transactions) processTxsToMe(
 		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 		if !ok || check.IfNil(txInfoFromMap.tx) {
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			log.Debug("missing transaction in processTxsToMe", "txHash", txHash)
+			log.Warn("missing transaction in processTxsToMe", "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
@@ -763,6 +759,12 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
+	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
+		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, block.TxBlock)
+	}
+
+	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
+
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlock")
@@ -783,8 +785,14 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		senderShardID := sortedTxs[index].SenderShardID
 		receiverShardID := sortedTxs[index].ReceiverShardID
 
+		miniBlock, ok := mapMiniBlocks[receiverShardID]
+		if !ok {
+			log.Debug("miniblock is not created", "shard", receiverShardID)
+			continue
+		}
+
 		numNewMiniBlocks := 0
-		if _, ok = mapMiniBlocks[receiverShardID]; !ok {
+		if len(miniBlock.TxHashes) == 0 {
 			numNewMiniBlocks = 1
 		}
 		if txs.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, 1) {
@@ -890,12 +898,11 @@ func (txs *transactions) createAndProcessMiniBlocks(
 			continue
 		}
 
-		if _, ok = mapMiniBlocks[receiverShardID]; !ok {
-			mapMiniBlocks[receiverShardID] = txs.createEmptyMiniBlock(senderShardID, receiverShardID, block.TxBlock)
+		if len(miniBlock.TxHashes) == 0 {
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
 
-		mapMiniBlocks[receiverShardID].TxHashes = append(mapMiniBlocks[receiverShardID].TxHashes, txHash)
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
 		numTxsAdded++
 	}

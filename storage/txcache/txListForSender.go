@@ -44,7 +44,7 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSende
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
 func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
-	// We don't allow concurent interceptor goroutines to mutate a given sender's list
+	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
@@ -80,7 +80,7 @@ func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.E
 
 // RemoveTx removes a transaction from the sender's list
 func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
-	// We don't allow concurent interceptor goroutines to mutate a given sender's list
+	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 

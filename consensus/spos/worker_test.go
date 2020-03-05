@@ -23,11 +23,15 @@ import (
 const roundTimeDuration = 100 * time.Millisecond
 
 func initWorker() *spos.Worker {
-	blockchainMock := &mock.BlockChainMock{}
+	blockchainMock := &mock.BlockChainMock{
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 	blockProcessor := &mock.BlockProcessorMock{
 		RevertAccountStateCalled: func() {
 		},
-		CreateNewHeaderCalled: func() data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
 			return nil
 		},
 	}
@@ -840,9 +844,6 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
 		RevertAccountStateCalled: func() {
 		},
-		CreateNewHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
 	})
 	roundDuration := time.Millisecond * 1000
 	delay := time.Millisecond * 430
@@ -1033,9 +1034,6 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		&mock.BlockProcessorMock{
 			RevertAccountStateCalled: func() {
 			},
-			CreateNewHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{}
-			},
 		},
 	)
 
@@ -1067,9 +1065,6 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			RevertAccountStateCalled: func() {
-			},
-			CreateNewHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{}
 			},
 		},
 	)
@@ -1673,7 +1668,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{
 		RevertAccountStateCalled: func() {
 		},
-		CreateNewHeaderCalled: func() data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
 			return nil
 		},
 	}

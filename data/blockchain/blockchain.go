@@ -174,3 +174,8 @@ func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 func (bc *BlockChain) IsInterfaceNil() bool {
 	return bc == nil
 }
+
+// CreateNewHeader creates a new header
+func (bc *BlockChain) CreateNewHeader() data.HeaderHandler {
+	return &block.Header{}
+}

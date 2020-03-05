@@ -220,7 +220,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			txInfoFromMap, ok := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
 			if !ok || check.IfNil(txInfoFromMap.tx) {
-				log.Debug("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
+				log.Warn("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 

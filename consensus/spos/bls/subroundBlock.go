@@ -282,8 +282,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler) bool 
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr := sr.BlockProcessor().CreateNewHeader()
-	sr.BlockProcessor().UpdateEpochStartTriggerRound(uint64(sr.Rounder().Index()))
+	hdr := sr.BlockProcessor().CreateNewHeader(uint64(sr.Rounder().Index()))
 
 	var prevRandSeed []byte
 	if check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {

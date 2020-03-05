@@ -168,3 +168,8 @@ func (mc *MetaChain) PutBadBlock(blockHash []byte) {
 func (mc *MetaChain) IsInterfaceNil() bool {
 	return mc == nil
 }
+
+// CreateNewHeader creates a new meta block
+func (mc *MetaChain) CreateNewHeader() data.HeaderHandler {
+	return &block.MetaBlock{}
+}

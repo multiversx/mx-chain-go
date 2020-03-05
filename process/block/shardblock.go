@@ -1010,13 +1010,9 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
 	header := &block.Header{AccumulatedFees: big.NewInt(0)}
 	return header
-}
-
-// UpdateEpochStartTriggerRound updates round in epoch start trigger
-func (sp *shardProcessor) UpdateEpochStartTriggerRound(_ uint64) {
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain

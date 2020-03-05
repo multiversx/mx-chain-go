@@ -10,19 +10,18 @@ import (
 
 // BlockProcessorMock -
 type BlockProcessorMock struct {
-	ProcessBlockCalled                 func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                  func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled           func()
-	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                  func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled        func(header data.HeaderHandler, body data.BodyHandler) error
-	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
-	MarshalizedDataToBroadcastCalled   func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	AddLastNotarizedHdrCalled          func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled              func() data.HeaderHandler
-	UpdateEpochStartTriggerRoundCalled func(round uint64)
-	PruneStateOnRollbackCalled         func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
-	RevertStateToBlockCalled           func(header data.HeaderHandler) error
+	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled         func()
+	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
+	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled            func(round uint64) data.HeaderHandler
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
 // ApplyProcessedMiniBlocks -
@@ -53,15 +52,8 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
-	return bpm.CreateNewHeaderCalled()
-}
-
-// UpdateEpochStartTriggerRound -
-func (bpm *BlockProcessorMock) UpdateEpochStartTriggerRound(round uint64) {
-	if bpm.UpdateEpochStartTriggerRoundCalled != nil {
-		bpm.UpdateEpochStartTriggerRoundCalled(round)
-	}
+func (bpm *BlockProcessorMock) CreateNewHeader(round uint64) data.HeaderHandler {
+	return bpm.CreateNewHeaderCalled(round)
 }
 
 // CreateGenesisBlock -

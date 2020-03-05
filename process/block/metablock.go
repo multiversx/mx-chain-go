@@ -1729,18 +1729,15 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
+func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
-	return metaHeader
-}
-
-// UpdateEpochStartTriggerRound updates round in epoch start trigger
-func (mp *metaProcessor) UpdateEpochStartTriggerRound(round uint64) {
 	mp.epochStartTrigger.Update(round)
+
+	return metaHeader
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

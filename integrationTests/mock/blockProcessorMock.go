@@ -19,8 +19,7 @@ type BlockProcessorMock struct {
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled                   func() data.HeaderHandler
-	UpdateEpochStartTriggerRoundCalled      func(round uint64)
+	CreateNewHeaderCalled                   func(round uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
@@ -53,15 +52,8 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
-	return bpm.CreateNewHeaderCalled()
-}
-
-// UpdateEpochStartTriggerRound -
-func (bpm *BlockProcessorMock) UpdateEpochStartTriggerRound(round uint64) {
-	if bpm.UpdateEpochStartTriggerRoundCalled != nil {
-		bpm.UpdateEpochStartTriggerRoundCalled(round)
-	}
+func (bpm *BlockProcessorMock) CreateNewHeader(round uint64) data.HeaderHandler {
+	return bpm.CreateNewHeaderCalled(round)
 }
 
 // CreateBlock -

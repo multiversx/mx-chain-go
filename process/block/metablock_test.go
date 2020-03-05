@@ -2356,8 +2356,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader()
-	mp.UpdateEpochStartTriggerRound(round)
+	headerHandler := mp.CreateNewHeader(round)
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)

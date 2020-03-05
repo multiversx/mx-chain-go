@@ -16,7 +16,7 @@ var log = logger.GetOrCreate("txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
-	mutex                            sync.RWMutex
+	mutexBackingMap                  sync.RWMutex
 	backingMap                       map[string]*txPoolShard
 	mutexAddCallbacks                sync.RWMutex
 	onAddCallbacks                   []func(key []byte)
@@ -59,7 +59,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	cacheConfigPrototypeForSelfShard.NumBytesThreshold *= args.NumberOfShards
 
 	shardedTxPoolObject := &shardedTxPool{
-		mutex:                            sync.RWMutex{},
+		mutexBackingMap:                  sync.RWMutex{},
 		backingMap:                       make(map[string]*txPoolShard),
 		mutexAddCallbacks:                sync.RWMutex{},
 		onAddCallbacks:                   make([]func(key []byte), 0),
@@ -86,9 +86,9 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	cacheID = txPool.routeToCacheUnions(cacheID)
 
-	txPool.mutex.RLock()
+	txPool.mutexBackingMap.RLock()
 	shard, ok := txPool.backingMap[cacheID]
-	txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RUnlock()
 
 	if ok {
 		return shard
@@ -99,8 +99,8 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 }
 
 func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
-	txPool.mutex.Lock()
-	defer txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Lock()
+	defer txPool.mutexBackingMap.Unlock()
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
@@ -180,8 +180,8 @@ func (txPool *shardedTxPool) SearchFirstData(key []byte) (interface{}, bool) {
 
 // searchFirstTx searches the transaction against all shard data store, retrieving the first found
 func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHandler, ok bool) {
-	txPool.mutex.RLock()
-	defer txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
 
 	var txFromCache *txcache.WrappedTransaction
 	var hashExists bool
@@ -225,8 +225,8 @@ func (txPool *shardedTxPool) RemoveDataFromAllShards(key []byte) {
 
 // removeTxFromAllShards removes the transaction from the pool (it searches in all shards)
 func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
-	txPool.mutex.RLock()
-	defer txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
 
 	for _, shard := range txPool.backingMap {
 		cache := shard.Cache
@@ -246,16 +246,16 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 		txPool.addTx(tx, destCacheID)
 	})
 
-	txPool.mutex.Lock()
+	txPool.mutexBackingMap.Lock()
 	delete(txPool.backingMap, sourceCacheID)
-	txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Unlock()
 }
 
 // Clear clears everything in the pool
 func (txPool *shardedTxPool) Clear() {
-	txPool.mutex.Lock()
+	txPool.mutexBackingMap.Lock()
 	txPool.backingMap = make(map[string]*txPoolShard)
-	txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Unlock()
 }
 
 // ClearShardStore clears a specific cache
