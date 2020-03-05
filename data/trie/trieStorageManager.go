@@ -25,10 +25,11 @@ type trieStorageManager struct {
 	db            data.DBWriteCacher
 	pruningBuffer [][]byte
 
-	snapshots       []storage.Persister
-	snapshotId      int
-	snapshotDbCfg   config.DBConfig
-	snapshotsBuffer snapshotsBuffer
+	snapshots          []storage.Persister
+	snapshotId         int
+	snapshotDbCfg      config.DBConfig
+	snapshotsBuffer    snapshotsBuffer
+	snapshotInProgress bool
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -56,6 +57,7 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg config.DBConfig,
 		snapshotDbCfg:         snapshotDbCfg,
 		snapshotsBuffer:       newSnapshotsQueue(),
 		dbEvictionWaitingList: ewl,
+		snapshotInProgress:    false,
 	}, nil
 }
 
@@ -117,6 +119,24 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	return tsm.db
 }
 
+// EnterSnapshotMode sets the snapshot mode on
+func (tsm *trieStorageManager) EnterSnapshotMode() {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.snapshotInProgress = true
+}
+
+// ExitSnapshotMode sets the snapshot mode off
+func (tsm *trieStorageManager) ExitSnapshotMode() {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.snapshotInProgress = false
+	tsm.removeKeysFromDb(tsm.pruningBuffer)
+	tsm.pruningBuffer = tsm.pruningBuffer[:0]
+}
+
 // Clone returns a new instance of trieStorageManager
 func (tsm *trieStorageManager) Clone() data.StorageManager {
 	tsm.storageOperationMutex.Lock()
@@ -139,7 +159,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	defer tsm.storageOperationMutex.Unlock()
 
 	log.Trace("trie storage manager prune", "root", rootHash)
-	if tsm.snapshotsBuffer.len() != 0 {
+	if tsm.snapshotInProgress || tsm.snapshotsBuffer.len() > 0 {
 		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
 		return nil
 	}
@@ -258,9 +278,9 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, msh marshal.Marshal
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
 	tsm.snapshotsBuffer.add(rootHash, false)
 	if tsm.snapshotsBuffer.len() > 1 {
-
 		return
 	}
 
@@ -268,7 +288,6 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, msh marshal.Marsha
 }
 
 func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Hasher) {
-	var keys [][]byte
 	isSnapshotsBufferEmpty := false
 	for !isSnapshotsBufferEmpty {
 		tsm.storageOperationMutex.Lock()
@@ -279,14 +298,15 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
 			tsm.storageOperationMutex.Unlock()
-			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+			isSnapshotsBufferEmpty = tsm.isSnapshotsBufferEmpty()
 
 			log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 			continue
 		}
 		db := tsm.getSnapshotDb(snapshot.newDb)
 		if check.IfNil(db) {
-			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+			tsm.storageOperationMutex.Unlock()
+			isSnapshotsBufferEmpty = tsm.isSnapshotsBufferEmpty()
 			continue
 		}
 
@@ -294,33 +314,26 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 
 		err = tr.root.commit(true, 0, tsm.db, db)
 		if err != nil {
-			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+			isSnapshotsBufferEmpty = tsm.isSnapshotsBufferEmpty()
 
 			log.Error("trie storage manager: commit", "error", err.Error())
 			continue
 		}
 
-		isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
+		isSnapshotsBufferEmpty = tsm.isSnapshotsBufferEmpty()
 
 		log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
 	}
-
-	tsm.removeKeysFromDb(keys)
 }
 
-func (tsm *trieStorageManager) isSnapshotsBufferEmpty() (bool, [][]byte) {
+func (tsm *trieStorageManager) isSnapshotsBufferEmpty() bool {
 	tsm.storageOperationMutex.Lock()
-	var keys [][]byte
 
 	tsm.snapshotsBuffer.removeFirst()
 	isSnapshotsBufferEmpty := tsm.snapshotsBuffer.len() == 0
-	if isSnapshotsBufferEmpty {
-		keys = tsm.pruningBuffer
-		tsm.pruningBuffer = make([][]byte, 0)
-	}
 	tsm.storageOperationMutex.Unlock()
 
-	return isSnapshotsBufferEmpty, keys
+	return isSnapshotsBufferEmpty
 }
 
 func (tsm *trieStorageManager) removeKeysFromDb(keys [][]byte) {

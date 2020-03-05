@@ -38,6 +38,7 @@ type AddressContainer interface {
 // AccountFactory creates an account of different types
 type AccountFactory interface {
 	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
+	GetType() Type
 	IsInterfaceNil() bool
 }
 

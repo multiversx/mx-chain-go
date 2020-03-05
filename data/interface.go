@@ -137,6 +137,8 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 	ClosePersister() error
 }
@@ -177,6 +179,8 @@ type StorageManager interface {
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	Clone() StorageManager
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 }
 

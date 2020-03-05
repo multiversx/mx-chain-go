@@ -15,12 +15,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// Type defines account types to save in accounts trie
+type Type uint8
+
+const (
+	// UserAccount identifies an account holding balance, storage updates, code
+	UserAccount Type = 0
+	// ShardStatistics identifies a shard, keeps the statistics
+	ShardStatistics Type = 1
+	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
+	ValidatorAccount Type = 2
+)
+
+var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount}
+
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
 	mainTrie       data.Trie
 	hasher         hashing.Hasher
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
+	accountType    Type
 
 	dataTries  TriesHolder
 	entries    []JournalEntry
@@ -58,6 +73,7 @@ func NewAccountsDB(
 		entries:        make([]JournalEntry, 0),
 		mutEntries:     sync.RWMutex{},
 		dataTries:      NewDataTriesHolder(),
+		accountType:    accountFactory.GetType(),
 	}, nil
 }
 
@@ -584,15 +600,46 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
-
+	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
+
+	if adb.accountType != UserAccount {
+		adb.mainTrie.ExitSnapshotMode()
+		return
+	}
+
+	go func() {
+		adb.snapshotUserAccountDataTrie(rootHash)
+		adb.mainTrie.ExitSnapshotMode()
+	}()
+}
+
+func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
+	leafs, err := adb.GetAllLeaves(rootHash)
+	if err != nil {
+		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
+		return
+	}
+
+	for _, leaf := range leafs {
+		account := &Account{}
+		err := adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+		}
+
+		if len(account.RootHash) > 0 {
+			adb.mainTrie.TakeSnapshot(account.RootHash)
+		}
+	}
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
 func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
-
+	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.SetCheckpoint(rootHash)
+	adb.mainTrie.ExitSnapshotMode()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

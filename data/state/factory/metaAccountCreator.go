@@ -21,6 +21,11 @@ func (mac *MetaAccountCreator) CreateAccount(address state.AddressContainer, tra
 	return account, nil
 }
 
+// GetType returns the account factory type
+func (ac *MetaAccountCreator) GetType() state.Type {
+	return state.ShardStatistics
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mac *MetaAccountCreator) IsInterfaceNil() bool {
 	return mac == nil
