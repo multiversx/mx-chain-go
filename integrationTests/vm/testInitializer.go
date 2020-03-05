@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -470,11 +471,15 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 
-	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,
 	})
+
+	if err != nil {
+		panic(fmt.Errorf("GetIntValueFromSC: %v", err))
+	}
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
