@@ -12,6 +12,10 @@ func (afs *AccountsFactoryStub) CreateAccount(address state.AddressContainer, tr
 	return afs.CreateAccountCalled(address, tracker)
 }
 
+func (afs *AccountsFactoryStub) GetType() state.Type {
+	return state.UserAccount
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (afs *AccountsFactoryStub) IsInterfaceNil() bool {
 	return afs == nil

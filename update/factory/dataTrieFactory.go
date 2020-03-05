@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -81,18 +80,18 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
-		err := d.createAndAddOneTrie(i, factory.UserAccount, container)
+		err := d.createAndAddOneTrie(i, state.UserAccount, container)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := d.createAndAddOneTrie(core.MetachainShardId, factory.UserAccount, container)
+	err := d.createAndAddOneTrie(core.MetachainShardId, state.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.createAndAddOneTrie(core.MetachainShardId, factory.ValidatorAccount, container)
+	err = d.createAndAddOneTrie(core.MetachainShardId, state.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +99,7 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	return container, nil
 }
 
-func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType factory.Type, container state.TriesHolder) error {
+func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType state.Type, container state.TriesHolder) error {
 	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher)
 	if err != nil {
 		return err
