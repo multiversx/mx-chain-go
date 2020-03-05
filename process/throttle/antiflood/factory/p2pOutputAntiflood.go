@@ -23,6 +23,9 @@ func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandle
 func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	if err != nil {
+		return nil, err
+	}
 
 	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxMessagesPerSecond
 	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
