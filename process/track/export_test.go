@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const MaxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
+const NumHeadersToRemovePerShard = numHeadersToRemovePerShard
+
 // metaBlockTrack
 
 func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {

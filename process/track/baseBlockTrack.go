@@ -74,7 +74,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 	)
 
 	if !bbt.shouldAddHeader(headerHandler) {
-		log.Trace("received shard header is out of range")
+		log.Trace("received shard header is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
 
@@ -98,7 +98,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 	)
 
 	if !bbt.shouldAddHeader(headerHandler) {
-		log.Trace("received meta block is out of range")
+		log.Trace("received meta block is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
 
