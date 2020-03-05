@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -74,25 +76,13 @@ func generateRandomByteSlice(size int) []byte {
 }
 
 func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
+	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
 
-	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
+	acntDst, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 
 	return acntSrc, acntDst
 }
@@ -200,9 +190,10 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tth, err := NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
+		&mock.AccountsStub{
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			}},
 	)
 
 	assert.NotNil(t, tth)
@@ -230,9 +221,10 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tth, err := NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
+		&mock.AccountsStub{
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			}},
 	)
 
 	assert.NotNil(t, tth)

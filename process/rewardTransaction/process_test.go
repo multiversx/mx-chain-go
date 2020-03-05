@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -129,7 +131,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 	}
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{
-			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 				getAccountWithJournalWasCalled = true
 				return nil, nil
 			},
@@ -158,7 +160,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	expectedErr := errors.New("cannot get account")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{
-			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -182,7 +184,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 	t.Parallel()
 
 	accountsDb := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(addressContainer, &mock.AccountTrackerStub{}), nil
 		},
 	}
@@ -208,21 +210,15 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	journalizeWasCalled := false
 	saveAccountWasCalled := false
 
 	accountsDb := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-			ats := &mock.AccountTrackerStub{
-				JournalizeCalled: func(entry state.JournalEntry) {
-					journalizeWasCalled = true
-				},
-				SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-					saveAccountWasCalled = true
-					return nil
-				},
-			}
-			return state.NewAccount(addressContainer, ats)
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			return accounts.NewUserAccount(addressContainer)
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountWasCalled = true
+			return nil
 		},
 	}
 
@@ -242,6 +238,5 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
-	assert.True(t, journalizeWasCalled)
 	assert.True(t, saveAccountWasCalled)
 }

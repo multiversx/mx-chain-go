@@ -170,11 +170,11 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
-	acc, ok := senderAccount.(*state.Account)
+	acc, ok := senderAccount.(state.UserAccountHandler)
 	if !ok {
 		return 0, nil, nil, 0, errors.New("wrong account type")
 	}
-	newNonce = acc.Nonce
+	newNonce = acc.GetNonce()
 
 	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 }
@@ -270,11 +270,11 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	}
 
 	newNonce := uint64(0)
-	acc, ok := senderAccount.(*state.Account)
+	acc, ok := senderAccount.(state.UserAccountHandler)
 	if !ok {
 		return nil, errors.New("wrong account type")
 	}
-	newNonce = acc.Nonce
+	newNonce = acc.GetNonce()
 
 	tx, _, err := n.generateAndSignTxBuffArray(
 		newNonce,

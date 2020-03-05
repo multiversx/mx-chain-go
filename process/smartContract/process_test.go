@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -23,25 +25,13 @@ func generateEmptyByteSlice(size int) []byte {
 }
 
 func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
+	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
 
-	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
+	acntDst, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 
 	return acntSrc, acntDst
 }
@@ -488,7 +478,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
-	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -708,7 +698,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	tx.Value = big.NewInt(0)
 	acntSrc, acntDst := createAccounts(tx)
 
-	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -1027,7 +1017,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func createAccountsAndTransaction() (*state.Account, *state.Account, *transaction.Transaction) {
+func createAccountsAndTransaction() (state.UserAccountHandler, state.UserAccountHandler, *transaction.Transaction) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -1037,7 +1027,7 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 
 	acntSrc, acntDst := createAccounts(tx)
 
-	return acntSrc.(*state.Account), acntDst.(*state.Account), tx
+	return acntSrc.(state.UserAccountHandler), acntDst.(state.UserAccountHandler), tx
 }
 
 func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
@@ -1167,7 +1157,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 
-	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return acntSnd, nil
 	}
 
@@ -1180,7 +1170,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
 
@@ -1223,7 +1213,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1266,7 +1256,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1309,7 +1299,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1352,9 +1342,9 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
-		acc, _ := state.NewAccount(addressContainer, &mock.AccountTrackerStub{})
+		acc, _ := accounts.NewUserAccount(addressContainer)
 		return acc, nil
 	}
 
@@ -1395,7 +1385,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
 	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
@@ -1487,8 +1477,8 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := state.NewAccount(addressContainer, &mock.AccountTrackerStub{})
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		acc, _ := accounts.NewUserAccount(addressContainer)
 		return acc, nil
 	}
 	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
@@ -1598,14 +1588,14 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.GasLimit = 15
 
 	acntSrc, _ := createAccounts(tx)
-	stAcc, _ := acntSrc.(*state.Account)
-	stAcc.Balance = big.NewInt(45)
+	stAcc, _ := acntSrc.(state.UserAccountHandler)
+	stAcc.SetBalance(big.NewInt(45))
 
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -1640,12 +1630,12 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	tx.GasLimit = 10
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, modifiedBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
@@ -1682,11 +1672,11 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	txHash := []byte("txHash")
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
@@ -1770,7 +1760,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
@@ -1778,7 +1768,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * minGasPrice
-	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance+totalRefund, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
@@ -1869,7 +1859,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		GasRemaining: 0,
 	}
 
-	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -1883,7 +1873,6 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
-	accTracker := &mock.AccountTrackerStub{}
 
 	sc, err := NewSmartContractProcessor(
 		&mock.VMContainerMock{},
@@ -1917,9 +1906,9 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outputAccounts = append(outputAccounts, outacc1)
 
 	testAddr := mock.NewAddressMock(outaddress)
-	testAcc, _ := state.NewAccount(testAddr, accTracker)
+	testAcc, _ := accounts.NewUserAccount(testAddr)
 
-	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		if bytes.Equal(addressContainer.Bytes(), testAddr.Bytes()) {
 			return testAcc, nil
 		}
@@ -1929,10 +1918,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	accTracker.JournalizeCalled = func(entry state.JournalEntry) {}
-
-	accTracker.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
-		testAcc = accountHandler.(*state.Account)
+	accountsDB.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
 		return nil
 	}
 
@@ -1950,7 +1936,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(int64(10))
 	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
-		fakeAcc, _ := state.NewAccount(mock.NewAddressMock(address), &mock.AccountTrackerStub{})
+		fakeAcc, _ := accounts.NewUserAccount(mock.NewAddressMock(address))
 		fakeAcc.Balance = big.NewInt(int64(5))
 		return fakeAcc
 	}
@@ -2009,16 +1995,13 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := state.NewAccount(
-		state.NewAddress([]byte("address")),
-		&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
-			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-				return nil
-			}},
-	)
+	testAccounts, _ := accounts.NewUserAccount(state.NewAddress([]byte("address")))
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
 			return testAccounts, nil
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
 		},
 	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
@@ -2098,7 +2081,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 
 	accError := errors.New("account get error")
 	called := false
-	accountsDB := &mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		called = true
 		return nil, accError
 	}}
@@ -2162,7 +2145,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
@@ -2194,12 +2177,11 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewAccount(addressContainer,
-				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
-					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-						return nil
-					}})
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accounts.NewUserAccount(addressContainer)
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
 		},
 	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
@@ -2233,14 +2215,10 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 
 	putCodeCalled := 0
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewAccount(addressContainer,
-				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
-					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-						return nil
-					}})
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accounts.NewUserAccount(addressContainer)
 		},
-		PutCodeCalled: func(accountHandler state.AccountHandler, code []byte) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			putCodeCalled++
 			return nil
 		},
@@ -2278,17 +2256,13 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	t.Parallel()
 
-	saveTrieCalled := 0
+	saveAccountCalled := 0
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewAccount(addressContainer,
-				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
-					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-						return nil
-					}})
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accounts.NewUserAccount(addressContainer)
 		},
-		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
-			saveTrieCalled++
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountCalled++
 			return nil
 		},
 	}
@@ -2327,21 +2301,17 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, saveTrieCalled)
+	assert.Equal(t, 1, saveAccountCalled)
 }
 
 func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewAccount(addressContainer,
-				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
-					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-						return nil
-					}})
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accounts.NewUserAccount(addressContainer)
 		},
-		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
 	}
@@ -2381,22 +2351,14 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			return nil
-		},
-	}
-
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := state.NewAccount(mock.NewAddressMock(scAddress), tracker)
+	dstScAddress, _ := accounts.NewUserAccount(mock.NewAddressMock(scAddress))
 	dstScAddress.SetCode([]byte("code"))
 	accountsDB := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return dstScAddress, nil
 		},
-		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
 	}

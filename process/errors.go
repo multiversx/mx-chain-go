@@ -647,3 +647,9 @@ var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator
 
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")

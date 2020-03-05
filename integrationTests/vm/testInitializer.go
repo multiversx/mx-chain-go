@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -41,8 +43,8 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 type accountFactory struct {
 }
 
-func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
-	return state.NewAccount(address, tracker)
+func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+	return accounts.NewUserAccount(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -84,17 +86,15 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 		return nil, err
 	}
 
-	account, err := accnts.GetAccountWithJournal(address)
+	account, err := accnts.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	err = account.(*state.Account).SetNonceWithJournal(nonce)
-	if err != nil {
-		return nil, err
-	}
+	account.(state.UserAccountHandler).SetNonce(nonce)
+	account.(state.UserAccountHandler).SetBalance(balance)
 
-	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	err = accnts.SaveAccount(account)
 	if err != nil {
 		return nil, err
 	}
@@ -290,12 +290,12 @@ func TestDeployedContractContents(
 	scCodeBytes, _ := hex.DecodeString(scCode)
 	destinationAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(destinationAddressBytes)
 	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
-	destinationRecovShardAccount, ok := destinationRecovAccount.(*state.Account)
+	destinationRecovShardAccount, ok := destinationRecovAccount.(state.UserAccountHandler)
 
 	assert.True(t, ok)
 	assert.NotNil(t, destinationRecovShardAccount)
 	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
-	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance)
+	assert.Equal(t, requiredBalance, destinationRecovShardAccount.GetBalance())
 	//test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovAccount.GetCodeHash())
 	//test code
@@ -430,11 +430,11 @@ func TestAccount(
 
 	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
-	senderRecovShardAccount := senderRecovAccount.(*state.Account)
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
-	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
-	return senderRecovShardAccount.Balance
+	assert.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
+	return senderRecovShardAccount.GetBalance()
 }
 
 func ComputeExpectedBalance(
@@ -454,9 +454,9 @@ func ComputeExpectedBalance(
 func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
 	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
-	shardAccnt, _ := accnt.(*state.Account)
+	shardAccnt, _ := accnt.(state.UserAccountHandler)
 
-	return shardAccnt.Balance
+	return shardAccnt.GetBalance()
 }
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {

@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -209,10 +211,9 @@ func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
-	}
+	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
+	accnt.SetBalance(big.NewInt(2))
+	accnt.SetNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -252,10 +253,9 @@ func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
-	}
+	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
+	accnt.SetBalance(big.NewInt(2))
+	accnt.SetNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -444,12 +444,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return accounts.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -475,12 +470,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return accounts.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -502,12 +492,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return accounts.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv

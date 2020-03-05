@@ -51,7 +51,7 @@ func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.Accou
 		return nil, nil
 	}
 
-	acnt, err := rtp.accounts.GetAccountWithJournal(addr)
+	acnt, err := rtp.accounts.LoadAccount(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return nil
 	}
 
-	rewardAcc, ok := accHandler.(*state.Account)
+	rewardAcc, ok := accHandler.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -86,10 +86,10 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
 
 	operation := big.NewInt(0)
-	operation = operation.Add(rTx.Value, rewardAcc.Balance)
-	err = rewardAcc.SetBalanceWithJournal(operation)
+	operation = operation.Add(rTx.Value, rewardAcc.GetBalance())
+	rewardAcc.SetBalance(operation)
 
-	return err
+	return rtp.accounts.SaveAccount(rewardAcc)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -180,7 +180,7 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 
 // GetAccount returns an accountResponse containing information
 // about the account correlated with provided address
-func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
+func (ef *ElrondNodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ef.node.GetAccount(address)
 }
 

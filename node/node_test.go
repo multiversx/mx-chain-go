@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -47,7 +49,11 @@ func logError(err error) {
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{Nonce: 1, Balance: balance}, nil
+		acc, _ := accounts.NewUserAccount(addressContainer)
+		acc.SetBalance(balance)
+		acc.SetNonce(1)
+
+		return acc, nil
 	}
 	return accDB
 }
@@ -420,7 +426,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return &state.Account{}, nil
+			return accounts.NewEmptyUserAccount(), nil
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -522,10 +528,11 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return &state.Account{
-				Nonce:   nonce,
-				Balance: big.NewInt(0),
-			}, nil
+			acc, _ := accounts.NewUserAccount(addrContainer)
+			acc.SetBalance(big.NewInt(0))
+			acc.SetNonce(nonce)
+
+			return acc, nil
 		},
 	}
 
@@ -1063,9 +1070,9 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 				case bytes.Equal(address, []byte(keys[0][0])):
 					return nil, errors.New("error")
 				case bytes.Equal(address, []byte(keys[1][0])):
-					return &mock.PeerAccountHandlerMock{}, nil
+					return accounts.NewEmptyPeerAccount(), nil
 				default:
-					return state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+					return accounts.NewPeerAccount(mock.NewAddressMock())
 				}
 			},
 		}),
@@ -2099,10 +2106,10 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, big.NewInt(0), recovAccnt.Balance)
-	assert.Nil(t, recovAccnt.CodeHash)
-	assert.Nil(t, recovAccnt.RootHash)
+	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
+	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
+	assert.Nil(t, recovAccnt.GetCodeHash())
+	assert.Nil(t, recovAccnt.GetRootHash())
 }
 
 func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
@@ -2130,12 +2137,11 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		Balance:  big.NewInt(1),
-		Nonce:    2,
-		RootHash: []byte("root hash"),
-		CodeHash: []byte("code hash"),
-	}
+	accnt := accounts.NewEmptyUserAccount()
+	accnt.SetBalance(big.NewInt(1))
+	accnt.SetNonce(2)
+	accnt.SetRootHash([]byte("root hash"))
+	accnt.SetCodeHash([]byte("code hash"))
 
 	accDB := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {

@@ -94,18 +94,18 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return nil
 }
 
-func (stp *stakingToPeer) getPeerAccount(key []byte) (*state.PeerAccount, error) {
+func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
 	adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes(key)
 	if err != nil {
 		return nil, err
 	}
 
-	account, err := stp.peerState.GetAccountWithJournal(adrSrc)
+	account, err := stp.peerState.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAcc, ok := account.(*state.PeerAccount)
+	peerAcc, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -122,7 +122,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 
 	for _, key := range affectedStates {
 		blsPubKey := []byte(key)
-		var peerAcc *state.PeerAccount
+		var peerAcc state.PeerAccountHandler
 		peerAcc, err = stp.getPeerAccount(blsPubKey)
 		if err != nil {
 			return err
@@ -169,6 +169,11 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 		if err != nil {
 			return err
 		}
+
+		err = stp.peerState.SaveAccount(peerAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -176,48 +181,23 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakingData,
-	account *state.PeerAccount,
+	account state.PeerAccountHandler,
 	blsPubKey []byte,
 ) error {
-	if !bytes.Equal(stakingData.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(stakingData.Address)
-		if err != nil {
-			return err
-		}
+
+	err := account.SetRewardAddress(stakingData.Address)
+	if err != nil {
+		return err
 	}
 
-	if !bytes.Equal(blsPubKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(blsPubKey)
-		if err != nil {
-			return err
-		}
-	}
+	account.SetBLSPublicKey(blsPubKey)
+	account.SetStake(stakingData.StakeValue)
 
-	if stakingData.StakeValue.Cmp(account.Stake) != 0 {
-		err := account.SetStakeWithJournal(stakingData.StakeValue)
-		if err != nil {
-			return err
-		}
+	if stakingData.StartNonce != account.GetNonce() {
+		account.SetNonce(stakingData.StartNonce)
+		account.SetNodeInWaitingList(true)
 	}
-
-	if stakingData.StartNonce != account.Nonce {
-		err := account.SetNonceWithJournal(stakingData.StartNonce)
-		if err != nil {
-			return err
-		}
-
-		err = account.SetNodeInWaitingListWithJournal(true)
-		if err != nil {
-			return err
-		}
-	}
-
-	if stakingData.UnStakedNonce != account.UnStakedNonce {
-		err := account.SetUnStakedNonceWithJournal(stakingData.UnStakedNonce)
-		if err != nil {
-			return err
-		}
-	}
+	account.SetUnStakedNonce(stakingData.UnStakedNonce)
 
 	return nil
 }

@@ -222,8 +222,8 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 				continue
 			}
 
-			account, _ := accWrp.(*state.Account)
-			assert.Equal(t, expectedBalance, account.Balance)
+			account, _ := accWrp.(state.UserAccountHandler)
+			assert.Equal(t, expectedBalance, account.GetBalance())
 		}
 	}
 }
@@ -330,8 +330,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 				continue
 			}
 
-			account, _ := accWrp.(*state.Account)
-			assert.Equal(t, big.NewInt(0), account.Balance)
+			account, _ := accWrp.(state.UserAccountHandler)
+			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
 		receiver, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(receiverAddress)
@@ -340,8 +340,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			continue
 		}
 
-		account, _ := accWrp.(*state.Account)
-		assert.Equal(t, expectedReceiverValue, account.Balance)
+		account, _ := accWrp.(state.UserAccountHandler)
+		assert.Equal(t, expectedReceiverValue, account.GetBalance())
 	}
 }
 

@@ -342,17 +342,17 @@ func deploySystemSmartContracts(
 	}
 
 	for _, key := range systemSCs.Keys() {
-		addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
-		if err != nil {
-			return err
-		}
+		//addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
+		//if err != nil {
+		//	return err
+		//}
 
-		_, err = state.NewAccount(addr, accountsDB)
-		if err != nil {
-			return err
-		}
+		//_, err = state.NewAccount(addr, accountsDB)
+		//if err != nil {
+		//	return err
+		//}
 
-		_, err = accountsDB.Commit()
+		_, err := accountsDB.Commit()
 		if err != nil {
 			return err
 		}
@@ -470,15 +470,16 @@ func setBalanceToTrie(
 		return process.ErrMintAddressNotInThisShard
 	}
 
-	accWrp, err := accounts.GetAccountWithJournal(addrContainer)
+	accWrp, err := accounts.LoadAccount(addrContainer)
 	if err != nil {
 		return err
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	return account.SetBalanceWithJournal(balance)
+	account.SetBalance(balance)
+	return accounts.SaveAccount(account)
 }

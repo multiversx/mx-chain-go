@@ -250,7 +250,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 func TestElrondNodeFacade_GetAccount(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.GetAccountHandler = func(address string) (account *state.Account, e error) {
+	node.GetAccountHandler = func(address string) (account state.UserAccountHandler, e error) {
 		called++
 		return nil, nil
 	}

@@ -96,7 +96,7 @@ type PeerAccountHandler interface {
 	GetSchnorrPublicKey() []byte
 	SetSchnorrPublicKey([]byte)
 	GetRewardAddress() []byte
-	SetRewardAddress([]byte)
+	SetRewardAddress([]byte) error
 	GetStake() *big.Int
 	SetStake(*big.Int)
 	GetAccumulatedFees() *big.Int
@@ -117,10 +117,13 @@ type PeerAccountHandler interface {
 	DecreaseValidatorSuccessRate(uint32)
 	GetNumSelectedInSuccessBlocks() uint32
 	SetNumSelectedInSuccessBlocks(uint32)
+	GetLeaderSuccessRate() SignRate
+	GetValidatorSuccessRate() SignRate
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
 	SetTempRating(uint32)
+	ResetAtNewEpoch() error
 	AccountHandler
 }
 

@@ -462,11 +462,11 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	// test sender account decreased its balance with gasPrice * gasLimit
 	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerAddr)
 	assert.Nil(t, err)
-	ownerAccnt := accnt.(*state.Account)
+	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
 	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
 	expectedBalance.Sub(expectedBalance, txCost)
-	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
+	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
 
 	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
 }

@@ -22,10 +22,11 @@ func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd st
 	return txProc.checkTxValues(tx, acntSnd)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *big.Int) error {
+func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.UserAccountHandler, value *big.Int) error {
 	return txProc.moveBalances(acntSrc, acntDst, value)
 }
 
-func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
-	return txProc.increaseNonce(acntSrc)
+func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) error {
+	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
+	return nil
 }

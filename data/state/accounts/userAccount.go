@@ -17,6 +17,14 @@ type userAccount struct {
 	OwnerAddress    []byte
 }
 
+func NewEmptyUserAccount() *userAccount {
+	return &userAccount{
+		baseAccount:     &baseAccount{},
+		Balance:         big.NewInt(0),
+		DeveloperReward: big.NewInt(0),
+	}
+}
+
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewUserAccount(addressContainer state.AddressContainer) (*userAccount, error) {
 	if check.IfNil(addressContainer) {

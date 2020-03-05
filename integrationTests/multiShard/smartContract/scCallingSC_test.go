@@ -108,7 +108,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	}
 
 	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
-	require.Equal(t, big.NewInt(0), account.DeveloperReward)
+	require.Equal(t, big.NewInt(0), account.GetDeveloperReward())
 
 	newOwnerAddress := []byte("12345678123456781234567812345678")
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
@@ -124,8 +124,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// check new owner address is set
 	account = getAccountFromAddrBytes(nodes[0].AccntState, firstSCAddress)
-	require.Equal(t, newOwnerAddress, account.OwnerAddress)
-	require.True(t, account.DeveloperReward.Cmp(big.NewInt(0)) == 1)
+	require.Equal(t, newOwnerAddress, account.GetOwnerAddress())
+	require.True(t, account.GetDeveloperReward().Cmp(big.NewInt(0)) == 1)
 }
 
 func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
@@ -210,12 +210,12 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
-	require.Equal(t, big.NewInt(0), account.DeveloperReward)
-	fmt.Println("smart contract owner before claim", account.Balance)
-	oldOwnerBalance := big.NewInt(0).Set(account.Balance)
+	require.Equal(t, big.NewInt(0), account.GetDeveloperReward())
+	fmt.Println("smart contract owner before claim", account.GetBalance())
+	oldOwnerBalance := big.NewInt(0).Set(account.GetBalance())
 
 	account = getAccountFromAddrBytes(nodes[0].AccntState, firstSCAddress)
-	fmt.Println("smart contract rewards balance", account.DeveloperReward)
+	fmt.Println("smart contract rewards balance", account.GetDeveloperReward())
 
 	for _, node := range nodes {
 		node.EconomicsData.SetGasPerDataByte(0)
@@ -235,15 +235,15 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
-	fmt.Println("smart contract owner after claim", account.Balance)
-	require.True(t, account.Balance.Cmp(oldOwnerBalance) == 1)
+	fmt.Println("smart contract owner after claim", account.GetBalance())
+	require.True(t, account.GetBalance().Cmp(oldOwnerBalance) == 1)
 }
 
-func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
-	sndAccSt, _ := sndrAcc.(*state.Account)
+	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
 
 	return sndAccSt
 }

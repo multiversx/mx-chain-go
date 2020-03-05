@@ -45,9 +45,9 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	balance.Sub(balance, big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit))
 
-	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
-	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
+	accountAfterExec, _ := accnts.LoadAccount(address)
+	assert.Equal(t, nonce+1, accountAfterExec.(state.UserAccountHandler).GetNonce())
+	assert.Equal(t, balance, accountAfterExec.(state.UserAccountHandler).GetBalance())
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
@@ -78,9 +78,9 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	_ = accnts.RevertToSnapshot(0)
 
-	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
-	assert.Equal(t, nonce, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
+	accountAfterExec, _ := accnts.LoadAccount(address)
+	assert.Equal(t, nonce, accountAfterExec.(state.UserAccountHandler).GetNonce())
+	assert.Equal(t, balance, accountAfterExec.(state.UserAccountHandler).GetBalance())
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
@@ -141,14 +141,14 @@ func testExecTransactionsMoreTxWithRevert(
 	fmt.Printf("Modified hash: %s\n", base64.StdEncoding.EncodeToString(modifiedHash))
 
 	//Step 2. test that accounts have correct nonces and balances
-	newAccount, _ := accnts.GetAccountWithJournal(receiver)
-	account, _ := accnts.GetAccountWithJournal(sender)
+	newAccount, _ := accnts.LoadAccount(receiver)
+	account, _ := accnts.LoadAccount(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
-	assert.Equal(t, account.(*state.Account).Nonce, uint64(txToGenerate)+initialNonce)
+	assert.Equal(t, account.(state.UserAccountHandler).GetBalance(), big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
+	assert.Equal(t, account.(state.UserAccountHandler).GetNonce(), uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.(*state.Account).Balance, big.NewInt(int64(txToGenerate)))
-	assert.Equal(t, newAccount.(*state.Account).Nonce, uint64(0))
+	assert.Equal(t, newAccount.(state.UserAccountHandler).GetBalance(), big.NewInt(int64(txToGenerate)))
+	assert.Equal(t, newAccount.(state.UserAccountHandler).GetNonce(), uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
 
@@ -163,10 +163,10 @@ func testExecTransactionsMoreTxWithRevert(
 	fmt.Printf("Reverted hash: %s\n", base64.StdEncoding.EncodeToString(revertedHash))
 
 	receiver2, _ := accnts.GetExistingAccount(receiver)
-	account, _ = accnts.GetAccountWithJournal(sender)
+	account, _ = accnts.LoadAccount(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance))
-	assert.Equal(t, account.(*state.Account).Nonce, initialNonce)
+	assert.Equal(t, account.(state.UserAccountHandler).GetBalance(), big.NewInt(initialBalance))
+	assert.Equal(t, account.(state.UserAccountHandler).GetNonce(), initialNonce)
 
 	assert.Nil(t, receiver2)
 

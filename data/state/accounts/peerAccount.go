@@ -31,6 +31,14 @@ type peerAccount struct {
 	TempRating uint32
 }
 
+func NewEmptyPeerAccount() *peerAccount {
+	return &peerAccount{
+		baseAccount:     &baseAccount{},
+		Stake:           big.NewInt(0),
+		AccumulatedFees: big.NewInt(0),
+	}
+}
+
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
 func NewPeerAccount(addressContainer state.AddressContainer) (*peerAccount, error) {
 	if addressContainer == nil {
@@ -42,7 +50,8 @@ func NewPeerAccount(addressContainer state.AddressContainer) (*peerAccount, erro
 			addressContainer: addressContainer,
 			dataTrieTracker:  state.NewTrackableDataTrie(addressContainer.Bytes(), nil),
 		},
-		Stake: big.NewInt(0),
+		Stake:           big.NewInt(0),
+		AccumulatedFees: big.NewInt(0),
 	}, nil
 }
 
@@ -69,8 +78,13 @@ func (pa *peerAccount) GetRewardAddress() []byte {
 }
 
 // SetRewardAddress sets the account's reward address, saving the old address before changing
-func (pa *peerAccount) SetRewardAddress(address []byte) {
+func (pa *peerAccount) SetRewardAddress(address []byte) error {
+	if len(address) < 1 {
+		return state.ErrEmptyAddress
+	}
+
 	pa.RewardAddress = address
+	return nil
 }
 
 func (pa *peerAccount) GetStake() *big.Int {
@@ -192,62 +206,72 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 	return pa == nil
 }
 
-//// ResetAtNewEpoch will reset a set of values after changing epoch
-//func (pa *PeerAccount) ResetAtNewEpoch() error {
-//	entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pa.accountTracker.Journalize(entryAccFee)
-//	pa.AccumulatedFees = big.NewInt(0)
-//
-//	err = pa.accountTracker.SaveAccount(pa)
-//	if err != nil {
-//		return err
-//	}
-//
-//	err = pa.SetRatingWithJournal(pa.GetTempRating())
-//	if err != nil {
-//		return err
-//	}
-//
-//	entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pa.accountTracker.Journalize(entryLeaderRate)
-//	pa.LeaderSuccessRate.NrFailure = 0
-//	pa.LeaderSuccessRate.NrSuccess = 0
-//
-//	err = pa.accountTracker.SaveAccount(pa)
-//	if err != nil {
-//		return err
-//	}
-//
-//	entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pa.accountTracker.Journalize(entryValidatorRate)
-//	pa.ValidatorSuccessRate.NrSuccess = 0
-//	pa.ValidatorSuccessRate.NrFailure = 0
-//
-//	err = pa.accountTracker.SaveAccount(pa)
-//	if err != nil {
-//		return err
-//	}
-//
-//	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pa.accountTracker.Journalize(entry)
-//	pa.NumSelectedInSuccessBlocks = 0
-//
-//	return pa.accountTracker.SaveAccount(pa)
-//}
-//
+// SetTempRating sets the account's tempRating, saving the old state before changing
+func (pa *peerAccount) GetLeaderSuccessRate() state.SignRate {
+	return pa.LeaderSuccessRate
+}
+
+// SetTempRating sets the account's tempRating, saving the old state before changing
+func (pa *peerAccount) GetValidatorSuccessRate() state.SignRate {
+	return pa.ValidatorSuccessRate
+}
+
+// ResetAtNewEpoch will reset a set of values after changing epoch
+func (pa *peerAccount) ResetAtNewEpoch() error {
+	//entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//pa.accountTracker.Journalize(entryAccFee)
+	pa.AccumulatedFees = big.NewInt(0)
+
+	//err = pa.accountTracker.SaveAccount(pa)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = pa.SetRatingWithJournal(pa.GetTempRating())
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//pa.accountTracker.Journalize(entryLeaderRate)
+	pa.LeaderSuccessRate.NrFailure = 0
+	pa.LeaderSuccessRate.NrSuccess = 0
+	//
+	//err = pa.accountTracker.SaveAccount(pa)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//pa.accountTracker.Journalize(entryValidatorRate)
+	pa.ValidatorSuccessRate.NrSuccess = 0
+	pa.ValidatorSuccessRate.NrFailure = 0
+	//
+	//err = pa.accountTracker.SaveAccount(pa)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//pa.accountTracker.Journalize(entry)
+	pa.NumSelectedInSuccessBlocks = 0
+
+	//return pa.accountTracker.SaveAccount(pa)
+	return nil
+}

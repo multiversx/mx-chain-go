@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,7 +20,11 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{Nonce: nonce, Balance: balance}, nil
+		acc, _ := accounts.NewUserAccount(addressContainer)
+		acc.Nonce = nonce
+		acc.Balance = balance
+
+		return acc, nil
 	}
 
 	return accDB
@@ -71,9 +77,9 @@ func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
 func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	accounts := getAccAdapter(0, big.NewInt(0))
+	adb := getAccAdapter(0, big.NewInt(0))
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, nil, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, nil, maxNonceDeltaAllowed)
 
 	assert.Nil(t, txValidator)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -82,10 +88,10 @@ func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
 func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accounts := getAccAdapter(0, big.NewInt(0))
+	adb := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txValidator)
@@ -97,10 +103,10 @@ func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
 func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accounts := getAccAdapter(1, big.NewInt(0))
+	adb := getAccAdapter(1, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -116,10 +122,10 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 	accountNonce := uint64(100)
 	txNonce := uint64(0)
 
-	accounts := getAccAdapter(accountNonce, big.NewInt(0))
+	adb := getAccAdapter(accountNonce, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -137,9 +143,9 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 	maxNonceDeltaAllowed := 100
 	txNonce := accountNonce + uint64(maxNonceDeltaAllowed) + 1
 
-	accounts := getAccAdapter(accountNonce, big.NewInt(0))
+	adb := getAccAdapter(accountNonce, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -158,10 +164,10 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	fee := big.NewInt(1000)
 	accountBalance := big.NewInt(10)
 
-	accounts := getAccAdapter(accountNonce, accountBalance)
+	adb := getAccAdapter(accountNonce, accountBalance)
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -180,10 +186,10 @@ func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
 	fee := big.NewInt(1000)
 	accountBalance := big.NewInt(10)
 
-	accounts := getAccAdapter(accountNonce, accountBalance)
+	adb := getAccAdapter(accountNonce, accountBalance)
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -216,7 +222,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.PeerAccount{}, nil
+		return accounts.NewEmptyPeerAccount(), nil
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
@@ -234,10 +240,10 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 
 	accountNonce := uint64(0)
 	accountBalance := big.NewInt(10)
-	accounts := getAccAdapter(accountNonce, accountBalance)
+	adb := getAccAdapter(accountNonce, accountBalance)
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, _ := dataValidators.NewTxValidator(accounts, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, _ := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
@@ -251,9 +257,9 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 func TestTxValidator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	accounts := getAccAdapter(0, big.NewInt(0))
+	adb := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
-	txValidator, _ := dataValidators.NewTxValidator(accounts, shardCoordinator, 100)
+	txValidator, _ := dataValidators.NewTxValidator(adb, shardCoordinator, 100)
 	txValidator = nil
 
 	assert.True(t, check.IfNil(txValidator))

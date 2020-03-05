@@ -23,10 +23,10 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	recovAccnt, err := n.GetAccount(integrationTests.CreateRandomHexString(64))
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, big.NewInt(0), recovAccnt.Balance)
-	assert.Nil(t, recovAccnt.CodeHash)
-	assert.Nil(t, recovAccnt.RootHash)
+	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
+	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
+	assert.Nil(t, recovAccnt.GetCodeHash())
+	assert.Nil(t, recovAccnt.GetRootHash())
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
@@ -39,9 +39,9 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
 
 	nonce := uint64(2233)
-	account, _ := accDB.GetAccountWithJournal(address)
-	_ = account.SetNonceWithJournal(nonce)
-
+	account, _ := accDB.LoadAccount(address)
+	account.SetNonce(nonce)
+	_ = accDB.SaveAccount(account)
 	_, _ = accDB.Commit()
 
 	n, _ := node.NewNode(
@@ -52,5 +52,5 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	recovAccnt, err := n.GetAccount(addressHex)
 
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, recovAccnt.Nonce)
+	assert.Equal(t, nonce, recovAccnt.GetNonce())
 }

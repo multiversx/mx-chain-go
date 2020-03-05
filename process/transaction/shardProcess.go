@@ -151,7 +151,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	account, ok := acntSnd.(*state.Account)
+	account, ok := acntSnd.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -159,17 +159,10 @@ func (txProc *txProcessor) executingFailedTransaction(
 	txFee := txProc.economicsFee.ComputeFee(tx)
 
 	operation := big.NewInt(0)
-	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, txFee))
-	if err != nil {
-		return err
-	}
+	account.SetBalance(operation.Sub(account.GetBalance(), txFee))
+	account.SetNonce(account.GetNonce() + 1)
 
-	err = txProc.increaseNonce(account)
-	if err != nil {
-		return err
-	}
-
-	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	err := txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
 	if err != nil {
 		return err
 	}
@@ -192,6 +185,11 @@ func (txProc *txProcessor) executingFailedTransaction(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+
+	err = txProc.accounts.SaveAccount(account)
+	if err != nil {
+		return err
+	}
 
 	return process.ErrFailedTransaction
 }
@@ -241,10 +239,12 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd sta
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-	err := acntSnd.AddToBalance(big.NewInt(0).Neg(cost))
-	if err != nil {
-		return nil, err
+	newBalance := big.NewInt(0).Add(acntSnd.GetBalance(), big.NewInt(0).Neg(cost))
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return nil, process.ErrInsufficientFunds
 	}
+
+	acntSnd.SetBalance(newBalance)
 
 	return cost, nil
 }
@@ -275,10 +275,7 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		err = txProc.increaseNonce(acntSrc)
-		if err != nil {
-			return err
-		}
+		acntSrc.SetNonce(acntSrc.GetNonce() + 1)
 	}
 
 	err = txProc.createReceiptWithReturnedGas(tx, acntSrc)
@@ -287,6 +284,28 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	err = txProc.saveAccounts(acntSrc, acntDst)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+	if !check.IfNil(acntSnd) {
+		err := txProc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err := txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -327,25 +346,20 @@ func (txProc *txProcessor) moveBalances(
 ) error {
 	// is sender address in node shard
 	if !check.IfNil(acntSrc) {
-		err := acntSrc.AddToBalance(big.NewInt(0).Neg(value))
-		if err != nil {
-			return err
+		newBalance := big.NewInt(0).Add(acntSrc.GetBalance(), big.NewInt(0).Neg(value))
+		if newBalance.Cmp(big.NewInt(0)) < 0 {
+			return process.ErrInsufficientFunds
 		}
+
+		acntSrc.SetBalance(newBalance)
 	}
 
 	// is receiver address in node shard
 	if !check.IfNil(acntDst) {
-		err := acntDst.AddToBalance(value)
-		if err != nil {
-			return err
-		}
+		acntDst.SetBalance(big.NewInt(0).Add(acntDst.GetBalance(), value))
 	}
 
 	return nil
-}
-
-func (txProc *txProcessor) increaseNonce(acntSrc state.UserAccountHandler) error {
-	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

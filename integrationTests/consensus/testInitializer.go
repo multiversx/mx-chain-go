@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -251,8 +253,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
-			return state.NewAccount(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer) (wrapper state.AccountHandler, e error) {
+			return accounts.NewUserAccount(address)
 		},
 	})
 	return adb

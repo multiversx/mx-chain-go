@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,10 +30,14 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	err := acntDst.ChangeOwnerAddress(tx.GetSndAddress(), vmInput.Arguments[0])
-	if err != nil {
-		return nil, err
+	if !bytes.Equal(tx.GetSndAddress(), acntDst.GetOwnerAddress()) {
+		return nil, process.ErrOperationNotPermitted
 	}
+	if len(vmInput.Arguments[0]) != len(acntDst.AddressContainer().Bytes()) {
+		return nil, process.ErrInvalidAddressLength
+	}
+
+	acntDst.SetOwnerAddress(vmInput.Arguments[0])
 
 	return big.NewInt(0), nil
 }

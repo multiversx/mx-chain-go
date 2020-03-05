@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -226,7 +228,7 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}
 
@@ -259,12 +261,13 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.PeerAccount{
-			RewardAddress: []byte("addr"),
-			BLSPublicKey:  []byte("BlsAddr"),
-			Stake:         big.NewInt(100),
-		}, nil
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAcc, _ := accounts.NewPeerAccount(addressContainer)
+		peerAcc.SetRewardAddress([]byte("addr"))
+		peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
+		peerAcc.SetStake(big.NewInt(100))
+
+		return peerAcc, nil
 	}
 	peerState.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
 		return nil
@@ -305,11 +308,12 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-		peerAccount.Stake = big.NewInt(100)
-		peerAccount.RewardAddress = []byte("key")
-		return peerAccount, nil
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAcc, _ := accounts.NewPeerAccount(addressContainer)
+		peerAcc.SetRewardAddress([]byte("key"))
+		peerAcc.SetStake(big.NewInt(100))
+
+		return peerAcc, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
@@ -355,15 +359,14 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		}, nil
 	}
 
-	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
-			JournalizeCalled: func(entry state.JournalEntry) {
-			},
-			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-				return testError
-			},
-		})
+	peerState := &mock.AccountsStub{
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return testError
+		},
+	}
+
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := accounts.NewPeerAccount(addressContainer)
 		peerAccount.Stake = big.NewInt(0)
 		peerAccount.RewardAddress = []byte(address)
 		return peerAccount, nil
@@ -413,15 +416,13 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		}, nil
 	}
 
-	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
-			JournalizeCalled: func(entry state.JournalEntry) {
-			},
-			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-				return testError
-			},
-		})
+	peerState := &mock.AccountsStub{
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return testError
+		},
+	}
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.Nonce = 1
@@ -471,16 +472,13 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		}, nil
 	}
 
-	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
-			JournalizeCalled: func(entry state.JournalEntry) {
-			},
-			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-
-				return nil
-			},
-		})
+	peerState := &mock.AccountsStub{
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+	}
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.Nonce = 1
@@ -531,15 +529,13 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		}, nil
 	}
 
-	peerState := &mock.AccountsStub{}
-	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
-			JournalizeCalled: func(entry state.JournalEntry) {
-			},
-			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-				return testError
-			},
-		})
+	peerState := &mock.AccountsStub{
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return testError
+		},
+	}
+	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.UnStakedNonce = 1

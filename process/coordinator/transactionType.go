@@ -96,7 +96,7 @@ func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHa
 		return nil, nil
 	}
 
-	acnt, err := tth.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := tth.accounts.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}

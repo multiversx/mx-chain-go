@@ -146,7 +146,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 	log.Info("account",
 		"address", node.OwnAccount.Address.Bytes(),
 		"nonce", accnt.GetNonce(),
-		"balance", accnt.(*state.Account).Balance,
+		"balance", accnt.(state.UserAccountHandler).GetBalance(),
 	)
 }
 

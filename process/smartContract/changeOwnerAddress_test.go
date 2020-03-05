@@ -3,7 +3,7 @@ package smartContract
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -22,16 +22,8 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	}
 
 	addr := []byte("addr")
-	journalizeWasCalled, saveAccountWasCalled := false, false
-	acc, _ := state.NewAccount(mock.NewAddressMock(addr), &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeWasCalled = true
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountWasCalled = true
-			return nil
-		},
-	})
+
+	acc, _ := accounts.NewUserAccount(mock.NewAddressMock(addr))
 	vmInput := &vmcommon.ContractCallInput{}
 
 	_, err := coa.ProcessBuiltinFunction(tx, nil, acc, vmInput)
@@ -48,6 +40,4 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	acc.OwnerAddress = owner
 	_, err = coa.ProcessBuiltinFunction(tx, nil, acc, vmInput)
 	require.Nil(t, err)
-	require.True(t, journalizeWasCalled)
-	require.True(t, saveAccountWasCalled)
 }

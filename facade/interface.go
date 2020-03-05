@@ -43,7 +43,7 @@ type NodeWrapper interface {
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
-	GetAccount(address string) (*state.Account, error)
+	GetAccount(address string) (state.UserAccountHandler, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat

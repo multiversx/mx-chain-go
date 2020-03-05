@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -446,17 +448,19 @@ func CreateRandomAddress() state.AddressContainer {
 // MintAddress will create an account (if it does not exists), update the balance with required value,
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
-	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
-	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
+	accnt, _ := accnts.LoadAccount(CreateAddressFromAddrBytes(addressBytes))
+	accnt.(state.UserAccountHandler).SetBalance(value)
+	_ = accnts.SaveAccount(accnt)
 	_, _ = accnts.Commit()
 }
 
 // CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
-	account, _ := accnts.GetAccountWithJournal(address)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+	account, _ := accnts.LoadAccount(address)
+	account.(state.UserAccountHandler).SetNonce(nonce)
+	account.(state.UserAccountHandler).SetBalance(balance)
+	_ = accnts.SaveAccount(account)
 
 	return address
 }
@@ -486,12 +490,12 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 }
 
 // PrintShardAccount outputs on console a shard account data contained
-func PrintShardAccount(accnt *state.Account, tag string) {
+func PrintShardAccount(accnt state.UserAccountHandler, tag string) {
 	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
-	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
-	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
-	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
+	str += fmt.Sprintf("  Nonce: %d\n", accnt.GetNonce())
+	str += fmt.Sprintf("  Balance: %d\n", accnt.GetBalance().Uint64())
+	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.GetCodeHash()))
+	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.GetRootHash()))
 
 	fmt.Println(str)
 }
@@ -512,17 +516,17 @@ func CreateRandomHexString(chars int) string {
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
 	adb, _, _ := CreateAccountsDB(UserAccount)
-	account, _ := state.NewAccount(adr, adb)
+	account, _ := accounts.NewUserAccount(adr)
 
 	return adr, account, adb
 }
 
 // AdbEmulateBalanceTxSafeExecution emulates a tx execution by altering the accounts
 // balance and nonce, and printing any encountered error
-func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts state.AccountsAdapter, value *big.Int) {
+func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler, accounts state.AccountsAdapter, value *big.Int) {
 
 	snapshot := accounts.JournalLen()
-	err := AdbEmulateBalanceTxExecution(acntSrc, acntDest, value)
+	err := AdbEmulateBalanceTxExecution(accounts, acntSrc, acntDest, value)
 
 	if err != nil {
 		fmt.Printf("Error executing tx (value: %v), reverting...\n", value)
@@ -536,29 +540,21 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 
 // AdbEmulateBalanceTxExecution emulates a tx execution by altering the accounts
 // balance and nonce, and printing any encountered error
-func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
+func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntDest state.UserAccountHandler, value *big.Int) error {
 
-	srcVal := acntSrc.Balance
-	destVal := acntDest.Balance
+	srcVal := acntSrc.GetBalance()
+	destVal := acntDest.GetBalance()
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
 	}
 
-	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
-	if err != nil {
-		return err
-	}
+	acntSrc.SetBalance(srcVal.Sub(srcVal, value))
+	acntDest.SetBalance(destVal.Add(destVal, value))
+	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
 
-	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
-	if err != nil {
-		return err
-	}
-
-	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
-	if err != nil {
-		return err
-	}
+	_ = accounts.SaveAccount(acntSrc)
+	_ = accounts.SaveAccount(acntDest)
 
 	return nil
 }
@@ -1070,7 +1066,7 @@ func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.Publi
 	pkBuff, _ := pk.ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
+	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
@@ -1078,7 +1074,7 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
+	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
@@ -1190,8 +1186,9 @@ func CreateMintingForSenders(
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
-			account, _ := n.AccntState.GetAccountWithJournal(adr)
-			_ = account.(*state.Account).SetBalanceWithJournal(value)
+			account, _ := n.AccntState.LoadAccount(adr)
+			account.(state.UserAccountHandler).SetBalance(value)
+			_ = n.AccntState.SaveAccount(account)
 		}
 
 		_, _ = n.AccntState.Commit()
@@ -1240,7 +1237,8 @@ func CreateAccountForNodes(nodes []*TestProcessorNode) {
 // CreateAccountForNode creates an account for the given node
 func CreateAccountForNode(node *TestProcessorNode) {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(node.OwnAccount.PkTxSignBytes)
-	_, _ = node.AccntState.GetAccountWithJournal(addr)
+	acc, _ := node.AccntState.LoadAccount(addr)
+	_ = node.AccntState.SaveAccount(acc)
 	_, _ = node.AccntState.Commit()
 }
 
@@ -1351,7 +1349,8 @@ func generateValidTx(
 
 	accnts, _, _ := CreateAccountsDB(UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
-	_, _ = accnts.GetAccountWithJournal(addrSender)
+	acc, _ := accnts.LoadAccount(addrSender)
+	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(

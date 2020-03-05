@@ -228,7 +228,9 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				expectedValue := big.NewInt(0).Sub(initialVal, consumedBalance)
-				assert.Equal(t, expectedValue, sndAcc.Balance)
+				expectedValue = big.NewInt(0).Sub(expectedValue, node.EconomicsData.GenesisNodePrice())
+
+				assert.Equal(t, expectedValue, sndAcc.GetBalance())
 				break
 			}
 		}
@@ -244,7 +246,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				expectedValue := big.NewInt(0).Sub(initialVal, node.EconomicsData.GenesisNodePrice())
 				expectedValue = expectedValue.Sub(expectedValue, consumedBalance)
-				assert.Equal(t, expectedValue, sndAcc.Balance)
+				assert.Equal(t, expectedValue, sndAcc.GetBalance())
 				break
 			}
 		}
@@ -258,7 +260,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.Equal(t, initialVal, sndAcc.Balance)
+				assert.Equal(t, initialVal, sndAcc.GetBalance())
 				break
 			}
 		}
@@ -277,11 +279,11 @@ func waitOperationToBeDone(t *testing.T, nodes []*integrationTests.TestProcessor
 	return nonce, round
 }
 
-func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
-	sndAccSt, _ := sndrAcc.(*state.Account)
+	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
 
 	return sndAccSt
 }

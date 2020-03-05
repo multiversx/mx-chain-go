@@ -265,6 +265,8 @@ func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
 		return fmt.Errorf("%w in RemoveAccount", ErrNilAddressContainer)
 	}
 
+	//TODO journalize account removal
+
 	log.Trace("accountsDB.RemoveAccount",
 		"address", hex.EncodeToString(addressContainer.Bytes()),
 	)

@@ -64,13 +64,13 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		return fmt.Errorf("invalid nonce. Wanted %d, got %d", accountNonce, txNonce)
 	}
 
-	account, ok := accountHandler.(*state.Account)
+	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
 		return fmt.Errorf("cannot convert account handler in a state.Account %s", hexSenderAddr)
 	}
 
-	accountBalance := account.Balance
+	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
 		return fmt.Errorf("insufficient balance. Needed at least %d (fee), account has %d", txFee, accountBalance)

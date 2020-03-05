@@ -141,7 +141,7 @@ func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func(
 			continue
 		}
 
-		account, ok := accountHandler.(*state.Account)
+		account, ok := accountHandler.(state.UserAccountHandler)
 		if !ok {
 			txsPool.Remove(key)
 			atomic.AddUint64(&tpc.numRemovedTxs, 1)
@@ -159,7 +159,7 @@ func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func(
 }
 
 func (tpc *TxPoolsCleaner) invalidTransaction(
-	account *state.Account,
+	account state.UserAccountHandler,
 	tx *transaction.Transaction,
 ) bool {
 	accountNonce := account.GetNonce()
@@ -169,7 +169,7 @@ func (tpc *TxPoolsCleaner) invalidTransaction(
 	}
 
 	txFee := tpc.economicsFee.ComputeFee(tx)
-	return account.Balance.Cmp(txFee) < 0
+	return account.GetBalance().Cmp(txFee) < 0
 }
 
 // NumRemovedTxs will return the number of removed txs from pools
