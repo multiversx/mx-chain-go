@@ -25,7 +25,7 @@ type economics struct {
 	roundTime        process.RoundTimeDurationHandler
 }
 
-// ArgsNewEpochEconomics
+// ArgsNewEpochEconomics is the argument for the economics constructor
 type ArgsNewEpochEconomics struct {
 	Marshalizer      marshal.Marshalizer
 	Store            dataRetriever.StorageService
@@ -67,7 +67,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	return e, nil
 }
 
-// ComputeRewardsPerBlock calculates the rewards per block value for the current epoch
+// ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
@@ -108,7 +108,10 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if newTokens.Cmp(big.NewInt(0)) < 0 {
 		newTokens = big.NewInt(0)
 		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.AccumulatedFeesInEpoch)
-		rwdPerBlock = big.NewInt(0).Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
+		rwdPerBlock = big.NewInt(0)
+		if totalNumBlocksInEpoch > 0 {
+			rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
+		}
 	}
 
 	computedEconomics := block.Economics{
