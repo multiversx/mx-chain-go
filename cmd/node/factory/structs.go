@@ -177,7 +177,6 @@ type Process struct {
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
-	TxTypeHandler            process.TxTypeHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -730,11 +729,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.state.AddressConverter, args.shardCoordinator, args.state.AccountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
@@ -746,7 +740,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -766,7 +759,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockTracker:             blockTracker,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
-		TxTypeHandler:            txTypeHandler,
 	}, nil
 }
 
@@ -1743,7 +1735,6 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txTypeHandler process.TxTypeHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1766,7 +1757,6 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
-			txTypeHandler,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1790,7 +1780,6 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
 			processArgs.gasSchedule,
-			txTypeHandler,
 		)
 	}
 
@@ -1814,7 +1803,6 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
-	txTypeHandler process.TxTypeHandler,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1876,6 +1864,11 @@ func newShardBlockProcessor(
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2049,7 +2042,6 @@ func newMetaBlockProcessor(
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
-	txTypeHandler process.TxTypeHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2101,6 +2093,11 @@ func newMetaBlockProcessor(
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}

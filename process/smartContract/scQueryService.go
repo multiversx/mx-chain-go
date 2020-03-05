@@ -110,9 +110,9 @@ func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error 
 	return nil
 }
 
-// ComputeScCallCost will estimate how many gas a transaction will consume
-func (service *SCQueryService) ComputeScCallCost(tx *transaction.Transaction) (uint64, error) {
-	argumentParser, _ := vmcommon.NewAtArgumentParser()
+// ComputeScCallGasLimit will estimate how many gas a transaction will consume
+func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+	argumentParser := vmcommon.NewAtArgumentParser()
 
 	err := argumentParser.ParseData(string(tx.Data))
 	if err != nil {

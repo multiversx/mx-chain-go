@@ -8,8 +8,8 @@ import (
 
 // SCQueryServiceStub -
 type SCQueryServiceStub struct {
-	ExecuteQueryCalled       func(*process.SCQuery) (*vmcommon.VMOutput, error)
-	ComputeScCallCostHandler func(tx *transaction.Transaction) (uint64, error)
+	ExecuteQueryCalled           func(*process.SCQuery) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteQuery -
@@ -17,9 +17,9 @@ func (serviceStub *SCQueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vm
 	return serviceStub.ExecuteQueryCalled(query)
 }
 
-// ComputeScCallCost -
-func (serviceStub *SCQueryServiceStub) ComputeScCallCost(tx *transaction.Transaction) (uint64, error) {
-	return serviceStub.ComputeScCallCostHandler(tx)
+// ComputeScCallGasLimit -
+func (serviceStub *SCQueryServiceStub) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return serviceStub.ComputeScCallGasLimitHandler(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

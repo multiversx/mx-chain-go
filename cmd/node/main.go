@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -830,7 +831,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasSchedule,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
-		processComponents.TxTypeHandler,
 	)
 	if err != nil {
 		return err
@@ -1450,7 +1450,6 @@ func createApiResolver(
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
-	txTypeHandler process.TxTypeHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1487,7 +1486,12 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService)
+	txTypeHandler, err := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accnts)
+	if err != nil {
+		return nil, err
+	}
+
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
 	if err != nil {
 		return nil, err
 	}

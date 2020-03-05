@@ -8,8 +8,8 @@ import (
 
 // ScQueryStub -
 type ScQueryStub struct {
-	ExecuteQueryCalled       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ComputeScCallCostHandler func(tx *transaction.Transaction) (uint64, error)
+	ExecuteQueryCalled           func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteQuery -
@@ -20,10 +20,10 @@ func (s *ScQueryStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, 
 	return &vmcommon.VMOutput{}, nil
 }
 
-// ComputeScCallCost --
-func (s *ScQueryStub) ComputeScCallCost(tx *transaction.Transaction) (uint64, error) {
-	if s.ComputeScCallCostHandler != nil {
-		return s.ComputeScCallCostHandler(tx)
+// ComputeScCallGasLimit --
+func (s *ScQueryStub) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+	if s.ComputeScCallGasLimitHandler != nil {
+		return s.ComputeScCallGasLimitHandler(tx)
 	}
 	return 100, nil
 }

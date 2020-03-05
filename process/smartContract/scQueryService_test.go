@@ -288,7 +288,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 		RcvAddr: []byte(DummyScAddress),
 		Data:    []byte("increment"),
 	}
-	cost, err := target.ComputeScCallCost(tx)
+	cost, err := target.ComputeScCallGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, consumedGas, cost)
 }
