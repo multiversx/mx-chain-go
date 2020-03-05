@@ -151,9 +151,9 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		PrevRandSeed:     make([]byte, 1),
+		RandSeed:         make([]byte, 1),
+		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 	}
 
@@ -168,9 +168,9 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		PrevRandSeed:     make([]byte, 1),
+		RandSeed:         make([]byte, 1),
+		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 	}
 
