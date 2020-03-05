@@ -110,7 +110,10 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 
 	hashesToMiniBlocks := make(map[string]*block.MiniBlock)
 	for _, mb := range createdMiniBlocks {
-		hash, _ := core.CalculateHash(r.marshalizer, r.hasher, mb)
+		hash, hashError := core.CalculateHash(r.marshalizer, r.hasher, mb)
+		if hashError != nil {
+			return hashError
+		}
 		hashesToMiniBlocks[string(hash)] = mb
 	}
 
@@ -131,18 +134,11 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 			return err
 		}
 
-		createdMiniBlock, ok := hashesToMiniBlocks[string(receivedMbHash)]
+		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
 
 		if !ok {
 			// TODO: add display debug prints of miniblocks contents
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
-		}
-
-		for i, receivedTxHash := range receivedMb.TxHashes {
-			computedTxHash := createdMiniBlock.TxHashes[i]
-			if !bytes.Equal(receivedTxHash, computedTxHash) {
-				return epochStart.ErrTxHashDoesNotMatch
-			}
 		}
 	}
 
@@ -171,11 +167,12 @@ func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block
 			}
 
 			mbHash := r.hasher.Compute(string(marshaledData))
-			if len(mbHash) == 0 || !bytes.Equal(mbHeader.Hash, mbHash) {
+			if !bytes.Equal(mbHeader.Hash, mbHash) {
 				continue
 			}
 
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
+			break
 		}
 	}
 }
