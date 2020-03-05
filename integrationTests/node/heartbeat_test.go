@@ -13,9 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -200,6 +200,8 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		integrationTests.TestMarshalizer,
 		topic,
 		&sharding.OneShardCoordinator{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		version,
 		nodeName,
 	)
@@ -237,6 +239,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		&heartbeat.RealTimer{},
 	)
 

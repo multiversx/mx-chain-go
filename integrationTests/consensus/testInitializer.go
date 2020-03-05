@@ -311,7 +311,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartRegistrationHandler epochStart.RegistrationHandler,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -460,7 +460,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
@@ -506,7 +506,7 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		epochStartRegistrationHandler := &mock.EpochStartNotifierStub{}
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 
@@ -515,13 +515,14 @@ func createNodes(
 			MetaConsensusGroupSize:  1,
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
-			EpochStartSubscriber:    epochStartSubscriber,
+			EpochStartNotifier:      epochStartRegistrationHandler,
 			BootStorer:              bootStorer,
 			NbShards:                1,
 			EligibleNodes:           eligibleMap,
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -537,7 +538,7 @@ func createNodes(
 			pubKeys,
 			cp.keyGen,
 			consensusType,
-			epochStartSubscriber,
+			epochStartRegistrationHandler,
 		)
 
 		testNodeObject.node = n

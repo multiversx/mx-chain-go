@@ -32,7 +32,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], pkBytes)

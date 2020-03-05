@@ -568,7 +568,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	rater, err := rating.NewBlockSigningRaterAndListIndexer(economicsData.RatingsData())
 	if err != nil {
 		return err
 	}
@@ -986,7 +986,7 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
+	validatorsPubKeys, _ := coordinator.GetEligiblePublicKeysPerShard(0)
 
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
@@ -1103,10 +1103,10 @@ func createShardCoordinator(
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	prefsConfig config.PreferencesConfig,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartNotifier epochStart.RegistrationHandler,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	_ sharding.RaterHandler,
+	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
 
@@ -1153,9 +1153,10 @@ func createNodesCoordinator(
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		ListIndexUpdater:        ratingAndListIndexHandler,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartNotifier,
 		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                nbShards,
@@ -1274,7 +1275,7 @@ func createNode(
 	version string,
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartRegistrationHandler epochStart.RegistrationHandler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1316,7 +1317,7 @@ func createNode(
 		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),

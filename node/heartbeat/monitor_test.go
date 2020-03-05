@@ -28,6 +28,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -46,6 +47,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -64,6 +66,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		nil,
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -82,11 +85,31 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		nil,
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilHeartbeatStorer, err)
+}
+
+func TestNewMonitor_NilPeerTypeProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := mock.NewMockTimer()
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		nil,
+		th,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 }
 
 func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
@@ -99,6 +122,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		nil,
 	)
 
@@ -130,6 +154,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -170,6 +195,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -223,6 +249,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -281,6 +308,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -343,6 +371,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 
@@ -414,6 +443,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 			},
 		},
 		storer,
+		&mock.PeerTypeProviderStub{},
 		th,
 	)
 

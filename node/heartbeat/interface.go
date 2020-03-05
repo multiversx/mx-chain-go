@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -15,6 +16,19 @@ type PeerMessenger interface {
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
 	CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error)
+	IsInterfaceNil() bool
+}
+
+// EligibleListProvider defines what an eligible list provider should do
+type EligibleListProvider interface {
+	GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// PeerTypeProviderHandler defines what a component which computes the type of a peer should do
+type PeerTypeProviderHandler interface {
+	ComputeForPubKey(pubKey []byte, shardID uint32) (core.PeerType, error)
 	IsInterfaceNil() bool
 }
 

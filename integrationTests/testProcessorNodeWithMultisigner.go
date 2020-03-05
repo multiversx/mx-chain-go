@@ -186,14 +186,16 @@ func createNode(
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
 		Hasher:                  TestHasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                uint32(nbShards),
 		EligibleNodes:           validatorsMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     cache}
+		ConsensusGroupCache:     cache,
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
+	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 	if err != nil {
@@ -240,13 +242,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			BootStorer:              bootStorer,
-			EpochStartSubscriber:    epochStartSubscriber,
+			EpochStartNotifier:      epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     consensusCache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -315,7 +318,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
-			EpochStartSubscriber:    epochStartSubscriber,
+			EpochStartNotifier:      epochStartSubscriber,
 			BootStorer:              bootStorer,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
@@ -323,6 +326,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

@@ -113,8 +113,8 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler)
 	IsInterfaceNil() bool
@@ -514,7 +514,7 @@ type processComponentsFactoryArgs struct {
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
-	rater                  sharding.RaterHandler
+	rater                  sharding.PeerAccountListAndRatingHandler
 	startEpochNum          uint32
 	sizeCheckDelta         uint32
 	stateCheckpointModulus uint
@@ -541,7 +541,7 @@ func NewProcessComponentsFactoryArgs(
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
-	rater sharding.RaterHandler,
+	rater sharding.PeerAccountListAndRatingHandler,
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
 	maxComputableRounds uint64,
@@ -1033,10 +1033,10 @@ func createDataStoreFromConfig(
 func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
-	configs := args.config
+	mainConfig := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(configs.TxDataPool),
+		Config:         storageFactory.GetCacherFromConfig(mainConfig.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
 	})
@@ -1045,39 +1045,39 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(configs.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {
 		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(configs.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(configs.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(configs.TrieNodesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating trieNodes")

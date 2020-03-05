@@ -23,6 +23,8 @@ func TestNewSender_NilP2pMessengerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -41,6 +43,8 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -59,6 +63,8 @@ func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		nil,
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -77,6 +83,8 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -95,12 +103,54 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
 
 	assert.Nil(t, sender)
 	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
+}
+
+func TestNewSender_NilPeerTypeProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sender, err := heartbeat.NewSender(
+		&mock.MessengerStub{},
+		&mock.SinglesignStub{},
+		&mock.PrivateKeyStub{},
+		&mock.MarshalizerMock{},
+		"",
+		&mock.ShardCoordinatorMock{},
+		nil,
+		&mock.AppStatusHandlerStub{},
+		"v0.1",
+		"undefined",
+	)
+
+	assert.Nil(t, sender)
+	assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+}
+
+func TestNewSender_NilStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sender, err := heartbeat.NewSender(
+		&mock.MessengerStub{},
+		&mock.SinglesignStub{},
+		&mock.PrivateKeyStub{},
+		&mock.MarshalizerMock{},
+		"",
+		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		nil,
+		"v0.1",
+		"undefined",
+	)
+
+	assert.Nil(t, sender)
+	assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {
@@ -113,6 +163,8 @@ func TestNewSender_ShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -155,6 +207,8 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -196,6 +250,8 @@ func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -237,6 +293,8 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -300,6 +358,8 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 		},
 		testTopic,
 		&mock.ShardCoordinatorMock{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)

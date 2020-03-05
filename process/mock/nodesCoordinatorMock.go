@@ -21,7 +21,9 @@ type NodesCoordinatorMock struct {
 	SetNodesPerShardsCalled             func(nodes map[uint32][]sharding.Validator, epoch uint32) error
 	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error)
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
-	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
+	GetWaitingPublicKeysPerShardCalled  func() (map[uint32][][]byte, error)
+	UpdatePeersListAndIndexCalled       func() error
+	GetEligiblePublicKeysPerShardCalled func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled            func(uint32) int
 }
 
@@ -66,10 +68,19 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 	return 1
 }
 
-// GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
-	if ncm.GetAllValidatorsPublicKeysCalled != nil {
-		return ncm.GetAllValidatorsPublicKeysCalled()
+// GetEligiblePublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetEligiblePublicKeysPerShard(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetEligiblePublicKeysPerShardCalled != nil {
+		return ncm.GetEligiblePublicKeysPerShardCalled()
+	}
+
+	return nil, nil
+}
+
+// GetWaitingPublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetWaitingPublicKeysPerShard(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetWaitingPublicKeysPerShardCalled != nil {
+		return ncm.GetWaitingPublicKeysPerShardCalled()
 	}
 
 	return nil, nil
@@ -99,7 +110,7 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId
 	return pubKeys, nil
 }
 
-// GetValidatorsPublicKeys -
+// GetConsensusValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
 	round uint64,
@@ -153,6 +164,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	epoch uint32,
+	_ bool,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, epoch)
@@ -254,6 +266,20 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
 ) (map[string]struct{}, error) {
 	panic("not implemented")
+}
+
+// GetNodesPerShard -
+func (ncm *NodesCoordinatorMock) GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error) {
+	return nil, nil
+}
+
+// UpdatePeersListAndIndex -
+func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
+	if ncm.UpdatePeersListAndIndexCalled != nil {
+		return ncm.UpdatePeersListAndIndexCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

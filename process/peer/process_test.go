@@ -200,7 +200,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], []byte("aaaa"))
@@ -237,7 +237,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], []byte("aaaa"))
@@ -273,7 +273,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], []byte("aaaa"))
@@ -318,7 +318,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			keys[0] = make([][]byte, 0)
 			keys[0] = append(keys[0], []byte("aaaa"))
@@ -1057,7 +1057,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
@@ -1124,7 +1124,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
@@ -1331,7 +1331,7 @@ func DoComputeMissingBlocks(
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return consensus, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
 		ConsensusGroupSizeCalled: func(uint32) int {

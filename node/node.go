@@ -58,29 +58,29 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	marshalizer              marshal.Marshalizer
-	ctx                      context.Context
-	hasher                   hashing.Hasher
-	feeHandler               process.FeeHandler
-	initialNodesPubkeys      map[uint32][]string
-	roundDuration            uint64
-	consensusGroupSize       int
-	messenger                P2PMessenger
-	syncTimer                ntp.SyncTimer
-	rounder                  consensus.Rounder
-	blockProcessor           process.BlockProcessor
-	genesisTime              time.Time
-	epochStartTrigger        epochStart.TriggerHandler
-	epochStartSubscriber     epochStart.EpochStartSubscriber
-	accounts                 state.AccountsAdapter
-	addrConverter            state.AddressConverter
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer    process.InterceptorsContainer
-	resolversFinder          dataRetriever.ResolversFinder
-	heartbeatMonitor         *heartbeat.Monitor
-	heartbeatSender          *heartbeat.Sender
-	appStatusHandler         core.AppStatusHandler
-	validatorStatistics      process.ValidatorStatisticsProcessor
+	marshalizer                   marshal.Marshalizer
+	ctx                           context.Context
+	hasher                        hashing.Hasher
+	feeHandler                    process.FeeHandler
+	initialNodesPubkeys           map[uint32][]string
+	roundDuration                 uint64
+	consensusGroupSize            int
+	messenger                     P2PMessenger
+	syncTimer                     ntp.SyncTimer
+	rounder                       consensus.Rounder
+	blockProcessor                process.BlockProcessor
+	genesisTime                   time.Time
+	epochStartTrigger             epochStart.TriggerHandler
+	epochStartRegistrationHandler epochStart.RegistrationHandler
+	accounts                      state.AccountsAdapter
+	addrConverter                 state.AddressConverter
+	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
+	interceptorsContainer         process.InterceptorsContainer
+	resolversFinder               dataRetriever.ResolversFinder
+	heartbeatMonitor              *heartbeat.Monitor
+	heartbeatSender               *heartbeat.Sender
+	appStatusHandler              core.AppStatusHandler
+	validatorStatistics           process.ValidatorStatisticsProcessor
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -308,21 +308,21 @@ func (n *Node) StartConsensus(epoch uint32) error {
 	}
 
 	consensusArgs := &spos.ConsensusCoreArgs{
-		BlockChain:           n.blkc,
-		BlockProcessor:       n.blockProcessor,
-		Bootstrapper:         bootstrapper,
-		BroadcastMessenger:   broadcastMessenger,
-		ChronologyHandler:    chronologyHandler,
-		Hasher:               n.hasher,
-		Marshalizer:          n.marshalizer,
-		BlsPrivateKey:        n.privKey,
-		BlsSingleSigner:      n.singleSigner,
-		MultiSigner:          n.multiSigner,
-		Rounder:              n.rounder,
-		ShardCoordinator:     n.shardCoordinator,
-		NodesCoordinator:     n.nodesCoordinator,
-		SyncTimer:            n.syncTimer,
-		EpochStartSubscriber: n.epochStartSubscriber,
+		BlockChain:                    n.blkc,
+		BlockProcessor:                n.blockProcessor,
+		Bootstrapper:                  bootstrapper,
+		BroadcastMessenger:            broadcastMessenger,
+		ChronologyHandler:             chronologyHandler,
+		Hasher:                        n.hasher,
+		Marshalizer:                   n.marshalizer,
+		BlsPrivateKey:                 n.privKey,
+		BlsSingleSigner:               n.singleSigner,
+		MultiSigner:                   n.multiSigner,
+		Rounder:                       n.rounder,
+		ShardCoordinator:              n.shardCoordinator,
+		NodesCoordinator:              n.nodesCoordinator,
+		SyncTimer:                     n.syncTimer,
+		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -906,6 +906,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
@@ -913,6 +918,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.marshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
+		peerTypeProvider,
+		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
 	)
@@ -930,6 +937,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
+	//n.nodesCoordinator
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
 	if err != nil {
 		return err
@@ -947,6 +955,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
+		peerTypeProvider,
 		timer,
 	)
 	if err != nil {

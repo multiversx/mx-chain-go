@@ -5,15 +5,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+// EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	RegisterHandlerCalled   func(handler epochStart.EpochStartHandler)
-	UnregisterHandlerCalled func(handler epochStart.EpochStartHandler)
+	RegisterHandlerCalled   func(handler epochStart.ActionHandler)
+	UnregisterHandlerCalled func(handler epochStart.ActionHandler)
 	NotifyAllCalled         func(hdr data.HeaderHandler)
 	NotifyAllPrepareCalled  func(hdr data.HeaderHandler)
-	epochStartHdls          []epochStart.EpochStartHandler
+	epochStartHdls          []epochStart.ActionHandler
 }
 
-func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.EpochStartHandler) {
+// RegisterHandler -
+func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
 	if esnm.RegisterHandlerCalled != nil {
 		esnm.RegisterHandlerCalled(handler)
 	}
@@ -21,7 +23,8 @@ func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.EpochStar
 	esnm.epochStartHdls = append(esnm.epochStartHdls, handler)
 }
 
-func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.EpochStartHandler) {
+// UnregisterHandler -
+func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
 	if esnm.UnregisterHandlerCalled != nil {
 		esnm.UnregisterHandlerCalled(handler)
 	}
@@ -34,6 +37,7 @@ func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.EpochSt
 	}
 }
 
+// NotifyAllPrepare -
 func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHeader data.HeaderHandler) {
 	if esnm.NotifyAllPrepareCalled != nil {
 		esnm.NotifyAllPrepareCalled(metaHeader)
@@ -44,6 +48,7 @@ func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHeader data.HeaderHandl
 	}
 }
 
+// NotifyAll -
 func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	if esnm.NotifyAllCalled != nil {
 		esnm.NotifyAllCalled(hdr)
@@ -54,6 +59,7 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	}
 }
 
+// IsInterfaceNil -
 func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {
 	return esnm == nil
 }

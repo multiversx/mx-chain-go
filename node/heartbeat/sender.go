@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,8 +17,10 @@ type Sender struct {
 	singleSigner     crypto.SingleSigner
 	privKey          crypto.PrivateKey
 	marshalizer      marshal.Marshalizer
-	topic            string
 	shardCoordinator sharding.Coordinator
+	peerTypeProvider PeerTypeProviderHandler
+	statusHandler    core.AppStatusHandler
+	topic            string
 	versionNumber    string
 	nodeDisplayName  string
 }
@@ -30,6 +33,8 @@ func NewSender(
 	marshalizer marshal.Marshalizer,
 	topic string,
 	shardCoordinator sharding.Coordinator,
+	peerTypeProvider PeerTypeProviderHandler,
+	statusHandler core.AppStatusHandler,
 	versionNumber string,
 	nodeDisplayName string,
 ) (*Sender, error) {
@@ -48,6 +53,12 @@ func NewSender(
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
+	if check.IfNil(peerTypeProvider) {
+		return nil, ErrNilPeerTypeProvider
+	}
+	if check.IfNil(statusHandler) {
+		return nil, ErrNilAppStatusHandler
+	}
 
 	sender := &Sender{
 		peerMessenger:    peerMessenger,
@@ -56,6 +67,8 @@ func NewSender(
 		marshalizer:      marshalizer,
 		topic:            topic,
 		shardCoordinator: shardCoordinator,
+		peerTypeProvider: peerTypeProvider,
+		statusHandler:    statusHandler,
 		versionNumber:    versionNumber,
 		nodeDisplayName:  nodeDisplayName,
 	}
@@ -78,6 +91,8 @@ func (s *Sender) SendHeartbeat() error {
 	if err != nil {
 		return err
 	}
+
+	s.updateMetrics(hb)
 
 	err = verifyLengths(hb)
 	if err != nil {
@@ -103,4 +118,19 @@ func (s *Sender) SendHeartbeat() error {
 	s.peerMessenger.Broadcast(s.topic, buffToSend)
 
 	return nil
+}
+
+func (s *Sender) updateMetrics(hb *Heartbeat) {
+	result := s.computePeerList(hb.Pubkey, hb.ShardID)
+	s.statusHandler.SetStringValue(core.MetricPeerType, result)
+}
+
+func (s *Sender) computePeerList(pubkey []byte, shardID uint32) string {
+	peerType, err := s.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
+	if err != nil {
+		log.Warn("monitor: compute peer type", "error", err)
+		return string(core.ObserverList)
+	}
+
+	return string(peerType)
 }

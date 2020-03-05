@@ -13,6 +13,21 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
+// GetEligiblePublicKeysPerShard -
+func (ncm *NodesCoordinatorStub) GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetWaitingPublicKeysPerShard -
+func (ncm *NodesCoordinatorStub) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// UpdatePeersListAndIndex -
+func (ncm *NodesCoordinatorStub) UpdatePeersListAndIndex() error {
+	return nil
+}
+
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorStub) GetNumTotalEligible() uint64 {
 	return 1
@@ -83,7 +98,7 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsRewardsAddresses(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
+func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
 	return nil
 }
 

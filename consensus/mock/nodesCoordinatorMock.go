@@ -11,6 +11,16 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 }
 
+// GetWaitingPublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// UpdatePeersListAndIndex -
+func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
+	return nil
+}
+
 // ComputeConsensusGroup -
 func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	randomness []byte,
@@ -48,8 +58,8 @@ func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	return 1
 }
 
-// GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+// GetEligiblePublicKeysPerShard -
+func (ncm *NodesCoordinatorMock) GetEligiblePublicKeysPerShard(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -126,7 +136,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
 	return nil
 }
 
