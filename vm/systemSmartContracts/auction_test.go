@@ -352,7 +352,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
@@ -611,7 +611,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
@@ -757,7 +757,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
@@ -959,7 +959,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	}
 
 	marshalizedStakedData, _ := json.Marshal(&stakedData)
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
 			return unStakedNonce + unBondPeriod + 1
@@ -1054,7 +1054,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
 
 	smartcontractAddress := "auction"
@@ -1366,7 +1366,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 }
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {
-	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
 
 	argsStaking := createMockStakingScArguments()
