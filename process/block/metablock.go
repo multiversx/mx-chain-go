@@ -1129,7 +1129,7 @@ func (mp *metaProcessor) CommitBlock(
 		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
 	}
 
-	go mp.prepareDataForBootStorer(args)
+	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 

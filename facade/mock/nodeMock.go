@@ -57,7 +57,7 @@ func (nm *NodeMock) ConnectToAddresses(addresses []string) error {
 }
 
 // StartConsensus -
-func (nm *NodeMock) StartConsensus(_ uint32) error {
+func (nm *NodeMock) StartConsensus() error {
 	return nm.StartConsensusHandler()
 }
 
