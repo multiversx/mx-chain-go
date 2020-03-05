@@ -10,19 +10,27 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	leaderPercentage     float64
-	maxGasLimitPerBlock  uint64
-	gasPerDataByte       uint64
-	dataLimitForBaseCalc uint64
-	minGasPrice          uint64
-	minGasLimit          uint64
-	genesisNodePrice     *big.Int
-	unBoundPeriod        uint64
-	ratingsData          *RatingsData
-	developerPercentage  float64
-	genesisTotalSupply   *big.Int
-	minInflation         float64
-	maxInflation         float64
+	leaderPercentage         float64
+	maxGasLimitPerBlock      uint64
+	gasPerDataByte           uint64
+	dataLimitForBaseCalc     uint64
+	minGasPrice              uint64
+	minGasLimit              uint64
+	genesisNodePrice         *big.Int
+	unBondPeriod             uint64
+	ratingsData              *RatingsData
+	developerPercentage      float64
+	genesisTotalSupply       *big.Int
+	minInflation             float64
+	maxInflation             float64
+	minStep                  *big.Int
+	unJailPrice              *big.Int
+	numNodes                 uint32
+	auctionEnableNonce       uint64
+	stakeEnableNonce         uint64
+	numRoundsWithoutBleed    uint64
+	bleedPercentagePerRound  float64
+	maximumPercentageToBleed float64
 }
 
 // NewEconomicsData will create and object with information about economics parameters
@@ -47,19 +55,27 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		leaderPercentage:     economics.RewardsSettings.LeaderPercentage,
-		maxGasLimitPerBlock:  data.maxGasLimitPerBlock,
-		minGasPrice:          data.minGasPrice,
-		minGasLimit:          data.minGasLimit,
-		genesisNodePrice:     data.genesisNodePrice,
-		unBoundPeriod:        data.unBoundPeriod,
-		gasPerDataByte:       data.gasPerDataByte,
-		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
-		ratingsData:          rd,
-		developerPercentage:  economics.RewardsSettings.DeveloperPercentage,
-		minInflation:         economics.GlobalSettings.MinimumInflation,
-		maxInflation:         economics.GlobalSettings.MaximumInflation,
-		genesisTotalSupply:   data.genesisTotalSupply,
+		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
+		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
+		minGasPrice:              data.minGasPrice,
+		minGasLimit:              data.minGasLimit,
+		genesisNodePrice:         data.genesisNodePrice,
+		unBondPeriod:             data.unBondPeriod,
+		gasPerDataByte:           data.gasPerDataByte,
+		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
+		ratingsData:              rd,
+		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
+		minInflation:             economics.GlobalSettings.MinimumInflation,
+		maxInflation:             economics.GlobalSettings.MaximumInflation,
+		genesisTotalSupply:       data.genesisTotalSupply,
+		minStep:                  data.minStep,
+		numNodes:                 data.numNodes,
+		auctionEnableNonce:       data.auctionEnableNonce,
+		stakeEnableNonce:         data.stakeEnableNonce,
+		numRoundsWithoutBleed:    data.numRoundsWithoutBleed,
+		bleedPercentagePerRound:  data.bleedPercentagePerRound,
+		maximumPercentageToBleed: data.maximumPercentageToBleed,
+		unJailPrice:              data.unJailPrice,
 	}, nil
 }
 
@@ -83,9 +99,9 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 		return nil, process.ErrInvalidRewardsValue
 	}
 
-	unBoundPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
+	unBondPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBondPeriod, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, process.ErrInvalidUnboundPeriod
+		return nil, process.ErrInvalidUnBondPeriod
 	}
 
 	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
@@ -109,15 +125,60 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
+	minStepValue := new(big.Int)
+	minStepValue, ok = minStepValue.SetString(economics.ValidatorSettings.MinStepValue, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidMinStepValue
+	}
+
+	auctionEnableNonce, err := strconv.ParseUint(economics.ValidatorSettings.AuctionEnableNonce, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidAuctionEnableNonce
+	}
+
+	stakeEnableNonce, err := strconv.ParseUint(economics.ValidatorSettings.StakeEnableNonce, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidStakingEnableNonce
+	}
+
+	numRoundsWithoutBleed, err := strconv.ParseUint(economics.ValidatorSettings.NumRoundsWithoutBleed, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnBondPeriod
+	}
+
+	maximumPercentageToBleed, err := strconv.ParseFloat(economics.ValidatorSettings.MaximumPercentageToBleed, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnBondPeriod
+	}
+
+	bleedPercentagePerRound, err := strconv.ParseFloat(economics.ValidatorSettings.BleedPercentagePerRound, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnBondPeriod
+	}
+
+	unJailPrice := new(big.Int)
+	unJailPrice, ok = unJailPrice.SetString(economics.ValidatorSettings.UnJailValue, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidUnJailPrice
+	}
+
 	return &EconomicsData{
-		minGasPrice:          minGasPrice,
-		minGasLimit:          minGasLimit,
-		genesisNodePrice:     genesisNodePrice,
-		unBoundPeriod:        unBoundPeriod,
-		maxGasLimitPerBlock:  maxGasLimitPerBlock,
-		gasPerDataByte:       gasPerDataByte,
-		dataLimitForBaseCalc: dataLimitForBaseCalc,
-		genesisTotalSupply:   genesisTotalSupply,
+		minGasPrice:              minGasPrice,
+		minGasLimit:              minGasLimit,
+		genesisNodePrice:         genesisNodePrice,
+		unBondPeriod:             unBondPeriod,
+		maxGasLimitPerBlock:      maxGasLimitPerBlock,
+		gasPerDataByte:           gasPerDataByte,
+		dataLimitForBaseCalc:     dataLimitForBaseCalc,
+		genesisTotalSupply:       genesisTotalSupply,
+		minStep:                  minStepValue,
+		numNodes:                 economics.ValidatorSettings.NumNodes,
+		auctionEnableNonce:       auctionEnableNonce,
+		stakeEnableNonce:         stakeEnableNonce,
+		numRoundsWithoutBleed:    numRoundsWithoutBleed,
+		bleedPercentagePerRound:  bleedPercentagePerRound,
+		maximumPercentageToBleed: maximumPercentageToBleed,
+		unJailPrice:              unJailPrice,
 	}, nil
 }
 
@@ -217,9 +278,54 @@ func (ed *EconomicsData) GenesisNodePrice() *big.Int {
 	return ed.genesisNodePrice
 }
 
-// UnBoundPeriod will return the unbound period
-func (ed *EconomicsData) UnBoundPeriod() uint64 {
-	return ed.unBoundPeriod
+// UnBondPeriod will return the unbond period
+func (ed *EconomicsData) UnBondPeriod() uint64 {
+	return ed.unBondPeriod
+}
+
+// NumRoundsWithoutBleed will return the numRoundsWithoutBleed period
+func (ed *EconomicsData) NumRoundsWithoutBleed() uint64 {
+	return ed.numRoundsWithoutBleed
+}
+
+// BleedPercentagePerRound will return the bleedPercentagePerRound
+func (ed *EconomicsData) BleedPercentagePerRound() float64 {
+	return ed.bleedPercentagePerRound
+}
+
+// MaximumPercentageToBleed will return the maximumPercentageToBleed
+func (ed *EconomicsData) MaximumPercentageToBleed() float64 {
+	return ed.maximumPercentageToBleed
+}
+
+// MinStepValue returns the step value which is considered in the node price determination
+func (ed *EconomicsData) MinStepValue() *big.Int {
+	return ed.minStep
+}
+
+// UnJailValue returns the unjail value which is considered the price to bail out of jail
+func (ed *EconomicsData) UnJailValue() *big.Int {
+	return ed.unJailPrice
+}
+
+// TotalSupply returns the total supply of the protocol
+func (ed *EconomicsData) TotalSupply() *big.Int {
+	return ed.genesisTotalSupply
+}
+
+// NumNodes returns the total node number for current setting
+func (ed *EconomicsData) NumNodes() uint32 {
+	return ed.numNodes
+}
+
+// AuctionEnableNonce returns the nonce from which the auction process is enabled
+func (ed *EconomicsData) AuctionEnableNonce() uint64 {
+	return ed.auctionEnableNonce
+}
+
+// StakeEnableNonce returns the nonce from which the staking/unstaking function is enabled
+func (ed *EconomicsData) StakeEnableNonce() uint64 {
+	return ed.stakeEnableNonce
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

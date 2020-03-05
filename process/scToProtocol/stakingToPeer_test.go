@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -40,7 +39,7 @@ func createBlockBody() block.Body {
 		{
 			TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
 			ReceiverShardID: 0,
-			SenderShardID:   sharding.MetachainShardId,
+			SenderShardID:   core.MetachainShardId,
 			Type:            block.SmartContractResultBlock,
 		},
 	}
@@ -207,7 +206,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, testError, err)
+	assert.Nil(t, err)
 }
 
 func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
@@ -316,7 +315,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return peerAcc, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
+	stakingData := systemSmartContracts.StakedData{
 		StakeValue: big.NewInt(100),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -372,9 +371,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -429,9 +428,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -485,9 +484,9 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -542,9 +541,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakingData{
-		StakeValue: big.NewInt(100),
-		Address:    []byte(address),
+	stakingData := systemSmartContracts.StakedData{
+		StakeValue:    big.NewInt(100),
+		RewardAddress: []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 

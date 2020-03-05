@@ -2,6 +2,7 @@ package genesis
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -97,6 +98,8 @@ type ArgsMetaGenesisBlockCreator struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
+	MessageSignVerifier      vm.MessageSignVerifier
+	GasMap                   map[string]map[string]uint64
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -158,10 +161,16 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	err = setStakingData(
+	eligible, waiting := args.NodesSetup.InitialNodesInfo()
+	allNodes := make(map[uint32][]*sharding.NodeInfo)
+
+	for shard := range eligible {
+		allNodes[shard] = append(eligible[shard], waiting[shard]...)
+	}
+
+	err = setStakedData(
 		txProcessor,
-		args.ShardCoordinator,
-		args.NodesSetup.InitialNodesInfo(),
+		allNodes,
 		args.Economics.GenesisNodePrice(),
 	)
 	if err != nil {
@@ -237,15 +246,13 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	vmContainer, err := virtualMachineFactory.Create()
 	if err != nil {
@@ -285,21 +292,23 @@ func createProcessorsForMetaGenesisBlock(
 	}
 
 	genesisFeeHandler := NewGenesisFeeHandler()
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		args.Hasher,
-		args.Marshalizer,
-		args.Accounts,
-		virtualMachineFactory.BlockChainHookImpl(),
-		args.AddrConv,
-		args.ShardCoordinator,
-		scForwarder,
-		genesisFeeHandler,
-		genesisFeeHandler,
-		txTypeHandler,
-		gasHandler,
-	)
+	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:   vmContainer,
+		ArgsParser:    argsParser,
+		Hasher:        args.Hasher,
+		Marshalizer:   args.Marshalizer,
+		AccountsDB:    args.Accounts,
+		TempAccounts:  virtualMachineFactory.BlockChainHookImpl(),
+		AdrConv:       args.AddrConv,
+		Coordinator:   args.ShardCoordinator,
+		ScrForwarder:  scForwarder,
+		TxFeeHandler:  genesisFeeHandler,
+		EconomicsFee:  genesisFeeHandler,
+		TxTypeHandler: txTypeHandler,
+		GasHandler:    gasHandler,
+		GasMap:        args.GasMap,
+	}
+	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -331,7 +340,7 @@ func deploySystemSmartContracts(
 		Value:     big.NewInt(0),
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
-		GasLimit:  0,
+		GasLimit:  math.MaxUint64,
 		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),
 		Signature: nil,
 	}
@@ -367,25 +376,25 @@ func deploySystemSmartContracts(
 	return nil
 }
 
-// setStakingData sets the initial staked values to the staking smart contract
-func setStakingData(
+// setStakedData sets the initial staked values to the staking smart contract
+func setStakedData(
 	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
+	for i := range initialNodeInfo {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
 				Value:     big.NewInt(0).Set(stakeValue),
-				RcvAddr:   vmFactory.StakingSCAddress,
+				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
-				GasLimit:  0,
-				Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
+				GasLimit:  math.MaxUint64,
+				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
 
@@ -393,25 +402,6 @@ func setStakingData(
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	nodeInfoList := initialNodeInfo[sharding.MetachainShardId]
-	for _, nodeInfo := range nodeInfoList {
-		tx := &transaction.Transaction{
-			Nonce:     0,
-			Value:     big.NewInt(0).Set(stakeValue),
-			RcvAddr:   vmFactory.StakingSCAddress,
-			SndAddr:   nodeInfo.Address(),
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
-			Signature: nil,
-		}
-
-		err := txProcessor.ProcessTransaction(tx)
-		if err != nil {
-			return err
 		}
 	}
 
@@ -482,4 +472,15 @@ func setBalanceToTrie(
 
 	account.SetBalance(balance)
 	return accounts.SaveAccount(account)
+}
+
+type NilMessageSignVerifier struct {
+}
+
+func (n *NilMessageSignVerifier) Verify(_ []byte, _ []byte, _ []byte) error {
+	return nil
+}
+
+func (n *NilMessageSignVerifier) IsInterfaceNil() bool {
+	return n == nil
 }

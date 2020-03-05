@@ -73,6 +73,7 @@ type Node struct {
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
 	epochStartTrigger        epochStart.TriggerHandler
+	epochStartSubscriber     epochStart.EpochStartSubscriber
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -231,8 +232,8 @@ func (n *Node) CreateShardedStores() error {
 
 // StartConsensus will start the consensus service for the current node
 func (n *Node) StartConsensus() error {
-	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
-		n.blkc.GetGenesisHeader() == nil
+	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
+		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
 		return ErrGenesisBlockNotInitialized
 	}
@@ -253,8 +254,14 @@ func (n *Node) StartConsensus() error {
 	}
 
 	bootstrapper.StartSync()
+	epoch := uint32(0)
+	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(crtBlockHeader) {
+		epoch = crtBlockHeader.GetEpoch()
+	}
+	log.Info("starting consensus", "epoch", epoch)
 
-	consensusState, err := n.createConsensusState()
+	consensusState, err := n.createConsensusState(epoch)
 	if err != nil {
 		return err
 	}
@@ -308,21 +315,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	consensusArgs := &spos.ConsensusCoreArgs{
+		BlockChain:           n.blkc,
+		BlockProcessor:       n.blockProcessor,
+		Bootstrapper:         bootstrapper,
+		BroadcastMessenger:   broadcastMessenger,
+		ChronologyHandler:    chronologyHandler,
+		Hasher:               n.hasher,
+		Marshalizer:          n.marshalizer,
+		BlsPrivateKey:        n.privKey,
+		BlsSingleSigner:      n.singleSigner,
+		MultiSigner:          n.multiSigner,
+		Rounder:              n.rounder,
+		ShardCoordinator:     n.shardCoordinator,
+		NodesCoordinator:     n.nodesCoordinator,
+		SyncTimer:            n.syncTimer,
+		EpochStartSubscriber: n.epochStartSubscriber,
+	}
+
 	consensusDataContainer, err := spos.NewConsensusCore(
-		n.blkc,
-		n.blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		chronologyHandler,
-		n.hasher,
-		n.marshalizer,
-		n.privKey,
-		n.singleSigner,
-		n.multiSigner,
-		n.rounder,
-		n.shardCoordinator,
-		n.nodesCoordinator,
-		n.syncTimer,
+		consensusArgs,
 	)
 	if err != nil {
 		return err
@@ -404,7 +416,7 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 		return n.createShardBootstrapper(rounder)
 	}
 
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if n.shardCoordinator.SelfId() == core.MetachainShardId {
 		return n.createMetaChainBootstrapper(rounder)
 	}
 
@@ -412,11 +424,6 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	if err != nil {
-		return nil, err
-	}
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -428,6 +435,8 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -462,7 +471,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            accountsWrapper,
+		Accounts:            n.accounts,
 		BlackListHandler:    n.blackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
@@ -485,10 +494,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	//TODO: Analyze if should be created accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	//to be used instead n.accounts as a parameter for sync.ArgBaseBootstrapper, exactly as it is done in method
-	//createShardBootstrapper
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -500,6 +505,8 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		NodesCoordinator:    n.nodesCoordinator,
+		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
 	}
 
@@ -559,14 +566,19 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 }
 
 // createConsensusState method creates a consensusState object
-func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
+func (n *Node) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
+	eligibleNodesPubKeys, err := n.nodesCoordinator.GetConsensusWhitelistedNodes(epoch)
+	if err != nil {
+		return nil, err
+	}
+
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
+		eligibleNodesPubKeys,
 		n.consensusGroupSize,
 		string(selfId))
 

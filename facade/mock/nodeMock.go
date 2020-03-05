@@ -85,7 +85,7 @@ func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error
 }
 
 // SendTransaction -
-func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, transactionData []byte, signature []byte) (string, error) {
+func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value string, _ uint64, _ uint64, transactionData []byte, signature []byte) (string, error) {
 	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
 }
 
@@ -126,8 +126,5 @@ func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResp
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nm *NodeMock) IsInterfaceNil() bool {
-	if nm == nil {
-		return true
-	}
-	return false
+	return nm == nil
 }

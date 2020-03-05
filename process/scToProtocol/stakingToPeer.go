@@ -3,19 +3,22 @@ package scToProtocol
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
@@ -128,6 +131,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 			return err
 		}
 
+		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
+
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
 			FuncName:  "get",
@@ -159,7 +164,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 			continue
 		}
 
-		var stakingData systemSmartContracts.StakingData
+		var stakingData systemSmartContracts.StakedData
 		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
@@ -180,12 +185,12 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakingData,
+	stakingData systemSmartContracts.StakedData,
 	account state.PeerAccountHandler,
 	blsPubKey []byte,
 ) error {
 
-	err := account.SetRewardAddress(stakingData.Address)
+	err := account.SetRewardAddress(stakingData.RewardAddress)
 	if err != nil {
 		return err
 	}
@@ -193,8 +198,8 @@ func (stp *stakingToPeer) updatePeerState(
 	account.SetBLSPublicKey(blsPubKey)
 	account.SetStake(stakingData.StakeValue)
 
-	if stakingData.StartNonce != account.GetNonce() {
-		account.SetNonce(stakingData.StartNonce)
+	if stakingData.RegisterNonce != account.GetNonce() {
+		account.SetNonce(stakingData.RegisterNonce)
 		account.SetNodeInWaitingList(true)
 	}
 	account.SetUnStakedNonce(stakingData.UnStakedNonce)
@@ -209,7 +214,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != sharding.MetachainShardId {
+		if miniBlock.SenderShardID != core.MetachainShardId {
 			continue
 		}
 
@@ -230,7 +235,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error
 
 			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			for _, storageUpdate := range storageUpdates {

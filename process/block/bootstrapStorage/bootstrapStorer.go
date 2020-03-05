@@ -40,13 +40,15 @@ type PendingMiniBlockInfo struct {
 
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
-	LastHeader                BootstrapHeaderInfo
-	LastCrossNotarizedHeaders []BootstrapHeaderInfo
-	LastSelfNotarizedHeaders  []BootstrapHeaderInfo
-	ProcessedMiniBlocks       []MiniBlocksInMeta
-	PendingMiniBlocks         []PendingMiniBlockInfo
-	HighestFinalBlockNonce    uint64
-	LastRound                 int64
+	LastHeader                 BootstrapHeaderInfo
+	LastCrossNotarizedHeaders  []BootstrapHeaderInfo
+	LastSelfNotarizedHeaders   []BootstrapHeaderInfo
+	ProcessedMiniBlocks        []MiniBlocksInMeta
+	PendingMiniBlocks          []PendingMiniBlockInfo
+	NodesCoordinatorConfigKey  []byte
+	EpochStartTriggerConfigKey []byte
+	HighestFinalBlockNonce     uint64
+	LastRound                  int64
 }
 
 type bootstrapStorer struct {

@@ -786,7 +786,7 @@ func TestAccountsDB_CancelPrune(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.CancelPrune([]byte("roothash"))
+	adb.CancelPrune([]byte("roothash"), data.OldRoot)
 
 	assert.True(t, cancelPruneWasCalled)
 }
@@ -802,7 +802,7 @@ func TestAccountsDB_PruneTrie(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	err := adb.PruneTrie([]byte("roothash"))
+	err := adb.PruneTrie([]byte("roothash"), data.OldRoot)
 
 	assert.Nil(t, err)
 	assert.True(t, pruneTrieWasCalled)

@@ -98,13 +98,12 @@ func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	return miniblock, hash
 }
 
-func createReward(round uint64, shardId uint32) (data.TransactionHandler, []byte) {
+func createReward(round uint64) (data.TransactionHandler, []byte) {
 	reward := &rewardTx.RewardTx{
 		Round:   round,
 		Epoch:   0,
 		Value:   big.NewInt(1),
 		RcvAddr: make([]byte, integrationTests.TestHasher.Size()),
-		ShardId: shardId,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)

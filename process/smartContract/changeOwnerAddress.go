@@ -12,6 +12,7 @@ import (
 )
 
 type changeOwnerAddress struct {
+	gasCost uint64
 }
 
 // ProcessBuiltinFunction processes simple protocol built-in function
@@ -40,6 +41,11 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	acntDst.SetOwnerAddress(vmInput.Arguments[0])
 
 	return big.NewInt(0), nil
+}
+
+// GasUsed returns the gas used for processing the change
+func (c *changeOwnerAddress) GasUsed() uint64 {
+	return c.gasCost
 }
 
 // IsInterfaceNil returns true if underlying object in nil

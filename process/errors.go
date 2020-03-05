@@ -59,6 +59,9 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
+// ErrNilBootStorer signals that the provided boot storer is bil
+var ErrNilBootStorer = errors.New("nil boot storer")
+
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -492,8 +495,8 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
-// ErrInvalidUnboundPeriod signals that an invalid unbound period has been read from config file
-var ErrInvalidUnboundPeriod = errors.New("invalid unbound period")
+// ErrInvalidUnBondPeriod signals that an invalid unbond period has been read from config file
+var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
@@ -594,6 +597,12 @@ var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
 
+// ErrInvalidMinStepValue signals the min step value is invalid
+var ErrInvalidMinStepValue = errors.New("invalid min step value")
+
+// ErrInvalidTotalSupply signals that total supply is invalid
+var ErrInvalidTotalSupply = errors.New("invalid total supply")
+
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
@@ -647,6 +656,15 @@ var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator
 
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
+
+// ErrInvalidAuctionEnableNonce signals that auction enable nonce is invalid
+var ErrInvalidAuctionEnableNonce = errors.New("invalid auction enable nonce")
+
+// ErrInvalidStakingEnableNonce signals that the staking enable nonce is invalid
+var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
+
+// ErrInvalidUnJailPrice signals that invalid unjail price was provided
+var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
 
 // ErrOperationNotPermitted signals that operation is not permitted
 var ErrOperationNotPermitted = errors.New("operation in account not permitted")

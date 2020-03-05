@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -30,7 +30,7 @@ type baseBlockTrack struct {
 	hasher           hashing.Hasher
 	headerValidator  process.HeaderConstructionValidator
 	marshalizer      marshal.Marshalizer
-	rounder          consensus.Rounder
+	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
@@ -47,7 +47,7 @@ type baseBlockTrack struct {
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if headerHandler.GetShardID() == sharding.MetachainShardId {
+	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
 	}
@@ -64,6 +64,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 
 	log.Debug("received shard header from network in block tracker",
 		"shard", shardHeader.GetShardID(),
+		"epoch", shardHeader.GetEpoch(),
 		"round", shardHeader.GetRound(),
 		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
@@ -82,6 +83,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 
 	log.Debug("received meta block from network in block tracker",
 		"shard", metaBlock.GetShardID(),
+		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
@@ -184,12 +186,12 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 
 // ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
 func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
+	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
@@ -243,7 +245,7 @@ func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 		bbt.displayHeadersForShard(shardID)
 	}
 
-	bbt.displayHeadersForShard(sharding.MetachainShardId)
+	bbt.displayHeadersForShard(core.MetachainShardId)
 }
 
 func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {

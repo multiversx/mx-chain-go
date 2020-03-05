@@ -3,9 +3,9 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -28,8 +28,8 @@ func NewTestSyncNode(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("add"), []byte("add"))
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			validator := mock.NewValidatorMock([]byte("add"), []byte("add"))
 			return []sharding.Validator{validator}, nil
 		},
 	}
@@ -100,7 +100,7 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 		buffHeader, _ := TestMarshalizer.Marshal(header)
 		headerHash := TestHasher.Compute(string(buffHeader))
 
-		if shardId == sharding.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 			_ = metablockStorer.Put(headerHash, buffHeader)
 		} else {
@@ -113,8 +113,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
+
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 nil,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
@@ -135,12 +139,13 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker: tpn.BlockTracker,
-		DataPool:     tpn.DataPool,
-		BlockChain:   tpn.BlockChain,
+		BlockTracker:           tpn.BlockTracker,
+		DataPool:               tpn.DataPool,
+		StateCheckpointModulus: stateCheckpointModulus,
+		BlockChain:   			tpn.BlockChain,
 	}
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
@@ -162,9 +167,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor:       argumentsBase,
-			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: stateCheckpointModulus,
+			ArgBaseProcessor: argumentsBase,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
@@ -176,11 +180,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
-	accountsStateWrapper, err := state.NewAccountsDbWrapperSync(tpn.AccntState)
-	if err != nil {
-		return nil, err
-	}
-
 	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -203,7 +202,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ForkDetector:        tpn.ForkDetector,
 		RequestHandler:      tpn.RequestHandler,
 		ShardCoordinator:    tpn.ShardCoordinator,
-		Accounts:            accountsStateWrapper,
+		Accounts:            tpn.AccntState,
 		BlackListHandler:    tpn.BlackListHandler,
 		NetworkWatcher:      tpn.Messenger,
 		BootStorer:          tpn.BootstrapStorer,

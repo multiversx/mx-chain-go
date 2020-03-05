@@ -23,6 +23,7 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
@@ -54,12 +55,11 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bps.CreateGenesisBlockCalled(balances)
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
-	if bps.RevertStateToBlockCalled != nil {
-		return bps.RevertStateToBlockCalled(header)
+// PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
+func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if bps.PruneStateOnRollbackCalled != nil {
+		bps.PruneStateOnRollbackCalled(currHeader, prevHeader)
 	}
-	return nil
 }
 
 // CreateBlock mocks the creation of a new block with header and body
@@ -98,7 +98,7 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 
@@ -109,4 +109,13 @@ func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.Processed
 // IsInterfaceNil returns true if there is no value under the interface
 func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bpm *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
+	}
+
+	return nil
 }

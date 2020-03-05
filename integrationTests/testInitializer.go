@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -43,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -224,7 +224,7 @@ func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.S
 
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 4,
@@ -288,7 +288,7 @@ func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = CreateSimpleGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock()
 
 	return genesisBlocks
 }
@@ -350,11 +350,10 @@ func CreateGenesisBlocks(
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlock := CreateSimpleGenesisBlock(shardId)
-		genesisBlocks[shardId] = genesisBlock
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
+	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
 		addrConv,
 		nodesSetup,
@@ -387,6 +386,9 @@ func CreateGenesisMetaBlock(
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	vm.FillGasMapInternal(gasSchedule, 1)
+
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
@@ -401,12 +403,13 @@ func CreateGenesisMetaBlock(
 		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
+		GasMap:                   gasSchedule,
 	}
 
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if shardCoordinator.SelfId() != core.MetachainShardId {
 		newShardCoordinator, _ := sharding.NewMultiShardCoordinator(
 			shardCoordinator.NumberOfShards(),
-			sharding.MetachainShardId,
+			core.MetachainShardId,
 		)
 
 		newStore := CreateMetaStore(newShardCoordinator)
@@ -542,19 +545,25 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler
 // balance and nonce, and printing any encountered error
 func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntDest state.UserAccountHandler, value *big.Int) error {
 
-	srcVal := acntSrc.GetBalance()
-	destVal := acntDest.GetBalance()
-
+	srcVal := acntSrc.Balance
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
 	}
 
-	acntSrc.SetBalance(srcVal.Sub(srcVal, value))
-	acntDest.SetBalance(destVal.Add(destVal, value))
-	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
+	err := acntSrc.SubFromBalance(value)
+	if err != nil {
+		return err
+	}
 
-	_ = accounts.SaveAccount(acntSrc)
-	_ = accounts.SaveAccount(acntDest)
+	err = acntDest.AddToBalance(value)
+	if err != nil {
+		return err
+	}
+
+	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -595,7 +604,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
@@ -611,7 +620,7 @@ func GenerateRandomSlice(size int) []byte {
 // MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
 func MintAllNodes(nodes []*TestProcessorNode, value *big.Int) {
 	for idx, n := range nodes {
-		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		if n.ShardCoordinator.SelfId() == core.MetachainShardId {
 			continue
 		}
 
@@ -649,6 +658,18 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
+}
+
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		UpdateRound(nodes, round)
+		ProposeBlock(nodes, idxProposers, round, nonce)
+		SyncBlock(t, nodes, idxProposers, round)
+		round = IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	return nonce, round
 }
 
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
@@ -836,7 +857,7 @@ func CreateNodes(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -865,7 +886,7 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID, stateCheckpointModulus)
+		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), core.MetachainShardId, 0, serviceID, stateCheckpointModulus)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -931,7 +952,7 @@ func CreateSendersWithInitialBalances(
 
 	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
 	for shardId, nodes := range nodesMap {
-		if shardId == sharding.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			continue
 		}
 
@@ -971,7 +992,10 @@ func CreateAndSendTransaction(
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
-	_, _ = node.SendTransaction(tx)
+	_, err := node.SendTransaction(tx)
+	if err != nil {
+		log.Warn("could not create transaction", "address", node.OwnAccount.Address.Bytes(), "error", err)
+	}
 	node.OwnAccount.Nonce++
 }
 
@@ -1093,6 +1117,47 @@ func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) []
 	return hashes
 }
 
+// GenerateIntraShardTransactions generates intra shard transactions
+func GenerateIntraShardTransactions(
+	nodesMap map[uint32][]*TestProcessorNode,
+	nbTxsPerShard uint32,
+	mintValue *big.Int,
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) {
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
+
+	for shardId, nodes := range nodesMap {
+		if shardId == core.MetachainShardId {
+			continue
+		}
+
+		sendersPrivateKeys[shardId], receiversPublicKeys[shardId] = CreateSendersAndReceiversInShard(
+			nodes[0],
+			nbTxsPerShard,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
+	}
+
+	CreateAndSendTransactions(
+		nodesMap,
+		sendersPrivateKeys,
+		receiversPublicKeys,
+		gasPrice,
+		gasLimit,
+		valToTransfer,
+	)
+}
+
 // GenerateSkAndPkInShard generates and returns a private and a public key that reside in a given shard.
 // It also returns the key generator
 func GenerateSkAndPkInShard(
@@ -1103,7 +1168,7 @@ func GenerateSkAndPkInShard(
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
-	if shardId == sharding.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		// for metachain generate in shard 0
 		shardId = 0
 	}
@@ -1148,7 +1213,7 @@ func CreateAndSendTransactions(
 	valueToTransfer *big.Int,
 ) {
 	for shardId := range nodes {
-		if shardId == sharding.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			continue
 		}
 
@@ -1504,7 +1569,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 			if err != nil {
 				return nil
 			}
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), address)
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -1536,7 +1601,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[sharding.MetachainShardId] = keyPairs
+	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &CryptoParams{
 		Keys:         keysMap,
@@ -1593,7 +1658,7 @@ func SetupSyncNodesOneShardAndMeta(
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := NewTestSyncNode(
 			maxShards,
-			sharding.MetachainShardId,
+			core.MetachainShardId,
 			shardId,
 			advertiserAddr,
 		)

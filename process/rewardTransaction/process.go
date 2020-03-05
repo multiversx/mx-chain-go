@@ -1,8 +1,6 @@
 package rewardTransaction
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -39,7 +37,7 @@ func NewRewardTxProcessor(
 	}, nil
 }
 
-func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
+func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
 	addr, err := rtp.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
@@ -56,7 +54,12 @@ func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.Accou
 		return nil, err
 	}
 
-	return acnt, nil
+	userAcnt, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcnt, nil
 }
 
 // ProcessRewardTransaction updates the account state from the reward transaction
@@ -78,18 +81,10 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return nil
 	}
 
-	rewardAcc, ok := accHandler.(state.UserAccountHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
 
-	operation := big.NewInt(0)
-	operation = operation.Add(rTx.Value, rewardAcc.GetBalance())
-	rewardAcc.SetBalance(operation)
-
-	return rtp.accounts.SaveAccount(rewardAcc)
+	err = accHandler.AddToBalance(rTx.Value)
+	return rtp.accounts.SaveAccount(accHandler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

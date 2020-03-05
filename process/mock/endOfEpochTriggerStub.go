@@ -4,13 +4,18 @@ import "github.com/ElrondNetwork/elrond-go/data"
 
 // EpochStartTriggerStub -
 type EpochStartTriggerStub struct {
-	ForceEpochStartCalled func(round uint64) error
-	IsEpochStartCalled    func() bool
-	EpochCalled           func() uint32
-	ReceivedHeaderCalled  func(handler data.HeaderHandler)
-	UpdateCalled          func(round uint64)
-	ProcessedCalled       func(header data.HeaderHandler)
-	EpochStartRoundCalled func() uint64
+	ForceEpochStartCalled             func(round uint64) error
+	IsEpochStartCalled                func() bool
+	EpochCalled                       func() uint32
+	ReceivedHeaderCalled              func(handler data.HeaderHandler)
+	UpdateCalled                      func(round uint64)
+	ProcessedCalled                   func(header data.HeaderHandler)
+	EpochStartRoundCalled             func() uint64
+	EpochFinalityAttestingRoundCalled func() uint64
+}
+
+// RequestEpochStartIfNeeded -
+func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
 }
 
 // SetCurrentEpochStartRound -
@@ -27,11 +32,24 @@ func (e *EpochStartTriggerStub) SetFinalityAttestingRound(_ uint64) {
 
 // EpochFinalityAttestingRound -
 func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
+	if e.EpochFinalityAttestingRoundCalled != nil {
+		return e.EpochFinalityAttestingRoundCalled()
+	}
 	return 0
 }
 
 // EpochStartMetaHdrHash -
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
+	return nil
+}
+
+// GetSavedStateKey -
+func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
+	return []byte("epoch start trigger key")
+}
+
+// LoadState -
+func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
 	return nil
 }
 

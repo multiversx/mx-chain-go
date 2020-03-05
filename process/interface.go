@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -198,8 +198,9 @@ type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
+	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader() data.HeaderHandler
+	CreateNewHeader(round uint64) data.HeaderHandler
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
@@ -215,10 +216,8 @@ type BlockProcessor interface {
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
-	RevertPeerStateToSnapshot(snapshot int) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	IsInterfaceNil() bool
-	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
@@ -367,9 +366,12 @@ type EpochStartTriggerHandler interface {
 	SetProcessed(header data.HeaderHandler)
 	Revert(round uint64)
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 }
 
 // EpochBootstrapper defines the actions needed by bootstrapper
@@ -428,6 +430,7 @@ type RequestHandler interface {
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestStartOfEpochMetaBlock(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -487,7 +490,7 @@ type EndOfEpochEconomics interface {
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
-	UnBoundPeriod() uint64
+	UnBondPeriod() uint64
 	GenesisNodePrice() *big.Int
 	IsInterfaceNil() bool
 }
@@ -612,6 +615,7 @@ type BlockTracker interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
@@ -670,11 +674,18 @@ type BuiltinFunction interface {
 		acntSnd, acntDst state.UserAccountHandler,
 		vmInput *vmcommon.ContractCallInput,
 	) (*big.Int, error)
+	GasUsed() uint64
 	IsInterfaceNil() bool
 }
 
 // RoundTimeDurationHandler defines the methods to get the time duration of a round
 type RoundTimeDurationHandler interface {
 	TimeDuration() time.Duration
+	IsInterfaceNil() bool
+}
+
+// Rounder defines the actions which should be handled by a round implementation
+type Rounder interface {
+	Index() int64
 	IsInterfaceNil() bool
 }

@@ -224,7 +224,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 
 // LastNonce returns the nonce from from the last committed block
 func (bh *BlockChainHookImpl) LastNonce() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetNonce()
 	}
 	return 0
@@ -232,7 +232,7 @@ func (bh *BlockChainHookImpl) LastNonce() uint64 {
 
 // LastRound returns the round from the last committed block
 func (bh *BlockChainHookImpl) LastRound() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRound()
 	}
 	return 0
@@ -240,7 +240,7 @@ func (bh *BlockChainHookImpl) LastRound() uint64 {
 
 // LastTimeStamp returns the timeStamp from the last committed block
 func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
 	}
 	return 0
@@ -248,7 +248,7 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 
 // LastRandomSeed returns the random seed from the last committed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRandSeed()
 	}
 	return []byte{}
@@ -256,7 +256,7 @@ func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
 
 // LastEpoch returns the epoch from the last committed block
 func (bh *BlockChainHookImpl) LastEpoch() uint32 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
 	return 0
@@ -264,7 +264,7 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRootHash()
 	}
 	return []byte{}
@@ -425,15 +425,12 @@ func (bh *BlockChainHookImpl) TempAccount(address []byte) state.AccountHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
-	if bh == nil {
-		return true
-	}
-	return false
+	return bh == nil
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts
 func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
-	if hdr == nil || hdr.IsInterfaceNil() {
+	if check.IfNil(hdr) {
 		return
 	}
 

@@ -548,17 +548,17 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	return adb.mainTrie.Prune(rootHash, data.OldRoot)
+	return adb.mainTrie.Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
-func (adb *AccountsDB) CancelPrune(rootHash []byte) {
+func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
+	adb.mainTrie.CancelPrune(rootHash, identifier)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

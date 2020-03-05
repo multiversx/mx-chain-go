@@ -30,3 +30,10 @@ func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) error
 	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
 	return nil
 }
+
+func (txProc *txProcessor) ProcessTxFee(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) (*big.Int, error) {
+	return txProc.processTxFee(tx, acntSnd, acntDst)
+}
