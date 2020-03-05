@@ -165,6 +165,16 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
+	preproc, err = ppcm.createValidatorInfoPreProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.PeerBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -218,6 +228,15 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 	)
 
 	return rewardTxPreprocessor, err
+}
+
+func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (process.PreProcessor, error) {
+	validatorInfoPreprocessor, err := preprocess.NewValidatorInfoPreprocessor(
+		ppcm.hasher,
+		ppcm.marshalizer,
+	)
+
+	return validatorInfoPreprocessor, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

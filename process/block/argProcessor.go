@@ -52,10 +52,11 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
-	SCDataGetter             external.SCQueryService
-	SCToProtocol             process.SmartContractToProtocolHandler
-	EpochStartDataCreator    process.EpochStartDataCreator
-	EpochEconomics           process.EndOfEpochEconomics
-	EpochRewardsCreator      process.EpochStartRewardsCreator
+	PendingMiniBlocksHandler  process.PendingMiniBlocksHandler
+	SCDataGetter              external.SCQueryService
+	SCToProtocol              process.SmartContractToProtocolHandler
+	EpochStartDataCreator     process.EpochStartDataCreator
+	EpochEconomics            process.EndOfEpochEconomics
+	EpochRewardsCreator       process.EpochStartRewardsCreator
+	EpochValidatorInfoCreator process.EpochStartValidatorInfoCreator
 }

@@ -403,6 +403,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 	}
 }
 
+// CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
@@ -995,14 +996,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
+		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
+			ShardCoordinator: tpn.ShardCoordinator,
+			MiniBlockStorage: miniBlockStorage,
+			Hasher:           TestHasher,
+			Marshalizer:      TestMarshalizer,
+		}
+
+		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:         argumentsBase,
-			SCDataGetter:             tpn.SCQueryService,
-			SCToProtocol:             scToProtocol,
-			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
-			EpochEconomics:           epochEconomics,
-			EpochStartDataCreator:    epochStartDataCreator,
-			EpochRewardsCreator:      epochStartRewards,
+			ArgBaseProcessor:          argumentsBase,
+			SCDataGetter:              tpn.SCQueryService,
+			SCToProtocol:              scToProtocol,
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochEconomics:            epochEconomics,
+			EpochStartDataCreator:     epochStartDataCreator,
+			EpochRewardsCreator:       epochStartRewards,
+			EpochValidatorInfoCreator: epochStartValidatorInfo,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1184,6 +1195,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	for _, mb := range shardBlockBody {
+		if mb.Type == dataBlock.PeerBlock {
+			continue
+		}
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)

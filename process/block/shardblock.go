@@ -1224,9 +1224,9 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		}
 
 		// metablock was processed and finalized
-		marshalizedHeader, err := sp.marshalizer.Marshal(hdr)
-		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", err.Error())
+		marshalizedHeader, marshalErr := sp.marshalizer.Marshal(hdr)
+		if marshalErr != nil {
+			log.Debug("marshalizer.Marshal", "error", marshalErr.Error())
 			continue
 		}
 
@@ -1539,12 +1539,16 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currMBProcessed, currTxsAdded, hdrProcessFinished, err := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currMetaHdr,
 				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				haveTime)
+
+			if err != nil {
+				return nil, 0, 0, err
+			}
 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, currMBProcessed...)

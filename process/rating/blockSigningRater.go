@@ -55,7 +55,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 
 	for i := 1; i < len(ratingChances); i++ {
 		if ratingChances[i-1].GetMaxThreshold() == ratingChances[i].GetMaxThreshold() {
-			return nil, process.ErrDupplicateThreshold
+			return nil, process.ErrDuplicateThreshold
 		}
 	}
 

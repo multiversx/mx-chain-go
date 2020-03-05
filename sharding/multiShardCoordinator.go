@@ -107,6 +107,10 @@ func (msc *multiShardCoordinator) IsInterfaceNil() bool {
 // communicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
 // identifier is generated such as the first shard from identifier is always smaller or equal than the last
 func communicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
+	if shardId1 == core.AllShardId || shardId2 == core.AllShardId {
+		return shardIdToString(core.AllShardId)
+	}
+
 	if shardId1 == shardId2 {
 		return shardIdToString(shardId1)
 	}
@@ -121,6 +125,10 @@ func communicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) stri
 func shardIdToString(shardId uint32) string {
 	if shardId == core.MetachainShardId {
 		return "_META"
+	}
+
+	if shardId == core.AllShardId {
+		return "_ALL"
 	}
 
 	return fmt.Sprintf("_%d", shardId)

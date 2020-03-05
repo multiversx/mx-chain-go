@@ -572,5 +572,5 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 
 	container, err := ppcm.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 4, container.Len())
+	assert.Equal(t, 5, container.Len())
 }

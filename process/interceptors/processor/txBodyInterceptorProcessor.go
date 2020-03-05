@@ -53,7 +53,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (tbip *TxBodyInterceptorProcessor) Validate(data process.InterceptedData) error {
+func (tbip *TxBodyInterceptorProcessor) Validate(_ process.InterceptedData) error {
 	return nil
 }
 
@@ -97,7 +97,8 @@ func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBloc
 
 	isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
 	isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
-	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender
+	isForAllShards := miniblock.SenderShardID == core.AllShardId || miniblock.ReceiverShardID == core.AllShardId
+	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender || isForAllShards
 	if !isForCurrentShard {
 		return process.ErrMiniblockNotForCurrentShard
 	}
@@ -106,7 +107,7 @@ func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBloc
 }
 
 // SignalEndOfProcessing signals the end of processing
-func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
+func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

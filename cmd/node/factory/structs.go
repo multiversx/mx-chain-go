@@ -2247,6 +2247,17 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
+		ShardCoordinator: shardCoordinator,
+		MiniBlockStorage: miniBlockStorage,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+	}
+	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
@@ -2276,13 +2287,14 @@ func newMetaBlockProcessor(
 		StateCheckpointModulus:       stateCheckpointModulus,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor:         argumentsBaseProcessor,
-		SCDataGetter:             scDataGetter,
-		SCToProtocol:             smartContractToProtocol,
-		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
-		EpochStartDataCreator:    epochStartDataCreator,
-		EpochEconomics:           epochEconomics,
-		EpochRewardsCreator:      epochRewards,
+		ArgBaseProcessor:          argumentsBaseProcessor,
+		SCDataGetter:              scDataGetter,
+		SCToProtocol:              smartContractToProtocol,
+		PendingMiniBlocksHandler:  pendingMiniBlocksHandler,
+		EpochStartDataCreator:     epochStartDataCreator,
+		EpochEconomics:            epochEconomics,
+		EpochRewardsCreator:       epochRewards,
+		EpochValidatorInfoCreator: validatorInfoCreator,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

@@ -32,6 +32,7 @@ type metaProcessor struct {
 	epochStartDataCreator    process.EpochStartDataCreator
 	epochEconomics           process.EndOfEpochEconomics
 	epochRewardsCreator      process.EpochStartRewardsCreator
+	validatorInfoCreator     process.EpochStartValidatorInfoCreator
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
@@ -69,6 +70,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.EpochRewardsCreator) {
 		return nil, process.ErrNilEpochStartRewardsCreator
+	}
+	if check.IfNil(arguments.EpochValidatorInfoCreator) {
+		return nil, process.ErrNilEpochStartValidatorInfoCreator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -112,6 +116,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		epochStartDataCreator:    arguments.EpochStartDataCreator,
 		epochEconomics:           arguments.EpochEconomics,
 		epochRewardsCreator:      arguments.EpochRewardsCreator,
+		validatorInfoCreator:     arguments.EpochValidatorInfoCreator,
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
@@ -338,6 +343,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorInfos)
+	if err != nil {
+		return err
+	}
+
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body, allValidatorInfos)
 	if err != nil {
 		return err
 	}
@@ -590,6 +600,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	if metaBlock.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.Revert(metaBlock.GetRound())
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
+		mp.validatorInfoCreator.DeleteValidatorInfoBlocksFromStorage(metaBlock)
 		return nil
 	}
 
@@ -708,7 +719,16 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	return rewardMiniBlocks, nil
+	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorInfos)
+	if err != nil {
+		return nil, err
+	}
+
+	finalMiniBlocks := make(block.Body, 0)
+	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
+	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
+
+	return finalMiniBlocks, nil
 }
 
 // createBlockBody creates block body of metachain
@@ -880,12 +900,16 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
-			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currMBProcessed, currTxsAdded, hdrProcessFinished, createErr := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				currShardHdr,
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				haveTime)
+
+			if createErr != nil {
+				return nil, 0, 0, createErr
+			}
 
 			if !hdrProcessFinished {
 				log.Debug("shard header cannot be fully processed",
@@ -1002,8 +1026,8 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := headerInfo.hdr.(*block.Header)
-		if !ok {
+		shardBlock, headerOk := headerInfo.hdr.(*block.Header)
+		if !headerOk {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
@@ -1185,6 +1209,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body block.Bo
 		mp.epochStartTrigger.SetProcessed(header)
 
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
+		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {

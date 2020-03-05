@@ -83,6 +83,9 @@ var ErrNilSignature = errors.New("nil signature")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
+// ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
+var ErrNilMiniBlock = errors.New("nil mini block")
+
 // ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
 
@@ -380,6 +383,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
+// ErrNilPreProcessor signals that preprocessors is nil
+var ErrNilPreProcessor = errors.New("preprocessor is nil")
+
 // ErrNilGasHandler signals that gas handler is nil
 var ErrNilGasHandler = errors.New("nil gas handler")
 
@@ -409,9 +415,6 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 
 // ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
 var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
-
-// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
-var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
 
 // ErrInvalidPeerAccount signals that a peer account is invalid
 var ErrInvalidPeerAccount = errors.New("invalid peer account")
@@ -510,17 +513,11 @@ var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 // ErrNilSCDataGetter signals that a nil sc data getter has been provided
 var ErrNilSCDataGetter = errors.New("nil sc data getter")
 
-// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
-var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
-
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
 
 // ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
 var ErrNilSCToProtocol = errors.New("nil sc to protocol")
-
-// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
-var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
 
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
@@ -600,9 +597,6 @@ var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match"
 // ErrInvalidMinStepValue signals the min step value is invalid
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
-// ErrInvalidTotalSupply signals that total supply is invalid
-var ErrInvalidTotalSupply = errors.New("invalid total supply")
-
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
@@ -630,6 +624,9 @@ var ErrNilBuiltInFunction = errors.New("built in function is nil")
 // ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
 var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")
 
+// ErrValidatorInfoMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks should come only from meta")
+
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
@@ -654,6 +651,9 @@ var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 // ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
 var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
 
+// ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
+var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
+
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 
@@ -666,8 +666,8 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
 
-// ErrDupplicateThreshold signals that two thresholds are the same
-var ErrDupplicateThreshold = errors.New("two thresholds are the same")
+// ErrDuplicateThreshold signals that two thresholds are the same
+var ErrDuplicateThreshold = errors.New("two thresholds are the same")
 
 // ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
 var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")

@@ -309,7 +309,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldE
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
-	assert.Equal(t, process.ErrDupplicateThreshold, err)
+	assert.Equal(t, process.ErrDuplicateThreshold, err)
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *testing.T) {

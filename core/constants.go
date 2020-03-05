@@ -192,9 +192,6 @@ const MetricNumValidators = "erd_metric_num_validators"
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
-//MetricCommunityPercentage is the metric for community rewards percentage
-const MetricCommunityPercentage = "erd_metric_community_percentage"
-
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
 
@@ -215,6 +212,9 @@ const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
+
+// AllShardId will be used to identify that a message is for all shards
+const AllShardId = uint32(0xFFFFFFF0)
 
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024

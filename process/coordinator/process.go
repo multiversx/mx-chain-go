@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -444,14 +445,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	maxTxSpaceRemained uint32,
 	maxMbSpaceRemained uint32,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, bool) {
+) (block.MiniBlockSlice, uint32, bool, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
 
 	if check.IfNil(hdr) {
-		return miniBlocks, nrTxAdded, false
+		return miniBlocks, nrTxAdded, false, nil
 	}
 
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
@@ -479,13 +480,13 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			continue
+			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		// overflow would happen if processing would continue
 		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
 		if txOverFlow {
-			return miniBlocks, nrTxAdded, false
+			return miniBlocks, nrTxAdded, false, nil
 		}
 
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
@@ -505,13 +506,13 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
 		if mbOverFlow {
-			return miniBlocks, nrTxAdded, false
+			return miniBlocks, nrTxAdded, false, nil
 		}
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
 
-	return miniBlocks, nrTxAdded, allMBsProcessed
+	return miniBlocks, nrTxAdded, allMBsProcessed, nil
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool

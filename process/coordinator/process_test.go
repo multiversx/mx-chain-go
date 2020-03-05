@@ -739,8 +739,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -790,8 +791,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -819,8 +821,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -909,11 +912,101 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
 	assert.True(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	tdp := initDataPool(txHash)
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	tdp.MiniBlocksCalled = func() storage.Cacher {
+		return hdrPool
+	}
+
+	totalGasConsumed := uint64(0)
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		initStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		tdp,
+		&mock.AddressConverterMock{},
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
+		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+		},
+		&mock.BlockTrackerMock{},
+	)
+	container, _ := preFactory.Create()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp.MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		container,
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	metaHdr := createTestMetablock()
+
+	unknownPreprocessorType := block.Type(254)
+	for i := 0; i < len(metaHdr.ShardInfo); i++ {
+		for j := 0; j < len(metaHdr.ShardInfo[i].ShardMiniBlockHeaders); j++ {
+			mbHdr := metaHdr.ShardInfo[i].ShardMiniBlockHeaders[j]
+			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: unknownPreprocessorType, TxHashes: [][]byte{txHash}}
+			tdp.MiniBlocks().Put(mbHdr.Hash, &mb)
+		}
+	}
+
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
+
+	assert.NotNil(t, err)
+	assert.True(t, errors.Is(err, process.ErrNilPreProcessor))
+	assert.Nil(t, mbs)
+	assert.Equal(t, uint32(0), txs)
+	assert.False(t, finalized)
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
