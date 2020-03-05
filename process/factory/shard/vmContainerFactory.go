@@ -2,6 +2,8 @@ package shard
 
 import (
 	//arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	"fmt"
+
 	arwenNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -60,7 +62,8 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
 	//arwenVM, err := arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
-	arwenVM, err := arwenNodePart.NewArwenDriver(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
+	fmt.Println("arwenNodePart.NewArwenDriver")
+	arwenVM, err := arwenNodePart.NewArwenDriver(vmf.blockChainHookImpl, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
 	return arwenVM, err
 }
 
