@@ -297,8 +297,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		Signature:              nil,
-		PubKeysBitmap:          nil,
+		Signature:              rootHash,
+		PubKeysBitmap:          rootHash,
 		PrevHash:               rootHash,
 		PrevRandSeed:           rootHash,
 		RandSeed:               rootHash,
@@ -1066,7 +1066,7 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
 func GetMiniBlocksHashesFromShardIds(body *dataBlock.Body, shardIds ...uint32) [][]byte {
-	hashes := make([][]byte, 0)
+	var hashes [][]byte
 
 	for _, miniblock := range body.MiniBlocks {
 		for _, shardId := range shardIds {
@@ -1286,7 +1286,7 @@ func ComputeAndRequestMissingTransactions(
 }
 
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
-	neededTxs := make([][]byte, 0)
+	var neededTxs [][]byte
 
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
@@ -1523,7 +1523,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]sharding.Validator, 0)
+		var shardValidators []sharding.Validator
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
 		for i := 0; i < len(shardNodesPks); i++ {
 			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
@@ -1605,7 +1605,7 @@ func SetupSyncNodesOneShardAndMeta(
 	_ = advertiser.Bootstrap()
 	advertiserAddr := GetConnectableAddress(advertiser)
 
-	nodes := make([]*TestProcessorNode, 0)
+	var nodes []*TestProcessorNode
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestSyncNode(
 			maxShards,

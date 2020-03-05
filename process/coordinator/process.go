@@ -825,7 +825,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 
 // CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
-	allReceiptsHashes := make([]byte, 0)
+	var allReceiptsHashes [][]byte
 
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
@@ -835,7 +835,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 		mb := interProc.GetCreatedInShardMiniBlock()
 
-		if mb != nil {
+		if len(mb.TxHashes) > 0 {
 			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
 				"type", mb.Type,
 				"senderShardID", mb.SenderShardID,
@@ -845,19 +845,19 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 			for _, hash := range mb.TxHashes {
 				log.Trace("tx", "hash", hash)
 			}
+
+			currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
+			if err != nil {
+				return nil, err
+			}
+
+			allReceiptsHashes = append(allReceiptsHashes, currHash)
 		} else {
 			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock -> nil miniblock", "block.Type", value)
 		}
-
-		currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
-		if err != nil {
-			return nil, err
-		}
-
-		allReceiptsHashes = append(allReceiptsHashes, currHash...)
 	}
 
-	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: [][]byte{allReceiptsHashes}})
+	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: allReceiptsHashes})
 	return finalReceiptHash, err
 }
 

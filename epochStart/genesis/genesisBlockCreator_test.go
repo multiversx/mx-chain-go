@@ -231,6 +231,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 			Nonce:                  0,
 			ShardID:                mock.NewOneShardCoordinatorMock().SelfId(),
 			BlockBodyType:          dataBlock.StateBlock,
+			PubKeysBitmap:          []byte{1},
 			Signature:              rootHash,
 			RootHash:               rootHash,
 			PrevRandSeed:           rootHash,

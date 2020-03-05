@@ -759,7 +759,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		"num txs", nbTxs,
 	)
 
-	miniBlocks := make(block.MiniBlockSlice, 0, len(destMeMiniBlocks))
+	var miniBlocks block.MiniBlockSlice
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
@@ -802,7 +802,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
+	var miniBlocks block.MiniBlockSlice
 	txsAdded := uint32(0)
 	hdrsAdded := uint32(0)
 
@@ -1562,8 +1562,7 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 }
 
 func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
-
-	shardInfo := make([]block.ShardData, 0)
+	var shardInfo []block.ShardData
 	if mp.epochStartTrigger.IsEpochStart() {
 		return shardInfo, nil
 	}
@@ -1576,7 +1575,6 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		}
 
 		shardData := block.ShardData{}
-		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardID
 		shardData.HeaderHash = []byte(hdrHash)
@@ -1587,6 +1585,10 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
 		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
+
+		if len(shardHdr.MiniBlockHeaders) > 0 {
+			shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
+		}
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1838,7 +1840,7 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
+	var miniBlocks block.MiniBlockSlice
 	for i := 0; i < len(metaBlock.MiniBlockHeaders); i++ {
 		obj, hashInPool := miniBlockPool.Get(metaBlock.MiniBlockHeaders[i].Hash)
 		if !hashInPool {
@@ -1864,6 +1866,10 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 			NumPendingMiniBlocks: mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardID),
 			ShardID:              shardID,
 		}
+	}
+
+	if len(pendingMiniBlocks) == 0 {
+		return nil
 	}
 
 	return pendingMiniBlocks

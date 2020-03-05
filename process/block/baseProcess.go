@@ -485,7 +485,10 @@ func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
 
 func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	var miniBlockHeaders []block.MiniBlockHeader
+	if len(body.MiniBlocks) > 0 {
+		miniBlockHeaders = make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -853,7 +856,7 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 		}
 
 		body.MiniBlocks[i] = body.MiniBlocks[len(body.MiniBlocks)-1]
-		body.MiniBlocks = body.MiniBlocks[:len(body.MiniBlocks)-2]
+		body.MiniBlocks = body.MiniBlocks[:len(body.MiniBlocks)-1]
 		if i == len(body.MiniBlocks)-1 {
 			break
 		}

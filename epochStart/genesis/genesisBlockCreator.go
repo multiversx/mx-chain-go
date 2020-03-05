@@ -71,6 +71,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		Nonce:                  0,
 		ShardID:                shardCoordinator.SelfId(),
 		BlockBodyType:          block.StateBlock,
+		PubKeysBitmap:          []byte{1},
 		Signature:              rootHash,
 		RootHash:               rootHash,
 		PrevRandSeed:           rootHash,
@@ -189,6 +190,7 @@ func CreateMetaGenesisBlock(
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		PubKeysBitmap:          []byte{1},
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:            big.NewInt(0).Set(args.Economics.GenesisTotalSupply()),

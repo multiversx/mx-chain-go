@@ -1594,7 +1594,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (*block.Body, error) {
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
+	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1674,7 +1674,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+	shardHeader.MiniBlockHeaders = nil
 	shardHeader.RootHash = sp.getRootHash()
 
 	defer func() {
