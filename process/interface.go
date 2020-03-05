@@ -197,7 +197,7 @@ type PreProcessor interface {
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountState()
+	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader(round uint64) data.HeaderHandler
@@ -364,7 +364,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert(round uint64)
+	Revert(header data.HeaderHandler)
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error

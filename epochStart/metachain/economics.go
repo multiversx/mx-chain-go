@@ -93,7 +93,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
-	maxBlocksInEpoch := roundsPassedInEpoch * uint64(e.shardCoordinator.NumberOfShards()+1)
+	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate, err := e.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
@@ -108,10 +108,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if newTokens.Cmp(big.NewInt(0)) < 0 {
 		newTokens = big.NewInt(0)
 		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.AccumulatedFeesInEpoch)
-		rwdPerBlock = big.NewInt(0)
-		if totalNumBlocksInEpoch > 0 {
-			rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
-		}
+		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
 	computedEconomics := block.Economics{
@@ -120,7 +117,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
-		NodePrice: big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		PrevEpochStartRound: prevEpochStart.GetRound(),
 	}
 
 	return &computedEconomics, nil
@@ -128,7 +126,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 // compute rewards per node per block
 func (e *economics) computeRewardsPerValidatorPerBlock(rwdPerBlock *big.Int) *big.Int {
-	numOfNodes := e.nodesCoordinator.GetNumTotalEligible()
+	numOfNodes := core.MaxUint64(1, e.nodesCoordinator.GetNumTotalEligible())
 	return big.NewInt(0).Div(rwdPerBlock, big.NewInt(0).SetUint64(numOfNodes))
 }
 
@@ -148,7 +146,7 @@ func (e *economics) computeRewardsPerBlock(
 
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
-	maxBlocksInADay := roundsPerDay * uint64(e.shardCoordinator.NumberOfShards()+1)
+	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 
@@ -168,7 +166,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	}
 	totalNumBlocks += mapEndNonce[core.MetachainShardId] - mapStartNonce[core.MetachainShardId]
 
-	return totalNumBlocks
+	return core.MaxUint64(1, totalNumBlocks)
 }
 
 func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {

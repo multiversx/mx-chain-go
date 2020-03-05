@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -230,14 +231,24 @@ func TestTrigger_UpdateRevertUpdateAtEndOfEpoch(t *testing.T) {
 	epc := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	epochStartTrigger.SetProcessed(&block.MetaBlock{
-		Round:      round,
-		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+	metaHdr := &block.MetaBlock{
+		Round: round,
+		Epoch: epoch + 1,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
+			Economics: block.Economics{
+				TotalSupply:            big.NewInt(0),
+				TotalToDistribute:      big.NewInt(0),
+				TotalNewlyMinted:       big.NewInt(0),
+				RewardsPerBlockPerNode: big.NewInt(0),
+				NodePrice:              big.NewInt(0),
+				PrevEpochStartRound:    0,
+			}}}
+	epochStartTrigger.SetProcessed(metaHdr)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 
-	epochStartTrigger.Revert(round)
+	epochStartTrigger.Revert(metaHdr)
 	assert.Equal(t, epoch, epochStartTrigger.Epoch())
 	assert.False(t, epochStartTrigger.IsEpochStart())
 	assert.Equal(t, epochStartTrigger.currEpochStartRound, uint64(0))

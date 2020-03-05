@@ -21,7 +21,7 @@ type TriggerHandler interface {
 	SetProcessed(header data.HeaderHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
-	Revert(round uint64)
+	Revert(header data.HeaderHandler)
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 	IsInterfaceNil() bool

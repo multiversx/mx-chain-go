@@ -238,11 +238,21 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert(round uint64) {
+func (t *trigger) Revert(header data.HeaderHandler) {
+	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
+		return
+	}
+
+	metaHdr, ok := header.(*block.MetaBlock)
+	if !ok {
+		log.Warn("wrong type assertion in Revert metachain trigger")
+		return
+	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -253,13 +263,9 @@ func (t *trigger) Revert(round uint64) {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	t.currEpochStartRound = t.prevEpochStartRound
-	t.epoch--
+	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
+	t.epoch = metaHdr.Epoch - 1
 	t.isEpochStart = false
-	t.currentRound = round
-	if t.currentRound > 0 {
-		t.currentRound--
-	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 }

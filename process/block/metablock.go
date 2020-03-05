@@ -186,6 +186,12 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
+	defer func() {
+		if err != nil {
+			mp.RevertAccountState(header)
+		}
+	}()
+
 	mp.createBlockStarted()
 	mp.blockChainHook.SetCurrentHeader(headerHandler)
 	mp.epochStartTrigger.Update(header.GetRound())
@@ -267,12 +273,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			mp.RevertAccountState()
-		}
-	}()
-
 	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
 		return err
@@ -322,7 +322,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState()
+			mp.RevertAccountState(header)
 		}
 	}()
 
@@ -587,7 +587,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Revert(metaBlock.GetRound())
+		mp.epochStartTrigger.Revert(metaBlock)
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
 		return nil
 	}
@@ -948,7 +948,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState()
+			mp.RevertAccountState(headerHandler)
 		}
 	}()
 

@@ -50,7 +50,7 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 }
 
 // Revert -
-func (e *EpochStartTriggerStub) Revert(_ uint64) {
+func (e *EpochStartTriggerStub) Revert(_ data.HeaderHandler) {
 }
 
 // EpochStartRound -

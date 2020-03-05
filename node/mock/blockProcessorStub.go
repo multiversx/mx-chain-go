@@ -12,7 +12,7 @@ import (
 type BlockProcessorStub struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
+	RevertAccountStateCalled         func(header data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
@@ -46,8 +46,8 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertAccountState mocks revert of the accounts state
-func (bps *BlockProcessorStub) RevertAccountState() {
-	bps.RevertAccountStateCalled()
+func (bps *BlockProcessorStub) RevertAccountState(header data.HeaderHandler) {
+	bps.RevertAccountStateCalled(header)
 }
 
 // CreateGenesisBlock mocks the creation of a genesis block body

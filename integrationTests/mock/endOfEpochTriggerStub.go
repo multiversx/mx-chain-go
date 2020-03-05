@@ -62,7 +62,7 @@ func (e *EpochStartTriggerStub) SetTrigger(_ epochStart.TriggerHandler) {
 }
 
 // Revert -
-func (e *EpochStartTriggerStub) Revert(_ uint64) {
+func (e *EpochStartTriggerStub) Revert(_ data.HeaderHandler) {
 }
 
 // EpochStartRound -

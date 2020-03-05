@@ -576,7 +576,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert(_ uint64) {
+func (t *trigger) Revert(header data.HeaderHandler) {
+	if check.IfNil(header) || !header.IsStartOfEpochBlock() {
+		return
+	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 

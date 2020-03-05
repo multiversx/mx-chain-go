@@ -1006,12 +1006,16 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState() {
+func (bp *baseProcessor) RevertAccountState(header data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
 			log.Debug("RevertToSnapshot", "error", err.Error())
 		}
+	}
+
+	if !check.IfNil(header) && header.IsStartOfEpochBlock() {
+		bp.epochStartTrigger.Revert(header)
 	}
 }
 

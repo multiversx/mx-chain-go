@@ -522,7 +522,7 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	log.Debug("account state is reverted to snapshot")
 
-	wrk.blockProcessor.RevertAccountState()
+	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
 
 	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
 		wrk.consensusService.IsSubroundSignature(subroundId)

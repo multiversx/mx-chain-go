@@ -99,6 +99,7 @@ type Economics struct {
 	TotalNewlyMinted       *big.Int
 	RewardsPerBlockPerNode *big.Int
 	NodePrice              *big.Int
+	PrevEpochStartRound    uint64
 }
 
 // EpochStart holds the block information for end-of-epoch
