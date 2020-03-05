@@ -46,17 +46,18 @@ func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashi
 func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	var mb block.MetaBlock
 	err := s.marshalizer.Unmarshal(&mb, message.Data())
-	if err == nil {
-		s.mutReceivedMetaBlocks.Lock()
-		mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
-		if err != nil {
-			s.mutReceivedMetaBlocks.Unlock()
-			return nil
-		}
-		s.mapReceivedMetaBlocks[string(mbHash)] = &mb
-		s.addToPeerList(string(mbHash), message.Peer())
-		s.mutReceivedMetaBlocks.Unlock()
+	if err != nil {
+		return err
 	}
+	s.mutReceivedMetaBlocks.Lock()
+	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
+	if err != nil {
+		s.mutReceivedMetaBlocks.Unlock()
+		return err
+	}
+	s.mapReceivedMetaBlocks[string(mbHash)] = &mb
+	s.addToPeerList(string(mbHash), message.Peer())
+	s.mutReceivedMetaBlocks.Unlock()
 
 	return nil
 }
@@ -65,20 +66,17 @@ func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	peersListForHash, ok := s.mapMetaBlocksFromPeers[hash]
 
-	// no entry for this hash. add it directly
 	if !ok {
 		s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
 		return
 	}
 
-	// entries exist for this hash. search so we don't have duplicates
 	for _, peer := range peersListForHash {
 		if peer == id {
 			return
 		}
 	}
 
-	// entry not found so add it
 	s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
 }
 
@@ -88,12 +86,9 @@ func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int, epoch uint32) (*bl
 		time.Sleep(timeToWaitBeforeCheckingReceivedMetaBlocks)
 		s.mutReceivedMetaBlocks.RLock()
 		for hash, peersList := range s.mapMetaBlocksFromPeers {
-			mb := s.mapReceivedMetaBlocks[hash]
-			epochCheckNotRequired := epoch == math.MaxUint32
-			isEpochOk := epochCheckNotRequired || mb.Epoch == epoch
-			if len(peersList) >= target && isEpochOk {
+			isOk := s.isMapEntryOk(peersList, hash, target, epoch)
+			if isOk {
 				s.mutReceivedMetaBlocks.RUnlock()
-				log.Info("got consensus for metablock", "len", len(peersList))
 				return s.mapReceivedMetaBlocks[hash], nil
 			}
 		}
@@ -101,6 +96,23 @@ func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int, epoch uint32) (*bl
 	}
 
 	return nil, ErrNumTriesExceeded
+}
+
+func (s *simpleMetaBlockInterceptor) isMapEntryOk(
+	peersList []p2p.PeerID,
+	hash string,
+	target int,
+	epoch uint32,
+) bool {
+	mb := s.mapReceivedMetaBlocks[hash]
+	epochCheckNotRequired := epoch == math.MaxUint32
+	isEpochOk := epochCheckNotRequired || mb.Epoch == epoch
+	if len(peersList) >= target && isEpochOk {
+		log.Info("got consensus for metablock", "len", len(peersList))
+		return true
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

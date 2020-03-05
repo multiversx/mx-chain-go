@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,8 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+const percentageOfPeersToSendRequests = 0.4
+const defaultNumOfPeersToSendRequests = 2
 
 // simpleMetaBlocksResolver initializes a HeaderResolver and sends requests from it
 type simpleMetaBlocksResolver struct {
@@ -60,9 +65,13 @@ func (smbr *simpleMetaBlocksResolver) init() error {
 		return err
 	}
 	triesHolder := state.NewDataTriesHolder()
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	if err != nil {
+		return err
+	}
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         disabled.NewShardCoordinator(),
+		ShardCoordinator:         shardCoordinator,
 		Messenger:                smbr.messenger,
 		Store:                    storageService,
 		Marshalizer:              smbr.marshalizer,
@@ -77,9 +86,9 @@ func (smbr *simpleMetaBlocksResolver) init() error {
 		return err
 	}
 
-	numPeersToQuery := int(0.4 * float64(len(smbr.messenger.Peers())))
+	numPeersToQuery := int(percentageOfPeersToSendRequests * float64(len(smbr.messenger.Peers())))
 	if numPeersToQuery == 0 {
-		numPeersToQuery = 2
+		numPeersToQuery = defaultNumOfPeersToSendRequests
 	}
 	resolver, err := metaChainResolverContainer.CreateMetaChainHeaderResolver(factory.MetachainBlocksTopic, numPeersToQuery, 0)
 	if err != nil {

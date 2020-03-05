@@ -31,7 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	factory2 "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -297,8 +297,6 @@ var appVersion = core.UnVersionedAppString
 
 var currentEpoch = uint32(0)
 
-var networkComponents *factory.Network
-
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	log := logger.GetOrCreate("main")
@@ -369,6 +367,7 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
+	var networkComponents *factory.Network
 
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
@@ -554,59 +553,48 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	epochFoundInStorage := errNotCritical == nil
 
-	shouldCallEpochStartDataProvider := bootstrap.ShouldSyncWithTheNetwork(
-		startTime,
-		epochFoundInStorage,
-		nodesConfig,
-		generalConfig,
-	)
-	shouldCallEpochStartDataProvider = true
-	if shouldCallEpochStartDataProvider {
-		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
-		if err != nil {
-			return err
-		}
+	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
+	if err != nil {
+		return err
+	}
+	err = networkComponents.NetMessenger.Bootstrap()
+	if err != nil {
+		return err
+	}
+	time.Sleep(2 * time.Second)
 
-		err = networkComponents.NetMessenger.Bootstrap()
-		if err != nil {
-			return err
-		}
-		time.Sleep(2 * time.Second)
+	marshalizer := &marshal.JsonMarshalizer{}
+	hasher := &blake2b.Blake2b{}
+	epochStartComponentArgs := factory2.EpochStartDataProviderFactoryArgs{
+		Messenger:             networkComponents.NetMessenger,
+		Marshalizer:           marshalizer,
+		Hasher:                hasher,
+		NodesConfigProvider:   nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
+		StartTime:             startTime,
+		OriginalNodesConfig:   nodesConfig,
+		GeneralConfig:         generalConfig,
+		IsEpochFoundInStorage: epochFoundInStorage,
+	}
 
-		marshalizer := &marshal.JsonMarshalizer{}
-		hasher := &blake2b.Blake2b{}
-		simpleNodesConfigProvider := nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig)
-		metaBlockInterceptor, err := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, hasher)
-		if err != nil {
-			return err
-		}
-		shardHdrInterceptor := bootstrap.NewSimpleShardHeaderInterceptor(marshalizer)
-		metaBlockResolver, err := bootstrap.NewSimpleMetaBlocksResolver(networkComponents.NetMessenger, marshalizer)
-		epochStartDataArgs := bootstrap.ArgsEpochStartDataProvider{
-			Messenger:              networkComponents.NetMessenger,
-			Marshalizer:            marshalizer,
-			Hasher:                 hasher,
-			NodesConfigProvider:    simpleNodesConfigProvider,
-			MetaBlockInterceptor:   metaBlockInterceptor,
-			ShardHeaderInterceptor: shardHdrInterceptor,
-			MetaBlockResolver:      metaBlockResolver,
-		}
-		epochRes, err := bootstrap.NewEpochStartDataProvider(epochStartDataArgs)
-		if err != nil {
-			return err
-		}
-		var bootstrapComponents *bootstrap.ComponentsNeededForBootstrap
-		bootstrapComponents, err = epochRes.Bootstrap()
-		if err != nil {
-			return err
-		}
+	epochStartComponentFactory, err := factory2.NewEpochStartDataProviderFactory(epochStartComponentArgs)
+	if err != nil {
+		return err
+	}
 
-		// override already defined node config
-		nodesConfig = bootstrapComponents.NodesConfig
+	epochStartDataProvider, err := epochStartComponentFactory.Create()
+	if err != nil {
+		return err
+	}
 
+	res, err := epochStartDataProvider.Bootstrap()
+	isFreshStart := err != nil
+	if !isFreshStart {
+		nodesConfig = res.NodesConfig
 		log.Info("received epoch start metablock from network",
-			"nonce", bootstrapComponents.EpochStartMetaBlock.GetNonce(),
-			"epoch", bootstrapComponents.EpochStartMetaBlock.GetEpoch())
+			"nonce", res.EpochStartMetaBlock.GetNonce(),
+			"epoch", res.EpochStartMetaBlock.GetEpoch())
+	} else {
+		log.Error("error bootstrapping", "error", err)
 	}
 
 	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
@@ -768,7 +756,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	if !shouldCallEpochStartDataProvider {
+	if isFreshStart {
 		log.Trace("creating network components")
 		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
 		if err != nil {
@@ -940,7 +928,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch, !shouldCallEpochStartDataProvider)
+	err = ef.StartNode(currentEpoch, isFreshStart)
 	if err != nil {
 		log.Error("starting node failed", err.Error())
 		return err
