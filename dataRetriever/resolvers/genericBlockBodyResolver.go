@@ -9,45 +9,55 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// ArgGenericBlockBodyResolver is the argument structure used to create new GenericBlockBodyResolver instance
+type ArgGenericBlockBodyResolver struct {
+	SenderResolver   dataRetriever.TopicResolverSender
+	MiniBlockPool    storage.Cacher
+	MiniBlockStorage storage.Storer
+	Marshalizer      marshal.Marshalizer
+	AntifloodHandler dataRetriever.P2PAntifloodHandler
+	Throttler        dataRetriever.ResolverThrottler
+}
+
 // genericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
 type genericBlockBodyResolver struct {
 	dataRetriever.TopicResolverSender
+	messageProcessor
 	miniBlockPool    storage.Cacher
 	miniBlockStorage storage.Storer
-	marshalizer      marshal.Marshalizer
-	antifloodHandler dataRetriever.P2PAntifloodHandler
 }
 
 // NewGenericBlockBodyResolver creates a new block body resolver
-func NewGenericBlockBodyResolver(
-	senderResolver dataRetriever.TopicResolverSender,
-	miniBlockPool storage.Cacher,
-	miniBlockStorage storage.Storer,
-	marshalizer marshal.Marshalizer,
-	antifloodHandler dataRetriever.P2PAntifloodHandler,
-) (*genericBlockBodyResolver, error) {
-	if check.IfNil(senderResolver) {
+func NewGenericBlockBodyResolver(arg ArgGenericBlockBodyResolver) (*genericBlockBodyResolver, error) {
+	if check.IfNil(arg.SenderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(miniBlockPool) {
+	if check.IfNil(arg.MiniBlockPool) {
 		return nil, dataRetriever.ErrNilBlockBodyPool
 	}
-	if check.IfNil(miniBlockStorage) {
+	if check.IfNil(arg.MiniBlockStorage) {
 		return nil, dataRetriever.ErrNilBlockBodyStorage
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.Throttler) {
+		return nil, dataRetriever.ErrNilThrottler
 	}
 
 	bbResolver := &genericBlockBodyResolver{
-		TopicResolverSender: senderResolver,
-		miniBlockPool:       miniBlockPool,
-		miniBlockStorage:    miniBlockStorage,
-		marshalizer:         marshalizer,
-		antifloodHandler:    antifloodHandler,
+		TopicResolverSender: arg.SenderResolver,
+		miniBlockPool:       arg.MiniBlockPool,
+		miniBlockStorage:    arg.MiniBlockStorage,
+		messageProcessor: messageProcessor{
+			marshalizer:      arg.Marshalizer,
+			antifloodHandler: arg.AntifloodHandler,
+			topic:            arg.SenderResolver.Topic(),
+			throttler:        arg.Throttler,
+		},
 	}
 
 	return bbResolver, nil
@@ -56,13 +66,15 @@ func NewGenericBlockBodyResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (gbbRes *genericBlockBodyResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	err := gbbRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	err := gbbRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
 
-	rd := &dataRetriever.RequestData{}
-	err = rd.Unmarshal(gbbRes.marshalizer, message)
+	gbbRes.throttler.StartProcessing()
+	defer gbbRes.throttler.EndProcessing()
+
+	rd, err := gbbRes.parseReceivedMessage(message)
 	if err != nil {
 		return err
 	}
@@ -134,7 +146,7 @@ func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte, epoch u
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
-func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
+func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
 	hash, err := gbbRes.marshalizer.Marshal(hashes)
 
 	if err != nil {

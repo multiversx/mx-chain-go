@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -500,13 +501,13 @@ func WithRequestHandler(requestHandler process.RequestHandler) Option {
 	}
 }
 
-// WithAntifloodHandler sets up an antiflood handler for the Node
-func WithAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
+// WithInputAntifloodHandler sets up an antiflood handler for the Node on the input side
+func WithInputAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(antifloodHandler) {
-			return ErrNilAntifloodHandler
+			return fmt.Errorf("%w on input", ErrNilAntifloodHandler)
 		}
-		n.antifloodHandler = antifloodHandler
+		n.inputAntifloodHandler = antifloodHandler
 		return nil
 	}
 }

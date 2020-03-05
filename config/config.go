@@ -222,6 +222,7 @@ type TxAccumulatorConfig struct {
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
 	Enabled                   bool
+	NumConcurrentResolverJobs int32
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
 	PeerMaxMessagesPerSecond  uint32

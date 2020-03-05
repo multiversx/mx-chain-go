@@ -43,19 +43,6 @@ func TestMessage_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(m))
 }
 
-func TestMessage_Data(t *testing.T) {
-	data := []byte("data")
-
-	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Data: data,
-	}
-	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes)
-
-	assert.Equal(t, m.Data(), data)
-}
-
 func TestMessage_From(t *testing.T) {
 	from := getRandomID()
 
@@ -67,58 +54,6 @@ func TestMessage_From(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, m.From(), from)
-}
-
-func TestMessage_Key(t *testing.T) {
-	key := []byte("key")
-
-	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Key:  key,
-	}
-	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes)
-
-	assert.Equal(t, m.Key(), key)
-}
-
-func TestMessage_SeqNo(t *testing.T) {
-	seqNo := []byte("seqNo")
-
-	mes := &pubsubpb.Message{
-		From:  getRandomID(),
-		Seqno: seqNo,
-	}
-	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes)
-
-	assert.Equal(t, m.SeqNo(), seqNo)
-}
-
-func TestMessage_Signature(t *testing.T) {
-	sig := []byte("sig")
-
-	mes := &pubsubpb.Message{
-		From:      getRandomID(),
-		Signature: sig,
-	}
-	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes)
-
-	assert.Equal(t, m.Signature(), sig)
-}
-
-func TestMessage_TopicIDs(t *testing.T) {
-	topics := []string{"topic1", "topic2"}
-
-	mes := &pubsubpb.Message{
-		From:     getRandomID(),
-		TopicIDs: topics,
-	}
-	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes)
-
-	assert.Equal(t, m.TopicIDs(), topics)
 }
 
 func TestMessage_Peer(t *testing.T) {

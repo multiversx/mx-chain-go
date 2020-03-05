@@ -248,15 +248,17 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-		Messenger:                createStubTopicMessageHandlerForMeta("", ""),
-		Store:                    createStoreForMeta(),
-		Marshalizer:              &mock.MarshalizerMock{},
-		DataPools:                createDataPoolsForMeta(),
-		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:               &mock.DataPackerStub{},
-		TriesContainer:           createTriesHolderForMeta(),
-		SizeCheckDelta:           0,
-		AntifloodHandler:         &mock.P2PAntifloodHandlerStub{},
+		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
+		Messenger:                  createStubTopicMessageHandlerForMeta("", ""),
+		Store:                      createStoreForMeta(),
+		Marshalizer:                &mock.MarshalizerMock{},
+		DataPools:                  createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                 &mock.DataPackerStub{},
+		TriesContainer:             createTriesHolderForMeta(),
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs: 10,
 	}
 }

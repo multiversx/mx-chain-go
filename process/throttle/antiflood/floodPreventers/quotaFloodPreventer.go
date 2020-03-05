@@ -154,9 +154,9 @@ func (qfp *quotaFloodPreventer) accumulate(identifier string, size uint64) bool 
 		return false
 	}
 
-	qfp.cacher.Put([]byte(identifier), q)
 	q.numProcessedMessages++
 	q.sizeProcessedMessages += size
+	qfp.cacher.Put([]byte(identifier), q)
 
 	return true
 }

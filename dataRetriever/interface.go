@@ -46,6 +46,14 @@ const (
 	//creation
 )
 
+// ResolverThrottler can monitor the number of the currently running resolver go routines
+type ResolverThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
@@ -73,7 +81,7 @@ type MiniBlocksResolver interface {
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData) error
 	Send(buff []byte, peer p2p.PeerID) error
-	TopicRequestSuffix() string
+	Topic() string
 	TargetShardID() uint32
 	IsInterfaceNil() bool
 }

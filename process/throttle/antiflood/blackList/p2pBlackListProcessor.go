@@ -4,9 +4,13 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 type p2pBlackListProcessor struct {
 	cacher                     storage.Cacher
@@ -64,6 +68,11 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 
 		if val >= pbp.numFloodingRounds {
 			pbp.cacher.Remove(key)
+			pid := p2p.PeerID(key)
+			log.Debug("added new peer to black list",
+				"peer",
+				pid.Pretty(),
+			)
 			_ = pbp.blacklistHandler.Add(string(key))
 		}
 	}

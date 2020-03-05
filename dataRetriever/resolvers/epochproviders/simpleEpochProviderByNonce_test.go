@@ -1,4 +1,4 @@
-package resolvers
+package epochproviders
 
 import (
 	"testing"

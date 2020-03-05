@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
@@ -12,85 +13,82 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
+	return topicResolverSender.ArgTopicResolverSender{
+		Messenger:         &mock.MessageHandlerStub{},
+		TopicName:         "topic",
+		PeerListCreator:   &mock.PeerListCreatorStub{},
+		Marshalizer:       &mock.MarshalizerMock{},
+		Randomizer:        &mock.IntRandomizerMock{},
+		TargetShardId:     0,
+		OutputAntiflooder: &mock.P2PAntifloodHandlerStub{},
+	}
+}
+
 //------- NewTopicResolverSender
 
 func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(
-		nil,
-		"topic",
-		&mock.PeerListCreatorStub{},
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.Nil(t, trs)
+	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
 func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		nil,
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	arg := createMockArgTopicResolverSender()
+	arg.PeerListCreator = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.Nil(t, trs)
+	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilPeerListCreator, err)
 }
 
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		&mock.PeerListCreatorStub{},
-		nil,
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	arg := createMockArgTopicResolverSender()
+	arg.Marshalizer = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.Nil(t, trs)
+	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
 func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		&mock.PeerListCreatorStub{},
-		&mock.MarshalizerMock{},
-		nil,
-		0,
-	)
+	arg := createMockArgTopicResolverSender()
+	arg.Randomizer = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.Nil(t, trs)
+	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilRandomizer, err)
+}
+
+func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.OutputAntiflooder = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		&mock.PeerListCreatorStub{},
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	arg := createMockArgTopicResolverSender()
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.NotNil(t, trs)
+	assert.False(t, check.IfNil(trs))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), trs.TargetShardID())
 }
@@ -102,18 +100,13 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 
 	errExpected := errors.New("expected error")
 
-	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		&mock.PeerListCreatorStub{},
-		&mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, errExpected
-			},
+	arg := createMockArgTopicResolverSender()
+	arg.Marshalizer = &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
+			return nil, errExpected
 		},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
 
@@ -123,18 +116,13 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{},
-		"topic",
-		&mock.PeerListCreatorStub{
-			PeerListCalled: func() []p2p.PeerID {
-				return make([]p2p.PeerID, 0)
-			},
+	arg := createMockArgTopicResolverSender()
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []p2p.PeerID {
+			return make([]p2p.PeerID, 0)
 		},
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
 
@@ -147,26 +135,22 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	pID1 := p2p.PeerID("peer1")
 	sentToPid1 := false
 
-	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{
-			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
-					sentToPid1 = true
-				}
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
+				sentToPid1 = true
+			}
 
-				return nil
-			},
+			return nil
 		},
-		"topic",
-		&mock.PeerListCreatorStub{
-			PeerListCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{pID1}
-			},
+	}
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []p2p.PeerID {
+			return []p2p.PeerID{pID1}
 		},
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
 
@@ -174,7 +158,69 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	assert.True(t, sentToPid1)
 }
 
+func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testing.T) {
+	t.Parallel()
+
+	pID1 := p2p.PeerID("peer1")
+	sentToPid1 := false
+
+	expectedErr := errors.New("expected error")
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
+				sentToPid1 = true
+			}
+
+			return expectedErr
+		},
+	}
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []p2p.PeerID {
+			return []p2p.PeerID{pID1}
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, sentToPid1)
+}
+
 //------- Send
+
+func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t *testing.T) {
+	t.Parallel()
+
+	pID1 := p2p.PeerID("peer1")
+	buffToSend := []byte("buff")
+
+	expectedErr := errors.New("can not send to peer")
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+			assert.Fail(t, "should not have call send")
+
+			return nil
+		},
+	}
+	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			if fromConnectedPeer == pID1 {
+				return expectedErr
+			}
+
+			assert.Fail(t, "wrong peer provided, should have called with the destination peer")
+			return nil
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.Send(buffToSend, pID1)
+
+	assert.True(t, errors.Is(err, expectedErr))
+}
 
 func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Parallel()
@@ -183,28 +229,32 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	sentToPid1 := false
 	buffToSend := []byte("buff")
 
-	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{
-			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
-					bytes.Equal(buff, buffToSend) {
-					sentToPid1 = true
-				}
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
+				bytes.Equal(buff, buffToSend) {
+				sentToPid1 = true
+			}
 
-				return nil
-			},
+			return nil
 		},
-		"topic",
-		&mock.PeerListCreatorStub{},
-		&mock.MarshalizerMock{},
-		&mock.IntRandomizerMock{},
-		0,
-	)
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.Send(buffToSend, pID1)
 
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
+}
+
+func TestTopicResolverSender_Topic(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.Equal(t, arg.TopicName+topicResolverSender.TopicRequestSuffix, trs.Topic())
 }
 
 // ------- FisherYatesShuffle

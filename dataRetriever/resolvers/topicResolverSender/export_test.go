@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+const TopicRequestSuffix = topicRequestSuffix
+
 func MakeDiffList(
 	allConnectedPeers []p2p.PeerID,
 	excludedConnectedPeers []p2p.PeerID,

@@ -762,6 +762,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
+		generalConfig.Antiflood.NumConcurrentResolverJobs,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1348,7 +1349,7 @@ func createNode(
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
-		node.WithAntifloodHandler(network.AntifloodHandler),
+		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 	)
 	if err != nil {

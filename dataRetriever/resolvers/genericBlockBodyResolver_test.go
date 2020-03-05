@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -16,11 +17,14 @@ import (
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
-func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
-	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-			return nil
-		},
+func createMockArgGenericBlockBodyResolver() resolvers.ArgGenericBlockBodyResolver {
+	return resolvers.ArgGenericBlockBodyResolver{
+		SenderResolver:   &mock.TopicResolverSenderStub{},
+		MiniBlockPool:    &mock.CacherStub{},
+		MiniBlockStorage: &mock.StorerStub{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
+		Throttler:        &mock.ThrottlerStub{},
 	}
 }
 
@@ -29,105 +33,85 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 func TestNewGenericBlockBodyResolver_NilSenderResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		nil,
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
-	assert.Nil(t, gbbRes)
+	assert.True(t, check.IfNil(gbbRes))
 }
 
 func TestNewGenericBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		nil,
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.MiniBlockPool = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilBlockBodyPool, err)
-	assert.Nil(t, gbbRes)
+	assert.True(t, check.IfNil(gbbRes))
 }
 
 func TestNewGenericBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		nil,
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.MiniBlockStorage = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilBlockBodyStorage, err)
-	assert.Nil(t, gbbRes)
+	assert.True(t, check.IfNil(gbbRes))
 }
 
-func TestNewGenericBlockBodyResolver_NilBlockMArshalizerShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_NilBlockMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		nil,
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.Marshalizer = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
-	assert.Nil(t, gbbRes)
+	assert.True(t, check.IfNil(gbbRes))
 }
 
 func TestNewGenericBlockBodyResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		nil,
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.AntifloodHandler = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
-	assert.Nil(t, gbbRes)
+	assert.True(t, check.IfNil(gbbRes))
+}
+
+func TestNewGenericBlockBodyResolver_NilThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.Throttler = nil
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
+
+	assert.Equal(t, dataRetriever.ErrNilThrottler, err)
+	assert.True(t, check.IfNil(gbbRes))
 }
 
 func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, gbbRes)
+	assert.False(t, check.IfNil(gbbRes))
 }
 
 func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{
-			Fail: true,
-		},
-		&mock.P2PAntifloodHandlerStub{},
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.Marshalizer.(*mock.MarshalizerMock).Fail = true
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 	assert.Nil(t, err)
 
 	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
@@ -138,18 +122,14 @@ func TestRequestDataFromHashArray(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
-				called = true
-				return nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+			called = true
+			return nil
 		},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		&mock.P2PAntifloodHandlerStub{},
-	)
+	}
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
 	assert.Nil(t, err)
 
 	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
@@ -163,50 +143,42 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedAntifloodErrorsShouldErr(t *
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		&mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return expectedErr
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return expectedErr
 		},
-	)
+	}
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
-	assert.Equal(t, expectedErr, err)
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	arg := createMockArgGenericBlockBodyResolver()
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrInvalidRequestType, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
@@ -231,22 +203,20 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 		return nil, false
 	}
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer p2p.PeerID) error {
-				wasSent = true
-				return nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+			wasSent = true
+			return nil
 		},
-		cache,
-		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
-				return make([]byte, 0), nil
-			},
+	}
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			return make([]byte, 0), nil
 		},
-		marshalizer,
-		createMockP2PAntifloodHandler(),
-	)
+	}
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
@@ -256,6 +226,8 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSent)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
@@ -286,19 +258,17 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 		return nil, false
 	}
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{},
-		cache,
-		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
-				body := block.MiniBlock{}
-				buff, _ := goodMarshalizer.Marshal(&body)
-				return buff, nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			body := block.MiniBlock{}
+			buff, _ := goodMarshalizer.Marshal(&body)
+			return buff, nil
 		},
-		marshalizer,
-		createMockP2PAntifloodHandler(),
-	)
+	}
+	arg.Marshalizer = marshalizer
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
@@ -306,7 +276,8 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 	)
 
 	assert.Equal(t, errExpected, err)
-
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
@@ -333,18 +304,16 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 		return mb, nil
 	}
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer p2p.PeerID) error {
-				wasSend = true
-				return nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+			wasSend = true
+			return nil
 		},
-		cache,
-		store,
-		marshalizer,
-		createMockP2PAntifloodHandler(),
-	)
+	}
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = store
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
@@ -354,6 +323,8 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSend)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
@@ -377,18 +348,16 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 		return nil, errors.New("key not found")
 	}
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer p2p.PeerID) error {
-				wasSent = true
-				return nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+			wasSent = true
+			return nil
 		},
-		cache,
-		store,
-		marshalizer,
-		createMockP2PAntifloodHandler(),
-	)
+	}
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = store
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	_ = gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
@@ -396,6 +365,8 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	)
 
 	assert.False(t, wasSent)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 //------- Requests
@@ -407,18 +378,14 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 
 	buffRequested := []byte("aaaa")
 
-	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
-		&mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
-				wasCalled = true
-				return nil
-			},
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+			wasCalled = true
+			return nil
 		},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		createMockP2PAntifloodHandler(),
-	)
+	}
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
 
 	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasCalled)

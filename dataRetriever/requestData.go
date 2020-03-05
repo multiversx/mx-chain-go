@@ -51,11 +51,9 @@ func (rd *RequestData) Unmarshal(marshalizer marshal.Marshalizer, message p2p.Me
 	if check.IfNil(marshalizer) {
 		return ErrNilMarshalizer
 	}
-
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}

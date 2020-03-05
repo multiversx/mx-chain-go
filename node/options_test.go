@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -1001,27 +1002,27 @@ func TestWithPubKey_NilPublicKey(t *testing.T) {
 	assert.Equal(t, ErrNilPublicKey, err)
 }
 
-func TestWithAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
+func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithAntifloodHandler(nil)
+	opt := WithInputAntifloodHandler(nil)
 	err := opt(node)
 
-	assert.Equal(t, ErrNilAntifloodHandler, err)
+	assert.True(t, errors.Is(err, ErrNilAntifloodHandler))
 }
 
-func TestWithAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
+func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
-	opt := WithAntifloodHandler(antifloodHandler)
+	opt := WithInputAntifloodHandler(antifloodHandler)
 	err := opt(node)
 
-	assert.True(t, node.antifloodHandler == antifloodHandler)
+	assert.True(t, node.inputAntifloodHandler == antifloodHandler)
 	assert.Nil(t, err)
 }
 

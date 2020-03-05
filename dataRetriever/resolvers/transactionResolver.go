@@ -11,52 +11,61 @@ import (
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
 var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 
+// ArgTxResolver is the argument structure used to create new TxResolver instance
+type ArgTxResolver struct {
+	SenderResolver   dataRetriever.TopicResolverSender
+	TxPool           dataRetriever.ShardedDataCacherNotifier
+	TxStorage        storage.Storer
+	Marshalizer      marshal.Marshalizer
+	DataPacker       dataRetriever.DataPacker
+	AntifloodHandler dataRetriever.P2PAntifloodHandler
+	Throttler        dataRetriever.ResolverThrottler
+}
+
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool           dataRetriever.ShardedDataCacherNotifier
-	txStorage        storage.Storer
-	marshalizer      marshal.Marshalizer
-	dataPacker       dataRetriever.DataPacker
-	antifloodHandler dataRetriever.P2PAntifloodHandler
+	messageProcessor
+	txPool     dataRetriever.ShardedDataCacherNotifier
+	txStorage  storage.Storer
+	dataPacker dataRetriever.DataPacker
 }
 
 // NewTxResolver creates a new transaction resolver
-func NewTxResolver(
-	senderResolver dataRetriever.TopicResolverSender,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	txStorage storage.Storer,
-	marshalizer marshal.Marshalizer,
-	dataPacker dataRetriever.DataPacker,
-	antifloodHandler dataRetriever.P2PAntifloodHandler,
-) (*TxResolver, error) {
-
-	if check.IfNil(senderResolver) {
+func NewTxResolver(arg ArgTxResolver) (*TxResolver, error) {
+	if check.IfNil(arg.SenderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(txPool) {
+	if check.IfNil(arg.TxPool) {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if check.IfNil(txStorage) {
+	if check.IfNil(arg.TxStorage) {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if check.IfNil(dataPacker) {
+	if check.IfNil(arg.DataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.Throttler) {
+		return nil, dataRetriever.ErrNilThrottler
 	}
 
 	txResolver := &TxResolver{
-		TopicResolverSender: senderResolver,
-		txPool:              txPool,
-		txStorage:           txStorage,
-		marshalizer:         marshalizer,
-		dataPacker:          dataPacker,
-		antifloodHandler:    antifloodHandler,
+		TopicResolverSender: arg.SenderResolver,
+		txPool:              arg.TxPool,
+		txStorage:           arg.TxStorage,
+		dataPacker:          arg.DataPacker,
+		messageProcessor: messageProcessor{
+			marshalizer:      arg.Marshalizer,
+			antifloodHandler: arg.AntifloodHandler,
+			topic:            arg.SenderResolver.Topic(),
+			throttler:        arg.Throttler,
+		},
 	}
 
 	return txResolver, nil
@@ -65,19 +74,17 @@ func NewTxResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	err := txRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	err := txRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
 
-	rd := &dataRetriever.RequestData{}
-	err = rd.Unmarshal(txRes.marshalizer, message)
+	txRes.throttler.StartProcessing()
+	defer txRes.throttler.EndProcessing()
+
+	rd, err := txRes.parseReceivedMessage(message)
 	if err != nil {
 		return err
-	}
-
-	if rd.Value == nil {
-		return dataRetriever.ErrNilValue
 	}
 
 	switch rd.Type {

@@ -1,9 +1,13 @@
 package topicResolverSender
 
 import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/message"
 )
 
 // topicRequestSuffix represents the topic name suffix
@@ -12,45 +16,53 @@ const topicRequestSuffix = "_REQUEST"
 // NumPeersToQuery number of peers to send the message
 const NumPeersToQuery = 2
 
+// ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
+type ArgTopicResolverSender struct {
+	Messenger         dataRetriever.MessageHandler
+	TopicName         string
+	PeerListCreator   dataRetriever.PeerListCreator
+	Marshalizer       marshal.Marshalizer
+	Randomizer        dataRetriever.IntRandomizer
+	TargetShardId     uint32
+	OutputAntiflooder dataRetriever.P2PAntifloodHandler
+}
+
 type topicResolverSender struct {
-	messenger       dataRetriever.MessageHandler
-	marshalizer     marshal.Marshalizer
-	topicName       string
-	peerListCreator dataRetriever.PeerListCreator
-	randomizer      dataRetriever.IntRandomizer
-	targetShardId   uint32
+	messenger         dataRetriever.MessageHandler
+	marshalizer       marshal.Marshalizer
+	topicName         string
+	peerListCreator   dataRetriever.PeerListCreator
+	randomizer        dataRetriever.IntRandomizer
+	targetShardId     uint32
+	outputAntiflooder dataRetriever.P2PAntifloodHandler
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
-func NewTopicResolverSender(
-	messenger dataRetriever.MessageHandler,
-	topicName string,
-	peerListCreator dataRetriever.PeerListCreator,
-	marshalizer marshal.Marshalizer,
-	randomizer dataRetriever.IntRandomizer,
-	targetShardId uint32,
-) (*topicResolverSender, error) {
-
-	if messenger == nil || messenger.IsInterfaceNil() {
+func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, error) {
+	if check.IfNil(arg.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if randomizer == nil || randomizer.IsInterfaceNil() {
+	if check.IfNil(arg.Randomizer) {
 		return nil, dataRetriever.ErrNilRandomizer
 	}
-	if peerListCreator == nil || peerListCreator.IsInterfaceNil() {
+	if check.IfNil(arg.PeerListCreator) {
 		return nil, dataRetriever.ErrNilPeerListCreator
+	}
+	if check.IfNil(arg.OutputAntiflooder) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
 
 	resolver := &topicResolverSender{
-		messenger:       messenger,
-		topicName:       topicName,
-		peerListCreator: peerListCreator,
-		marshalizer:     marshalizer,
-		randomizer:      randomizer,
-		targetShardId:   targetShardId,
+		messenger:         arg.Messenger,
+		topicName:         arg.TopicName,
+		peerListCreator:   arg.PeerListCreator,
+		marshalizer:       arg.Marshalizer,
+		randomizer:        arg.Randomizer,
+		targetShardId:     arg.TargetShardId,
+		outputAntiflooder: arg.OutputAntiflooder,
 	}
 
 	return resolver, nil
@@ -81,7 +93,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	for idx := range shuffledIndexes {
 		peer := peerList[idx]
 
-		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
+		err = trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
 			continue
 		}
@@ -111,12 +123,31 @@ func createIndexList(listLength int) []int {
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
 func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
-	return trs.messenger.SendToConnectedPeer(trs.topicName, buff, peer)
+	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
 }
 
-// TopicRequestSuffix returns the suffix that will be added to create a new channel for requests
-func (trs *topicResolverSender) TopicRequestSuffix() string {
-	return topicRequestSuffix
+func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer p2p.PeerID) error {
+	msg := &message.Message{
+		DataField:     buff,
+		PeerField:     peer,
+		TopicIdsField: []string{topic},
+	}
+
+	err := trs.outputAntiflooder.CanProcessMessage(msg, peer)
+	if err != nil {
+		return fmt.Errorf("%w while sending %d bytes to peer %s",
+			err,
+			len(buff),
+			p2p.PeerIdToShortString(peer),
+		)
+	}
+
+	return trs.messenger.SendToConnectedPeer(topic, buff, peer)
+}
+
+// Topic returns the topic with the request suffix used for sending requests
+func (trs *topicResolverSender) Topic() string {
+	return trs.topicName + topicRequestSuffix
 }
 
 // TargetShardID returns the target shard ID for this resolver should serve data

@@ -14,8 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -468,7 +468,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
-			AntifloodHandler: 		&mock.NilAntifloodHandler{},
+			AntifloodHandler:       &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -517,7 +517,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
-			AntifloodHandler: 		&mock.NilAntifloodHandler{},
+			AntifloodHandler:       &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -532,22 +532,29 @@ func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         tpn.ShardCoordinator,
-		Messenger:                tpn.Messenger,
-		Store:                    tpn.Storage,
-		Marshalizer:              TestMarshalizer,
-		DataPools:                tpn.DataPool,
-		Uint64ByteSliceConverter: TestUint64Converter,
-		DataPacker:               dataPacker,
-		TriesContainer:           tpn.TrieContainer,
-		SizeCheckDelta:           100,
-		AntifloodHandler: 		  &mock.NilAntifloodHandler{},
+		ShardCoordinator:           tpn.ShardCoordinator,
+		Messenger:                  tpn.Messenger,
+		Store:                      tpn.Storage,
+		Marshalizer:                TestMarshalizer,
+		DataPools:                  tpn.DataPool,
+		Uint64ByteSliceConverter:   TestUint64Converter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             tpn.TrieContainer,
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
 	}
 
+	var err error
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
 
-		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
+		tpn.ResolversContainer, err = resolversContainerFactory.Create()
+		if err != nil {
+			fmt.Println(err)
+		}
+
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
@@ -557,7 +564,11 @@ func (tpn *TestProcessorNode) initResolvers() {
 	} else {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
-		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
+		tpn.ResolversContainer, err = resolversContainerFactory.Create()
+		if err != nil {
+			fmt.Println(err)
+		}
+
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,

@@ -116,8 +116,8 @@ type Node struct {
 
 	requestHandler process.RequestHandler
 
-	antifloodHandler P2PAntifloodHandler
-	txAcumulator     Accumulator
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -295,7 +295,7 @@ func (n *Node) StartConsensus(epoch uint32) error {
 		n.syncTimer,
 		n.headerSigVerifier,
 		n.chainID,
-		n.antifloodHandler,
+		n.inputAntifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -324,7 +324,7 @@ func (n *Node) StartConsensus(epoch uint32) error {
 		NodesCoordinator:     n.nodesCoordinator,
 		SyncTimer:            n.syncTimer,
 		EpochStartSubscriber: n.epochStartSubscriber,
-		AntifloodHandler:     n.antifloodHandler,
+		AntifloodHandler:     n.inputAntifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -945,7 +945,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		heartBeatMsgProcessor,
 		heartbeatStorer,
 		timer,
-		n.antifloodHandler,
+		n.inputAntifloodHandler,
 	)
 	if err != nil {
 		return err

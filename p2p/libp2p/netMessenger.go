@@ -518,7 +518,10 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	defer netMes.mutTopics.Unlock()
 	validator := netMes.topics[topic]
 	if !check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
+		return fmt.Errorf("%w, operation RegisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -558,7 +561,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 		return p2p.ErrNilTopic
 	}
 	if check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
+		return fmt.Errorf("%w, operation UnregisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.UnregisterTopicValidator(topic)

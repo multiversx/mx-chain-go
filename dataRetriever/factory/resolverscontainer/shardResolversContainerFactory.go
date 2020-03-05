@@ -3,11 +3,11 @@ package resolverscontainer
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -26,6 +26,11 @@ func NewShardResolversContainerFactory(
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
 
+	thr, err := throttler.NewNumGoRoutineThrottler(args.NumConcurrentResolvingJobs)
+	if err != nil {
+		return nil, err
+	}
+
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
 		container:                container,
@@ -38,10 +43,12 @@ func NewShardResolversContainerFactory(
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               args.DataPacker,
 		triesContainer:           args.TriesContainer,
-		antifloodHandler:         args.AntifloodHandler,
+		inputAntifloodHandler:    args.InputAntifloodHandler,
+		outputAntifloodHandler:   args.OutputAntifloodHandler,
+		throttler:                thr,
 	}
 
-	err := base.checkParams()
+	err = base.checkParams()
 	if err != nil {
 		return nil, err
 	}
@@ -111,42 +118,31 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	//only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(srcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
-	if err != nil {
-		return err
-	}
-
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		srcf.messenger,
-		identifierHdr,
-		peerListCreator,
-		srcf.marshalizer,
-		srcf.intRandomizer,
-		shardC.SelfId(),
-	)
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {
 		return err
 	}
 
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
 	hdrNonceStore := srcf.store.GetStorer(hdrNonceHashDataUnit)
-	resolver, err := resolvers.NewHeaderResolver(
-		resolverSender,
-		srcf.dataPools.Headers(),
-		hdrStorer,
-		hdrNonceStore,
-		srcf.marshalizer,
-		srcf.uint64ByteSliceConverter,
-		srcf.shardCoordinator,
-		srcf.antifloodHandler,
-	)
+	arg := resolvers.ArgHeaderResolver{
+		SenderResolver:       resolverSender,
+		Headers:              srcf.dataPools.Headers(),
+		HdrStorage:           hdrStorer,
+		HeadersNoncesStorage: hdrNonceStore,
+		Marshalizer:          srcf.marshalizer,
+		NonceConverter:       srcf.uint64ByteSliceConverter,
+		ShardCoordinator:     srcf.shardCoordinator,
+		AntifloodHandler:     srcf.inputAntifloodHandler,
+		Throttler:            srcf.throttler,
+	}
+	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {
 		return err
 	}
 
-	topicIdentifier := identifierHdr + resolverSender.TopicRequestSuffix()
-	err = srcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
 	if err != nil {
 		return err
 	}
@@ -157,50 +153,34 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 //------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
-	shardC := srcf.shardCoordinator
-
 	//only one metachain header block topic
 	//this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(srcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
-	if err != nil {
-		return err
-	}
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		srcf.messenger,
-		identifierHdr,
-		peerListCreator,
-		srcf.marshalizer,
-		srcf.intRandomizer,
-		core.MetachainShardId,
-	)
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
 
 	hdrNonceStore := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	resolver, err := resolvers.NewHeaderResolver(
-		resolverSender,
-		srcf.dataPools.Headers(),
-		hdrStorer,
-		hdrNonceStore,
-		srcf.marshalizer,
-		srcf.uint64ByteSliceConverter,
-		srcf.shardCoordinator,
-		srcf.antifloodHandler,
-	)
+	arg := resolvers.ArgHeaderResolver{
+		SenderResolver:       resolverSender,
+		Headers:              srcf.dataPools.Headers(),
+		HdrStorage:           hdrStorer,
+		HeadersNoncesStorage: hdrNonceStore,
+		Marshalizer:          srcf.marshalizer,
+		NonceConverter:       srcf.uint64ByteSliceConverter,
+		ShardCoordinator:     srcf.shardCoordinator,
+		AntifloodHandler:     srcf.inputAntifloodHandler,
+		Throttler:            srcf.throttler,
+	}
+	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {
 		return err
 	}
 
-	topicIdentifier := identifierHdr + resolverSender.TopicRequestSuffix()
-	err = srcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
 	if err != nil {
 		return err
 	}
