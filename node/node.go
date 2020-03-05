@@ -1037,6 +1037,8 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 				NrLeaderFailure:    peerAcc.LeaderSuccessRate.NrFailure,
 				NrValidatorSuccess: peerAcc.ValidatorSuccessRate.NrSuccess,
 				NrValidatorFailure: peerAcc.ValidatorSuccessRate.NrFailure,
+				Rating:             peerAcc.Rating,
+				TempRating:         peerAcc.TempRating,
 			}
 		}
 	}

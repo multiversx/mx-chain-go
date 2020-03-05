@@ -33,10 +33,10 @@
     StartRating = 500000
     MaxRating = 1000000
     MinRating = 1
-    ProposerIncreaseRatingStep = 1929
-    ProposerDecreaseRatingStep = 3858
-    ValidatorIncreaseRatingStep = 31
-    ValidatorDecreaseRatingStep = 61
+    ProposerIncreaseRatingStep = 29166
+    ProposerDecreaseRatingStep = 58333
+    ValidatorIncreaseRatingStep = 5833
+    ValidatorDecreaseRatingStep = 11666
     [[RatingSettings.SelectionChance]]
     MaxThreshold = 0
     ChancePercent = 5
