@@ -3,8 +3,8 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -23,6 +23,89 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSCCallingIntraShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 2
+	numMetachainNodes := 0
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// mint smart contract holders
+	firstSCOwner := []byte("12345678901234567890123456789000")
+	secondSCOwner := []byte("99945678901234567890123456789001")
+
+	mintPubKey(firstSCOwner, initialVal, nodes)
+	mintPubKey(secondSCOwner, initialVal, nodes)
+
+	// deploy the smart contracts
+	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
+	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
+	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+
+	// Run two rounds, so the two SmartContracts get deployed.
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+
+	time.Sleep(time.Second)
+
+	// Create transactions that invoke "doSomething" from the second SC, which
+	// will execute an "asyncCall" to a method in the first SC which counts how
+	// many times it has been called. There will be as many transactions as there
+	// are nodes.
+	for _, node := range nodes {
+		txData := "doSomething"
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
+	}
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
+
+	// verify how many times was the first SC called
+	for index, node := range nodes {
+		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
+		assert.NotNil(t, numCalled)
+		if numCalled != nil {
+			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d", index))
+		}
+	}
+}
 
 func TestScDeployAndChangeScOwner(t *testing.T) {
 	if testing.Short() {
@@ -281,7 +364,9 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000)
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -302,10 +387,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// make smart contract call to shard 1 which will do in shard 0
 	for _, node := range nodes {
@@ -316,24 +398,21 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
-	for _, node := range nodes {
+	for index, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
 		}
 
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
-		assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
+		assert.NotNil(t, numCalled)
+		if numCalled != nil {
+			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d, Shard %d", index, shId))
+		}
 	}
 }
 
@@ -400,11 +479,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
 	node := nodes[0]
@@ -414,13 +489,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
