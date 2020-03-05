@@ -2,19 +2,22 @@ package smartContractResult
 
 import (
 	"math/big"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SmartContractResult holds all the data needed for results coming from smart contract processing
 type SmartContractResult struct {
-	Nonce    uint64   `json:"nonce"`
-	Value    *big.Int `json:"value"`
-	RcvAddr  []byte   `json:"receiver"`
-	SndAddr  []byte   `json:"sender"`
-	Code     []byte   `json:"code,omitempty"`
-	Data     []byte   `json:"data,omitempty"`
-	TxHash   []byte   `json:"txHash"`
-	GasLimit uint64   `json:"gasLimit"`
-	GasPrice uint64   `json:"gasPrice"`
+	Nonce    uint64            `json:"nonce"`
+	Value    *big.Int          `json:"value"`
+	RcvAddr  []byte            `json:"receiver"`
+	SndAddr  []byte            `json:"sender"`
+	Code     []byte            `json:"code,omitempty"`
+	Data     []byte            `json:"data,omitempty"`
+	TxHash   []byte            `json:"txHash"`
+	GasLimit uint64            `json:"gasLimit"`
+	GasPrice uint64            `json:"gasPrice"`
+	CallType vmcommon.CallType `json:"callType"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil
