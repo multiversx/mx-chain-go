@@ -133,8 +133,11 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.snapshotInProgress = false
-	tsm.removeKeysFromDb(tsm.pruningBuffer)
-	tsm.pruningBuffer = tsm.pruningBuffer[:0]
+
+	if tsm.snapshotsBuffer.len() == 0 {
+		tsm.removeKeysFromDb(tsm.pruningBuffer)
+		tsm.pruningBuffer = tsm.pruningBuffer[:0]
+	}
 }
 
 // Clone returns a new instance of trieStorageManager
