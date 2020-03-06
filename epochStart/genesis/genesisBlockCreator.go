@@ -1,9 +1,11 @@
 package genesis
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math"
 	"math/big"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -350,7 +352,16 @@ func deploySystemSmartContracts(
 		return process.ErrWrongTypeAssertion
 	}
 
+	systemSCAddresses := make([][]byte, 0)
 	for _, key := range systemSCs.Keys() {
+		systemSCAddresses = append(systemSCAddresses, key)
+	}
+
+	sort.Slice(systemSCAddresses, func(i, j int) bool {
+		return bytes.Compare(systemSCAddresses[i], systemSCAddresses[j]) < 0
+	})
+
+	for _, key := range systemSCAddresses {
 		addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
 		if err != nil {
 			return err

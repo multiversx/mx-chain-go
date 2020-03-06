@@ -477,7 +477,15 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 
 		prevShardData, shardInfoErr := vs.searchInMap(h.PrevHash, cacheMap)
 		if shardInfoErr != nil {
-			return shardInfoErr
+			prevShardData, shardInfoErr = process.GetShardHeader(
+				h.PrevHash,
+				vs.dataPool.Headers(),
+				vs.marshalizer,
+				vs.storageService,
+			)
+			if shardInfoErr != nil {
+				return shardInfoErr
+			}
 		}
 
 		shardInfoErr = vs.checkForMissedBlocks(
