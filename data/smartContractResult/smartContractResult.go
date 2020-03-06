@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ = data.TransactionHandler(&SmartContractResult{})
