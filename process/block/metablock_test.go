@@ -1688,7 +1688,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     []byte("prevhash"),
 		RootHash:     []byte("currRootHash")}
-	currHash, _ := mp.ComputeHeaderHash(currHdr)
+	currHash := []byte("currHash")
 	pool.Headers().AddHeader(currHash, currHdr)
 	metaHdr := &block.MetaBlock{Round: 20}
 
@@ -1743,8 +1743,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		RootHash:        []byte("currRootHash"),
 		AccumulatedFees: big.NewInt(0),
 	}
-	currHash, _ := mp.ComputeHeaderHash(currHdr)
-
+	currHash := []byte("currhash")
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: currHash, AccumulatedFees: big.NewInt(0)}
