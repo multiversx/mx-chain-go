@@ -148,6 +148,32 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
+	}
+
+	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(startEpoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
+	}
+
+	hash, err := vs.peerAdapter.Commit()
+	if err != nil {
+		return err
+	}
+
+	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
+
+	return nil
+}
+
+func (vs *validatorStatistics) saveInitialValueForMap(nodesMap map[uint32][][]byte, startEpoch uint32, stakeValue *big.Int, startRating uint32) error {
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
 			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
@@ -161,14 +187,6 @@ func (vs *validatorStatistics) saveInitialState(
 			}
 		}
 	}
-
-	hash, err := vs.peerAdapter.Commit()
-	if err != nil {
-		return err
-	}
-
-	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
-
 	return nil
 }
 
@@ -290,6 +308,8 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 
 		currentShardId := peerAccount.CurrentShardId
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
+		log.Debug("PeerAccount", "BLSPK", peerAccount.BLSPublicKey, "RewardAddress", peerAccount.RewardAddress)
+		log.Debug(fmt.Sprintf("ValidatorInfoData %v", validatorInfoData))
 
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
@@ -557,6 +577,9 @@ func (vs *validatorStatistics) initializeNode(
 	if err != nil {
 		return err
 	}
+
+	pa, _ := peerAccount.(*state.PeerAccount)
+	log.Debug("Saved peer account", "PK", pa.BLSPublicKey, "rewardAddress", pa.RewardAddress)
 
 	return nil
 }

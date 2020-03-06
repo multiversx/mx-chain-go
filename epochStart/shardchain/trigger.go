@@ -50,12 +50,10 @@ type trigger struct {
 	epochFinalityAttestingRound uint64
 	epochStartMeta              *block.MetaBlock
 
-	mutTrigger                                  sync.RWMutex
-	mapHashHdr                                  map[string]*block.MetaBlock
-	mapNonceHashes                              map[uint64][]string
-	mapEpochStartHdrs                           map[string]*block.MetaBlock
-	mapEpochStartMiniBlockHashToHeaderBlockHash map[string]string
-	mapEpochStartPeerBlocks                     map[string]*block.MiniBlock
+	mutTrigger        sync.RWMutex
+	mapHashHdr        map[string]*block.MetaBlock
+	mapNonceHashes    map[uint64][]string
+	mapEpochStartHdrs map[string]*block.MetaBlock
 
 	headersPool         dataRetriever.HeadersPool
 	metaHdrStorage      storage.Storer

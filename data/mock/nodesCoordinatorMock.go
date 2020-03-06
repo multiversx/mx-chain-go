@@ -71,6 +71,11 @@ func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 	return nil, nil
 }
 
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetSelectedPublicKeys -
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error) {
 	if ncm.GetSelectedPublicKeysCalled != nil {
@@ -156,6 +161,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	ncm.Validators = eligible
 
 	return nil
+}
+
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving(_ []sharding.Validator) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // ComputeConsensusGroup -

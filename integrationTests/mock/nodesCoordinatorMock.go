@@ -26,6 +26,11 @@ func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 	return nil, nil
 }
 
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetValidatorsIndexes -
 func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
 	return nil, nil
@@ -105,6 +110,11 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
+}
+
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving(_ []sharding.Validator) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // LoadState -
