@@ -171,11 +171,11 @@ func (t *trigger) Update(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	t.currentRound = round
+
 	if t.isEpochStart {
 		return
 	}
-
-	t.currentRound = round
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.epoch += 1
@@ -224,6 +224,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.saveCurrentState(metaBlock.Round)
 	t.isEpochStart = false
+	t.currentRound = metaBlock.Round
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
@@ -251,6 +252,10 @@ func (t *trigger) Revert(header data.HeaderHandler) {
 
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
+
+	if t.currentRound != header.GetRound() {
+		return
+	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
