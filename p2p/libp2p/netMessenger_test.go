@@ -132,7 +132,10 @@ func containsPeerID(list []p2p.PeerID, searchFor p2p.PeerID) bool {
 func TestNewMemoryLibp2pMessenger_NilContextShouldErr(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes, err := libp2p.NewMemoryMessenger(nil, netw, discovery.NewNullDiscoverer())
+	ctx := context.Background()
+	_ = ctx
+	ctx = nil
+	mes, err := libp2p.NewMemoryMessenger(ctx, netw, discovery.NewNullDiscoverer())
 
 	assert.Nil(t, mes)
 	assert.Equal(t, p2p.ErrNilContext, err)
@@ -191,8 +194,11 @@ func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 
 	_, sk := createLibP2PCredentialsMessenger()
 
+	ctx := context.Background()
+	_ = ctx
+	ctx = nil
 	mes, err := libp2p.NewNetworkMessenger(
-		nil,
+		ctx,
 		port,
 		sk,
 		&mock.ConnManagerNotifieeStub{},

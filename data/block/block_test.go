@@ -245,6 +245,7 @@ func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
 	body := block.Body{}
+	_ = body
 	body = nil
 	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
