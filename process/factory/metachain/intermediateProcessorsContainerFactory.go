@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -18,7 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
 	store            dataRetriever.StorageService
-	poolsHolder      dataRetriever.MetaPoolsHolder
+	poolsHolder      dataRetriever.PoolsHolder
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -28,7 +28,7 @@ func NewIntermediateProcessorsContainerFactory(
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
 	store dataRetriever.StorageService,
-	poolsHolder dataRetriever.MetaPoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -78,7 +78,7 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewIntermediateResultsProcessor(
+	irp, err := postprocess.NewIntermediateResultsProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
@@ -93,8 +93,5 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *intermediateProcessorsContainerFactory) IsInterfaceNil() bool {
-	if ppcm == nil {
-		return true
-	}
-	return false
+	return ppcm == nil
 }

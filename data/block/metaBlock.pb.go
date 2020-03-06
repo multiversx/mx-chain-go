@@ -89,16 +89,12 @@ func (m *PeerData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *PeerData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_PeerData.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *PeerData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_PeerData.Merge(m, src)
@@ -164,16 +160,12 @@ func (m *ShardMiniBlockHeader) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *ShardMiniBlockHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ShardMiniBlockHeader.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *ShardMiniBlockHeader) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ShardMiniBlockHeader.Merge(m, src)
@@ -217,16 +209,18 @@ func (m *ShardMiniBlockHeader) GetTxCount() uint32 {
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardID               uint32                 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
 	HeaderHash            []byte                 `protobuf:"bytes,2,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `protobuf:"bytes,3,rep,name=ShardMiniBlockHeaders,proto3" json:"ShardMiniBlockHeaders"`
 	PrevRandSeed          []byte                 `protobuf:"bytes,4,opt,name=PrevRandSeed,proto3" json:"PrevRandSeed,omitempty"`
 	PubKeysBitmap         []byte                 `protobuf:"bytes,5,opt,name=PubKeysBitmap,proto3" json:"PubKeysBitmap,omitempty"`
 	Signature             []byte                 `protobuf:"bytes,6,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	TxCount               uint32                 `protobuf:"varint,7,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 	Round                 uint64                 `protobuf:"varint,8,opt,name=Round,proto3" json:"Round,omitempty"`
 	PrevHash              []byte                 `protobuf:"bytes,9,opt,name=PrevHash,proto3" json:"PrevHash,omitempty"`
 	Nonce                 uint64                 `protobuf:"varint,10,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	AccumulatedFees       *math_big.Int          `protobuf:"bytes,12,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	NumPendingMiniBlocks  uint32                 `protobuf:"varint,11,opt,name=NumPendingMiniBlocks,proto3" json:"NumPendingMiniBlocks,omitempty"`
+	ShardID               uint32                 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	TxCount               uint32                 `protobuf:"varint,7,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 }
 
 func (m *ShardData) Reset()      { *m = ShardData{} }
@@ -238,16 +232,12 @@ func (m *ShardData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *ShardData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ShardData.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *ShardData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ShardData.Merge(m, src)
@@ -260,13 +250,6 @@ func (m *ShardData) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_ShardData proto.InternalMessageInfo
-
-func (m *ShardData) GetShardID() uint32 {
-	if m != nil {
-		return m.ShardID
-	}
-	return 0
-}
 
 func (m *ShardData) GetHeaderHash() []byte {
 	if m != nil {
@@ -303,13 +286,6 @@ func (m *ShardData) GetSignature() []byte {
 	return nil
 }
 
-func (m *ShardData) GetTxCount() uint32 {
-	if m != nil {
-		return m.TxCount
-	}
-	return 0
-}
-
 func (m *ShardData) GetRound() uint64 {
 	if m != nil {
 		return m.Round
@@ -331,10 +307,253 @@ func (m *ShardData) GetNonce() uint64 {
 	return 0
 }
 
+func (m *ShardData) GetAccumulatedFees() *math_big.Int {
+	if m != nil {
+		return m.AccumulatedFees
+	}
+	return nil
+}
+
+func (m *ShardData) GetNumPendingMiniBlocks() uint32 {
+	if m != nil {
+		return m.NumPendingMiniBlocks
+	}
+	return 0
+}
+
+func (m *ShardData) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *ShardData) GetTxCount() uint32 {
+	if m != nil {
+		return m.TxCount
+	}
+	return 0
+}
+
+// EpochStartShardData hold the last finalized headers hash and state root hash
+type EpochStartShardData struct {
+	ShardID                 uint32                 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	Round                   uint64                 `protobuf:"varint,7,opt,name=Round,proto3" json:"Round,omitempty"`
+	Nonce                   uint64                 `protobuf:"varint,8,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	HeaderHash              []byte                 `protobuf:"bytes,2,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
+	RootHash                []byte                 `protobuf:"bytes,3,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	FirstPendingMetaBlock   []byte                 `protobuf:"bytes,4,opt,name=FirstPendingMetaBlock,proto3" json:"FirstPendingMetaBlock,omitempty"`
+	LastFinishedMetaBlock   []byte                 `protobuf:"bytes,5,opt,name=LastFinishedMetaBlock,proto3" json:"LastFinishedMetaBlock,omitempty"`
+	PendingMiniBlockHeaders []ShardMiniBlockHeader `protobuf:"bytes,6,rep,name=PendingMiniBlockHeaders,proto3" json:"PendingMiniBlockHeaders"`
+}
+
+func (m *EpochStartShardData) Reset()      { *m = EpochStartShardData{} }
+func (*EpochStartShardData) ProtoMessage() {}
+func (*EpochStartShardData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_87b91ab531130b2b, []int{3}
+}
+func (m *EpochStartShardData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EpochStartShardData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *EpochStartShardData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EpochStartShardData.Merge(m, src)
+}
+func (m *EpochStartShardData) XXX_Size() int {
+	return m.Size()
+}
+func (m *EpochStartShardData) XXX_DiscardUnknown() {
+	xxx_messageInfo_EpochStartShardData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EpochStartShardData proto.InternalMessageInfo
+
+func (m *EpochStartShardData) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *EpochStartShardData) GetRound() uint64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *EpochStartShardData) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
+}
+
+func (m *EpochStartShardData) GetHeaderHash() []byte {
+	if m != nil {
+		return m.HeaderHash
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetRootHash() []byte {
+	if m != nil {
+		return m.RootHash
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetFirstPendingMetaBlock() []byte {
+	if m != nil {
+		return m.FirstPendingMetaBlock
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetLastFinishedMetaBlock() []byte {
+	if m != nil {
+		return m.LastFinishedMetaBlock
+	}
+	return nil
+}
+
+func (m *EpochStartShardData) GetPendingMiniBlockHeaders() []ShardMiniBlockHeader {
+	if m != nil {
+		return m.PendingMiniBlockHeaders
+	}
+	return nil
+}
+
+// Economics holds the block information for total supply and rewards
+type Economics struct {
+	TotalSupply            *math_big.Int `protobuf:"bytes,1,opt,name=TotalSupply,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalSupply,omitempty"`
+	TotalToDistribute      *math_big.Int `protobuf:"bytes,2,opt,name=TotalToDistribute,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalToDistribute,omitempty"`
+	TotalNewlyMinted       *math_big.Int `protobuf:"bytes,3,opt,name=TotalNewlyMinted,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalNewlyMinted,omitempty"`
+	RewardsPerBlockPerNode *math_big.Int `protobuf:"bytes,4,opt,name=RewardsPerBlockPerNode,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"RewardsPerBlockPerNode,omitempty"`
+	NodePrice              *math_big.Int `protobuf:"bytes,5,opt,name=NodePrice,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"NodePrice,omitempty"`
+}
+
+func (m *Economics) Reset()      { *m = Economics{} }
+func (*Economics) ProtoMessage() {}
+func (*Economics) Descriptor() ([]byte, []int) {
+	return fileDescriptor_87b91ab531130b2b, []int{4}
+}
+func (m *Economics) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Economics) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *Economics) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Economics.Merge(m, src)
+}
+func (m *Economics) XXX_Size() int {
+	return m.Size()
+}
+func (m *Economics) XXX_DiscardUnknown() {
+	xxx_messageInfo_Economics.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Economics proto.InternalMessageInfo
+
+func (m *Economics) GetTotalSupply() *math_big.Int {
+	if m != nil {
+		return m.TotalSupply
+	}
+	return nil
+}
+
+func (m *Economics) GetTotalToDistribute() *math_big.Int {
+	if m != nil {
+		return m.TotalToDistribute
+	}
+	return nil
+}
+
+func (m *Economics) GetTotalNewlyMinted() *math_big.Int {
+	if m != nil {
+		return m.TotalNewlyMinted
+	}
+	return nil
+}
+
+func (m *Economics) GetRewardsPerBlockPerNode() *math_big.Int {
+	if m != nil {
+		return m.RewardsPerBlockPerNode
+	}
+	return nil
+}
+
+func (m *Economics) GetNodePrice() *math_big.Int {
+	if m != nil {
+		return m.NodePrice
+	}
+	return nil
+}
+
+// EpochStart holds the block information for end-of-epoch
+type EpochStart struct {
+	LastFinalizedHeaders []EpochStartShardData `protobuf:"bytes,1,rep,name=LastFinalizedHeaders,proto3" json:"LastFinalizedHeaders"`
+	Economics            Economics             `protobuf:"bytes,2,opt,name=Economics,proto3" json:"Economics"`
+}
+
+func (m *EpochStart) Reset()      { *m = EpochStart{} }
+func (*EpochStart) ProtoMessage() {}
+func (*EpochStart) Descriptor() ([]byte, []int) {
+	return fileDescriptor_87b91ab531130b2b, []int{5}
+}
+func (m *EpochStart) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EpochStart) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *EpochStart) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EpochStart.Merge(m, src)
+}
+func (m *EpochStart) XXX_Size() int {
+	return m.Size()
+}
+func (m *EpochStart) XXX_DiscardUnknown() {
+	xxx_messageInfo_EpochStart.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EpochStart proto.InternalMessageInfo
+
+func (m *EpochStart) GetLastFinalizedHeaders() []EpochStartShardData {
+	if m != nil {
+		return m.LastFinalizedHeaders
+	}
+	return nil
+}
+
+func (m *EpochStart) GetEconomics() Economics {
+	if m != nil {
+		return m.Economics
+	}
+	return Economics{}
+}
+
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
 	Nonce                  uint64            `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	Epoch                  uint32            `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
 	Round                  uint64            `protobuf:"varint,3,opt,name=Round,proto3" json:"Round,omitempty"`
 	TimeStamp              uint64            `protobuf:"varint,4,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
 	ShardInfo              []ShardData       `protobuf:"bytes,5,rep,name=ShardInfo,proto3" json:"ShardInfo"`
@@ -347,29 +566,31 @@ type MetaBlock struct {
 	RandSeed               []byte            `protobuf:"bytes,12,opt,name=RandSeed,proto3" json:"RandSeed,omitempty"`
 	RootHash               []byte            `protobuf:"bytes,13,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
 	ValidatorStatsRootHash []byte            `protobuf:"bytes,14,opt,name=ValidatorStatsRootHash,proto3" json:"ValidatorStatsRootHash,omitempty"`
-	TxCount                uint32            `protobuf:"varint,15,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 	MiniBlockHeaders       []MiniBlockHeader `protobuf:"bytes,16,rep,name=MiniBlockHeaders,proto3" json:"MiniBlockHeaders"`
+	ReceiptsHash           []byte            `protobuf:"bytes,17,opt,name=ReceiptsHash,proto3" json:"ReceiptsHash,omitempty"`
+	EpochStart             EpochStart        `protobuf:"bytes,18,opt,name=EpochStart,proto3" json:"EpochStart"`
+	ChainID                []byte            `protobuf:"bytes,19,opt,name=ChainID,proto3" json:"ChainID,omitempty"`
+	AccumulatedFees        *math_big.Int     `protobuf:"bytes,20,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	AccumulatedFeesInEpoch *math_big.Int     `protobuf:"bytes,21,opt,name=AccumulatedFeesInEpoch,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFeesInEpoch,omitempty"`
+	Epoch                  uint32            `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
+	TxCount                uint32            `protobuf:"varint,15,opt,name=TxCount,proto3" json:"TxCount,omitempty"`
 }
 
 func (m *MetaBlock) Reset()      { *m = MetaBlock{} }
 func (*MetaBlock) ProtoMessage() {}
 func (*MetaBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_87b91ab531130b2b, []int{3}
+	return fileDescriptor_87b91ab531130b2b, []int{6}
 }
 func (m *MetaBlock) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *MetaBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_MetaBlock.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *MetaBlock) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_MetaBlock.Merge(m, src)
@@ -386,13 +607,6 @@ var xxx_messageInfo_MetaBlock proto.InternalMessageInfo
 func (m *MetaBlock) GetNonce() uint64 {
 	if m != nil {
 		return m.Nonce
-	}
-	return 0
-}
-
-func (m *MetaBlock) GetEpoch() uint32 {
-	if m != nil {
-		return m.Epoch
 	}
 	return 0
 }
@@ -481,13 +695,6 @@ func (m *MetaBlock) GetValidatorStatsRootHash() []byte {
 	return nil
 }
 
-func (m *MetaBlock) GetTxCount() uint32 {
-	if m != nil {
-		return m.TxCount
-	}
-	return 0
-}
-
 func (m *MetaBlock) GetMiniBlockHeaders() []MiniBlockHeader {
 	if m != nil {
 		return m.MiniBlockHeaders
@@ -495,68 +702,144 @@ func (m *MetaBlock) GetMiniBlockHeaders() []MiniBlockHeader {
 	return nil
 }
 
+func (m *MetaBlock) GetReceiptsHash() []byte {
+	if m != nil {
+		return m.ReceiptsHash
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetEpochStart() EpochStart {
+	if m != nil {
+		return m.EpochStart
+	}
+	return EpochStart{}
+}
+
+func (m *MetaBlock) GetChainID() []byte {
+	if m != nil {
+		return m.ChainID
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetAccumulatedFees() *math_big.Int {
+	if m != nil {
+		return m.AccumulatedFees
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetAccumulatedFeesInEpoch() *math_big.Int {
+	if m != nil {
+		return m.AccumulatedFeesInEpoch
+	}
+	return nil
+}
+
+func (m *MetaBlock) GetEpoch() uint32 {
+	if m != nil {
+		return m.Epoch
+	}
+	return 0
+}
+
+func (m *MetaBlock) GetTxCount() uint32 {
+	if m != nil {
+		return m.TxCount
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterEnum("proto.PeerAction", PeerAction_name, PeerAction_value)
 	proto.RegisterType((*PeerData)(nil), "proto.PeerData")
 	proto.RegisterType((*ShardMiniBlockHeader)(nil), "proto.ShardMiniBlockHeader")
 	proto.RegisterType((*ShardData)(nil), "proto.ShardData")
+	proto.RegisterType((*EpochStartShardData)(nil), "proto.EpochStartShardData")
+	proto.RegisterType((*Economics)(nil), "proto.Economics")
+	proto.RegisterType((*EpochStart)(nil), "proto.EpochStart")
 	proto.RegisterType((*MetaBlock)(nil), "proto.MetaBlock")
 }
 
 func init() { proto.RegisterFile("metaBlock.proto", fileDescriptor_87b91ab531130b2b) }
 
 var fileDescriptor_87b91ab531130b2b = []byte{
-	// 798 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x55, 0xcd, 0x6e, 0xeb, 0x44,
-	0x14, 0xf6, 0x34, 0xff, 0x93, 0xa4, 0xf1, 0x1d, 0x95, 0xca, 0x0a, 0xc8, 0x37, 0x8a, 0x58, 0x04,
-	0xa4, 0x9b, 0x88, 0x0b, 0x62, 0xd3, 0x55, 0xd3, 0x56, 0x6a, 0x28, 0xad, 0x22, 0xa7, 0x14, 0x89,
-	0xdd, 0x24, 0x9e, 0x3a, 0x56, 0x92, 0x99, 0xc8, 0x1e, 0x17, 0xba, 0xe3, 0x11, 0x58, 0xf0, 0x08,
-	0x2c, 0x10, 0x4f, 0xd2, 0x65, 0x57, 0xa8, 0x2b, 0xa0, 0xe9, 0xa6, 0xcb, 0x2e, 0x78, 0x00, 0x34,
-	0x67, 0x9c, 0xd8, 0x49, 0xc3, 0x5d, 0xc5, 0xe7, 0x3b, 0xdf, 0x39, 0x3e, 0xf3, 0x7d, 0x67, 0x62,
-	0x5c, 0x9b, 0x31, 0x49, 0xbb, 0x53, 0x31, 0x9a, 0xb4, 0xe7, 0x81, 0x90, 0x82, 0xe4, 0xe0, 0xa7,
-	0xfe, 0xce, 0xf3, 0xe5, 0x38, 0x1a, 0xb6, 0x47, 0x62, 0xd6, 0xf1, 0x84, 0x27, 0x3a, 0x00, 0x0f,
-	0xa3, 0x6b, 0x88, 0x20, 0x80, 0x27, 0x5d, 0x55, 0x2f, 0x0f, 0x93, 0x16, 0xcd, 0x7f, 0x11, 0x2e,
-	0xf6, 0x19, 0x0b, 0x8e, 0xa9, 0xa4, 0xc4, 0xc2, 0x85, 0x43, 0xd7, 0x0d, 0x58, 0x18, 0x5a, 0xa8,
-	0x81, 0x5a, 0x15, 0x67, 0x19, 0x92, 0x4f, 0x70, 0xa9, 0x1f, 0x0d, 0xa7, 0xfe, 0xe8, 0x8c, 0xdd,
-	0x5a, 0x3b, 0x90, 0x4b, 0x00, 0xf2, 0x19, 0xce, 0x1f, 0x8e, 0xa4, 0x2f, 0xb8, 0x95, 0x69, 0xa0,
-	0xd6, 0xee, 0xfb, 0x37, 0xba, 0x79, 0x5b, 0x35, 0xd6, 0x09, 0x27, 0x26, 0xa8, 0x46, 0x97, 0xfe,
-	0x8c, 0x0d, 0x24, 0x9d, 0xcd, 0xad, 0x6c, 0x03, 0xb5, 0xb2, 0x4e, 0x02, 0x10, 0x0f, 0x97, 0xaf,
-	0xe8, 0x34, 0x62, 0x47, 0x63, 0xca, 0x3d, 0x66, 0xe5, 0xd4, 0x8b, 0xba, 0x27, 0x7f, 0xfc, 0xfd,
-	0xf6, 0x70, 0x46, 0xe5, 0xb8, 0x33, 0xf4, 0xbd, 0x76, 0x8f, 0xcb, 0x83, 0xd4, 0x79, 0x4f, 0xa6,
-	0x81, 0xe0, 0xee, 0x05, 0x93, 0x3f, 0x8a, 0x60, 0xd2, 0x61, 0x10, 0xbd, 0xf3, 0x44, 0xc7, 0xa5,
-	0x92, 0xb6, 0xbb, 0xbe, 0xd7, 0xe3, 0xf2, 0x88, 0x86, 0x92, 0x05, 0x4e, 0xba, 0x73, 0xf3, 0x57,
-	0x84, 0xf7, 0x06, 0x63, 0x1a, 0xb8, 0xe7, 0x3e, 0xf7, 0x41, 0xd2, 0x53, 0x46, 0x5d, 0x16, 0x10,
-	0x82, 0xb3, 0xa7, 0x34, 0x1c, 0xc7, 0xe7, 0x87, 0x67, 0xd2, 0xc2, 0x35, 0x87, 0x8d, 0x98, 0x7f,
-	0xc3, 0x02, 0xa8, 0xe9, 0x1d, 0x83, 0x04, 0x55, 0x67, 0x13, 0x26, 0x9f, 0xe2, 0xea, 0x80, 0x71,
-	0x37, 0xe1, 0x65, 0x80, 0xb7, 0x0e, 0x2a, 0x99, 0x2f, 0x7f, 0x3a, 0x12, 0x11, 0x97, 0xa0, 0x40,
-	0xd5, 0x59, 0x86, 0xcd, 0xe7, 0x1d, 0x5c, 0x02, 0xd6, 0xd2, 0x8e, 0x65, 0x1f, 0xa4, 0x79, 0xcb,
-	0x0e, 0x36, 0xc6, 0x7a, 0x5e, 0x98, 0x55, 0xfb, 0x91, 0x42, 0xc8, 0xf7, 0xf8, 0xa3, 0x6d, 0xa7,
-	0x0b, 0xad, 0x4c, 0x23, 0xd3, 0x2a, 0xbf, 0xff, 0x38, 0xf6, 0x67, 0x1b, 0xa7, 0x9b, 0xbd, 0xfb,
-	0xeb, 0xad, 0xe1, 0x6c, 0xaf, 0x27, 0x4d, 0x5c, 0xe9, 0x07, 0xec, 0xc6, 0xa1, 0xdc, 0x1d, 0x30,
-	0xe6, 0xc2, 0xfc, 0x15, 0x67, 0x0d, 0x53, 0x22, 0xf4, 0xa3, 0xe1, 0x19, 0xbb, 0x0d, 0xbb, 0xbe,
-	0x9c, 0xd1, 0xb9, 0xb6, 0xd1, 0x59, 0x07, 0xd5, 0x22, 0x0c, 0x7c, 0x8f, 0x53, 0x19, 0x05, 0xcc,
-	0xca, 0xeb, 0x8d, 0x5a, 0x01, 0x69, 0x89, 0x0a, 0x6b, 0x12, 0x91, 0x3d, 0x9c, 0x73, 0x44, 0xc4,
-	0x5d, 0xab, 0x08, 0xcb, 0xa3, 0x03, 0x52, 0xc7, 0x45, 0x35, 0x03, 0xc8, 0x51, 0x82, 0x66, 0xab,
-	0x58, 0x55, 0x5c, 0x08, 0x3e, 0x62, 0x16, 0xd6, 0x15, 0x10, 0x34, 0xff, 0xcc, 0xe2, 0xd2, 0xf9,
-	0xf2, 0x3e, 0x25, 0x1c, 0x94, 0xe2, 0x28, 0xf4, 0x64, 0x2e, 0x46, 0xe3, 0xd8, 0x6e, 0x1d, 0x24,
-	0x13, 0x64, 0xd2, 0x13, 0x7c, 0x78, 0xb1, 0xbf, 0x8a, 0x7d, 0xed, 0xf1, 0x6b, 0x61, 0xe5, 0xc0,
-	0x04, 0x33, 0x6d, 0x82, 0xf2, 0x3b, 0x56, 0x3e, 0x21, 0x92, 0x2f, 0xf4, 0xdd, 0x84, 0xa2, 0x3c,
-	0x14, 0xd5, 0x52, 0x37, 0x2b, 0x55, 0xb3, 0xa2, 0xad, 0xcb, 0x5a, 0xd8, 0x94, 0xb5, 0x85, 0x6b,
-	0xdf, 0x82, 0x93, 0x09, 0xa7, 0x08, 0x9c, 0x4d, 0xf8, 0xb5, 0x89, 0xa5, 0x6d, 0x26, 0xa6, 0x65,
-	0xc7, 0x1b, 0xb2, 0x6f, 0xae, 0x4a, 0x79, 0xcb, 0xaa, 0xd4, 0x71, 0x71, 0x95, 0xaf, 0xe8, 0xfa,
-	0xb5, 0x9c, 0x10, 0x12, 0x7a, 0x57, 0xe3, 0x5c, 0x1c, 0x93, 0xaf, 0xf1, 0xfe, 0x15, 0x9d, 0xfa,
-	0x2e, 0x95, 0x22, 0x18, 0x48, 0x2a, 0xc3, 0x15, 0x73, 0x17, 0x98, 0xff, 0x93, 0x4d, 0xaf, 0x55,
-	0x6d, 0x7d, 0xad, 0x4e, 0xb1, 0xf9, 0xea, 0xb2, 0x98, 0x20, 0xf9, 0x7e, 0x2c, 0xf9, 0xf6, 0x7b,
-	0xf2, 0xaa, 0xea, 0xf3, 0xdf, 0x10, 0xc6, 0xc9, 0x1f, 0x1f, 0x79, 0x83, 0xab, 0x3d, 0x7e, 0xa3,
-	0xc6, 0xd1, 0x80, 0x69, 0x90, 0x3d, 0x6c, 0x2a, 0x82, 0xc3, 0x3c, 0x3f, 0x94, 0x01, 0x05, 0x14,
-	0x29, 0xa2, 0x42, 0xbf, 0xe3, 0xa1, 0xa4, 0x13, 0x9f, 0x7b, 0xe6, 0x0e, 0xd9, 0xc7, 0x04, 0x8c,
-	0x66, 0x41, 0x9a, 0x9a, 0x21, 0xbb, 0xfa, 0x0d, 0xdf, 0x50, 0x7f, 0xca, 0x5c, 0x33, 0x4b, 0x4c,
-	0x5c, 0xd1, 0xa5, 0x31, 0x92, 0x23, 0x35, 0x5c, 0x56, 0xc8, 0x60, 0x4a, 0xc3, 0x31, 0x73, 0xcd,
-	0xfc, 0x12, 0x70, 0xd4, 0x3e, 0x4e, 0x98, 0x59, 0xe8, 0x1e, 0xdc, 0x3f, 0xda, 0xc6, 0xc3, 0xa3,
-	0x6d, 0xbc, 0x3c, 0xda, 0xe8, 0xe7, 0x85, 0x8d, 0x7e, 0x5f, 0xd8, 0xe8, 0x6e, 0x61, 0xa3, 0xfb,
-	0x85, 0x8d, 0xfe, 0x59, 0xd8, 0xe8, 0x79, 0x61, 0x1b, 0x2f, 0x0b, 0x1b, 0xfd, 0xf2, 0x64, 0x1b,
-	0xf7, 0x4f, 0xb6, 0xf1, 0xf0, 0x64, 0x1b, 0x3f, 0xe4, 0xe0, 0xdb, 0x31, 0xcc, 0x83, 0x24, 0x5f,
-	0xfe, 0x17, 0x00, 0x00, 0xff, 0xff, 0x06, 0xee, 0x3f, 0xcd, 0x92, 0x06, 0x00, 0x00,
+	// 1170 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0xcf, 0x6f, 0xe3, 0xc4,
+	0x17, 0x8f, 0x37, 0x49, 0x93, 0xbc, 0xa4, 0x1b, 0x77, 0x36, 0xdb, 0xaf, 0xd5, 0x2f, 0xf2, 0x56,
+	0x11, 0x87, 0x80, 0xb4, 0xad, 0x28, 0x2b, 0x38, 0x70, 0x40, 0x4d, 0xdb, 0x55, 0xc3, 0xee, 0x56,
+	0x91, 0x53, 0x16, 0x09, 0x4e, 0x13, 0x7b, 0xd6, 0x19, 0xd5, 0x99, 0x09, 0xf6, 0xb8, 0xa5, 0x48,
+	0x2b, 0xf1, 0x0f, 0x20, 0x71, 0xe0, 0xc0, 0x1f, 0xc0, 0x01, 0xf1, 0x3f, 0x20, 0x71, 0xdc, 0x63,
+	0x8f, 0x3d, 0xc1, 0x36, 0xbd, 0x70, 0xdc, 0x03, 0x7f, 0x00, 0xf2, 0x8c, 0x1d, 0x3b, 0xa9, 0x0b,
+	0x1c, 0xc2, 0xa9, 0x79, 0x9f, 0x79, 0x3f, 0xfc, 0xde, 0xfb, 0xcc, 0x7b, 0x53, 0x68, 0x8e, 0x89,
+	0xc0, 0x5d, 0x8f, 0xdb, 0x27, 0x5b, 0x13, 0x9f, 0x0b, 0x8e, 0xca, 0xf2, 0xcf, 0xc6, 0x43, 0x97,
+	0x8a, 0x51, 0x38, 0xdc, 0xb2, 0xf9, 0x78, 0xdb, 0xe5, 0x2e, 0xdf, 0x96, 0xf0, 0x30, 0x7c, 0x21,
+	0x25, 0x29, 0xc8, 0x5f, 0xca, 0x6a, 0xa3, 0x3e, 0x4c, 0x5d, 0xb4, 0xff, 0xd4, 0xa0, 0xda, 0x27,
+	0xc4, 0xdf, 0xc7, 0x02, 0x23, 0x03, 0x2a, 0xbb, 0x8e, 0xe3, 0x93, 0x20, 0x30, 0xb4, 0x4d, 0xad,
+	0xd3, 0xb0, 0x12, 0x11, 0xbd, 0x05, 0xb5, 0x7e, 0x38, 0xf4, 0xa8, 0xfd, 0x84, 0x9c, 0x1b, 0x77,
+	0xe4, 0x59, 0x0a, 0xa0, 0x77, 0x60, 0x65, 0xd7, 0x16, 0x94, 0x33, 0xa3, 0xb8, 0xa9, 0x75, 0xee,
+	0xee, 0xac, 0x29, 0xe7, 0x5b, 0x91, 0x63, 0x75, 0x60, 0xc5, 0x0a, 0x91, 0xa3, 0x63, 0x3a, 0x26,
+	0x03, 0x81, 0xc7, 0x13, 0xa3, 0xb4, 0xa9, 0x75, 0x4a, 0x56, 0x0a, 0x20, 0x17, 0xea, 0xcf, 0xb1,
+	0x17, 0x92, 0xbd, 0x11, 0x66, 0x2e, 0x31, 0xca, 0x51, 0xa0, 0xee, 0xc1, 0xcf, 0xbf, 0x3f, 0xd8,
+	0x1d, 0x63, 0x31, 0xda, 0x1e, 0x52, 0x77, 0xab, 0xc7, 0xc4, 0x47, 0x99, 0x7c, 0x0f, 0x3c, 0x9f,
+	0x33, 0xe7, 0x88, 0x88, 0x33, 0xee, 0x9f, 0x6c, 0x13, 0x29, 0x3d, 0x74, 0xf9, 0xb6, 0x83, 0x05,
+	0xde, 0xea, 0x52, 0xb7, 0xc7, 0xc4, 0x1e, 0x0e, 0x04, 0xf1, 0xad, 0xac, 0xe7, 0xf6, 0xf7, 0x1a,
+	0xb4, 0x06, 0x23, 0xec, 0x3b, 0xcf, 0x28, 0xa3, 0xb2, 0xa4, 0x87, 0x04, 0x3b, 0xc4, 0x47, 0x08,
+	0x4a, 0x87, 0x38, 0x18, 0xc5, 0xf9, 0xcb, 0xdf, 0xa8, 0x03, 0x4d, 0x8b, 0xd8, 0x84, 0x9e, 0x12,
+	0x5f, 0xda, 0xf4, 0xf6, 0x65, 0x09, 0x56, 0xad, 0x45, 0x18, 0xbd, 0x0d, 0xab, 0x03, 0xc2, 0x9c,
+	0x54, 0xaf, 0x28, 0xf5, 0xe6, 0xc1, 0xa8, 0xcc, 0xc7, 0x5f, 0xed, 0xf1, 0x90, 0x09, 0x59, 0x81,
+	0x55, 0x2b, 0x11, 0xdb, 0xdf, 0x96, 0xa0, 0x26, 0xb5, 0x64, 0x3b, 0x4c, 0x00, 0xf5, 0x55, 0xf2,
+	0x8b, 0x54, 0xd5, 0x33, 0x08, 0xfa, 0x0c, 0xee, 0xe7, 0xe5, 0x10, 0x18, 0xc5, 0xcd, 0x62, 0xa7,
+	0xbe, 0xf3, 0xff, 0xb8, 0x0b, 0x79, 0x3a, 0xdd, 0xd2, 0xab, 0xdf, 0x1e, 0x14, 0xac, 0x7c, 0x7b,
+	0xd4, 0x86, 0x46, 0xdf, 0x27, 0xa7, 0x16, 0x66, 0xce, 0x80, 0x10, 0x47, 0x7e, 0x65, 0xc3, 0x9a,
+	0xc3, 0xa2, 0x54, 0xfb, 0xe1, 0xf0, 0x09, 0x39, 0x0f, 0xba, 0x54, 0x8c, 0xf1, 0x44, 0x35, 0xcb,
+	0x9a, 0x07, 0xa3, 0x76, 0x0f, 0xa8, 0xcb, 0xb0, 0x08, 0x7d, 0x62, 0xac, 0x28, 0xde, 0xcc, 0x00,
+	0xd4, 0x82, 0xb2, 0xc5, 0x43, 0xe6, 0x18, 0x55, 0x49, 0x04, 0x25, 0xa0, 0x0d, 0xa8, 0x46, 0x91,
+	0x64, 0xd2, 0x35, 0x69, 0x32, 0x93, 0x23, 0x8b, 0x23, 0xce, 0x6c, 0x62, 0x80, 0xb2, 0x90, 0x02,
+	0xe2, 0xd0, 0xdc, 0xb5, 0xed, 0x70, 0x1c, 0x7a, 0x58, 0x10, 0xe7, 0x31, 0x21, 0x81, 0xd1, 0x58,
+	0x26, 0x75, 0x16, 0xbd, 0xa3, 0x1d, 0x68, 0x1d, 0x85, 0xe3, 0x3e, 0x61, 0x0e, 0x65, 0xee, 0xac,
+	0x7c, 0x81, 0x51, 0x97, 0xed, 0xcc, 0x3d, 0x8b, 0xba, 0x9e, 0xb0, 0x42, 0x53, 0x5d, 0xcf, 0xe1,
+	0x43, 0x65, 0x9e, 0x0f, 0xaf, 0xef, 0xc0, 0xbd, 0x83, 0x09, 0xb7, 0x47, 0x03, 0x81, 0x7d, 0x91,
+	0x32, 0xe3, 0x76, 0x5f, 0xb3, 0x92, 0x56, 0xb2, 0x25, 0x9d, 0x95, 0xad, 0x9a, 0x2d, 0xdb, 0x3f,
+	0xf1, 0x6b, 0x03, 0xaa, 0x16, 0xe7, 0x42, 0x9e, 0x16, 0x55, 0x23, 0x12, 0x19, 0x3d, 0x82, 0xfb,
+	0x8f, 0xa9, 0x1f, 0x88, 0x24, 0xcf, 0x64, 0x32, 0xc5, 0x5c, 0xc9, 0x3f, 0x8c, 0xac, 0x9e, 0xe2,
+	0x40, 0x3c, 0xa6, 0x8c, 0x06, 0x23, 0xe2, 0xa4, 0x56, 0x8a, 0x3c, 0xf9, 0x87, 0xe8, 0x0b, 0xf8,
+	0xdf, 0x62, 0x39, 0x13, 0xa6, 0xaf, 0xfc, 0x5b, 0xa6, 0xdf, 0xe6, 0xa1, 0xfd, 0x6b, 0x09, 0x6a,
+	0x07, 0x36, 0x67, 0x7c, 0x4c, 0xed, 0x20, 0x1a, 0x40, 0xc7, 0x5c, 0x60, 0x6f, 0x10, 0x4e, 0x26,
+	0xde, 0xb9, 0x9a, 0x02, 0x4b, 0x1b, 0x40, 0x19, 0xcf, 0x28, 0x80, 0x35, 0x29, 0x1e, 0xf3, 0x7d,
+	0x1a, 0x08, 0x9f, 0x0e, 0x43, 0x41, 0x54, 0x0b, 0x96, 0x15, 0xee, 0xa6, 0x7f, 0xf4, 0x25, 0xe8,
+	0x12, 0x3c, 0x22, 0x67, 0xde, 0xf9, 0x33, 0xca, 0x04, 0x71, 0x54, 0x63, 0x97, 0x15, 0xf3, 0x86,
+	0x7b, 0xf4, 0x12, 0xd6, 0x2d, 0x72, 0x86, 0x7d, 0x27, 0xe8, 0x13, 0x5f, 0x16, 0xbe, 0x4f, 0xfc,
+	0x23, 0xee, 0x10, 0x45, 0x94, 0x65, 0x05, 0xbe, 0x25, 0x08, 0xb2, 0xa1, 0x16, 0xfd, 0xed, 0xfb,
+	0xd4, 0x5e, 0xf2, 0x3a, 0x49, 0xfd, 0xb6, 0x7f, 0xd0, 0x00, 0xd2, 0x5b, 0x8a, 0x8e, 0xa1, 0x15,
+	0xf3, 0x18, 0x7b, 0xf4, 0x6b, 0xe2, 0x24, 0x5c, 0xd5, 0x24, 0x57, 0x37, 0x62, 0xae, 0xe6, 0x5c,
+	0xeb, 0x98, 0xaa, 0xb9, 0xd6, 0xe8, 0x51, 0x86, 0xa6, 0x92, 0x28, 0xf5, 0x1d, 0x3d, 0x71, 0x95,
+	0xe0, 0xb1, 0x83, 0x54, 0xb1, 0xfd, 0x4b, 0x05, 0x6a, 0xe9, 0x45, 0x9a, 0x8d, 0x01, 0x2d, 0x3b,
+	0x06, 0x66, 0x23, 0xa3, 0x98, 0x1d, 0x19, 0x7f, 0xbf, 0xa8, 0x1f, 0xc5, 0x7b, 0xaa, 0xc7, 0x5e,
+	0x70, 0xa3, 0x2c, 0x13, 0xd3, 0xb3, 0x97, 0x30, 0x93, 0x4e, 0xaa, 0x88, 0xde, 0x53, 0x6f, 0x0d,
+	0x69, 0xa4, 0x6e, 0x6e, 0x33, 0xf3, 0x52, 0xc8, 0xd8, 0xcc, 0xd4, 0xe6, 0x17, 0x48, 0x65, 0x71,
+	0x81, 0x74, 0xa0, 0xf9, 0x54, 0xd6, 0x27, 0xd5, 0xa9, 0x4a, 0x9d, 0x45, 0xf8, 0xe6, 0xba, 0xaa,
+	0xe5, 0xad, 0xab, 0xec, 0xea, 0x81, 0x85, 0xd5, 0xb3, 0xb8, 0x14, 0xeb, 0x39, 0x4b, 0x31, 0x9a,
+	0x98, 0xc9, 0x79, 0x23, 0x9e, 0x98, 0xd9, 0xb3, 0x64, 0x9a, 0xae, 0x2e, 0x4c, 0xd3, 0x0f, 0x60,
+	0xfd, 0x39, 0xf6, 0xa8, 0x83, 0x05, 0xf7, 0x07, 0x02, 0x8b, 0x60, 0xa6, 0x79, 0x57, 0x6a, 0xde,
+	0x72, 0x8a, 0x0e, 0x41, 0xbf, 0x31, 0x12, 0x75, 0x59, 0xd8, 0xf5, 0xb8, 0xb0, 0xf9, 0xd3, 0x50,
+	0xcf, 0x5b, 0xf9, 0xf2, 0x31, 0x33, 0x11, 0x81, 0x8c, 0xbb, 0xa6, 0xb2, 0xcb, 0x62, 0xe8, 0xc3,
+	0x2c, 0xcd, 0x0d, 0x24, 0x39, 0xb8, 0x76, 0x83, 0xce, 0x71, 0x88, 0xec, 0x8d, 0x30, 0xa0, 0xb2,
+	0x37, 0xc2, 0x94, 0xf5, 0xf6, 0x8d, 0x7b, 0xea, 0x5d, 0x19, 0x8b, 0x79, 0x9b, 0xbb, 0xf5, 0x9f,
+	0x6e, 0xee, 0x97, 0xb0, 0xbe, 0x00, 0xf5, 0x98, 0xfc, 0x52, 0xe3, 0xfe, 0x52, 0xe7, 0x51, 0x7e,
+	0x90, 0xe8, 0xae, 0xa9, 0x68, 0xea, 0x01, 0xa9, 0x84, 0xec, 0x03, 0xa0, 0x39, 0xf7, 0x00, 0x78,
+	0xf7, 0x47, 0x0d, 0x20, 0x7d, 0x45, 0xa3, 0x35, 0x58, 0xed, 0xb1, 0xd3, 0x88, 0x0b, 0x0a, 0xd0,
+	0x0b, 0xa8, 0x05, 0x7a, 0xa4, 0x60, 0x11, 0x37, 0x9a, 0xf3, 0x58, 0xa2, 0x5a, 0xa4, 0x18, 0xa1,
+	0x9f, 0xb2, 0x40, 0xe0, 0x13, 0xca, 0x5c, 0xfd, 0x0e, 0x5a, 0x07, 0x24, 0x6f, 0x19, 0xf1, 0xb3,
+	0xaa, 0x45, 0x74, 0x57, 0x45, 0xf8, 0x04, 0x53, 0x8f, 0x38, 0x7a, 0x09, 0xe9, 0xd0, 0x50, 0xa6,
+	0x31, 0x52, 0x46, 0x4d, 0xa8, 0x47, 0xc8, 0xc0, 0xc3, 0xd1, 0x5e, 0xd6, 0x57, 0x12, 0xc0, 0x8a,
+	0x86, 0xc1, 0x09, 0xd1, 0x2b, 0xdd, 0x8f, 0x2f, 0xae, 0xcc, 0xc2, 0xe5, 0x95, 0x59, 0x78, 0x73,
+	0x65, 0x6a, 0xdf, 0x4c, 0x4d, 0xed, 0xa7, 0xa9, 0xa9, 0xbd, 0x9a, 0x9a, 0xda, 0xc5, 0xd4, 0xd4,
+	0x2e, 0xa7, 0xa6, 0xf6, 0x7a, 0x6a, 0x6a, 0x7f, 0x4c, 0xcd, 0xc2, 0x9b, 0xa9, 0xa9, 0x7d, 0x77,
+	0x6d, 0x16, 0x2e, 0xae, 0xcd, 0xc2, 0xe5, 0xb5, 0x59, 0xf8, 0xbc, 0x2c, 0xff, 0x19, 0x19, 0xae,
+	0x48, 0x16, 0xbd, 0xff, 0x57, 0x00, 0x00, 0x00, 0xff, 0xff, 0x27, 0x89, 0x12, 0x61, 0xe3, 0x0c,
+	0x00, 0x00,
 }
 
 func (x PeerAction) String() string {
@@ -657,9 +940,6 @@ func (this *ShardData) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.ShardID != that1.ShardID {
-		return false
-	}
 	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
 		return false
 	}
@@ -680,9 +960,6 @@ func (this *ShardData) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Signature, that1.Signature) {
 		return false
 	}
-	if this.TxCount != that1.TxCount {
-		return false
-	}
 	if this.Round != that1.Round {
 		return false
 	}
@@ -690,6 +967,154 @@ func (this *ShardData) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Nonce != that1.Nonce {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.AccumulatedFees, that1.AccumulatedFees) {
+			return false
+		}
+	}
+	if this.NumPendingMiniBlocks != that1.NumPendingMiniBlocks {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if this.TxCount != that1.TxCount {
+		return false
+	}
+	return true
+}
+func (this *EpochStartShardData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*EpochStartShardData)
+	if !ok {
+		that2, ok := that.(EpochStartShardData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if this.Round != that1.Round {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
+	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
+		return false
+	}
+	if !bytes.Equal(this.RootHash, that1.RootHash) {
+		return false
+	}
+	if !bytes.Equal(this.FirstPendingMetaBlock, that1.FirstPendingMetaBlock) {
+		return false
+	}
+	if !bytes.Equal(this.LastFinishedMetaBlock, that1.LastFinishedMetaBlock) {
+		return false
+	}
+	if len(this.PendingMiniBlockHeaders) != len(that1.PendingMiniBlockHeaders) {
+		return false
+	}
+	for i := range this.PendingMiniBlockHeaders {
+		if !this.PendingMiniBlockHeaders[i].Equal(&that1.PendingMiniBlockHeaders[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *Economics) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Economics)
+	if !ok {
+		that2, ok := that.(Economics)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalSupply, that1.TotalSupply) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalToDistribute, that1.TotalToDistribute) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalNewlyMinted, that1.TotalNewlyMinted) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.RewardsPerBlockPerNode, that1.RewardsPerBlockPerNode) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.NodePrice, that1.NodePrice) {
+			return false
+		}
+	}
+	return true
+}
+func (this *EpochStart) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*EpochStart)
+	if !ok {
+		that2, ok := that.(EpochStart)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.LastFinalizedHeaders) != len(that1.LastFinalizedHeaders) {
+		return false
+	}
+	for i := range this.LastFinalizedHeaders {
+		if !this.LastFinalizedHeaders[i].Equal(&that1.LastFinalizedHeaders[i]) {
+			return false
+		}
+	}
+	if !this.Economics.Equal(&that1.Economics) {
 		return false
 	}
 	return true
@@ -714,9 +1139,6 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Nonce != that1.Nonce {
-		return false
-	}
-	if this.Epoch != that1.Epoch {
 		return false
 	}
 	if this.Round != that1.Round {
@@ -765,9 +1187,6 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 	if !bytes.Equal(this.ValidatorStatsRootHash, that1.ValidatorStatsRootHash) {
 		return false
 	}
-	if this.TxCount != that1.TxCount {
-		return false
-	}
 	if len(this.MiniBlockHeaders) != len(that1.MiniBlockHeaders) {
 		return false
 	}
@@ -775,6 +1194,33 @@ func (this *MetaBlock) Equal(that interface{}) bool {
 		if !this.MiniBlockHeaders[i].Equal(&that1.MiniBlockHeaders[i]) {
 			return false
 		}
+	}
+	if !bytes.Equal(this.ReceiptsHash, that1.ReceiptsHash) {
+		return false
+	}
+	if !this.EpochStart.Equal(&that1.EpochStart) {
+		return false
+	}
+	if !bytes.Equal(this.ChainID, that1.ChainID) {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.AccumulatedFees, that1.AccumulatedFees) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.AccumulatedFeesInEpoch, that1.AccumulatedFeesInEpoch) {
+			return false
+		}
+	}
+	if this.Epoch != that1.Epoch {
+		return false
+	}
+	if this.TxCount != that1.TxCount {
+		return false
 	}
 	return true
 }
@@ -809,9 +1255,8 @@ func (this *ShardData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 14)
+	s := make([]string, 0, 16)
 	s = append(s, "&block.ShardData{")
-	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
 	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
 	if this.ShardMiniBlockHeaders != nil {
 		vs := make([]ShardMiniBlockHeader, len(this.ShardMiniBlockHeaders))
@@ -823,10 +1268,67 @@ func (this *ShardData) GoString() string {
 	s = append(s, "PrevRandSeed: "+fmt.Sprintf("%#v", this.PrevRandSeed)+",\n")
 	s = append(s, "PubKeysBitmap: "+fmt.Sprintf("%#v", this.PubKeysBitmap)+",\n")
 	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
-	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
 	s = append(s, "PrevHash: "+fmt.Sprintf("%#v", this.PrevHash)+",\n")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
+	s = append(s, "NumPendingMiniBlocks: "+fmt.Sprintf("%#v", this.NumPendingMiniBlocks)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *EpochStartShardData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 12)
+	s = append(s, "&block.EpochStartShardData{")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
+	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
+	s = append(s, "FirstPendingMetaBlock: "+fmt.Sprintf("%#v", this.FirstPendingMetaBlock)+",\n")
+	s = append(s, "LastFinishedMetaBlock: "+fmt.Sprintf("%#v", this.LastFinishedMetaBlock)+",\n")
+	if this.PendingMiniBlockHeaders != nil {
+		vs := make([]ShardMiniBlockHeader, len(this.PendingMiniBlockHeaders))
+		for i := range vs {
+			vs[i] = this.PendingMiniBlockHeaders[i]
+		}
+		s = append(s, "PendingMiniBlockHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Economics) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&block.Economics{")
+	s = append(s, "TotalSupply: "+fmt.Sprintf("%#v", this.TotalSupply)+",\n")
+	s = append(s, "TotalToDistribute: "+fmt.Sprintf("%#v", this.TotalToDistribute)+",\n")
+	s = append(s, "TotalNewlyMinted: "+fmt.Sprintf("%#v", this.TotalNewlyMinted)+",\n")
+	s = append(s, "RewardsPerBlockPerNode: "+fmt.Sprintf("%#v", this.RewardsPerBlockPerNode)+",\n")
+	s = append(s, "NodePrice: "+fmt.Sprintf("%#v", this.NodePrice)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *EpochStart) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&block.EpochStart{")
+	if this.LastFinalizedHeaders != nil {
+		vs := make([]EpochStartShardData, len(this.LastFinalizedHeaders))
+		for i := range vs {
+			vs[i] = this.LastFinalizedHeaders[i]
+		}
+		s = append(s, "LastFinalizedHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "Economics: "+strings.Replace(this.Economics.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -834,10 +1336,9 @@ func (this *MetaBlock) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 20)
+	s := make([]string, 0, 25)
 	s = append(s, "&block.MetaBlock{")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
-	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
 	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
 	s = append(s, "TimeStamp: "+fmt.Sprintf("%#v", this.TimeStamp)+",\n")
 	if this.ShardInfo != nil {
@@ -862,7 +1363,6 @@ func (this *MetaBlock) GoString() string {
 	s = append(s, "RandSeed: "+fmt.Sprintf("%#v", this.RandSeed)+",\n")
 	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
 	s = append(s, "ValidatorStatsRootHash: "+fmt.Sprintf("%#v", this.ValidatorStatsRootHash)+",\n")
-	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	if this.MiniBlockHeaders != nil {
 		vs := make([]MiniBlockHeader, len(this.MiniBlockHeaders))
 		for i := range vs {
@@ -870,6 +1370,13 @@ func (this *MetaBlock) GoString() string {
 		}
 		s = append(s, "MiniBlockHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
+	s = append(s, "ReceiptsHash: "+fmt.Sprintf("%#v", this.ReceiptsHash)+",\n")
+	s = append(s, "EpochStart: "+strings.Replace(this.EpochStart.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "ChainID: "+fmt.Sprintf("%#v", this.ChainID)+",\n")
+	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
+	s = append(s, "AccumulatedFeesInEpoch: "+fmt.Sprintf("%#v", this.AccumulatedFeesInEpoch)+",\n")
+	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
+	s = append(s, "TxCount: "+fmt.Sprintf("%#v", this.TxCount)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1004,6 +1511,22 @@ func (m *ShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.AccumulatedFees)
+		i -= size
+		if _, err := __caster.MarshalTo(m.AccumulatedFees, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x62
+	if m.NumPendingMiniBlocks != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.NumPendingMiniBlocks))
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.Nonce != 0 {
 		i = encodeVarintMetaBlock(dAtA, i, uint64(m.Nonce))
 		i--
@@ -1076,6 +1599,211 @@ func (m *ShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *EpochStartShardData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EpochStartShardData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EpochStartShardData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Nonce != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Round != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.PendingMiniBlockHeaders) > 0 {
+		for iNdEx := len(m.PendingMiniBlockHeaders) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.PendingMiniBlockHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.LastFinishedMetaBlock) > 0 {
+		i -= len(m.LastFinishedMetaBlock)
+		copy(dAtA[i:], m.LastFinishedMetaBlock)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.LastFinishedMetaBlock)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.FirstPendingMetaBlock) > 0 {
+		i -= len(m.FirstPendingMetaBlock)
+		copy(dAtA[i:], m.FirstPendingMetaBlock)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.FirstPendingMetaBlock)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.RootHash) > 0 {
+		i -= len(m.RootHash)
+		copy(dAtA[i:], m.RootHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.RootHash)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.HeaderHash) > 0 {
+		i -= len(m.HeaderHash)
+		copy(dAtA[i:], m.HeaderHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.HeaderHash)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ShardID != 0 {
+		i = encodeVarintMetaBlock(dAtA, i, uint64(m.ShardID))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Economics) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Economics) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Economics) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.NodePrice)
+		i -= size
+		if _, err := __caster.MarshalTo(m.NodePrice, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2a
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.RewardsPerBlockPerNode)
+		i -= size
+		if _, err := __caster.MarshalTo(m.RewardsPerBlockPerNode, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalNewlyMinted)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalNewlyMinted, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalToDistribute)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalToDistribute, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalSupply)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalSupply, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *EpochStart) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EpochStart) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EpochStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size, err := m.Economics.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.LastFinalizedHeaders) > 0 {
+		for iNdEx := len(m.LastFinalizedHeaders) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.LastFinalizedHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MetaBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1096,6 +1824,62 @@ func (m *MetaBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.AccumulatedFeesInEpoch)
+		i -= size
+		if _, err := __caster.MarshalTo(m.AccumulatedFeesInEpoch, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.AccumulatedFees)
+		i -= size
+		if _, err := __caster.MarshalTo(m.AccumulatedFees, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if len(m.ChainID) > 0 {
+		i -= len(m.ChainID)
+		copy(dAtA[i:], m.ChainID)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.ChainID)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
+	{
+		size, err := m.EpochStart.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintMetaBlock(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x92
+	if len(m.ReceiptsHash) > 0 {
+		i -= len(m.ReceiptsHash)
+		copy(dAtA[i:], m.ReceiptsHash)
+		i = encodeVarintMetaBlock(dAtA, i, uint64(len(m.ReceiptsHash)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
 	if len(m.MiniBlockHeaders) > 0 {
 		for iNdEx := len(m.MiniBlockHeaders) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -1329,6 +2113,105 @@ func (m *ShardData) Size() (n int) {
 	if m.Nonce != 0 {
 		n += 1 + sovMetaBlock(uint64(m.Nonce))
 	}
+	if m.NumPendingMiniBlocks != 0 {
+		n += 1 + sovMetaBlock(uint64(m.NumPendingMiniBlocks))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.AccumulatedFees)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	return n
+}
+
+func (m *EpochStartShardData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ShardID != 0 {
+		n += 1 + sovMetaBlock(uint64(m.ShardID))
+	}
+	l = len(m.HeaderHash)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.RootHash)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.FirstPendingMetaBlock)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	l = len(m.LastFinishedMetaBlock)
+	if l > 0 {
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	if len(m.PendingMiniBlockHeaders) > 0 {
+		for _, e := range m.PendingMiniBlockHeaders {
+			l = e.Size()
+			n += 1 + l + sovMetaBlock(uint64(l))
+		}
+	}
+	if m.Round != 0 {
+		n += 1 + sovMetaBlock(uint64(m.Round))
+	}
+	if m.Nonce != 0 {
+		n += 1 + sovMetaBlock(uint64(m.Nonce))
+	}
+	return n
+}
+
+func (m *Economics) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalSupply)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalToDistribute)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalNewlyMinted)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.RewardsPerBlockPerNode)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.NodePrice)
+		n += 1 + l + sovMetaBlock(uint64(l))
+	}
+	return n
+}
+
+func (m *EpochStart) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.LastFinalizedHeaders) > 0 {
+		for _, e := range m.LastFinalizedHeaders {
+			l = e.Size()
+			n += 1 + l + sovMetaBlock(uint64(l))
+		}
+	}
+	l = m.Economics.Size()
+	n += 1 + l + sovMetaBlock(uint64(l))
 	return n
 }
 
@@ -1403,6 +2286,26 @@ func (m *MetaBlock) Size() (n int) {
 			n += 2 + l + sovMetaBlock(uint64(l))
 		}
 	}
+	l = len(m.ReceiptsHash)
+	if l > 0 {
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
+	l = m.EpochStart.Size()
+	n += 2 + l + sovMetaBlock(uint64(l))
+	l = len(m.ChainID)
+	if l > 0 {
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.AccumulatedFees)
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.AccumulatedFeesInEpoch)
+		n += 2 + l + sovMetaBlock(uint64(l))
+	}
 	return n
 }
 
@@ -1459,6 +2362,60 @@ func (this *ShardData) String() string {
 		`Round:` + fmt.Sprintf("%v", this.Round) + `,`,
 		`PrevHash:` + fmt.Sprintf("%v", this.PrevHash) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`NumPendingMiniBlocks:` + fmt.Sprintf("%v", this.NumPendingMiniBlocks) + `,`,
+		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EpochStartShardData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForPendingMiniBlockHeaders := "[]ShardMiniBlockHeader{"
+	for _, f := range this.PendingMiniBlockHeaders {
+		repeatedStringForPendingMiniBlockHeaders += strings.Replace(strings.Replace(f.String(), "ShardMiniBlockHeader", "ShardMiniBlockHeader", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForPendingMiniBlockHeaders += "}"
+	s := strings.Join([]string{`&EpochStartShardData{`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
+		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
+		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
+		`FirstPendingMetaBlock:` + fmt.Sprintf("%v", this.FirstPendingMetaBlock) + `,`,
+		`LastFinishedMetaBlock:` + fmt.Sprintf("%v", this.LastFinishedMetaBlock) + `,`,
+		`PendingMiniBlockHeaders:` + repeatedStringForPendingMiniBlockHeaders + `,`,
+		`Round:` + fmt.Sprintf("%v", this.Round) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Economics) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Economics{`,
+		`TotalSupply:` + fmt.Sprintf("%v", this.TotalSupply) + `,`,
+		`TotalToDistribute:` + fmt.Sprintf("%v", this.TotalToDistribute) + `,`,
+		`TotalNewlyMinted:` + fmt.Sprintf("%v", this.TotalNewlyMinted) + `,`,
+		`RewardsPerBlockPerNode:` + fmt.Sprintf("%v", this.RewardsPerBlockPerNode) + `,`,
+		`NodePrice:` + fmt.Sprintf("%v", this.NodePrice) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EpochStart) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForLastFinalizedHeaders := "[]EpochStartShardData{"
+	for _, f := range this.LastFinalizedHeaders {
+		repeatedStringForLastFinalizedHeaders += strings.Replace(strings.Replace(f.String(), "EpochStartShardData", "EpochStartShardData", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForLastFinalizedHeaders += "}"
+	s := strings.Join([]string{`&EpochStart{`,
+		`LastFinalizedHeaders:` + repeatedStringForLastFinalizedHeaders + `,`,
+		`Economics:` + strings.Replace(strings.Replace(this.Economics.String(), "Economics", "Economics", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1499,6 +2456,11 @@ func (this *MetaBlock) String() string {
 		`ValidatorStatsRootHash:` + fmt.Sprintf("%v", this.ValidatorStatsRootHash) + `,`,
 		`TxCount:` + fmt.Sprintf("%v", this.TxCount) + `,`,
 		`MiniBlockHeaders:` + repeatedStringForMiniBlockHeaders + `,`,
+		`ReceiptsHash:` + fmt.Sprintf("%v", this.ReceiptsHash) + `,`,
+		`EpochStart:` + strings.Replace(strings.Replace(this.EpochStart.String(), "EpochStart", "EpochStart", 1), `&`, ``, 1) + `,`,
+		`ChainID:` + fmt.Sprintf("%v", this.ChainID) + `,`,
+		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
+		`AccumulatedFeesInEpoch:` + fmt.Sprintf("%v", this.AccumulatedFeesInEpoch) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2161,6 +3123,706 @@ func (m *ShardData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumPendingMiniBlocks", wireType)
+			}
+			m.NumPendingMiniBlocks = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumPendingMiniBlocks |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.AccumulatedFees = tmp
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetaBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EpochStartShardData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetaBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EpochStartShardData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EpochStartShardData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
+			}
+			m.ShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HeaderHash = append(m.HeaderHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.HeaderHash == nil {
+				m.HeaderHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.RootHash == nil {
+				m.RootHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FirstPendingMetaBlock", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FirstPendingMetaBlock = append(m.FirstPendingMetaBlock[:0], dAtA[iNdEx:postIndex]...)
+			if m.FirstPendingMetaBlock == nil {
+				m.FirstPendingMetaBlock = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFinishedMetaBlock", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastFinishedMetaBlock = append(m.LastFinishedMetaBlock[:0], dAtA[iNdEx:postIndex]...)
+			if m.LastFinishedMetaBlock == nil {
+				m.LastFinishedMetaBlock = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingMiniBlockHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PendingMiniBlockHeaders = append(m.PendingMiniBlockHeaders, ShardMiniBlockHeader{})
+			if err := m.PendingMiniBlockHeaders[len(m.PendingMiniBlockHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetaBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Economics) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetaBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Economics: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Economics: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalSupply", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalSupply = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalToDistribute", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalToDistribute = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalNewlyMinted", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalNewlyMinted = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardsPerBlockPerNode", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.RewardsPerBlockPerNode = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodePrice", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.NodePrice = tmp
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetaBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EpochStart) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetaBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EpochStart: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EpochStart: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFinalizedHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastFinalizedHeaders = append(m.LastFinalizedHeaders, EpochStartShardData{})
+			if err := m.LastFinalizedHeaders[len(m.LastFinalizedHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Economics", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Economics.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMetaBlock(dAtA[iNdEx:])
@@ -2681,6 +4343,183 @@ func (m *MetaBlock) Unmarshal(dAtA []byte) error {
 			m.MiniBlockHeaders = append(m.MiniBlockHeaders, MiniBlockHeader{})
 			if err := m.MiniBlockHeaders[len(m.MiniBlockHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptsHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReceiptsHash = append(m.ReceiptsHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.ReceiptsHash == nil {
+				m.ReceiptsHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EpochStart", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.EpochStart.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChainID = append(m.ChainID[:0], dAtA[iNdEx:postIndex]...)
+			if m.ChainID == nil {
+				m.ChainID = []byte{}
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.AccumulatedFees = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFeesInEpoch", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetaBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMetaBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.AccumulatedFeesInEpoch = tmp
+				}
 			}
 			iNdEx = postIndex
 		default:

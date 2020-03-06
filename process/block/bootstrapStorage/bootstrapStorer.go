@@ -4,6 +4,7 @@ package bootstrapStorage
 import (
 	"errors"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -48,7 +49,7 @@ func NewBootstrapStorer(
 
 // Put will save bootData in storage
 func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
-	bootData.LastRound = bs.lastRound
+	bootData.LastRound = atomic.LoadInt64(&bs.lastRound)
 
 	// save bootstrap round information
 	bootDataBytes, err := bs.marshalizer.Marshal(&bootData)
@@ -73,7 +74,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 		return err
 	}
 
-	bs.lastRound = round
+	atomic.StoreInt64(&bs.lastRound, round)
 
 	return nil
 }
@@ -113,7 +114,7 @@ func (bs *bootstrapStorer) GetHighestRound() int64 {
 
 // SaveLastRound will save the last round
 func (bs *bootstrapStorer) SaveLastRound(round int64) error {
-	bs.lastRound = round
+	atomic.StoreInt64(&bs.lastRound, round)
 
 	// save round with a static key
 	roundBytes, err := bs.marshalizer.Marshal(&RoundNum{Num: round})
@@ -132,4 +133,15 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bs *bootstrapStorer) IsInterfaceNil() bool {
 	return bs == nil
+}
+
+// TrimHeaderInfoSlice creates a copy of the provided slice without the excess capacity
+func TrimHeaderInfoSlice(in []BootstrapHeaderInfo) []BootstrapHeaderInfo {
+	if len(in) == 0 {
+		return []BootstrapHeaderInfo{}
+	}
+
+	ret := make([]BootstrapHeaderInfo, len(in))
+	copy(ret, in)
+	return ret
 }

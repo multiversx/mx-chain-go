@@ -2,7 +2,6 @@ package factory
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -14,17 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
-
-var errPrometheusUrlNotAvailable = errors.New("prometheus URL not available")
 
 // ArgStatusHandlers is a struct that stores arguments needed to create status handlers
 type ArgStatusHandlers struct {
 	LogViewName                  string
 	ServersConfigurationFileName string
-	PrometheusUserName           string
 	Ctx                          *cli.Context
 	Marshalizer                  marshal.Marshalizer
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
@@ -32,8 +27,6 @@ type ArgStatusHandlers struct {
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
-	PrometheusJoinUrl        string
-	UsePrometheus            bool
 	UseTermUI                bool
 	StatusHandler            core.AppStatusHandler
 	StatusMetrics            external.StatusMetricsHandler
@@ -44,19 +37,15 @@ type statusHandlersInfo struct {
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
 func NewStatusHandlersFactoryArgs(
 	logViewName string,
-	serversConfigurationFileName string,
-	prometheusUserName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
-		LogViewName:                  logViewName,
-		ServersConfigurationFileName: serversConfigurationFileName,
-		PrometheusUserName:           prometheusUserName,
-		Ctx:                          ctx,
-		Marshalizer:                  marshalizer,
-		Uint64ByteSliceConverter:     uint64ByteSliceConverter,
+		LogViewName:              logViewName,
+		Ctx:                      ctx,
+		Marshalizer:              marshalizer,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}
 }
 
@@ -66,12 +55,6 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	var views []factoryViews.Viewer
 	var err error
 	var handler core.AppStatusHandler
-
-	prometheusJoinUrl, usePrometheus := getPrometheusJoinURLIfAvailable(arguments.Ctx, arguments.ServersConfigurationFileName, arguments.PrometheusUserName)
-	if usePrometheus {
-		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
-	}
 
 	presenterStatusHandler := createStatusHandlerPresenter()
 
@@ -120,14 +103,12 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	statusHandlersInfo := new(statusHandlersInfo)
-	statusHandlersInfo.StatusHandler = handler
-	statusHandlersInfo.PrometheusJoinUrl = prometheusJoinUrl
-	statusHandlersInfo.UsePrometheus = usePrometheus
-	statusHandlersInfo.UseTermUI = useTermui
-	statusHandlersInfo.StatusMetrics = statusMetrics
-	statusHandlersInfo.PersistentHandler = persistentHandler
-	return statusHandlersInfo, nil
+	statusHandlersInfoObject := new(statusHandlersInfo)
+	statusHandlersInfoObject.StatusHandler = handler
+	statusHandlersInfoObject.UseTermUI = useTermui
+	statusHandlersInfoObject.StatusMetrics = statusMetrics
+	statusHandlersInfoObject.PersistentHandler = persistentHandler
+	return statusHandlersInfoObject, nil
 }
 
 // UpdateStorerAndMetricsForPersistentHandler will set storer for persistent status handler
@@ -138,35 +119,6 @@ func (shi *statusHandlersInfo) UpdateStorerAndMetricsForPersistentHandler(store 
 	}
 
 	return nil
-}
-
-func getPrometheusJoinURLIfAvailable(ctx *cli.Context, serversConfigurationFileName string, userPrometheusName string) (string, bool) {
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFileName))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheus := ctx.GlobalBool(userPrometheusName) && prometheusURLAvailable
-
-	return prometheusJoinUrl, usePrometheus
-}
-
-func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return "", err
-	}
-	baseURL := serversConfig.Prometheus.PrometheusBaseURL
-	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
-	resp, err := http.Get(statusURL)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errPrometheusUrlNotAvailable
-	}
-	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
-	return joinURL, nil
 }
 
 // CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler

@@ -16,6 +16,9 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Marshalizer:       &mock.MarshalizerMock{},
 		HdrBuff:           []byte("test buffer"),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           []byte("chain ID"),
+		ValidityAttester:  &mock.ValidityAttesterStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	return arg
@@ -62,7 +65,7 @@ func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
 
 	err := checkBlockHeaderArgument(nil)
 
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestCheckBlockHeaderArgument_NilHdrShouldErr(t *testing.T) {
@@ -120,6 +123,28 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
+func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.ChainID = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.ValidityAttester = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilValidityAttester, err)
+}
+
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -137,7 +162,7 @@ func TestCheckTxBlockBodyArgument_NilArgumentShouldErr(t *testing.T) {
 
 	err := checkTxBlockBodyArgument(nil)
 
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestCheckTxBlockBodyArgument_NilHdrShouldErr(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -60,7 +61,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasLimit: integrationTests.MinTxGasLimit + txDataCost,
 		GasPrice: integrationTests.MinTxGasPrice,
 	}
@@ -77,8 +78,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := nRequester.ShardDataPool.Transactions().ShardDataStore(
+	nRequester.DataPool.Transactions().RegisterHandler(func(key []byte) {
+		txStored, _ := nRequester.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
@@ -91,7 +92,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	nResolver.ShardDataPool.Transactions().AddData(
+	nResolver.DataPool.Transactions().AddData(
 		txHash,
 		&tx,
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
@@ -99,7 +100,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request tx
 	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
-	err = txResolver.RequestDataFromHash(txHash)
+	err = txResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {
@@ -140,12 +141,13 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a reward Transaction
+	_, pubKey, _ := integrationTests.GenerateSkAndPkInShard(nRequester.ShardCoordinator, nRequester.ShardCoordinator.SelfId())
+	pubKeyArray, _ := pubKey.ToByteArray()
 	tx := rewardTx.RewardTx{
 		Value:   big.NewInt(0),
-		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
+		RcvAddr: pubKeyArray,
 		Round:   0,
 		Epoch:   0,
-		ShardID: 0,
 	}
 
 	marshaledTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
@@ -157,9 +159,9 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	txHash := integrationTests.TestHasher.Compute(string(marshaledTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.ShardDataPool.RewardTransactions().RegisterHandler(func(key []byte) {
-		rewardTxStored, _ := nRequester.ShardDataPool.RewardTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
+		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
+			process.ShardCacherIdentifier(core.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
 		if reflect.DeepEqual(rewardTxStored, &tx) {
@@ -171,15 +173,15 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	nResolver.ShardDataPool.RewardTransactions().AddData(
+	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
-		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), core.MetachainShardId),
 	)
 
 	//Step 4. request tx
-	rewardTxResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
-	err = rewardTxResolver.RequestDataFromHash(txHash)
+	rewardTxResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, core.MetachainShardId)
+	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {

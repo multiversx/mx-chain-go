@@ -2,20 +2,21 @@
 package block
 
 import (
-	io "io"
-	"io/ioutil"
+	"bytes"
+	"encoding/hex"
+	"fmt"
+	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // don't break the interface
-
 var _ = data.HeaderHandler(&MetaBlock{})
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
-	return sharding.MetachainShardId
+	return core.MetachainShardId
 }
 
 // SetNonce sets header nonce
@@ -73,6 +74,16 @@ func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 	m.LeaderSignature = sg
 }
 
+// SetChainID sets the chain ID on which this block is valid on
+func (m *MetaBlock) SetChainID(chainID []byte) {
+	m.ChainID = chainID
+}
+
+// SetAccumulatedFees sets the accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	m.AccumulatedFees.Set(value)
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
@@ -83,9 +94,13 @@ func (m *MetaBlock) SetTxCount(txCount uint32) {
 	m.TxCount = txCount
 }
 
+// SetShardID sets header shard ID
+func (m *MetaBlock) SetShardID(_ uint32) {
+}
+
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
@@ -122,10 +137,14 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(m.PeerInfo)
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)
+}
+
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (m *MetaBlock) IsStartOfEpochBlock() bool {
+	return len(m.EpochStart.LastFinalizedHeaders) > 0
 }
 
 // ItemsInBody gets the number of items(hashes) added in block body
@@ -139,55 +158,17 @@ func (m *MetaBlock) Clone() data.HeaderHandler {
 	return &metaBlockCopy
 }
 
-// ----- for compatibility only ----
-
-func (pd *PeerData) Save(w io.Writer) error {
-	b, err := pd.Marshal()
-	if err != nil {
-		return err
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (m *MetaBlock) CheckChainID(reference []byte) error {
+	if !bytes.Equal(m.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(m.ChainID),
+		)
 	}
-	_, err = w.Write(b)
-	return err
-}
 
-func (pd *PeerData) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return pd.Unmarshal(b)
-}
-
-func (sd *ShardData) Save(w io.Writer) error {
-	b, err := sd.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (sd *ShardData) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return sd.Unmarshal(b)
-}
-
-func (mb *MetaBlock) Save(w io.Writer) error {
-	b, err := mb.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (mb *MetaBlock) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return mb.Unmarshal(b)
+	return nil
 }

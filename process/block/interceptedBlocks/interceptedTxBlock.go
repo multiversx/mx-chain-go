@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -54,10 +55,10 @@ func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) 
 func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {
 	inTxBody.hash = inTxBody.hasher.Compute(string(txBuff))
 
-	inTxBody.processIsForCurrentShard(inTxBody.txBlockBody)
+	inTxBody.processIsForCurrentShard()
 }
 
-func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody *block.Body) {
+func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard() {
 	inTxBody.isForCurrentShard = false
 	for _, miniblock := range inTxBody.txBlockBody.MiniBlocks {
 		inTxBody.isForCurrentShard = inTxBody.isMiniblockForCurrentShard(miniblock)
@@ -98,12 +99,12 @@ func (inTxBody *InterceptedTxBlockBody) IsForCurrentShard() bool {
 func (inTxBody *InterceptedTxBlockBody) integrity() error {
 	for _, miniBlock := range inTxBody.txBlockBody.MiniBlocks {
 		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.ReceiverShardID != sharding.MetachainShardId {
+			miniBlock.ReceiverShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
 		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
-			miniBlock.SenderShardID != sharding.MetachainShardId {
+			miniBlock.SenderShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
@@ -117,10 +118,12 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 	return nil
 }
 
+// Type returns the type of this intercepted data
+func (inTxBody *InterceptedTxBlockBody) Type() string {
+	return "intercepted block body"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inTxBody *InterceptedTxBlockBody) IsInterfaceNil() bool {
-	if inTxBody == nil {
-		return true
-	}
-	return false
+	return inTxBody == nil
 }

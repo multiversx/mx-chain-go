@@ -3,6 +3,8 @@ package sharding
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -16,6 +18,7 @@ type InitialNode struct {
 // NodeInfo holds node info
 type NodeInfo struct {
 	assignedShard uint32
+	eligible      bool
 	pubKey        []byte
 	address       []byte
 }
@@ -41,29 +44,30 @@ type NodesSetup struct {
 	RoundDuration      uint64 `json:"roundDuration"`
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+	ChainID            string `json:"chainID"`
 
 	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
 
 	InitialNodes []*InitialNode `json:"initialNodes"`
 
+	Hysteresis float32 `json:"hysteresis"`
+	Adaptivity bool    `json:"adaptivity"`
+
 	nrOfShards         uint32
 	nrOfNodes          uint32
 	nrOfMetaChainNodes uint32
-	allNodesInfo       map[uint32][]*NodeInfo
+	eligible           map[uint32][]*NodeInfo
+	waiting            map[uint32][]*NodeInfo
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
-func NewNodesSetup(nodesFilePath string, numOfNodes uint64) (*NodesSetup, error) {
+func NewNodesSetup(nodesFilePath string) (*NodesSetup, error) {
 	nodes := &NodesSetup{}
 
 	err := core.LoadJsonFile(nodes, nodesFilePath)
 	if err != nil {
 		return nil, err
-	}
-
-	if numOfNodes < uint64(len(nodes.InitialNodes)) {
-		nodes.InitialNodes = nodes.InitialNodes[:numOfNodes]
 	}
 
 	err = nodes.processConfig()
@@ -84,17 +88,26 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
-		ns.InitialNodes[i].pubKey, err = hex.DecodeString(ns.InitialNodes[i].PubKey)
-		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
+		pubKey := ns.InitialNodes[i].PubKey
+		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubKey)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
+		}
+
+		address := ns.InitialNodes[i].Address
+		ns.InitialNodes[i].address, err = hex.DecodeString(address)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParseAddress, err.Error(), address)
+		}
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
-		if ns.InitialNodes[i].PubKey == "" || err != nil {
+		if ns.InitialNodes[i].PubKey == "" {
 			ns.InitialNodes[i].pubKey = nil
 			return ErrCouldNotParsePubKey
 		}
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as address
-		if ns.InitialNodes[i].Address == "" || err != nil {
+		if ns.InitialNodes[i].Address == "" {
 			ns.InitialNodes[i].address = nil
 			return ErrCouldNotParseAddress
 		}
@@ -131,16 +144,20 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
 	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
-			ns.InitialNodes[id].assignedShard = MetachainShardId
+			ns.InitialNodes[id].assignedShard = core.MetachainShardId
+			ns.InitialNodes[id].eligible = true
 			ns.nrOfMetaChainNodes++
 		}
 	}
+
+	hystMeta := uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
+	hystShard := uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+
+	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.MinNodesPerShard + hystShard)
 }
 
 func (ns *NodesSetup) processShardAssignment() {
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
-	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes) / ns.MinNodesPerShard
-
 	currentShard := uint32(0)
 	countSetNodes := ns.nrOfMetaChainNodes
 	for ; currentShard < ns.nrOfShards; currentShard++ {
@@ -148,35 +165,48 @@ func (ns *NodesSetup) processShardAssignment() {
 			// consider only nodes with valid public key
 			if ns.InitialNodes[id].pubKey != nil {
 				ns.InitialNodes[id].assignedShard = currentShard
+				ns.InitialNodes[id].eligible = true
 				countSetNodes++
 			}
 		}
 	}
 
-	// allocate the rest
+	// allocate the rest to waiting lists
 	currentShard = 0
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
-		ns.InitialNodes[i].assignedShard = currentShard
-		currentShard = (currentShard + 1) % ns.nrOfShards
+		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
+		if currentShard == ns.nrOfShards {
+			currentShard = core.MetachainShardId
+		}
+
+		if ns.InitialNodes[i].pubKey != nil {
+			ns.InitialNodes[i].assignedShard = currentShard
+			ns.InitialNodes[i].eligible = false
+		}
 	}
 }
 
 func (ns *NodesSetup) createInitialNodesInfo() {
 	nrOfShardAndMeta := ns.nrOfShards + 1
 
-	ns.allNodesInfo = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
+	ns.eligible = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
+	ns.waiting = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			ns.allNodesInfo[in.assignedShard] = append(ns.allNodesInfo[in.assignedShard],
-				&NodeInfo{in.assignedShard, in.pubKey, in.address})
+			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
+			if in.eligible {
+				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
+			} else {
+				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], nodeInfo)
+			}
 		}
 	}
 }
 
 // InitialNodesPubKeys - gets initial nodes public keys
 func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
-	allNodesPubKeys := make(map[uint32][]string, 0)
-	for shardId, nodesInfo := range ns.allNodesInfo {
+	allNodesPubKeys := make(map[uint32][]string)
+	for shardId, nodesInfo := range ns.eligible {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {
 			pubKeys[i] = string(nodesInfo[i].pubKey)
@@ -189,20 +219,20 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 }
 
 // InitialNodesInfo - gets initial nodes info
-func (ns *NodesSetup) InitialNodesInfo() map[uint32][]*NodeInfo {
-	return ns.allNodesInfo
+func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]*NodeInfo, map[uint32][]*NodeInfo) {
+	return ns.eligible, ns.waiting
 }
 
-// InitialNodesPubKeysForShard - gets initial nodes public keys for shard
-func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
-	if ns.allNodesInfo[shardId] == nil {
+// InitialEligibleNodesPubKeysForShard - gets initial nodes public keys for shard
+func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	if ns.eligible[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}
-	if len(ns.allNodesInfo[shardId]) == 0 {
+	if len(ns.eligible[shardId]) == 0 {
 		return nil, ErrNoPubKeys
 	}
 
-	nodesInfo := ns.allNodesInfo[shardId]
+	nodesInfo := ns.eligible[shardId]
 	pubKeys := make([]string, len(nodesInfo))
 	for i := 0; i < len(nodesInfo); i++ {
 		pubKeys[i] = string(nodesInfo[i].pubKey)
@@ -212,15 +242,15 @@ func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, err
 }
 
 // InitialNodesInfoForShard - gets initial nodes info for shard
-func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, error) {
-	if ns.allNodesInfo[shardId] == nil {
-		return nil, ErrShardIdOutOfRange
+func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, []*NodeInfo, error) {
+	if ns.eligible[shardId] == nil {
+		return nil, nil, ErrShardIdOutOfRange
 	}
-	if len(ns.allNodesInfo[shardId]) == 0 {
-		return nil, ErrNoPubKeys
+	if len(ns.eligible[shardId]) == 0 {
+		return nil, nil, ErrNoPubKeys
 	}
 
-	return ns.allNodesInfo[shardId], nil
+	return ns.eligible[shardId], ns.waiting[shardId], nil
 }
 
 // NumberOfShards returns the calculated number of shards

@@ -13,10 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
@@ -55,7 +58,7 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
-	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler, 0)
+	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler)
 
 	return blockChainHookImpl, nil
 }
@@ -149,7 +152,9 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	return account.DataTrieTracker().RetrieveValue(index)
+	value, err := account.DataTrieTracker().RetrieveValue(index)
+	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
+	return value, err
 }
 
 // IsCodeEmpty returns if the code is empty
@@ -217,7 +222,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 
 // LastNonce returns the nonce from from the last committed block
 func (bh *BlockChainHookImpl) LastNonce() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetNonce()
 	}
 	return 0
@@ -225,7 +230,7 @@ func (bh *BlockChainHookImpl) LastNonce() uint64 {
 
 // LastRound returns the round from the last committed block
 func (bh *BlockChainHookImpl) LastRound() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRound()
 	}
 	return 0
@@ -233,7 +238,7 @@ func (bh *BlockChainHookImpl) LastRound() uint64 {
 
 // LastTimeStamp returns the timeStamp from the last committed block
 func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
 	}
 	return 0
@@ -241,7 +246,7 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 
 // LastRandomSeed returns the random seed from the last committed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRandSeed()
 	}
 	return []byte{}
@@ -249,7 +254,7 @@ func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
 
 // LastEpoch returns the epoch from the last committed block
 func (bh *BlockChainHookImpl) LastEpoch() uint32 {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
 	return 0
@@ -257,7 +262,7 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	if bh.blockChain.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRootHash()
 	}
 	return []byte{}
@@ -403,7 +408,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 // CleanTempAccounts cleans the map holding the temporary accounts
 func (bh *BlockChainHookImpl) CleanTempAccounts() {
 	bh.mutTempAccounts.Lock()
-	bh.tempAccounts = make(map[string]state.AccountHandler, 0)
+	bh.tempAccounts = make(map[string]state.AccountHandler)
 	bh.mutTempAccounts.Unlock()
 }
 
@@ -419,15 +424,12 @@ func (bh *BlockChainHookImpl) TempAccount(address []byte) state.AccountHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
-	if bh == nil {
-		return true
-	}
-	return false
+	return bh == nil
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts
 func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
-	if hdr == nil || hdr.IsInterfaceNil() {
+	if check.IfNil(hdr) {
 		return
 	}
 

@@ -2,8 +2,6 @@
 package rewardTx
 
 import (
-	io "io"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -12,13 +10,13 @@ import (
 var _ = data.TransactionHandler(&RewardTx{})
 
 // IsInterfaceNil verifies if underlying object is nil
-func (tx *RewardTx) IsInterfaceNil() bool {
-	return tx == nil
+func (rtx *RewardTx) IsInterfaceNil() bool {
+	return rtx == nil
 }
 
 // SetValue sets the value of the transaction
-func (tx *RewardTx) SetValue(value *big.Int) {
-	tx.Value = value
+func (rtx *RewardTx) SetValue(value *big.Int) {
+	rtx.Value = value
 }
 
 // GetNonce returns 0 as reward transactions do not have a nonce
@@ -27,8 +25,8 @@ func (_ *RewardTx) GetNonce() uint64 {
 }
 
 // GetData returns the data of the reward transaction
-func (_ *RewardTx) GetData() string {
-	return ""
+func (_ *RewardTx) GetData() []byte {
+	return []byte("")
 }
 
 // GetSndAddr returns the sender address from the reward transaction
@@ -47,7 +45,7 @@ func (_ *RewardTx) GetGasPrice() uint64 {
 }
 
 // SetData sets the data of the reward transaction
-func (_ *RewardTx) SetData(data string) {
+func (_ *RewardTx) SetData(data []byte) {
 }
 
 // SetRcvAddr sets the receiver address of the reward transaction
@@ -57,23 +55,4 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 
 // SetSndAddr sets the sender address of the reward transaction
 func (_ *RewardTx) SetSndAddr(addr []byte) {
-}
-
-// ----- for compatibility only ----
-
-func (t *RewardTx) Save(w io.Writer) error {
-	b, err := t.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (t *RewardTx) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return t.Unmarshal(b)
 }

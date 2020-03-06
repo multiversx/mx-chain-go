@@ -41,16 +41,12 @@ func (m *MiniBlocksInMeta) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *MiniBlocksInMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_MiniBlocksInMeta.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *MiniBlocksInMeta) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_MiniBlocksInMeta.Merge(m, src)
@@ -94,16 +90,12 @@ func (m *BootstrapHeaderInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *BootstrapHeaderInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_BootstrapHeaderInfo.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *BootstrapHeaderInfo) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapHeaderInfo.Merge(m, src)
@@ -138,35 +130,82 @@ func (m *BootstrapHeaderInfo) GetHash() []byte {
 	return nil
 }
 
+//PendingMiniBlockInfo is used to store information about the number of pending miniblocks
+type PendingMiniBlockInfo struct {
+	ShardID              uint32 `protobuf:"varint,1,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	NumPendingMiniBlocks uint32 `protobuf:"varint,2,opt,name=NumPendingMiniBlocks,proto3" json:"NumPendingMiniBlocks,omitempty"`
+}
+
+func (m *PendingMiniBlockInfo) Reset()      { *m = PendingMiniBlockInfo{} }
+func (*PendingMiniBlockInfo) ProtoMessage() {}
+func (*PendingMiniBlockInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cd9e3de0f7706101, []int{2}
+}
+func (m *PendingMiniBlockInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PendingMiniBlockInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *PendingMiniBlockInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PendingMiniBlockInfo.Merge(m, src)
+}
+func (m *PendingMiniBlockInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *PendingMiniBlockInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_PendingMiniBlockInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PendingMiniBlockInfo proto.InternalMessageInfo
+
+func (m *PendingMiniBlockInfo) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *PendingMiniBlockInfo) GetNumPendingMiniBlocks() uint32 {
+	if m != nil {
+		return m.NumPendingMiniBlocks
+	}
+	return 0
+}
+
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
-	LastHeader           BootstrapHeaderInfo   `protobuf:"bytes,1,opt,name=LastHeader,proto3" json:"LastHeader"`
-	LastNotarizedHeaders []BootstrapHeaderInfo `protobuf:"bytes,2,rep,name=LastNotarizedHeaders,proto3" json:"LastNotarizedHeaders"`
-	LastFinals           []BootstrapHeaderInfo `protobuf:"bytes,3,rep,name=LastFinals,proto3" json:"LastFinals"`
-	ProcessedMiniBlocks  []MiniBlocksInMeta    `protobuf:"bytes,4,rep,name=ProcessedMiniBlocks,proto3" json:"ProcessedMiniBlocks"`
-	HighestFinalNonce    uint64                `protobuf:"varint,5,opt,name=HighestFinalNonce,proto3" json:"HighestFinalNonce,omitempty"`
-	LastRound            int64                 `protobuf:"varint,6,opt,name=LastRound,proto3" json:"LastRound,omitempty"`
+	LastHeader                 BootstrapHeaderInfo    `protobuf:"bytes,1,opt,name=LastHeader,proto3" json:"LastHeader"`
+	LastCrossNotarizedHeaders  []BootstrapHeaderInfo  `protobuf:"bytes,2,rep,name=LastCrossNotarizedHeaders,proto3" json:"LastCrossNotarizedHeaders"`
+	LastSelfNotarizedHeaders   []BootstrapHeaderInfo  `protobuf:"bytes,7,rep,name=LastSelfNotarizedHeaders,proto3" json:"LastSelfNotarizedHeaders"`
+	ProcessedMiniBlocks        []MiniBlocksInMeta     `protobuf:"bytes,4,rep,name=ProcessedMiniBlocks,proto3" json:"ProcessedMiniBlocks"`
+	PendingMiniBlocks          []PendingMiniBlockInfo `protobuf:"bytes,8,rep,name=PendingMiniBlocks,proto3" json:"PendingMiniBlocks"`
+	NodesCoordinatorConfigKey  []byte                 `protobuf:"bytes,9,opt,name=NodesCoordinatorConfigKey,proto3" json:"NodesCoordinatorConfigKey,omitempty"`
+	EpochStartTriggerConfigKey []byte                 `protobuf:"bytes,10,opt,name=EpochStartTriggerConfigKey,proto3" json:"EpochStartTriggerConfigKey,omitempty"`
+	HighestFinalBlockNonce     uint64                 `protobuf:"varint,5,opt,name=HighestFinalBlockNonce,proto3" json:"HighestFinalBlockNonce,omitempty"`
+	LastRound                  int64                  `protobuf:"varint,6,opt,name=LastRound,proto3" json:"LastRound,omitempty"`
 }
 
 func (m *BootstrapData) Reset()      { *m = BootstrapData{} }
 func (*BootstrapData) ProtoMessage() {}
 func (*BootstrapData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cd9e3de0f7706101, []int{2}
+	return fileDescriptor_cd9e3de0f7706101, []int{3}
 }
 func (m *BootstrapData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *BootstrapData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_BootstrapData.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *BootstrapData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapData.Merge(m, src)
@@ -187,16 +226,16 @@ func (m *BootstrapData) GetLastHeader() BootstrapHeaderInfo {
 	return BootstrapHeaderInfo{}
 }
 
-func (m *BootstrapData) GetLastNotarizedHeaders() []BootstrapHeaderInfo {
+func (m *BootstrapData) GetLastCrossNotarizedHeaders() []BootstrapHeaderInfo {
 	if m != nil {
-		return m.LastNotarizedHeaders
+		return m.LastCrossNotarizedHeaders
 	}
 	return nil
 }
 
-func (m *BootstrapData) GetLastFinals() []BootstrapHeaderInfo {
+func (m *BootstrapData) GetLastSelfNotarizedHeaders() []BootstrapHeaderInfo {
 	if m != nil {
-		return m.LastFinals
+		return m.LastSelfNotarizedHeaders
 	}
 	return nil
 }
@@ -208,9 +247,30 @@ func (m *BootstrapData) GetProcessedMiniBlocks() []MiniBlocksInMeta {
 	return nil
 }
 
-func (m *BootstrapData) GetHighestFinalNonce() uint64 {
+func (m *BootstrapData) GetPendingMiniBlocks() []PendingMiniBlockInfo {
 	if m != nil {
-		return m.HighestFinalNonce
+		return m.PendingMiniBlocks
+	}
+	return nil
+}
+
+func (m *BootstrapData) GetNodesCoordinatorConfigKey() []byte {
+	if m != nil {
+		return m.NodesCoordinatorConfigKey
+	}
+	return nil
+}
+
+func (m *BootstrapData) GetEpochStartTriggerConfigKey() []byte {
+	if m != nil {
+		return m.EpochStartTriggerConfigKey
+	}
+	return nil
+}
+
+func (m *BootstrapData) GetHighestFinalBlockNonce() uint64 {
+	if m != nil {
+		return m.HighestFinalBlockNonce
 	}
 	return 0
 }
@@ -229,22 +289,18 @@ type RoundNum struct {
 func (m *RoundNum) Reset()      { *m = RoundNum{} }
 func (*RoundNum) ProtoMessage() {}
 func (*RoundNum) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cd9e3de0f7706101, []int{3}
+	return fileDescriptor_cd9e3de0f7706101, []int{4}
 }
 func (m *RoundNum) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *RoundNum) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_RoundNum.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *RoundNum) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_RoundNum.Merge(m, src)
@@ -268,6 +324,7 @@ func (m *RoundNum) GetNum() int64 {
 func init() {
 	proto.RegisterType((*MiniBlocksInMeta)(nil), "proto.MiniBlocksInMeta")
 	proto.RegisterType((*BootstrapHeaderInfo)(nil), "proto.BootstrapHeaderInfo")
+	proto.RegisterType((*PendingMiniBlockInfo)(nil), "proto.PendingMiniBlockInfo")
 	proto.RegisterType((*BootstrapData)(nil), "proto.BootstrapData")
 	proto.RegisterType((*RoundNum)(nil), "proto.RoundNum")
 }
@@ -275,34 +332,42 @@ func init() {
 func init() { proto.RegisterFile("bootstrapData.proto", fileDescriptor_cd9e3de0f7706101) }
 
 var fileDescriptor_cd9e3de0f7706101 = []byte{
-	// 426 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0x3f, 0x6f, 0xd3, 0x40,
-	0x1c, 0xf5, 0xd5, 0x4e, 0x29, 0x3f, 0x5a, 0x29, 0x5c, 0x2a, 0x61, 0x45, 0xd5, 0x61, 0x79, 0xb2,
-	0x10, 0xa4, 0x12, 0x7c, 0x01, 0x64, 0xa1, 0x2a, 0x91, 0xa8, 0x41, 0x57, 0x16, 0xba, 0x9d, 0xed,
-	0xab, 0x6d, 0xd1, 0xf8, 0x2a, 0xdf, 0x79, 0x61, 0x62, 0x62, 0xe6, 0x63, 0xf0, 0x51, 0x32, 0x66,
-	0xcc, 0x84, 0x88, 0xb3, 0x30, 0xe6, 0x23, 0x20, 0x9f, 0xf3, 0xc7, 0x6a, 0x32, 0x64, 0xba, 0xdf,
-	0x7b, 0xf6, 0x7b, 0xf7, 0x7e, 0xcf, 0x86, 0x5e, 0x28, 0x84, 0x92, 0xaa, 0x60, 0x0f, 0x1f, 0x98,
-	0x62, 0x83, 0x87, 0x42, 0x28, 0x81, 0x3b, 0xfa, 0xe8, 0xbf, 0x49, 0x32, 0x95, 0x96, 0xe1, 0x20,
-	0x12, 0xe3, 0xcb, 0x44, 0x24, 0xe2, 0x52, 0xd3, 0x61, 0x79, 0xa7, 0x91, 0x06, 0x7a, 0x6a, 0x54,
-	0xee, 0x2d, 0x74, 0xaf, 0xb3, 0x3c, 0xf3, 0xef, 0x45, 0xf4, 0x4d, 0x8e, 0xf2, 0x6b, 0xae, 0x18,
-	0xee, 0xc3, 0x49, 0x7d, 0x0e, 0x99, 0x4c, 0x6d, 0xe4, 0x20, 0xef, 0x94, 0x6e, 0x30, 0x7e, 0xd5,
-	0x7e, 0xbf, 0x66, 0xb8, 0xb4, 0x8f, 0x1c, 0xd3, 0x3b, 0xa5, 0x3b, 0xbc, 0xfb, 0x15, 0x7a, 0xfe,
-	0x3a, 0xe8, 0x90, 0xb3, 0x98, 0x17, 0xa3, 0xfc, 0x4e, 0x60, 0x1b, 0x9e, 0xdc, 0xa4, 0xac, 0x88,
-	0x47, 0xb1, 0x76, 0x3f, 0xa3, 0x6b, 0x88, 0xcf, 0xa1, 0x13, 0x88, 0x3c, 0xe2, 0xf6, 0x91, 0x83,
-	0x3c, 0x8b, 0x36, 0x00, 0x63, 0xb0, 0x74, 0x14, 0x53, 0x47, 0xd1, 0xb3, 0xfb, 0xd3, 0x84, 0x33,
-	0xbf, 0x5d, 0x02, 0x7e, 0x0f, 0xf0, 0x91, 0x49, 0xd5, 0xdc, 0xa3, 0x8d, 0x9f, 0xbd, 0xed, 0x37,
-	0x4b, 0x0e, 0xf6, 0xa4, 0xf0, 0xad, 0xc9, 0x9f, 0x97, 0x06, 0x6d, 0x69, 0xf0, 0x17, 0x38, 0xaf,
-	0x51, 0x20, 0x14, 0x2b, 0xb2, 0xef, 0x3c, 0x6e, 0xe8, 0x66, 0xbd, 0x43, 0xbc, 0xf6, 0xaa, 0xd7,
-	0xb9, 0xae, 0xb2, 0x9c, 0xdd, 0x4b, 0xdb, 0x3c, 0xd0, 0xab, 0xa5, 0xc1, 0x9f, 0xa0, 0xf7, 0xb9,
-	0x10, 0x11, 0x97, 0x92, 0xc7, 0xdb, 0x8e, 0x6d, 0x4b, 0x5b, 0xbd, 0x58, 0x59, 0x3d, 0xfe, 0x88,
-	0x2b, 0x9f, 0x7d, 0x4a, 0xfc, 0x1a, 0x9e, 0x0f, 0xb3, 0x24, 0xe5, 0xab, 0x1b, 0x9a, 0xca, 0x3b,
-	0xba, 0xf2, 0xdd, 0x07, 0xf8, 0x02, 0x9e, 0xd6, 0x61, 0xa8, 0x28, 0xf3, 0xd8, 0x3e, 0x76, 0x90,
-	0x67, 0xd2, 0x2d, 0xe1, 0x5e, 0xc0, 0x89, 0x1e, 0x82, 0x72, 0x8c, 0xbb, 0x60, 0x06, 0xe5, 0x58,
-	0x77, 0x6f, 0xd2, 0x7a, 0xf4, 0xaf, 0xa6, 0x73, 0x62, 0xcc, 0xe6, 0xc4, 0x58, 0xce, 0x09, 0xfa,
-	0x51, 0x11, 0xf4, 0xbb, 0x22, 0x68, 0x52, 0x11, 0x34, 0xad, 0x08, 0xfa, 0x5b, 0x11, 0xf4, 0xaf,
-	0x22, 0xc6, 0xb2, 0x22, 0xe8, 0xd7, 0x82, 0x18, 0xd3, 0x05, 0x31, 0x66, 0x0b, 0x62, 0xdc, 0x76,
-	0x37, 0xbf, 0xf7, 0x8d, 0x12, 0x05, 0x4b, 0x78, 0x78, 0xac, 0x97, 0x7c, 0xf7, 0x3f, 0x00, 0x00,
-	0xff, 0xff, 0xff, 0x12, 0x6e, 0x7c, 0xf9, 0x02, 0x00, 0x00,
+	// 548 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x94, 0x4f, 0x6f, 0x12, 0x4f,
+	0x18, 0xc7, 0x77, 0x0a, 0xb4, 0xf4, 0xf9, 0x95, 0x84, 0xdf, 0x40, 0x74, 0x8b, 0xcd, 0x48, 0x38,
+	0x11, 0x13, 0x69, 0x52, 0x13, 0x4f, 0xc6, 0x18, 0x40, 0x03, 0x6a, 0xb7, 0xcd, 0xe2, 0xc5, 0xc6,
+	0x98, 0x0c, 0xec, 0xb0, 0x6c, 0x84, 0x19, 0x32, 0x33, 0x7b, 0xd0, 0x93, 0x17, 0xef, 0xbe, 0x0c,
+	0x5f, 0x4a, 0x8f, 0x1c, 0x39, 0x19, 0x59, 0x2e, 0x1e, 0xfb, 0x12, 0xcc, 0xce, 0x52, 0xa4, 0x05,
+	0x4c, 0x4f, 0xfb, 0xfc, 0x99, 0xef, 0xe7, 0x79, 0xe6, 0x99, 0x27, 0x0b, 0x85, 0xae, 0x10, 0x5a,
+	0x69, 0x49, 0xc7, 0x4d, 0xaa, 0x69, 0x6d, 0x2c, 0x85, 0x16, 0x38, 0x63, 0x3e, 0xa5, 0xc7, 0x7e,
+	0xa0, 0x07, 0x61, 0xb7, 0xd6, 0x13, 0xa3, 0x63, 0x5f, 0xf8, 0xe2, 0xd8, 0x84, 0xbb, 0x61, 0xdf,
+	0x78, 0xc6, 0x31, 0x56, 0xa2, 0xaa, 0x5c, 0x40, 0xfe, 0x34, 0xe0, 0x41, 0x7d, 0x28, 0x7a, 0x9f,
+	0x54, 0x9b, 0x9f, 0x32, 0x4d, 0x71, 0x09, 0xb2, 0xf1, 0xb7, 0x45, 0xd5, 0xc0, 0x46, 0x65, 0x54,
+	0x3d, 0x70, 0x97, 0x3e, 0x7e, 0xb4, 0x7a, 0x3e, 0x8e, 0x30, 0x65, 0xef, 0x94, 0x53, 0xd5, 0x03,
+	0x77, 0x2d, 0x5e, 0x79, 0x0f, 0x85, 0xfa, 0x75, 0xa3, 0x2d, 0x46, 0x3d, 0x26, 0xdb, 0xbc, 0x2f,
+	0xb0, 0x0d, 0x7b, 0x9d, 0x01, 0x95, 0x5e, 0xdb, 0x33, 0xf4, 0x9c, 0x7b, 0xed, 0xe2, 0x22, 0x64,
+	0x1c, 0xc1, 0x7b, 0xcc, 0xde, 0x29, 0xa3, 0x6a, 0xda, 0x4d, 0x1c, 0x8c, 0x21, 0x6d, 0x5a, 0x49,
+	0x99, 0x56, 0x8c, 0x5d, 0xf1, 0xa0, 0x78, 0xce, 0xb8, 0x17, 0x70, 0x7f, 0x59, 0xf5, 0x26, 0xbb,
+	0x79, 0x93, 0xdd, 0xc4, 0x27, 0x50, 0x74, 0xc2, 0xd1, 0x6d, 0x91, 0x32, 0xa5, 0x72, 0xee, 0xc6,
+	0x5c, 0xe5, 0x5b, 0x06, 0x72, 0xf5, 0xd5, 0x51, 0xe3, 0x17, 0x00, 0x6f, 0xa9, 0xd2, 0xc9, 0x6d,
+	0x4c, 0x89, 0xff, 0x4e, 0x4a, 0xc9, 0x28, 0x6b, 0x1b, 0xee, 0x5a, 0x4f, 0x5f, 0xfe, 0x7c, 0x68,
+	0xb9, 0x2b, 0x1a, 0xfc, 0x11, 0x0e, 0x63, 0xaf, 0x21, 0x85, 0x52, 0x8e, 0xd0, 0x54, 0x06, 0x5f,
+	0x98, 0x97, 0xe4, 0x92, 0x49, 0xde, 0x05, 0xb8, 0x1d, 0x81, 0x3f, 0x80, 0x1d, 0x27, 0x3b, 0x6c,
+	0xd8, 0x5f, 0xc3, 0xef, 0xdd, 0x11, 0xbf, 0x95, 0x80, 0xcf, 0xa0, 0x70, 0x2e, 0x45, 0x8f, 0x29,
+	0xc5, 0xbc, 0x95, 0x21, 0xa6, 0x0d, 0xf8, 0xfe, 0x02, 0x7c, 0x7b, 0xa1, 0x16, 0xd4, 0x4d, 0x4a,
+	0x7c, 0x06, 0xff, 0xaf, 0xbf, 0x49, 0xd6, 0xe0, 0x1e, 0x2c, 0x70, 0x9b, 0x1e, 0x7a, 0x81, 0x5c,
+	0xd7, 0xe2, 0x67, 0x70, 0xe8, 0x08, 0x8f, 0xa9, 0x86, 0x10, 0xd2, 0x0b, 0x38, 0xd5, 0x42, 0x36,
+	0x04, 0xef, 0x07, 0xfe, 0x1b, 0xf6, 0xd9, 0xde, 0x37, 0x2b, 0xb4, 0xfd, 0x00, 0x7e, 0x0e, 0xa5,
+	0x97, 0x63, 0xd1, 0x1b, 0x74, 0x34, 0x95, 0xfa, 0x9d, 0x0c, 0x7c, 0x9f, 0xad, 0xc8, 0xc1, 0xc8,
+	0xff, 0x71, 0x02, 0x3f, 0x85, 0x7b, 0xad, 0xc0, 0x1f, 0x30, 0xa5, 0x5f, 0x05, 0x9c, 0x0e, 0x4d,
+	0x4f, 0xc9, 0x4a, 0x67, 0xcc, 0x4a, 0x6f, 0xc9, 0xe2, 0x23, 0xd8, 0x8f, 0x67, 0xee, 0x8a, 0x90,
+	0x7b, 0xf6, 0x6e, 0x19, 0x55, 0x53, 0xee, 0xdf, 0x40, 0xe5, 0x08, 0xb2, 0xc6, 0x70, 0xc2, 0x11,
+	0xce, 0x43, 0xca, 0x09, 0x47, 0x66, 0xf5, 0x52, 0x6e, 0x6c, 0xd6, 0x5f, 0x4f, 0x66, 0xc4, 0x9a,
+	0xce, 0x88, 0x75, 0x35, 0x23, 0xe8, 0x6b, 0x44, 0xd0, 0x8f, 0x88, 0xa0, 0xcb, 0x88, 0xa0, 0x49,
+	0x44, 0xd0, 0x34, 0x22, 0xe8, 0x57, 0x44, 0xd0, 0xef, 0x88, 0x58, 0x57, 0x11, 0x41, 0xdf, 0xe7,
+	0xc4, 0x9a, 0xcc, 0x89, 0x35, 0x9d, 0x13, 0xeb, 0x22, 0xbf, 0xfc, 0x8f, 0x74, 0xb4, 0x90, 0xd4,
+	0x67, 0xdd, 0x5d, 0x33, 0xf2, 0x27, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x96, 0x85, 0x46, 0x7f,
+	0x62, 0x04, 0x00, 0x00,
 }
 
 func (this *MiniBlocksInMeta) Equal(that interface{}) bool {
@@ -367,6 +432,33 @@ func (this *BootstrapHeaderInfo) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *PendingMiniBlockInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PendingMiniBlockInfo)
+	if !ok {
+		that2, ok := that.(PendingMiniBlockInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if this.NumPendingMiniBlocks != that1.NumPendingMiniBlocks {
+		return false
+	}
+	return true
+}
 func (this *BootstrapData) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -389,19 +481,19 @@ func (this *BootstrapData) Equal(that interface{}) bool {
 	if !this.LastHeader.Equal(&that1.LastHeader) {
 		return false
 	}
-	if len(this.LastNotarizedHeaders) != len(that1.LastNotarizedHeaders) {
+	if len(this.LastCrossNotarizedHeaders) != len(that1.LastCrossNotarizedHeaders) {
 		return false
 	}
-	for i := range this.LastNotarizedHeaders {
-		if !this.LastNotarizedHeaders[i].Equal(&that1.LastNotarizedHeaders[i]) {
+	for i := range this.LastCrossNotarizedHeaders {
+		if !this.LastCrossNotarizedHeaders[i].Equal(&that1.LastCrossNotarizedHeaders[i]) {
 			return false
 		}
 	}
-	if len(this.LastFinals) != len(that1.LastFinals) {
+	if len(this.LastSelfNotarizedHeaders) != len(that1.LastSelfNotarizedHeaders) {
 		return false
 	}
-	for i := range this.LastFinals {
-		if !this.LastFinals[i].Equal(&that1.LastFinals[i]) {
+	for i := range this.LastSelfNotarizedHeaders {
+		if !this.LastSelfNotarizedHeaders[i].Equal(&that1.LastSelfNotarizedHeaders[i]) {
 			return false
 		}
 	}
@@ -413,7 +505,21 @@ func (this *BootstrapData) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if this.HighestFinalNonce != that1.HighestFinalNonce {
+	if len(this.PendingMiniBlocks) != len(that1.PendingMiniBlocks) {
+		return false
+	}
+	for i := range this.PendingMiniBlocks {
+		if !this.PendingMiniBlocks[i].Equal(&that1.PendingMiniBlocks[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.NodesCoordinatorConfigKey, that1.NodesCoordinatorConfigKey) {
+		return false
+	}
+	if !bytes.Equal(this.EpochStartTriggerConfigKey, that1.EpochStartTriggerConfigKey) {
+		return false
+	}
+	if this.HighestFinalBlockNonce != that1.HighestFinalBlockNonce {
 		return false
 	}
 	if this.LastRound != that1.LastRound {
@@ -468,26 +574,37 @@ func (this *BootstrapHeaderInfo) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
+func (this *PendingMiniBlockInfo) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&bootstrapStorage.PendingMiniBlockInfo{")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "NumPendingMiniBlocks: "+fmt.Sprintf("%#v", this.NumPendingMiniBlocks)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func (this *BootstrapData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
+	s := make([]string, 0, 13)
 	s = append(s, "&bootstrapStorage.BootstrapData{")
 	s = append(s, "LastHeader: "+strings.Replace(this.LastHeader.GoString(), `&`, ``, 1)+",\n")
-	if this.LastNotarizedHeaders != nil {
-		vs := make([]BootstrapHeaderInfo, len(this.LastNotarizedHeaders))
+	if this.LastCrossNotarizedHeaders != nil {
+		vs := make([]BootstrapHeaderInfo, len(this.LastCrossNotarizedHeaders))
 		for i := range vs {
-			vs[i] = this.LastNotarizedHeaders[i]
+			vs[i] = this.LastCrossNotarizedHeaders[i]
 		}
-		s = append(s, "LastNotarizedHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
+		s = append(s, "LastCrossNotarizedHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
-	if this.LastFinals != nil {
-		vs := make([]BootstrapHeaderInfo, len(this.LastFinals))
+	if this.LastSelfNotarizedHeaders != nil {
+		vs := make([]BootstrapHeaderInfo, len(this.LastSelfNotarizedHeaders))
 		for i := range vs {
-			vs[i] = this.LastFinals[i]
+			vs[i] = this.LastSelfNotarizedHeaders[i]
 		}
-		s = append(s, "LastFinals: "+fmt.Sprintf("%#v", vs)+",\n")
+		s = append(s, "LastSelfNotarizedHeaders: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	if this.ProcessedMiniBlocks != nil {
 		vs := make([]MiniBlocksInMeta, len(this.ProcessedMiniBlocks))
@@ -496,7 +613,16 @@ func (this *BootstrapData) GoString() string {
 		}
 		s = append(s, "ProcessedMiniBlocks: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
-	s = append(s, "HighestFinalNonce: "+fmt.Sprintf("%#v", this.HighestFinalNonce)+",\n")
+	if this.PendingMiniBlocks != nil {
+		vs := make([]PendingMiniBlockInfo, len(this.PendingMiniBlocks))
+		for i := range vs {
+			vs[i] = this.PendingMiniBlocks[i]
+		}
+		s = append(s, "PendingMiniBlocks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "NodesCoordinatorConfigKey: "+fmt.Sprintf("%#v", this.NodesCoordinatorConfigKey)+",\n")
+	s = append(s, "EpochStartTriggerConfigKey: "+fmt.Sprintf("%#v", this.EpochStartTriggerConfigKey)+",\n")
+	s = append(s, "HighestFinalBlockNonce: "+fmt.Sprintf("%#v", this.HighestFinalBlockNonce)+",\n")
 	s = append(s, "LastRound: "+fmt.Sprintf("%#v", this.LastRound)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -598,6 +724,39 @@ func (m *BootstrapHeaderInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PendingMiniBlockInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PendingMiniBlockInfo) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PendingMiniBlockInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.NumPendingMiniBlocks != 0 {
+		i = encodeVarintBootstrapData(dAtA, i, uint64(m.NumPendingMiniBlocks))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.ShardID != 0 {
+		i = encodeVarintBootstrapData(dAtA, i, uint64(m.ShardID))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *BootstrapData) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -618,13 +777,55 @@ func (m *BootstrapData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.EpochStartTriggerConfigKey) > 0 {
+		i -= len(m.EpochStartTriggerConfigKey)
+		copy(dAtA[i:], m.EpochStartTriggerConfigKey)
+		i = encodeVarintBootstrapData(dAtA, i, uint64(len(m.EpochStartTriggerConfigKey)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.NodesCoordinatorConfigKey) > 0 {
+		i -= len(m.NodesCoordinatorConfigKey)
+		copy(dAtA[i:], m.NodesCoordinatorConfigKey)
+		i = encodeVarintBootstrapData(dAtA, i, uint64(len(m.NodesCoordinatorConfigKey)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.PendingMiniBlocks) > 0 {
+		for iNdEx := len(m.PendingMiniBlocks) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.PendingMiniBlocks[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintBootstrapData(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.LastSelfNotarizedHeaders) > 0 {
+		for iNdEx := len(m.LastSelfNotarizedHeaders) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.LastSelfNotarizedHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintBootstrapData(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
 	if m.LastRound != 0 {
 		i = encodeVarintBootstrapData(dAtA, i, uint64(m.LastRound))
 		i--
 		dAtA[i] = 0x30
 	}
-	if m.HighestFinalNonce != 0 {
-		i = encodeVarintBootstrapData(dAtA, i, uint64(m.HighestFinalNonce))
+	if m.HighestFinalBlockNonce != 0 {
+		i = encodeVarintBootstrapData(dAtA, i, uint64(m.HighestFinalBlockNonce))
 		i--
 		dAtA[i] = 0x28
 	}
@@ -642,24 +843,10 @@ func (m *BootstrapData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x22
 		}
 	}
-	if len(m.LastFinals) > 0 {
-		for iNdEx := len(m.LastFinals) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.LastCrossNotarizedHeaders) > 0 {
+		for iNdEx := len(m.LastCrossNotarizedHeaders) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.LastFinals[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintBootstrapData(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.LastNotarizedHeaders) > 0 {
-		for iNdEx := len(m.LastNotarizedHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.LastNotarizedHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.LastCrossNotarizedHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -760,6 +947,21 @@ func (m *BootstrapHeaderInfo) Size() (n int) {
 	return n
 }
 
+func (m *PendingMiniBlockInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ShardID != 0 {
+		n += 1 + sovBootstrapData(uint64(m.ShardID))
+	}
+	if m.NumPendingMiniBlocks != 0 {
+		n += 1 + sovBootstrapData(uint64(m.NumPendingMiniBlocks))
+	}
+	return n
+}
+
 func (m *BootstrapData) Size() (n int) {
 	if m == nil {
 		return 0
@@ -768,14 +970,8 @@ func (m *BootstrapData) Size() (n int) {
 	_ = l
 	l = m.LastHeader.Size()
 	n += 1 + l + sovBootstrapData(uint64(l))
-	if len(m.LastNotarizedHeaders) > 0 {
-		for _, e := range m.LastNotarizedHeaders {
-			l = e.Size()
-			n += 1 + l + sovBootstrapData(uint64(l))
-		}
-	}
-	if len(m.LastFinals) > 0 {
-		for _, e := range m.LastFinals {
+	if len(m.LastCrossNotarizedHeaders) > 0 {
+		for _, e := range m.LastCrossNotarizedHeaders {
 			l = e.Size()
 			n += 1 + l + sovBootstrapData(uint64(l))
 		}
@@ -786,11 +982,31 @@ func (m *BootstrapData) Size() (n int) {
 			n += 1 + l + sovBootstrapData(uint64(l))
 		}
 	}
-	if m.HighestFinalNonce != 0 {
-		n += 1 + sovBootstrapData(uint64(m.HighestFinalNonce))
+	if m.HighestFinalBlockNonce != 0 {
+		n += 1 + sovBootstrapData(uint64(m.HighestFinalBlockNonce))
 	}
 	if m.LastRound != 0 {
 		n += 1 + sovBootstrapData(uint64(m.LastRound))
+	}
+	if len(m.LastSelfNotarizedHeaders) > 0 {
+		for _, e := range m.LastSelfNotarizedHeaders {
+			l = e.Size()
+			n += 1 + l + sovBootstrapData(uint64(l))
+		}
+	}
+	if len(m.PendingMiniBlocks) > 0 {
+		for _, e := range m.PendingMiniBlocks {
+			l = e.Size()
+			n += 1 + l + sovBootstrapData(uint64(l))
+		}
+	}
+	l = len(m.NodesCoordinatorConfigKey)
+	if l > 0 {
+		n += 1 + l + sovBootstrapData(uint64(l))
+	}
+	l = len(m.EpochStartTriggerConfigKey)
+	if l > 0 {
+		n += 1 + l + sovBootstrapData(uint64(l))
 	}
 	return n
 }
@@ -836,32 +1052,51 @@ func (this *BootstrapHeaderInfo) String() string {
 	}, "")
 	return s
 }
+func (this *PendingMiniBlockInfo) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PendingMiniBlockInfo{`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
+		`NumPendingMiniBlocks:` + fmt.Sprintf("%v", this.NumPendingMiniBlocks) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *BootstrapData) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForLastNotarizedHeaders := "[]BootstrapHeaderInfo{"
-	for _, f := range this.LastNotarizedHeaders {
-		repeatedStringForLastNotarizedHeaders += strings.Replace(strings.Replace(f.String(), "BootstrapHeaderInfo", "BootstrapHeaderInfo", 1), `&`, ``, 1) + ","
+	repeatedStringForLastCrossNotarizedHeaders := "[]BootstrapHeaderInfo{"
+	for _, f := range this.LastCrossNotarizedHeaders {
+		repeatedStringForLastCrossNotarizedHeaders += strings.Replace(strings.Replace(f.String(), "BootstrapHeaderInfo", "BootstrapHeaderInfo", 1), `&`, ``, 1) + ","
 	}
-	repeatedStringForLastNotarizedHeaders += "}"
-	repeatedStringForLastFinals := "[]BootstrapHeaderInfo{"
-	for _, f := range this.LastFinals {
-		repeatedStringForLastFinals += strings.Replace(strings.Replace(f.String(), "BootstrapHeaderInfo", "BootstrapHeaderInfo", 1), `&`, ``, 1) + ","
-	}
-	repeatedStringForLastFinals += "}"
+	repeatedStringForLastCrossNotarizedHeaders += "}"
 	repeatedStringForProcessedMiniBlocks := "[]MiniBlocksInMeta{"
 	for _, f := range this.ProcessedMiniBlocks {
 		repeatedStringForProcessedMiniBlocks += strings.Replace(strings.Replace(f.String(), "MiniBlocksInMeta", "MiniBlocksInMeta", 1), `&`, ``, 1) + ","
 	}
 	repeatedStringForProcessedMiniBlocks += "}"
+	repeatedStringForLastSelfNotarizedHeaders := "[]BootstrapHeaderInfo{"
+	for _, f := range this.LastSelfNotarizedHeaders {
+		repeatedStringForLastSelfNotarizedHeaders += strings.Replace(strings.Replace(f.String(), "BootstrapHeaderInfo", "BootstrapHeaderInfo", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForLastSelfNotarizedHeaders += "}"
+	repeatedStringForPendingMiniBlocks := "[]PendingMiniBlockInfo{"
+	for _, f := range this.PendingMiniBlocks {
+		repeatedStringForPendingMiniBlocks += strings.Replace(strings.Replace(f.String(), "PendingMiniBlockInfo", "PendingMiniBlockInfo", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForPendingMiniBlocks += "}"
 	s := strings.Join([]string{`&BootstrapData{`,
 		`LastHeader:` + strings.Replace(strings.Replace(this.LastHeader.String(), "BootstrapHeaderInfo", "BootstrapHeaderInfo", 1), `&`, ``, 1) + `,`,
-		`LastNotarizedHeaders:` + repeatedStringForLastNotarizedHeaders + `,`,
-		`LastFinals:` + repeatedStringForLastFinals + `,`,
+		`LastCrossNotarizedHeaders:` + repeatedStringForLastCrossNotarizedHeaders + `,`,
 		`ProcessedMiniBlocks:` + repeatedStringForProcessedMiniBlocks + `,`,
-		`HighestFinalNonce:` + fmt.Sprintf("%v", this.HighestFinalNonce) + `,`,
+		`HighestFinalBlockNonce:` + fmt.Sprintf("%v", this.HighestFinalBlockNonce) + `,`,
 		`LastRound:` + fmt.Sprintf("%v", this.LastRound) + `,`,
+		`LastSelfNotarizedHeaders:` + repeatedStringForLastSelfNotarizedHeaders + `,`,
+		`PendingMiniBlocks:` + repeatedStringForPendingMiniBlocks + `,`,
+		`NodesCoordinatorConfigKey:` + fmt.Sprintf("%v", this.NodesCoordinatorConfigKey) + `,`,
+		`EpochStartTriggerConfigKey:` + fmt.Sprintf("%v", this.EpochStartTriggerConfigKey) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1128,6 +1363,97 @@ func (m *BootstrapHeaderInfo) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *PendingMiniBlockInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowBootstrapData
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PendingMiniBlockInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PendingMiniBlockInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
+			}
+			m.ShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumPendingMiniBlocks", wireType)
+			}
+			m.NumPendingMiniBlocks = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumPendingMiniBlocks |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipBootstrapData(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1192,7 +1518,7 @@ func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LastNotarizedHeaders", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LastCrossNotarizedHeaders", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1219,42 +1545,8 @@ func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.LastNotarizedHeaders = append(m.LastNotarizedHeaders, BootstrapHeaderInfo{})
-			if err := m.LastNotarizedHeaders[len(m.LastNotarizedHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LastFinals", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBootstrapData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthBootstrapData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthBootstrapData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.LastFinals = append(m.LastFinals, BootstrapHeaderInfo{})
-			if err := m.LastFinals[len(m.LastFinals)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.LastCrossNotarizedHeaders = append(m.LastCrossNotarizedHeaders, BootstrapHeaderInfo{})
+			if err := m.LastCrossNotarizedHeaders[len(m.LastCrossNotarizedHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1294,9 +1586,9 @@ func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HighestFinalNonce", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HighestFinalBlockNonce", wireType)
 			}
-			m.HighestFinalNonce = 0
+			m.HighestFinalBlockNonce = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowBootstrapData
@@ -1306,7 +1598,7 @@ func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.HighestFinalNonce |= uint64(b&0x7F) << shift
+				m.HighestFinalBlockNonce |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1330,6 +1622,142 @@ func (m *BootstrapData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastSelfNotarizedHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastSelfNotarizedHeaders = append(m.LastSelfNotarizedHeaders, BootstrapHeaderInfo{})
+			if err := m.LastSelfNotarizedHeaders[len(m.LastSelfNotarizedHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingMiniBlocks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PendingMiniBlocks = append(m.PendingMiniBlocks, PendingMiniBlockInfo{})
+			if err := m.PendingMiniBlocks[len(m.PendingMiniBlocks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodesCoordinatorConfigKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NodesCoordinatorConfigKey = append(m.NodesCoordinatorConfigKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.NodesCoordinatorConfigKey == nil {
+				m.NodesCoordinatorConfigKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EpochStartTriggerConfigKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBootstrapData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthBootstrapData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EpochStartTriggerConfigKey = append(m.EpochStartTriggerConfigKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.EpochStartTriggerConfigKey == nil {
+				m.EpochStartTriggerConfigKey = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipBootstrapData(dAtA[iNdEx:])

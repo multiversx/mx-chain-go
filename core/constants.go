@@ -16,6 +16,13 @@ const NodeTypeValidator NodeType = "validator"
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
+// FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
+const FileModeUserReadWrite = 0600
+
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 15000
+
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 2 << 17 //128KB bulks
@@ -23,8 +30,14 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
-// GenesisBlockNonce is the nonce of the genesis block
-const GenesisBlockNonce = 0
+// PathShardPlaceholder represents the placeholder for the shard ID in paths
+const PathShardPlaceholder = "[S]"
+
+// PathEpochPlaceholder represents the placeholder for the epoch number in paths
+const PathEpochPlaceholder = "[E]"
+
+// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
+const PathIdentifierPlaceholder = "[I]"
 
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
@@ -46,10 +59,6 @@ const MetricIsSyncing = "erd_is_syncing"
 
 // MetricPublicKeyBlockSign is the metric for monitoring public key of a node used in block signing
 const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
-
-// MetricPublicKeyTxSign is the metric for monitoring public key of a node used in tx signing
-// (balance account held by the node)
-const MetricPublicKeyTxSign = "erd_public_key_tx_sign"
 
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
@@ -110,6 +119,9 @@ const MetricNetworkSentBpsPeak = "erd_network_sent_bps_peak"
 
 // MetricRoundTime is the metric for round time in seconds
 const MetricRoundTime = "erd_round_time"
+
+// MetricEpochNumber is the metric for the number of epoch
+const MetricEpochNumber = "erd_epoch_number"
 
 // MetricAppVersion is the metric for the current app version
 const MetricAppVersion = "erd_app_version"
@@ -184,4 +196,34 @@ const MetricLeaderPercentage = "erd_metric_leader_percentage"
 const MetricCommunityPercentage = "erd_metric_community_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
-const MetricDenominationCoefficient = "erc_metric_denomination_coefficient"
+const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
+
+//MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
+//current node. The value is provided in percent (0 meaning it has been received just after the round started and
+//100 meaning that the block has been received in the last moment of the round)
+const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
+
+//MetricCreatedProposedBlock is the metric that specify the percent of the block subround used for header and body
+//creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
+//subround spare duration)
+const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
+
+//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+//processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
+//subround spare duration)
+const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
+
+// MegabyteSize represents the size in bytes of a megabyte
+const MegabyteSize = 1024 * 1024
+
+// BaseOperationCost represents the field name for base operation costs
+const BaseOperationCost = "BaseOperationCost"
+
+// BuiltInCost represents the field name for built in operation costs
+const BuiltInCost = "BuiltInCost"
+
+// MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
+const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"

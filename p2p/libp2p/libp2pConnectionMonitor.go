@@ -30,7 +30,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 
 	cm := &libp2pConnectionMonitor{
 		reconnecter:                reconnecter,
-		chDoReconnect:              make(chan struct{}, 0),
+		chDoReconnect:              make(chan struct{}),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
 		thresholdDiscoveryResume:   0,
 		thresholdDiscoveryPause:    math.MaxInt32,
@@ -65,7 +65,7 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 }
 
 // Connected is called when a connection opened
-func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
+func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, _ network.Conn) {
 	if len(netw.Conns()) > lcm.thresholdDiscoveryPause {
 		lcm.reconnecter.Pause()
 	}
@@ -79,7 +79,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 }
 
 // Disconnected is called when a connection closed
-func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
+func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, _ network.Conn) {
 	lcm.doReconnectionIfNeeded(netw)
 
 	if len(netw.Conns()) < lcm.thresholdDiscoveryResume && lcm.reconnecter != nil {
@@ -102,10 +102,8 @@ func (lcm *libp2pConnectionMonitor) ClosedStream(network.Network, network.Stream
 
 func (lcm *libp2pConnectionMonitor) doReconnection() {
 	for {
-		select {
-		case <-lcm.chDoReconnect:
-			<-lcm.reconnecter.ReconnectToNetwork()
-		}
+		<-lcm.chDoReconnect
+		<-lcm.reconnecter.ReconnectToNetwork()
 
 		time.Sleep(DurationBetweenReconnectAttempts)
 	}

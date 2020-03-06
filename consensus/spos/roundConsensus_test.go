@@ -4,23 +4,28 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/stretchr/testify/assert"
 )
 
-func initRoundConsensus() spos.RoundConsensus {
-	eligibleList := []string{"1", "2", "3"}
+func initRoundConsensus() *spos.RoundConsensus {
+	pubKeys := []string{"1", "2", "3"}
+	eligibleNodes := make(map[string]struct{})
+
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
 
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		len(eligibleList),
+		eligibleNodes,
+		len(eligibleNodes),
 		"2")
 
-	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetConsensusGroup(pubKeys)
 
 	rcns.ResetRoundState()
 
-	return rcns
+	return spos.NewRoundConsensusWrapper(rcns)
 }
 
 func TestRoundConsensus_NewRoundConsensusShouldWork(t *testing.T) {
@@ -38,8 +43,13 @@ func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key3")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key3")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key3")
 
@@ -51,8 +61,13 @@ func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key4")
 
@@ -64,8 +79,13 @@ func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key2")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key2")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -77,8 +97,13 @@ func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -90,12 +115,21 @@ func TestRoundConsensus_SetEligibleListShouldChangeTheEligibleList(t *testing.T)
 	t.Parallel()
 
 	rcns := *initRoundConsensus()
+	eligibleList := []string{"4", "5", "6"}
 
-	rcns.SetEligibleList([]string{"4", "5", "6"})
+	eligibleNodesKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
 
-	assert.Equal(t, "4", rcns.EligibleList()[0])
-	assert.Equal(t, "5", rcns.EligibleList()[1])
-	assert.Equal(t, "6", rcns.EligibleList()[2])
+	rcns.SetEligibleList(eligibleNodesKeys)
+
+	_, ok := rcns.EligibleList()["4"]
+	assert.True(t, ok)
+	_, ok = rcns.EligibleList()["5"]
+	assert.True(t, ok)
+	_, ok = rcns.EligibleList()["6"]
+	assert.True(t, ok)
 }
 
 func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testing.T) {
@@ -134,9 +168,9 @@ func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConse
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetJobDone("3", bn.SrBlock, true)
+	_ = rcns.SetJobDone("3", bls.SrBlock, true)
 	rcns.SetConsensusGroup([]string{"1", "2"})
-	isJobDone, _ := rcns.JobDone("3", bn.SrBlock)
+	isJobDone, _ := rcns.JobDone("3", bls.SrBlock)
 	assert.False(t, isJobDone)
 }
 
@@ -145,8 +179,8 @@ func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensus
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetJobDone("4", bn.SrBlock, true)
-	isJobDone, _ := rcns.JobDone("4", bn.SrBlock)
+	_ = rcns.SetJobDone("4", bls.SrBlock, true)
+	isJobDone, _ := rcns.JobDone("4", bls.SrBlock)
 	assert.False(t, isJobDone)
 }
 
@@ -160,10 +194,10 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnFalse(t *testing.T) {
 			continue
 		}
 
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, true)
+		_ = rcns.SetJobDone(rcns.ConsensusGroup()[i], bls.SrBlock, true)
 	}
 
-	jobDone, _ := rcns.SelfJobDone(bn.SrBlock)
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
 	assert.False(t, jobDone)
 }
 
@@ -172,9 +206,9 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnTrue(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetJobDone("2", bn.SrBlock, true)
+	_ = rcns.SetJobDone("2", bls.SrBlock, true)
 
-	jobDone, _ := rcns.SelfJobDone(bn.SrBlock)
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
 	assert.True(t, jobDone)
 }
 
@@ -183,9 +217,9 @@ func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetSelfJobDone(bn.SrBlock, true)
+	_ = rcns.SetSelfJobDone(bls.SrBlock, true)
 
-	jobDone, _ := rcns.JobDone("2", bn.SrBlock)
+	jobDone, _ := rcns.JobDone("2", bls.SrBlock)
 	assert.True(t, jobDone)
 }
 
@@ -212,8 +246,8 @@ func TestRoundConsensus_ComputeSize(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetJobDone("1", bn.SrBlock, true)
-	assert.Equal(t, 1, rcns.ComputeSize(bn.SrBlock))
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	assert.Equal(t, 1, rcns.ComputeSize(bls.SrBlock))
 }
 
 func TestRoundConsensus_ResetValidationMap(t *testing.T) {
@@ -221,15 +255,15 @@ func TestRoundConsensus_ResetValidationMap(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	rcns.SetJobDone("1", bn.SrBlock, true)
-	jobDone, _ := rcns.JobDone("1", bn.SrBlock)
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	jobDone, _ := rcns.JobDone("1", bls.SrBlock)
 	assert.Equal(t, true, jobDone)
 
 	rcns.ConsensusGroup()[1] = "X"
 
 	rcns.ResetRoundState()
 
-	jobDone, err := rcns.JobDone("1", bn.SrBlock)
+	jobDone, err := rcns.JobDone("1", bls.SrBlock)
 	assert.Equal(t, false, jobDone)
 	assert.Nil(t, err)
 }

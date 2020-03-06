@@ -89,11 +89,11 @@ func main() {
 
 func startTermuiViewer() error {
 	nodeAddress := argsConfig.address
-	logLevel := argsConfig.logLevel
-	fetchInterval := argsConfig.interval
+	logLevelFlagValue := argsConfig.logLevel
+	fetchIntervalFlagValue := argsConfig.interval
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, fetchInterval)
+	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, fetchIntervalFlagValue)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func startTermuiViewer() error {
 
 	statusMetricsProvider.StartUpdatingData()
 
-	err = provider.InitLogHandler(nodeAddress, logLevel, argsConfig.useWss)
+	err = provider.InitLogHandler(nodeAddress, logLevelFlagValue, argsConfig.useWss)
 	if err != nil {
 		return err
 	}

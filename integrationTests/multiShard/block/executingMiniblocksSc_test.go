@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +50,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
-	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
@@ -89,8 +89,9 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		nodes[idxNodeShard1].OwnAccount.Nonce,
 		factory.IELEVirtualMachine,
 	)
-	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
@@ -99,6 +100,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
@@ -115,6 +117,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
@@ -181,7 +184,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		0,
 		advertiserAddr,
 	)
@@ -189,7 +192,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		0,
 		advertiserAddr,
 	)
@@ -234,7 +237,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -246,7 +249,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	roundsToWait := 6
+	roundsToWait := 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
@@ -267,12 +270,13 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
+
+	time.Sleep(time.Second)
 
 	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))
@@ -311,9 +315,9 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
-	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
-	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
@@ -329,7 +333,6 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	idxProposerShard1 := 1
 	idxProposerMeta := 2
 	idxProposers := []int{idxProposerShard0, idxProposerShard1, idxProposerMeta}
-	idxProposersWithoutShard1 := []int{idxProposerShard0, idxProposerMeta}
 
 	defer func() {
 		_ = advertiser.Close()
@@ -354,7 +357,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	integrationTests.PlayerJoinsGame(
@@ -367,25 +370,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposersWithoutShard1, round, nonce)
-
-		hdr, body, isBodyEmpty := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round, nonce)
-		if !isBodyEmpty {
-			nodes[idxProposerShard1].CommitBlock(body, hdr)
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-			nonce++
-			continue
-		}
-
-		//shard 1' proposer got to process at least 1 tx, should not commit but the shard 1's validator
-		//should be able to process the block
-
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-		integrationTests.CheckRootHashes(t, nodes, idxProposers)
-		break
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
 	nodeWithSc := nodes[idxProposerShard1]
@@ -423,10 +408,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	for _, nodes := range nodesMap {
 		integrationTests.DisplayAndStartNodes(nodes)
 		integrationTests.SetEconomicsParameters(nodes, integrationTests.MaxGasLimitPerBlock, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
-		//set rewards = 0 so we can easily test the balances taking into account only the tx fee
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0))
-		}
 	}
 
 	defer func() {
@@ -453,7 +434,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	nodeShard0 := nodesMap[0][0]
 	txData := "DEADBEEF@" + hex.EncodeToString(factory.InternalTestingVM) + "@00"
 	dummyTx := &transaction.Transaction{
-		Data: txData,
+		Data: []byte(txData),
 	}
 	gasLimit := nodeShard0.EconomicsData.ComputeGasLimit(dummyTx)
 	gasLimit += integrationTests.OpGasValueForMockVm
@@ -472,15 +453,13 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasPrice,
 	)
 
-	randomness := generateInitialRandomness(uint32(maxShards))
-	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
-	leaderPkBytes := nodeShard0.SpecialAddressHandler.LeaderAddress()
-	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
+	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	shardId0 := uint32(0)
 
 	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
-	accnt, err := nodeShard0.AccntState.GetExistingAccount(ownerAddr)
+	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerAddr)
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(*state.Account)
 	expectedBalance := big.NewInt(0).Set(initialVal)
@@ -488,14 +467,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
 
-	printContainingTxs(nodeShard0, nodeShard0.BlockChain.GetCurrentBlockHeader().(*block.Header))
-
-	accnt, err = nodeShard0.AccntState.GetExistingAccount(leaderAddress)
-	assert.Nil(t, err)
-	leaderAccnt := accnt.(*state.Account)
-	expectedBalance = big.NewInt(0).Set(txCost)
-	expectedBalance.Div(expectedBalance, big.NewInt(2))
-	assert.Equal(t, expectedBalance, leaderAccnt.Balance)
+	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
 }
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {

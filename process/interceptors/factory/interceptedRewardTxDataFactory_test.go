@@ -16,7 +16,7 @@ func TestNewInterceptedRewardTxDataFactory_NilArgumentsShouldErr(t *testing.T) {
 	imh, err := NewInterceptedRewardTxDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedRewardTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -34,7 +34,7 @@ func TestNewInterceptedRewardTxDataFactory_NilSignMarshalizerShouldErr(t *testin
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.SignMarshalizer = nil
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -82,6 +82,7 @@ func TestInterceptedRewardTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.NotNil(t, imh)
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyRewardTx := &rewardTx.RewardTx{}

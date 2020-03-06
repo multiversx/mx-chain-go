@@ -3,6 +3,7 @@ package blockchain_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -24,7 +25,7 @@ func TestNewMetachainConfigOK(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, b)
+	assert.False(t, check.IfNil(b))
 }
 
 func TestMetaChain_IsBadBlock(t *testing.T) {
@@ -62,7 +63,7 @@ func TestMetaChain_GetCurrentBlockBody(t *testing.T) {
 
 	m := blockchain.MetaChain{}
 
-	assert.Equal(t, nil, m.GetCurrentBlockBody())
+	assert.True(t, check.IfNil(m.GetCurrentBlockBody()))
 }
 
 func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
@@ -90,7 +91,7 @@ func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
 	err := m.SetCurrentBlockBody(&block.Body{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, nil, m.GetCurrentBlockBody())
+	assert.Equal(t, &block.Body{}, m.GetCurrentBlockBody())
 }
 
 func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {

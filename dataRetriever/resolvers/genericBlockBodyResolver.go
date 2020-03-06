@@ -24,7 +24,6 @@ func NewGenericBlockBodyResolver(
 	miniBlockStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*genericBlockBodyResolver, error) {
-
 	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
@@ -122,15 +121,16 @@ func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestDa
 }
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
-func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
+func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return gbbRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
+		Epoch: epoch,
 	})
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
-func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte) error {
+func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 
 	if err != nil {
@@ -186,7 +186,7 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
 	for i := 0; i < len(hashes); i++ {
-		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
+		buff, err := gbbRes.miniBlockStorage.SearchFirst(hashes[i])
 		if err != nil {
 			log.Trace("missing miniblock",
 				"error", err.Error(),
@@ -217,8 +217,5 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (gbbRes *genericBlockBodyResolver) IsInterfaceNil() bool {
-	if gbbRes == nil {
-		return true
-	}
-	return false
+	return gbbRes == nil
 }

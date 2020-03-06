@@ -1,0 +1,22 @@
+
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "metrics";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+
+message Metric {
+	string Key = 1;
+	oneof Value {
+		uint64 ValUint64 = 2;
+		string ValString = 3;
+	}
+}
+
+message MetricsList {
+	repeated Metric Metrics = 1 [(gogoproto.nullable) = false]; 
+}

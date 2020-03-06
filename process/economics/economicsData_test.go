@@ -13,49 +13,52 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDummyEconomicsConfig() *config.ConfigEconomics {
-	return &config.ConfigEconomics{
-		EconomicsAddresses: config.EconomicsAddresses{
-			CommunityAddress: "addr1",
-			BurnAddress:      "addr2",
+const (
+	validatorIncreaseRatingStep = uint32(2)
+	validatorDecreaseRatingStep = uint32(4)
+	proposerIncreaseRatingStep  = uint32(1)
+	proposerDecreaseRatingStep  = uint32(2)
+)
+
+func createDummyEconomicsConfig() *config.EconomicsConfig {
+	return &config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			TotalSupply:      "2000000000000000000000",
+			MinimumInflation: 0,
+			MaximumInflation: 0.5,
 		},
 		RewardsSettings: config.RewardsSettings{
-			RewardsValue:        "1000000000000000000000000000000000",
-			CommunityPercentage: 0.1,
-			LeaderPercentage:    0.1,
-			BurnPercentage:      0.8,
+			LeaderPercentage: 0.1,
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock: "100000",
-			MinGasPrice:         "18446744073709551615",
-			MinGasLimit:         "500",
+			MaxGasLimitPerBlock:  "100000",
+			MinGasPrice:          "18446744073709551615",
+			MinGasLimit:          "500",
+			GasPerDataByte:       "1",
+			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
-			StakeValue:    "500000000",
-			UnBoundPeriod: "100000",
+			GenesisNodePrice: 		  "500000000",
+			UnBondPeriod:             "100000",
+			TotalSupply:              "200000000000",
+			MinStepValue:             "100000",
+			NumNodes:                 1000,
+			AuctionEnableNonce:       "100000",
+			StakeEnableNonce:         "100000",
+			NumRoundsWithoutBleed:    "1000",
+			MaximumPercentageToBleed: "0.5",
+			BleedPercentagePerRound:  "0.00001",
+			UnJailValue:              "1000",
 		},
-	}
-}
-
-func TestNewEconomicsData_InvalidRewardsValueShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	badRewardsValues := []string{
-		"-1",
-		"-100000000000000000000",
-		"badValue",
-		"",
-		"#########",
-		"11112S",
-		"1111O0000",
-		"10ERD",
-	}
-
-	for _, rewardsValue := range badRewardsValues {
-		economicsConfig.RewardsSettings.RewardsValue = rewardsValue
-		_, err := economics.NewEconomicsData(economicsConfig)
-		assert.Equal(t, process.ErrInvalidRewardsValue, err)
+		RatingSettings: config.RatingSettings{
+			StartRating:                 50,
+			MaxRating:                   100,
+			MinRating:                   1,
+			ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
+			ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
+			ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
+			ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
+		},
 	}
 }
 
@@ -131,51 +134,11 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 
 }
 
-func TestNewEconomicsData_InvalidBurnPercentageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.BurnPercentage = -1.0
-	economicsConfig.RewardsSettings.CommunityPercentage = 0.1
-	economicsConfig.RewardsSettings.LeaderPercentage = 0.1
-
-	_, err := economics.NewEconomicsData(economicsConfig)
-	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
-
-}
-
-func TestNewEconomicsData_InvalidCommunityPercentageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.BurnPercentage = 0.1
-	economicsConfig.RewardsSettings.CommunityPercentage = -0.1
-	economicsConfig.RewardsSettings.LeaderPercentage = 0.1
-
-	_, err := economics.NewEconomicsData(economicsConfig)
-	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
-
-}
-
 func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.BurnPercentage = 0.1
-	economicsConfig.RewardsSettings.CommunityPercentage = 0.1
 	economicsConfig.RewardsSettings.LeaderPercentage = -0.1
-
-	_, err := economics.NewEconomicsData(economicsConfig)
-	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
-
-}
-func TestNewEconomicsData_InvalidRewardsPercentageSumShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.BurnPercentage = 0.5
-	economicsConfig.RewardsSettings.CommunityPercentage = 0.2
-	economicsConfig.RewardsSettings.LeaderPercentage = 0.5
 
 	_, err := economics.NewEconomicsData(economicsConfig)
 	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
@@ -190,58 +153,16 @@ func TestNewEconomicsData_ShouldWork(t *testing.T) {
 	assert.NotNil(t, economicsData)
 }
 
-func TestEconomicsData_RewardsValue(t *testing.T) {
-	t.Parallel()
-
-	rewardsValue := int64(100)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.RewardsValue = strconv.FormatInt(rewardsValue, 10)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.RewardsValue()
-	assert.Equal(t, big.NewInt(rewardsValue), value)
-}
-
-func TestEconomicsData_CommunityPercentage(t *testing.T) {
-	t.Parallel()
-
-	communityPercentage := 0.50
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.CommunityPercentage = communityPercentage
-	economicsConfig.RewardsSettings.BurnPercentage = 0.2
-	economicsConfig.RewardsSettings.LeaderPercentage = 0.3
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.CommunityPercentage()
-	assert.Equal(t, communityPercentage, value)
-}
-
 func TestEconomicsData_LeaderPercentage(t *testing.T) {
 	t.Parallel()
 
 	leaderPercentage := 0.40
 	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.CommunityPercentage = 0.30
-	economicsConfig.RewardsSettings.BurnPercentage = 0.30
 	economicsConfig.RewardsSettings.LeaderPercentage = leaderPercentage
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
 
 	value := economicsData.LeaderPercentage()
 	assert.Equal(t, leaderPercentage, value)
-}
-
-func TestEconomicsData_BurnPercentage(t *testing.T) {
-	t.Parallel()
-
-	burnPercentage := 0.41
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.BurnPercentage = burnPercentage
-	economicsConfig.RewardsSettings.CommunityPercentage = 0.29
-	economicsConfig.RewardsSettings.LeaderPercentage = 0.3
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.BurnPercentage()
-	assert.Equal(t, burnPercentage, value)
 }
 
 func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
@@ -276,7 +197,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -340,7 +261,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
-		Data:     "1",
+		Data:     []byte("1"),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -390,26 +311,81 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEconomicsData_CommunityAddress(t *testing.T) {
+func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	communityAddress := "addr1"
 	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.EconomicsAddresses.CommunityAddress = communityAddress
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 8
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
 
-	value := economicsData.CommunityAddress()
-	assert.Equal(t, communityAddress, value)
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
 }
 
-func TestEconomicsData_BurnAddress(t *testing.T) {
+func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
 	t.Parallel()
 
-	burnAddress := "addr2"
 	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.EconomicsAddresses.BurnAddress = burnAddress
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsConfig.RatingSettings.MinRating = 0
+	economicsConfig.RatingSettings.MaxRating = 8
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
 
-	value := economicsData.BurnAddress()
-	assert.Equal(t, burnAddress, value)
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
+}
+
+func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 100
+	economicsConfig.RatingSettings.StartRating = 110
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+}
+
+func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 100
+	economicsConfig.RatingSettings.StartRating = 5
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+}
+
+func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
+	t.Parallel()
+
+	minRating := uint32(10)
+	maxRating := uint32(100)
+	startRating := uint32(50)
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = minRating
+	economicsConfig.RatingSettings.MaxRating = maxRating
+	economicsConfig.RatingSettings.StartRating = startRating
+	economicsConfig.RatingSettings.ProposerDecreaseRatingStep = proposerDecreaseRatingStep
+	economicsConfig.RatingSettings.ProposerIncreaseRatingStep = proposerIncreaseRatingStep
+	economicsConfig.RatingSettings.ValidatorIncreaseRatingStep = validatorIncreaseRatingStep
+	economicsConfig.RatingSettings.ValidatorDecreaseRatingStep = validatorDecreaseRatingStep
+
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, economicsData)
+	assert.Equal(t, startRating, economicsData.RatingsData().StartRating())
+	assert.Equal(t, minRating, economicsData.RatingsData().MinRating())
+	assert.Equal(t, maxRating, economicsData.RatingsData().MaxRating())
+	assert.Equal(t, validatorIncreaseRatingStep, economicsData.RatingsData().ValidatorIncreaseRatingStep())
+	assert.Equal(t, validatorDecreaseRatingStep, economicsData.RatingsData().ValidatorDecreaseRatingStep())
+	assert.Equal(t, proposerIncreaseRatingStep, economicsData.RatingsData().ProposerIncreaseRatingStep())
+	assert.Equal(t, proposerDecreaseRatingStep, economicsData.RatingsData().ProposerDecreaseRatingStep())
 }

@@ -3,13 +3,16 @@ syntax = "proto3";
 package proto;
 
 option go_package = "systemSmartContracts";
+option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message StakingData {
-	uint64   StartNonce    = 1 [(gogoproto.jsontag) = "StartNonce"];
+message StakedData {
+	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	bool     Staked        = 2 [(gogoproto.jsontag) = "Staked"];
 	uint64   UnStakedNonce = 3 [(gogoproto.jsontag) = "UnStakedNonce"];
-	bytes    BlsPubKey     = 4 [(gogoproto.jsontag) = "BlsPubKey"];
+	uint32   UnStakedEpoch = 6 [(gogoproto.jsontag) = "UnStakedEpoch"];
+	bytes    RewardAddress = 4 [(gogoproto.jsontag) = "RewardAddress"];
 	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64   JailedRound   = 7 [(gogoproto.jsontag) = "JailedRound"];
 }

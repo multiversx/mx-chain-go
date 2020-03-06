@@ -5,9 +5,11 @@ syntax = "proto3";
 package proto;
 
 option go_package = "block";
+option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "block.proto";
+
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
 enum  PeerAction {
@@ -25,11 +27,11 @@ enum  PeerAction {
 //  - a peer can register with an amount to become a validator
 //  - a peer can choose to deregister and get back the deposited value
 message PeerData {
-	bytes      Address      = 1 ;
-	bytes      PublicKey   = 2 ;
-	PeerAction Action      = 3 ;
-	uint64     TimeStamp   = 4 ;
-	bytes  ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
+	bytes      Address     = 1;
+	bytes      PublicKey   = 2;
+	PeerAction Action      = 3;
+	uint64     TimeStamp   = 4;
+	bytes      ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header
@@ -42,34 +44,68 @@ message ShardMiniBlockHeader {
 
 // ShardData holds the block information sent by the shards to the metachain
 message ShardData {
-	uint32                 ShardID               = 1;
 	bytes                  HeaderHash            = 2;
 	repeated ShardMiniBlockHeader ShardMiniBlockHeaders = 3 [(gogoproto.nullable) = false];
 	bytes                  PrevRandSeed          = 4;
 	bytes                  PubKeysBitmap         = 5;
 	bytes                  Signature             = 6;
-	uint32                 TxCount               = 7;
 	uint64                 Round                 = 8;
 	bytes                  PrevHash              = 9;
 	uint64                 Nonce                 = 10;
+	bytes                  AccumulatedFees       = 12 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint32                 NumPendingMiniBlocks  = 11;
+	uint32                 ShardID               = 1;
+	uint32                 TxCount               = 7;
+}
+
+// EpochStartShardData hold the last finalized headers hash and state root hash
+message EpochStartShardData {
+	uint32                        ShardID                  = 1;
+	uint64                        Round                    = 7;
+	uint64                        Nonce                    = 8;
+	bytes                         HeaderHash               = 2;
+	bytes                         RootHash                 = 3;
+	bytes                         FirstPendingMetaBlock    = 4;
+	bytes                         LastFinishedMetaBlock    = 5;
+	repeated ShardMiniBlockHeader PendingMiniBlockHeaders  = 6 [(gogoproto.nullable) = false];
+}
+
+// Economics holds the block information for total supply and rewards
+message Economics {
+	bytes TotalSupply            = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes TotalToDistribute      = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes NodePrice              = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+// EpochStart holds the block information for end-of-epoch
+message EpochStart {
+	repeated EpochStartShardData LastFinalizedHeaders = 1 [(gogoproto.nullable) = false];
+	Economics                    Economics            = 2 [(gogoproto.nullable) = false];
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
 message MetaBlock {
-	 uint64            Nonce                 = 1;
-	 uint32            Epoch                 = 2;
-	 uint64            Round                 = 3;
-	 uint64            TimeStamp             = 4;
-	 repeated ShardData       ShardInfo             = 5 [(gogoproto.nullable) = false];
-	 repeated PeerData        PeerInfo              = 6 [(gogoproto.nullable) = false];
-	 bytes             Signature             = 7;
-	 bytes             LeaderSignature       = 8;
-	 bytes             PubKeysBitmap         = 9;
-	 bytes             PrevHash              = 10;
-	 bytes             PrevRandSeed          = 11;
-	 bytes             RandSeed              = 12;
-	 bytes             RootHash              = 13;
-	 bytes             ValidatorStatsRootHash = 14;
-	 uint32            TxCount               = 15;
-	 repeated MiniBlockHeader MiniBlockHeaders      = 16 [(gogoproto.nullable) = false];
+	 uint64            Nonce                    = 1;
+	 uint64            Round                    = 3;
+	 uint64            TimeStamp                = 4;
+	 repeated ShardData       ShardInfo         = 5 [(gogoproto.nullable) = false];
+	 repeated PeerData        PeerInfo          = 6 [(gogoproto.nullable) = false];
+	 bytes             Signature                = 7;
+	 bytes             LeaderSignature          = 8;
+	 bytes             PubKeysBitmap            = 9;
+	 bytes             PrevHash                 = 10;
+	 bytes             PrevRandSeed             = 11;
+	 bytes             RandSeed                 = 12;
+	 bytes             RootHash                 = 13;
+	 bytes             ValidatorStatsRootHash   = 14;
+	 repeated MiniBlockHeader MiniBlockHeaders  = 16 [(gogoproto.nullable) = false];
+	 bytes             ReceiptsHash             = 17;
+	 EpochStart        EpochStart               = 18 [(gogoproto.nullable) = false];
+	 bytes             ChainID                  = 19;
+	 bytes             AccumulatedFees          = 20 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             AccumulatedFeesInEpoch   = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 uint32            Epoch                    = 2;
+	 uint32            TxCount                  = 15;
 }

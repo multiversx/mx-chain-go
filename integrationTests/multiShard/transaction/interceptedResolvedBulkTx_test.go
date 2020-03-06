@@ -66,7 +66,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	transactionValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend))
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
 
 	time.Sleep(time.Second * 10)
 
@@ -144,7 +144,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend))
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -231,7 +231,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == firstSkInShard {
-			n.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
+			n.DataPool.Transactions().RegisterHandler(func(key []byte) {
 				mutGeneratedTxHashes.Lock()
 				generatedTxHashes = append(generatedTxHashes, key)
 				mutGeneratedTxHashes.Unlock()
@@ -246,7 +246,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend))
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[0].OwnAccount.SkTxSign)
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)
@@ -359,7 +359,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		txResolver, ok := resolver.(*resolvers.TxResolver)
 		assert.True(t, ok)
 
-		_ = txResolver.RequestDataFromHashArray(txHashesGenerated)
+		_ = txResolver.RequestDataFromHashArray(txHashesGenerated, 0)
 	}
 
 	time.Sleep(time.Second * 5)

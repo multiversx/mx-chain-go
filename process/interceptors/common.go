@@ -27,10 +27,15 @@ func processInterceptedData(
 	processor process.InterceptorProcessor,
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
+	msg p2p.MessageP2P,
 ) {
 	err := processor.Validate(data)
 	if err != nil {
 		log.Trace("intercepted data is not valid",
+			"hash", data.Hash(),
+			"type", data.Type(),
+			"pid", p2p.MessageOriginatorPid(msg),
+			"seq no", p2p.MessageOriginatorSeq(msg),
 			"error", err.Error(),
 		)
 		wgProcess.Done()
@@ -40,9 +45,22 @@ func processInterceptedData(
 	err = processor.Save(data)
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
+			"hash", data.Hash(),
+			"type", data.Type(),
+			"pid", p2p.MessageOriginatorPid(msg),
+			"seq no", p2p.MessageOriginatorSeq(msg),
 			"error", err.Error(),
 		)
+		wgProcess.Done()
+		return
 	}
+
+	log.Trace("intercepted data is processed",
+		"hash", data.Hash(),
+		"type", data.Type(),
+		"pid", p2p.MessageOriginatorPid(msg),
+		"seq no", p2p.MessageOriginatorSeq(msg),
+	)
 
 	wgProcess.Done()
 }

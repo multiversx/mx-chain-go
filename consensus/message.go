@@ -11,17 +11,22 @@ func NewConsensusMessage(
 	pubKey []byte,
 	sig []byte,
 	msg int,
-	tms uint64,
 	roundIndex int64,
+	chainID []byte,
+	pubKeysBitmap []byte,
+	aggregateSignature []byte,
+	leaderSignature []byte,
 ) *Message {
-
 	return &Message{
-		BlockHeaderHash: blHeaderHash,
-		SubRoundData:    subRoundData,
-		PubKey:          pubKey,
-		Signature:       sig,
-		MsgType:         int64(msg),
-		TimeStamp:       tms,
-		RoundIndex:      roundIndex,
+		BlockHeaderHash:    blHeaderHash,
+		SubRoundData:       subRoundData,
+		PubKey:             pubKey,
+		Signature:          sig,
+		MsgType:            int64(msg),
+		RoundIndex:         roundIndex,
+		ChainID:            chainID,
+		PubKeysBitmap:      pubKeysBitmap,
+		AggregateSignature: aggregateSignature,
+		LeaderSignature:    leaderSignature,
 	}
 }

@@ -454,7 +454,8 @@ func TestKyberScalar_UnmarshalBinary(t *testing.T) {
 	scalarBytes, err := scalar1.MarshalBinary()
 
 	scalar2 := suite.CreateScalar().Zero()
-	scalar2.UnmarshalBinary(scalarBytes)
+	err = scalar2.UnmarshalBinary(scalarBytes)
+	assert.Nil(t, err)
 
 	eq, err := scalar1.Equal(scalar2)
 

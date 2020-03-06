@@ -8,19 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
-
-func getRewardValue(node *integrationTests.TestProcessorNode) *big.Int {
-	return node.EconomicsData.RewardsValue()
-}
 
 func getLeaderPercentage(node *integrationTests.TestProcessorNode) float64 {
 	return node.EconomicsData.LeaderPercentage()
@@ -72,13 +67,12 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		}
 	}()
 
-	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+	integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
 	round := uint64(1)
 	nonce := uint64(1)
 	nbBlocksProduced := 7
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
@@ -86,11 +80,13 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
+		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -158,24 +154,22 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 		}
 	}()
 
-	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+	integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
 	round := uint64(1)
 	nonce := uint64(1)
 	nbBlocksProduced := 2
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -183,6 +177,9 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 			}
 		}
 
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
@@ -234,31 +231,29 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksProduced := 7
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			if shardId == sharding.MetachainShardId {
+		for shardId := range consensusNodes {
+			if shardId == core.MetachainShardId {
 				continue
 			}
 
-			shardRewardsData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			if shardRewardsData == nil {
-				shardRewardsData = &data.ConsensusRewardData{}
-			}
-
+			shardRewardsData := &data.ConsensusRewardData{}
 			addrRewards := shardRewardsData.Addresses
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 		}
 
 		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
@@ -269,46 +264,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 
 	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, 0, 0)
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
-}
-
-func generateIntraShardTransactions(
-	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
-	nbTxsPerShard uint32,
-	mintValue *big.Int,
-	valToTransfer *big.Int,
-	gasPrice uint64,
-	gasLimit uint64,
-) {
-	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
-	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
-
-	for shardId, nodes := range nodesMap {
-		if shardId == sharding.MetachainShardId {
-			continue
-		}
-
-		sendersPrivateKeys[shardId], receiversPublicKeys[shardId] = integrationTests.CreateSendersAndReceiversInShard(
-			nodes[0],
-			nbTxsPerShard,
-		)
-
-		fmt.Println("Minting sender addresses...")
-		integrationTests.CreateMintingForSenders(
-			nodes,
-			shardId,
-			sendersPrivateKeys[shardId],
-			mintValue,
-		)
-	}
-
-	integrationTests.CreateAndSendTransactions(
-		nodesMap,
-		sendersPrivateKeys,
-		receiversPublicKeys,
-		gasPrice,
-		gasLimit,
-		valToTransfer,
-	)
 }
 
 func getBlockProposersIndexes(
@@ -329,20 +284,8 @@ func getBlockProposersIndexes(
 	return indexProposer
 }
 
-func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
-	randomness := make(map[uint32][]byte)
-
-	for i := uint32(0); i < nbShards; i++ {
-		randomness[i] = []byte("root hash")
-	}
-
-	randomness[sharding.MetachainShardId] = []byte("root hash")
-
-	return randomness
-}
-
 func getTransactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
-	if shardId == sharding.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return 0
 	}
 
@@ -389,15 +332,7 @@ func updateNumberTransactionsProposed(
 	transactionsForLeader[addressProposer] += nbTransactions
 }
 
-func updateRewardsForMetachain(rewardsMap map[string]uint32, consensusNode *integrationTests.TestProcessorNode) {
-	metaRewardDataSlice := consensusNode.SpecialAddressHandler.ConsensusMetaRewardData()
-	if len(metaRewardDataSlice) > 0 {
-		for _, metaRewardData := range metaRewardDataSlice {
-			for _, addr := range metaRewardData.Addresses {
-				rewardsMap[addr]++
-			}
-		}
-	}
+func updateRewardsForMetachain(_ map[string]uint32, _ *integrationTests.TestProcessorNode) {
 }
 
 func verifyRewardsForMetachain(
@@ -405,7 +340,7 @@ func verifyRewardsForMetachain(
 	mapRewardsForMeta map[string]uint32,
 	nodes map[uint32][]*integrationTests.TestProcessorNode,
 ) {
-	rewardValue := getRewardValue(nodes[0][0])
+	rewardValue := big.NewInt(0)
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
@@ -426,7 +361,7 @@ func verifyRewardsForShards(
 	gasPrice uint64,
 	gasLimit uint64,
 ) {
-	rewardValue := getRewardValue(nodesMap[0][0])
+	rewardValue := big.NewInt(0)
 	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {

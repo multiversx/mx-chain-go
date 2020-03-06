@@ -4,7 +4,6 @@ package view
 type Presenter interface {
 	GetAppVersion() string
 	GetNodeName() string
-	GetPublicKeyTxSign() string
 	GetPublicKeyBlockSign() string
 	GetShardId() uint64
 	GetNodeType() string
@@ -40,6 +39,7 @@ type Presenter interface {
 	GetLogLines() []string
 	GetNumTxProcessed() uint64
 	GetCurrentBlockHash() string
+	GetEpochNumber() uint64
 	CalculateTimeToSynchronize() string
 	CalculateSynchronizationSpeed() uint64
 	GetCurrentRoundTimestamp() uint64

@@ -63,6 +63,7 @@ func TestNewTxTypeHandler_ValsOk(t *testing.T) {
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
+	assert.False(t, tth.IsInterfaceNil())
 }
 
 func generateRandomByteSlice(size int) []byte {
@@ -174,7 +175,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	txType, err := tth.ComputeTransactionType(tx)
@@ -185,12 +186,11 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.RcvAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255}
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -221,7 +221,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)

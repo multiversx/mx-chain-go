@@ -13,7 +13,7 @@ import (
 // new instances
 type ArgInterceptedDataFactory struct {
 	ProtoMarshalizer  marshal.Marshalizer
-	SignMarshalizer   marshal.Marshalizer
+	TxSignMarshalizer marshal.Marshalizer
 	Hasher            hashing.Hasher
 	ShardCoordinator  sharding.Coordinator
 	MultiSigVerifier  crypto.MultiSigVerifier
@@ -25,4 +25,7 @@ type ArgInterceptedDataFactory struct {
 	AddrConv          state.AddressConverter
 	FeeHandler        process.FeeHandler
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+	ChainID           []byte
+	ValidityAttester  process.ValidityAttester
+	EpochStartTrigger process.EpochStartTriggerHandler
 }

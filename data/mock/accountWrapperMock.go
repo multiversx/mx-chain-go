@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. accountWrapperMock.proto
 package mock
 
 import (
@@ -5,8 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// AccountWrapMock -
 type AccountWrapMock struct {
-	MockValue         int
+	AccountWrapMockData
 	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
@@ -21,14 +23,16 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
 }
 
+// NewAccountWrapMock -
 func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker) *AccountWrapMock {
 	return &AccountWrapMock{
 		address:           adr,
 		tracker:           tracker,
-		trackableDataTrie: state.NewTrackableDataTrie(nil),
+		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
 	}
 }
 
+// IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
 	if awm == nil {
 		return true
@@ -36,51 +40,63 @@ func (awm *AccountWrapMock) IsInterfaceNil() bool {
 	return false
 }
 
+// GetCodeHash -
 func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
 }
 
+// SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
 }
 
+// SetCodeHashWithJournal -
 func (awm *AccountWrapMock) SetCodeHashWithJournal(codeHash []byte) error {
 	return awm.SetCodeHashWithJournalCalled(codeHash)
 }
 
+// GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
 }
 
+// GetRootHash -
 func (awm *AccountWrapMock) GetRootHash() []byte {
 	return awm.rootHash
 }
 
+// SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.rootHash = rootHash
 }
 
+// AddressContainer -
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
 }
 
+// SetCode -
 func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
+// DataTrie -
 func (awm *AccountWrapMock) DataTrie() data.Trie {
 	return awm.dataTrie
 }
 
+// SetDataTrie -
 func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }
 
+// DataTrieTracker -
 func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
+// SetDataTrieTracker -
 func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
 	awm.trackableDataTrie = tracker
 }

@@ -1,5 +1,10 @@
 package storage
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+)
+
 // Persister provides storage of data services in a database like construct
 type Persister interface {
 	// Put add the value to the (key, val) persistence medium
@@ -16,6 +21,8 @@ type Persister interface {
 	Remove(key []byte) error
 	// Destroy removes the persistence medium stored data
 	Destroy() error
+	// DestroyClosed removes the already closed persistence medium stored data
+	DestroyClosed() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -47,7 +54,7 @@ type Cacher interface {
 	// the "recently used"-ness of the key.
 	Peek(key []byte) (value interface{}, ok bool)
 	// HasOrAdd checks if a key is in the cache  without updating the
-	// recent-ness or deleting it for being stale,  and if not, adds the value.
+	// recent-ness or deleting it for being stale,  and if not adds the value.
 	// Returns whether found and whether an eviction occurred.
 	HasOrAdd(key []byte, value interface{}) (ok, evicted bool)
 	// Remove removes the provided key from the cache.
@@ -84,9 +91,28 @@ type BloomFilter interface {
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	Has(key []byte) error
+	HasInEpoch(key []byte, epoch uint32) error
+	SearchFirst(key []byte) ([]byte, error)
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	IsInterfaceNil() bool
+	Close() error
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler epochStart.EpochStartHandler)
+	UnregisterHandler(handler epochStart.EpochStartHandler)
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// PathManagerHandler defines which actions should be done for generating paths for databases directories
+type PathManagerHandler interface {
+	PathForEpoch(shardId string, epoch uint32, identifier string) string
+	PathForStatic(shardId string, identifier string) string
 	IsInterfaceNil() bool
 }

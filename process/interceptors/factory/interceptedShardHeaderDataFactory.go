@@ -14,17 +14,20 @@ type interceptedShardHeaderDataFactory struct {
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
+	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
 func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedShardHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.SignMarshalizer) {
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -36,12 +39,24 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
+	if len(argument.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
+	if check.IfNil(argument.ValidityAttester) {
+		return nil, process.ErrNilValidityAttester
+	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:       argument.ProtoMarshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
+		chainID:           argument.ChainID,
+		validityAttester:  argument.ValidityAttester,
+		epochStartTrigger: argument.EpochStartTrigger,
 	}, nil
 }
 
@@ -53,6 +68,9 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		Hasher:            ishdf.hasher,
 		ShardCoordinator:  ishdf.shardCoordinator,
 		HeaderSigVerifier: ishdf.headerSigVerifier,
+		ChainID:           ishdf.chainID,
+		ValidityAttester:  ishdf.validityAttester,
+		EpochStartTrigger: ishdf.epochStartTrigger,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
@@ -60,8 +78,5 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ishdf *interceptedShardHeaderDataFactory) IsInterfaceNil() bool {
-	if ishdf == nil {
-		return true
-	}
-	return false
+	return ishdf == nil
 }

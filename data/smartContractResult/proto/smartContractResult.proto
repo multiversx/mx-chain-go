@@ -4,6 +4,7 @@ syntax = "proto3";
 package proto;
 
 option go_package = "smartContractResult";
+option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
@@ -14,7 +15,7 @@ message SmartContractResult  {
 	bytes    RcvAddr   = 3 [(gogoproto.jsontag) = "receiver"];
 	bytes    SndAddr   = 4 [(gogoproto.jsontag) = "sender"];
 	bytes    Code      = 5 [(gogoproto.jsontag) = "code,omitempty"];
-	string   Data      = 6 [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    Data      = 6 [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    TxHash    = 7 [(gogoproto.jsontag) = "txHash"];
 	uint64   GasLimit  = 8 [(gogoproto.jsontag) = "gasLimit"];
 	uint64   GasPrice  = 9 [(gogoproto.jsontag) = "gasPrice"];

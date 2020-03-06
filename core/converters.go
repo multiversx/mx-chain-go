@@ -1,11 +1,11 @@
 package core
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -25,15 +25,8 @@ func ConvertBytes(bytes uint64) string {
 	return fmt.Sprintf("%.2f GB", float64(bytes)/1024.0/1024.0/1024.0)
 }
 
-// ToB64 encodes the given buff to base64
-func ToB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
-}
-
 // ToHex encodes the given buff to hex
+// This should be used only for display purposes!
 func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
@@ -95,4 +88,37 @@ func SecondsToHourMinSec(input int) string {
 	}
 
 	return result
+}
+
+// GetShardIdString will return the string representation of the shard id
+func GetShardIdString(shardId uint32) string {
+	if shardId == math.MaxUint32 {
+		return "metachain"
+	}
+
+	return fmt.Sprintf("%d", shardId)
+}
+
+// EpochStartIdentifier returns the string for the epoch start identifier
+func EpochStartIdentifier(epoch uint32) string {
+	return fmt.Sprintf("epochStartBlock_%d", epoch)
+}
+
+// IsUnknownEpochIdentifier return if the epoch identifier represents unknown epoch
+func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
+	splitString := strings.Split(string(identifier), "_")
+	if len(splitString) < 2 || len(splitString[1]) == 0 {
+		return false, ErrInvalidIdentifierForEpochStartBlockRequest
+	}
+
+	epoch, err := strconv.ParseUint(splitString[1], 10, 32)
+	if err != nil {
+		return false, ErrInvalidIdentifierForEpochStartBlockRequest
+	}
+
+	if epoch == math.MaxUint32 {
+		return true, nil
+	}
+
+	return false, nil
 }

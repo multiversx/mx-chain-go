@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -29,13 +30,11 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-const refreshPeersOnTopic = time.Second * 60
-const ttlPeersOnTopic = time.Second * 120
-
+const refreshPeersOnTopic = time.Second * 5
+const ttlPeersOnTopic = time.Second * 30
 const pubsubTimeCacheDuration = 10 * time.Minute
-
 const broadcastGoRoutines = 1000
-
+const durationBetweenPeersPrints = time.Second * 20
 const defaultThresholdMinConnectedPeers = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -96,7 +95,7 @@ func NewNetworkMessenger(
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
 		libp2p.DefaultTransports,
-		//TODO investigate if the DisableRelay is really needed and why
+		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
@@ -159,7 +158,6 @@ func createMessenger(
 	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
 	if err != nil {
 		return nil, err
-
 	}
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
@@ -176,6 +174,19 @@ func createMessenger(
 		return nil, err
 	}
 
+	go func() {
+		for {
+			time.Sleep(durationBetweenPeersPrints)
+
+			numConnectedPeers := len(netMes.ConnectedPeers())
+			numKnownPeers := len(netMes.Peers())
+			log.Debug("network connection status",
+				"known peers", numKnownPeers,
+				"connected peers", numConnectedPeers,
+			)
+		}
+	}()
+
 	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
 		for {
 			sendableData := plb.CollectOneElementFromChannels()
@@ -184,7 +195,11 @@ func createMessenger(
 				continue
 			}
 
-			_ = pb.Publish(sendableData.Topic, sendableData.Buff)
+			errPublish := pb.Publish(sendableData.Topic, sendableData.Buff)
+			if errPublish != nil {
+				log.Trace("error sending data", "error", errPublish)
+			}
+
 			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
@@ -353,6 +368,8 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return p2p.ErrTopicAlreadyExists
 	}
 
+	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
+	// after calling pubsub.Join
 	netMes.topics[name] = nil
 	subscrRequest, err := netMes.pb.Subscribe(name)
 	if err != nil {
@@ -387,7 +404,7 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 // HasTopicValidator returns true if the topic has a validator set
 func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	netMes.mutTopics.RLock()
-	validator, _ := netMes.topics[name]
+	validator := netMes.topics[name]
 	netMes.mutTopics.RUnlock()
 
 	return validator != nil
@@ -437,17 +454,14 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 
 // RegisterMessageProcessor registers a message process on a topic
 func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	if handler == nil || handler.IsInterfaceNil() {
+	if check.IfNil(handler) {
 		return p2p.ErrNilValidator
 	}
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator, found := netMes.topics[topic]
-	if !found {
-		return p2p.ErrNilTopic
-	}
-	if validator != nil {
+	validator := netMes.topics[topic]
+	if !check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
@@ -456,12 +470,24 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
+		wrappedMsg, err := NewMessage(message)
 		if err != nil {
-			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
+			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
+			return false
+		}
+		err = handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
+		if err != nil {
+			log.Trace("p2p validator",
+				"error", err.Error(),
+				"topics", message.TopicIDs,
+				"pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
+			)
+
+			return false
 		}
 
-		return err == nil
+		return true
 	})
 	if err != nil {
 		return err
@@ -476,12 +502,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
-
 	if !found {
 		return p2p.ErrNilTopic
 	}
-
-	if validator == nil {
+	if check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
@@ -513,7 +537,12 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	go func(msg p2p.MessageP2P) {
 		err := processor.ProcessReceivedMessage(msg, nil)
 		if err != nil {
-			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
+			log.Trace("p2p validator",
+				"error", err.Error(),
+				"topics", msg.TopicIDs(),
+				"pid", p2p.MessageOriginatorPid(msg),
+				"seq no", p2p.MessageOriginatorSeq(msg),
+			)
 		}
 	}(message)
 

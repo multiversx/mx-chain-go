@@ -41,7 +41,6 @@ func (sdp *SizeDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byte,
 	elements := make([][]byte, 0)
 	lastMarshalized := make([]byte, 0)
 	for _, element := range data {
-
 		elements = append(elements, element)
 		marshaledElements, err := sdp.marshalizer.Marshal(&batch.Batch{Data: elements})
 		if err != nil {
@@ -92,8 +91,5 @@ func (sdp *SizeDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byte,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdp *SizeDataPacker) IsInterfaceNil() bool {
-	if sdp == nil {
-		return true
-	}
-	return false
+	return sdp == nil
 }

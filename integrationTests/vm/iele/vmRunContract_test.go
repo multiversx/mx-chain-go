@@ -75,7 +75,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		destinationAddressBytes,
 		accnts,
 		transferOnCalls,
-		string(scCode),
+		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})
 }
 
@@ -143,7 +143,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		destinationAddressBytes,
 		accnts,
 		big.NewInt(0),
-		string(scCode),
+		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})
 }
 

@@ -6,7 +6,8 @@ import (
 
 // roundConsensus defines the data needed by spos to do the consensus in each round
 type roundConsensus struct {
-	eligibleList         []string
+	eligibleNodes        map[string]struct{}
+	mutEligible          sync.RWMutex
 	consensusGroup       []string
 	consensusGroupSize   int
 	selfPubKey           string
@@ -16,15 +17,16 @@ type roundConsensus struct {
 
 // NewRoundConsensus creates a new roundConsensus object
 func NewRoundConsensus(
-	eligibleList []string,
+	eligibleNodes map[string]struct{},
 	consensusGroupSize int,
 	selfId string,
 ) *roundConsensus {
 
 	rcns := roundConsensus{
-		eligibleList:       eligibleList,
+		eligibleNodes:      eligibleNodes,
 		consensusGroupSize: consensusGroupSize,
 		selfPubKey:         selfId,
+		mutEligible:        sync.RWMutex{},
 	}
 
 	rcns.validatorRoundStates = make(map[string]*roundState)
@@ -47,14 +49,11 @@ func (rcns *roundConsensus) SelfConsensusGroupIndex() (int, error) {
 	return rcns.ConsensusGroupIndex(rcns.selfPubKey)
 }
 
-// EligibleList returns the eligible list ID's
-func (rcns *roundConsensus) EligibleList() []string {
-	return rcns.eligibleList
-}
-
 // SetEligibleList sets the eligible list ID's
-func (rcns *roundConsensus) SetEligibleList(eligibleList []string) {
-	rcns.eligibleList = eligibleList
+func (rcns *roundConsensus) SetEligibleList(eligibleList map[string]struct{}) {
+	rcns.mutEligible.Lock()
+	rcns.eligibleNodes = eligibleList
+	rcns.mutEligible.Unlock()
 }
 
 // ConsensusGroup returns the consensus group ID's
@@ -101,14 +100,14 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 	rcns.mut.RLock()
-	roundState := rcns.validatorRoundStates[key]
+	currentRoundState := rcns.validatorRoundStates[key]
 
-	if roundState == nil {
+	if currentRoundState == nil {
 		rcns.mut.RUnlock()
 		return false, ErrInvalidKey
 	}
 
-	retcode := roundState.JobDone(subroundId)
+	retcode := currentRoundState.JobDone(subroundId)
 	rcns.mut.RUnlock()
 
 	return retcode, nil
@@ -119,14 +118,14 @@ func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) error {
 	rcns.mut.Lock()
 
-	roundState := rcns.validatorRoundStates[key]
+	currentRoundState := rcns.validatorRoundStates[key]
 
-	if roundState == nil {
+	if currentRoundState == nil {
 		rcns.mut.Unlock()
 		return ErrInvalidKey
 	}
 
-	roundState.SetJobDone(subroundId, value)
+	currentRoundState.SetJobDone(subroundId, value)
 	rcns.mut.Unlock()
 
 	return nil
@@ -155,13 +154,11 @@ func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
 
 // IsNodeInEligibleList method checks if the node is part of the eligible list
 func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
-	for i := 0; i < len(rcns.eligibleList); i++ {
-		if rcns.eligibleList[i] == node {
-			return true
-		}
-	}
+	rcns.mutEligible.RLock()
+	_, ok := rcns.eligibleNodes[node]
+	rcns.mutEligible.RUnlock()
 
-	return false
+	return ok
 }
 
 // ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
@@ -189,15 +186,15 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 func (rcns *roundConsensus) ResetRoundState() {
 	rcns.mut.Lock()
 
+	var currentRoundState *roundState
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		roundState := rcns.validatorRoundStates[rcns.consensusGroup[i]]
-		if roundState == nil {
+		currentRoundState = rcns.validatorRoundStates[rcns.consensusGroup[i]]
+		if currentRoundState == nil {
 			log.Debug("validatorRoundStates", "error", ErrNilRoundState.Error())
 			continue
 		}
 
-		roundState.ResetJobsDone()
-
+		currentRoundState.ResetJobsDone()
 	}
 
 	rcns.mut.Unlock()

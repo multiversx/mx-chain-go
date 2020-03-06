@@ -1,0 +1,17 @@
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "receipt";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// Receipt holds all the data needed for a transaction receipt
+message Receipt {
+	bytes    Value     = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
+	bytes    SndAddr   = 2 [(gogoproto.jsontag) = "sender"];
+	bytes    Data      = 3 [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    TxHash    = 4 [(gogoproto.jsontag) = "txHash"];
+}

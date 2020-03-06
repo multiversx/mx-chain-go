@@ -3,16 +3,23 @@ package data
 import (
 	"math/big"
 
-	gproto "github.com/gogo/protobuf/proto"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-// GogoProtoObj groups the necessary of a gogo protobuf marshalizeble object
-type GogoProtoObj interface {
-	gproto.Marshaler
-	gproto.Unmarshaler
-	proto.Message
-}
+// TriePruningIdentifier is the type for trie pruning identifiers
+type TriePruningIdentifier byte
+
+const (
+	// OldRoot is appended to the key when oldHashes are added to the evictionWaitingList
+	OldRoot TriePruningIdentifier = 0
+	// NewRoot is appended to the key when newHashes are added to the evictionWaitingList
+	NewRoot TriePruningIdentifier = 1
+)
+
+// ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
+type ModifiedHashes map[string]struct{}
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -28,9 +35,14 @@ type HeaderHandler interface {
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 	GetLeaderSignature() []byte
+	GetChainID() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
+	GetReceiptsHash() []byte
+	GetAccumulatedFees() *big.Int
 
+	SetAccumulatedFees(value *big.Int)
+	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
 	SetRound(r uint64)
@@ -43,14 +55,17 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
+	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
+	IsStartOfEpochBlock() bool
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
 	Clone() HeaderHandler
+	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body
@@ -88,14 +103,14 @@ type TransactionHandler interface {
 
 	GetValue() *big.Int
 	GetNonce() uint64
-	GetData() string
+	GetData() []byte
 	GetRcvAddr() []byte
 	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
-	SetData(string)
+	SetData([]byte)
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)
 }
@@ -112,13 +127,60 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
+	Prune(rootHash []byte, identifier TriePruningIdentifier) error
+	TakeSnapshot(rootHash []byte)
+	SetCheckpoint(rootHash []byte)
+	ResetOldHashes() [][]byte
+	AppendToOldHashes([][]byte)
+	Database() DBWriteCacher
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
+	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
 type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
+	Remove(key []byte) error
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// DBRemoveCacher is used to cache keys that will be deleted from the database
+type DBRemoveCacher interface {
+	Put([]byte, ModifiedHashes) error
+	Evict([]byte) (ModifiedHashes, error)
+	GetSize() uint
+	PresentInNewHashes(hash string) (bool, error)
+	IsInterfaceNil() bool
+}
+
+// TrieSyncer synchronizes the trie, asking on the network for the missing nodes
+type TrieSyncer interface {
+	StartSyncing(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StorageManager manages all trie storage operations
+type StorageManager interface {
+	Database() DBWriteCacher
+	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
+	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
+	Prune([]byte) error
+	CancelPrune([]byte)
+	MarkForEviction([]byte, ModifiedHashes) error
+	GetDbThatContainsHash([]byte) DBWriteCacher
+	Clone() StorageManager
+	IsPruningEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// TrieFactory creates new tries
+type TrieFactory interface {
+	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
 }

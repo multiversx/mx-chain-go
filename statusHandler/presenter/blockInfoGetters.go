@@ -1,6 +1,8 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // GetNumTxInBlock will return how many transactions are in block
 func (psh *PresenterStatusHandler) GetNumTxInBlock() uint64 {
@@ -30,6 +32,11 @@ func (psh *PresenterStatusHandler) GetConsensusRoundState() string {
 // GetCurrentBlockHash will return current block hash
 func (psh *PresenterStatusHandler) GetCurrentBlockHash() string {
 	return psh.getFromCacheAsString(core.MetricCurrentBlockHash)
+}
+
+// GetEpochNumber will return current epoch
+func (psh *PresenterStatusHandler) GetEpochNumber() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricEpochNumber)
 }
 
 // GetCurrentRoundTimestamp will return current round timestamp

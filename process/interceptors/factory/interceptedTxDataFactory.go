@@ -25,12 +25,12 @@ type interceptedTxDataFactory struct {
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
 func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*interceptedTxDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.SignMarshalizer) {
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -54,7 +54,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 
 	return &interceptedTxDataFactory{
 		protoMarshalizer: argument.ProtoMarshalizer,
-		signMarshalizer:  argument.SignMarshalizer,
+		signMarshalizer:  argument.TxSignMarshalizer,
 		hasher:           argument.Hasher,
 		keyGen:           argument.KeyGen,
 		singleSigner:     argument.Signer,
@@ -81,8 +81,5 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (itdf *interceptedTxDataFactory) IsInterfaceNil() bool {
-	if itdf == nil {
-		return true
-	}
-	return false
+	return itdf == nil
 }

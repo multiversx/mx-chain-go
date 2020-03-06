@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -16,8 +18,8 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
-// ArgsStorageBootstrapper is structure used to create a new storage bootstrapper
-type ArgsStorageBootstrapper struct {
+// ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
+type ArgsBaseStorageBootstrapper struct {
 	BootStorer          process.BootStorer
 	ForkDetector        process.ForkDetector
 	BlockProcessor      process.BlockProcessor
@@ -27,18 +29,35 @@ type ArgsStorageBootstrapper struct {
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	BootstrapRoundIndex uint64
 	ShardCoordinator    sharding.Coordinator
+	NodesCoordinator    sharding.NodesCoordinator
+	EpochStartTrigger   process.EpochStartTriggerHandler
 	ResolversFinder     dataRetriever.ResolversFinder
+	BlockTracker        process.BlockTracker
+}
+
+// ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
+type ArgsShardStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+}
+
+// ArgsMetaStorageBootstrapper is structure used to create a new storage bootstrapper for metachain
+type ArgsMetaStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 }
 
 type storageBootstrapper struct {
-	bootStorer       process.BootStorer
-	forkDetector     process.ForkDetector
-	blkExecutor      process.BlockProcessor
-	blkc             data.ChainHandler
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	shardCoordinator sharding.Coordinator
+	bootStorer        process.BootStorer
+	forkDetector      process.ForkDetector
+	blkExecutor       process.BlockProcessor
+	blkc              data.ChainHandler
+	marshalizer       marshal.Marshalizer
+	store             dataRetriever.StorageService
+	uint64Converter   typeConverters.Uint64ByteSliceConverter
+	shardCoordinator  sharding.Coordinator
+	nodesCoordinator  sharding.NodesCoordinator
+	epochStartTrigger process.EpochStartTriggerHandler
+	blockTracker      process.BlockTracker
 
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
@@ -60,6 +79,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		if err != nil {
 			break
 		}
+
+		if round == headerInfo.LastRound {
+			err = sync.ErrCorruptBootstrapFromStorageDb
+			break
+		}
+
 		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
 
 		if uint64(round) > st.bootstrapRoundIndex {
@@ -73,7 +98,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 			continue
 		}
 
-		bootInfos, err := st.getBootInfos(headerInfo)
+		var bootInfos []bootstrapStorage.BootstrapData
+		bootInfos, err = st.getBootInfos(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -89,12 +115,19 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	if err != nil {
-		_ = st.bootStorer.SaveLastRound(0)
+		log.Warn("bootstrapper", "error", err)
+		st.restoreBlockChainToGenesis()
+		err = st.bootStorer.SaveLastRound(0)
+		log.LogIfError(err, "bootstorer")
+
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
-	st.displayProcessedMiniBlocks(processedMiniBlocks)
+	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
+
+	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
+	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
+	processedMiniBlocks.DisplayProcessedMiniBlocks()
 
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
@@ -144,18 +177,19 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {
-	highestFinalNonce := hdrInfo.HighestFinalNonce
-	highestNonce := hdrInfo.LastHeader.Nonce
+	highestFinalBlockNonce := hdrInfo.HighestFinalBlockNonce
+	highestBlockNonce := hdrInfo.LastHeader.Nonce
 
 	lastRound := hdrInfo.LastRound
-	bootInfos := make([]bootstrapStorage.BootstrapData, 0)
-	bootInfos = append(bootInfos, hdrInfo)
+	bootInfos := []bootstrapStorage.BootstrapData{hdrInfo}
 
 	log.Debug("block info from storage",
-		"highest nonce", highestNonce, "lastFinalNone", highestFinalNonce, "last round", lastRound)
+		"highest block nonce", highestBlockNonce,
+		"highest final block nonce", highestFinalBlockNonce,
+		"last round", lastRound)
 
-	lowestNonce := core.MaxUint64(highestFinalNonce-1, 1)
-	for highestNonce > lowestNonce {
+	lowestNonce := core.MaxUint64(highestFinalBlockNonce-1, 1)
+	for highestBlockNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)
 		if err != nil {
 			log.Debug("cannot load header info from storage ", "error", err.Error())
@@ -163,7 +197,7 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		}
 
 		bootInfos = append(bootInfos, strHdrI)
-		highestNonce = strHdrI.LastHeader.Nonce
+		highestBlockNonce = strHdrI.LastHeader.Nonce
 
 		lastRound = strHdrI.LastRound
 		if lastRound == 0 {
@@ -179,45 +213,74 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 	defer func() {
 		if err != nil {
-			st.blkExecutor.RestoreLastNotarizedHrdsToGenesis()
-			st.forkDetector.RestoreFinalCheckPointToGenesis()
+			st.forkDetector.RestoreToGenesis()
+			st.blockTracker.RestoreToGenesis()
 		}
 	}()
 
 	for i := len(bootInfos) - 1; i >= 0; i-- {
-		log.Debug("apply block",
-			"nonce", bootInfos[i].LastHeader.Nonce,
-			"shardId", bootInfos[i].LastHeader.ShardId)
+		log.Debug("apply header",
+			"shard", bootInfos[i].LastHeader.ShardId,
+			"nonce", bootInfos[i].LastHeader.Nonce)
 
-		lastNotarized := make(map[uint32]*sync.HdrInfo)
-		for _, lastNotarizedHeader := range bootInfos[i].LastNotarizedHeaders {
-			log.Debug("added notarized header",
-				"nonce", lastNotarizedHeader.Nonce,
-				"shardId", lastNotarizedHeader.ShardId)
-
-			lastNotarized[lastNotarizedHeader.ShardId] = &sync.HdrInfo{
-				Nonce: lastNotarizedHeader.Nonce,
-				Hash:  lastNotarizedHeader.Hash,
-			}
-		}
-
-		err = st.bootstrapper.applyNotarizedBlocks(lastNotarized)
+		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)
 		if err != nil {
-			log.Debug("cannot apply notarized block", "error", err.Error())
-
+			log.Debug("cannot apply cross notarized headers", "error", err.Error())
 			return err
 		}
 
-		lastFinalHashes := make([][]byte, 0)
-		for _, lastFinal := range bootInfos[i].LastFinals {
-			lastFinalHashes = append(lastFinalHashes, lastFinal.Hash)
+		selfNotarizedHeadersHashes := make([][]byte, len(bootInfos[i].LastSelfNotarizedHeaders))
+		for index, selfNotarizedHeader := range bootInfos[i].LastSelfNotarizedHeaders {
+			selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
 		}
 
-		err = st.addHeaderToForkDetector(bootInfos[i].LastHeader.Hash, lastFinalHashes)
+		var selfNotarizedHeaders []data.HeaderHandler
+		selfNotarizedHeaders, err = st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
 		if err != nil {
-			log.Debug("cannot apply final block", "error", err.Error())
+			log.Debug("cannot apply self notarized headers", "error", err.Error())
 			return err
 		}
+
+		var header data.HeaderHandler
+		header, err = st.bootstrapper.getHeader(bootInfos[i].LastHeader.Hash)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("add header to fork detector",
+			"shard", header.GetShardID(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", bootInfos[i].LastHeader.Hash)
+
+		err = st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		if err != nil {
+			return err
+		}
+
+		if i > 0 {
+			log.Debug("added self notarized header in block tracker",
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", bootInfos[i].LastHeader.Hash)
+
+			st.blockTracker.AddSelfNotarizedHeader(st.shardCoordinator.SelfId(), header, bootInfos[i].LastHeader.Hash)
+		}
+
+		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
+	}
+
+	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)
+	if err != nil {
+		log.Debug("cannot load nodes coordinator state", "error", err.Error())
+		return err
+	}
+
+	err = st.epochStartTrigger.LoadState(bootInfos[0].EpochStartTriggerConfigKey)
+	if err != nil {
+		log.Debug("cannot load epoch start trigger state", "error", err.Error())
+		return err
 	}
 
 	return nil
@@ -243,19 +306,6 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"hash", headerInfo.Hash)
 }
 
-func (st *storageBootstrapper) displayProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
-	log.Debug("processed mini blocks applied")
-
-	for metaBlockHash, miniBlocksHashes := range processedMiniBlocks {
-		log.Debug("processed",
-			"meta hash", []byte(metaBlockHash))
-		for miniBlockHash := range miniBlocksHashes {
-			log.Debug("processed",
-				"mini block hash", []byte(miniBlockHash))
-		}
-	}
-}
-
 func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
 	blockBody, err := st.bootstrapper.getBlockBody(header)
 	if err != nil {
@@ -277,29 +327,62 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 	return nil
 }
 
-func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalHeadersHashes [][]byte) error {
-	header, err := st.bootstrapper.getHeader(headerHash)
+func (st *storageBootstrapper) restoreBlockChainToGenesis() {
+	genesisHeader := st.blkc.GetGenesisHeader()
+	err := st.blkExecutor.RevertStateToBlock(genesisHeader)
 	if err != nil {
-		return err
+		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}
 
-	log.Debug("added header to fork detector",
-		"nonce", header.GetNonce(),
-		"shardId", header.GetShardID())
-
-	finalHeaders := make([]data.HeaderHandler, 0)
-	for _, hash := range finalHeadersHashes {
-		finalHeader, err := st.bootstrapper.getHeader(hash)
-		if err != nil {
-			return err
-		}
-		finalHeaders = append(finalHeaders, finalHeader)
-		log.Debug("added final header", "nonce", finalHeader.GetNonce())
+	err = st.blkc.SetCurrentBlockHeader(nil)
+	if err != nil {
+		log.Debug("cannot set current block header", "error", err.Error())
 	}
 
-	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
+	err = st.blkc.SetCurrentBlockBody(nil)
 	if err != nil {
-		return err
+		log.Debug("cannot set current block body", "error", err.Error())
+	}
+
+	st.blkc.SetCurrentBlockHeaderHash(nil)
+}
+
+func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) error {
+	if check.IfNil(args.BootStorer) {
+		return process.ErrNilBootStorer
+	}
+	if check.IfNil(args.ForkDetector) {
+		return process.ErrNilForkDetector
+	}
+	if check.IfNil(args.BlockProcessor) {
+		return process.ErrNilBlockProcessor
+	}
+	if check.IfNil(args.ChainHandler) {
+		return process.ErrNilBlockChain
+	}
+	if check.IfNil(args.Marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Store) {
+		return process.ErrNilStore
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return process.ErrNilUint64Converter
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(args.ResolversFinder) {
+		return dataRetriever.ErrNilResolverFinder
+	}
+	if check.IfNil(args.BlockTracker) {
+		return process.ErrNilBlockTracker
 	}
 
 	return nil

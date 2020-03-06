@@ -2,8 +2,10 @@
 package block
 
 import (
-	io "io"
-	"io/ioutil"
+	"bytes"
+	"encoding/hex"
+	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -67,9 +69,19 @@ func (h *Header) SetLeaderSignature(sg []byte) {
 	h.LeaderSignature = sg
 }
 
+// SetChainID sets the chain ID on which this block is valid on
+func (h *Header) SetChainID(chainID []byte) {
+	h.ChainID = chainID
+}
+
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
+}
+
+// SetAccumulatedFees sets the accumulated fees in the header
+func (h *Header) SetAccumulatedFees(value *big.Int) {
+	h.AccumulatedFees.Set(value)
 }
 
 // SetTxCount sets the transaction count of the block associated with this header
@@ -77,9 +89,14 @@ func (h *Header) SetTxCount(txCount uint32) {
 	h.TxCount = txCount
 }
 
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardID = shId
+}
+
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
 			hashDst[string(val.Hash)] = val.SenderShardID
@@ -90,7 +107,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		hashDst[string(val.Hash)] = val.SenderShardID
 	}
@@ -131,6 +148,11 @@ func (h *Header) IsInterfaceNil() bool {
 	return false
 }
 
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (h *Header) IsStartOfEpochBlock() bool {
+	return len(h.EpochStartMetaHash) > 0
+}
+
 // ItemsInHeader gets the number of items(hashes) added in block header
 func (h *Header) ItemsInHeader() uint32 {
 	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
@@ -142,72 +164,30 @@ func (h *Header) ItemsInBody() uint32 {
 	return h.TxCount
 }
 
-// ----- for compatibility only ----
-
-func (h *Header) Save(w io.Writer) error {
-	b, err := h.Marshal()
-	if err != nil {
-		return err
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (h *Header) CheckChainID(reference []byte) error {
+	if !bytes.Equal(h.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(h.ChainID),
+		)
 	}
-	_, err = w.Write(b)
-	return err
+
+	return nil
 }
 
-func (h *Header) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
+// Clone the underlying data
+func (mb *MiniBlock) Clone() *MiniBlock {
+	newMb := &MiniBlock{
+		ReceiverShardID: mb.ReceiverShardID,
+		SenderShardID:   mb.SenderShardID,
+		Type:            mb.Type,
 	}
-	return h.Unmarshal(b)
-}
+	newMb.TxHashes = make([][]byte, len(mb.TxHashes))
+	copy(newMb.TxHashes, mb.TxHashes)
 
-func (m *MiniBlock) Save(w io.Writer) error {
-	b, err := m.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (m *MiniBlock) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return m.Unmarshal(b)
-}
-
-func (m *MiniBlockHeader) Save(w io.Writer) error {
-	b, err := m.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (m *MiniBlockHeader) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return m.Unmarshal(b)
-}
-
-func (pc *PeerChange) Save(w io.Writer) error {
-	b, err := pc.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (pc *PeerChange) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return pc.Unmarshal(b)
+	return newMb
 }

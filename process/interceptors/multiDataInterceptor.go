@@ -72,39 +72,43 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return process.ErrNoDataInMessage
 	}
 
-	filteredMultiDataBuff := make([][]byte, 0)
+	filteredMultiDataBuff := make([][]byte, 0, len(multiDataBuff))
+	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
+
 	go func() {
 		wgProcess.Wait()
+		mdi.processor.SignalEndOfProcessing(interceptedMultiData)
 		mdi.throttler.EndProcessing()
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.factory.Create(dataBuff)
+		var interceptedData process.InterceptedData
+		interceptedData, err = mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
 			continue
 		}
 
-		err = interceptedData.CheckValidity()
-		if err != nil {
-			lastErrEncountered = err
-			wgProcess.Done()
-			continue
-		}
+		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
 		if !interceptedData.IsForCurrentShard() {
-			log.Trace("intercepted data is for other shards")
+			log.Trace("intercepted data is for other shards",
+				"pid", p2p.MessageOriginatorPid(message),
+				"seq no", p2p.MessageOriginatorSeq(message),
+				"topics", message.TopicIDs(),
+				"hash", interceptedData.Hash(),
+			)
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess)
+		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
 	}
 
 	var buffToSend []byte
@@ -123,10 +127,21 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	return lastErrEncountered
 }
 
+func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.InterceptedData, error) {
+	interceptedData, err := mdi.factory.Create(dataBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptedData, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

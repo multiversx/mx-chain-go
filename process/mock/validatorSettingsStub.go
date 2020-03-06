@@ -2,17 +2,21 @@ package mock
 
 import "math/big"
 
+// ValidatorSettingsStub -
 type ValidatorSettingsStub struct {
 }
 
-func (v *ValidatorSettingsStub) UnBoundPeriod() uint64 {
+// UnBondPeriod -
+func (v *ValidatorSettingsStub) UnBondPeriod() uint64 {
 	return 10
 }
 
-func (v *ValidatorSettingsStub) StakeValue() *big.Int {
+// GenesisNodePrice -
+func (v *ValidatorSettingsStub) GenesisNodePrice() *big.Int {
 	return big.NewInt(10)
 }
 
+// IsInterfaceNil -
 func (v *ValidatorSettingsStub) IsInterfaceNil() bool {
 	return v == nil
 }

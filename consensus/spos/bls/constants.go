@@ -21,16 +21,21 @@ const (
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
 	MtUnknown consensus.MessageType = iota
+	// MtBlockBodyAndHeader defines ID of a message that has a block body and a block header inside
+	MtBlockBodyAndHeader
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside
 	MtBlockHeader
 	// MtSignature defines ID of a message that has a Signature inside
 	MtSignature
+	// MtBlockHeaderFinalInfo defines ID of a message that has a block header final info inside
+	// (aggregate signature, bitmap and seal leader signature for the proposed and accepted header)
+	MtBlockHeaderFinalInfo
 )
 
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
-const processingThresholdPercent = 65
+const processingThresholdPercent = 85
 
 // srStartStartTime specifies the start time, from the total time of the round, of Subround Start
 const srStartStartTime = 0.0
@@ -48,30 +53,49 @@ const srBlockEndTime = 0.25
 const srSignatureStartTime = 0.25
 
 // srSignatureEndTime specifies the end time, from the total time of the round, of Subround Signature
-const srSignatureEndTime = 0.65
+const srSignatureEndTime = 0.85
 
 // srEndStartTime specifies the start time, from the total time of the round, of Subround End
-const srEndStartTime = 0.65
+const srEndStartTime = 0.85
 
 // srEndEndTime specifies the end time, from the total time of the round, of Subround End
-const srEndEndTime = 0.75
+const srEndEndTime = 0.95
 
 const (
-	BlockBodyStringValue      = "(BLOCK_BODY)"
-	BlockHeaderStringValue    = "(BLOCK_HEADER)"
+	// BlockBodyAndHeaderStringValue represents the string to be used to identify a block body and a block header
+	BlockBodyAndHeaderStringValue = "(BLOCK_BODY_AND_HEADER)"
+
+	// BlockBodyStringValue represents the string to be used to identify a block body
+	BlockBodyStringValue = "(BLOCK_BODY)"
+
+	// BlockHeaderStringValue represents the string to be used to identify a block header
+	BlockHeaderStringValue = "(BLOCK_HEADER)"
+
+	// BlockSignatureStringValue represents the string to be used to identify a block's signature
 	BlockSignatureStringValue = "(SIGNATURE)"
-	BlockUnknownStringValue   = "(UNKNOWN)"
-	BlockDefaultStringValue   = "Undefined message type"
+
+	// BlockHeaderFinalInfoStringValue represents the string to be used to identify a block's header final info
+	BlockHeaderFinalInfoStringValue = "(FINAL_INFO)"
+
+	// BlockUnknownStringValue represents the string to be used to identify an unknown block
+	BlockUnknownStringValue = "(UNKNOWN)"
+
+	// BlockDefaultStringValue represents the message to identify a message that is undefined
+	BlockDefaultStringValue = "Undefined message type"
 )
 
 func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
+	case MtBlockBodyAndHeader:
+		return BlockBodyAndHeaderStringValue
 	case MtBlockBody:
 		return BlockBodyStringValue
 	case MtBlockHeader:
 		return BlockHeaderStringValue
 	case MtSignature:
 		return BlockSignatureStringValue
+	case MtBlockHeaderFinalInfo:
+		return BlockHeaderFinalInfoStringValue
 	case MtUnknown:
 		return BlockUnknownStringValue
 	default:

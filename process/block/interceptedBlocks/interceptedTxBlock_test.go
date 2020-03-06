@@ -52,7 +52,7 @@ func TestNewInterceptedTxBlockBody_NilArgumentShouldErr(t *testing.T) {
 	inTxBody, err := interceptedBlocks.NewInterceptedTxBlockBody(nil)
 
 	assert.Nil(t, inTxBody)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedTxBlockBody_MarshalizerFailShouldErr(t *testing.T) {

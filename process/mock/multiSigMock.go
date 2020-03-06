@@ -4,22 +4,17 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 // BelNevMock is used to mock belare neven multisignature scheme
 type BelNevMock struct {
 	msg         []byte
 	aggSig      []byte
-	aggCom      []byte
-	commSecret  []byte
 	commHash    []byte
 	commitments [][]byte
 	sigs        [][]byte
 	pubkeys     []string
-	privKey     crypto.PrivateKey
 	selfId      uint16
-	hasher      hashing.Hasher
 
 	VerifyMock               func(msg []byte, bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
@@ -31,8 +26,10 @@ type BelNevMock struct {
 	StoreCommitmentMock      func(index uint16, value []byte) error
 	StoreCommitmentHashMock  func(uint16, []byte) error
 	CommitmentMock           func(uint16) ([]byte, error)
+	CreateMock               func(pubKeys []string, index uint16) (crypto.MultiSigner, error)
 }
 
+// NewMultiSigner -
 func NewMultiSigner() *BelNevMock {
 	multisigner := &BelNevMock{}
 	multisigner.commitments = make([][]byte, 21)
@@ -44,6 +41,9 @@ func NewMultiSigner() *BelNevMock {
 
 // Create resets the multiSigner and initializes corresponding fields with the given params
 func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+	if bnm.CreateMock != nil {
+		return bnm.CreateMock(pubKeys, index)
+	}
 	multiSig := NewMultiSigner()
 
 	multiSig.selfId = index
@@ -52,7 +52,7 @@ func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigne
 	return multiSig, nil
 }
 
-// Reset
+// Reset -
 func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
 	bnm.commitments = make([][]byte, 21)
 	bnm.sigs = make([][]byte, 21)
@@ -205,7 +205,7 @@ func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
 	return []byte("aggregated signature"), nil
 }
 
-// SignatureShare
+// SignatureShare -
 func (bnm *BelNevMock) SignatureShare(index uint16) ([]byte, error) {
 	if index >= uint16(len(bnm.sigs)) {
 		return nil, crypto.ErrIndexOutOfBounds

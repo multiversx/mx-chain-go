@@ -1,7 +1,5 @@
 package economics
 
-import "math/big"
-
 // TestEconomicsData extends EconomicsData and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
 // Exported functions simplify the reproduction of edge cases
@@ -24,12 +22,22 @@ func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64) {
 	ted.minGasLimit = minGasLimit
 }
 
-// SetRewards sets the new reward value
-func (ted *TestEconomicsData) SetRewards(value *big.Int) {
-	ted.rewardsValue = value
+// GetMinGasLimit returns the minimum gas limit for a transaction to be accepted
+func (ted *TestEconomicsData) GetMinGasLimit() uint64 {
+	return ted.minGasLimit
 }
 
 // GetMinGasPrice returns the current min gas price
 func (ted *TestEconomicsData) GetMinGasPrice() uint64 {
 	return ted.minGasPrice
+}
+
+// SetGasPerDataByte sets gas per data byte for a transaction to be accepted
+func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
+	ted.gasPerDataByte = gasPerDataByte
+}
+
+// SetDataLimitForBaseCalc sets base calc limit for gasLimit calculation
+func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint64) {
+	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
 }

@@ -1,20 +1,39 @@
 #Econimics config of the node
-[EconomicsAddresses]
-    CommunityAddress = "1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420"
-    BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+[GlobalSettings]
+    TotalSupply = "20000000000000000000000000000" #20BILERD
+    MinimumInflation = 0.0
+    MaximumInflation = 0.1 #fraction of value 1 - 10%
 
 [RewardsSettings]
-    RewardsValue = "1000"
-    CommunityPercentage = 0.10
-    LeaderPercentage = 0.50
-    BurnPercentage = 0.40
-    DenominationCoefficientForView = "0.0001"
+    LeaderPercentage = 0.10 #fraction of value 1 - 10%
+    DeveloperPercentage = 0.30 #fraction of value 1 - 30%
+    DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
     MaxGasLimitPerBlock = "1500000000"
-    MinGasPrice = "0"
+    MinGasPrice = "100000000000000" #will yield min tx fee of 10ERD
     MinGasLimit = "100000"
+    GasPerDataByte = "1500"
+    DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    StakeValue = "500000000000000000000000"
-    UnBoundPeriod = "100000"
+    GenesisNodePrice = "500000000000000000000000" #500000ERD
+    UnBondPeriod = "100000"
+    MinStepValue = "10000000000000000000000"
+    TotalSupply = "20000000000000000000000000000" #20BIL ERD
+    NumNodes = 1000
+    AuctionEnableNonce = "100000000000"
+    StakeEnableNonce = "100000000000"
+    NumRoundsWithoutBleed = "100"
+    MaximumPercentageToBleed = "0.5"
+    BleedPercentagePerRound = "0.00001"
+    UnJailValue = "1000"
+
+[RatingSettings]
+    StartRating = 500000
+    MaxRating = 1000000
+    MinRating = 1
+    ProposerIncreaseRatingStep = 2
+    ProposerDecreaseRatingStep = 4
+    ValidatorIncreaseRatingStep = 1
+    ValidatorDecreaseRatingStep = 2

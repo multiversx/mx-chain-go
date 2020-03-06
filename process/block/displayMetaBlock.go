@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type headersCounter struct {
@@ -26,8 +27,13 @@ func NewHeaderCounter() *headersCounter {
 
 func (hc *headersCounter) subtractRestoredMBHeaders(numMiniBlockHeaders int) {
 	hc.shardMBHeaderCounterMutex.Lock()
+	defer hc.shardMBHeaderCounterMutex.Unlock()
+	if hc.shardMBHeadersTotalProcessed < uint64(numMiniBlockHeaders) {
+		hc.shardMBHeadersTotalProcessed = 0
+		return
+	}
+
 	hc.shardMBHeadersTotalProcessed -= uint64(numMiniBlockHeaders)
-	hc.shardMBHeaderCounterMutex.Unlock()
 }
 
 func (hc *headersCounter) countShardMBHeaders(numShardMBHeaders int) {
@@ -53,6 +59,7 @@ func (hc *headersCounter) displayLogInfo(
 	body *block.Body,
 	headerHash []byte,
 	numHeadersFromPool int,
+	blockTracker process.BlockTracker,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
 
@@ -75,6 +82,8 @@ func (hc *headersCounter) displayLogInfo(
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
 	log.Debug(message, arguments...)
+
+	blockTracker.DisplayTrackedHeaders()
 }
 
 func (hc *headersCounter) createDisplayableMetaHeader(
@@ -83,14 +92,19 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
+	metaLinesHeader := []*display.LineData{
+		display.NewLineData(false, []string{
+			"Header",
+			"Block type",
+			"MetaBlock"}),
+	}
+
 	lines := displayHeader(header)
 
-	metaLines := make([]*display.LineData, 0)
-	metaLines = append(metaLines, display.NewLineData(false, []string{
-		"Header",
-		"Block type",
-		"MetaBlock"}))
+	metaLines := make([]*display.LineData, 0, len(lines)+len(metaLinesHeader))
+	metaLines = append(metaLines, metaLinesHeader...)
 	metaLines = append(metaLines, lines...)
+
 	metaLines = hc.displayShardInfo(metaLines, header)
 
 	return tableHeader, metaLines

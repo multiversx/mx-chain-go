@@ -91,6 +91,7 @@ func (txc *transactionCounter) displayLogInfo(
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
+	blockTracker process.BlockTracker,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
@@ -115,6 +116,8 @@ func (txc *transactionCounter) displayLogInfo(
 	}
 	txc.mutex.RUnlock()
 	log.Debug(message, arguments...)
+
+	blockTracker.DisplayTrackedHeaders()
 }
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
@@ -124,17 +127,21 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
+	headerLines := []*display.LineData{
+		display.NewLineData(false, []string{
+			"Header",
+			"Block type",
+			"TxBlock"}),
+		display.NewLineData(false, []string{
+			"",
+			"Shard",
+			fmt.Sprintf("%d", header.ShardID)}),
+	}
+
 	lines := displayHeader(header)
 
-	shardLines := make([]*display.LineData, 0)
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"Header",
-		"Block type",
-		"TxBlock"}))
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"",
-		"Shard",
-		fmt.Sprintf("%d", header.ShardID)}))
+	shardLines := make([]*display.LineData, 0, len(lines)+len(headerLines))
+	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {

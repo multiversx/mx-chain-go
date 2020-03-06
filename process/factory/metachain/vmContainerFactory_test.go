@@ -1,11 +1,12 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -32,38 +33,60 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
+	gasSchedule := make(map[string]map[string]uint64)
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
+		&mock.MessageSignVerifierMock{},
+		gasSchedule,
 	)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
+	assert.False(t, vmf.IsInterfaceNil())
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	economicsData, _ := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				CommunityAddress: "addr1",
-				BurnAddress:      "addr2",
+		&config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				TotalSupply:      "2000000000000000000000",
+				MinimumInflation: 0,
+				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        "1000",
-				CommunityPercentage: 0.10,
-				LeaderPercentage:    0.50,
-				BurnPercentage:      0.40,
+				LeaderPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "10000000000",
-				MinGasPrice:         "10",
-				MinGasLimit:         "10",
+				MaxGasLimitPerBlock:  "10000000000",
+				MinGasPrice:          "10",
+				MinGasLimit:          "10",
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "1000",
+				GenesisNodePrice:         "500",
+				UnBondPeriod:             "1000",
+				TotalSupply:              "200000000000",
+				MinStepValue:             "100000",
+				NumNodes:                 1000,
+				AuctionEnableNonce:       "0",
+				StakeEnableNonce:         "0",
+				NumRoundsWithoutBleed:    "1000",
+				MaximumPercentageToBleed: "0.5",
+				BleedPercentagePerRound:  "0.00001",
+				UnJailValue:              "1000",
+			},
+			RatingSettings: config.RatingSettings{
+				StartRating:                 5,
+				MaxRating:                   10,
+				MinRating:                   1,
+				ProposerIncreaseRatingStep:  2,
+				ProposerDecreaseRatingStep:  4,
+				ValidatorIncreaseRatingStep: 1,
+				ValidatorDecreaseRatingStep: 2,
 			},
 		},
 	)
@@ -71,6 +94,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		economicsData,
+		&mock.MessageSignVerifierMock{},
+		makeGasSchedule(),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -85,4 +110,42 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+}
+
+func makeGasSchedule() map[string]map[string]uint64 {
+	gasSchedule := make(map[string]map[string]uint64)
+	FillGasMapInternal(gasSchedule, 1)
+	return gasSchedule
+}
+
+func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
+	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+
+	return gasMap
+}
+
+func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["StorePerByte"] = value
+	gasMap["DataCopyPerByte"] = value
+	gasMap["ReleasePerByte"] = value
+	gasMap["PersistPerByte"] = value
+	gasMap["CompilePerByte"] = value
+
+	return gasMap
+}
+
+func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["Stake"] = value
+	gasMap["UnStake"] = value
+	gasMap["UnBond"] = value
+	gasMap["Claim"] = value
+	gasMap["Get"] = value
+	gasMap["ChangeRewardAddress"] = value
+	gasMap["ChangeValidatorKeys"] = value
+	gasMap["UnJail"] = value
+
+	return gasMap
 }

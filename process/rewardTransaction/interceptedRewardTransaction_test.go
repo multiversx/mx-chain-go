@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -94,7 +95,6 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 		Epoch:   0,
 		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -119,7 +119,6 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 		Epoch:   0,
 		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardID: shardId,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -140,7 +139,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, shardId, irt.ReceiverShardId())
-	assert.Equal(t, shardId, irt.SenderShardId())
+	assert.Equal(t, core.MetachainShardId, irt.SenderShardId())
 	assert.Equal(t, &rewTx, irt.Transaction())
 	assert.True(t, irt.IsForCurrentShard())
 
@@ -156,7 +155,6 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 		Epoch:   0,
 		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -180,7 +178,6 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 		Epoch:   0,
 		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -196,16 +193,14 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	assert.Equal(t, uint64(0), nonce)
 }
 
-func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
+func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).Set(value),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -217,8 +212,7 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3))
 
-	totalValue := irt.TotalValue()
-	assert.Equal(t, value, totalValue)
+	assert.Equal(t, big.NewInt(0), irt.Fee())
 }
 
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
@@ -230,7 +224,6 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -255,7 +248,6 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *tes
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -279,7 +271,6 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 		Epoch:   0,
 		Value:   nil,
 		RcvAddr: []byte("addr"),
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -304,7 +295,6 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -329,7 +319,6 @@ func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}

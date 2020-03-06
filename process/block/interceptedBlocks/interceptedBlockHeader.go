@@ -1,6 +1,9 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -18,6 +21,9 @@ type InterceptedHeader struct {
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
 	isForCurrentShard bool
+	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -33,10 +39,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              hdr,
-		hasher:           arg.Hasher,
-		sigVerifier:      arg.HeaderSigVerifier,
-		shardCoordinator: arg.ShardCoordinator,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -57,7 +66,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
 	isHeaderForCurrentShard := inHdr.shardCoordinator.SelfId() == inHdr.HeaderHandler().GetShardID()
-	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == sharding.MetachainShardId
+	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == core.MetachainShardId
 	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 
@@ -73,12 +82,64 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
+	return inHdr.hdr.CheckChainID(inHdr.chainID)
+}
+
+func (inHdr *InterceptedHeader) isEpochCorrect() bool {
+	if inHdr.shardCoordinator.SelfId() != core.MetachainShardId {
+		return true
+	}
+	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
+		return true
+	}
+	if inHdr.hdr.GetEpoch() >= inHdr.epochStartTrigger.Epoch() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochStartRound() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
+		return true
+	}
+
+	return false
 }
 
 // integrity checks the integrity of the header block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
+	if !inHdr.isEpochCorrect() {
+		return fmt.Errorf("%w : shard header with old epoch and bad round: "+
+			"shardHeaderHash=%s, "+
+			"shardId=%v, "+
+			"metaEpoch=%v, "+
+			"shardEpoch=%v, "+
+			"shardRound=%v, "+
+			"metaFinalityAttestingRound=%v ",
+			process.ErrEpochDoesNotMatch,
+			core.ToHex(inHdr.hash),
+			inHdr.hdr.ShardID,
+			inHdr.epochStartTrigger.Epoch(),
+			inHdr.hdr.Epoch,
+			inHdr.hdr.Round,
+			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
+	}
+
 	err := checkHeaderHandler(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstRounder(inHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}
@@ -106,10 +167,12 @@ func (inHdr *InterceptedHeader) IsForCurrentShard() bool {
 	return inHdr.isForCurrentShard
 }
 
+// Type returns the type of this intercepted data
+func (inHdr *InterceptedHeader) Type() string {
+	return "intercepted header"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
-	if inHdr == nil {
-		return true
-	}
-	return false
+	return inHdr == nil
 }

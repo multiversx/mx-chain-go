@@ -19,6 +19,9 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           []byte("chain ID"),
+		ValidityAttester:  &mock.ValidityAttesterStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -40,8 +43,8 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 		Signature:     []byte("signature"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
-		PeerInfo:      nil,
 		ShardInfo:     nil,
+		ChainID:       []byte("chain ID"),
 	}
 }
 
@@ -53,7 +56,7 @@ func TestNewInterceptedMetaHeader_NilArgumentShouldErr(t *testing.T) {
 	inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(nil)
 
 	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedMetaHeader_MarshalizerFailShouldErr(t *testing.T) {
@@ -131,6 +134,40 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_CheckAgainstRounderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
 }
 
 //------- getters

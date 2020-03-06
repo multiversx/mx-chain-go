@@ -3,9 +3,9 @@ package sharding
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -24,7 +24,7 @@ func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordin
 	if numberOfShards < 1 {
 		return nil, ErrInvalidNumberOfShards
 	}
-	if selfId >= numberOfShards && selfId != MetachainShardId {
+	if selfId >= numberOfShards && selfId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
 	}
 
@@ -55,7 +55,7 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 
 	buffNeeded := address.Bytes()[startingIndex:]
 	if core.IsSmartContractOnMetachain(buffNeeded, address.Bytes()) {
-		return MetachainShardId
+		return core.MetachainShardId
 	}
 
 	addr := uint32(0)
@@ -119,7 +119,7 @@ func communicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) stri
 }
 
 func shardIdToString(shardId uint32) string {
-	if shardId == MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return "_META"
 	}
 

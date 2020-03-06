@@ -2,8 +2,10 @@ package transaction
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,13 +16,14 @@ type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
+	economicsFee     process.FeeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
 	adrSrc, adrDst state.AddressContainer,
-) (*state.Account, *state.Account, error) {
+) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
-	var acntSrc, acntDst *state.Account
+	var acntSrc, acntDst state.UserAccountHandler
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -40,7 +43,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntWrp.(*state.Account)
+		account, ok := acntWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -54,7 +57,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntSrcWrp.(*state.Account)
+		account, ok := acntSrcWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -68,7 +71,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntDstWrp.(*state.Account)
+		account, ok := acntDstWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -79,7 +82,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	return acntSrc, acntDst, nil
 }
 
-func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
+func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.UserAccountHandler, error) {
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
@@ -91,7 +94,12 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContain
 		return nil, err
 	}
 
-	return acnt, nil
+	userAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcc, nil
 }
 
 func (txProc *baseTxProcessor) getAddresses(
@@ -111,7 +119,7 @@ func (txProc *baseTxProcessor) getAddresses(
 }
 
 func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+	if check.IfNil(acntSnd) {
 		// transaction was already done at sender shard
 		return nil
 	}
@@ -123,18 +131,28 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrLowerNonceInTransaction
 	}
 
-	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
-
-	if cost.Cmp(big.NewInt(0)) == 0 {
-		return nil
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return err
 	}
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+
+	txFee := txProc.economicsFee.ComputeFee(tx)
+	if stAcc.Balance.Cmp(txFee) < 0 {
+		return fmt.Errorf("%w, has: %s, wanted: %s",
+			process.ErrInsufficientFee,
+			stAcc.Balance.String(),
+			txFee.String(),
+		)
+	}
+
+	cost := big.NewInt(0)
+	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost.Add(cost, tx.Value)
 
 	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds

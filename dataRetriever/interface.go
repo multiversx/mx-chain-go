@@ -23,22 +23,20 @@ const (
 	BlockHeaderUnit UnitType = 3
 	// MetaBlockUnit is the metachain blocks storage unit identifier
 	MetaBlockUnit UnitType = 4
-	// MetaShardDataUnit is the metachain shard data unit identifier
-	MetaShardDataUnit UnitType = 5
-	// MetaPeerDataUnit is the metachain peer data unit identifier
-	MetaPeerDataUnit UnitType = 6
 	// UnsignedTransactionUnit is the unsigned transaction unit identifier
-	UnsignedTransactionUnit UnitType = 7
+	UnsignedTransactionUnit UnitType = 5
 	// RewardTransactionUnit is the reward transaction unit identifier
-	RewardTransactionUnit UnitType = 8
+	RewardTransactionUnit UnitType = 6
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 9
+	MetaHdrNonceHashDataUnit UnitType = 7
 	// HeartbeatUnit is the heartbeat storage unit identifier
-	HeartbeatUnit UnitType = 10
+	HeartbeatUnit UnitType = 8
+	// MiniBlockHeaderUnit is the miniblock header data unit identifier
+	MiniBlockHeaderUnit UnitType = 9
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 11
+	BootstrapUnit UnitType = 10
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 12
+	StatusMetricsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -50,7 +48,7 @@ const (
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte) error
+	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
@@ -58,13 +56,15 @@ type Resolver interface {
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromNonce(nonce uint64, epoch uint32) error
+	RequestDataFromEpoch(identifier []byte) error
+	SetEpochHandler(epochHandler EpochHandler) error
 }
 
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
-	RequestDataFromHashArray(hashes [][]byte) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
@@ -100,6 +100,18 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines the functionality to get the current epoch
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
+type EpochProviderByNonce interface {
+	EpochForNonce(nonce uint64) (uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -176,7 +188,6 @@ type ShardedDataCacherNotifier interface {
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
-	MoveData(sourceCacheID, destCacheID string, key [][]byte)
 	Clear()
 	ClearShardStore(cacheId string)
 	CreateShardStore(cacheId string)
@@ -191,14 +202,18 @@ type ShardIdHashMap interface {
 	IsInterfaceNil() bool
 }
 
-// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
-type Uint64SyncMapCacher interface {
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
 	Clear()
-	Get(nonce uint64) (ShardIdHashMap, bool)
-	Merge(nonce uint64, src ShardIdHashMap)
-	Remove(nonce uint64, shardId uint32)
-	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
-	Has(nonce uint64, shardId uint32) bool
+	AddHeader(headerHash []byte, header data.HeaderHandler)
+	RemoveHeaderByHash(headerHash []byte)
+	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
+	GetHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	Nonces(shardId uint32) []uint64
+	Len() int
+	MaxSize() int
 	IsInterfaceNil() bool
 }
 
@@ -215,23 +230,10 @@ type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
-	Headers() storage.Cacher
-	HeadersNonces() Uint64SyncMapCacher
+	Headers() HeadersPool
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
-	MetaBlocks() storage.Cacher
-	CurrentBlockTxs() TransactionCacher
-	IsInterfaceNil() bool
-}
-
-// MetaPoolsHolder defines getter for data pools for metachain
-type MetaPoolsHolder interface {
-	MetaBlocks() storage.Cacher
-	MiniBlocks() storage.Cacher
-	ShardHeaders() storage.Cacher
-	HeadersNonces() Uint64SyncMapCacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
+	TrieNodes() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
@@ -253,6 +255,8 @@ type StorageService interface {
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
+	//CloseAll will close all the units
+	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -260,6 +264,12 @@ type StorageService interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TrieDataGetter returns requested data from the trie
+type TrieDataGetter interface {
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

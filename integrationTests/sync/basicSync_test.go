@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +38,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 
 	metachainNode := integrationTests.NewTestSyncNode(
 		maxShards,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		shardId,
 		advertiserAddr,
 	)
@@ -61,26 +61,26 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepSync)
+		time.Sleep(integrationTests.SyncDelay)
 
 		round = integrationTests.IncrementAndPrintRound(round)
-		updateRound(nodes, round)
+		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(stepSync)
+	time.Sleep(integrationTests.SyncDelay)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
 }
@@ -124,26 +124,26 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
 	numRoundsToTest := 2
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepSync)
+		time.Sleep(integrationTests.SyncDelay)
 
 		round = integrationTests.IncrementAndPrintRound(round)
-		updateRound(nodes, round)
+		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(stepSync)
+	time.Sleep(integrationTests.SyncDelay)
 
 	pubKeysVariant1 := []byte{3}
 	pubKeysVariant2 := []byte{1}
@@ -151,12 +151,12 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	proposeBlockWithPubKeyBitmap(nodes[idxProposerShard0], round, nonce, pubKeysVariant1)
 	proposeBlockWithPubKeyBitmap(nodes[1], round, nonce, pubKeysVariant2)
 
-	time.Sleep(stepDelay)
+	time.Sleep(integrationTests.StepDelay)
 
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 
-	stepDelayForkResolving := 4 * stepDelay
+	stepDelayForkResolving := 4 * integrationTests.StepDelay
 	time.Sleep(stepDelayForkResolving)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
@@ -173,7 +173,7 @@ func proposeBlockWithPubKeyBitmap(n *integrationTests.TestProcessorNode, round u
 func testAllNodesHaveTheSameBlockHeightInBlockchain(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
 	for i := 1; i < len(nodes); i++ {
-		if nodes[i].BlockChain.GetCurrentBlockHeader() == nil {
+		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
 			assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())

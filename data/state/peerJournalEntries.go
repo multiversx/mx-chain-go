@@ -24,17 +24,14 @@ func NewPeerJournalEntryAddress(account *PeerAccount, oldAddress []byte) (*PeerJ
 
 // Revert applies undo operation
 func (pje *PeerJournalEntryAddress) Revert() (AccountHandler, error) {
-	pje.account.Address = pje.oldAddress
+	pje.account.RewardAddress = pje.oldAddress
 
 	return pje.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pje *PeerJournalEntryAddress) IsInterfaceNil() bool {
-	if pje == nil {
-		return true
-	}
-	return false
+	return pje == nil
 }
 
 //------- PeerJournalEntrySchnorrPublicKey
@@ -69,10 +66,7 @@ func (jens *PeerJournalEntrySchnorrPublicKey) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (jens *PeerJournalEntrySchnorrPublicKey) IsInterfaceNil() bool {
-	if jens == nil {
-		return true
-	}
-	return false
+	return jens == nil
 }
 
 //------- PeerJournalEntryBLSPublicKey
@@ -104,10 +98,7 @@ func (pjeb *PeerJournalEntryBLSPublicKey) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjeb *PeerJournalEntryBLSPublicKey) IsInterfaceNil() bool {
-	if pjeb == nil {
-		return true
-	}
-	return false
+	return pjeb == nil
 }
 
 //------- PeerJournalEntryStake
@@ -126,23 +117,20 @@ func NewPeerJournalEntryStake(account *PeerAccount, oldStake *big.Int) (*PeerJou
 
 	return &PeerJournalEntryStake{
 		account:  account,
-		oldStake: oldStake,
+		oldStake: big.NewInt(0).Set(oldStake),
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjes *PeerJournalEntryStake) Revert() (AccountHandler, error) {
-	pjes.account.Stake.Set(pjes.oldStake)
+	pjes.account.Stake = big.NewInt(0).Set(pjes.oldStake)
 
 	return pjes.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjes *PeerJournalEntryStake) IsInterfaceNil() bool {
-	if pjes == nil {
-		return true
-	}
-	return false
+	return pjes == nil
 }
 
 // PeerJournalEntryJailTime is used to revert a balance change
@@ -172,10 +160,7 @@ func (pjej *PeerJournalEntryJailTime) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjej *PeerJournalEntryJailTime) IsInterfaceNil() bool {
-	if pjej == nil {
-		return true
-	}
-	return false
+	return pjej == nil
 }
 
 // PeerJournalEntryCurrentShardId is used to revert a shardId change
@@ -205,10 +190,7 @@ func (pjec *PeerJournalEntryCurrentShardId) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjec *PeerJournalEntryCurrentShardId) IsInterfaceNil() bool {
-	if pjec == nil {
-		return true
-	}
-	return false
+	return pjec == nil
 }
 
 // PeerJournalEntryNextShardId is used to revert a shardId change
@@ -238,10 +220,7 @@ func (pjen *PeerJournalEntryNextShardId) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjen *PeerJournalEntryNextShardId) IsInterfaceNil() bool {
-	if pjen == nil {
-		return true
-	}
-	return false
+	return pjen == nil
 }
 
 // PeerJournalEntryInWaitingList is used to revert a shardId change
@@ -274,10 +253,7 @@ func (pjew *PeerJournalEntryInWaitingList) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjew *PeerJournalEntryInWaitingList) IsInterfaceNil() bool {
-	if pjew == nil {
-		return true
-	}
-	return false
+	return pjew == nil
 }
 
 // PeerJournalEntryValidatorSuccessRate is used to revert a success rate change
@@ -310,10 +286,7 @@ func (pjev *PeerJournalEntryValidatorSuccessRate) Revert() (AccountHandler, erro
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjev *PeerJournalEntryValidatorSuccessRate) IsInterfaceNil() bool {
-	if pjev == nil {
-		return true
-	}
-	return false
+	return pjev == nil
 }
 
 // PeerJournalEntryLeaderSuccessRate is used to revert a success rate change
@@ -346,10 +319,7 @@ func (pjel *PeerJournalEntryLeaderSuccessRate) Revert() (AccountHandler, error) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjel *PeerJournalEntryLeaderSuccessRate) IsInterfaceNil() bool {
-	if pjel == nil {
-		return true
-	}
-	return false
+	return pjel == nil
 }
 
 // PeerJournalEntryRating is used to revert a rating change
@@ -379,10 +349,37 @@ func (pjer *PeerJournalEntryRating) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
-	if pjer == nil {
-		return true
+	return pjer == nil
+}
+
+// PeerJournalEntryTempRating is used to revert a rating change
+type PeerJournalEntryTempRating struct {
+	account       *PeerAccount
+	oldTempRating uint32
+}
+
+// NewPeerJournalEntryTempRating outputs a new PeerJournalEntryTempRating implementation used to revert a state change
+func NewPeerJournalEntryTempRating(account *PeerAccount, oldTempRating uint32) (*PeerJournalEntryTempRating, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
 	}
-	return false
+
+	return &PeerJournalEntryTempRating{
+		account:       account,
+		oldTempRating: oldTempRating,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjer *PeerJournalEntryTempRating) Revert() (AccountHandler, error) {
+	pjer.account.TempRating = pjer.oldTempRating
+
+	return pjer.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjer *PeerJournalEntryTempRating) IsInterfaceNil() bool {
+	return pjer == nil
 }
 
 // PeerJournalEntryUnStakedNonce is used to revert a unstaked nonce change
@@ -391,7 +388,7 @@ type PeerJournalEntryUnStakedNonce struct {
 	oldUnStakedNonce uint64
 }
 
-// PeerJournalEntryUnStakedNonce outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+// NewPeerJournalEntryUnStakedNonce outputs a new PeerJournalEntryUnStakedNonce implementation used to revert a state change
 func NewPeerJournalEntryUnStakedNonce(account *PeerAccount, oldUnStakedNonce uint64) (*PeerJournalEntryUnStakedNonce, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -412,8 +409,67 @@ func (pjec *PeerJournalEntryUnStakedNonce) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjec *PeerJournalEntryUnStakedNonce) IsInterfaceNil() bool {
-	if pjec == nil {
-		return true
+	return pjec == nil
+}
+
+//------- PeerJournalEntryAccumulatedFee
+
+// PeerJournalEntryAccumulatedFee is used to revert an accumulated fee change
+type PeerJournalEntryAccumulatedFee struct {
+	account            *PeerAccount
+	oldAccumulatedFees *big.Int
+}
+
+// NewPeerJournalEntryAccumulatedFee outputs a new PeerJournalEntryAccumulatedFee implementation used to revert an accumulated fee change
+func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees *big.Int) (*PeerJournalEntryAccumulatedFee, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
 	}
-	return false
+
+	return &PeerJournalEntryAccumulatedFee{
+		account:            account,
+		oldAccumulatedFees: oldAccumulatedFees,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
+	pjeaf.account.AccumulatedFees = pjeaf.oldAccumulatedFees
+
+	return pjeaf.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjeaf *PeerJournalEntryAccumulatedFee) IsInterfaceNil() bool {
+	return pjeaf == nil
+}
+
+// PeerJournalEntryNumSelectedInSuccessBlocks is used to revert a num selected in success block change
+type PeerJournalEntryNumSelectedInSuccessBlocks struct {
+	account        *PeerAccount
+	oldNumSelected uint32
+}
+
+// NewPeerJournalEntryNumSelectedInSuccessBlocks outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+func NewPeerJournalEntryNumSelectedInSuccessBlocks(account *PeerAccount, oldNumSelected uint32) (*PeerJournalEntryNumSelectedInSuccessBlocks, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryNumSelectedInSuccessBlocks{
+		account:        account,
+		oldNumSelected: oldNumSelected,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) Revert() (AccountHandler, error) {
+	pjen.account.NumSelectedInSuccessBlocks = pjen.oldNumSelected
+
+	return pjen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) IsInterfaceNil() bool {
+	return pjen == nil
 }

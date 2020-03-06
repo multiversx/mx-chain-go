@@ -1,6 +1,8 @@
 package headerCheck
 
 import (
+	"math/bits"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -53,7 +55,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 
 func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if arguments == nil {
-		return process.ErrNilArguments
+		return process.ErrNilArgumentStruct
 	}
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
@@ -79,7 +81,6 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-
 	randSeed := header.GetPrevRandSeed()
 	bitmap := header.GetPubKeysBitmap()
 	if len(bitmap) == 0 {
@@ -89,11 +90,23 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return process.ErrBlockProposerSignatureMissing
 	}
 
-	consensusPubKeys, err := hsv.nodesCoordinator.GetValidatorsPublicKeys(
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
+		epoch,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = hsv.verifyConsensusSize(consensusPubKeys, header)
 	if err != nil {
 		return err
 	}
@@ -118,6 +131,38 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	}
 
 	return verifier.Verify(hash, bitmap)
+}
+
+func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
+	consensusSize := len(consensusPubKeys)
+	bitmap := header.GetPubKeysBitmap()
+
+	expectedBitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
+		expectedBitmapSize++
+	}
+	if len(bitmap) != expectedBitmapSize {
+		log.Debug("wrong size bitmap",
+			"expected number of bytes", expectedBitmapSize,
+			"actual", len(bitmap))
+		return ErrWrongSizeBitmap
+	}
+
+	numOfOnesInBitmap := 0
+	for index := range bitmap {
+		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
+	}
+
+	minNumRequiredSignatures := consensusSize*2/3 + 1
+	if numOfOnesInBitmap >= minNumRequiredSignatures {
+		return nil
+	}
+
+	log.Debug("not enough signatures",
+		"minimum expected", minNumRequiredSignatures,
+		"actual", numOfOnesInBitmap)
+
+	return ErrNotEnoughSignatures
 }
 
 // VerifyRandSeed will check if rand seed is correct
@@ -184,7 +229,14 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
 	prevRandSeed := header.GetPrevRandSeed()
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
+
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, header.GetRound(), header.GetShardID(), epoch)
 	if err != nil {
 		return nil, err
 	}
