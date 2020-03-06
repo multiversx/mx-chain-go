@@ -603,11 +603,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
 
-	if adb.accountType != UserAccount {
-		adb.mainTrie.ExitSnapshotMode()
-		return
-	}
-
 	go func() {
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
@@ -623,9 +618,10 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
 
 	for _, leaf := range leafs {
 		account := &Account{}
-		err := adb.marshalizer.Unmarshal(account, leaf)
+		err = adb.marshalizer.Unmarshal(account, leaf)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
+			continue
 		}
 
 		if len(account.RootHash) > 0 {

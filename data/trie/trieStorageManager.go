@@ -135,7 +135,8 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	tsm.snapshotInProgress = false
 
 	if tsm.snapshotsBuffer.len() == 0 {
-		tsm.removeKeysFromDb(tsm.pruningBuffer)
+		keys := tsm.pruningBuffer
+		go tsm.removeKeysFromDb(keys)
 		tsm.pruningBuffer = tsm.pruningBuffer[:0]
 	}
 }

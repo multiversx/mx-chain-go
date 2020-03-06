@@ -45,3 +45,11 @@ func NewPeerAccountsDB(
 		},
 	}, nil
 }
+
+// SnapshotState triggers the snapshotting process of the state trie
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
+	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
+	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.TakeSnapshot(rootHash)
+	adb.mainTrie.ExitSnapshotMode()
+}
