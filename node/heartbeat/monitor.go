@@ -211,7 +211,7 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
 
-	return &receivedHbmi, nil
+	return receivedHbmi, nil
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
@@ -397,8 +397,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 	return ret
 }
 
-func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time.Duration) heartbeatMessageInfo {
-	hbmi := heartbeatMessageInfo{
+func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time.Duration) *heartbeatMessageInfo {
+	hbmi := &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDuration,
 		isActive:                    hbDTO.IsActive,
 		receivedShardID:             hbDTO.ReceivedShardID,

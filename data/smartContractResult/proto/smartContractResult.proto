@@ -19,4 +19,5 @@ message SmartContractResult  {
 	bytes    TxHash    = 7 [(gogoproto.jsontag) = "txHash"];
 	uint64   GasLimit  = 8 [(gogoproto.jsontag) = "gasLimit"];
 	uint64   GasPrice  = 9 [(gogoproto.jsontag) = "gasPrice"];
+    int64    CallType  = 10 [(gogoproto.jsontag)= "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
 }
