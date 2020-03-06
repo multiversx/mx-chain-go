@@ -352,6 +352,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorInfos)
+	if err != nil {
+		return err
+	}
+
 	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
 	if err != nil {
 		return err
@@ -720,6 +725,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 	}
 
 	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorInfos)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorInfos)
 	if err != nil {
 		return nil, err
 	}

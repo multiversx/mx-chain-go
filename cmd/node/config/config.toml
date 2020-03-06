@@ -252,8 +252,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 50
-    RoundsPerEpoch         = 50
+    MinRoundsBetweenEpochs = 8
+    RoundsPerEpoch         = 10
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
