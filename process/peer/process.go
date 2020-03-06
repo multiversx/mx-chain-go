@@ -405,10 +405,10 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		newRating := vs.rater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
 		swInner.Stop("ComputeDecreaseProposer")
 
-		swInner.Start("SetTempRatingWithJournal")
+		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
+		swInner.Stop("SetTempRating")
 		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)
-		swInner.Stop("SetTempRatingWithJournal")
 		if err != nil {
 			return err
 		}
@@ -520,12 +520,7 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	err = vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(

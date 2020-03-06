@@ -426,7 +426,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return accounts.NewEmptyUserAccount(), nil
+			return accounts.NewUserAccount(addrContainer)
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -1070,7 +1070,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 				case bytes.Equal(address, []byte(keys[0][0])):
 					return nil, errors.New("error")
 				case bytes.Equal(address, []byte(keys[1][0])):
-					return accounts.NewEmptyPeerAccount(), nil
+					return accounts.NewPeerAccount(mock.NewAddressMock())
 				default:
 					return accounts.NewPeerAccount(mock.NewAddressMock())
 				}

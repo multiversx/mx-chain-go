@@ -581,7 +581,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	marshalizer := &mock.MarshalizerStub{}
 
 	adapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return accounts.NewEmptyPeerAccount(), nil
+		return accounts.NewPeerAccount(addressContainer)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
@@ -635,7 +635,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	}
 
 	adapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return accounts.NewEmptyPeerAccount(), nil
+		return accounts.NewPeerAccount(addressContainer)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
