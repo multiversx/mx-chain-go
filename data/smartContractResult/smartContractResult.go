@@ -2,11 +2,10 @@
 package smartContractResult
 
 import (
-	io "io"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ = data.TransactionHandler(&SmartContractResult{})
@@ -44,23 +43,4 @@ func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
 	ret := make([]*SmartContractResult, len(in))
 	copy(ret, in)
 	return ret
-}
-
-// ----- for compatibility only ----
-
-func (scr *SmartContractResult) Save(w io.Writer) error {
-	b, err := scr.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	return err
-}
-
-func (scr *SmartContractResult) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	return scr.Unmarshal(b)
 }

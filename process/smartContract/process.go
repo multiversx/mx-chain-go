@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -38,7 +38,6 @@ type scProcessor struct {
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
-	isCallBack       bool
 	builtInFunctions map[string]process.BuiltinFunction
 
 	scrForwarder  process.IntermediateTransactionHandler
@@ -259,7 +258,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
@@ -334,6 +333,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		tx,
 		txHash,
 		acntSnd,
+		vmcommon.DirectCall,
 	)
 	if err != nil {
 		return true, err
@@ -384,21 +384,6 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	sc.isCallBack = false
-	dataToParse := tx.GetData()
-
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
-	if isSCRResultFromCrossShardCall {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-		sc.isCallBack = true
-	}
-
-	err := sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return err
-	}
-
 	nonce := tx.GetNonce()
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()
@@ -488,7 +473,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Debug("Processing error", "error", err.Error())
 		return nil
@@ -562,6 +547,17 @@ func (sc *scProcessor) createVMDeployInput(
 func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
 	var err error
 	vmInput := &vmcommon.VMInput{}
+	vmInput.CallType = determineCallType(tx)
+
+	dataToParse := tx.GetData()
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
+		dataToParse = append([]byte("callBack"), tx.GetData()...)
+	}
+
+	err = sc.argsParser.ParseData(string(dataToParse))
+	if err != nil {
+		return nil, err
+	}
 
 	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.Arguments, err = sc.argsParser.GetArguments()
@@ -580,6 +576,14 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
 
 	return vmInput, nil
+}
+
+func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
+	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
+	if isSCR {
+		return scr.CallType
+	}
+	return vmcommon.DirectCall
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
@@ -628,6 +632,7 @@ func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
+	callType vmcommon.CallType,
 ) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
@@ -677,6 +682,7 @@ func (sc *scProcessor) processVMOutput(
 		tx,
 		txHash,
 		acntSnd,
+		callType,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -746,7 +752,9 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	rcvAddress := tx.GetSndAddr()
-	if sc.isCallBack {
+
+	callType := determineCallType(tx)
+	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
 	}
 
@@ -812,6 +820,7 @@ func (sc *scProcessor) createSCRForSender(
 	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.UserAccountHandler,
+	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
 	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
@@ -823,7 +832,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddr()
-	if sc.isCallBack {
+	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
 	}
 
@@ -839,6 +848,10 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
 	for _, retData := range returnData {
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
+	}
+
+	if callType == vmcommon.AsynchronousCall {
+		scTx.CallType = vmcommon.AsynchronousCallBack
 	}
 
 	if check.IfNil(acntSnd) {
