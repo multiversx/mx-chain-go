@@ -86,8 +86,8 @@ var ErrNilTriggerStorage = errors.New("nil trigger storage")
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 
-// ErrNilMiniBlocksStorage signals that nil miniblocks storage has been provided
-var ErrNilMiniBlocksStorage = errors.New("nil miniblocks storage")
+// ErrNilMiniblocksStorage signals that nil miniblocks storage has been provided
+var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
 
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")

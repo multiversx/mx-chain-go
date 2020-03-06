@@ -132,7 +132,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	miniblocksUnit := args.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 	if check.IfNil(miniblocksUnit) {
-		return nil, epochStart.ErrNilMiniBlocksStorage
+		return nil, epochStart.ErrNilMiniblocksStorage
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
@@ -290,38 +290,32 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
+	t.tryUpdateTriggerFromMeta(metaHdr, hdrHash, err)
+}
+
+func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte, err error) {
 	if !metaHdr.IsStartOfEpochBlock() {
 		t.updateTriggerFromMeta(metaHdr, hdrHash)
 	}
 
-	mbHashes := make([][]byte, 0)
-
 	for _, miniblock := range metaHdr.MiniBlockHeaders {
 		if miniblock.Type == block.PeerBlock {
-			mbHashes = append(mbHashes, miniblock.Hash)
-			log.Debug("Searching for peerminiblock", "hash", miniblock.Hash)
+			log.Trace("Searching for peerminiblock", "hash", miniblock.Hash)
+			mb, found := t.miniblocksPool.Get(miniblock.Hash)
+
+			if !found {
+				mb, err = t.miniblocksStorage.Get(miniblock.Hash)
+			}
+
+			_, ok := mb.(*block.MiniBlock)
+
+			if !ok {
+				return
+			}
 		}
 	}
 
-	if len(mbHashes) == 0 {
-		t.updateTriggerFromMeta(metaHdr, hdrHash)
-		return
-	}
-
-	for _, mbHash := range mbHashes {
-		mb, found := t.miniblocksPool.Get(mbHash)
-
-		if !found {
-			mb, err = t.miniblocksStorage.Get(mbHash)
-		}
-
-		_, ok := mb.(*block.MiniBlock)
-
-		if ok {
-			t.updateTriggerFromMeta(metaHdr, hdrHash)
-			return
-		}
-	}
+	t.updateTriggerFromMeta(metaHdr, hdrHash)
 }
 
 // call only if mutex is locked before
