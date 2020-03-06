@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -279,15 +279,15 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 			return []heartbeat.PubKeyHeartbeat{
 				{
 					HexPublicKey:    "pk1",
-					TimeStamp:       types.TimestampNow(),
-					MaxInactiveTime: types.DurationProto(0),
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
 					HexPublicKey:    "pk2",
-					TimeStamp:       types.TimestampNow(),
-					MaxInactiveTime: types.DurationProto(0),
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},

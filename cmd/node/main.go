@@ -1286,6 +1286,7 @@ func createNode(
 		node.WithHasher(coreData.Hasher),
 		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(coreData.VmMarshalizer),
+		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),

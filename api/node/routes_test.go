@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
@@ -20,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,8 +124,8 @@ func TestHeartbeatstatus(t *testing.T) {
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
 			HexPublicKey:    "pk1",
-			TimeStamp:       types.TimestampNow(),
-			MaxInactiveTime: types.DurationProto(0),
+			TimeStamp:       time.Now(),
+			MaxInactiveTime: heartbeat.Duration{Duration: 0},
 			IsActive:        true,
 			ReceivedShardID: uint32(0),
 		},
