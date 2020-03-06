@@ -882,11 +882,11 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 
 // DecodeBlockBody method decodes block body from a given byte array
 func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
 	body := &block.Body{}
+
+	if dta == nil {
+		return body
+	}
 
 	err := bp.marshalizer.Unmarshal(body, dta)
 	if err != nil {

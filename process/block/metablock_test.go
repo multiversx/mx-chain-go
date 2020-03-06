@@ -2015,7 +2015,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	assert.Nil(t, err)
 
 	dcdBlk := mp.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
+	assert.Equal(t, &block.Body{}, dcdBlk)
 
 	dcdBlk = mp.DecodeBlockBody(message)
 	assert.Equal(t, b, dcdBlk)

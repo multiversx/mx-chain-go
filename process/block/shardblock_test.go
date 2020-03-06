@@ -3057,7 +3057,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	assert.Nil(t, err)
 
 	dcdBlk := sp.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
+	assert.Equal(t, &block.Body{}, dcdBlk)
 
 	dcdBlk = sp.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
