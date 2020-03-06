@@ -46,8 +46,5 @@ func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address stri
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (connHost *connectableHost) IsInterfaceNil() bool {
-	if connHost == nil {
-		return true
-	}
-	return false
+	return connHost == nil
 }

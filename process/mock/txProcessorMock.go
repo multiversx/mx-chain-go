@@ -31,8 +31,5 @@ func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (etm *TxProcessorMock) IsInterfaceNil() bool {
-	if etm == nil {
-		return true
-	}
-	return false
+	return etm == nil
 }

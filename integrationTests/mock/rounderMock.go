@@ -30,14 +30,11 @@ func (rm *RounderMock) TimeDuration() time.Duration {
 }
 
 // RemainingTime -
-func (rm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rm *RounderMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return rm.RemainingTimeField
 }
 
 // IsInterfaceNil -
 func (rm *RounderMock) IsInterfaceNil() bool {
-	if rm == nil {
-		return true
-	}
-	return false
+	return rm == nil
 }

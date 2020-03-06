@@ -37,12 +37,12 @@ func (scm *MultipleShardsCoordinatorMock) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (scm *MultipleShardsCoordinatorMock) SetSelfId(shardId uint32) error {
+func (scm *MultipleShardsCoordinatorMock) SetSelfId(_ uint32) error {
 	return nil
 }
 
 // SameShard -
-func (scm *MultipleShardsCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (scm *MultipleShardsCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
@@ -67,8 +67,5 @@ func (scm *MultipleShardsCoordinatorMock) CommunicationIdentifier(destShardID ui
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *MultipleShardsCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

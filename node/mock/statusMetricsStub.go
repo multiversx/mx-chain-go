@@ -13,8 +13,5 @@ func (nds *StatusMetricsStub) StatusMetricsMap() (map[string]interface{}, error)
 
 // IsInterfaceNil -
 func (nds *StatusMetricsStub) IsInterfaceNil() bool {
-	if nds == nil {
-		return true
-	}
-	return false
+	return nds == nil
 }

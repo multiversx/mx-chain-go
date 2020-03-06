@@ -29,8 +29,5 @@ func (scm *ServiceContainerMock) TPSBenchmark() statistics.TPSBenchmark {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *ServiceContainerMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

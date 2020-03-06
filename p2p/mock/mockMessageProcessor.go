@@ -26,8 +26,5 @@ func (processor *MockMessageProcessor) ProcessReceivedMessage(message p2p.Messag
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (processor *MockMessageProcessor) IsInterfaceNil() bool {
-	if processor == nil {
-		return true
-	}
-	return false
+	return processor == nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.DB) {
-	dir, err := ioutil.TempDir("", "leveldb_temp")
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	lvdb, err := leveldb.NewDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")

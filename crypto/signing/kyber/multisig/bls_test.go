@@ -202,8 +202,8 @@ func TestKyberMultiSignerBLS_VerifySigShareInvalidPubKeyShouldErr(t *testing.T) 
 	suite := createMockSuite(pairing.NewSuiteBn256())
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := []byte("key")
-	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
-	err = lls.VerifySigShare(pubKey, msg, sig)
+	pubKey, _ := kg.PublicKeyFromByteArray(pubKeyBytes)
+	err := lls.VerifySigShare(pubKey, msg, sig)
 
 	assert.Equal(t, crypto.ErrInvalidPublicKey, err)
 }

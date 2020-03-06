@@ -27,7 +27,7 @@ func (rfs *ResolversFinderStub) Add(key string, val dataRetriever.Resolver) erro
 }
 
 // AddMultiple -
-func (rfs *ResolversFinderStub) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
+func (rfs *ResolversFinderStub) AddMultiple(_ []string, _ []dataRetriever.Resolver) error {
 	panic("implement me")
 }
 
@@ -63,8 +63,5 @@ func (rfs *ResolversFinderStub) CrossShardResolver(baseTopic string, crossShard 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rfs *ResolversFinderStub) IsInterfaceNil() bool {
-	if rfs == nil {
-		return true
-	}
-	return false
+	return rfs == nil
 }

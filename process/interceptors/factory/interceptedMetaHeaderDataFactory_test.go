@@ -163,6 +163,7 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyMetaHeader := &block.Header{}
 	emptyMetaHeaderBuff, _ := marshalizer.Marshal(emptyMetaHeader)
 	interceptedData, err := imh.Create(emptyMetaHeaderBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)
 	assert.True(t, ok)

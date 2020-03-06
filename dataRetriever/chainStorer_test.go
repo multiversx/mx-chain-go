@@ -130,6 +130,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, map[string][]byte{key1: val1}, t1)
 
 	t2, err := b.GetAll(1, [][]byte{[]byte(key1), []byte(key2)})
+	assert.Nil(t, err)
 	assert.Equal(t, map[string][]byte{key1: val1, key2: val2}, t2)
 }
 

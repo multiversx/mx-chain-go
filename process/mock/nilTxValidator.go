@@ -14,14 +14,11 @@ func NewNilTxValidator() (*nilTxValidator, error) {
 }
 
 // CheckTxValidity is a nil implementation that will return nil
-func (ntv *nilTxValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
+func (ntv *nilTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntv *nilTxValidator) IsInterfaceNil() bool {
-	if ntv == nil {
-		return true
-	}
-	return false
+	return ntv == nil
 }

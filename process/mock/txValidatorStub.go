@@ -17,8 +17,5 @@ func (t *TxValidatorStub) CheckTxValidity(txValidatorHandler process.TxValidator
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (t *TxValidatorStub) IsInterfaceNil() bool {
-	if t == nil {
-		return true
-	}
-	return false
+	return t == nil
 }

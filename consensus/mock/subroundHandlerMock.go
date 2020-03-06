@@ -54,8 +54,5 @@ func (srm *SubroundHandlerMock) Name() string {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (srm *SubroundHandlerMock) IsInterfaceNil() bool {
-	if srm == nil {
-		return true
-	}
-	return false
+	return srm == nil
 }

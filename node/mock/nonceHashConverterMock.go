@@ -37,8 +37,5 @@ func (*nonceHashConverterMock) ToUint64(buff []byte) (uint64, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nhcm *nonceHashConverterMock) IsInterfaceNil() bool {
-	if nhcm == nil {
-		return true
-	}
-	return false
+	return nhcm == nil
 }

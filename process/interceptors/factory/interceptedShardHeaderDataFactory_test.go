@@ -100,6 +100,7 @@ func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyBlockHeader := &block.Header{}
 	emptyBlockHeaderBuff, _ := marshalizer.Marshal(emptyBlockHeader)
 	interceptedData, err := imh.Create(emptyBlockHeaderBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	assert.True(t, ok)

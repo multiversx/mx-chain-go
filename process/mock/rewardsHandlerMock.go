@@ -32,8 +32,5 @@ func (rhm *RewardsHandlerMock) BurnPercentage() float64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rhm *RewardsHandlerMock) IsInterfaceNil() bool {
-	if rhm == nil {
-		return true
-	}
-	return false
+	return rhm == nil
 }

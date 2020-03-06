@@ -2,6 +2,7 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/crypto"
 
+// KeyGenMock -
 type KeyGenMock struct {
 	PublicKeyFromByteArrayCalled func(b []byte) (crypto.PublicKey, error)
 }
@@ -15,10 +16,12 @@ func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("publicKeyMock"), nil
 }
 
+// Suite -
 func (pubKey *PublicKeyMock) Suite() crypto.Suite {
 	return nil
 }
 
+// Point -
 func (pubKey *PublicKeyMock) Point() crypto.Point {
 	return nil
 }
@@ -28,14 +31,17 @@ func (pubKey *PublicKeyMock) IsInterfaceNil() bool {
 	return pubKey == nil
 }
 
+// GeneratePair -
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	return nil, nil
 }
 
+// PrivateKeyFromByteArray -
 func (keyGen *KeyGenMock) PrivateKeyFromByteArray(_ []byte) (crypto.PrivateKey, error) {
 	return nil, nil
 }
 
+// PublicKeyFromByteArray -
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	if keyGen.PublicKeyFromByteArrayCalled == nil {
 		return nil, nil
@@ -43,6 +49,7 @@ func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, er
 	return keyGen.PublicKeyFromByteArrayCalled(b)
 }
 
+// Suite -
 func (keyGen *KeyGenMock) Suite() crypto.Suite {
 	return nil
 }

@@ -24,7 +24,7 @@ func (rcs *ResolversContainerStub) Add(key string, val dataRetriever.Resolver) e
 }
 
 // AddMultiple -
-func (rcs *ResolversContainerStub) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
+func (rcs *ResolversContainerStub) AddMultiple(_ []string, _ []dataRetriever.Resolver) error {
 	panic("implement me")
 }
 
@@ -45,8 +45,5 @@ func (rcs *ResolversContainerStub) Len() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcs *ResolversContainerStub) IsInterfaceNil() bool {
-	if rcs == nil {
-		return true
-	}
-	return false
+	return rcs == nil
 }

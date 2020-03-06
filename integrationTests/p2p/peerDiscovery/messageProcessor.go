@@ -42,8 +42,5 @@ func (mp *MessageProcesssor) WasDataReceived() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *MessageProcesssor) IsInterfaceNil() bool {
-	if mp == nil {
-		return true
-	}
-	return false
+	return mp == nil
 }

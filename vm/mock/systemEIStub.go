@@ -25,21 +25,21 @@ type SystemEIStub struct {
 }
 
 // UseGas -
-func (s *SystemEIStub) UseGas(gasToConsume uint64) error {
+func (s *SystemEIStub) UseGas(_ uint64) error {
 	return nil
 }
 
 // SetGasProvided -
-func (s *SystemEIStub) SetGasProvided(gasProvided uint64) {
+func (s *SystemEIStub) SetGasProvided(_ uint64) {
 }
 
 // ExecuteOnDestContext -
-func (s *SystemEIStub) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
+func (s *SystemEIStub) ExecuteOnDestContext(_ []byte, _ []byte, _ *big.Int, _ []byte) (*vmcommon.VMOutput, error) {
 	return &vmcommon.VMOutput{}, nil
 }
 
 // SetSystemSCContainer -
-func (s *SystemEIStub) SetSystemSCContainer(scContainer vm.SystemSCContainer) error {
+func (s *SystemEIStub) SetSystemSCContainer(_ vm.SystemSCContainer) error {
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 }
 
 // SetSCAddress -
-func (s *SystemEIStub) SetSCAddress(addr []byte) {
+func (s *SystemEIStub) SetSCAddress(_ []byte) {
 }
 
 // Finish -
@@ -140,8 +140,5 @@ func (s *SystemEIStub) CleanCache() {
 
 // IsInterfaceNil -
 func (s *SystemEIStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

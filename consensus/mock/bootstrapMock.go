@@ -59,8 +59,5 @@ func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) er
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (boot *BootstrapperMock) IsInterfaceNil() bool {
-	if boot == nil {
-		return true
-	}
-	return false
+	return boot == nil
 }

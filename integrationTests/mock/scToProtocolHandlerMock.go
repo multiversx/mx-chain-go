@@ -17,8 +17,5 @@ func (s *SCToProtocolStub) UpdateProtocol(body block.Body, nonce uint64) error {
 
 // IsInterfaceNil -
 func (s *SCToProtocolStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

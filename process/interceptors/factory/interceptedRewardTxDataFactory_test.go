@@ -77,6 +77,7 @@ func TestInterceptedRewardTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyRewardTx := &rewardTx.RewardTx{}
 	emptyRewardTxBuff, _ := marshalizer.Marshal(emptyRewardTx)
 	interceptedData, err := imh.Create(emptyRewardTxBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*rewardTransaction.InterceptedRewardTransaction)
 	assert.True(t, ok)

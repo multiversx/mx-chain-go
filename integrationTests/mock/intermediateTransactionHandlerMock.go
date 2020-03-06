@@ -72,14 +72,11 @@ func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorag
 // CreateBlockStarted -
 func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
 	if ith.CreateBlockStartedCalled != nil {
-		ith.CreateBlockStarted()
+		ith.CreateBlockStartedCalled()
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ith *IntermediateTransactionHandlerMock) IsInterfaceNil() bool {
-	if ith == nil {
-		return true
-	}
-	return false
+	return ith == nil
 }

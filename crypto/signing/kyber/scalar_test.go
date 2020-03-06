@@ -166,7 +166,7 @@ func TestKyberScalar_AddOK(t *testing.T) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
 	scalar2 := suite.CreateScalar().One()
-	sum, err := scalar1.Add(scalar2)
+	sum, _ := scalar1.Add(scalar2)
 
 	scalar3 := suite.CreateScalar()
 	scalar3.SetInt64(2)
@@ -206,7 +206,7 @@ func TestKyberScalar_SubOK(t *testing.T) {
 	scalar1 := suite.CreateScalar()
 	scalar1.SetInt64(4)
 	scalar2 := suite.CreateScalar().One()
-	diff, err := scalar1.Sub(scalar2)
+	diff, _ := scalar1.Sub(scalar2)
 
 	scalar3 := suite.CreateScalar()
 	scalar3.SetInt64(3)
@@ -360,7 +360,7 @@ func TestKyberScalar_InvOK(t *testing.T) {
 	assert.False(t, eq)
 
 	one := suite.CreateScalar().One()
-	scalar1, err = scalar1.Inv(one)
+	scalar1, _ = scalar1.Inv(one)
 	eq, _ = one.Equal(scalar1)
 
 	assert.True(t, eq)
@@ -451,10 +451,10 @@ func TestKyberScalar_UnmarshalBinary(t *testing.T) {
 
 	randStream := suite.RandomStream()
 	scalar1, _ := suite.CreateScalar().Pick(randStream)
-	scalarBytes, err := scalar1.MarshalBinary()
+	scalarBytes, _ := scalar1.MarshalBinary()
 
 	scalar2 := suite.CreateScalar().Zero()
-	err = scalar2.UnmarshalBinary(scalarBytes)
+	err := scalar2.UnmarshalBinary(scalarBytes)
 	assert.Nil(t, err)
 
 	eq, err := scalar1.Equal(scalar2)

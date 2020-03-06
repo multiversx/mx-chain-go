@@ -330,10 +330,7 @@ func (b Body) IsInterfaceNil() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (h *Header) IsInterfaceNil() bool {
-	if h == nil {
-		return true
-	}
-	return false
+	return h == nil
 }
 
 // IsStartOfEpochBlock verifies if the block is of type start of epoch

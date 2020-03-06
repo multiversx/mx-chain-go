@@ -129,8 +129,5 @@ func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionH
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppm *PreProcessorMock) IsInterfaceNil() bool {
-	if ppm == nil {
-		return true
-	}
-	return false
+	return ppm == nil
 }

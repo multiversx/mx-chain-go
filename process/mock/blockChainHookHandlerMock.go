@@ -39,10 +39,7 @@ func (e *BlockChainHookHandlerMock) TempAccount(address []byte) state.AccountHan
 
 // IsInterfaceNil -
 func (e *BlockChainHookHandlerMock) IsInterfaceNil() bool {
-	if e == nil {
-		return true
-	}
-	return false
+	return e == nil
 }
 
 // SetCurrentHeader -

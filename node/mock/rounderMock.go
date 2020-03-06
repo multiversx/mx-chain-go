@@ -63,8 +63,5 @@ func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duratio
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rndm *RounderMock) IsInterfaceNil() bool {
-	if rndm == nil {
-		return true
-	}
-	return false
+	return rndm == nil
 }

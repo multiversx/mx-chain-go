@@ -69,8 +69,5 @@ func (txip *TxInterceptorProcessor) SignalEndOfProcessing(_ []process.Intercepte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
-	if txip == nil {
-		return true
-	}
-	return false
+	return txip == nil
 }

@@ -77,6 +77,7 @@ func TestInterceptedUnsignedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyTx := &smartContractResult.SmartContractResult{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	interceptedData, err := imh.Create(emptyTxBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*unsigned.InterceptedUnsignedTransaction)
 	assert.True(t, ok)

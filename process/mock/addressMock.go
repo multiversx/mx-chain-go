@@ -17,8 +17,5 @@ func (adr *AddressMock) Bytes() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (adr *AddressMock) IsInterfaceNil() bool {
-	if adr == nil {
-		return true
-	}
-	return false
+	return adr == nil
 }

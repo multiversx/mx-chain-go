@@ -16,8 +16,5 @@ func (h *HeaderValidatorStub) HeaderValidForProcessing(headerHandler process.Hdr
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (h *HeaderValidatorStub) IsInterfaceNil() bool {
-	if h == nil {
-		return true
-	}
-	return false
+	return h == nil
 }

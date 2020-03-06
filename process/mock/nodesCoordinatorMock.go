@@ -99,7 +99,7 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId
 	return pubKeys, nil
 }
 
-// GetValidatorsPublicKeys -
+// GetConsensusValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
 	round uint64,

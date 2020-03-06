@@ -28,8 +28,6 @@ type KeyGenMock struct {
 	SuiteMock                   func() crypto.Suite
 }
 
-//------- PublicKeyMock
-
 // ToByteArray -
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return sspk.ToByteArrayHandler()
@@ -49,8 +47,6 @@ func (sspk *PublicKeyMock) Point() crypto.Point {
 func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 	return sspk == nil
 }
-
-//------- PrivateKeyMock
 
 // ToByteArray -
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
@@ -76,8 +72,6 @@ func (sk *PrivateKeyStub) Scalar() crypto.Scalar {
 func (sk *PrivateKeyStub) IsInterfaceNil() bool {
 	return sk == nil
 }
-
-//------KeyGenMock
 
 // GeneratePair -
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {

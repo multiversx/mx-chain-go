@@ -762,7 +762,6 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
 	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,

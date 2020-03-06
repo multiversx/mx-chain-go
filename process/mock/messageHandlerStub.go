@@ -22,8 +22,5 @@ func (mhs *MessageHandlerStub) SendToConnectedPeer(topic string, buff []byte, pe
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mhs *MessageHandlerStub) IsInterfaceNil() bool {
-	if mhs == nil {
-		return true
-	}
-	return false
+	return mhs == nil
 }

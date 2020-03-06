@@ -116,7 +116,7 @@ func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil
 }
 
-// GetSavedStateKey
+// GetSavedStateKey -
 func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 	return []byte("key")
 }

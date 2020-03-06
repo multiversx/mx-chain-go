@@ -31,7 +31,7 @@ func (vm *VMExecutionHandlerStub) G0Call(input *vmcommon.ContractCallInput) (*bi
 	return vm.G0CallCalled(input)
 }
 
-// Computes how a smart contract creation should be performed
+// RunSmartContractCreate --
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCreateCalled == nil {
 		return &vmcommon.VMOutput{

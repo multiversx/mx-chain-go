@@ -28,8 +28,5 @@ func (pds *PeerDiscovererStub) ApplyContext(ctxProvider p2p.ContextProvider) err
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pds *PeerDiscovererStub) IsInterfaceNil() bool {
-	if pds == nil {
-		return true
-	}
-	return false
+	return pds == nil
 }

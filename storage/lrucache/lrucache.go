@@ -140,8 +140,5 @@ func (c *LRUCache) MaxSize() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *LRUCache) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+	return c == nil
 }

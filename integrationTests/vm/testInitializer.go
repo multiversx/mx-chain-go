@@ -42,24 +42,24 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 type accountFactory struct {
 }
 
+// CreateAccount -
 func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	return state.NewAccount(address, tracker)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *accountFactory) IsInterfaceNil() bool {
-	if af == nil {
-		return true
-	}
-	return false
+	return af == nil
 }
 
+// CreateEmptyAddress -
 func CreateEmptyAddress() state.AddressContainer {
 	buff := make([]byte, testHasher.Size())
 
 	return state.NewAddress(buff)
 }
 
+// CreateMemUnit -
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 
@@ -67,6 +67,7 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
+// CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
@@ -79,6 +80,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	return adb
 }
 
+// CreateAccount -
 func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
 	address, err := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
 	if err != nil {
@@ -108,6 +110,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
+// CreateTxProcessorWithOneSCExecutorMockVM -
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
@@ -177,6 +180,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	return txProcessor
 }
 
+// CreateOneSCExecutorMockVM -
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
@@ -202,6 +206,7 @@ func createAndAddIeleVM(
 	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
 }
 
+// CreateVMAndBlockchainHook -
 func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
@@ -235,6 +240,7 @@ func CreateVMAndBlockchainHook(
 	return vmContainer, blockChainHook
 }
 
+// CreateTxProcessorWithOneSCExecutorWithVMs -
 func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 	vmContainer process.VirtualMachinesContainer,
@@ -289,6 +295,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	return txProcessor
 }
 
+// TestDeployedContractContents -
 func TestDeployedContractContents(
 	t *testing.T,
 	destinationAddressBytes []byte,
@@ -325,6 +332,7 @@ func TestDeployedContractContents(
 	}
 }
 
+// AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addressBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
@@ -332,6 +340,7 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	return accnt != nil
 }
 
+// CreatePreparedTxProcessorAndAccountsWithVMs -
 func CreatePreparedTxProcessorAndAccountsWithVMs(
 	tb testing.TB,
 	senderNonce uint64,
@@ -350,6 +359,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	return txProcessor, accnts, blockChainHook
 }
 
+// CreateTxProcessorArwenVMWithGasSchedule -
 func CreateTxProcessorArwenVMWithGasSchedule(
 	tb testing.TB,
 	senderNonce uint64,
@@ -368,6 +378,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	return txProcessor, accnts, blockChainHook
 }
 
+// CreatePreparedTxProcessorAndAccountsWithMockedVM -
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	t *testing.T,
 	vmOpGas uint64,
@@ -385,6 +396,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	return txProcessor, accnts
 }
 
+// CreateTx -
 func CreateTx(
 	tb testing.TB,
 	senderAddressBytes []byte,
@@ -411,6 +423,7 @@ func CreateTx(
 	return tx
 }
 
+// CreateDeployTx -
 func CreateDeployTx(
 	senderAddressBytes []byte,
 	senderNonce uint64,
@@ -431,6 +444,7 @@ func CreateDeployTx(
 	}
 }
 
+// TestAccount -
 func TestAccount(
 	t *testing.T,
 	accnts state.AccountsAdapter,
@@ -448,6 +462,7 @@ func TestAccount(
 	return senderRecovShardAccount.Balance
 }
 
+// ComputeExpectedBalance -
 func ComputeExpectedBalance(
 	existing *big.Int,
 	transferred *big.Int,
@@ -462,6 +477,7 @@ func ComputeExpectedBalance(
 	return expectedSenderBalance
 }
 
+// GetAccountsBalance -
 func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
 	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
@@ -470,6 +486,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	return shardAccnt.Balance
 }
 
+// GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
@@ -483,18 +500,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
-func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
-	return &dataTransaction.Transaction{
-		Nonce:    nonce,
-		Value:    value,
-		RcvAddr:  scAddrress,
-		SndAddr:  sndAddress,
-		GasPrice: 0,
-		GasLimit: 5000000,
-		Data:     []byte("topUp@00"),
-	}
-}
-
+// CreateTransferTx -
 func CreateTransferTx(
 	nonce uint64,
 	value *big.Int,
@@ -513,6 +519,7 @@ func CreateTransferTx(
 	}
 }
 
+// CreateTransferTokenTx -
 func CreateTransferTokenTx(
 	nonce uint64,
 	value *big.Int,
@@ -531,6 +538,7 @@ func CreateTransferTokenTx(
 	}
 }
 
+// CreateMoveBalanceTx -
 func CreateMoveBalanceTx(
 	nonce uint64,
 	value *big.Int,
@@ -548,6 +556,7 @@ func CreateMoveBalanceTx(
 	}
 }
 
+// FillGasMapInternal -
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
 	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
 	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
@@ -556,6 +565,7 @@ func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[s
 	return gasMap
 }
 
+// FillGasMapBaseOperationCosts -
 func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	gasMap := make(map[string]uint64)
 	gasMap["StorePerByte"] = value
@@ -567,6 +577,7 @@ func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	return gasMap
 }
 
+// FillGasMapBuiltInCosts -
 func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap := make(map[string]uint64)
 	gasMap["ClaimDeveloperRewards"] = value
@@ -575,6 +586,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	return gasMap
 }
 
+// FillGasMapMetaChainSystemSCsCosts -
 func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap := make(map[string]uint64)
 	gasMap["Stake"] = value

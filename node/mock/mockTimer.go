@@ -29,10 +29,7 @@ func (m *MockTimer) Now() time.Time {
 
 // IsInterfaceNil -
 func (m *MockTimer) IsInterfaceNil() bool {
-	if m == nil {
-		return true
-	}
-	return false
+	return m == nil
 }
 
 // IncrementSeconds -

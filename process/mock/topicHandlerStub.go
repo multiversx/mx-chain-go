@@ -28,8 +28,5 @@ func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, handler p2p.
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ths *TopicHandlerStub) IsInterfaceNil() bool {
-	if ths == nil {
-		return true
-	}
-	return false
+	return ths == nil
 }

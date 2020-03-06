@@ -71,8 +71,5 @@ func (V *VMContainerMock) Keys() [][]byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (V *VMContainerMock) IsInterfaceNil() bool {
-	if V == nil {
-		return true
-	}
-	return false
+	return V == nil
 }

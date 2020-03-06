@@ -61,8 +61,5 @@ func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point)
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

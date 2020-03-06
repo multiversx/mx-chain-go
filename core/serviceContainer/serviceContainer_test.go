@@ -26,10 +26,7 @@ func TestServiceContainer_NewServiceContainerWithIndexer(t *testing.T) {
 }
 
 func TestServiceContainer_NewServiceContainerWithNilIndexer(t *testing.T) {
-	indexer := &mock.IndexerMock{}
-	indexer = nil
-
-	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(indexer))
+	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(nil))
 
 	assert.Nil(t, err)
 	assert.NotNil(t, sc)
@@ -46,10 +43,7 @@ func TestServiceContainer_NewServiceContainerWithTPSBenchmark(t *testing.T) {
 }
 
 func TestServiceContainer_NewServiceContainerWithNilTPSBenchmark(t *testing.T) {
-	tpsBenchmark := &mock.TpsBenchmarkMock{}
-	tpsBenchmark = nil
-
-	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithTPSBenchmark(tpsBenchmark))
+	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithTPSBenchmark(nil))
 	assert.Nil(t, err)
 	assert.NotNil(t, sc)
 	assert.Nil(t, sc.TPSBenchmark())

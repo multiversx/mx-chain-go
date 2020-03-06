@@ -1177,6 +1177,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj = prevTxBlockBody
+				_ = obj
 				return nil
 			}
 
@@ -1310,6 +1311,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj = prevTxBlockBody
+				_ = obj
 				return nil
 			}
 

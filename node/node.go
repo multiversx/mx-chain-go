@@ -1046,8 +1046,5 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (n *Node) IsInterfaceNil() bool {
-	if n == nil {
-		return true
-	}
-	return false
+	return n == nil
 }

@@ -78,8 +78,5 @@ func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHa
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fhs *FeeHandlerStub) IsInterfaceNil() bool {
-	if fhs == nil {
-		return true
-	}
-	return false
+	return fhs == nil
 }

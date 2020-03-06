@@ -979,14 +979,11 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	addedTxs := make([]*transaction.Transaction, 0)
 	for i := 0; i < 10; i++ {
 		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
-
-		addedTxs = append(addedTxs, newTx)
 	}
 
 	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
