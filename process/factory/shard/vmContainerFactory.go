@@ -2,15 +2,17 @@ package shard
 
 import (
 	//arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
-	"fmt"
 
 	arwenNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var logArwenDriver = logger.GetOrCreate("arwenDriver")
 
 type vmContainerFactory struct {
 	blockChainHookImpl *hooks.BlockChainHookImpl
@@ -62,8 +64,8 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
 	//arwenVM, err := arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
-	fmt.Println("arwenNodePart.NewArwenDriver")
-	arwenVM, err := arwenNodePart.NewArwenDriver(vmf.blockChainHookImpl, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
+	logArwenDriver.Info("arwenNodePart.NewArwenDriver")
+	arwenVM, err := arwenNodePart.NewArwenDriver(logArwenDriver, vmf.blockChainHookImpl, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
 	return arwenVM, err
 }
 
