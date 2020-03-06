@@ -86,7 +86,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.Remove(node.ExportFolder)
 		}
 	}()
 
@@ -107,8 +106,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -155,7 +154,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	/////////----- wait for epoch end period
 	epoch := uint32(2)
-	nrRoundsToPropagateMultiShard := uint64(5)
+	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -176,7 +175,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.Remove(node.ExportFolder)
 		}
 	}()
 
@@ -220,9 +218,6 @@ func createHardForkExporter(
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,
 				},
-			},
-			ExportTriesCacheConfig: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			ExportStateStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{

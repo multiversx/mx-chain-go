@@ -816,7 +816,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	sp.updateState(selfNotarizedHeaders)
+	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -904,7 +904,9 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
+	sp.snapShotEpochStartFromMeta(currentHeader)
+
 	for i := range headers {
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
@@ -918,6 +920,38 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
+	}
+}
+
+func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
+	accounts := sp.accountsDB[state.UserAccountsState]
+	if !accounts.IsPruningEnabled() {
+		return
+	}
+
+	if header.IsStartOfEpochBlock() {
+		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
+		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		if err != nil {
+			log.Warn("could not find epoch start metablock for", "epoch", header.GetEpoch(), "err", err)
+			return
+		}
+
+		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
+			if epochStartShData.ShardId != header.ShardId {
+				continue
+			}
+
+			rootHash := epochStartShData.RootHash
+			accounts.CancelPrune(rootHash, data.NewRoot)
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
+			accounts.SnapshotState(rootHash)
+
+			return
+		}
+
+		log.Warn("could not find epoch start shard data in metaBlock for", "epoch", header.GetEpoch(), "err", err)
+		return
 	}
 }
 

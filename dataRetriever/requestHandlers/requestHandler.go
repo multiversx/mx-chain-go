@@ -318,33 +318,21 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	rrh.requestByHash(destShardID, hash, topic)
-}
-
-func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	if !rrh.testIfRequestIsNeeded(hash) {
 		return
 	}
 
 	log.Trace("requesting trie from network",
-		"topic", baseTopic,
+		"topic", topic,
 		"shard", destShardID,
 		"hash", hash,
 	)
 
-	var resolver dataRetriever.Resolver
-	var err error
-
-	if destShardID == core.MetachainShardId {
-		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
-	} else {
-		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
-	}
-
+	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),
-			"topic", baseTopic,
+			"topic", topic,
 			"shard", destShardID,
 		)
 		return

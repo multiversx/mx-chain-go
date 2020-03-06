@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrMissingMetachainNodes signals that metachain nodes were not configured
-var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
-
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 

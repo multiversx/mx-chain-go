@@ -88,7 +88,7 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
-	RequestTrieNodes(shardId uint32, hash []byte)
+	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	IsInterfaceNil() bool
 }
 

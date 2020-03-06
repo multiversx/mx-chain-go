@@ -377,16 +377,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
 	numShards := ficf.shardCoordinator.NumberOfShards()
-	tmpSC, err := sharding.NewMultiShardCoordinator(numShards, core.MetachainShardId)
-	if err != nil {
-		return err
-	}
 
 	keys := make([]string, 0)
 	trieInterceptors := make([]process.Interceptor, 0)
 
-	for i := uint32(0); i < tmpSC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + tmpSC.CommunicationIdentifier(i)
+	for i := uint32(0); i < numShards; i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
 		if ficf.checkIfInterceptorExists(identifierTrieNodes) {
 			continue
 		}
@@ -400,7 +396,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + ficf.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
@@ -411,7 +407,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + ficf.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {

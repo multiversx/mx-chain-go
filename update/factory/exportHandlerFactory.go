@@ -45,7 +45,6 @@ type ArgsExporter struct {
 	ExistingResolvers        dataRetriever.ResolversContainer
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
-	ExportTriesCacheConfig   config.CacheConfig
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.InterceptedDataWhiteList
 	InterceptorsContainer    process.InterceptorsContainer
@@ -75,7 +74,6 @@ type exportHandlerFactory struct {
 	activeTries              state.TriesHolder
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
-	exportTriesCacheConfig   config.CacheConfig
 	exportStateStorageConfig config.StorageConfig
 	whiteListHandler         process.InterceptedDataWhiteList
 	interceptorsContainer    process.InterceptorsContainer
@@ -92,6 +90,7 @@ type exportHandlerFactory struct {
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
 	chainID                  []byte
 	validityAttester         process.ValidityAttester
+	resolverContainer        dataRetriever.ResolversContainer
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -179,7 +178,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		activeTries:              args.ActiveTries,
 		exportFolder:             args.ExportFolder,
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
-		exportTriesCacheConfig:   args.ExportTriesCacheConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
@@ -247,17 +245,17 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolversContainer, err := resolversContainerFactory.Create()
+	e.resolverContainer, err = resolversContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
 
 	argsTrieSyncers := ArgsNewTrieSyncersContainerFactory{
-		CacheConfig:        e.exportTriesCacheConfig,
-		SyncFolder:         e.exportFolder,
-		ResolversContainer: resolversContainer,
-		DataTrieContainer:  dataTries,
-		ShardCoordinator:   e.shardCoordinator,
+		TrieCacher:        e.dataPool.TrieNodes(),
+		SyncFolder:        e.exportFolder,
+		RequestHandler:    e.requestHandler,
+		DataTrieContainer: dataTries,
+		ShardCoordinator:  e.shardCoordinator,
 	}
 	trieSyncContainersFactory, err := NewTrieSyncersContainerFactory(argsTrieSyncers)
 	if err != nil {
@@ -285,7 +283,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		TrieSyncers: trieSyncers,
 		ActiveTries: e.activeTries,
 	}
-	_, err = sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
+	epochStartTrieSyncer, err := sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +312,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	argsSyncState := sync.ArgsNewSyncState{
 		Headers:      epochStartHeadersSyncer,
-		Tries:        sync.NewNilSyncTries(), // TODO change to the actual trie syncer
+		Tries:        epochStartTrieSyncer,
 		MiniBlocks:   epochStartMiniBlocksSyncer,
 		Transactions: epochStartTransactionsSyncer,
 	}

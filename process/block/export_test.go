@@ -56,8 +56,8 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
-	sp.updateState(finalHeaders)
+func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader *block.Header) {
+	sp.updateState(finalHeaders, currentHeader)
 }
 
 func NewShardProcessorEmptyWith3shards(
