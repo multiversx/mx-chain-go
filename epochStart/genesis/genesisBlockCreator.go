@@ -254,10 +254,7 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	vmContainer, err := virtualMachineFactory.Create()
 	if err != nil {
