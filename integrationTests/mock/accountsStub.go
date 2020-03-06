@@ -9,54 +9,51 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
-	AddJournalEntryCalled       func(je state.JournalEntry)
-	CommitCalled                func() ([]byte, error)
-	GetAccountWithJournalCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
-	GetExistingAccountCalled    func(addressContainer state.AddressContainer) (state.AccountHandler, error)
-	HasAccountStateCalled       func(addressContainer state.AddressContainer) (bool, error)
-	JournalLenCalled            func() int
-	PutCodeCalled               func(accountHandler state.AccountHandler, code []byte) error
-	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
-	RemoveCodeCalled            func(codeHash []byte) error
-	RevertToSnapshotCalled      func(snapshot int) error
-	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
-	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
-	RootHashCalled              func() ([]byte, error)
-	RecreateTrieCalled          func(rootHash []byte) error
-	PruneTrieCalled             func(rootHash []byte, identifier data.TriePruningIdentifier) error
-	SnapshotStateCalled         func(rootHash []byte)
-	SetStateCheckpointCalled    func(rootHash []byte)
-	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
-	IsPruningEnabledCalled      func() bool
+	GetExistingAccountCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
+	LoadAccountCalled        func(container state.AddressContainer) (state.AccountHandler, error)
+	SaveAccountCalled        func(account state.AccountHandler) error
+	RemoveAccountCalled      func(addressContainer state.AddressContainer) error
+	CommitCalled             func() ([]byte, error)
+	JournalLenCalled         func() int
+	RevertToSnapshotCalled   func(snapshot int) error
+	RootHashCalled           func() ([]byte, error)
+	RecreateTrieCalled       func(rootHash []byte) error
+	PruneTrieCalled          func(rootHash []byte, identifier data.TriePruningIdentifier) error
+	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
+	SnapshotStateCalled      func(rootHash []byte)
+	SetStateCheckpointCalled func(rootHash []byte)
+	IsPruningEnabledCalled   func() bool
+	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+}
+
+func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.AccountHandler, error) {
+	if as.LoadAccountCalled != nil {
+		return as.LoadAccountCalled(address)
+	}
+	return nil, nil
+}
+
+func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
+	if as.SaveAccountCalled != nil {
+		return as.SaveAccountCalled(account)
+	}
+	return nil
+}
+
+// GetAllLeaves -
+func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+	if as.GetAllLeavesCalled != nil {
+		return as.GetAllLeavesCalled(rootHash)
+	}
+	return nil, nil
 }
 
 var errNotImplemented = errors.New("not implemented")
-
-// AddJournalEntry -
-func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	if as.AddJournalEntryCalled != nil {
-		as.AddJournalEntryCalled(je)
-	}
-}
 
 // Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {
 	if as.CommitCalled != nil {
 		return as.CommitCalled()
-	}
-
-	return nil, errNotImplemented
-}
-
-// ClosePersister -
-func (as *AccountsStub) ClosePersister() error {
-	return nil
-}
-
-// GetAccountWithJournal -
-func (as *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-	if as.GetAccountWithJournalCalled != nil {
-		return as.GetAccountWithJournalCalled(addressContainer)
 	}
 
 	return nil, errNotImplemented
@@ -71,15 +68,6 @@ func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContain
 	return nil, errNotImplemented
 }
 
-// HasAccount -
-func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
-	if as.HasAccountStateCalled != nil {
-		return as.HasAccountStateCalled(addressContainer)
-	}
-
-	return false, errNotImplemented
-}
-
 // JournalLen -
 func (as *AccountsStub) JournalLen() int {
 	if as.JournalLenCalled != nil {
@@ -87,15 +75,6 @@ func (as *AccountsStub) JournalLen() int {
 	}
 
 	return 0
-}
-
-// PutCode -
-func (as *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
-	if as.PutCodeCalled != nil {
-		return as.PutCodeCalled(accountHandler, code)
-	}
-
-	return errNotImplemented
 }
 
 // RemoveAccount -
@@ -107,37 +86,10 @@ func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) e
 	return errNotImplemented
 }
 
-// RemoveCode -
-func (as *AccountsStub) RemoveCode(codeHash []byte) error {
-	if as.RemoveCodeCalled != nil {
-		return as.RemoveCodeCalled(codeHash)
-	}
-
-	return errNotImplemented
-}
-
 // RevertToSnapshot -
 func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
 	if as.RevertToSnapshotCalled != nil {
 		return as.RevertToSnapshotCalled(snapshot)
-	}
-
-	return errNotImplemented
-}
-
-// SaveJournalizedAccount -
-func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
-	if as.SaveAccountStateCalled != nil {
-		return as.SaveAccountStateCalled(journalizedAccountHandler)
-	}
-
-	return errNotImplemented
-}
-
-// SaveDataTrie -
-func (as *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
-	if as.SaveDataTrieCalled != nil {
-		return as.SaveDataTrieCalled(journalizedAccountHandler)
 	}
 
 	return errNotImplemented

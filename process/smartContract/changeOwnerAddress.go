@@ -38,7 +38,10 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 		return nil, process.ErrInvalidAddressLength
 	}
 
-	acntDst.SetOwnerAddress(vmInput.Arguments[0])
+	err := acntDst.ChangeOwnerAddress(tx.GetSndAddress(), vmInput.Arguments[0])
+	if err != nil {
+		return nil, err
+	}
 
 	return big.NewInt(0), nil
 }

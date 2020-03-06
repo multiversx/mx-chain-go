@@ -124,7 +124,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	balance := big.NewInt(40)
 	adr, accountHandler, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 	account := accountHandler.(state.UserAccountHandler)
-	account.SetBalance(balance)
+	_ = account.AddToBalance(balance)
 
 	err := adb.SaveAccount(account)
 	assert.Nil(t, err)
@@ -214,14 +214,14 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	balance1 := big.NewInt(40)
 	state1, err := adb.LoadAccount(adr1)
 	assert.Nil(t, err)
-	state1.(state.UserAccountHandler).SetBalance(balance1)
+	_ = state1.(state.UserAccountHandler).AddToBalance(balance1)
 
 	//second account has the balance of 50 and some data
 	balance2 := big.NewInt(50)
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
 
-	state2.(state.UserAccountHandler).SetBalance(balance2)
+	_ = state2.(state.UserAccountHandler).AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
@@ -299,14 +299,14 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	balance1 := big.NewInt(40)
 	state1, err := adb.LoadAccount(adr1)
 	assert.Nil(t, err)
-	state1.(state.UserAccountHandler).SetBalance(balance1)
+	_ = state1.(state.UserAccountHandler).AddToBalance(balance1)
 
 	//second account has the balance of 50 and some data
 	balance2 := big.NewInt(50)
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
 
-	state2.(state.UserAccountHandler).SetBalance(balance2)
+	_ = state2.(state.UserAccountHandler).AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
@@ -386,7 +386,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	hrCreated := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - created account: %v\n", hrCreated)
 
-	state1.(state.UserAccountHandler).SetBalance(big.NewInt(40))
+	_ = state1.(state.UserAccountHandler).AddToBalance(big.NewInt(40))
 	_ = adb.SaveAccount(state1)
 
 	rootHash, err = adb.RootHash()
@@ -404,7 +404,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	//commit hash == account with balance
 	assert.Equal(t, hrCommit, hrWithBalance)
 
-	state1.(state.UserAccountHandler).SetBalance(big.NewInt(0))
+	_ = state1.(state.UserAccountHandler).SubFromBalance(big.NewInt(40))
 	_ = adb.SaveAccount(state1)
 
 	//root hash == hrCreated
@@ -545,7 +545,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set balances and save data
-	state1.(state.UserAccountHandler).SetBalance(big.NewInt(40))
+	_ = state1.(state.UserAccountHandler).AddToBalance(big.NewInt(40))
 	_ = adb.SaveAccount(state1)
 
 	rootHash, err = adb.RootHash()
@@ -553,7 +553,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	state2.(state.UserAccountHandler).SetBalance(big.NewInt(50))
+	_ = state2.(state.UserAccountHandler).AddToBalance(big.NewInt(50))
 	_ = adb.SaveAccount(state2)
 
 	rootHash, err = adb.RootHash()
@@ -837,7 +837,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	acntSrc.(state.UserAccountHandler).SetBalance(big.NewInt(1000))
+	_ = acntSrc.(state.UserAccountHandler).AddToBalance(big.NewInt(1000))
 	_ = adb.SaveAccount(acntSrc)
 
 	rootHash, err := adb.RootHash()
@@ -890,7 +890,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	acntSrc.(state.UserAccountHandler).SetBalance(big.NewInt(10000000))
+	_ = acntSrc.(state.UserAccountHandler).AddToBalance(big.NewInt(10000000))
 	_ = adb.SaveAccount(acntSrc)
 
 	rootHash, err := adb.RootHash()
@@ -923,7 +923,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	acntSrc.(state.UserAccountHandler).SetBalance(big.NewInt(10000000))
+	_ = acntSrc.(state.UserAccountHandler).AddToBalance(big.NewInt(10000000))
 	_ = adb.SaveAccount(acntSrc)
 
 	rootHash, err := adb.RootHash()
@@ -1092,7 +1092,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	assert.Nil(b, err)
 
 	//Set a high balance to src's account
-	acntSrc.(state.UserAccountHandler).SetBalance(big.NewInt(10000000))
+	_ = acntSrc.(state.UserAccountHandler).AddToBalance(big.NewInt(10000000))
 	_ = adb.SaveAccount(acntSrc)
 	b.ResetTimer()
 
@@ -1119,7 +1119,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	account := newDefaultAccount(adb, address3)
 
 	rootHash1, _ := adb.Commit()
-	account.(state.UserAccountHandler).SetBalance(big.NewInt(1))
+	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
 	_ = tr.Prune(rootHash1, data.OldRoot)
@@ -1134,7 +1134,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) state.AccountHandler {
 	account, _ := adb.LoadAccount(address)
 	account.(state.UserAccountHandler).SetNonce(0)
-	account.(state.UserAccountHandler).SetBalance(big.NewInt(0))
+	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(0))
 	_ = adb.SaveAccount(account)
 
 	return account

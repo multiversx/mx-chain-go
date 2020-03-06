@@ -664,7 +664,6 @@ func (sp *shardProcessor) CreateBlock(
 
 	shardHdr.SetEpoch(sp.epochStartTrigger.Epoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
-
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err

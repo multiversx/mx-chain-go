@@ -212,7 +212,7 @@ func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
-	accnt.SetBalance(big.NewInt(2))
+	_ = accnt.AddToBalance(big.NewInt(2))
 	accnt.SetNonce(1)
 
 	args := createMockVMAccountsArguments()
@@ -254,7 +254,7 @@ func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
-	accnt.SetBalance(big.NewInt(2))
+	_ = accnt.AddToBalance(big.NewInt(2))
 	accnt.SetNonce(1)
 
 	args := createMockVMAccountsArguments()
@@ -297,7 +297,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	variableIdentifier := []byte("variable")
 	variableValue := []byte("value")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
 	args := createMockVMAccountsArguments()
@@ -337,7 +337,7 @@ func TestBlockChainHookImpl_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *test
 func TestBlockChainHookImpl_IsCodeEmptyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -377,7 +377,7 @@ func TestBlockChainHookImpl_GetCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	code := []byte("code")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.SetCode(code)
 
 	args := createMockVMAccountsArguments()

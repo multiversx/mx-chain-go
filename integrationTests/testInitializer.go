@@ -452,7 +452,7 @@ func CreateRandomAddress() state.AddressContainer {
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.LoadAccount(CreateAddressFromAddrBytes(addressBytes))
-	accnt.(state.UserAccountHandler).SetBalance(value)
+	_ = accnt.(state.UserAccountHandler).AddToBalance(value)
 	_ = accnts.SaveAccount(accnt)
 	_, _ = accnts.Commit()
 }
@@ -462,7 +462,7 @@ func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int)
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	account, _ := accnts.LoadAccount(address)
 	account.(state.UserAccountHandler).SetNonce(nonce)
-	account.(state.UserAccountHandler).SetBalance(balance)
+	_ = account.(state.UserAccountHandler).AddToBalance(balance)
 	_ = accnts.SaveAccount(account)
 
 	return address
@@ -545,7 +545,7 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler
 // balance and nonce, and printing any encountered error
 func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntDest state.UserAccountHandler, value *big.Int) error {
 
-	srcVal := acntSrc.Balance
+	srcVal := acntSrc.GetBalance()
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
 	}
@@ -560,7 +560,14 @@ func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntD
 		return err
 	}
 
-	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
+
+	err = accounts.SaveAccount(acntSrc)
+	if err != nil {
+		return err
+	}
+
+	err = accounts.SaveAccount(acntDest)
 	if err != nil {
 		return err
 	}
@@ -1252,7 +1259,7 @@ func CreateMintingForSenders(
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 			account, _ := n.AccntState.LoadAccount(adr)
-			account.(state.UserAccountHandler).SetBalance(value)
+			_ = account.(state.UserAccountHandler).AddToBalance(value)
 			_ = n.AccntState.SaveAccount(account)
 		}
 

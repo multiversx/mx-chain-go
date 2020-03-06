@@ -534,7 +534,11 @@ func (vs *validatorStatistics) savePeerAccountData(
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	peerAccount.SetRewardAddress(data.Address())
+	err := peerAccount.SetRewardAddress(data.Address())
+	if err != nil {
+		return err
+	}
+
 	peerAccount.SetSchnorrPublicKey(data.Address())
 	peerAccount.SetBLSPublicKey(data.PubKey())
 	peerAccount.SetStake(stakeValue)
@@ -700,7 +704,7 @@ func (vs *validatorStatistics) display(validatorKey string) {
 		return
 	}
 
-	acc, ok := peerAcc.(*state.PeerAccount)
+	acc, ok := peerAcc.(state.PeerAccountHandler)
 
 	if !ok {
 		log.Trace("display", "error", "not a peeracc")
@@ -708,13 +712,13 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Trace("validator statistics",
-		"pk", acc.BLSPublicKey,
-		"leader fail", acc.LeaderSuccessRate.NrFailure,
-		"leader success", acc.LeaderSuccessRate.NrSuccess,
-		"val fail", acc.ValidatorSuccessRate.NrFailure,
-		"val success", acc.ValidatorSuccessRate.NrSuccess,
-		"temp rating", acc.TempRating,
-		"rating", acc.Rating,
+		"pk", acc.GetBLSPublicKey(),
+		"leader fail", acc.GetLeaderSuccessRate().NrFailure,
+		"leader success", acc.GetLeaderSuccessRate().NrSuccess,
+		"val fail", acc.GetValidatorSuccessRate().NrFailure,
+		"val success", acc.GetValidatorSuccessRate().NrSuccess,
+		"temp rating", acc.GetTempRating(),
+		"rating", acc.GetRating(),
 	)
 }
 

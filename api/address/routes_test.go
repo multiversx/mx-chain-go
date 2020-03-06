@@ -223,7 +223,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
 			acc := accounts.NewEmptyUserAccount()
-			acc.SetBalance(big.NewInt(100))
+			_ = acc.AddToBalance(big.NewInt(100))
 			acc.SetNonce(1)
 
 			return acc, nil

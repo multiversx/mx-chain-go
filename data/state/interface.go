@@ -67,13 +67,6 @@ type AccountFactory interface {
 	IsInterfaceNil() bool
 }
 
-// AccountTracker saves an account state and journalizes new entries
-type AccountTracker interface {
-	SaveAccount(accountHandler AccountHandler) error
-	Journalize(entry JournalEntry)
-	IsInterfaceNil() bool
-}
-
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
 	Update(key, value []byte) error
@@ -140,10 +133,13 @@ type PeerAccountHandler interface {
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
-	SetBalance(*big.Int)
+	AddToBalance(value *big.Int) error
+	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
-	SetDeveloperReward(*big.Int)
+	ClaimDeveloperRewards([]byte) (*big.Int, error)
+	AddToDeveloperReward(*big.Int)
 	GetDeveloperReward() *big.Int
+	ChangeOwnerAddress([]byte, []byte) error
 	SetOwnerAddress([]byte)
 	GetOwnerAddress() []byte
 	AccountHandler

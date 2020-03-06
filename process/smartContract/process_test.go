@@ -1173,7 +1173,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	acntSrc, _ := createAccounts(tx)
 	stAcc, _ := acntSrc.(state.UserAccountHandler)
-	stAcc.SetBalance(big.NewInt(45))
+	_ = stAcc.AddToBalance(big.NewInt(45))
 
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 
@@ -1430,9 +1430,6 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 			return testAcc, nil
 		}
 		return nil, state.ErrAccNotFound
-	}
-	accountsDB.PutCodeCalled = func(accountHandler state.AccountHandler, code []byte) error {
-		return nil
 	}
 
 	accountsDB.SaveAccountCalled = func(accountHandler state.AccountHandler) error {

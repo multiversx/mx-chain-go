@@ -470,7 +470,11 @@ func setBalanceToTrie(
 		return process.ErrWrongTypeAssertion
 	}
 
-	account.SetBalance(balance)
+	err = account.AddToBalance(balance)
+	if err != nil {
+		return err
+	}
+
 	return accounts.SaveAccount(account)
 }
 

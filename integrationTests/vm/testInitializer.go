@@ -95,7 +95,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	}
 
 	account.(state.UserAccountHandler).SetNonce(nonce)
-	account.(state.UserAccountHandler).SetBalance(balance)
+	_ = account.(state.UserAccountHandler).AddToBalance(balance)
 
 	err = accnts.SaveAccount(account)
 	if err != nil {

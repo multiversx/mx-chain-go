@@ -39,7 +39,7 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 
 	acc.OwnerAddress = sender
 	value := big.NewInt(100)
-	acc.SetDeveloperReward(big.NewInt(0).Add(acc.GetDeveloperReward(), value))
+	acc.AddToDeveloperReward(value)
 	reward, err = cdr.ProcessBuiltinFunction(tx, nil, acc, nil)
 	require.Nil(t, err)
 	require.Equal(t, value, reward)

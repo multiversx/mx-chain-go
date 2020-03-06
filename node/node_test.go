@@ -50,7 +50,7 @@ func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		acc, _ := accounts.NewUserAccount(addressContainer)
-		acc.SetBalance(balance)
+		_ = acc.AddToBalance(balance)
 		acc.SetNonce(1)
 
 		return acc, nil
@@ -529,7 +529,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			acc, _ := accounts.NewUserAccount(addrContainer)
-			acc.SetBalance(big.NewInt(0))
+			_ = acc.AddToBalance(big.NewInt(0))
 			acc.SetNonce(nonce)
 
 			return acc, nil
@@ -2218,7 +2218,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
 	accnt := accounts.NewEmptyUserAccount()
-	accnt.SetBalance(big.NewInt(1))
+	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.SetNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))

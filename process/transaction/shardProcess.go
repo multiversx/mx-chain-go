@@ -158,7 +158,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 	}
 
 	acntSnd.SetNonce(acntSnd.GetNonce() + 1)
-	err := txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
-	err = txProc.accounts.SaveAccount(account)
+	err = txProc.accounts.SaveAccount(acntSnd)
 	if err != nil {
 		return err
 	}
@@ -361,7 +361,10 @@ func (txProc *txProcessor) moveBalances(
 
 	// is receiver address in node shard
 	if !check.IfNil(acntDst) {
-		acntDst.SetBalance(big.NewInt(0).Add(acntDst.GetBalance(), value))
+		err := acntDst.AddToBalance(value)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

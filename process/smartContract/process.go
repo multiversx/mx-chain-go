@@ -289,8 +289,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	acntDst.SetDeveloperReward(big.NewInt(0).Add(acntDst.GetDeveloperReward(), newDeveloperReward))
-
+	acntDst.AddToDeveloperReward(newDeveloperReward)
 	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
 
 	err = sc.saveAccounts(nil, acntDst)
@@ -383,6 +382,11 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		return true, err
+	}
+
 	return true, nil
 }
 
@@ -398,7 +402,10 @@ func (sc *scProcessor) processIfError(
 	}
 
 	if !check.IfNil(acntSnd) {
-		acntSnd.SetBalance(big.NewInt(0).Add(acntSnd.GetBalance(), tx.GetValue()))
+		err = acntSnd.AddToBalance(tx.GetValue())
+		if err != nil {
+			return err
+		}
 	} else {
 		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
@@ -904,7 +911,10 @@ func (sc *scProcessor) createSCRForSender(
 		return scTx, consumedFee, nil
 	}
 
-	acntSnd.SetBalance(big.NewInt(0).Add(acntSnd.GetBalance(), scTx.Value))
+	err := acntSnd.AddToBalance(scTx.Value)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return scTx, consumedFee, nil
 }
@@ -980,12 +990,10 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 
-		newBalance := big.NewInt(0).Add(acc.GetBalance(), outAcc.BalanceDelta)
-		if newBalance.Cmp(big.NewInt(0)) < 0 {
-			return nil, process.ErrInsufficientFunds
+		err = acc.AddToBalance(outAcc.BalanceDelta)
+		if err != nil {
+			return nil, err
 		}
-
-		acc.SetBalance(newBalance)
 
 		err = sc.saveAccounts(acc, nil)
 		if err != nil {
@@ -1160,12 +1168,11 @@ func (sc *scProcessor) processSimpleSCR(
 		return nil
 	}
 
-	newBalance := big.NewInt(0).Add(dstAcc.GetBalance(), scr.Value)
-	if newBalance.Cmp(big.NewInt(0)) < 0 {
-		return process.ErrInsufficientFunds
+	err = dstAcc.AddToBalance(scr.Value)
+	if err != nil {
+		return err
 	}
 
-	dstAcc.SetBalance(newBalance)
 	err = sc.saveAccounts(dstAcc, nil)
 	if err != nil {
 		return err
