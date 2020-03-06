@@ -148,3 +148,9 @@ var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
 // ErrNilValidityAttester signals that nil validity was provided
 var ErrNilValidityAttester = errors.New("nil validity attester")
+
+// ErrInvalidWaitTime signals that nil provided wait time is invalid
+var ErrInvalidWaitTime = errors.New("invalid wait time")
+
+// ErrNilStorageManager signals that nil storage manager has been provided
+var ErrNilStorageManager = errors.New("nil trie storage manager")

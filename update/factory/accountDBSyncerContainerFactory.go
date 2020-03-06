@@ -5,9 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	factoryTrie "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/data/syncer"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -16,99 +18,127 @@ import (
 )
 
 // ArgsNewTrieSyncersContainerFactory defines the arguments needed to create trie syncers container
-type ArgsNewTrieSyncersContainerFactory struct {
-	TrieCacher        storage.Cacher
-	SyncFolder        string
-	RequestHandler    update.RequestHandler
-	DataTrieContainer state.TriesHolder
-	ShardCoordinator  sharding.Coordinator
+type ArgsNewAccountsDBSyncersContainerFactory struct {
+	TrieCacher         storage.Cacher
+	RequestHandler     update.RequestHandler
+	ShardCoordinator   sharding.Coordinator
+	Hasher             hashing.Hasher
+	Marshalizer        marshal.Marshalizer
+	TrieStorageManager data.StorageManager
+	WaitTime           time.Duration
 }
 
-type trieSyncersContainerFactory struct {
-	shardCoordinator sharding.Coordinator
-	trieCacher       storage.Cacher
-	trieContainer    state.TriesHolder
-	requestHandler   update.RequestHandler
+type accountDBSyncersContainerFactory struct {
+	trieCacher         storage.Cacher
+	requestHandler     update.RequestHandler
+	container          update.AccountsDBSyncContainer
+	shardCoordinator   sharding.Coordinator
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	waitTime           time.Duration
+	trieStorageManager data.StorageManager
 }
 
-// NewTrieSyncersContainerFactory creates a factory for trie syncers container
-func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*trieSyncersContainerFactory, error) {
-	if len(args.SyncFolder) < 2 {
-		return nil, update.ErrInvalidFolderName
-	}
+// NewAccountsDBSContainerFactory creates a factory for trie syncers container
+func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactory) (*accountDBSyncersContainerFactory, error) {
 	if check.IfNil(args.RequestHandler) {
 		return nil, update.ErrNilRequestHandler
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.DataTrieContainer) {
-		return nil, update.ErrNilDataTrieContainer
-	}
 	if check.IfNil(args.TrieCacher) {
 		return nil, update.ErrNilCacher
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, update.ErrNilHasher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, update.ErrNilMarshalizer
+	}
+	if check.IfNil(args.TrieStorageManager) {
+		return nil, update.ErrNilStorageManager
+	}
+	if args.WaitTime < time.Second {
+		return nil, update.ErrInvalidWaitTime
+	}
 
-	t := &trieSyncersContainerFactory{
-		shardCoordinator: args.ShardCoordinator,
-		trieCacher:       args.TrieCacher,
-		requestHandler:   args.RequestHandler,
-		trieContainer:    args.DataTrieContainer,
+	t := &accountDBSyncersContainerFactory{
+		shardCoordinator:   args.ShardCoordinator,
+		trieCacher:         args.TrieCacher,
+		requestHandler:     args.RequestHandler,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
+		trieStorageManager: args.TrieStorageManager,
+		waitTime:           args.WaitTime,
 	}
 
 	return t, nil
 }
 
 // Create creates all the needed syncers and returns the container
-func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error) {
-	container := containers.NewTrieSyncersContainer()
+func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContainer, error) {
+	a.container = containers.NewAccountsDBSyncersContainer()
 
-	for i := uint32(0); i < t.shardCoordinator.NumberOfShards(); i++ {
-		err := t.createOneTrieSyncer(i, state.UserAccount, container)
+	for i := uint32(0); i < a.shardCoordinator.NumberOfShards(); i++ {
+		err := a.createUserAccountsSyncer(i)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := t.createOneTrieSyncer(core.MetachainShardId, state.UserAccount, container)
+	err := a.createUserAccountsSyncer(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.createOneTrieSyncer(core.MetachainShardId, state.ValidatorAccount, container)
+	err = a.createValidatorAccountsSyncer(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	return container, nil
+	return a.container, nil
 }
 
-func (t *trieSyncersContainerFactory) createOneTrieSyncer(
-	shId uint32,
-	accType state.Type,
-	container update.TrieSyncContainer,
-) error {
-	trieId := genesis.CreateTrieIdentifier(shId, accType)
-
-	dataTrie := t.trieContainer.Get([]byte(trieId))
-	if check.IfNil(dataTrie) {
-		return update.ErrNilDataTrieContainer
+func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint32) error {
+	args := syncer.ArgsNewUserAccountsSyncer{
+		Hasher:             a.hasher,
+		Marshalizer:        a.marshalizer,
+		TrieStorageManager: a.trieStorageManager,
+		RequestHandler:     a.requestHandler,
+		WaitTime:           a.waitTime,
+		ShardId:            shardId,
+		Cacher:             a.trieCacher,
 	}
-
-	trieSyncer, err := trie.NewTrieSyncer(t.requestHandler, t.trieCacher, dataTrie, time.Minute, shId, trieTopicFromAccountType(accType))
+	accountSyncer, err := syncer.NewUserAccountsSyncer(args)
 	if err != nil {
 		return err
 	}
+	trieId := genesis.CreateTrieIdentifier(shardId, state.UserAccount)
 
-	err = container.Add(trieId, trieSyncer)
+	return a.container.Add(trieId, accountSyncer)
+}
+
+func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		Hasher:             a.hasher,
+		Marshalizer:        a.marshalizer,
+		TrieStorageManager: a.trieStorageManager,
+		RequestHandler:     a.requestHandler,
+		WaitTime:           a.waitTime,
+		ShardId:            shardId,
+		Cacher:             a.trieCacher,
+	}
+	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)
 	if err != nil {
 		return err
 	}
+	trieId := genesis.CreateTrieIdentifier(shardId, state.ValidatorAccount)
 
-	return nil
+	return a.container.Add(trieId, accountSyncer)
 }
 
 // IsInterfaceNil returns true if the underlying object is nil
-func (t *trieSyncersContainerFactory) IsInterfaceNil() bool {
-	return t == nil
+func (a *accountDBSyncersContainerFactory) IsInterfaceNil() bool {
+	return a == nil
 }

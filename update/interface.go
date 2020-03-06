@@ -161,3 +161,14 @@ type AccountsDBSyncer interface {
 	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
+
+// AccountsDBSyncContainer keep a list of TrieSyncer
+type AccountsDBSyncContainer interface {
+	Get(key string) (AccountsDBSyncer, error)
+	Add(key string, val AccountsDBSyncer) error
+	AddMultiple(keys []string, values []AccountsDBSyncer) error
+	Replace(key string, val AccountsDBSyncer) error
+	Remove(key string)
+	Len() int
+	IsInterfaceNil() bool
+}

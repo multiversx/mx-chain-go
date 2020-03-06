@@ -266,6 +266,24 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
+	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
+		TrieCacher:         e.dataPool.TrieNodes(),
+		RequestHandler:     e.requestHandler,
+		ShardCoordinator:   e.shardCoordinator,
+		Hasher:             e.hasher,
+		Marshalizer:        e.marshalizer,
+		TrieStorageManager: dataTriesContainerFactory.TrieStorageManager(),
+		WaitTime:           time.Minute,
+	}
+	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
+	if err != nil {
+		return nil, err
+	}
+	accountsSyncerContainer, err := accountsDBSyncerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
 		StorageService:  e.storageService,
 		Cache:           e.dataPool.Headers(),

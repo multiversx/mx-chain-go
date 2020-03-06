@@ -75,6 +75,11 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	return d, nil
 }
 
+// TrieStorageManager returns trie storage manager
+func (d *dataTrieFactory) TrieStorageManager() data.StorageManager {
+	return d.trieStorage
+}
+
 // Create creates a TriesHolder container to hold all the states
 func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
