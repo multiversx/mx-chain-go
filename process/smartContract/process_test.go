@@ -1171,15 +1171,14 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 
-	acntSrc, _ := createAccounts(tx)
-	stAcc, _ := acntSrc.(state.UserAccountHandler)
-	_ = stAcc.AddToBalance(big.NewInt(45))
+	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	_ = acntSrc.AddToBalance(big.NewInt(45))
 
-	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
+	currBalance := acntSrc.GetBalance().Uint64()
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
-	assert.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	assert.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
