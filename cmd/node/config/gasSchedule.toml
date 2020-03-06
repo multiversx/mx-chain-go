@@ -379,7 +379,7 @@
     I32AtomicRmwCmpxchg = 30
     I64AtomicRmwCmpxchg = 30
     I32AtomicRmw8CmpxchgU = 30
-    I32AtomicRmw16UCmpxchg = 30
+    I32AtomicRmw16CmpxchgU = 30
     I64AtomicRmw8CmpxchgU = 30
     I64AtomicRmw16CmpxchgU = 30
     I64AtomicRmw32CmpxchgU = 30
