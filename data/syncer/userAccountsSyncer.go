@@ -153,6 +153,11 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie) ([][]b
 	return rootHashes, nil
 }
 
+// GetSyncedTries returns the synced map of data trie
+func (u *userAccountsSyncer) GetSyncedTries() map[string]data.Trie {
+	return u.dataTries
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (u *userAccountsSyncer) IsInterfaceNil() bool {
 	return u == nil
