@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	types "github.com/gogo/protobuf/types"
+	"github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat")
@@ -323,6 +323,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	for k, v := range m.heartbeatMessages {
 		tmp := PubKeyHeartbeat{
 			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			TimeStamp:       v.timeStamp,
+			MaxInactiveTime: Duration{v.maxInactiveTime},
 			IsActive:        v.isActive,
 			ReceivedShardID: v.receivedShardID,
 			ComputedShardID: v.computedShardID,
@@ -332,9 +334,6 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-
-		tmp.TimeStamp, _ = types.TimestampProto(v.timeStamp)
-		tmp.MaxInactiveTime = types.DurationProto(v.maxInactiveTime)
 		status[idx] = tmp
 		idx++
 	}

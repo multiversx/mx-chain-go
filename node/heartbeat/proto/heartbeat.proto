@@ -3,8 +3,6 @@ syntax = "proto3";
 package proto;
 
 option go_package = "heartbeat";
-
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
@@ -16,21 +14,6 @@ message Heartbeat {
 	uint32 ShardID         = 4;
 	string VersionNumber   = 5;
 	string NodeDisplayName = 6;
-}
-
-// PubKeyHeartbeat returns the heartbeat status for a public key
-message PubKeyHeartbeat {
-	string                    HexPublicKey    = 1  [(gogoproto.jsontag) = "hexPublicKey"];
-	google.protobuf.Timestamp TimeStamp       = 2  [(gogoproto.jsontag) = "timeStamp"];
-	google.protobuf.Duration  MaxInactiveTime = 3  [(gogoproto.jsontag) = "maxInactiveTime"];
-	bool                      IsActive        = 4  [(gogoproto.jsontag) = "isActive"];
-	uint32                    ReceivedShardID = 5  [(gogoproto.jsontag) = "receivedShardID"];
-	uint32                    ComputedShardID = 6  [(gogoproto.jsontag) = "computedShardID"];
-	int64                     TotalUpTime     = 7  [(gogoproto.jsontag) = "totalUpTimeSec"];
-	int64                     TotalDownTime   = 8  [(gogoproto.jsontag) = "totalDownTimeSec"];
-	string                    VersionNumber   = 9  [(gogoproto.jsontag) = "versionNumber"];
-	bool                      IsValidator     = 10 [(gogoproto.jsontag) = "isValidator"];
-	string                    NodeDisplayName = 11 [(gogoproto.jsontag) = "nodeDisplayName"];
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
