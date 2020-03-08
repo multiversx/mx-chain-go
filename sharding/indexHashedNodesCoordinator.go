@@ -555,11 +555,15 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		NbShards: nodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, leaving := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
 	err = ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
+	}
+
+	for _, leavingNode := range leaving {
+		log.Trace("Leaving node", "pk", leavingNode.PubKey(), "address", leavingNode.Address())
 	}
 
 	err = ihgs.saveState(randomness)
@@ -724,14 +728,14 @@ func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint
 	for shardId, validators := range eligible {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Debug("Eligible", "shardId", shardId, "pk", pk)
+			log.Debug("Eligible", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for shardId, validators := range waiting {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Debug("Waiting", "shardId", shardId, "pk", pk)
+			log.Debug("Waiting", "pk", pk, "shardId", shardId)
 		}
 	}
 }

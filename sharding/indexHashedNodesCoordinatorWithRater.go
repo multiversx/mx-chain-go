@@ -62,8 +62,9 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(validators []Va
 		pk := validator.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
-		log.Debug("Computed chances", "pk", pk, "chances", chances)
+		log.Trace("Compute leaving", "pk", pk, "chances", chances)
 		if chances == 0 {
+			log.Trace("Is leaving", "pk", pk)
 			leavingValidators = append(leavingValidators, validator)
 		}
 	}
@@ -139,6 +140,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 		if chances == 0 {
 			//default chance if all validators need to be selected
 			chances = ihgs.GetChance(0)
+			log.Trace("Getting zero chance", "chance", chances)
 		}
 		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
 

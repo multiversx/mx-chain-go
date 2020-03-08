@@ -138,7 +138,7 @@ func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
 // GetChance returns the RatingChance for the pk
 func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
 	chance := bsr.ratingChances[0].GetChancePercentage()
-	for i := 1; i < len(bsr.ratingChances); i++ {
+	for i := 0; i < len(bsr.ratingChances); i++ {
 		currentChance := bsr.ratingChances[i]
 		if currentRating > currentChance.GetMaxThreshold() {
 			continue
