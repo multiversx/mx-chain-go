@@ -288,10 +288,10 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	t.tryUpdateTriggerFromMeta(metaHdr, hdrHash, err)
+	t.tryUpdateTriggerFromMeta(metaHdr, hdrHash)
 }
 
-func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte, err error) {
+func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte) {
 	if !metaHdr.IsStartOfEpochBlock() {
 		t.updateTriggerFromMeta(metaHdr, hdrHash)
 	}
@@ -302,7 +302,11 @@ func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []b
 			mb, found := t.miniblocksPool.Get(miniblock.Hash)
 
 			if !found {
+				var err error
 				mb, err = t.miniblocksStorage.Get(miniblock.Hash)
+				if err != nil {
+					return
+				}
 			}
 
 			_, ok := mb.(*block.MiniBlock)

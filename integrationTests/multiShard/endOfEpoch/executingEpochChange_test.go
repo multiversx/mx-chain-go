@@ -22,8 +22,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*:TRACE, state:DEBUG")
-
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2

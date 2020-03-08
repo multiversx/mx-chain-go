@@ -354,7 +354,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 		MiniBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					if bytes.Compare(key, peerMiniBlockHash) == 0 {
+					if bytes.Equal(key, peerMiniBlockHash) {
 						return peerMiniblock, true
 					}
 					return nil, false
@@ -371,8 +371,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
-					value := string(key)
-					return noncesToHeader[value], nil
+					return noncesToHeader[string(key)], nil
 				},
 				PutCalled: func(key, data []byte) error {
 					return nil

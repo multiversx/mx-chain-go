@@ -544,6 +544,9 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	})
 
 	leaving, err := ihgs.nodesPerShardSetter.ComputeLeaving(allValidators)
+	if err != nil {
+		log.Error("compute leaving failed", "error", err.Error())
+	}
 
 	// TODO: update the new nodes and leaving nodes as well
 	shufflerArgs := ArgsUpdateNodes{
