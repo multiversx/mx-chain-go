@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -685,17 +684,8 @@ func (n *Node) sendFromTxAccumulator() {
 
 			txs = append(txs, tx)
 		}
-	txBuff, err := n.protoMarshalizer.Marshal(&tx)
-	if err != nil {
-		return "", err
-	}
 
 		n.sendBulkTransactions(txs)
-	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
-
-	marshalizedTx, err := n.protoMarshalizer.Marshal(batch.New(txBuff))
-	if err != nil {
-		return "", errors.New("could not marshal transaction")
 	}
 }
 
@@ -852,7 +842,7 @@ func (n *Node) CreateTransaction(
 	}
 
 	var txHash []byte
-	txHash, err = core.CalculateHash(n.marshalizer, n.hasher, tx)
+	txHash, err = core.CalculateHash(n.protoMarshalizer, n.hasher, tx)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
@@ -511,7 +511,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	buffRequested := [][]byte{[]byte("aaaa"), []byte("bbbb")}
 
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	txRes, _ := NewTxResolver(
+	txRes, _ := resolvers.NewTxResolver(
 		res,
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
