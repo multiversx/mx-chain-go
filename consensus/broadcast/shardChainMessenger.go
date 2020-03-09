@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -96,7 +97,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 		return err
 	}
 
-	msgBlockBody, err := scm.marshalizer.Marshal(blockBody)
+	b := blockBody.(*block.Body)
+	msgBlockBody, err := scm.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}

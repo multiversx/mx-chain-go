@@ -141,7 +141,7 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	if bpp.intraShardMiniBlock == nil {
-		return nil
+		return &block.MiniBlock{}
 	}
 
 	return bpp.intraShardMiniBlock.Clone()
