@@ -553,7 +553,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  leaving,
+		Leaving:  make([]Validator, 0),
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}
@@ -566,7 +566,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	}
 
 	for _, leavingNode := range leaving {
-		log.Trace("Leaving node", "pk", leavingNode.PubKey(), "address", leavingNode.Address())
+		log.Trace("should  be leaving node because of rating", "pk", leavingNode.PubKey(), "address", leavingNode.Address())
 	}
 
 	err = ihgs.saveState(randomness)
