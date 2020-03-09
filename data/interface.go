@@ -105,15 +105,15 @@ type TransactionHandler interface {
 	GetValue() *big.Int
 	GetNonce() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
-	GetSndAddress() []byte
+	GetRcvAddr() []byte
+	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData([]byte)
-	SetRecvAddress([]byte)
-	SetSndAddress([]byte)
+	SetRcvAddr([]byte)
+	SetSndAddr([]byte)
 }
 
 //Trie is an interface for Merkle Trees implementations

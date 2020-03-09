@@ -316,7 +316,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
 	blockProcessorMock := mock.InitBlockProcessorMock()
-	blBody := make(block.Body, 0)
+	blBody := &block.Body{}
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
@@ -331,7 +331,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 	)
-	sr.Body = make(block.Body, 0)
+	sr.Body = &block.Body{}
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -403,7 +403,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -433,7 +433,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	}
 	container.SetBlockProcessor(blProcMock)
 	hdr := &block.Header{}
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -459,7 +459,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -491,7 +491,9 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
-	blk := make(block.Body, 0)
+	blk := &block.Body{
+		MiniBlocks: []*block.MiniBlock{},
+	}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -852,7 +854,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 	})
 	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := consensus.NewConsensusMessage(

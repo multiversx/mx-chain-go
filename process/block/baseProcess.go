@@ -470,25 +470,29 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.MiniBlockHeader, error) {
+func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
+	//TODO: Should be checked body for nil?
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
+	var miniBlockHeaders []block.MiniBlockHeader
+	if len(body.MiniBlocks) > 0 {
+		miniBlockHeaders = make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	}
 
-	for i := 0; i < len(body); i++ {
-		txCount := len(body[i].TxHashes)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		txCount := len(body.MiniBlocks[i].TxHashes)
 		totalTxCount += txCount
 
-		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body[i])
+		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body.MiniBlocks[i])
 		if err != nil {
 			return 0, nil, err
 		}
 
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            miniBlockHash,
-			SenderShardID:   body[i].SenderShardID,
-			ReceiverShardID: body[i].ReceiverShardID,
+			SenderShardID:   body.MiniBlocks[i].SenderShardID,
+			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
-			Type:            body[i].Type,
+			Type:            body.MiniBlocks[i].Type,
 		}
 	}
 
@@ -496,18 +500,18 @@ func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.M
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body block.Body) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body *block.Body) error {
 	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
 	}
 
-	if len(miniBlockHeaders) != len(body) {
+	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
 	}
 
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 
 		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
@@ -691,7 +695,7 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 		return err
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -826,9 +830,9 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 	return headerInfo
 }
 
-func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
-	for i := 0; i < len(body); {
-		mb := body[i]
+func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
+	for i := 0; i < len(body.MiniBlocks); {
+		mb := body.MiniBlocks[i]
 		if mb.ReceiverShardID != mb.SenderShardID {
 			i++
 			continue
@@ -839,9 +843,9 @@ func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
 			continue
 		}
 
-		body[i] = body[len(body)-1]
-		body = body[:len(body)-1]
-		if i == len(body)-1 {
+		body.MiniBlocks[i] = body.MiniBlocks[len(body.MiniBlocks)-1]
+		body.MiniBlocks = body.MiniBlocks[:len(body.MiniBlocks)-1]
+		if i == len(body.MiniBlocks)-1 {
 			break
 		}
 	}
@@ -864,14 +868,14 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	return noncesToFinal
 }
 
-func (bp *baseProcessor) saveBody(body block.Body) {
-	err := bp.txCoordinator.SaveBlockDataToStorage(body)
-	if err != nil {
-		log.Warn("saveBody.SaveBlockDataToStorage", "error", err.Error())
+func (bp *baseProcessor) saveBody(body *block.Body) {
+	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
+	if errNotCritical != nil {
+		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
 
-	for i := 0; i < len(body); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body[i])
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue

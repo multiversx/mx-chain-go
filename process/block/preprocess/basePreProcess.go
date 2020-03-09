@@ -51,7 +51,7 @@ type basePreProcess struct {
 }
 
 func (bpp *basePreProcess) removeDataFromPools(
-	body block.Body,
+	body *block.Body,
 	miniBlockPool storage.Cacher,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	isMiniBlockCorrect func(block.Type) bool,
@@ -67,8 +67,8 @@ func (bpp *basePreProcess) removeDataFromPools(
 		return process.ErrNilTransactionPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		currentMiniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(currentMiniBlock.Type) {
 			continue
 		}
@@ -184,18 +184,23 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 }
 
 func (bpp *basePreProcess) computeExistingAndMissing(
-	body block.Body,
+	body *block.Body,
 	forBlock *txsForBlock,
 	_ chan bool,
 	isMiniBlockCorrect func(block.Type) bool,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {
 
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body.MiniBlocks))
+
+	if check.IfNil(body) {
+		return missingTxsForShard
+	}
+
 	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(miniBlock.Type) {
 			continue
 		}
@@ -300,7 +305,7 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 		return 0, 0, err
 	}
 
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
 
 		if txGasLimitInReceiverShard < txGasRefunded {

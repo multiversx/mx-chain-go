@@ -19,7 +19,7 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-		emptyBlock := make(block.Body, 0)
+		emptyBlock := &block.Body{}
 		header.SetRootHash([]byte{})
 		return header, emptyBlock, nil
 	}

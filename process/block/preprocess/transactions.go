@@ -172,22 +172,25 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 }
 
 // RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
-func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
+func (txs *transactions) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	return txs.removeDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
 }
 
 // RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreTxBlockIntoPools(
-	body block.Body,
+	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
+	if check.IfNil(body) {
+		return 0, process.ErrNilBlockBody
+	}
 	if check.IfNil(miniBlockPool) {
 		return 0, process.ErrNilMiniBlockPool
 	}
 
 	txsRestored := 0
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if !txs.isMiniBlockCorrect(miniBlock.Type) {
 			continue
 		}
@@ -229,7 +232,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
-	body block.Body,
+	body *block.Body,
 	haveTime func() bool,
 ) error {
 
@@ -244,11 +247,13 @@ func (txs *transactions) ProcessBlockTransactions(
 	return process.ErrInvalidBody
 }
 
-func (txs *transactions) computeTxsToMe(body block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
+	if check.IfNil(body) {
+		return nil, process.ErrNilBlockBody
+	}
 
 	allTxs := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
-
-	for _, miniBlock := range block.MiniBlockSlice(body) {
+	for _, miniBlock := range body.MiniBlocks {
 		shouldSkipMiniblock := miniBlock.SenderShardID == txs.shardCoordinator.SelfId() || !txs.isMiniBlockCorrect(miniBlock.Type)
 		if shouldSkipMiniblock {
 			continue
@@ -272,11 +277,13 @@ func (txs *transactions) computeTxsToMe(body block.Body) ([]*txcache.WrappedTran
 	return allTxs, nil
 }
 
-func (txs *transactions) computeTxsFromMe(body block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
+	if check.IfNil(body) {
+		return nil, process.ErrNilBlockBody
+	}
 
 	allTxs := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
-
-	for _, miniBlock := range block.MiniBlockSlice(body) {
+	for _, miniBlock := range body.MiniBlocks {
 		shouldSkipMiniblock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() || !txs.isMiniBlockCorrect(miniBlock.Type)
 		if shouldSkipMiniblock {
 			continue
@@ -350,9 +357,12 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 }
 
 func (txs *transactions) processTxsToMe(
-	body block.Body,
+	body *block.Body,
 	haveTime func() bool,
 ) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
 
 	txsToMe, err := txs.computeTxsToMe(body)
 	if err != nil {
@@ -410,9 +420,12 @@ func (txs *transactions) processTxsToMe(
 }
 
 func (txs *transactions) processTxsFromMe(
-	body block.Body,
+	body *block.Body,
 	haveTime func() bool,
 ) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
 
 	txsFromMe, err := txs.computeTxsFromMe(body)
 	if err != nil {
@@ -431,7 +444,7 @@ func (txs *transactions) processTxsFromMe(
 	}
 
 	bodyWithoutInvalidMiniBlock := make(block.MiniBlockSlice, 0)
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type == block.InvalidBlock {
 			continue
 		}
@@ -460,9 +473,13 @@ func (txs *transactions) processTxsFromMe(
 }
 
 // SaveTxBlockToStorage saves transactions from body into storage
-func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
-	for i := 0; i < len(body); i++ {
-		miniBlock := (body)[i]
+func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if !txs.isMiniBlockCorrect(miniBlock.Type) {
 			continue
 		}
@@ -508,7 +525,7 @@ func (txs *transactions) CreateBlockStarted() {
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
-func (txs *transactions) RequestBlockTransactions(body block.Body) int {
+func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
@@ -538,7 +555,7 @@ func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes 
 }
 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
+func (txs *transactions) computeMissingAndExistingTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	missingTxsForShard := txs.computeExistingAndMissing(
 		body,
 		&txs.txsForCurrBlock,
@@ -1118,8 +1135,8 @@ func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction
 	sort.Slice(transactions, sorter)
 }
 
-func (txs *transactions) isBodyToMe(body block.Body) bool {
-	for _, miniBlock := range body {
+func (txs *transactions) isBodyToMe(body *block.Body) bool {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.SenderShardID == txs.shardCoordinator.SelfId() {
 			return false
 		}
@@ -1127,8 +1144,8 @@ func (txs *transactions) isBodyToMe(body block.Body) bool {
 	return true
 }
 
-func (txs *transactions) isBodyFromMe(body block.Body) bool {
-	for _, miniBlock := range body {
+func (txs *transactions) isBodyFromMe(body *block.Body) bool {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
 			return false
 		}

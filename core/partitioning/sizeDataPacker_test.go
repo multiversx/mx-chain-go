@@ -9,24 +9,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func checkExpectedElements(buffer []byte, marshalizer marshal.Marshalizer, expectedElements [][]byte) error {
-	elements := make([][]byte, 0)
-	err := marshalizer.Unmarshal(&elements, buffer)
+	b := &batch.Batch{}
+	err := marshalizer.Unmarshal(b, buffer)
 	if err != nil {
 		return err
 	}
 
-	if len(elements) != len(expectedElements) {
-		return errors.New(fmt.Sprintf("expected %d elements, got %d", len(expectedElements), len(elements)))
+	if len(b.Data) != len(expectedElements) {
+		return errors.New(fmt.Sprintf("expected %d elements, got %d", len(expectedElements), len(b.Data)))
 	}
 
 	for idx, expElem := range expectedElements {
-		elem := elements[idx]
+		elem := b.Data[idx]
 		if !bytes.Equal(elem, expElem) {
 			return errors.New(fmt.Sprintf("error at index %d expected %v, got %v", idx, expElem, elem))
 		}

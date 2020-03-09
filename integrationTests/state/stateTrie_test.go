@@ -160,7 +160,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	assert.Nil(t, err)
 	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
-	assert.Equal(t, accountRecovered.Balance, big.NewInt(0))
+	assert.Equal(t, accountRecovered.Balance.Uint64(), uint64(0))
 }
 
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {

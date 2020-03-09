@@ -168,7 +168,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(bodyHandler data.BodyHandler, he
 		return false
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		log.Debug("sendBlockBodyAndHeader", "error", process.ErrWrongTypeAssertion)
 		return false
@@ -208,7 +208,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(bodyHandler data.BodyHandler, he
 
 // sendBlockBody method sends the proposed block body in the subround Block
 func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler) bool {
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		log.Debug("sendBlockBody", "error", process.ErrWrongTypeAssertion)
 		return false

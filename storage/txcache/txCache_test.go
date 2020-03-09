@@ -213,7 +213,7 @@ func Test_SelectTransactions(t *testing.T) {
 	nonces := make(map[string]uint64, nSenders)
 	for _, tx := range sorted {
 		nonce := tx.Tx.GetNonce()
-		sender := string(tx.Tx.GetSndAddress())
+		sender := string(tx.Tx.GetSndAddr())
 		previousNonce := nonces[sender]
 
 		require.LessOrEqual(t, previousNonce, nonce)

@@ -18,7 +18,7 @@ type MetaChain struct {
 	genesisBlockHash []byte                // Genesis Block hash
 	CurrentBlock     *block.MetaBlock      // Current Block pointer
 	currentBlockHash []byte                // Current Block hash
-	CurrentBlockBody block.Body            // Current Block Body pointer
+	CurrentBlockBody *block.Body           // Current Block Body pointer
 	localHeight      int64                 // Height of the local chain
 	networkHeight    int64                 // Perceived height of the network chain
 	badBlocks        storage.Cacher        // Bad blocks cache
@@ -126,7 +126,7 @@ func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) error {
 		return nil
 	}
 
-	blockBody, ok := body.(block.Body)
+	blockBody, ok := body.(*block.Body)
 	if !ok {
 		return data.ErrInvalidBodyType
 	}

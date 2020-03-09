@@ -85,7 +85,7 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 	)
 
 	hdr := &block.Header{}
-	body := block.Body{}
+	body := &block.Body{}
 	height := int64(37)
 	hdrHash := []byte("hash")
 
