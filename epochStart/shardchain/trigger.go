@@ -581,12 +581,20 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert(_ uint64) {
+func (t *trigger) Revert(header data.HeaderHandler) {
+	if check.IfNil(header) || !header.IsStartOfEpochBlock() {
+		return
+	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
+}
+
+// RevertStateToBlock will revert the state of the trigger to the current block
+func (t *trigger) RevertStateToBlock(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
