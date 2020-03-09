@@ -356,7 +356,8 @@ func CheckScTopUp(
 	scAddressBytes []byte,
 ) {
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	accnt, err := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	assert.Nil(t, err)
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 }

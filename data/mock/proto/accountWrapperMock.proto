@@ -1,0 +1,13 @@
+
+syntax = "proto3";
+
+package protoDataMock;
+
+option go_package = "mock";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message AccountWrapMockData {
+	int64   MockValue     = 1;
+}

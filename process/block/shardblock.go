@@ -159,7 +159,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -171,7 +171,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
+	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool, sp.shardCoordinator.NumberOfShards())
 	go getMetricsFromHeader(header, uint64(numTxWithDst), sp.marshalizer, sp.appStatusHandler)
 
 	log.Debug("total txs in pool",
@@ -555,7 +555,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrNilTxBlockBody
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -751,7 +751,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -789,7 +789,7 @@ func (sp *shardProcessor) CommitBlock(
 		"epoch", header.Epoch,
 		"round", header.Round,
 		"nonce", header.Nonce,
-		"shard id", header.ShardId,
+		"shard id", header.ShardID,
 		"hash", headerHash,
 	)
 
@@ -1591,9 +1591,9 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
 	haveTime func() bool,
-) (block.Body, error) {
+) (*block.Body, error) {
 
-	miniBlocks := make(block.Body, 0)
+	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1661,7 +1661,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	log.Debug("creating mini blocks has been finished",
 		"num miniblocks", len(miniBlocks),
 	)
-	return miniBlocks, nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
@@ -1673,7 +1673,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+	shardHeader.MiniBlockHeaders = nil
 	shardHeader.RootHash = sp.getRootHash()
 
 	defer func() {
@@ -1684,7 +1684,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 		return nil, process.ErrNilBlockBody
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -1716,7 +1716,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 	shardHeader.MetaBlockHashes = metaBlockHashes[core.MetachainShardId]
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
 	sp.blockSizeThrottler.Add(
 		shardHeader.GetRound(),
@@ -1744,7 +1744,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -1753,7 +1753,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
 			continue
 		}
@@ -1761,7 +1761,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	for shardId, subsetBlockBody := range bodies {
-		buff, err := sp.marshalizer.Marshal(subsetBlockBody)
+		bh := block.Body{MiniBlocks: subsetBlockBody}
+		buff, err := sp.marshalizer.Marshal(&bh)
 		if err != nil {
 			log.Debug("marshalizer.Marshal", "error", process.ErrMarshalWithoutSuccess.Error())
 			continue
@@ -1816,7 +1817,7 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (sp *shardProcessor) getBootstrapHeadersInfo(

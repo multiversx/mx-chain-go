@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,10 +38,10 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
