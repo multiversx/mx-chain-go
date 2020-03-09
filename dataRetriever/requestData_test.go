@@ -11,40 +11,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRequestDataType_StringHashType(t *testing.T) {
+func TestRequestDataType_StringVals(t *testing.T) {
 	t.Parallel()
 
-	requestDataType := dataRetriever.HashType
-	rd := requestDataType.String()
+	tcs := []struct {
+		r dataRetriever.RequestDataType
+		s string
+	}{
+		{dataRetriever.HashType, "HashType"},
+		{dataRetriever.HashArrayType, "HashArrayType"},
+		{dataRetriever.NonceType, "NonceType"},
+		{dataRetriever.EpochType, "EpochType"},
+	}
 
-	assert.Equal(t, "hash type", rd)
-}
-
-func TestRequestDataType_StringHashArrayType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.HashArrayType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "hash array type", rd)
-}
-
-func TestRequestDataType_StringNonceType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.NonceType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "nonce type", rd)
-}
-
-func TestRequestDataType_StringEpochType(t *testing.T) {
-	t.Parallel()
-
-	requestDataType := dataRetriever.EpochType
-	rd := requestDataType.String()
-
-	assert.Equal(t, "epoch type", rd)
+	for _, tc := range tcs {
+		t.Run(tc.s, func(t *testing.T) {
+			rd := tc.r.String()
+			assert.Equal(t, tc.s, rd)
+		})
+	}
 }
 
 func TestRequestDataType_UnknownType(t *testing.T) {
@@ -53,7 +38,7 @@ func TestRequestDataType_UnknownType(t *testing.T) {
 	var requestData dataRetriever.RequestDataType = 6
 	rd := requestData.String()
 
-	assert.Equal(t, fmt.Sprintf("unknown type %d", 6), rd)
+	assert.Equal(t, fmt.Sprintf("%d", 6), rd)
 }
 
 func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
@@ -61,7 +46,7 @@ func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(nil, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(nil, &mock.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
@@ -70,7 +55,7 @@ func TestRequestData_UnmarshalNilMessageP2P(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerMock{}, nil)
+	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, nil)
 	require.Equal(t, dataRetriever.ErrNilMessage, err)
 }
 
@@ -79,7 +64,7 @@ func TestRequestData_UnmarshalNilMessageData(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerMock{}, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, &mock.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilDataToProcess, err)
 }
 
@@ -89,7 +74,7 @@ func TestRequestData_CannotUnmarshal(t *testing.T) {
 	localErr := errors.New("err")
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerStub{
+	err := requestData.UnmarshalWith(&mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return localErr
 		},
@@ -104,7 +89,7 @@ func TestRequestData_UnmarshalOk(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.Unmarshal(&mock.MarshalizerStub{
+	err := requestData.UnmarshalWith(&mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
