@@ -4,87 +4,88 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
-type JournalEntryCode struct {
+type journalEntryCode struct {
 	codeHash []byte
 	updater  Updater
 }
 
-func NewJournalEntryCode(codeHash []byte, updater Updater) (*JournalEntryCode, error) {
-	return &JournalEntryCode{
+// NewJournalEntryCode creates a new instance of JournalEntryCode
+func NewJournalEntryCode(codeHash []byte, updater Updater) (*journalEntryCode, error) {
+	return &journalEntryCode{
 		codeHash: codeHash,
 		updater:  updater,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jea *JournalEntryCode) Revert() (AccountHandler, error) {
+func (jea *journalEntryCode) Revert() (AccountHandler, error) {
 	return nil, jea.updater.Update(jea.codeHash, nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jea *JournalEntryCode) IsInterfaceNil() bool {
+func (jea *journalEntryCode) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-//------- JournalEntryBalance
-
-type JournalEntryAccount struct {
+// JournalEntryAccount represents a journal entry for account fields change
+type journalEntryAccount struct {
 	account AccountHandler
 }
 
-func NewJournalEntryAccount(account AccountHandler) (*JournalEntryAccount, error) {
+// NewJournalEntryAccount creates a new instance of JournalEntryAccount
+func NewJournalEntryAccount(account AccountHandler) (*journalEntryAccount, error) {
 	if check.IfNil(account) {
 		return nil, ErrNilAccountHandler
 	}
 
-	return &JournalEntryAccount{
+	return &journalEntryAccount{
 		account: account,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jea *JournalEntryAccount) Revert() (AccountHandler, error) {
+func (jea *journalEntryAccount) Revert() (AccountHandler, error) {
 	return jea.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jea *JournalEntryAccount) IsInterfaceNil() bool {
+func (jea *journalEntryAccount) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-type JournalEntryAccountCreation struct {
+// JournalEntryAccountCreation represents a journal entry for account creation
+type journalEntryAccountCreation struct {
 	address []byte
 	updater Updater
 }
 
-func NewJournalEntryAccountCreation(address []byte, updater Updater) (*JournalEntryAccountCreation, error) {
-	return &JournalEntryAccountCreation{
+// NewJournalEntryAccountCreation creates a new instance of JournalEntryAccountCreation
+func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEntryAccountCreation, error) {
+	return &journalEntryAccountCreation{
 		address: address,
 		updater: updater,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jea *JournalEntryAccountCreation) Revert() (AccountHandler, error) {
+func (jea *journalEntryAccountCreation) Revert() (AccountHandler, error) {
 	return nil, jea.updater.Update(jea.address, nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jea *JournalEntryAccountCreation) IsInterfaceNil() bool {
+func (jea *journalEntryAccountCreation) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-//------- JournalEntryDataTrieUpdates
-
 // JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
 // so it can be reverted in case of rollback
-type JournalEntryDataTrieUpdates struct {
+type journalEntryDataTrieUpdates struct {
 	trieUpdates map[string][]byte
 	account     AccountHandler
 }
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
-func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*JournalEntryDataTrieUpdates, error) {
+func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
 		return nil, ErrNilAccountHandler
 	}
@@ -92,14 +93,14 @@ func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account Accou
 		return nil, ErrNilOrEmptyDataTrieUpdates
 	}
 
-	return &JournalEntryDataTrieUpdates{
+	return &journalEntryDataTrieUpdates{
 		trieUpdates: trieUpdates,
 		account:     account,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jedtu *JournalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
+func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 	for key := range jedtu.trieUpdates {
 		err := jedtu.account.DataTrie().Update([]byte(key), jedtu.trieUpdates[key])
 		if err != nil {
@@ -118,6 +119,6 @@ func (jedtu *JournalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
+func (jedtu *journalEntryDataTrieUpdates) IsInterfaceNil() bool {
 	return jedtu == nil
 }

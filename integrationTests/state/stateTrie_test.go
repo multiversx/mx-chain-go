@@ -86,29 +86,6 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	assert.Equal(t, account.GetCodeHash(), recoveredAccount.GetCodeHash())
 }
 
-func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
-	t.Parallel()
-
-	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
-
-	//should return false
-	val, err := adb.HasAccount(adr)
-	assert.Nil(t, err)
-	assert.False(t, val)
-}
-
-func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
-	t.Parallel()
-
-	adr, acc, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
-	_ = adb.SaveAccount(acc)
-
-	//should return true
-	val, err := adb.HasAccount(adr)
-	assert.Nil(t, err)
-	assert.True(t, val)
-}
-
 func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1126,8 +1103,8 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 
 	err := adb.RecreateTrie(rootHash2)
 	assert.Nil(t, err)
-	ok, err := adb.HasAccount(address1)
-	assert.True(t, ok)
+	acc, err := adb.GetExistingAccount(address1)
+	assert.NotNil(t, acc)
 	assert.Nil(t, err)
 }
 
@@ -1178,8 +1155,8 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	err := adb.RecreateTrie(newRootHash)
 	assert.Nil(t, err)
-	ok, err := adb.HasAccount(address1)
-	assert.True(t, ok)
+	acc, err := adb.GetExistingAccount(address1)
+	assert.NotNil(t, acc)
 	assert.Nil(t, err)
 
 	collapseTrie(state1, t)

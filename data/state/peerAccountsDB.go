@@ -3,6 +3,7 @@ package state
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -20,16 +21,16 @@ func NewPeerAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 ) (*PeerAccountsDB, error) {
-	if trie == nil || trie.IsInterfaceNil() {
+	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if accountFactory == nil || accountFactory.IsInterfaceNil() {
+	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
 	}
 
@@ -41,7 +42,7 @@ func NewPeerAccountsDB(
 			accountFactory: accountFactory,
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
-			mutEntries:     sync.RWMutex{},
+			mutOp:          sync.RWMutex{},
 		},
 	}, nil
 }
