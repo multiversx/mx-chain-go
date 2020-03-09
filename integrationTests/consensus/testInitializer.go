@@ -332,7 +332,7 @@ func createConsensusOnlyNode(
 			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, &dataBlock.Body{}, nil
@@ -393,6 +393,7 @@ func createConsensusOnlyNode(
 		Epoch:       0,
 		Storage:     createTestStore(),
 		Marshalizer: testMarshalizer,
+		Hasher:      testHasher,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
