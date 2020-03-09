@@ -191,7 +191,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		}
 	}()
 
-	roundsPerEpoch := uint64(8)
+	roundsPerEpoch := uint64(7)
 	for _, nodes := range nodesMap {
 		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
@@ -204,7 +204,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	round := uint64(1)
 	nonce := uint64(1)
-	nbBlocksToProduce := uint64(12)
+	nbBlocksToProduce := uint64(20)
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
