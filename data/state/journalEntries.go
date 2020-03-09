@@ -20,6 +20,10 @@ func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntr
 		return nil, ErrNilAccountHandler
 	}
 
+	// clone it if not nil
+	if oldBalance != nil {
+		oldBalance = new(big.Int).Set(oldBalance)
+	}
 	return &JournalEntryBalance{
 		account:    account,
 		oldBalance: oldBalance,
@@ -28,7 +32,7 @@ func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntr
 
 // Revert applies undo operation
 func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
-	jeb.account.Balance = jeb.oldBalance
+	jeb.account.Balance.Set(jeb.oldBalance)
 
 	return jeb.account, nil
 }

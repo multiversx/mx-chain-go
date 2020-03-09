@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -42,7 +43,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSingleSigner(singleSigner),
@@ -62,7 +63,7 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 	accAdapter := getAccAdapter(big.NewInt(0))
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
@@ -83,7 +84,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
@@ -102,7 +103,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
@@ -128,7 +129,7 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
-		node.WithMarshalizer(&mock.MarshalizerFake{}, testSizeCheckDelta),
+		node.WithProtoMarshalizer(&mock.MarshalizerFake{}, testSizeCheckDelta),
 		node.WithTxSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataPool(dataPool),
@@ -234,7 +235,8 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithTxSignMarshalizer(marshalizer),
 		node.WithTxSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataPool(dataPool),
@@ -269,13 +271,12 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 			if topic == identifier {
 				//handler to capture sent data
-				txsBuff := make([][]byte, 0)
-
-				err := marshalizer.Unmarshal(&txsBuff, buff)
+				b := &batch.Batch{}
+				err := marshalizer.Unmarshal(b, buff)
 				if err != nil {
 					assert.Fail(t, err.Error())
 				}
-				for _, txBuff := range txsBuff {
+				for _, txBuff := range b.Data {
 					tx := transaction.Transaction{}
 					err := marshalizer.Unmarshal(&tx, txBuff)
 					if err != nil {
@@ -312,7 +313,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		}
 	}}
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithTxSignMarshalizer(marshalizer),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),

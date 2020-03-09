@@ -127,7 +127,7 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if inUTx.uTx.Value == nil {
 		return process.ErrNilValue
 	}
-	if inUTx.uTx.Value.Cmp(big.NewInt(0)) < 0 {
+	if inUTx.uTx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
 	if len(inUTx.uTx.TxHash) == 0 {

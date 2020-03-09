@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. metaAccountData.proto
 package state
 
 import (
@@ -6,25 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// MiniBlockData is the data to be saved in shard account for any shard
-type MiniBlockData struct {
-	Hash            []byte
-	ReceiverShardId uint32
-	SenderShardId   uint32
-	TxCount         uint32
-}
-
 // MetaAccount is the struct used in serialization/deserialization
 type MetaAccount struct {
-	Round         uint64
-	Nonce         uint64
-	TxCount       *big.Int
-	CodeHash      []byte
-	RootHash      []byte
-	MiniBlocks    []*MiniBlockData
-	PubKeyLeader  []byte
-	ShardRootHash []byte
-	Address       []byte
+	MetaAccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -44,9 +29,11 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 	addressBytes := addressContainer.Bytes()
 
 	return &MetaAccount{
-		TxCount:          big.NewInt(0),
+		MetaAccountData: MetaAccountData{
+			TxCount: big.NewInt(0),
+			Address: addressBytes,
+		},
 		addressContainer: addressContainer,
-		Address:          addressBytes,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil
