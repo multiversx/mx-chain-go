@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. staking.proto
 package systemSmartContracts
 
 import (
@@ -27,17 +28,6 @@ type stakingSC struct {
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
 	gasCost                  vm.GasCost
-}
-
-// StakedData represents the data which is saved for the selected nodes
-type StakedData struct {
-	RegisterNonce uint64   `json:"RegisterNonce"`
-	Staked        bool     `json:"Staked"`
-	UnStakedNonce uint64   `json:"UnStakedNonce"`
-	UnStakedEpoch uint32   `json:"UnStakedEpoch"`
-	RewardAddress []byte   `json:"RewardAddress"`
-	StakeValue    *big.Int `json:"StakeValue"`
-	JailedRound   uint64   `json:"JailedRound"`
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract

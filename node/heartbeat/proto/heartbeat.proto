@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "heartbeat";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// Heartbeat represents the heartbeat message that is sent between peers
+message Heartbeat {
+	bytes  Payload         = 1;
+	bytes  Pubkey          = 2;
+	bytes  Signature       = 3;
+	uint32 ShardID         = 4;
+	string VersionNumber   = 5;
+	string NodeDisplayName = 6;
+}
+
+// HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
+message HeartbeatDTO {
+	google.protobuf.Duration  MaxDurationPeerUnresponsive  = 1 ;
+	google.protobuf.Duration  MaxInactiveTime              = 2 ;
+	google.protobuf.Duration  TotalUpTime                  = 3 ;
+	google.protobuf.Duration  TotalDownTime                = 4 ;
+	google.protobuf.Timestamp TimeStamp                    = 5 ;
+	bool                      IsActive                     = 6 ;
+	uint32                    ReceivedShardID              = 7 ;
+	uint32                    ComputedShardID              = 8 ;
+	string                    VersionNumber                = 9 ;
+	string                    NodeDisplayName              = 10;
+	bool                      IsValidator                  = 11;
+	google.protobuf.Timestamp LastUptimeDowntime           = 12;
+	google.protobuf.Timestamp GenesisTime                  = 13;
+}
+
+message DbTimeStamp {
+	google.protobuf.Timestamp TS                    = 1 ;
+}

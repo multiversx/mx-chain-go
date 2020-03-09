@@ -9,10 +9,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var _ = node(&leafNode{})
 
 func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
 	if check.IfNil(marshalizer) {
@@ -23,7 +24,7 @@ func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hash
 	}
 
 	return &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   key,
 			Value: value,
 		},

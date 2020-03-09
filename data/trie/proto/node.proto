@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "trie";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message CollapsedBn{
+    repeated bytes EncodedChildren = 1 [(gogoproto.nullable) = true];
+}
+
+message CollapsedEn{
+    bytes Key = 1;
+    bytes EncodedChild = 2;
+}
+
+message CollapsedLn{
+    bytes Key = 1;
+    bytes Value = 2;
+}
