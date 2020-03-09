@@ -588,6 +588,10 @@ func (t *trigger) Revert(header data.HeaderHandler) {
 	t.newEpochHdrReceived = true
 }
 
+// RevertStateToBlock will revert the state of the trigger to the current block
+func (t *trigger) RevertStateToBlock(_ data.HeaderHandler) {
+}
+
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
 func (t *trigger) EpochStartMetaHdrHash() []byte {
 	t.mutTrigger.RLock()

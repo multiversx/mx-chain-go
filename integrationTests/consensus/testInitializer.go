@@ -393,6 +393,7 @@ func createConsensusOnlyNode(
 		Epoch:       0,
 		Storage:     createTestStore(),
 		Marshalizer: testMarshalizer,
+		Hasher:      testHasher,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 

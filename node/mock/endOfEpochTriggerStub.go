@@ -13,6 +13,10 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+// RevertStateToBlock -
+func (e *EpochStartTriggerStub) RevertStateToBlock(_ data.HeaderHandler) {
+}
+
 // RequestEpochStartIfNeeded -
 func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
 }

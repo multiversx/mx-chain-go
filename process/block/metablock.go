@@ -202,7 +202,8 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		return mp.processEpochStartMetaBlock(header, body)
+		err = mp.processEpochStartMetaBlock(header, body)
+		return err
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
@@ -319,12 +320,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		if err != nil {
-			mp.RevertAccountState(header)
-		}
-	}()
 
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
@@ -1222,6 +1217,8 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 
 		return err
 	}
+
+	mp.epochStartTrigger.RevertStateToBlock(header)
 
 	return nil
 }
