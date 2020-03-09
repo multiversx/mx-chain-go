@@ -22,11 +22,12 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	AdrConv     state.AddressConverter
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
-	PeerState   state.AccountsAdapter
-	BaseState   state.AccountsAdapter
+	AdrConv          state.AddressConverter
+	Hasher           hashing.Hasher
+	ProtoMarshalizer marshal.Marshalizer
+	VmMarshalizer    marshal.Marshalizer
+	PeerState        state.AccountsAdapter
+	BaseState        state.AccountsAdapter
 
 	ArgParser process.ArgumentsParser
 	CurrTxs   dataRetriever.TransactionCacher
@@ -36,11 +37,12 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	adrConv     state.AddressConverter
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
-	peerState   state.AccountsAdapter
-	baseState   state.AccountsAdapter
+	adrConv          state.AddressConverter
+	hasher           hashing.Hasher
+	protoMarshalizer marshal.Marshalizer
+	vmMarshalizer    marshal.Marshalizer
+	peerState        state.AccountsAdapter
+	baseState        state.AccountsAdapter
 
 	argParser process.ArgumentsParser
 	currTxs   dataRetriever.TransactionCacher
@@ -55,14 +57,15 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		adrConv:     args.AdrConv,
-		hasher:      args.Hasher,
-		marshalizer: args.Marshalizer,
-		peerState:   args.PeerState,
-		baseState:   args.BaseState,
-		argParser:   args.ArgParser,
-		currTxs:     args.CurrTxs,
-		scQuery:     args.ScQuery,
+		adrConv:          args.AdrConv,
+		hasher:           args.Hasher,
+		protoMarshalizer: args.ProtoMarshalizer,
+		vmMarshalizer:    args.VmMarshalizer,
+		peerState:        args.PeerState,
+		baseState:        args.BaseState,
+		argParser:        args.ArgParser,
+		currTxs:          args.CurrTxs,
+		scQuery:          args.ScQuery,
 	}
 
 	return st, nil
@@ -75,7 +78,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if args.ProtoMarshalizer == nil || args.ProtoMarshalizer.IsInterfaceNil() {
+		return process.ErrNilMarshalizer
+	}
+	if args.VmMarshalizer == nil || args.VmMarshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
 	if args.PeerState == nil || args.PeerState.IsInterfaceNil() {
@@ -117,7 +123,7 @@ func (stp *stakingToPeer) getPeerAccount(key []byte) (*state.PeerAccount, error)
 }
 
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
-func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
+func (stp *stakingToPeer) UpdateProtocol(body *block.Body, _ uint64) error {
 	affectedStates, err := stp.getAllModifiedStates(body)
 	if err != nil {
 		return err
@@ -165,7 +171,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, _ uint64) error {
 		}
 
 		var stakingData systemSmartContracts.StakedData
-		err = stp.marshalizer.Unmarshal(&stakingData, data)
+		err = stp.vmMarshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
 		}
@@ -227,10 +233,10 @@ func (stp *stakingToPeer) updatePeerState(
 	return nil
 }
 
-func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error) {
+func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, error) {
 	affectedStates := make([]string, 0)
 
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
@@ -244,7 +250,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error
 				continue
 			}
 
-			if !bytes.Equal(tx.GetRecvAddress(), factory.StakingSCAddress) {
+			if !bytes.Equal(tx.GetRcvAddr(), factory.StakingSCAddress) {
 				continue
 			}
 

@@ -104,15 +104,15 @@ type TransactionHandler interface {
 	GetValue() *big.Int
 	GetNonce() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
-	GetSndAddress() []byte
+	GetRcvAddr() []byte
+	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData([]byte)
-	SetRecvAddress([]byte)
-	SetSndAddress([]byte)
+	SetRcvAddr([]byte)
+	SetSndAddr([]byte)
 }
 
 //Trie is an interface for Merkle Trees implementations
@@ -183,10 +183,4 @@ type StorageManager interface {
 type TrieFactory interface {
 	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
-}
-
-// MarshalizedBodyAndHeader holds marshalized body and header
-type MarshalizedBodyAndHeader struct {
-	Body   []byte
-	Header []byte
 }

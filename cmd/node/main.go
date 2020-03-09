@@ -580,7 +580,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -715,7 +715,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.Marshalizer,
+			coreComponents.ProtoMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -821,7 +821,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.Marshalizer,
+		coreComponents.ProtoMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -867,9 +867,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch)
+	err = ef.StartNode()
 	if err != nil {
-		log.Error("starting node failed", err.Error())
+		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
 		return err
 	}
 
@@ -1286,7 +1286,9 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithMarshalizer(coreData.Marshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithVmMarshalizer(coreData.VmMarshalizer),
+		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),

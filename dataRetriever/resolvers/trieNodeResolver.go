@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -44,7 +45,7 @@ func NewTrieNodeResolver(
 // (for the topic this validator was registered to, usually a request topic)
 func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(tnRes.marshalizer, message)
+	err := rd.UnmarshalWith(tnRes.marshalizer, message)
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 		}
 
 		var buff []byte
-		buff, err = tnRes.marshalizer.Marshal(serializedNodes)
+		buff, err = tnRes.marshalizer.Marshal(&batch.Batch{Data: serializedNodes})
 		if err != nil {
 			return err
 		}

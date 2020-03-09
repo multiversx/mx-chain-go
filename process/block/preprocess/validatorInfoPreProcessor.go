@@ -44,13 +44,13 @@ func (rtp *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 }
 
 // RemoveTxBlockFromPools does nothing
-func (rtp *validatorInfoPreprocessor) RemoveTxBlockFromPools(_ block.Body, _ storage.Cacher) error {
+func (rtp *validatorInfoPreprocessor) RemoveTxBlockFromPools(_ *block.Body, _ storage.Cacher) error {
 	return nil
 }
 
 // RestoreTxBlockIntoPools does nothing
 func (rtp *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
-	_ block.Body,
+	_ *block.Body,
 	_ storage.Cacher,
 ) (int, error) {
 	return 0, nil
@@ -58,14 +58,14 @@ func (rtp *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions does nothing
 func (rtp *validatorInfoPreprocessor) ProcessBlockTransactions(
-	_ block.Body,
+	_ *block.Body,
 	_ func() bool,
 ) error {
 	return nil
 }
 
 // SaveTxBlockToStorage does nothing
-func (rtp *validatorInfoPreprocessor) SaveTxBlockToStorage(_ block.Body) error {
+func (rtp *validatorInfoPreprocessor) SaveTxBlockToStorage(_ *block.Body) error {
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (rtp *validatorInfoPreprocessor) CreateBlockStarted() {
 }
 
 // RequestBlockTransactions does nothing
-func (rtp *validatorInfoPreprocessor) RequestBlockTransactions(_ block.Body) int {
+func (rtp *validatorInfoPreprocessor) RequestBlockTransactions(_ *block.Body) int {
 	return 0
 }
 

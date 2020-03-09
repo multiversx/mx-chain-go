@@ -84,6 +84,12 @@ if [ "$TESTNETMODE" == "debug" ]; then
   LOGLEVEL="*:DEBUG"
 fi
 
+if [ "$TESTNETMODE" == "trace" ]; then
+  NODETERMUI=0
+  USETMUX=1
+  LOGLEVEL="*:TRACE"
+fi
+
 if [ "$TESTNETMODE" == "ui" ]; then
   NODETERMUI=1
   USETMUX=1
