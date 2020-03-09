@@ -700,7 +700,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
-	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
+	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
@@ -807,7 +807,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
+	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:   tpn.VMContainer,
