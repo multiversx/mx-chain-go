@@ -279,7 +279,8 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	accountsSyncerContainer, err := accountsDBSyncerFactory.Create()
+	// TODO: continue implementation and usage
+	_, err = accountsDBSyncerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
