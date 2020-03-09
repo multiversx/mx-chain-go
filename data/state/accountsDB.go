@@ -35,7 +35,6 @@ type AccountsDB struct {
 	hasher         hashing.Hasher
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
-	accountType    Type
 
 	dataTries  TriesHolder
 	entries    []JournalEntry
@@ -73,7 +72,6 @@ func NewAccountsDB(
 		entries:        make([]JournalEntry, 0),
 		mutEntries:     sync.RWMutex{},
 		dataTries:      NewDataTriesHolder(),
-		accountType:    accountFactory.GetType(),
 	}, nil
 }
 
