@@ -892,6 +892,7 @@ func newEpochStartTrigger(
 			EpochStartNotifier: args.epochStartNotifier,
 			Storage:            args.data.Store,
 			Marshalizer:        args.coreData.ProtoMarshalizer,
+			Hasher:             args.coreData.Hasher,
 		}
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

@@ -106,8 +106,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
-	sp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	sp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	sp.hdrsForCurrBlock = newHdrForBlock()
 	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
 	metaBlockPool := sp.dataPool.Headers()
@@ -208,7 +207,7 @@ func (sp *shardProcessor) ProcessBlock(
 		missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
 		sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-		sp.resetMissingHdrs()
+		sp.hdrsForCurrBlock.resetMissingHdrs()
 
 		if requestedMetaHdrs > 0 {
 			log.Debug("received missing meta headers",
@@ -258,7 +257,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState()
+			sp.RevertAccountState(header)
 		}
 	}()
 
@@ -363,7 +362,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		header.GetEpoch() == sp.epochStartTrigger.Epoch()
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert(currentBlockHeader.GetRound())
+		sp.epochStartTrigger.Revert(currentBlockHeader)
 		log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
 			process.ErrEpochDoesNotMatch, header.GetEpoch())
@@ -577,7 +576,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert(header.GetRound())
+		sp.epochStartTrigger.Revert(header)
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
@@ -708,7 +707,7 @@ func (sp *shardProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState()
+			sp.RevertAccountState(headerHandler)
 		}
 	}()
 
@@ -1223,9 +1222,9 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		}
 
 		// metablock was processed and finalized
-		marshalizedHeader, err := sp.marshalizer.Marshal(hdr)
-		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", err.Error())
+		marshalizedHeader, errMarshal := sp.marshalizer.Marshal(hdr)
+		if errMarshal != nil {
+			log.Debug("marshalizer.Marshal", "error", errMarshal.Error())
 			continue
 		}
 
