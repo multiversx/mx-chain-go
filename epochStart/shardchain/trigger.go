@@ -294,6 +294,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte) {
 	if !metaHdr.IsStartOfEpochBlock() {
 		t.updateTriggerFromMeta(metaHdr, hdrHash)
+		return
 	}
 
 	for _, miniblock := range metaHdr.MiniBlockHeaders {
