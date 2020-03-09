@@ -66,12 +66,12 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		GasPrice: integrationTests.MinTxGasPrice,
 	}
 
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
+	txBuff, _ := integrationTests.TestTxSignMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
+	fmt.Printf("Transaction: %#v\n%#v\n", tx, string(signedTxBuff))
 
 	chanDone := make(chan bool)
 

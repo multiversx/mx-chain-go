@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "batch";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// Transaction holds all the data needed for a value transfer or SC call
+message Batch {
+	repeated bytes Data  = 1 [(gogoproto.jsontag) = "data"];
+}

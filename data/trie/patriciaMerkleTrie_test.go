@@ -208,7 +208,8 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof(proof, []byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.Nil(t, err)
 	assert.True(t, ok)
 }
 

@@ -21,7 +21,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &mock.MarshalizerMock{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }

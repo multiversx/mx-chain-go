@@ -75,7 +75,7 @@ func (ei *elasticIndexer) SaveBlock(
 	txPool map[string]data.TransactionHandler,
 	signersIndexes []uint64,
 ) {
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		log.Debug("indexer", "error", ErrBodyTypeAssertion.Error())
 		return
@@ -88,7 +88,7 @@ func (ei *elasticIndexer) SaveBlock(
 
 	go ei.database.SaveHeader(headerHandler, signersIndexes)
 
-	if len(body) == 0 {
+	if len(body.MiniBlocks) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
 		return
 	}
