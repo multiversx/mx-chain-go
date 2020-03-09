@@ -46,7 +46,7 @@ func createDummyNodesMap(nodesPerShard uint32, nbShards uint32, suffix string) m
 	return nodesMap
 }
 
-func containStrings(a []string, b []string) bool {
+func isStringSubgroup(a []string, b []string) bool {
 	var found bool
 	for _, va := range a {
 		found = false
@@ -1073,7 +1073,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpo
 	pKeys, err = ihgs.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
 	require.Nil(t, err)
 	require.True(t, len(pKeys) > 0)
-	require.True(t, containStrings(pKeys, shard0PubKeys))
+	require.True(t, isStringSubgroup(pKeys, shard0PubKeys))
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesInvalidRandomness(t *testing.T) {
@@ -1222,10 +1222,10 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch0(t *testi
 
 	whitelistedNodes, err := ihgs.GetConsensusWhitelistedNodes(0)
 	require.Nil(t, err)
-	require.True(t, len(whitelistedNodes) > 0)
+	require.Greater(t, len(whitelistedNodes), 0)
 
 	for key := range whitelistedNodes {
-		require.True(t, containStrings([]string{key}, allNodesList))
+		require.True(t, isStringSubgroup([]string{key}, allNodesList))
 	}
 }
 
@@ -1269,10 +1269,10 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 
 	whitelistedNodes, err := ihgs.GetConsensusWhitelistedNodes(1)
 	require.Nil(t, err)
-	require.True(t, len(whitelistedNodes) > 0)
+	require.Greater(t, len(whitelistedNodes), 0)
 
 	for key := range whitelistedNodes {
-		require.True(t, containStrings([]string{key}, allNodesList))
+		require.True(t, isStringSubgroup([]string{key}, allNodesList))
 	}
 }
 
@@ -1315,10 +1315,10 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 
 	whitelistedNodes, err := ihgs.GetConsensusWhitelistedNodes(1)
 	require.Nil(t, err)
-	require.True(t, len(whitelistedNodes) > 0)
+	require.Greater(t, len(whitelistedNodes), 0)
 
 	for key := range whitelistedNodes {
-		require.True(t, containStrings([]string{key}, allNodesList))
+		require.True(t, isStringSubgroup([]string{key}, allNodesList))
 	}
 }
 

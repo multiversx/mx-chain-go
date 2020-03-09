@@ -475,7 +475,6 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	epoch uint32,
 ) (map[string]struct{}, error) {
-
 	var err error
 	shardEligible := make(map[string]struct{})
 	publicKeysPrevEpoch := make(map[uint32][][]byte)
