@@ -58,7 +58,7 @@ func (nm *NodeMock) ConnectToAddresses(addresses []string) error {
 }
 
 // StartConsensus -
-func (nm *NodeMock) StartConsensus(_ uint32) error {
+func (nm *NodeMock) StartConsensus() error {
 	return nm.StartConsensusHandler()
 }
 
@@ -85,7 +85,7 @@ func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error
 }
 
 // SendTransaction -
-func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, transactionData []byte, signature []byte) (string, error) {
+func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value string, _ uint64, _ uint64, transactionData []byte, signature []byte) (string, error) {
 	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
 }
 
