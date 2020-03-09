@@ -27,7 +27,7 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListByS
 
 // addTx adds a transaction in the map, in the corresponding list (selected by its sender)
 func (txMap *txListBySenderMap) addTx(txHash []byte, tx data.TransactionHandler) {
-	sender := string(tx.GetSndAddress())
+	sender := string(tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(txHash, tx)
 	txMap.notifyScoreChange(listForSender)
@@ -67,7 +67,7 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 
 // removeTx removes a transaction from the map
 func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
-	sender := string(tx.GetSndAddress())
+	sender := string(tx.GetSndAddr())
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {

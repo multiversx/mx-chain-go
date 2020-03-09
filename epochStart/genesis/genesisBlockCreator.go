@@ -71,8 +71,9 @@ func CreateShardGenesisBlockFromInitialBalances(
 
 	header := &block.Header{
 		Nonce:                  0,
-		ShardId:                shardCoordinator.SelfId(),
+		ShardID:                shardCoordinator.SelfId(),
 		BlockBodyType:          block.StateBlock,
+		PubKeysBitmap:          []byte{1},
 		Signature:              rootHash,
 		RootHash:               rootHash,
 		PrevRandSeed:           rootHash,
@@ -191,6 +192,7 @@ func CreateMetaGenesisBlock(
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		PubKeysBitmap:          []byte{1},
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:            big.NewInt(0).Set(args.Economics.GenesisTotalSupply()),
@@ -400,7 +402,7 @@ func setStakedData(
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
-				Value:     big.NewInt(0).Set(stakeValue),
+				Value:     new(big.Int).Set(stakeValue),
 				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
