@@ -87,7 +87,7 @@ func TestEd25519ScalarClone_CopiesValue(t *testing.T) {
 	scalar := suite.CreateScalar()
 	scalar2 := scalar.Clone()
 	scalar3 := suite.CreateScalar()
-	scalar.Set(scalar3)
+	_ = scalar.Set(scalar3)
 
 	eq, _ := scalar2.Equal(scalar)
 	assert.False(t, eq)
