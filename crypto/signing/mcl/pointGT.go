@@ -140,7 +140,7 @@ func (po *PointGT) Mul(s crypto.Scalar) (crypto.Point, error) {
 		GT: &bls.GT{},
 	}
 
-	s1, ok := s.(*MclScalar)
+	s1, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}

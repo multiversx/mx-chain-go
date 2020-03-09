@@ -179,8 +179,6 @@ func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
 	switch consensusType {
 	case "bls":
 		return mcl.NewSuiteBLS12()
-	case "bn":
-		return kyber.NewBlakeSHA256Ed25519()
 	default:
 		return nil
 	}

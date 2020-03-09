@@ -20,7 +20,7 @@ func (gt *groupGT) ScalarLen() int {
 
 // CreateScalar creates a new Scalar
 func (gt *groupGT) CreateScalar() crypto.Scalar {
-	return NewMclScalar()
+	return NewScalar()
 }
 
 // PointLen returns the max length of point in nb of bytes

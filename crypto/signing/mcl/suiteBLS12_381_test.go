@@ -60,7 +60,7 @@ func TestSuiteBLS12_CreatePointForScalar(t *testing.T) {
 	secretKey.SetByCSPRNG()
 	secretKey.GetPublicKey()
 
-	scalar := NewMclScalar()
+	scalar := NewScalar()
 	bls.BlsFrToSecretKey(scalar.Scalar, secretKey)
 
 	point := suite.CreatePointForScalar(scalar)

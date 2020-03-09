@@ -242,7 +242,7 @@ func TestPointG2_MulOK(t *testing.T) {
 	var stream cipher.Stream
 
 	pointG2 := NewPointG2()
-	s := NewMclScalar()
+	s := NewScalar()
 	scalar, err := s.Pick(stream)
 	require.Nil(t, err)
 

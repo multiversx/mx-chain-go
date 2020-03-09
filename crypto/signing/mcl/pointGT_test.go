@@ -217,7 +217,7 @@ func TestPointGT_MulOK(t *testing.T) {
 
 	pointGT := NewPointGT()
 	point2, _ := pointGT.Pick(stream)
-	s := NewMclScalar()
+	s := NewScalar()
 	scalar, err := s.Pick(stream)
 	require.Nil(t, err)
 

@@ -20,7 +20,7 @@ func (g1 *groupG1) ScalarLen() int {
 
 // CreateScalar creates a new Scalar initialized with base point on G1
 func (g1 *groupG1) CreateScalar() crypto.Scalar {
-	return NewMclScalar()
+	return NewScalar()
 }
 
 // PointLen returns the max length of point in nb of bytes
@@ -36,9 +36,12 @@ func (g1 *groupG1) CreatePoint() crypto.Point {
 // CreatePointForScalar creates a new point corresponding to the given scalarInt
 func (g1 *groupG1) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
 	var p crypto.Point
+	var err error
 	p = NewPointG1()
-	p, _ = p.Mul(scalar)
-
+	p, err = p.Mul(scalar)
+	if err != nil {
+		log.Error("groupG1 CreatePointForScalar", "error", err.Error())
+	}
 	return p
 }
 

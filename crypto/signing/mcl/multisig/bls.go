@@ -75,9 +75,8 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 
 	aggSigBLS := &bls.Sign{}
 	bls.BlsAggregateSignatures(aggSigBLS, sigsBLS)
-	aggSigBytes := aggSigBLS.Serialize()
 
-	return aggSigBytes, nil
+	return aggSigBLS.Serialize(), nil
 }
 
 // VerifyAggregatedSig verifies if a BLS aggregated signature is valid over a given message
@@ -167,6 +166,10 @@ func (bms *BlsMultiSigner) prepareSignatures(
 	signatures [][]byte,
 	pubKeysSigners []crypto.PublicKey,
 ) ([]bls.Sign, error) {
+	if len(signatures) == 0 {
+		return nil, crypto.ErrNilSignaturesList
+	}
+
 	prepSigs := make([]bls.Sign, 0)
 	for i, sig := range signatures {
 		sigBLS := &bls.Sign{}
@@ -197,10 +200,6 @@ func (bms *BlsMultiSigner) prepareSignatures(
 		prepSigs = append(prepSigs, *sigBLS)
 	}
 
-	if len(prepSigs) == 0 {
-		return nil, crypto.ErrNilSignaturesList
-	}
-
 	return prepSigs, nil
 }
 
@@ -228,7 +227,7 @@ func (bms *BlsMultiSigner) scalarMulSig(suite crypto.Suite, scalarBytes []byte, 
 	}
 
 	scalar := suite.CreateScalar()
-	sc, ok := scalar.(*mcl.MclScalar)
+	sc, ok := scalar.(*mcl.Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidScalar
 	}
@@ -298,7 +297,7 @@ func createScalar(suite crypto.Suite, scalarBytes []byte) (crypto.Scalar, error)
 	}
 
 	scalar := suite.CreateScalar()
-	sc, _ := scalar.(*mcl.MclScalar)
+	sc, _ := scalar.(*mcl.Scalar)
 
 	err := sc.Scalar.SetString(core.ToHex(scalarBytes), 16)
 	if err != nil {

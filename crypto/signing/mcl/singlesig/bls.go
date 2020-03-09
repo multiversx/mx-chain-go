@@ -30,7 +30,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrNilPrivateKeyScalar
 	}
 
-	mclScalar, ok := scalar.(*mcl.MclScalar)
+	mclScalar, ok := scalar.(*mcl.Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidPrivateKey
 	}

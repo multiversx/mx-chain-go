@@ -400,7 +400,7 @@ func TestMclScalar_SetBytesOK(t *testing.T) {
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
 
-	sc2 := NewMclScalar()
+	sc2 := NewScalar()
 	sc2.SetInt64(val)
 	buf, _ := sc2.MarshalBinary()
 

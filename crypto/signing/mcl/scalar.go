@@ -8,14 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
 
-// MclScalar -
-type MclScalar struct {
+// Scalar -
+type Scalar struct {
 	Scalar *bls.Fr
 }
 
-// NewMclScalar --
-func NewMclScalar() *MclScalar {
-	scalar := &MclScalar{Scalar: &bls.Fr{}}
+// NewScalar creates a scalar instance
+func NewScalar() *Scalar {
+	scalar := &Scalar{Scalar: &bls.Fr{}}
 	scalar.Scalar.SetByCSPRNG()
 	for scalar.Scalar.IsOne() || scalar.Scalar.IsZero() {
 		scalar.Scalar.SetByCSPRNG()
@@ -26,12 +26,12 @@ func NewMclScalar() *MclScalar {
 
 // Equal tests if receiver is equal with the scalarInt s given as parameter.
 // Both scalars need to be derived from the same Group
-func (sc *MclScalar) Equal(s crypto.Scalar) (bool, error) {
+func (sc *Scalar) Equal(s crypto.Scalar) (bool, error) {
 	if check.IfNil(s) {
 		return false, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return false, crypto.ErrInvalidParam
 	}
@@ -42,12 +42,12 @@ func (sc *MclScalar) Equal(s crypto.Scalar) (bool, error) {
 }
 
 // Set sets the receiver to Scalar s given as parameter
-func (sc *MclScalar) Set(s crypto.Scalar) error {
+func (sc *Scalar) Set(s crypto.Scalar) error {
 	if check.IfNil(s) {
 		return crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return crypto.ErrInvalidParam
 	}
@@ -56,8 +56,8 @@ func (sc *MclScalar) Set(s crypto.Scalar) error {
 }
 
 // Clone creates a new Scalar with same value as receiver
-func (sc *MclScalar) Clone() crypto.Scalar {
-	s := MclScalar{
+func (sc *Scalar) Clone() crypto.Scalar {
+	s := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -70,13 +70,13 @@ func (sc *MclScalar) Clone() crypto.Scalar {
 }
 
 // SetInt64 sets the receiver to a small integer value v given as parameter
-func (sc *MclScalar) SetInt64(v int64) {
+func (sc *Scalar) SetInt64(v int64) {
 	sc.Scalar.SetInt64(v)
 }
 
 // Zero returns the the additive identity (0)
-func (sc *MclScalar) Zero() crypto.Scalar {
-	s := MclScalar{
+func (sc *Scalar) Zero() crypto.Scalar {
+	s := Scalar{
 		Scalar: &bls.Fr{},
 	}
 	s.Scalar.Clear()
@@ -85,17 +85,17 @@ func (sc *MclScalar) Zero() crypto.Scalar {
 }
 
 // Add returns the modular sum of receiver with scalarInt s given as parameter
-func (sc *MclScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
+func (sc *Scalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	s1 := MclScalar{
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -105,17 +105,17 @@ func (sc *MclScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Sub returns the modular difference between receiver and scalarInt s given as parameter
-func (sc *MclScalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
+func (sc *Scalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	s1 := MclScalar{
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -125,8 +125,8 @@ func (sc *MclScalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Neg returns the modular negation of receiver
-func (sc *MclScalar) Neg() crypto.Scalar {
-	s := MclScalar{
+func (sc *Scalar) Neg() crypto.Scalar {
+	s := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -136,8 +136,8 @@ func (sc *MclScalar) Neg() crypto.Scalar {
 }
 
 // One sets the receiver to the multiplicative identity (1)
-func (sc *MclScalar) One() crypto.Scalar {
-	s := MclScalar{
+func (sc *Scalar) One() crypto.Scalar {
+	s := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -147,17 +147,17 @@ func (sc *MclScalar) One() crypto.Scalar {
 }
 
 // Mul returns the modular product of receiver with scalarInt s given as parameter
-func (sc *MclScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
+func (sc *Scalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	s1 := MclScalar{
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -167,17 +167,17 @@ func (sc *MclScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Div returns the modular division between receiver and scalarInt s given as parameter
-func (sc *MclScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
+func (sc *Scalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	s1 := MclScalar{
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -187,17 +187,17 @@ func (sc *MclScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Inv returns the modular inverse of scalarInt s given as parameter
-func (sc *MclScalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
+func (sc *Scalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
-	s2, ok := s.(*MclScalar)
+	s2, ok := s.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	s1 := MclScalar{
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -207,8 +207,8 @@ func (sc *MclScalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Pick returns a fresh random or pseudo-random scalarInt
-func (sc *MclScalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
-	s1 := MclScalar{
+func (sc *Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
+	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}
 
@@ -219,13 +219,13 @@ func (sc *MclScalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
 
 // SetBytes sets the scalarInt from a byte-slice,
 // reducing if necessary to the appropriate modulus.
-func (sc *MclScalar) SetBytes(s []byte) (crypto.Scalar, error) {
+func (sc *Scalar) SetBytes(s []byte) (crypto.Scalar, error) {
 	if len(s) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 
 	s1 := sc.Clone()
-	s1Mcl, ok := s1.(*MclScalar)
+	s1Mcl, ok := s1.(*Scalar)
 	if !ok {
 		return nil, crypto.ErrInvalidScalar
 	}
@@ -239,21 +239,21 @@ func (sc *MclScalar) SetBytes(s []byte) (crypto.Scalar, error) {
 }
 
 // GetUnderlyingObj returns the object the implementation wraps
-func (sc *MclScalar) GetUnderlyingObj() interface{} {
+func (sc *Scalar) GetUnderlyingObj() interface{} {
 	return sc.Scalar
 }
 
 // MarshalBinary encodes the receiver into a binary form and returns the result.
-func (sc *MclScalar) MarshalBinary() ([]byte, error) {
+func (sc *Scalar) MarshalBinary() ([]byte, error) {
 	return sc.Scalar.Serialize(), nil
 }
 
 // UnmarshalBinary decodes a scalarInt from its byte array representation and sets the receiver to this value
-func (sc *MclScalar) UnmarshalBinary(s []byte) error {
+func (sc *Scalar) UnmarshalBinary(s []byte) error {
 	return sc.Scalar.Deserialize(s)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sc *MclScalar) IsInterfaceNil() bool {
+func (sc *Scalar) IsInterfaceNil() bool {
 	return sc == nil
 }

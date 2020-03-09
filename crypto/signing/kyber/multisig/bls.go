@@ -10,12 +10,13 @@ import (
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
+// 16bytes output hasher needed
 const hasherOutputSize = 16
 const pubKeyHashSize = 32
 
 // KyberMultiSignerBLS provides an implements of the crypto.LowLevelSignerBLS interface
 type KyberMultiSignerBLS struct {
-	Hasher hashing.Hasher // 16bytes output hasher!
+	Hasher hashing.Hasher
 }
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message
@@ -134,6 +135,10 @@ func (kms *KyberMultiSignerBLS) prepareSignatures(
 	signatures [][]byte,
 	pubKeysSigners []crypto.PublicKey,
 ) ([][]byte, error) {
+	if len(signatures) == 0 {
+		return nil, crypto.ErrNilSignaturesList
+	}
+
 	prepSigs := make([][]byte, 0)
 	for i := range signatures {
 		hPk, err := hashPublicKeyPoint(kms.Hasher, pubKeysSigners[i].Point())
@@ -147,10 +152,6 @@ func (kms *KyberMultiSignerBLS) prepareSignatures(
 		}
 
 		prepSigs = append(prepSigs, s)
-	}
-
-	if len(prepSigs) == 0 {
-		return nil, crypto.ErrNilSignaturesList
 	}
 
 	return prepSigs, nil

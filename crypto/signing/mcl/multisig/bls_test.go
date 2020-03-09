@@ -444,7 +444,7 @@ func TestMultiSignerBLS_ScalarMulSigOK(t *testing.T) {
 	sig, _ := llSig.SignShare(privKey, msg)
 	rs := pubKey.Suite().RandomStream()
 	scalar, _ := pubKey.Suite().CreateScalar().Pick(rs)
-	mclScalar, _ := scalar.(*mcl.MclScalar)
+	mclScalar, _ := scalar.(*mcl.Scalar)
 	scalarBytesHexStr := mclScalar.Scalar.GetString(16)
 
 	// odd length hex string fails hex decoding, so make it even
