@@ -156,7 +156,7 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilHeader(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(block.Body{}, nil)
+	err := scm.BroadcastBlock(newTestBlockBody(), nil)
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
@@ -176,7 +176,7 @@ func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(block.Body{}, &block.Header{})
+	err := scm.BroadcastBlock(newTestBlockBody(), &block.Header{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
@@ -198,7 +198,7 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(block.Body{}, &block.Header{})
+	err := scm.BroadcastBlock(newTestBlockBody(), &block.Header{})
 	assert.Nil(t, err)
 }
 

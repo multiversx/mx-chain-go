@@ -23,7 +23,7 @@ func TestAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 
 	marshalizer := mock.MarshalizerMock{}
 
-	buff, _ := marshalizer.Marshal(&acnt)
+	buff, _ := marshalizer.Marshal(acnt)
 
 	acntRecovered, _ := state.NewAccount(addr, addrTr)
 	_ = marshalizer.Unmarshal(acntRecovered, buff)
