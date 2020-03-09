@@ -1078,7 +1078,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
@@ -1116,7 +1116,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		return nil
 	}
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
 		return body
 	}
@@ -1192,6 +1192,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.SetForkNonce(currentHdrNonce)
+
 	err := bs.RollBack(true)
 
 	assert.Nil(t, err)
@@ -1218,7 +1219,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")

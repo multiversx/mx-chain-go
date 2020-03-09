@@ -53,10 +53,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 }
 
 func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Header, error) {
-	hdr := &block.Header{
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		MetaBlockHashes:  make([][]byte, 0),
-	}
+	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
 		return nil, err
@@ -125,7 +122,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
 			core.ToHex(inHdr.hash),
-			inHdr.hdr.ShardId,
+			inHdr.hdr.ShardID,
 			inHdr.epochStartTrigger.Epoch(),
 			inHdr.hdr.Epoch,
 			inHdr.hdr.Round,
