@@ -223,7 +223,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 				log.Debug("error while processing error in smart contract processor")
 			}
 
-			err = sc.saveAccounts(acntSnd, nil)
+			err = sc.accounts.SaveAccount(acntSnd)
 			if err != nil {
 				log.Debug("error saving account")
 			}
@@ -292,7 +292,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntDst.AddToDeveloperReward(newDeveloperReward)
 	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
 
-	err = sc.saveAccounts(nil, acntDst)
+	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
 		log.Debug("error saving account")
 	}
@@ -485,7 +485,7 @@ func (sc *scProcessor) DeploySmartContract(
 				log.Debug("error while processing error in smart contract processor")
 			}
 
-			err = sc.saveAccounts(acntSnd, nil)
+			err = sc.accounts.SaveAccount(acntSnd)
 			if err != nil {
 				log.Debug("error saving account")
 			}
@@ -516,7 +516,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	err = sc.saveAccounts(acntSnd, nil)
+	err = sc.accounts.SaveAccount(acntSnd)
 	if err != nil {
 		return err
 	}
@@ -956,14 +956,6 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		//if len(outAcc.StorageUpdates) > 0 {
-		//	//SC with data variables
-		//	err = sc.accounts.SaveDataTrie(acc)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//}
-
 		err = sc.updateSmartContractCode(acc, outAcc, tx)
 		if err != nil {
 			return nil, err
@@ -978,13 +970,13 @@ func (sc *scProcessor) processSCOutputAccounts(
 			acc.SetNonce(outAcc.Nonce)
 		}
 
-		err = sc.accounts.SaveAccount(acc)
-		if err != nil {
-			return nil, err
-		}
-
 		// if no change then continue
 		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
+			err = sc.accounts.SaveAccount(acc)
+			if err != nil {
+				return nil, err
+			}
+
 			continue
 		}
 
@@ -1151,12 +1143,6 @@ func (sc *scProcessor) processSimpleSCR(
 		for i := 0; i < len(storageUpdates); i++ {
 			dstAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
 		}
-
-		////SC with data variables
-		//err = sc.accounts.SaveDataTrie(dstAcc)
-		//if err != nil {
-		//	return err
-		//}
 	}
 
 	err := sc.updateSmartContractCode(dstAcc, &vmcommon.OutputAccount{Code: scr.Code, Address: scr.RcvAddr}, scr)
@@ -1165,6 +1151,11 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	if scr.Value == nil {
+		err = sc.accounts.SaveAccount(dstAcc)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -1173,7 +1164,7 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	err = sc.saveAccounts(dstAcc, nil)
+	err = sc.accounts.SaveAccount(dstAcc)
 	if err != nil {
 		return err
 	}
