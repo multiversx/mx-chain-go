@@ -204,7 +204,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 }
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
-	marsh := &marshal.JsonMarshalizer{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	evictionWaitListSize := uint(100)
@@ -290,7 +290,7 @@ func createConsensusOnlyNode(
 	data.ChainHandler) {
 
 	testHasher := createHasher(consensusType)
-	testMarshalizer := &marshal.JsonMarshalizer{}
+	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
@@ -328,7 +328,7 @@ func createConsensusOnlyNode(
 
 	header := &dataBlock.Header{
 		Nonce:         0,
-		ShardId:       shardId,
+		ShardID:       shardId,
 		BlockBodyType: dataBlock.StateBlock,
 		Signature:     rootHash,
 		RootHash:      rootHash,
@@ -413,7 +413,9 @@ func createConsensusOnlyNode(
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
-		node.WithMarshalizer(testMarshalizer, 0),
+		node.WithProtoMarshalizer(testMarshalizer, 0),
+		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
+		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),

@@ -109,6 +109,8 @@ type Config struct {
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig
+	VmMarshalizer               TypeConfig
+	TxSignMarshalizer           TypeConfig
 
 	PublicKeyShardId CacheConfig
 	PublicKeyPeerId  CacheConfig
