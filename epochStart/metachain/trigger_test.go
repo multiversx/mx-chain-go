@@ -38,6 +38,9 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 					RemoveCalled: func(key []byte) error {
 						return nil
 					},
+					SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
+						return []byte("hash"), nil
+					},
 				}
 			},
 		},
