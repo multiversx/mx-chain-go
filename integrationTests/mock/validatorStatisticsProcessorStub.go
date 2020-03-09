@@ -33,7 +33,7 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 }
 
 // UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.HeaderHandler, _ map[string]data.HeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
 	}

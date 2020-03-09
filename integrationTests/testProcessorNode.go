@@ -448,6 +448,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			EpochStartNotifier: &mock.EpochStartNotifierStub{},
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -891,6 +892,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochStartNotifier: tpn.EpochStartNotifier,
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}

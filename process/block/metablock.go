@@ -116,8 +116,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
 
-	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	mp.hdrsForCurrBlock = newHdrForBlock()
 
 	headerPool := mp.dataPool.Headers()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -186,6 +185,12 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
+	defer func() {
+		if err != nil {
+			mp.RevertAccountState(header)
+		}
+	}()
+
 	mp.createBlockStarted()
 	mp.blockChainHook.SetCurrentHeader(headerHandler)
 	mp.epochStartTrigger.Update(header.GetRound())
@@ -196,7 +201,8 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		return mp.processEpochStartMetaBlock(header, body)
+		err = mp.processEpochStartMetaBlock(header, body)
+		return err
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
@@ -226,7 +232,7 @@ func (mp *metaProcessor) ProcessBlock(
 		missingShardHdrs := mp.hdrsForCurrBlock.missingHdrs
 		mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-		mp.resetMissingHdrs()
+		mp.hdrsForCurrBlock.resetMissingHdrs()
 
 		if requestedShardHdrs > 0 {
 			log.Debug("received missing shard headers",
@@ -266,12 +272,6 @@ func (mp *metaProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		if err != nil {
-			mp.RevertAccountState()
-		}
-	}()
 
 	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
@@ -319,12 +319,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		if err != nil {
-			mp.RevertAccountState()
-		}
-	}()
 
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
@@ -587,7 +581,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Revert(metaBlock.GetRound())
+		mp.epochStartTrigger.Revert(metaBlock)
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
 		return nil
 	}
@@ -808,10 +802,19 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	lastShardHdr, err := mp.blockTracker.GetLastCrossNotarizedHeadersForAllShards()
-	if err != nil {
-		return nil, 0, 0, err
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	lastShardHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		if err != nil {
+			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+			return nil, 0, 0, err
+		}
+
+		lastShardHdr[shardID] = lastCrossNotarizedHeaderForShard
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: false}
 	}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	maxShardHeadersFromSameShard := process.MaxShardHeadersAllowedInOneMetaBlock / mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
@@ -924,7 +927,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState()
+			mp.RevertAccountState(headerHandler)
 		}
 	}()
 
@@ -1190,6 +1193,8 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
+	mp.epochStartTrigger.RevertStateToBlock(header)
+
 	return nil
 }
 
@@ -1275,15 +1280,19 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 // check if shard headers were signed and constructed correctly and returns headers which has to be
 // checked for finality
 func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	lastCrossNotarizedHeader := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 		if err != nil {
+			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, err
 		}
 
 		lastCrossNotarizedHeader[shardID] = lastCrossNotarizedHeaderForShard
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: false}
 	}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	usedShardHdrs := mp.sortHeadersForCurrentBlockByNonce(true)
 	highestNonceHdrs := make(map[uint32]data.HeaderHandler, len(usedShardHdrs))
@@ -1544,6 +1553,10 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for hdrHash, headerInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
+		if !headerInfo.usedInBlock {
+			continue
+		}
+
 		shardHdr, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
@@ -1686,7 +1699,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")
-	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -1700,7 +1713,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
 	if err != nil {
 		return err
 	}

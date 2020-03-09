@@ -26,7 +26,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertAccountStateCalled = func() {}
+	blockProcessorMock.RevertAccountStateCalled = func(header data.HeaderHandler) {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
