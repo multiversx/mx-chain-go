@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -224,7 +225,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -276,7 +277,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -322,7 +323,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -367,7 +368,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -412,7 +413,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}

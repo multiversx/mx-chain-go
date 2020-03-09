@@ -45,15 +45,15 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
-	data := []byte("data")
+	txData := []byte("data")
 	hash := "hash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    data,
-				Value:   value,
+				Data:    txData,
+				Value:   new(big.Int).Set(value),
 			}, nil
 		},
 	}
@@ -72,14 +72,14 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
 	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
 	assert.Equal(t, value.String(), txResp.Value)
-	assert.Equal(t, data, txResp.Data)
+	assert.Equal(t, txData, txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
-	data := "data"
+	txData := "data"
 	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
@@ -90,7 +90,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    []byte(txData),
 				Value:   value,
 			}, nil
 		},

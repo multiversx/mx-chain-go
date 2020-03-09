@@ -175,6 +175,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
+
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(hdrRes))
 }
