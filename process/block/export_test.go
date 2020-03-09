@@ -44,7 +44,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, haveTime func() bool) (block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, haveTime func() bool) (*block.Body, error) {
 	return sp.createMiniBlocks(maxItemsInBlock, haveTime)
 }
 
@@ -243,7 +243,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 	return sp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
-func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
+func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
 	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 
@@ -282,7 +282,7 @@ func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockS
 
 func (sp *shardProcessor) DisplayLogInfo(
 	header *block.Header,
-	body block.Body,
+	body *block.Body,
 	headerHash []byte,
 	numShards uint32,
 	selfId uint32,

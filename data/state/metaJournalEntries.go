@@ -50,7 +50,7 @@ func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*Met
 
 	return &MetaJournalEntryTxCount{
 		account:    account,
-		oldTxCount: oldTxCount,
+		oldTxCount: new(big.Int).Set(oldTxCount),
 	}, nil
 }
 
