@@ -112,7 +112,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		Data:      frontendData,
 		Signature: signatureBytes,
 	}
-	tx.SetValue(frontendValue)
+	tx.SetValue(new(big.Int).Set(frontendValue))
 	txHexHash, err = node.SendTransaction(tx)
 
 	assert.Nil(t, err)

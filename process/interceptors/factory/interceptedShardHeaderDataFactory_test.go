@@ -24,7 +24,18 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))

@@ -18,7 +18,7 @@ func TestMetaAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 	acnt, _ := state.NewMetaAccount(addr, addrTr)
 
 	marshalizer := mock.MarshalizerMock{}
-	buff, _ := marshalizer.Marshal(&acnt)
+	buff, _ := marshalizer.Marshal(acnt)
 
 	acntRecovered, _ := state.NewMetaAccount(addr, addrTr)
 	_ = marshalizer.Unmarshal(acntRecovered, buff)

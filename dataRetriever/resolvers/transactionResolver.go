@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -59,7 +60,7 @@ func NewTxResolver(
 // (for the topic this validator was registered to, usually a request topic)
 func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(txRes.marshalizer, message)
+	err := rd.UnmarshalWith(txRes.marshalizer, message)
 	if err != nil {
 		return err
 	}
@@ -85,15 +86,13 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(b
 
 func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	txsBuff := make([][]byte, 0)
 
 	tx, err := txRes.fetchTxAsByteSlice(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	txsBuff = append(txsBuff, tx)
-	buffToSend, err := txRes.marshalizer.Marshal(txsBuff)
+	buffToSend, err := txRes.marshalizer.Marshal(&batch.Batch{Data: [][]byte{tx}})
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +115,14 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	hashes := make([][]byte, 0)
-	err := txRes.marshalizer.Unmarshal(&hashes, hashesBuff)
+	b := batch.Batch{}
+	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
 		return err
 	}
+	hashes := b.Data
 
-	txsBuffSlice := make([][]byte, 0)
+	txsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
 		var tx []byte
 		tx, err = txRes.fetchTxAsByteSlice(hash)
@@ -163,7 +163,7 @@ func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
 func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	buffHashes, err := txRes.marshalizer.Marshal(hashes)
+	buffHashes, err := txRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 	if err != nil {
 		return err
 	}

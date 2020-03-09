@@ -414,8 +414,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	body := block.Body{}
-	body = append(body, &block.MiniBlock{
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{
 		Type:            block.SmartContractResultBlock,
 		ReceiverShardID: shardCoordinator.SelfId(),
 		SenderShardID:   shardCoordinator.SelfId() + 1})
@@ -443,9 +443,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	otherShard := shardCoordinator.SelfId() + 1
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
@@ -470,9 +470,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	otherShard := shardCoordinator.SelfId() + 1
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
 
 	snd := []byte("snd")
 
@@ -549,8 +549,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
-	body := block.Body{}
-	body = append(body, miniBlock)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)

@@ -35,7 +35,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testMarshalizer = &marshal.JsonMarshalizer{}
+var testMarshalizer = &marshal.GogoProtoMarshalizer{}
 var testHasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
@@ -72,7 +72,7 @@ func CreateMemUnit() storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
@@ -422,7 +422,7 @@ func CreateTx(
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
 		Data:     []byte(txData),
@@ -446,7 +446,7 @@ func CreateDeployTx(
 
 	return &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  CreateEmptyAddress().Bytes(),
 		Data:     scCodeAndVMType,

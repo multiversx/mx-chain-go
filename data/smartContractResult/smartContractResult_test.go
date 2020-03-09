@@ -25,13 +25,13 @@ func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 	value := big.NewInt(37)
 	data := []byte("unStake")
 
-	scr.SetRecvAddress(rcvAddr)
-	scr.SetSndAddress(sndAddr)
+	scr.SetRcvAddr(rcvAddr)
+	scr.SetSndAddr(sndAddr)
 	scr.SetValue(value)
 	scr.SetData(data)
 
-	assert.Equal(t, sndAddr, scr.GetSndAddress())
-	assert.Equal(t, rcvAddr, scr.GetRecvAddress())
+	assert.Equal(t, sndAddr, scr.GetSndAddr())
+	assert.Equal(t, rcvAddr, scr.GetRcvAddr())
 	assert.Equal(t, value, scr.GetValue())
 	assert.Equal(t, data, scr.GetData())
 	assert.Equal(t, gasLimit, scr.GetGasLimit())
