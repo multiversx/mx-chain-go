@@ -8,10 +8,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var _ = node(&branchNode{})
 
 func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
 	if check.IfNil(marshalizer) {
@@ -25,7 +26,7 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
+		CollapsedBn: CollapsedBn{
 			EncodedChildren: encChildren,
 		},
 		children: children,
@@ -42,7 +43,7 @@ func emptyDirtyBranchNode() *branchNode {
 	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
+		CollapsedBn: CollapsedBn{
 			EncodedChildren: encChildren,
 		},
 		children: children,

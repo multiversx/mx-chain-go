@@ -210,8 +210,10 @@ func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
+		AccountData: state.AccountData{
+			Nonce:   1,
+			Balance: big.NewInt(2),
+		},
 	}
 
 	args := createMockVMAccountsArguments()
@@ -253,8 +255,10 @@ func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
+		AccountData: state.AccountData{
+			Nonce:   1,
+			Balance: big.NewInt(2),
+		},
 	}
 
 	args := createMockVMAccountsArguments()
@@ -445,10 +449,12 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
+			AccountData: state.AccountData{
+				Nonce:    0,
+				Balance:  nil,
+				CodeHash: nil,
+				RootHash: nil,
+			},
 		}, nil
 	}
 	args := createMockVMAccountsArguments()
@@ -476,10 +482,12 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
+			AccountData: state.AccountData{
+				Nonce:    0,
+				Balance:  nil,
+				CodeHash: nil,
+				RootHash: nil,
+			},
 		}, nil
 	}
 	args := createMockVMAccountsArguments()
@@ -503,10 +511,12 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
+			AccountData: state.AccountData{
+				Nonce:    0,
+				Balance:  nil,
+				CodeHash: nil,
+				RootHash: nil,
+			},
 		}, nil
 	}
 	args := createMockVMAccountsArguments()

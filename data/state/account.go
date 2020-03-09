@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. accountData.proto
 package state
 
 import (
@@ -10,14 +11,7 @@ import (
 
 // Account is the struct used in serialization/deserialization
 type Account struct {
-	Nonce    uint64
-	Balance  *big.Int
-	CodeHash []byte
-	RootHash []byte
-	Address  []byte
-
-	DeveloperReward *big.Int
-	OwnerAddress    []byte
+	AccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -39,10 +33,12 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	addressBytes := addressContainer.Bytes()
 
 	return &Account{
-		DeveloperReward:  big.NewInt(0),
-		Balance:          big.NewInt(0),
+		AccountData: AccountData{
+			DeveloperReward:  big.NewInt(0),
+			Balance: big.NewInt(0),
+			Address: addressBytes,
+		},
 		addressContainer: addressContainer,
-		Address:          addressBytes,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type claimDeveloperRewards struct {
@@ -27,7 +27,7 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	value, err := acntDst.ClaimDeveloperRewards(tx.GetSndAddress())
+	value, err := acntDst.ClaimDeveloperRewards(tx.GetSndAddr())
 	if err != nil {
 		return nil, err
 	}

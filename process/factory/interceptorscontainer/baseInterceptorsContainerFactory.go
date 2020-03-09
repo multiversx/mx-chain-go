@@ -41,6 +41,7 @@ func checkBaseParams(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	marshalizer marshal.Marshalizer,
+	signMarshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
@@ -58,7 +59,7 @@ func checkBaseParams(
 	if check.IfNil(store) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(marshalizer) || check.IfNil(signMarshalizer) {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(hasher) {
