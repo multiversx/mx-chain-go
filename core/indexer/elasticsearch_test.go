@@ -171,7 +171,7 @@ func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei.SaveBlock(block.Body{{}}, nil, nil, nil)
+	ei.SaveBlock(&block.Body{MiniBlocks: []*block.MiniBlock{}}, nil, nil, nil)
 	require.True(t, strings.Contains(output.String(), indexer.ErrNoHeader.Error()))
 }
 
@@ -210,7 +210,7 @@ func TestElasticIndexer_SaveBlockNoMiniBlocks(t *testing.T) {
 	}()
 
 	header := &block.Header{}
-	body := block.Body{}
+	body := &block.Body{}
 	ei.SaveBlock(body, header, nil, []uint64{0})
 	require.True(t, strings.Contains(output.String(), indexer.ErrNoMiniblocks.Error()))
 }
@@ -251,7 +251,7 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 	}()
 
 	ei.SaveRoundInfo(indexer.RoundInfo{})
-	require.NotEmpty(t, output.String())
+	require.Empty(t, output.String())
 }
 
 func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {

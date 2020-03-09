@@ -75,10 +75,12 @@ func newTestTxPool() map[string]data.TransactionHandler {
 	return txPool
 }
 
-func newTestBlockBody() dataBlock.Body {
-	return dataBlock.Body{
-		{TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, ReceiverShardID: 2, SenderShardID: 2},
-		{TxHashes: [][]byte{[]byte("tx3")}, ReceiverShardID: 4, SenderShardID: 1},
+func newTestBlockBody() *dataBlock.Body {
+	return &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			{TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, ReceiverShardID: 2, SenderShardID: 2},
+			{TxHashes: [][]byte{[]byte("tx3")}, ReceiverShardID: 4, SenderShardID: 1},
+		},
 	}
 }
 
@@ -136,7 +138,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
-			blockBytes := make([]byte, 227)
+			blockBytes := make([]byte, 226)
 			_, _ = req.Body.Read(blockBytes)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)

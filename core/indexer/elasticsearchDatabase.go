@@ -148,7 +148,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(header 
 
 //SaveTransactions will prepare and save information about a transactions in elasticsearch server
 func (esd *elasticSearchDatabase) SaveTransactions(
-	body block.Body,
+	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardId uint32,
@@ -167,7 +167,7 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elastic search bulk API
 func (esd *elasticSearchDatabase) buildTransactionBulks(
-	body block.Body,
+	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardId uint32,
@@ -177,7 +177,7 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	blockMarshal, _ := esd.marshalizer.Marshal(header)
 	blockHash := esd.hasher.Compute(string(blockMarshal))
 
-	for _, mb := range body {
+	for _, mb := range body.MiniBlocks {
 		mbMarshal, err := esd.marshalizer.Marshal(mb)
 		if err != nil {
 			log.Debug("indexer: marshal", "error", "could not marshal miniblock")
@@ -245,7 +245,7 @@ func (esd *elasticSearchDatabase) serializeBulkTx(bulk []*Transaction) bytes.Buf
 func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 	var buff bytes.Buffer
 
-	marshalizedRoundInfo, err := esd.marshalizer.Marshal(info)
+	marshalizedRoundInfo, err := json.Marshal(&info)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal signers indexes")
 		return
@@ -277,7 +277,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
-	marshalizedValidatorPubKeys, err := esd.marshalizer.Marshal(shardValPubKeys)
+	marshalizedValidatorPubKeys, err := json.Marshal(shardValPubKeys)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")
 		return
