@@ -54,5 +54,5 @@ func (MarshalizerMock) Version() string {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mm MarshalizerMock) IsInterfaceNil() bool {
-	return &mm == nil
+	return false
 }

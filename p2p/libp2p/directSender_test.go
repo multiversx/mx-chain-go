@@ -69,9 +69,7 @@ func createLibP2PCredentialsDirectSender() (peer.ID, libp2pCrypto.PrivKey) {
 func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
 	hs := &mock.ConnectableHostStub{}
 
-	ctx := context.Background()
-	_ = ctx
-	ctx = nil
+	var ctx context.Context = nil
 	ds, err := libp2p.NewDirectSender(ctx, hs, func(msg p2p.MessageP2P) error {
 		return nil
 	})

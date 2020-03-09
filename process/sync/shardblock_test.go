@@ -1404,8 +1404,12 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
-				_ = obj
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 
@@ -1550,8 +1554,12 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
-				_ = obj
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 

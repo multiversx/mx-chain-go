@@ -24,3 +24,15 @@ func TestNilHeaderValidator_IsHeaderValidForProcessing(t *testing.T) {
 
 	assert.Nil(t, nhv.HeaderValidForProcessing(nil))
 }
+
+//------- IsInterfaceNil
+
+func TestNilHeaderValidator_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	hdrValidator, _ := dataValidators.NewNilHeaderValidator()
+	_ = hdrValidator
+	hdrValidator = nil
+
+	assert.True(t, check.IfNil(hdrValidator))
+}
