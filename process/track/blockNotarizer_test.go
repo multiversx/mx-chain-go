@@ -119,7 +119,7 @@ func TestCleanupWhenMaxCapacityIsReached_ShouldCleanOldestNotarizedHeaders(t *te
 	shardID := uint32(0)
 
 	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
-		bn.AppendNotarizedHeader(&block.Header{Nonce: i, ShardId: shardID})
+		bn.AppendNotarizedHeader(&block.Header{Nonce: i, ShardID: shardID})
 	}
 
 	bn.CleanupWhenMaxCapacityIsReached(shardID)
@@ -143,7 +143,7 @@ func TestCleanupWhenMaxCapacityIsReached_ShouldCleanNewestNotarizedHeaders(t *te
 	shardID := uint32(1)
 
 	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
-		bn.AppendNotarizedHeader(&block.Header{Nonce: i, ShardId: shardID})
+		bn.AppendNotarizedHeader(&block.Header{Nonce: i, ShardID: shardID})
 	}
 
 	bn.CleanupWhenMaxCapacityIsReached(shardID)
