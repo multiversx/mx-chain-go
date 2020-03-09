@@ -35,9 +35,6 @@ var ErrNilDataTrieContainer = errors.New("nil data trie container")
 // ErrNotSynced signals that syncing has not been finished yet
 var ErrNotSynced = errors.New("not synced")
 
-// ErrNilActiveTries signals that active tries container is nil
-var ErrNilActiveTries = errors.New("nil active tries")
-
 // ErrNilTrieSyncers signals that trie syncers container is nil
 var ErrNilTrieSyncers = errors.New("nil trie syncers")
 
@@ -154,3 +151,6 @@ var ErrInvalidWaitTime = errors.New("invalid wait time")
 
 // ErrNilStorageManager signals that nil storage manager has been provided
 var ErrNilStorageManager = errors.New("nil trie storage manager")
+
+// ErrNilAccountsDBSyncContainer signals that nil accounts sync container was provided
+var ErrNilAccountsDBSyncContainer = errors.New("nil accounts db sync container")

@@ -560,12 +560,48 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	if err != nil {
 		return err
 	}
-	if newTrie == nil {
+	if check.IfNil(newTrie) {
 		return ErrNilTrie
 	}
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+// RecreateAllTries recreates all the tries from the accounts DB
+func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	leafs, err := recreatedTrie.GetAllLeaves()
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]data.Trie)
+	allTries[string(rootHash)] = recreatedTrie
+
+	for _, leaf := range leafs {
+		account := &Account{}
+		err = adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) > 0 {
+			dataTrie, err := adb.mainTrie.Recreate(account.RootHash)
+			if err != nil {
+				return nil, err
+			}
+
+			allTries[string(account.RootHash)] = dataTrie
+		}
+	}
+
+	return nil, nil
 }
 
 // Journalize adds a new object to entries list. Concurrent safe.

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -194,19 +195,23 @@ func createHardForkExporter(
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for id, node := range nodes {
+		accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accountsDBs[state.UserAccountsState] = node.AccntState
+		accountsDBs[state.PeerAccountsState] = node.PeerState
+
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 		argsExportHandler := factory.ArgsExporter{
-			Marshalizer:      integrationTests.TestMarshalizer,
-			Hasher:           integrationTests.TestHasher,
-			HeaderValidator:  node.HeaderValidator,
-			Uint64Converter:  integrationTests.TestUint64Converter,
-			DataPool:         node.DataPool,
-			StorageService:   node.Storage,
-			RequestHandler:   node.RequestHandler,
-			ShardCoordinator: node.ShardCoordinator,
-			Messenger:        node.Messenger,
-			ActiveTries:      node.TrieContainer,
-			ExportFolder:     node.ExportFolder,
+			Marshalizer:       integrationTests.TestMarshalizer,
+			Hasher:            integrationTests.TestHasher,
+			HeaderValidator:   node.HeaderValidator,
+			Uint64Converter:   integrationTests.TestUint64Converter,
+			DataPool:          node.DataPool,
+			StorageService:    node.Storage,
+			RequestHandler:    node.RequestHandler,
+			ShardCoordinator:  node.ShardCoordinator,
+			Messenger:         node.Messenger,
+			ActiveAccountsDBs: accountsDBs,
+			ExportFolder:      node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Size: 10000, Type: "LRU", Shards: 1,
@@ -234,7 +239,6 @@ func createHardForkExporter(
 			WhiteListHandler:      node.WhiteListHandler,
 			InterceptorsContainer: node.InterceptorsContainer,
 			ExistingResolvers:     node.ResolversContainer,
-			Accounts:              node.AccntState,
 			MultiSigner:           node.MultiSigner,
 			NodesCoordinator:      node.NodesCoordinator,
 			SingleSigner:          node.OwnAccount.SingleSigner,

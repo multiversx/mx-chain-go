@@ -90,7 +90,7 @@ func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
 }
 
 func (ts *TrieStub) Commit() error {
-	if ts != nil {
+	if ts.CommitCalled != nil {
 		return ts.CommitCalled()
 	}
 

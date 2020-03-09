@@ -147,6 +147,7 @@ type AccountsAdapter interface {
 	IsPruningEnabled() bool
 	ClosePersister() error
 	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 

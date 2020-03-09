@@ -10,47 +10,46 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryTrieContainer "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type syncAccountsDBs struct {
-	tries       *concurrentTriesMap
-	trieSyncers update.TrieSyncContainer
-	activeTries state.TriesHolder
-	mutSynced   sync.Mutex
-	synced      bool
+	tries              *concurrentTriesMap
+	accountsBDsSyncers update.AccountsDBSyncContainer
+	activeAccountsDBs  map[state.AccountsDbIdentifier]state.AccountsAdapter
+	mutSynced          sync.Mutex
+	synced             bool
 }
 
-// ArgsNewSyncAccountsDBsHandler is the argument structed to create a sync tries handler
+// ArgsNewSyncAccountsDBsHandler is the argument structured to create a sync tries handler
 type ArgsNewSyncAccountsDBsHandler struct {
-	TrieSyncers update.TrieSyncContainer
-	ActiveTries state.TriesHolder
+	AccountsDBsSyncers update.AccountsDBSyncContainer
+	ActiveAccountsDBs  map[state.AccountsDbIdentifier]state.AccountsAdapter
 }
 
 // NewSyncAccountsDBsHandler creates a new syncAccountsDBs
 func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccountsDBs, error) {
-	if check.IfNil(args.TrieSyncers) {
-		return nil, update.ErrNilTrieSyncers
-	}
-	if check.IfNil(args.ActiveTries) {
-		return nil, update.ErrNilActiveTries
+	if check.IfNil(args.AccountsDBsSyncers) {
+		return nil, update.ErrNilAccountsDBSyncContainer
 	}
 
 	st := &syncAccountsDBs{
-		tries:       newConcurrentTriesMap(),
-		trieSyncers: args.TrieSyncers,
-		activeTries: args.ActiveTries,
-		synced:      false,
-		mutSynced:   sync.Mutex{},
+		tries:              newConcurrentTriesMap(),
+		accountsBDsSyncers: args.AccountsDBsSyncers,
+		activeAccountsDBs:  make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
+		synced:             false,
+		mutSynced:          sync.Mutex{},
+	}
+	for key, value := range args.ActiveAccountsDBs {
+		st.activeAccountsDBs[key] = value
 	}
 
 	return st, nil
 }
 
 // SyncAccountsDBsFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncAccountsDBsFrom(meta *block.MetaBlock, waitTime time.Duration) error {
+func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
 	if !meta.IsStartOfEpochBlock() {
 		return update.ErrNotEpochStartBlock
 	}
@@ -107,12 +106,12 @@ func (st *syncAccountsDBs) SyncAccountsDBsFrom(meta *block.MetaBlock, waitTime t
 }
 
 func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
-	err := st.syncTrieOfType(state.UserAccount, factoryTrieContainer.UserAccountTrie, core.MetachainShardId, meta.RootHash)
+	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return err
 	}
 
-	err = st.syncTrieOfType(state.ValidatorAccount, factoryTrieContainer.PeerAccountTrie, core.MetachainShardId, meta.ValidatorStatsRootHash)
+	err = st.syncAccountsOfType(state.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -121,14 +120,14 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncTrieOfType(state.UserAccount, factoryTrieContainer.UserAccountTrie, shardData.ShardId, shardData.RootHash)
+	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, shardData.ShardId, shardData.RootHash)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (st *syncAccountsDBs) syncTrieOfType(accountType state.Type, trieID string, shardId uint32, rootHash []byte) error {
+func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
 	success := st.tryRecreateTrie(accAdapterIdentifier, trieID, rootHash)
@@ -136,22 +135,30 @@ func (st *syncAccountsDBs) syncTrieOfType(accountType state.Type, trieID string,
 		return nil
 	}
 
-	trieSyncer, err := st.trieSyncers.Get(accAdapterIdentifier)
+	accountsDBSyncer, err := st.accountsBDsSyncers.Get(accAdapterIdentifier)
 	if err != nil {
 		return err
 	}
 
-	err = trieSyncer.StartSyncing(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash)
 	if err != nil {
 		// critical error - should not happen - maybe recreate trie syncer here
 		return err
 	}
 
-	st.tries.setTrie(accAdapterIdentifier, trieSyncer.Trie())
+	for hash, currentTrie := range accountsDBSyncer.GetSyncedTries() {
+		if bytes.Equal([]byte(hash), rootHash) {
+			st.tries.setTrie(accAdapterIdentifier, currentTrie)
+			continue
+		}
+
+		st.tries.setTrie(hash, currentTrie)
+	}
+
 	return nil
 }
 
-func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID string, rootHash []byte) bool {
+func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
 	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
 		currHash, err := savedTrie.Root()
@@ -160,22 +167,32 @@ func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID string, rootHash []
 		}
 	}
 
-	activeTrie := st.activeTries.Get([]byte(trieID))
+	activeTrie := st.activeAccountsDBs[trieID]
 	if check.IfNil(activeTrie) {
 		return false
 	}
 
-	trie, err := activeTrie.Recreate(rootHash)
+	tries, err := activeTrie.RecreateAllTries(rootHash)
 	if err != nil {
 		return false
 	}
 
-	err = trie.Commit()
-	if err != nil {
-		return false
+	for _, recreatedTrie := range tries {
+		err = recreatedTrie.Commit()
+		if err != nil {
+			return false
+		}
 	}
 
-	st.tries.setTrie(id, trie)
+	for hash, currentTrie := range tries {
+		if bytes.Equal([]byte(hash), rootHash) {
+			st.tries.setTrie(id, currentTrie)
+			continue
+		}
+
+		st.tries.setTrie(hash, currentTrie)
+	}
+
 	return true
 }
 

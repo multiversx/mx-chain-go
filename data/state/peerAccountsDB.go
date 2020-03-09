@@ -54,3 +54,16 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	adb.mainTrie.TakeSnapshot(rootHash)
 	adb.mainTrie.ExitSnapshotMode()
 }
+
+// RecreateAllTries recreates all the tries from the accounts DB
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]data.Trie)
+	allTries[string(rootHash)] = recreatedTrie
+
+	return allTries, nil
+}
