@@ -317,11 +317,10 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	sr := *initSubroundBlock(nil, container)
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	blBody := &block.Body{}
+	blBodyStr, _ := mock.MarshalizerMock{}.Marshal(blBody)
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
-		nil,
-		blBody,
-		nil,
+		blBodyStr,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
@@ -355,9 +354,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg = consensus.NewConsensusMessage(
 		hdrHash,
-		nil,
-		nil,
-		hdr,
+		hdrStr,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockHeader,
@@ -394,7 +391,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdrStr, _ = mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash = mock.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg.BlockHeaderHash = hdrHash
-	cnsMsg.Header = hdr
+	cnsMsg.SubRoundData = hdrStr
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.True(t, r)
 }
@@ -407,8 +404,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
-		nil,
-		nil,
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -438,8 +433,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
-		nil,
-		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
@@ -463,8 +456,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
-		nil,
-		nil,
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -497,8 +488,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
-		nil,
-		nil,
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -687,8 +676,10 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	_ = sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 	header, body, _ := sr.CreateBlock(header)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -716,8 +707,10 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 
 	header, _ := sr.CreateHeader()
 	header, body, _ := sr.CreateBlock(header)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -763,8 +756,10 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 
 	header, _ := sr.CreateHeader()
 	header, body, _ := sr.CreateBlock(header)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -859,8 +854,6 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
-		nil,
-		nil,
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),

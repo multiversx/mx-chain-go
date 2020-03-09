@@ -18,6 +18,9 @@ type BlockProcessorStub struct {
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
+	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func(round uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
@@ -72,6 +75,21 @@ func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, 
 // MarshalizedDataToBroadcast -
 func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bps.MarshalizedDataToBroadcastCalled(header, body)
+}
+
+// DecodeBlockBodyAndHeader -
+func (bps *BlockProcessorStub) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	return bps.DecodeBlockBodyAndHeaderCalled(dta)
+}
+
+// DecodeBlockBody -
+func (bps *BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
+	return bps.DecodeBlockBodyCalled(dta)
+}
+
+// DecodeBlockHeader -
+func (bps *BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	return bps.DecodeBlockHeaderCalled(dta)
 }
 
 // AddLastNotarizedHdr -

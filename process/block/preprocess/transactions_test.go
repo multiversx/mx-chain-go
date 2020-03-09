@@ -991,7 +991,7 @@ func ExampleSortTransactionsBySenderAndNonce() {
 	SortTransactionsBySenderAndNonce(txs)
 
 	for _, item := range txs {
-		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddress()), string(item.TxHash))
+		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
 	}
 
 	// Output:

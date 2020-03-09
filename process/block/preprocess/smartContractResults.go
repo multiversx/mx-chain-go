@@ -329,7 +329,7 @@ func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint3
 // computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	if check.IfNil(body) {
-		//TODO: Analyze if this return is correct
+		//TODO: PMS analyze if this return is correct
 		return map[uint32][]*txsHashesInfo{}
 	}
 

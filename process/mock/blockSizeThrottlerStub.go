@@ -1,9 +1,5 @@
 package mock
 
-import (
-	"github.com/ElrondNetwork/elrond-go/process"
-)
-
 // BlockSizeThrottlerStub -
 type BlockSizeThrottlerStub struct {
 	MaxItemsToAddCalled   func() uint32
@@ -18,7 +14,7 @@ func (bsts *BlockSizeThrottlerStub) MaxItemsToAdd() uint32 {
 		return bsts.MaxItemsToAddCalled()
 	}
 
-	return process.MaxItemsInBlock
+	return 15000
 }
 
 // Add -

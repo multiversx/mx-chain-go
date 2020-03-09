@@ -23,12 +23,12 @@ func TestNewBlockSizeComputation_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewBlockSizeComputation_WithMockMarshalizerShouldWorkAndComputeValues(t *testing.T) {
 	t.Parallel()
 
-	bsc, err := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, err := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	assert.False(t, check.IfNil(bsc))
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(68), bsc.MiniblockSize())
-	assert.Equal(t, uint32(47), bsc.TxSize())
+	assert.Equal(t, uint32(9), bsc.MiniblockSize())
+	assert.Equal(t, uint32(34), bsc.TxSize())
 }
 
 func TestNewBlockSizeComputation_MarshalizerFailsShouldErr(t *testing.T) {
@@ -60,7 +60,7 @@ func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	val := 56
 	bsc.AddNumMiniBlocks(val)
@@ -71,7 +71,7 @@ func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
 func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	val := 57
 	bsc.AddNumTxs(val)
@@ -82,7 +82,7 @@ func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
 func TestBlockSizeComputation_Init(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	numTxs := 57
 	numMiniblocks := 23
@@ -98,7 +98,7 @@ func TestBlockSizeComputation_Init(t *testing.T) {
 func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	testData := []struct {
 		numNewMiniBlocks int
@@ -110,9 +110,9 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 		{numNewMiniBlocks: 1000000, numNewTxs: 0, expected: true, name: "with miniblocks 1000000 and txs 0"},
 		{numNewMiniBlocks: 0, numNewTxs: 1000000, expected: true, name: "with miniblocks 0 and txs 1000000"},
 		{numNewMiniBlocks: 15, numNewTxs: 1000, expected: false, name: "with miniblocks 15 and txs 1000"},
-		{numNewMiniBlocks: 1, numNewTxs: 20077, expected: false, name: "with miniblocks 1 and txs 20077"},
-		{numNewMiniBlocks: 1, numNewTxs: 20078, expected: true, name: "with miniblocks 1 and txs 20078"},
-		{numNewMiniBlocks: 2, numNewTxs: 20077, expected: true, name: "with miniblocks 2 and txs 20077"},
+		{numNewMiniBlocks: 1, numNewTxs: 27756, expected: false, name: "with miniblocks 1 and txs 20077"},
+		{numNewMiniBlocks: 1, numNewTxs: 27757, expected: true, name: "with miniblocks 1 and txs 20078"},
+		{numNewMiniBlocks: 2, numNewTxs: 27756, expected: true, name: "with miniblocks 2 and txs 20077"},
 	}
 
 	for _, td := range testData {
@@ -125,9 +125,9 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.MarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
 	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 
-	assert.Equal(t, 20077, maxTxs)
+	assert.Equal(t, 27756, maxTxs)
 }

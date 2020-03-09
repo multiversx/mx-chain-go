@@ -471,7 +471,10 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
-	//TODO: Should be checked body for nil?
+	if check.IfNil(body) {
+		return 0, nil, process.ErrNilBlockBody
+	}
+
 	totalTxCount := 0
 	var miniBlockHeaders []block.MiniBlockHeader
 	if len(body.MiniBlocks) > 0 {
@@ -866,6 +869,59 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	return noncesToFinal
+}
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	body := &block.Body{}
+
+	if dta == nil {
+		return body
+	}
+
+	err := bp.marshalizer.Unmarshal(body, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return body
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	header := bp.blockChain.CreateNewHeader()
+
+	err := bp.marshalizer.Unmarshal(header, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return header
+}
+
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader block.BodyHeaderPair
+	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	body := bp.DecodeBlockBody(marshalizedBodyAndHeader.Body)
+	header := bp.DecodeBlockHeader(marshalizedBodyAndHeader.Header)
+
+	return body, header
 }
 
 func (bp *baseProcessor) saveBody(body *block.Body) {

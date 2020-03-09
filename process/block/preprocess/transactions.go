@@ -319,12 +319,12 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		calculatedSenderShardId, err := txs.getShardFromAddress(tx.GetSndAddress())
+		calculatedSenderShardId, err := txs.getShardFromAddress(tx.GetSndAddr())
 		if err != nil {
 			return nil, err
 		}
 
-		calculatedReceiverShardId, err := txs.getShardFromAddress(tx.GetRecvAddress())
+		calculatedReceiverShardId, err := txs.getShardFromAddress(tx.GetRcvAddr())
 		if err != nil {
 			return nil, err
 		}
@@ -438,26 +438,26 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	miniBlocks, err := txs.createAndProcessMiniBlocks(haveTime, isShardStuckFalse, txsFromMe)
+	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocks(haveTime, isShardStuckFalse, txsFromMe)
 	if err != nil {
 		return err
 	}
 
-	bodyWithoutInvalidMiniBlock := make(block.MiniBlockSlice, 0)
+	receivedMiniBlocks := make(block.MiniBlockSlice, 0)
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type == block.InvalidBlock {
 			continue
 		}
 
-		bodyWithoutInvalidMiniBlock = append(bodyWithoutInvalidMiniBlock, miniBlock)
+		receivedMiniBlocks = append(receivedMiniBlocks, miniBlock)
 	}
 
-	receivedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, bodyWithoutInvalidMiniBlock)
+	receivedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, &block.Body{MiniBlocks: receivedMiniBlocks})
 	if err != nil {
 		return err
 	}
 
-	calculatedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlocks)
+	calculatedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, &block.Body{MiniBlocks: calculatedMiniBlocks})
 	if err != nil {
 		return err
 	}
@@ -825,7 +825,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		}
 
 		if len(senderAddressToSkip) > 0 {
-			if bytes.Equal(senderAddressToSkip, tx.GetSndAddress()) {
+			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
 				numTxsSkipped++
 				continue
 			}
@@ -867,12 +867,12 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		totalTimeUsedForProcesss += elapsedTime
 
 		txs.mutAccountsInfo.Lock()
-		txs.accountsInfo[string(tx.GetSndAddress())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+		txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
 		txs.mutAccountsInfo.Unlock()
 
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			if errors.Is(err, process.ErrHigherNonceInTransaction) {
-				senderAddressToSkip = tx.GetSndAddress()
+				senderAddressToSkip = tx.GetSndAddr()
 			}
 
 			numTxsBad++
@@ -1124,7 +1124,7 @@ func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx
 
-		delta := bytes.Compare(txI.GetSndAddress(), txJ.GetSndAddress())
+		delta := bytes.Compare(txI.GetSndAddr(), txJ.GetSndAddr())
 		if delta == 0 {
 			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
 		}

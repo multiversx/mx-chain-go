@@ -286,8 +286,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		signature,
-		nil,
-		nil,
 		[]byte(sr.ConsensusGroup()[1]),
 		[]byte("sig"),
 		int(bls.MtSignature),
@@ -417,8 +415,6 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 	cnsMsg := consensus.NewConsensusMessage(
 		append(sr.Data, []byte("X")...),
 		[]byte("signature"),
-		nil,
-		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bls.MtSignature),

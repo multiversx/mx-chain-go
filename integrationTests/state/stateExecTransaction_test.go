@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -120,7 +119,7 @@ func testExecTransactionsMoreTxWithRevert(
 
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 
-	txToGenerate := process.MaxItemsInBlock
+	txToGenerate := 15000
 	gasPrice := uint64(2)
 	gasLimit := uint64(2)
 	value := uint64(1)

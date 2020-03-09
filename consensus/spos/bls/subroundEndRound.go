@@ -200,8 +200,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
-		nil,
-		nil,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeaderFinalInfo),

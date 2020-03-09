@@ -77,13 +77,13 @@ func (bsc *blockSizeComputation) computeSize(marshalizer marshal.Marshalizer, ob
 	return uint32(len(buff)), nil
 }
 
-func (bsc *blockSizeComputation) generateDummyBlockbody(numMiniblocks int, numTxHashesPerMiniblock int) block.Body {
-	body := make(block.Body, numMiniblocks)
+func (bsc *blockSizeComputation) generateDummyBlockbody(numMiniblocks int, numTxHashesPerMiniblock int) *block.Body {
+	miniBlocks := make([]*block.MiniBlock, numMiniblocks)
 	for i := 0; i < numMiniblocks; i++ {
-		body[i] = bsc.generateDummyMiniblock(numTxHashesPerMiniblock)
+		miniBlocks[i] = bsc.generateDummyMiniblock(numTxHashesPerMiniblock)
 	}
 
-	return body
+	return &block.Body{MiniBlocks: miniBlocks}
 }
 
 func (bsc *blockSizeComputation) generateDummyMiniblock(numTxHashes int) *block.MiniBlock {

@@ -15,8 +15,6 @@ func TestConsensusMessage_NewConsensusMessageShouldWork(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		nil,
-		nil,
 		-1,
 		0,
 		[]byte("chain ID"),

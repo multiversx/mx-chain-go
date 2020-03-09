@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -109,18 +108,6 @@ func (sr *subroundBlock) doBlockJob() bool {
 }
 
 func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
-	if sr.couldBeSentTogether(body, header) {
-		return sr.sendBlockBodyAndHeader(body, header)
-	}
-
-	if !sr.sendBlockBody(body) || !sr.sendBlockHeader(header) {
-		return false
-	}
-
-	return true
-}
-
-func (sr *subroundBlock) couldBeSentTogether(body data.BodyHandler, header data.HeaderHandler) bool {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -133,6 +120,18 @@ func (sr *subroundBlock) couldBeSentTogether(body data.BodyHandler, header data.
 		return false
 	}
 
+	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
+		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+	}
+
+	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
+		return false
+	}
+
+	return true
+}
+
+func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
 	bodyAndHeaderSize := uint32(len(marshalizedBody) + len(marshalizedHeader))
 	log.Debug("couldBeSentTogether",
 		"body size", len(marshalizedBody),
@@ -161,24 +160,29 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 }
 
 // sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
-func (sr *subroundBlock) sendBlockBodyAndHeader(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) bool {
-	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
+func (sr *subroundBlock) sendBlockBodyAndHeader(
+	bodyHandler data.BodyHandler,
+	headerHandler data.HeaderHandler,
+	marshalizedBody []byte,
+	marshalizedHeader []byte,
+) bool {
+
+	marshalizedBodyAndHeader := block.BodyHeaderPair{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	subRoundData, err := sr.Marshalizer().Marshal(&marshalizedBodyAndHeader)
 	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.CalculateHash", "error", err.Error())
+		log.Debug("sendBlockBodyAndHeader.Marshal: marshalizedBodyAndHeader", "error", err.Error())
 		return false
 	}
 
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		log.Debug("sendBlockBodyAndHeader", "error", process.ErrWrongTypeAssertion)
-		return false
-	}
+	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
-		nil,
-		body,
-		headerHandler,
+		subRoundData,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBodyAndHeader),
@@ -207,18 +211,10 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(bodyHandler data.BodyHandler, he
 }
 
 // sendBlockBody method sends the proposed block body in the subround Block
-func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler) bool {
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		log.Debug("sendBlockBody", "error", process.ErrWrongTypeAssertion)
-		return false
-	}
-
+func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalizedBody []byte) bool {
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
-		nil,
-		body,
-		nil,
+		marshalizedBody,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBody),
@@ -243,18 +239,12 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler) bool {
 }
 
 // sendBlockHeader method sends the proposed block header in the subround Block
-func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler) bool {
-	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
-	if err != nil {
-		log.Debug("sendBlockHeader.CalculateHash", "error", err.Error())
-		return false
-	}
+func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marshalizedHeader []byte) bool {
+	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
-		nil,
-		nil,
-		headerHandler,
+		marshalizedHeader,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeader),
@@ -265,7 +255,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler) bool 
 		nil,
 	)
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("sendBlockHeader.BroadcastConsensusMessage", "error", err.Error())
 		return false
@@ -345,8 +335,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Body = cnsDta.Body
-	sr.Header = cnsDta.Header
+	sr.Body, sr.Header = sr.BlockProcessor().DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
 
 	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
 		return false
@@ -379,7 +368,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.Body = cnsDta.Body
+	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
 
 	if check.IfNil(sr.Body) {
 		return false
@@ -415,7 +404,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Header = cnsDta.Header
+	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
 
 	if sr.Data == nil || check.IfNil(sr.Header) {
 		return false

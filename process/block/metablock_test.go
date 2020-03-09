@@ -1961,6 +1961,101 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+	arguments.BlockChain = &mock.BlockChainMock{
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
+
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
+	hdr.AccumulatedFeesInEpoch = new(big.Int)
+
+	marshalizedBody, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	marshalizedBodyAndHeader := block.BodyHeaderPair{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	assert.Nil(t, err)
+
+	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
+	assert.Nil(t, dcdBlk)
+	assert.Nil(t, dcdHdr)
+
+	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body.MiniBlocks[0].ReceiverShardID)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
+func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	b := &block.Body{}
+	message, err := marshalizerMock.Marshal(b)
+	assert.Nil(t, err)
+
+	dcdBlk := mp.DecodeBlockBody(nil)
+	assert.Equal(t, &block.Body{}, dcdBlk)
+
+	dcdBlk = mp.DecodeBlockBody(message)
+	assert.Equal(t, b, dcdBlk)
+}
+
+func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+	arguments.BlockChain = &mock.BlockChainMock{
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+	hdr.AccumulatedFees = new(big.Int)
+	hdr.AccumulatedFeesInEpoch = new(big.Int)
+	_, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	message, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	dcdHdr := mp.DecodeBlockHeader(nil)
+	assert.Nil(t, dcdHdr)
+
+	dcdHdr = mp.DecodeBlockHeader(message)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
 func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
