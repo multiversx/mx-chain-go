@@ -81,6 +81,8 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
 			signatureShare,
+			nil,
+			nil,
 			[]byte(sr.SelfPubKey()),
 			nil,
 			int(MtSignature),
@@ -149,7 +151,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	currentMultiSigner := sr.MultiSigner()
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
+	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
 			"index", index,

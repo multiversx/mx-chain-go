@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -166,23 +165,13 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
 ) bool {
-
-	marshalizedBodyAndHeader := block.BodyHeaderPair{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
-	}
-
-	subRoundData, err := sr.Marshalizer().Marshal(&marshalizedBodyAndHeader)
-	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.Marshal: marshalizedBodyAndHeader", "error", err.Error())
-		return false
-	}
-
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
-		subRoundData,
+		nil,
+		marshalizedBody,
+		marshalizedHeader,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBodyAndHeader),
@@ -193,7 +182,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 		nil,
 	)
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("sendBlockBodyAndHeader.BroadcastConsensusMessage", "error", err.Error())
 		return false
@@ -214,7 +203,9 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalizedBody []byte) bool {
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
+		nil,
 		marshalizedBody,
+		nil,
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBody),
@@ -244,6 +235,8 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
+		nil,
+		nil,
 		marshalizedHeader,
 		[]byte(sr.SelfPubKey()),
 		nil,
@@ -335,7 +328,8 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Body, sr.Header = sr.BlockProcessor().DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
+	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
+	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
 		return false
@@ -368,7 +362,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
+	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 
 	if check.IfNil(sr.Body) {
 		return false
@@ -404,7 +398,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
+	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	if sr.Data == nil || check.IfNil(sr.Header) {
 		return false

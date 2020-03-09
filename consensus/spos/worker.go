@@ -329,14 +329,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
 		headerHash := cnsDta.BlockHeaderHash
-		var header data.HeaderHandler
-		if isMessageWithBlockHeader {
-			header = wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
-		} else {
-			_, header = wrk.blockProcessor.DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
-		}
-
-		isHeaderInvalid := check.IfNil(header) || headerHash == nil
+		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.Header)
+		isHeaderInvalid := headerHash == nil || check.IfNil(header)
 		if isHeaderInvalid {
 			return fmt.Errorf("%w : received header from consensus topic is invalid",
 				ErrInvalidHeader)

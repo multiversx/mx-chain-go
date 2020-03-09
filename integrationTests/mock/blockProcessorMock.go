@@ -19,7 +19,6 @@ type BlockProcessorMock struct {
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeaderCalled          func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
@@ -92,33 +91,6 @@ func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 // MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
-}
-
-// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
-func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	if dta == nil {
-		return nil, nil
-	}
-
-	var marshalizedBodyAndHeader block.BodyHeaderPair
-	err := bpm.Marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
-	if err != nil {
-		return nil, nil
-	}
-
-	var body block.Body
-	err = bpm.Marshalizer.Unmarshal(&body, marshalizedBodyAndHeader.Body)
-	if err != nil {
-		return nil, nil
-	}
-
-	var header block.Header
-	err = bpm.Marshalizer.Unmarshal(&header, marshalizedBodyAndHeader.Header)
-	if err != nil {
-		return nil, nil
-	}
-
-	return &body, &header
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
