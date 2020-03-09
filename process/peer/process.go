@@ -577,9 +577,6 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	pa, _ := peerAccount.(*state.PeerAccount)
-	log.Trace("Saved peer account", "PK", pa.BLSPublicKey, "rewardAddress", pa.RewardAddress)
-
 	return nil
 }
 
