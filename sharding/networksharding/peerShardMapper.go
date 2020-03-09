@@ -1,18 +1,26 @@
 package networksharding
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
+
+const maxNumPidsPerPk = 3
 
 // PeerShardMapper stores the mappings between peer IDs and shard IDs
 type PeerShardMapper struct {
 	peerIdPk         storage.Cacher
+	pkPeerId         storage.Cacher
 	fallbackPkShard  storage.Cacher
 	fallbackPidShard storage.Cacher
+
+	mutUpdatePeerIdPublicKey sync.Mutex
 
 	nodesCoordinator sharding.NodesCoordinator
 	epochHandler     sharding.EpochHandler
@@ -43,8 +51,14 @@ func NewPeerShardMapper(
 		return nil, sharding.ErrNilEpochHandler
 	}
 
+	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
+	if err != nil {
+		return nil, err
+	}
+
 	return &PeerShardMapper{
 		peerIdPk:         peerIdPk,
+		pkPeerId:         pkPeerId,
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
 		nodesCoordinator: nodesCoordinator,
@@ -121,7 +135,47 @@ func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (sha
 
 // UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map
 func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
+	psm.mutUpdatePeerIdPublicKey.Lock()
+	defer psm.mutUpdatePeerIdPublicKey.Unlock()
+
+	objPids, found := psm.pkPeerId.Get(pk)
+	if !found {
+		psm.peerIdPk.HasOrAdd([]byte(pid), pk)
+		psm.pkPeerId.HasOrAdd(pk, []p2p.PeerID{pid})
+		return
+	}
+
+	pids, ok := objPids.([]p2p.PeerID)
+	if !ok {
+		psm.pkPeerId.Remove(pk)
+		return
+	}
+
+	found = searchPid(pid, pids)
+	if found {
+		psm.peerIdPk.HasOrAdd([]byte(pid), pk)
+		return
+	}
+
+	for len(pids) > maxNumPidsPerPk {
+		evictedPid := pids[0]
+		pids = pids[1:]
+
+		psm.peerIdPk.Remove([]byte(evictedPid))
+		psm.fallbackPidShard.Remove([]byte(evictedPid))
+	}
+	psm.pkPeerId.Put(pk, pids)
 	psm.peerIdPk.HasOrAdd([]byte(pid), pk)
+}
+
+func searchPid(pid p2p.PeerID, pids []p2p.PeerID) bool {
+	for _, p := range pids {
+		if p == pid {
+			return true
+		}
+	}
+
+	return false
 }
 
 // UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
