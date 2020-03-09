@@ -314,7 +314,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	previousHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
 
 	epochStartHeader := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: previousHeaderHash}
-	epochStartHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	epochStartHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 	epochStartHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
 
