@@ -1,12 +1,9 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. proto/authMessage.proto
 package data
-
-import (
-	protobuf "github.com/ElrondNetwork/elrond-go/p2p/data/proto"
-)
 
 // AuthMessage represents the authentication message used in the handshake process of 2 peers
 type AuthMessage struct {
-	protobuf.AuthMessagePb
+	AuthMessagePb
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

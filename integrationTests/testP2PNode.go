@@ -119,7 +119,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
-		node.WithMarshalizer(TestMarshalizer, 100),
+		node.WithProtoMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithKeyGen(tP2pNode.KeyGen),
 		node.WithShardCoordinator(tP2pNode.ShardCoordinator),
