@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "dataRetriever";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// RequestDataType represents the data type for the requested data
+enum RequestDataType {
+	// Invalid
+	InvalidType    = 0;
+	// HashType indicates that the request data object is of type hash
+	HashType       = 1;
+	// HashArrayType that the request data object contains a serialised array of hashes
+	HashArrayType  = 2;
+	// NonceType indicates that the request data object is of type nonce (uint64)
+	NonceType      = 3;
+	// EpochType indicates that the request data object is of type epoch
+	EpochType      = 4;
+}
+
+// RequestData holds the requested data
+// This struct will be serialized and sent to the other peers
+message RequestData {
+	bytes           Value = 2 [(gogoproto.jsontag) = "value"];
+	RequestDataType Type  = 1 [(gogoproto.jsontag) = "type"];
+	uint32          Epoch = 3 [(gogoproto.jsontag) = "epoch"];
+}

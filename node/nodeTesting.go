@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -53,7 +54,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.protoMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -184,10 +185,13 @@ func (n *Node) generateAndSignSingleTx(
 	value *big.Int,
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
-	data string,
+	dataField string,
 	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-	if check.IfNil(n.marshalizer) {
+	if check.IfNil(n.protoMarshalizer) {
+		return nil, nil, ErrNilMarshalizer
+	}
+	if check.IfNil(n.txSignMarshalizer) {
 		return nil, nil, ErrNilMarshalizer
 	}
 	if check.IfNil(sk) {
@@ -196,15 +200,15 @@ func (n *Node) generateAndSignSingleTx(
 
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		GasLimit: minTxGasLimit,
 		GasPrice: minTxGasPrice,
 		RcvAddr:  rcvAddrBytes,
 		SndAddr:  sndAddrBytes,
-		Data:     []byte(data),
+		Data:     []byte(dataField),
 	}
 
-	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	marshalizedTx, err := n.txSignMarshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
@@ -215,7 +219,7 @@ func (n *Node) generateAndSignSingleTx(
 	}
 
 	tx.Signature = sig
-	txBuff, err := n.marshalizer.Marshal(&tx)
+	txBuff, err := n.protoMarshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -236,7 +240,7 @@ func (n *Node) generateAndSignTxBuffArray(
 		return nil, nil, err
 	}
 
-	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
+	signedMarshalizedTx, err := n.protoMarshalizer.Marshal(&batch.Batch{Data: [][]byte{txBuff}})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}

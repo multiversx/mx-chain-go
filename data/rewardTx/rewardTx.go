@@ -1,71 +1,58 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. rewardTx.proto
 package rewardTx
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// RewardTx holds the data for a reward transaction
-type RewardTx struct {
-	Round   uint64   `json:"round"`
-	Value   *big.Int `json:"value"`
-	RcvAddr []byte   `json:"receiver"`
-	Epoch   uint32   `json:"epoch"`
-}
+var _ = data.TransactionHandler(&RewardTx{})
 
 // IsInterfaceNil verifies if underlying object is nil
 func (rtx *RewardTx) IsInterfaceNil() bool {
 	return rtx == nil
 }
 
-// GetValue returns the value of the reward transaction
-func (rtx *RewardTx) GetValue() *big.Int {
-	return rtx.Value
-}
-
-// GetNonce returns 0 as reward transactions do not have a nonce
-func (rtx *RewardTx) GetNonce() uint64 {
-	return 0
-}
-
-// GetData returns the data of the reward transaction
-func (rtx *RewardTx) GetData() []byte {
-	return []byte("")
-}
-
-// GetRecvAddress returns the receiver address from the reward transaction
-func (rtx *RewardTx) GetRecvAddress() []byte {
-	return rtx.RcvAddr
-}
-
-// GetSndAddress returns the sender address from the reward transaction
-func (rtx *RewardTx) GetSndAddress() []byte {
-	return nil
-}
-
-// GetGasLimit returns the gas limit of the smart reward transaction
-func (rtx *RewardTx) GetGasLimit() uint64 {
-	return 0
-}
-
-// GetGasPrice returns the gas price of the smart reward transaction
-func (rtx *RewardTx) GetGasPrice() uint64 {
-	return 0
-}
-
-// SetValue sets the value of the reward transaction
+// SetValue sets the value of the transaction
 func (rtx *RewardTx) SetValue(value *big.Int) {
 	rtx.Value = value
 }
 
-// SetData sets the data of the reward transaction
-func (rtx *RewardTx) SetData(data []byte) {
+// GetNonce returns 0 as reward transactions do not have a nonce
+func (_ *RewardTx) GetNonce() uint64 {
+	return 0
 }
 
-// SetRecvAddress sets the receiver address of the reward transaction
-func (rtx *RewardTx) SetRecvAddress(addr []byte) {
+// GetData returns the data of the reward transaction
+func (_ *RewardTx) GetData() []byte {
+	return []byte("")
+}
+
+// GetSndAddr returns the sender address from the reward transaction
+func (_ *RewardTx) GetSndAddr() []byte {
+	return nil
+}
+
+// GetGasLimit returns the gas limit of the smart reward transaction
+func (_ *RewardTx) GetGasLimit() uint64 {
+	return 0
+}
+
+// GetGasPrice returns the gas price of the smart reward transaction
+func (_ *RewardTx) GetGasPrice() uint64 {
+	return 0
+}
+
+// SetData sets the data of the reward transaction
+func (_ *RewardTx) SetData(data []byte) {
+}
+
+// SetRcvAddr sets the receiver address of the reward transaction
+func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 	rtx.RcvAddr = addr
 }
 
-// SetSndAddress sets the sender address of the reward transaction
-func (rtx *RewardTx) SetSndAddress(addr []byte) {
+// SetSndAddr sets the sender address of the reward transaction
+func (_ *RewardTx) SetSndAddr(addr []byte) {
 }
