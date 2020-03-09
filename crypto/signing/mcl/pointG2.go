@@ -2,8 +2,8 @@ package mcl
 
 import (
 	"crypto/cipher"
-	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
@@ -22,7 +22,7 @@ func NewPointG2() *PointG2 {
 	bpG2Str := BaseG2()
 	err := point.G2.SetString(bpG2Str, 10)
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err.Error())
 	}
 
 	return point
@@ -31,7 +31,7 @@ func NewPointG2() *PointG2 {
 // Equal tests if receiver is equal with the Point p given as parameter.
 // Both Points need to be derived from the same Group
 func (po *PointG2) Equal(p crypto.Point) (bool, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return false, crypto.ErrNilParam
 	}
 
@@ -50,7 +50,10 @@ func (po *PointG2) Clone() crypto.Point {
 	}
 
 	strPo := po.G2.GetString(16)
-	_ = po2.G2.SetString(strPo, 16)
+	err := po2.G2.SetString(strPo, 16)
+	if err != nil {
+		log.Error("PointG2 Clone", "error", err.Error())
+	}
 
 	return &po2
 }
@@ -68,7 +71,7 @@ func (po *PointG2) Null() crypto.Point {
 
 // Set sets the receiver equal to another Point p.
 func (po *PointG2) Set(p crypto.Point) error {
-	if p == nil {
+	if check.IfNil(p) {
 		return crypto.ErrNilParam
 	}
 
@@ -78,15 +81,13 @@ func (po *PointG2) Set(p crypto.Point) error {
 	}
 
 	strPo := po1.G2.GetString(16)
-	_ = po.G2.SetString(strPo, 16)
-
-	return nil
+	return po.G2.SetString(strPo, 16)
 }
 
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *PointG2) Add(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -107,7 +108,7 @@ func (po *PointG2) Add(p crypto.Point) (crypto.Point, error) {
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
 func (po *PointG2) Sub(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -138,7 +139,7 @@ func (po *PointG2) Neg() crypto.Point {
 
 // Mul returns the result of multiplying receiver by the scalarInt s.
 func (po *PointG2) Mul(s crypto.Scalar) (crypto.Point, error) {
-	if s == nil {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

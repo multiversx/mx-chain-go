@@ -18,7 +18,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrNilPrivateKey
 	}
 
-	if msg == nil {
+	if len(msg) == 0 {
 		return nil, crypto.ErrNilMessage
 	}
 
@@ -50,10 +50,10 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	if check.IfNil(public) {
 		return crypto.ErrNilPublicKey
 	}
-	if msg == nil {
+	if len(msg) == 0 {
 		return crypto.ErrNilMessage
 	}
-	if sig == nil {
+	if len(sig) == 0 {
 		return crypto.ErrNilSignature
 	}
 

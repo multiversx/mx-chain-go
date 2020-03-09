@@ -2,8 +2,8 @@ package mcl
 
 import (
 	"crypto/cipher"
-	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
@@ -22,7 +22,7 @@ func NewPointG1() *PointG1 {
 	bpG1Str := BaseG1()
 	err := point.G1.SetString(bpG1Str, 10)
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err.Error())
 	}
 
 	return point
@@ -50,7 +50,10 @@ func (po *PointG1) Clone() crypto.Point {
 	}
 
 	strPo := po.G1.GetString(16)
-	_ = po2.G1.SetString(strPo, 16)
+	err := po2.G1.SetString(strPo, 16)
+	if err != nil {
+		log.Error("PointG1 Clone", "error", err.Error())
+	}
 
 	return &po2
 }
@@ -68,7 +71,7 @@ func (po *PointG1) Null() crypto.Point {
 
 // Set sets the receiver equal to another Point p.
 func (po *PointG1) Set(p crypto.Point) error {
-	if p == nil {
+	if check.IfNil(p) {
 		return crypto.ErrNilParam
 	}
 
@@ -78,15 +81,13 @@ func (po *PointG1) Set(p crypto.Point) error {
 	}
 
 	strPo := po1.G1.GetString(16)
-	_ = po.G1.SetString(strPo, 16)
-
-	return nil
+	return po.G1.SetString(strPo, 16)
 }
 
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *PointG1) Add(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -107,7 +108,7 @@ func (po *PointG1) Add(p crypto.Point) (crypto.Point, error) {
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
 func (po *PointG1) Sub(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -138,7 +139,7 @@ func (po *PointG1) Neg() crypto.Point {
 
 // Mul returns the result of multiplying receiver by the scalarInt s.
 func (po *PointG1) Mul(s crypto.Scalar) (crypto.Point, error) {
-	if s == nil {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

@@ -3,6 +3,7 @@ package mcl
 import (
 	"crypto/cipher"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
@@ -24,7 +25,7 @@ func NewPointGT() *PointGT {
 // Equal tests if receiver is equal with the Point p given as parameter.
 // Both Points need to be derived from the same Group
 func (po *PointGT) Equal(p crypto.Point) (bool, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return false, crypto.ErrNilParam
 	}
 
@@ -43,7 +44,10 @@ func (po *PointGT) Clone() crypto.Point {
 	}
 
 	strPo := po.GT.GetString(16)
-	_ = po2.SetString(strPo, 16)
+	err := po2.SetString(strPo, 16)
+	if err != nil {
+		log.Error("PointGT Clone", "error", err.Error())
+	}
 
 	return &po2
 }
@@ -58,7 +62,7 @@ func (po *PointGT) Null() crypto.Point {
 
 // Set sets the receiver equal to another Point p.
 func (po *PointGT) Set(p crypto.Point) error {
-	if p == nil {
+	if check.IfNil(p) {
 		return crypto.ErrNilParam
 	}
 
@@ -76,7 +80,7 @@ func (po *PointGT) Set(p crypto.Point) error {
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *PointGT) Add(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -97,7 +101,7 @@ func (po *PointGT) Add(p crypto.Point) (crypto.Point, error) {
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
 func (po *PointGT) Sub(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if check.IfNil(p) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -128,7 +132,7 @@ func (po *PointGT) Neg() crypto.Point {
 
 // Mul returns the result of multiplying receiver by the scalarInt s.
 func (po *PointGT) Mul(s crypto.Scalar) (crypto.Point, error) {
-	if s == nil {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

@@ -11,6 +11,7 @@ import (
 )
 
 const hasherOutputSize = 16
+const pubKeyHashSize = 32
 
 // KyberMultiSignerBLS provides an implements of the crypto.LowLevelSignerBLS interface
 type KyberMultiSignerBLS struct {
@@ -37,7 +38,7 @@ func (kms *KyberMultiSignerBLS) VerifySigBytes(suite crypto.Suite, sig []byte) e
 	if check.IfNil(suite) {
 		return crypto.ErrNilSuite
 	}
-	if sig == nil {
+	if len(sig) == 0 {
 		return crypto.ErrNilSignature
 	}
 
@@ -55,10 +56,10 @@ func (kms *KyberMultiSignerBLS) AggregateSignatures(
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
-	if signatures == nil {
+	if len(signatures) == 0 {
 		return nil, crypto.ErrNilSignaturesList
 	}
-	if pubKeysSigners == nil {
+	if len(pubKeysSigners) == 0 {
 		return nil, crypto.ErrNilPublicKeys
 	}
 
@@ -161,7 +162,7 @@ func (kms *KyberMultiSignerBLS) aggregatePreparedSignatures(suite crypto.Suite, 
 		return nil, crypto.ErrNilSuite
 	}
 
-	if sigs == nil {
+	if len(sigs) == 0 {
 		return nil, crypto.ErrNilSignaturesList
 	}
 
@@ -255,10 +256,7 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 		return nil, err
 	}
 
-	var pkPoint crypto.Point
-	pkPoint, err = pk.Mul(kScalar)
-
-	return pkPoint, err
+	return pk.Mul(kScalar)
 }
 
 // scalarMulSig returns the result of multiplying a scalar given as a bytes array, with a BLS single signature
@@ -266,7 +264,7 @@ func (kms *KyberMultiSignerBLS) scalarMulSig(suite crypto.Suite, scalarBytes []b
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
-	if scalarBytes == nil {
+	if len(scalarBytes) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -274,7 +272,7 @@ func (kms *KyberMultiSignerBLS) scalarMulSig(suite crypto.Suite, scalarBytes []b
 	if err != nil {
 		return nil, err
 	}
-	if sig == nil {
+	if len(sig) == 0 {
 		return nil, crypto.ErrNilSignature
 	}
 
@@ -317,10 +315,10 @@ func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte
 	// H1(pubkey_i)
 	h := hasher.Compute(string(pointBytes))
 	// accepted length 32, copy the hasherOutputSize bytes and have rest 0
-	h32 := make([]byte, 32)
-	copy(h32[hasherOutputSize:], h)
+	hPoint := make([]byte, pubKeyHashSize)
+	copy(hPoint[hasherOutputSize:], h)
 
-	return h32, nil
+	return hPoint, nil
 }
 
 // createScalar creates crypto.Scalar from a byte array

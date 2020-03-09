@@ -16,20 +16,17 @@ const hasherOutputSize = 16
 // BlsMultiSigner provides an implements of the crypto.LowLevelSignerBLS interface
 type BlsMultiSigner struct {
 	Hasher hashing.Hasher
+	singlesig.BlsSingleSigner
 }
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message
 func (bms *BlsMultiSigner) SignShare(privKey crypto.PrivateKey, message []byte) ([]byte, error) {
-	blsSingleSigner := singlesig.NewBlsSigner()
-
-	return blsSingleSigner.Sign(privKey, message)
+	return bms.Sign(privKey, message)
 }
 
 // VerifySigShare verifies a BLS signature share (single BLS signature) over a given message
 func (bms *BlsMultiSigner) VerifySigShare(pubKey crypto.PublicKey, message []byte, sig []byte) error {
-	blsSingleSigner := singlesig.NewBlsSigner()
-
-	return blsSingleSigner.Verify(pubKey, message, sig)
+	return bms.Verify(pubKey, message, sig)
 }
 
 // VerifySigBytes provides an "cheap" integrity check of a signature given as a byte array
@@ -60,10 +57,10 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
 	}
-	if signatures == nil {
+	if len(signatures) == 0 {
 		return nil, crypto.ErrNilSignaturesList
 	}
-	if pubKeysSigners == nil {
+	if len(pubKeysSigners) == 0 {
 		return nil, crypto.ErrNilPublicKeys
 	}
 	_, ok := suite.GetUnderlyingSuite().(*mcl.SuiteBLS12)
@@ -218,10 +215,7 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 		return nil, err
 	}
 
-	var pkPoint crypto.Point
-	pkPoint, err = pk.Mul(scalar)
-
-	return pkPoint, err
+	return pk.Mul(scalar)
 }
 
 // ScalarMulSig returns the result of multiplication of a scalar with a BLS signature
@@ -234,7 +228,11 @@ func (bms *BlsMultiSigner) scalarMulSig(suite crypto.Suite, scalarBytes []byte, 
 	}
 
 	scalar := suite.CreateScalar()
-	sc, _ := scalar.(*mcl.MclScalar)
+	sc, ok := scalar.(*mcl.MclScalar)
+	if !ok {
+		return nil, crypto.ErrInvalidScalar
+	}
+
 	err := sc.Scalar.SetString(core.ToHex(scalarBytes), 16)
 	if err != nil {
 		return nil, crypto.ErrInvalidScalar

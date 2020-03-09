@@ -3,8 +3,8 @@ package mcl
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,7 +159,7 @@ func TestGroupG2_IsInterfaceNil(t *testing.T) {
 
 	var grG2 *groupG2
 
-	require.True(t, grG2.IsInterfaceNil())
+	require.True(t, check.IfNil(grG2))
 	grG2 = &groupG2{}
-	require.False(t, grG2.IsInterfaceNil())
+	require.False(t, check.IfNil(grG2))
 }

@@ -11,6 +11,7 @@ import (
 type BlsSingleSigner struct {
 }
 
+// NewBlsSigner creates a BLS single signer instance
 func NewBlsSigner() *BlsSingleSigner {
 	return &BlsSingleSigner{}
 }

@@ -37,8 +37,11 @@ func (s *suiteEd25519) CreatePoint() crypto.Point {
 
 // CreatePointForScalar creates a new point corresponding to the given scalar
 func (s *suiteEd25519) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
-	sc := scalar.(*kyberScalar)
 	p := kyberPoint{}
+	sc, ok := scalar.(*kyberScalar)
+	if !ok {
+		return nil
+	}
 
 	p1 := s.suite.Curve.Point().Base().Mul(sc.Scalar, nil)
 	p.Point = p1

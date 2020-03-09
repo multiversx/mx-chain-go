@@ -7,8 +7,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
+var log = logger.GetOrCreate("process/block")
+
+// SuiteBLS12 provides an implementation of the Suite interface for BLS12-381
 type SuiteBLS12 struct {
 	G1       *groupG1
 	G2       *groupG2
@@ -101,11 +105,16 @@ func (s *SuiteBLS12) PointLen() int {
 // The private key is a scalarInt, while the public key is a Point on G2 curve
 func (s *SuiteBLS12) CreateKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
 	var sc crypto.Scalar
-	var p crypto.Point
+	var err error
 
 	sc = s.G2.CreateScalar()
-	sc, _ = sc.Pick(stream)
-	p = s.G2.CreatePointForScalar(sc)
+	sc, err = sc.Pick(stream)
+	if err != nil {
+		log.Error("SuiteBLS12 CreateKeyPair", "error", err.Error())
+		return nil, nil
+	}
+
+	p := s.G2.CreatePointForScalar(sc)
 
 	return sc, p
 }

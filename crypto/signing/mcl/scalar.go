@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 )
@@ -28,7 +27,7 @@ func NewMclScalar() *MclScalar {
 // Equal tests if receiver is equal with the scalarInt s given as parameter.
 // Both scalars need to be derived from the same Group
 func (sc *MclScalar) Equal(s crypto.Scalar) (bool, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return false, crypto.ErrNilParam
 	}
 
@@ -44,7 +43,7 @@ func (sc *MclScalar) Equal(s crypto.Scalar) (bool, error) {
 
 // Set sets the receiver to Scalar s given as parameter
 func (sc *MclScalar) Set(s crypto.Scalar) error {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return crypto.ErrNilParam
 	}
 
@@ -62,7 +61,10 @@ func (sc *MclScalar) Clone() crypto.Scalar {
 		Scalar: &bls.Fr{},
 	}
 
-	_ = s.Scalar.Deserialize(sc.Scalar.Serialize())
+	err := s.Scalar.Deserialize(sc.Scalar.Serialize())
+	if err != nil {
+		log.Error("MclScalar Clone", "error", err.Error())
+	}
 
 	return &s
 }
@@ -104,7 +106,7 @@ func (sc *MclScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Sub returns the modular difference between receiver and scalarInt s given as parameter
 func (sc *MclScalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -146,7 +148,7 @@ func (sc *MclScalar) One() crypto.Scalar {
 
 // Mul returns the modular product of receiver with scalarInt s given as parameter
 func (sc *MclScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -166,7 +168,7 @@ func (sc *MclScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Div returns the modular division between receiver and scalarInt s given as parameter
 func (sc *MclScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -186,7 +188,7 @@ func (sc *MclScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Inv returns the modular inverse of scalarInt s given as parameter
 func (sc *MclScalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -218,7 +220,7 @@ func (sc *MclScalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
 // SetBytes sets the scalarInt from a byte-slice,
 // reducing if necessary to the appropriate modulus.
 func (sc *MclScalar) SetBytes(s []byte) (crypto.Scalar, error) {
-	if s == nil {
+	if len(s) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 

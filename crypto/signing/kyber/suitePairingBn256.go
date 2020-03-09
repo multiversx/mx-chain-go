@@ -38,7 +38,10 @@ func (s *suitePairingBn256) CreatePoint() crypto.Point {
 func (s *suitePairingBn256) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
 	po := kyberPoint{}
 
-	s1, _ := scalar.(*kyberScalar)
+	s1, ok := scalar.(*kyberScalar)
+	if !ok {
+		return nil
+	}
 
 	p1 := s.suite.G2().Point().Mul(s1.Scalar, nil)
 	po.Point = p1

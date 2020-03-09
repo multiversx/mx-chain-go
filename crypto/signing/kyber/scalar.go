@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"go.dedis.ch/kyber/v3"
 )
@@ -193,7 +192,7 @@ func (ks *kyberScalar) Pick(rand cipher.Stream) (crypto.Scalar, error) {
 // SetBytes sets the scalar from a byte-slice,
 // reducing if necessary to the appropriate modulus.
 func (ks *kyberScalar) SetBytes(s []byte) (crypto.Scalar, error) {
-	if s == nil {
+	if len(s) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 

@@ -322,8 +322,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesEmptySigsShouldErr(t *testing.T)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), [][]byte{[]byte("")}, pubKeys)
 
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "not enough data")
+	require.Equal(t, crypto.ErrNilSignature, err)
 }
 
 func TestKyberMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.T) {
