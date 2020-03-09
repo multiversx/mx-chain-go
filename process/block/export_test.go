@@ -219,7 +219,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 	return mp.checkShardHeadersFinality(highestNonceHdrs)
 }
 
-func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
+func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
 	return mp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 

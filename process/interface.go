@@ -663,7 +663,7 @@ type EpochStartRewardsCreator interface {
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body block.Body)
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
 }

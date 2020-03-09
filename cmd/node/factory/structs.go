@@ -2276,7 +2276,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
-		Marshalizer:      core.Marshalizer,
+		Marshalizer:      core.ProtoMarshalizer,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

@@ -347,7 +347,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body, allValidatorInfos)
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorInfos)
 	if err != nil {
 		return err
 	}
@@ -724,11 +724,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	finalMiniBlocks := make(block.Body, 0)
+	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 
-	return finalMiniBlocks, nil
+	return &block.Body{MiniBlocks: finalMiniBlocks}, nil
 }
 
 // createBlockBody creates block body of metachain

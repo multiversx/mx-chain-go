@@ -150,8 +150,8 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 }
 
 // SaveValidatorInfoBlocksToStorage saves created data to storage
-func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body block.Body) {
-	for _, miniBlock := range body {
+func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.PeerBlock {
 			continue
 		}

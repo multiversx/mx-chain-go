@@ -3711,7 +3711,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	body[0] = nil
+	body.MiniBlocks[0] = nil
 
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.NotNil(t, err)

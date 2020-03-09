@@ -317,7 +317,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T)
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	hdr.MiniBlockHeaders[0].ReceiverShardID = body[0].ReceiverShardID + 1
+	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
@@ -329,7 +329,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	hdr.MiniBlockHeaders[0].SenderShardID = body[0].SenderShardID + 1
+	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
@@ -341,7 +341,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) 
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body[0].TxHashes) + 1)
+	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body.MiniBlocks[0].TxHashes) + 1)
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
@@ -376,7 +376,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	body[0] = nil
+	body.MiniBlocks[0] = nil
 
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.NotNil(t, err)
@@ -875,7 +875,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
-	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: 0}}}
+	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: 0}}}
 	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
@@ -2291,7 +2291,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{[]byte("hashTx")},
 				ReceiverShardID: 0,
 			},
@@ -2342,7 +2342,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{hash1},
 				ReceiverShardID: 0,
 			},
