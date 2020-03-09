@@ -49,7 +49,7 @@ type basePreProcess struct {
 	economicsFee     process.FeeHandler
 }
 
-func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
+func (bpp *basePreProcess) removeDataFromPools(body *block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
@@ -57,8 +57,11 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 		return process.ErrNilTransactionPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
+	if body == nil {
+		return process.ErrNilTxBlockBody
+	}
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		currentMiniBlock := body.MiniBlocks[i]
 		if currentMiniBlock.Type != mbType {
 			continue
 		}
@@ -174,7 +177,7 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 }
 
 func (bpp *basePreProcess) computeExistingAndMissing(
-	body block.Body,
+	body *block.Body,
 	forBlock *txsForBlock,
 	_ chan bool,
 	currType block.Type,
@@ -182,11 +185,16 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 ) map[uint32][]*txsHashesInfo {
 
 	searchFirst := currType == block.InvalidBlock
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body.MiniBlocks))
+	if body == nil {
+		return missingTxsForShard
+	}
+
 	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != currType {
 			continue
 		}
@@ -313,7 +321,7 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 		return 0, 0, err
 	}
 
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
 
 		if txGasLimitInReceiverShard < txGasRefunded {

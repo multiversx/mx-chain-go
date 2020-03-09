@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -34,10 +35,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testMarshalizer = &marshal.JsonMarshalizer{}
+var testMarshalizer = &marshal.GogoProtoMarshalizer{}
 var testHasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+
+var log = logger.GetOrCreate("integrationtests")
 
 type accountFactory struct {
 }
@@ -68,7 +71,7 @@ func CreateMemUnit() storage.Storer {
 }
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
@@ -135,7 +138,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	gasSchedule := make(map[string]map[string]uint64)
 	FillGasMapInternal(gasSchedule, 1)
 
-	argsParser, _ := vmcommon.NewAtArgumentParser()
+	argsParser := vmcommon.NewAtArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
 		ArgsParser:   argsParser,
@@ -227,8 +230,16 @@ func CreateVMAndBlockchainHook(
 		FillGasMapInternal(actualGasSchedule, 1)
 	}
 
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
-	vmContainer, _ := vmFactory.Create()
+	vmFactory, err := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(vmContainer, blockChainHook)
 
@@ -240,7 +251,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
 ) process.TransactionProcessor {
-	argsParser, _ := vmcommon.NewAtArgumentParser()
+	argsParser := vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
 		addrConv,
 		oneShardCoordinator,
@@ -399,7 +410,7 @@ func CreateTx(
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
 		Data:     []byte(txData),
@@ -422,7 +433,7 @@ func CreateDeployTx(
 
 	return &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  CreateEmptyAddress().Bytes(),
 		Data:     scCodeAndVMType,
@@ -486,7 +497,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,

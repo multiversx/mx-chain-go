@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
 package state
 
 import (
@@ -6,61 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// TimeStamp is a moment defined by epoch and round
-type TimeStamp struct {
-	Epoch uint64
-	Round uint64
-}
-
-// TimePeriod holds start and end time
-type TimePeriod struct {
-	StartTime TimeStamp
-	EndTime   TimeStamp
-}
-
-// SignRate is used to keep the number of success and failed signings
-type SignRate struct {
-	NrSuccess uint32
-	NrFailure uint32
-}
-
-// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
-type ValidatorApiResponse struct {
-	NrLeaderSuccess    uint32 `json:"nrLeaderSuccess"`
-	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
-	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
-	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
-}
-
 // PeerAccount is the struct used in serialization/deserialization
 type PeerAccount struct {
-	BLSPublicKey     []byte
-	SchnorrPublicKey []byte
-	RewardAddress    []byte
-	Stake            *big.Int
-	AccumulatedFees  *big.Int
-
-	JailTime      TimePeriod
-	PastJailTimes []TimePeriod
-
-	CurrentShardId    uint32
-	NextShardId       uint32
-	NodeInWaitingList bool
-	UnStakedNonce     uint64
-
-	IndexInList int
-	List        string
-
-	ValidatorSuccessRate       SignRate
-	LeaderSuccessRate          SignRate
-	NumSelectedInSuccessBlocks uint32
-
-	CodeHash []byte
-
-	Rating     uint32
-	TempRating uint32
-	RootHash   []byte
-	Nonce      uint64
+	PeerAccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -81,8 +30,10 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
-		AccumulatedFees:  big.NewInt(0),
-		Stake:            big.NewInt(0),
+		PeerAccountData: PeerAccountData{
+			AccumulatedFees:  big.NewInt(0),
+			Stake: big.NewInt(0),
+		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),

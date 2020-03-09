@@ -11,9 +11,9 @@ import (
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
-	maxInactiveTime             Duration
-	totalUpTime                 Duration
-	totalDownTime               Duration
+	maxInactiveTime             time.Duration
+	totalUpTime                 time.Duration
+	totalDownTime               time.Duration
 
 	timeStamp          time.Time
 	lastUptimeDowntime time.Time
@@ -45,13 +45,13 @@ func newHeartbeatMessageInfo(
 
 	hbmi := &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
-		maxInactiveTime:             Duration{0},
+		maxInactiveTime:             time.Duration(0),
 		isActive:                    false,
 		receivedShardID:             uint32(0),
 		timeStamp:                   genesisTime,
 		lastUptimeDowntime:          timer.Now(),
-		totalUpTime:                 Duration{0},
-		totalDownTime:               Duration{0},
+		totalUpTime:                 time.Duration(0),
+		totalDownTime:               time.Duration(0),
 		versionNumber:               "",
 		nodeDisplayName:             "",
 		peerType:                    peerType,
@@ -105,8 +105,8 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(crtTime time.Time) {
 
 	uptime, downTime := hbmi.computeUptimeDowntime(crtTime, lastDuration)
 
-	hbmi.totalUpTime.Duration += uptime
-	hbmi.totalDownTime.Duration += downTime
+	hbmi.totalUpTime += uptime
+	hbmi.totalDownTime += downTime
 
 	hbmi.isActive = uptime == lastDuration
 	hbmi.lastUptimeDowntime = crtTime
@@ -167,11 +167,11 @@ func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration(currentTime time
 	crtDuration := currentTime.Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
 
-	greaterDurationThanMax := hbmi.maxInactiveTime.Duration < crtDuration
+	greaterDurationThanMax := hbmi.maxInactiveTime < crtDuration
 	currentTimeAfterGenesis := hbmi.genesisTime.Sub(currentTime) < 0
 
 	if greaterDurationThanMax && currentTimeAfterGenesis {
-		hbmi.maxInactiveTime.Duration = crtDuration
+		hbmi.maxInactiveTime = crtDuration
 	}
 }
 

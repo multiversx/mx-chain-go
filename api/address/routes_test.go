@@ -221,8 +221,10 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (*state.Account, error) {
 			return &state.Account{
-				Nonce:   1,
-				Balance: big.NewInt(100),
+				AccountData: state.AccountData{
+					Nonce:   1,
+					Balance: big.NewInt(100),
+				},
 			}, nil
 		},
 	}

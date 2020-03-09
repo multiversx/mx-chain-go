@@ -99,7 +99,7 @@ func (r *rewardsCreator) clean() {
 func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error) {
 	r.clean()
 
-	miniBlocks := make(block.Body, r.shardCoordinator.NumberOfShards())
+	miniBlocks := make(block.MiniBlockSlice, r.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = core.MetachainShardId
@@ -134,14 +134,14 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		})
 	}
 
-	finalMiniBlocks := make(block.Body, 0)
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
 	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 		}
 	}
 
-	return finalMiniBlocks, nil
+	return &block.Body{MiniBlocks: finalMiniBlocks}, nil
 }
 
 func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
@@ -204,7 +204,7 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		return err
 	}
 
-	createdMiniBlocks := createdBody.(block.Body)
+	createdMiniBlocks := createdBody.(*block.Body).MiniBlocks
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
 		if miniBlockHdr.Type != block.RewardsBlock {
@@ -232,10 +232,10 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 }
 
 // CreateMarshalizedData creates the marshalized data to be sent to shards
-func (r *rewardsCreator) CreateMarshalizedData(body block.Body) map[string][][]byte {
+func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	txs := make(map[string][][]byte)
 
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -264,8 +264,8 @@ func (r *rewardsCreator) CreateMarshalizedData(body block.Body) map[string][][]b
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body) {
-	for _, miniBlock := range body {
+func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -304,8 +304,8 @@ func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body b
 }
 
 // DeleteTxsFromStorage deletes data from storage
-func (r *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body) {
-	for _, miniBlock := range body {
+func (r *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
