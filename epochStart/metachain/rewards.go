@@ -98,7 +98,7 @@ func (r *rewardsCreator) clean() {
 func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	r.clean()
 
-	miniBlocks := make(block.Body, r.shardCoordinator.NumberOfShards())
+	miniBlocks := make(block.MiniBlockSlice, r.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = core.MetachainShardId
@@ -230,10 +230,10 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 }
 
 // CreateMarshalizedData creates the marshalized data to be sent to shards
-func (r *rewardsCreator) CreateMarshalizedData(body block.Body) map[string][][]byte {
+func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	txs := make(map[string][][]byte)
 
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -262,8 +262,8 @@ func (r *rewardsCreator) CreateMarshalizedData(body block.Body) map[string][][]b
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body) {
-	for _, miniBlock := range body {
+func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -302,8 +302,8 @@ func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body b
 }
 
 // DeleteTxsFromStorage deletes data from storage
-func (r *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body) {
-	for _, miniBlock := range body {
+func (r *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}

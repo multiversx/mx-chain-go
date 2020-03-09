@@ -654,8 +654,8 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(14))
 
 	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(45), acntDst.Balance)
+	assert.Equal(t, uint64(50), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(45), acntDst.Balance.Uint64())
 	assert.Equal(t, 2, journalizeCalled)
 	assert.Equal(t, 2, saveAccountCalled)
 }
@@ -687,8 +687,8 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 
 	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(1))
 	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(64), acntDst.Balance)
+	assert.Equal(t, uint64(64), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(64), acntDst.Balance.Uint64())
 	assert.Equal(t, 2, journalizeCalled)
 	assert.Equal(t, 2, saveAccountCalled)
 }
@@ -1096,8 +1096,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
-	assert.Equal(t, big.NewInt(29), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(71), acntDst.Balance)
+	assert.Equal(t, uint64(29), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(71), acntDst.Balance.Uint64())
 	assert.Equal(t, 4, journalizeCalled)
 	assert.Equal(t, 4, saveAccountCalled)
 }
@@ -1161,8 +1161,8 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
-	assert.Equal(t, big.NewInt(13), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(71), acntDst.Balance)
+	assert.Equal(t, uint64(13), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(71), acntDst.Balance.Uint64())
 	assert.Equal(t, 4, journalizeCalled)
 	assert.Equal(t, 4, saveAccountCalled)
 }

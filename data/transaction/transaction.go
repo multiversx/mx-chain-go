@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. transaction.proto
 package transaction
 
 import (
@@ -7,56 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// Transaction holds all the data needed for a value transfer or SC call
-type Transaction struct {
-	Nonce     uint64   `json:"nonce"`
-	Value     *big.Int `json:"value"`
-	RcvAddr   []byte   `json:"receiver"`
-	SndAddr   []byte   `json:"sender"`
-	GasPrice  uint64   `json:"gasPrice,omitempty"`
-	GasLimit  uint64   `json:"gasLimit,omitempty"`
-	Data      []byte   `json:"data,omitempty"`
-	Signature []byte   `json:"signature,omitempty"`
-}
+var _ = data.TransactionHandler(&Transaction{})
 
 // IsInterfaceNil verifies if underlying object is nil
 func (tx *Transaction) IsInterfaceNil() bool {
 	return tx == nil
-}
-
-// GetValue returns the value of the transaction
-func (tx *Transaction) GetValue() *big.Int {
-	return tx.Value
-}
-
-// GetNonce returns the transaction nonce
-func (tx *Transaction) GetNonce() uint64 {
-	return tx.Nonce
-}
-
-// GetData returns the data of the transaction
-func (tx *Transaction) GetData() []byte {
-	return tx.Data
-}
-
-// GetRecvAddress returns the receiver address from the transaction
-func (tx *Transaction) GetRecvAddress() []byte {
-	return tx.RcvAddr
-}
-
-// GetSndAddress returns the sender address from the transaction
-func (tx *Transaction) GetSndAddress() []byte {
-	return tx.SndAddr
-}
-
-// GetGasLimit returns the gas limit of the transaction
-func (tx *Transaction) GetGasLimit() uint64 {
-	return tx.GasLimit
-}
-
-// GetGasPrice returns the gas price of the transaction
-func (tx *Transaction) GetGasPrice() uint64 {
-	return tx.GasPrice
 }
 
 // SetValue sets the value of the transaction
@@ -69,13 +25,13 @@ func (tx *Transaction) SetData(data []byte) {
 	tx.Data = data
 }
 
-// SetRecvAddress sets the receiver address of the transaction
-func (tx *Transaction) SetRecvAddress(addr []byte) {
+// SetRcvAddr sets the receiver address of the transaction
+func (tx *Transaction) SetRcvAddr(addr []byte) {
 	tx.RcvAddr = addr
 }
 
-// SetSndAddress sets the sender address of the transaction
-func (tx *Transaction) SetSndAddress(addr []byte) {
+// SetSndAddr sets the sender address of the transaction
+func (tx *Transaction) SetSndAddr(addr []byte) {
 	tx.SndAddr = addr
 }
 
@@ -133,7 +89,7 @@ func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
 	var ok bool
 	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
 	if !ok {
-		return data.ErrInvalidValue
+		tx.Value = nil
 	}
 
 	return nil

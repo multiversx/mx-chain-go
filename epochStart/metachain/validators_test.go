@@ -388,7 +388,8 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 		AccumulatedFeesInEpoch: nil,
 	}
 
-	vic.SaveValidatorInfoBlocksToStorage(meta, miniblocks)
+	body := &block.Body{MiniBlocks: miniblocks}
+	vic.SaveValidatorInfoBlocksToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := storage.Get(mbHeader.Hash)

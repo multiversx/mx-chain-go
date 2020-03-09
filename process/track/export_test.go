@@ -136,6 +136,6 @@ func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader dat
 	return bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
 }
 
-func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
-	bp.requestHeadersIfNothingNewIsReceived(latestValidHeader, highestRoundInReceivedHeaders)
+func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
+	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
 }
