@@ -171,7 +171,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 	senderBytes, _ := sender.GeneratePublic().ToByteArray()
 	tx := &transaction.Transaction{
 		Nonce:     1,
-		Value:     new(big.Int).SetInt64(10),
+		Value:     big.NewInt(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
 		GasPrice:  integrationTests.MinTxGasPrice,

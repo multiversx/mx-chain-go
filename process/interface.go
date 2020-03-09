@@ -109,24 +109,24 @@ type InterceptorThrottler interface {
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
-	RequestBlockTransactions(body block.Body)
+	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
-	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, error)
-	RemoveBlockDataFromPool(body block.Body) error
+	SaveBlockDataToStorage(body *block.Body) error
+	RestoreBlockDataFromStorage(body *block.Body) (int, error)
+	RemoveBlockDataFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
-	CreateMarshalizedData(body block.Body) map[string][][]byte
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	CreateReceiptsHash() ([]byte, error)
-	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body block.Body) error
+	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -141,7 +141,7 @@ type SmartContractProcessor interface {
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	VerifyInterMiniBlocks(body block.Body) error
+	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
@@ -178,12 +178,12 @@ type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
-	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxBlockToStorage(body block.Body) error
+	RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
-	RequestBlockTransactions(body block.Body) int
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
@@ -517,7 +517,7 @@ type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
+	GetRcvAddr() []byte
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
@@ -529,7 +529,7 @@ type EconomicsAddressesHandler interface {
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
 type SmartContractToProtocolHandler interface {
-	UpdateProtocol(body block.Body, nonce uint64) error
+	UpdateProtocol(body *block.Body, nonce uint64) error
 	IsInterfaceNil() bool
 }
 
@@ -653,9 +653,9 @@ type EpochStartDataCreator interface {
 type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
-	CreateMarshalizedData(body block.Body) map[string][][]byte
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body block.Body)
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
 

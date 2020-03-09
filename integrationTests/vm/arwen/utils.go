@@ -153,7 +153,7 @@ func (context *testContext) executeSC(sender *testParticipant, txData string) {
 func (context *testContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
-		Value:    value,
+		Value:    new(big.Int).Set(value),
 		RcvAddr:  context.ScAddress,
 		SndAddr:  sender.Address,
 		GasPrice: 1,

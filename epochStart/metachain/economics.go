@@ -187,7 +187,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 
 	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
 	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardId] = shardData.Nonce
+		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
 	}
 
 	return mapShardIdNonce, previousEpochStartMeta, nil
@@ -201,7 +201,7 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 	mapShardIdNonce[core.MetachainShardId] = metaNonce
 
 	for _, shardData := range epochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardId] = shardData.Nonce
+		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
 	}
 
 	return mapShardIdNonce, nil
