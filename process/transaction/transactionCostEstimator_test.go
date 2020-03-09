@@ -110,30 +110,40 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := createGasMap(2)
+	gasLimitBaseTx := uint64(500)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
 			return process.SCDeployment, nil
 		},
-	}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
+	}, &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return gasLimitBaseTx
+		},
+	}, &mock.ScQueryStub{}, gasSchedule)
 
 	tx := &transaction.Transaction{
 		Data: []byte("data"),
 	}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(16), cost)
+	require.Equal(t, gasLimitBaseTx+uint64(16), cost)
 }
 
 func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := createGasMap(1)
+	gasLimitBaseTx := uint64(500)
 	consumedGasUnits := big.NewInt(1000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, err error) {
 			return process.SCInvoking, nil
 		},
-	}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{
+	}, &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return gasLimitBaseTx
+		},
+	}, &mock.ScQueryStub{
 		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (u uint64, err error) {
 			return consumedGasUnits.Uint64(), nil
 		},
@@ -142,5 +152,5 @@ func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits.Uint64(), cost)
+	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost)
 }

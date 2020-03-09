@@ -76,13 +76,29 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.MoveBalance:
 		return tce.feeHandler.ComputeGasLimit(tx), nil
 	case process.SCDeployment:
-		gasLimit := uint64(len(tx.Data)) * (tce.storePerByteCost + tce.compilePerByteCost)
-		return gasLimit, nil
+		return tce.computeScDeployGasLimit(tx)
 	case process.SCInvoking:
-		return tce.query.ComputeScCallGasLimit(tx)
+		return tce.computeScCallGasLimit(tx)
 	default:
 		return 0, process.ErrWrongTransaction
 	}
+}
+
+func (tce *transactionCostEstimator) computeScDeployGasLimit(tx *transaction.Transaction) (uint64, error) {
+	scDeployCost := uint64(len(tx.Data)) * (tce.storePerByteCost + tce.compilePerByteCost)
+	baseCost := tce.feeHandler.ComputeGasLimit(tx)
+
+	return baseCost + scDeployCost, nil
+}
+
+func (tce *transactionCostEstimator) computeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+	scCallGasLimit, err := tce.query.ComputeScCallGasLimit(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	baseCost := tce.feeHandler.ComputeGasLimit(tx)
+	return baseCost + scCallGasLimit, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
