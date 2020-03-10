@@ -16,7 +16,7 @@ func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
 }
 
 // ComputeId -
-func (scm ShardCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
+func (scm ShardCoordinatorMock) ComputeId(_ state.AddressContainer) uint32 {
 	return 0
 }
 
@@ -32,7 +32,7 @@ func (scm ShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SameShard -
-func (scm ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (scm ShardCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
@@ -47,8 +47,5 @@ func (scm ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) stri
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *ShardCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

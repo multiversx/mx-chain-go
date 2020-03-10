@@ -132,8 +132,5 @@ func (c *FIFOShardedCache) MaxSize() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *FIFOShardedCache) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+	return c == nil
 }

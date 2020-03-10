@@ -20,22 +20,22 @@ func (ppcm *PreProcessorContainerMock) Get(key block.Type) (process.PreProcessor
 }
 
 // Add -
-func (ppcm *PreProcessorContainerMock) Add(key block.Type, val process.PreProcessor) error {
+func (ppcm *PreProcessorContainerMock) Add(_ block.Type, _ process.PreProcessor) error {
 	panic("implement me")
 }
 
 // AddMultiple -
-func (ppcm *PreProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.PreProcessor) error {
+func (ppcm *PreProcessorContainerMock) AddMultiple(_ []block.Type, _ []process.PreProcessor) error {
 	panic("implement me")
 }
 
 // Replace -
-func (ppcm *PreProcessorContainerMock) Replace(key block.Type, val process.PreProcessor) error {
+func (ppcm *PreProcessorContainerMock) Replace(_ block.Type, _ process.PreProcessor) error {
 	panic("implement me")
 }
 
 // Remove -
-func (ppcm *PreProcessorContainerMock) Remove(key block.Type) {
+func (ppcm *PreProcessorContainerMock) Remove(_ block.Type) {
 	panic("implement me")
 }
 
@@ -55,8 +55,5 @@ func (ppcm *PreProcessorContainerMock) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *PreProcessorContainerMock) IsInterfaceNil() bool {
-	if ppcm == nil {
-		return true
-	}
-	return false
+	return ppcm == nil
 }
