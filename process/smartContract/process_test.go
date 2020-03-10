@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,10 +38,10 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
@@ -1275,7 +1275,6 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
-	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed, err := sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -1291,7 +1290,6 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
-	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed, err = sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -1300,7 +1298,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 		vmOutput.ReturnData,
 		tx,
 		txHash,
-		acntSrc,
+		nil,
 		vmcommon.DirectCall,
 	)
 	assert.Nil(t, err)
@@ -1601,7 +1599,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	assert.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_ = sc.ProcessSmartContractResult(&scr)
 	assert.True(t, called)
 }
 

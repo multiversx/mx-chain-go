@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -53,7 +54,7 @@ func NewGenericBlockBodyResolver(
 // (for the topic this validator was registered to, usually a request topic)
 func (gbbRes *genericBlockBodyResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(gbbRes.marshalizer, message)
+	err := rd.UnmarshalWith(gbbRes.marshalizer, message)
 	if err != nil {
 		return err
 	}
@@ -85,8 +86,8 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 	if len(miniBlocks) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
-
-	buff, err := gbbRes.marshalizer.Marshal(miniBlocks)
+	bh := &block.Body{MiniBlocks: miniBlocks}
+	buff, err := gbbRes.marshalizer.Marshal(bh)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +103,14 @@ func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestDa
 		miniBlockHashes = append(miniBlockHashes, requestData.Value)
 
 	case dataRetriever.HashArrayType:
-		err := gbbRes.marshalizer.Unmarshal(&miniBlockHashes, requestData.Value)
+		{
+			b := &batch.Batch{}
+			err := gbbRes.marshalizer.Unmarshal(b, requestData.Value)
 
-		if err != nil {
-			return nil, dataRetriever.ErrUnmarshalMBHashes
+			if err != nil {
+				return nil, dataRetriever.ErrUnmarshalMBHashes
+			}
+			miniBlockHashes = b.Data
 		}
 
 	default:
@@ -126,7 +131,7 @@ func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte, epoch u
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
 func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	hash, err := gbbRes.marshalizer.Marshal(hashes)
+	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 
 	if err != nil {
 		return err

@@ -42,24 +42,34 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	gasHandler       process.GasHandler
-	economicsFee     process.FeeHandler
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	shardCoordinator     sharding.Coordinator
+	gasHandler           process.GasHandler
+	economicsFee         process.FeeHandler
+	blockSizeComputation BlockSizeComputationHandler
 }
 
-func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
-	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+func (bpp *basePreProcess) removeDataFromPools(
+	body *block.Body,
+	miniBlockPool storage.Cacher,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+	isMiniBlockCorrect func(block.Type) bool,
+) error {
+
+	if check.IfNil(body) {
+		return process.ErrNilTxBlockBody
+	}
+	if check.IfNil(miniBlockPool) {
 		return process.ErrNilMiniBlockPool
 	}
-	if txPool == nil || txPool.IsInterfaceNil() {
+	if check.IfNil(txPool) {
 		return process.ErrNilTransactionPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
-		if currentMiniBlock.Type != mbType {
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		currentMiniBlock := body.MiniBlocks[i]
+		if !isMiniBlockCorrect(currentMiniBlock.Type) {
 			continue
 		}
 
@@ -174,25 +184,28 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 }
 
 func (bpp *basePreProcess) computeExistingAndMissing(
-	body block.Body,
+	body *block.Body,
 	forBlock *txsForBlock,
 	_ chan bool,
-	currType block.Type,
+	isMiniBlockCorrect func(block.Type) bool,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {
 
-	searchFirst := currType == block.InvalidBlock
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
+	if check.IfNil(body) {
+		return make(map[uint32][]*txsHashesInfo)
+	}
+
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, bpp.shardCoordinator.NumberOfShards())
 	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		if miniBlock.Type != currType {
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if !isMiniBlockCorrect(miniBlock.Type) {
 			continue
 		}
 
 		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-
+		searchFirst := miniBlock.Type == block.InvalidBlock
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx, err := process.GetTransactionHandlerFromPool(
@@ -209,6 +222,12 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 			}
 
 			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
+			log.Trace("missing txs",
+				"block type", miniBlock.Type.String(),
+				"sender shard id", miniBlock.SenderShardID,
+				"receiver shard id", miniBlock.ReceiverShardID,
+				"hash", txHash,
+			)
 		}
 
 		if len(txHashes) > 0 {
@@ -222,36 +241,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	}
 	forBlock.mutTxsForBlock.Unlock()
 
-	bpp.displayMissingTransactions(missingTxsForShard, currType)
-
 	return missingTxsForShard
-}
-
-func (bpp *basePreProcess) displayMissingTransactions(
-	missingTxsFromShard map[uint32][]*txsHashesInfo,
-	currType block.Type,
-) {
-
-	for shard, txHashInfoSlice := range missingTxsFromShard {
-		for _, txHashInfo := range txHashInfoSlice {
-			for _, hash := range txHashInfo.txHashes {
-				log.Trace("missing txs",
-					"block type", currType.String(),
-					"sender shard id", shard,
-					"receiver shard id", txHashInfo.receiverShardID,
-					"hash", hash,
-				)
-			}
-		}
-	}
-}
-
-func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {
-	forBlock.mutTxsForBlock.RLock()
-	_, txAlreadyProcessed := forBlock.txHashAndInfo[string(txHash)]
-	forBlock.mutTxsForBlock.RUnlock()
-
-	return txAlreadyProcessed
 }
 
 func (bpp *basePreProcess) computeGasConsumed(
@@ -261,8 +251,8 @@ func (bpp *basePreProcess) computeGasConsumed(
 	txHash []byte,
 	gasConsumedByMiniBlockInSenderShard *uint64,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
+	totalGasConsumedInSelfShard *uint64,
 ) error {
-
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
@@ -287,12 +277,13 @@ func (bpp *basePreProcess) computeGasConsumed(
 		}
 	}
 
-	if bpp.gasHandler.TotalGasConsumed()+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock() {
 		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
 	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
 	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	*totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
 	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 
 	return nil
@@ -313,7 +304,7 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 		return 0, 0, err
 	}
 
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
 
 		if txGasLimitInReceiverShard < txGasRefunded {

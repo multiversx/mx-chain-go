@@ -18,7 +18,14 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{Nonce: nonce, Balance: balance}, nil
+		return &state.Account{
+			AccountData: state.AccountData{
+				Nonce:    nonce,
+				Balance:  new(big.Int).Set(balance),
+				CodeHash: nil,
+				RootHash: nil,
+			},
+		}, nil
 	}
 
 	return accDB
@@ -254,6 +261,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 	accounts := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	txValidator, _ := dataValidators.NewTxValidator(accounts, shardCoordinator, 100)
+	_ = txValidator
 	txValidator = nil
 
 	assert.True(t, check.IfNil(txValidator))

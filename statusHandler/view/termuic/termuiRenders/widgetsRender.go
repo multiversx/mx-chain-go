@@ -351,8 +351,5 @@ func (wr *WidgetsRender) prepareLoads() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wr *WidgetsRender) IsInterfaceNil() bool {
-	if wr == nil {
-		return true
-	}
-	return false
+	return wr == nil
 }
