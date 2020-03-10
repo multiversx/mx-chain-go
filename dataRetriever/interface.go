@@ -81,7 +81,7 @@ type MiniBlocksResolver interface {
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData) error
 	Send(buff []byte, peer p2p.PeerID) error
-	Topic() string
+	RequestTopic() string
 	TargetShardID() uint32
 	IsInterfaceNil() bool
 }

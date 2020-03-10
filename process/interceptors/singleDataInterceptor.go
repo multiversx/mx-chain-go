@@ -77,7 +77,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		log.Trace("intercepted data is for other shards",
 			"pid", p2p.MessageOriginatorPid(message),
 			"seq no", p2p.MessageOriginatorSeq(message),
-			"topics", message.TopicIDs(),
+			"topics", message.Topics(),
 			"hash", interceptedData.Hash(),
 		)
 		return nil

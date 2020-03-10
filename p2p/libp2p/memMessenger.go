@@ -55,7 +55,7 @@ func NewMemoryMessenger(
 		return nil, err
 	}
 
-	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err

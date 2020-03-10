@@ -26,7 +26,7 @@ func NewShardResolversContainerFactory(
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
 
-	thr, err := throttler.NewNumGoRoutineThrottler(args.NumConcurrentResolvingJobs)
+	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		return err
 	}
 
-	err = srcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		return err
 	}
 
-	err = srcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return err
 	}

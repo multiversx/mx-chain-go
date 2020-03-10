@@ -16,6 +16,7 @@ import (
 )
 
 const emptyExcludePeersOnTopic = ""
+const defaultTargetShardID = uint32(0)
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -119,7 +120,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 
 	txStorer := brcf.store.GetStorer(unit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, 0)
+	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +139,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +183,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, 0)
+	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +201,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.Topic(), txBlkResolver)
+	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +240,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 }
 
 func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
-	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, 0)
+	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string,
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.Topic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return nil, err
 	}

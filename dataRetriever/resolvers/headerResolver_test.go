@@ -30,6 +30,8 @@ func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 	}
 }
 
+var errKeyNotFound = errors.New("key not found")
+
 //------- NewHeaderResolver
 
 func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
@@ -367,7 +369,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 	arg := createMockArgHeaderResolver()
 	arg.HdrStorage = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -429,15 +431,15 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	}
 	arg.HdrStorage = &mock.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, e error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	arg.HeadersNoncesStorage = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) (i []byte, e error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 		SearchFirstCalled: func(key []byte) (i []byte, e error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -479,10 +481,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	arg.Headers = headers
 	arg.HeadersNoncesStorage = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -541,10 +543,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	arg.HdrStorage = store
 	arg.HeadersNoncesStorage = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 		SearchFirstCalled: func(key []byte) (i []byte, e error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -598,10 +600,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	arg.HdrStorage = store
 	arg.HeadersNoncesStorage = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 		SearchFirstCalled: func(key []byte) (i []byte, e error) {
-			return nil, errors.New("key not found")
+			return nil, errKeyNotFound
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)

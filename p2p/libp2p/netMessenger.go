@@ -58,7 +58,7 @@ type networkMessenger struct {
 	topics              map[string]p2p.MessageProcessor
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
-	goRoutinesThrottler *throttler.NumGoRoutineThrottler
+	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -120,7 +120,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -585,7 +585,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	processor = netMes.topics[message.TopicIDs()[0]]
+	processor = netMes.topics[message.Topics()[0]]
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {
@@ -597,7 +597,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
-				"topics", msg.TopicIDs(),
+				"topics", msg.Topics(),
 				"pid", p2p.MessageOriginatorPid(msg),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)

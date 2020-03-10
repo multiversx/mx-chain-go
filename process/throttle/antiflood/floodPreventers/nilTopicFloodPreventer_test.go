@@ -22,7 +22,7 @@ func TestNilTopicFloodPreventer_FunctionsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+			assert.Fail(t, fmt.Sprintf("should not have panicked %v", r))
 		}
 	}()
 

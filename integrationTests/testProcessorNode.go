@@ -551,9 +551,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
-		if err != nil {
-			fmt.Println(err)
-		}
+		log.LogIfError(err)
 
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
@@ -565,9 +563,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
-		if err != nil {
-			fmt.Println(err)
-		}
+		log.LogIfError(err)
 
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
@@ -997,7 +993,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if err != nil {
-		fmt.Printf("Error creating blockprocessor: %s\n", err.Error())
+		log.Error("error creating blockprocessor", "error", err.Error())
 	}
 }
 
@@ -1006,7 +1002,10 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 	_ = tpn.BlockChain.SetGenesisHeader(genesisBlock)
 	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, genesisBlock)
 	tpn.BlockChain.SetGenesisHeaderHash(hash)
-	fmt.Println(fmt.Sprintf("Set genesis hash shard %d %s", tpn.ShardCoordinator.SelfId(), core.ToHex(hash)))
+	log.Info("set genesis",
+		"shard ID", tpn.ShardCoordinator.SelfId(),
+		"hash", core.ToHex(hash),
+	)
 }
 
 func (tpn *TestProcessorNode) initNode() {
@@ -1041,9 +1040,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataPool(tpn.DataPool),
 		node.WithTxAccumulator(txAccumulator),
 	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
+	log.LogIfError(err)
 }
 
 // SendTransaction can send a transaction (it does the dispatching)

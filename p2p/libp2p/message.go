@@ -13,7 +13,7 @@ func NewMessage(msg *pubsub.Message) (*message.Message, error) {
 		FromField:      msg.From,
 		DataField:      msg.Data,
 		SeqNoField:     msg.Seqno,
-		TopicIdsField:  msg.TopicIDs,
+		TopicsField:    msg.TopicIDs,
 		SignatureField: msg.Signature,
 		KeyField:       msg.Key,
 	}

@@ -128,9 +128,9 @@ func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
 
 func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer p2p.PeerID) error {
 	msg := &message.Message{
-		DataField:     buff,
-		PeerField:     peer,
-		TopicIdsField: []string{topic},
+		DataField:   buff,
+		PeerField:   peer,
+		TopicsField: []string{topic},
 	}
 
 	err := trs.outputAntiflooder.CanProcessMessage(msg, peer)
@@ -145,8 +145,8 @@ func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, p
 	return trs.messenger.SendToConnectedPeer(topic, buff, peer)
 }
 
-// Topic returns the topic with the request suffix used for sending requests
-func (trs *topicResolverSender) Topic() string {
+// RequestTopic returns the topic with the request suffix used for sending requests
+func (trs *topicResolverSender) RequestTopic() string {
 	return trs.topicName + topicRequestSuffix
 }
 

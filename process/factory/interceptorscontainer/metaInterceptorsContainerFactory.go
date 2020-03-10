@@ -116,7 +116,7 @@ func NewMetaInterceptorsContainerFactory(
 		baseInterceptorsContainerFactory: base,
 	}
 
-	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
+	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}

@@ -50,7 +50,7 @@ func NewTrieNodeResolver(arg ArgTrieNodeResolver) (*TrieNodeResolver, error) {
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.SenderResolver.Topic(),
+			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
 		},
 	}, nil

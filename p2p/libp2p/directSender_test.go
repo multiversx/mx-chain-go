@@ -556,5 +556,5 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	assert.NotNil(t, receivedMsg)
 	assert.Equal(t, data, receivedMsg.Data())
-	assert.Equal(t, []string{topic}, receivedMsg.TopicIDs())
+	assert.Equal(t, []string{topic}, receivedMsg.Topics())
 }

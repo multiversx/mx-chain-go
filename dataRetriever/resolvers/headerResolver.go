@@ -84,7 +84,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.SenderResolver.Topic(),
+			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
 		},
 	}

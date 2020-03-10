@@ -12,9 +12,9 @@ type TopicResolverSenderStub struct {
 	TargetShardIDCalled      func() uint32
 }
 
-// Topic -
-func (trss *TopicResolverSenderStub) Topic() string {
-	return "_REQUEST"
+// RequestTopic -
+func (trss *TopicResolverSenderStub) RequestTopic() string {
+	return "topic_REQUEST"
 }
 
 // SendOnRequestTopic -

@@ -200,7 +200,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-			assert.Fail(t, "should not have call send")
+			assert.Fail(t, "send shouldn't have been called")
 
 			return nil
 		},
@@ -211,7 +211,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 				return expectedErr
 			}
 
-			assert.Fail(t, "wrong peer provided, should have called with the destination peer")
+			assert.Fail(t, "wrong peer provided, should have been called with the destination peer")
 			return nil
 		},
 	}
@@ -254,7 +254,7 @@ func TestTopicResolverSender_Topic(t *testing.T) {
 	arg := createMockArgTopicResolverSender()
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	assert.Equal(t, arg.TopicName+topicResolverSender.TopicRequestSuffix, trs.Topic())
+	assert.Equal(t, arg.TopicName+topicResolverSender.TopicRequestSuffix, trs.RequestTopic())
 }
 
 // ------- FisherYatesShuffle
