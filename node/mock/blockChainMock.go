@@ -22,6 +22,7 @@ type BlockChainMock struct {
 	SetNetworkHeightCalled          func(int64)
 	HasBadBlockCalled               func([]byte) bool
 	PutBadBlockCalled               func([]byte)
+	CreateNewHeaderCalled           func() data.HeaderHandler
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -150,4 +151,13 @@ func (bc *BlockChainMock) PutBadBlock(blockHash []byte) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChainMock) IsInterfaceNil() bool {
 	return bc == nil
+}
+
+// CreateNewHeader -
+func (bc *BlockChainMock) CreateNewHeader() data.HeaderHandler {
+	if bc.CreateNewHeaderCalled != nil {
+		return bc.CreateNewHeaderCalled()
+	}
+
+	return nil
 }
