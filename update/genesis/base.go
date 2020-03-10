@@ -230,6 +230,11 @@ func CreateTrieIdentifier(shID uint32, accountType state.Type) string {
 	return fmt.Sprint("tr", atSep, shID, atSep, accountType)
 }
 
+// AddRootHashToIdentifier adds the roothash to the current identifier
+func AddRootHashToIdentifier(identifier string, hash string) string {
+	return identifier + atSep + hash
+}
+
 // CreateMiniBlockKey returns a miniblock key
 func CreateMiniBlockKey(key string) string {
 	return "mb" + atSep + hex.EncodeToString([]byte(key))

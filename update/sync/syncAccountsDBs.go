@@ -146,16 +146,16 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID sta
 		return err
 	}
 
-	for hash, currentTrie := range accountsDBSyncer.GetSyncedTries() {
-		if bytes.Equal([]byte(hash), rootHash) {
-			st.tries.setTrie(accAdapterIdentifier, currentTrie)
-			continue
-		}
-
-		st.tries.setTrie(hash, currentTrie)
-	}
+	st.setTries(accAdapterIdentifier, accountsDBSyncer.GetSyncedTries())
 
 	return nil
+}
+
+func (st *syncAccountsDBs) setTries(initialID string, tries map[string]data.Trie) {
+	for hash, currentTrie := range tries {
+		identifier := genesis.AddRootHashToIdentifier(initialID, hash)
+		st.tries.setTrie(identifier, currentTrie)
+	}
 }
 
 func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
@@ -184,14 +184,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID state.AccountsDbIde
 		}
 	}
 
-	for hash, currentTrie := range tries {
-		if bytes.Equal([]byte(hash), rootHash) {
-			st.tries.setTrie(id, currentTrie)
-			continue
-		}
-
-		st.tries.setTrie(hash, currentTrie)
-	}
+	st.setTries(id, tries)
 
 	return true
 }
