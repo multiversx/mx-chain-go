@@ -30,8 +30,5 @@ func (sihsm *ShardIdHasMapMock) Delete(shardId uint32) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sihsm *ShardIdHasMapMock) IsInterfaceNil() bool {
-	if sihsm == nil {
-		return true
-	}
-	return false
+	return sihsm == nil
 }
