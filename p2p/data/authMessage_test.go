@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	protobuf "github.com/ElrondNetwork/elrond-go/p2p/data/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +18,7 @@ func TestAuthMessage_MarshalUnmarshalShouldWork(t *testing.T) {
 
 func generateAuthMessage() AuthMessage {
 	return AuthMessage{
-		AuthMessagePb: protobuf.AuthMessagePb{
+		AuthMessagePb: AuthMessagePb{
 			Message:   []byte("test message"),
 			Sig:       []byte("sig"),
 			Pubkey:    []byte("pubkey"),

@@ -72,8 +72,14 @@ import (
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
 
-// TestMarshalizer represents a JSON marshalizer
-var TestMarshalizer = &marshal.JsonMarshalizer{}
+// TestMarshalizer represents the main marshalizer
+var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
+
+// TestVmMarshalizer represents the marshalizer used in vm communication
+var TestVmMarshalizer = &marshal.JsonMarshalizer{}
+
+// TestTxSignMarshalizer represents the marshalizer used in vm communication
+var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressConverter represents a plain address converter
 var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
@@ -451,7 +457,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			NodesCoordinator:       tpn.NodesCoordinator,
 			Messenger:              tpn.Messenger,
 			Store:                  tpn.Storage,
-			Marshalizer:            TestMarshalizer,
+			ProtoMarshalizer:       TestMarshalizer,
+			TxSignMarshalizer:      TestTxSignMarshalizer,
 			Hasher:                 TestHasher,
 			MultiSigner:            TestMultiSig,
 			DataPool:               tpn.DataPool,
@@ -500,7 +507,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			NodesCoordinator:       tpn.NodesCoordinator,
 			Messenger:              tpn.Messenger,
 			Store:                  tpn.Storage,
-			Marshalizer:            TestMarshalizer,
+			ProtoMarshalizer:       TestMarshalizer,
+			TxSignMarshalizer:      TestTxSignMarshalizer,
 			Hasher:                 TestHasher,
 			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
 			BlockSignKeyGen:        tpn.OwnAccount.KeygenBlockSign,
@@ -626,7 +634,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
-	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
+	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
@@ -733,7 +741,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
+	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:   tpn.VMContainer,
@@ -899,14 +907,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			"0x",
 		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     blsKeyedAddressConverter,
-			Hasher:      TestHasher,
-			Marshalizer: TestMarshalizer,
-			PeerState:   tpn.PeerState,
-			BaseState:   tpn.AccntState,
-			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.DataPool.CurrentBlockTxs(),
-			ScQuery:     tpn.SCQueryService,
+			AdrConv:          blsKeyedAddressConverter,
+			Hasher:           TestHasher,
+			ProtoMarshalizer: TestMarshalizer,
+			VmMarshalizer:    TestVmMarshalizer,
+			PeerState:        tpn.PeerState,
+			BaseState:        tpn.AccntState,
+			ArgParser:        tpn.ArgsParser,
+			CurrTxs:          tpn.DataPool.CurrentBlockTxs(),
+			ScQuery:          tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 
@@ -1001,8 +1010,9 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithMarshalizer(TestMarshalizer, 100),
-		node.WithHasher(TestHasher),
+		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithVmMarshalizer(TestVmMarshalizer),
+		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
@@ -1126,13 +1136,13 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	shardBlockBody, ok := blockBody.(dataBlock.Body)
+	shardBlockBody, ok := blockBody.(*dataBlock.Body)
 	txHashes := make([][]byte, 0)
 	if !ok {
 		return blockBody, blockHeader, txHashes
 	}
 
-	for _, mb := range shardBlockBody {
+	for _, mb := range shardBlockBody.MiniBlocks {
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)
@@ -1179,13 +1189,13 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 }
 
 // GetBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (*dataBlock.Body, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	body := dataBlock.Body{}
+	body := &dataBlock.Body{}
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
@@ -1199,20 +1209,20 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
 
-		body = append(body, mb)
+		body.MiniBlocks = append(body.MiniBlocks, mb)
 	}
 
 	return body, nil
 }
 
 // GetMetaBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (*dataBlock.Body, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	body := dataBlock.Body{}
+	body := &dataBlock.Body{}
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
@@ -1226,7 +1236,7 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dat
 			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
 
-		body = append(body, mb)
+		body.MiniBlocks = append(body.MiniBlocks, mb)
 	}
 
 	return body, nil
@@ -1278,7 +1288,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 5
 		},
 	)
 	if err != nil {

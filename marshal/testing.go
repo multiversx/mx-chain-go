@@ -5,5 +5,5 @@ package marshal
 // all registered marshalizers
 var MarshalizersAvailableForTesting = map[string]Marshalizer{
 	"json":     &JsonMarshalizer{},
-	"protobuf": &ProtobufMarshalizer{},
+	"protobuf": &GogoProtoMarshalizer{},
 }
