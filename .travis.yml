@@ -1,0 +1,45 @@
+language: go
+
+go: 1.13
+
+os:
+- linux
+- osx
+
+arch:
+- amd64
+- arm64
+
+osx_image: xcode11.3
+
+before_script:
+- APP_VER=$(git describe --tags --long --dirty)
+- GOOS=$(go env GOOS)
+- GOARCH=$(go env GOARCH)
+- ARCHIVE="elrond_""$APP_VER""_""$GOOS""_""$GOARCH"".tgz"
+
+script:
+- ERD_PACKAGE=node
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=keygenerator
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+
+before_deploy:
+- cd "$TRAVIS_BUILD_DIR/build"
+- tar czvf "$TRAVIS_BUILD_DIR/$ARCHIVE" *
+
+after_deploy:
+- rm -rf "$TRAVIS_BUILD_DIR/build"
+- rm -rf "$TRAVIS_BUILD_DIR/$ARCHIVE"
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: EN5JYHh+3IUrtw+GUZbMMdS0hMKc/0E8sLMzayMFocnlk/ljBw2a3tUbsow2Xund/GzdQGnp45o3DDy3UXBfUw4pBUnoIW/SfmEM1ZjUAu7pUcWJ8nDfeSjZ+NehxnkSiril0L9RH+z+OHCHk7Ar3Vvs3MncVszWZ3efj+QF1Cd6S3LL8/POja6iD89rqKm2l53H8nliNJDsK2x/fvrz+1wmUiaUi2KYgXE7DpSyYAN91RefMn1FgIL+/8x6KMCc73kuLzCh6swKNkgVJMdLjGxmBGKg0m6+bQ4BjLkzyUWm8JypOXukaBsqtEaLVaSys0st4YcafIWd/vwzD/WjUsOEgiF6lVJdbaaEF1gSoO46iGYt0kC70FckkcQXFaB5dTWlpx6VSWT39SNgYyJc3sDhOuLyhsdB/zFmyUsKNOtQZ5sB8DH37yHfqx6Bqn8A+cP4ODR6EDvaF765yLYlSFBIr0ZwaN4232vdRF8DgVj7XwgyFpAqFzBKv3C5f0xHb+vJBUiB4esAI3UA6EfXNZOT3Va7Zn3D8lxJj7MkbTzgtUCgwoI3pVSZusGA7q3U9o5XltC93m0eShPr1zz+IKXQQrAu67GjGAv1IJN2jYw0M84591UwyVVgjPYMK2sL3uYaRgAuYBClsjgQsWNAyCbmBUDTAEV9Q5u6gI3FnKU=
+  file: "$TRAVIS_BUILD_DIR/$ARCHIVE"
+  draft: true
+  on:
+    tags: true
