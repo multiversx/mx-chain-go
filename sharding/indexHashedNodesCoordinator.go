@@ -651,17 +651,6 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *e
 	return selfShard
 }
 
-// validatorIsInList returns true if a validator has been found in provided list
-func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []Validator) bool {
-	for i := 0; i < len(list); i++ {
-		if bytes.Equal(v.PubKey(), list[i].PubKey()) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // ConsensusGroupSize returns the consensus group size for a specific shard
 func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(
 	shardId uint32,

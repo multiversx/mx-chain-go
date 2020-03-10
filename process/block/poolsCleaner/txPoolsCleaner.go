@@ -179,8 +179,5 @@ func (tpc *TxPoolsCleaner) NumRemovedTxs() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tpc *TxPoolsCleaner) IsInterfaceNil() bool {
-	if tpc == nil {
-		return true
-	}
-	return false
+	return tpc == nil
 }

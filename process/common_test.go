@@ -593,7 +593,7 @@ func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
 		},
 	}
 
-	hdrMarsh, err := marshalizer.Marshal(hdr)
+	hdrMarsh, _ := marshalizer.Marshal(hdr)
 	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	assert.Equal(t, hdrMarsh, headerMarsh)
 	assert.Nil(t, err)
@@ -1013,7 +1013,6 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSha
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
-	hash := []byte("X")
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
@@ -1025,7 +1024,6 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
-	hash := []byte("X")
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{
