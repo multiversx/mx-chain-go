@@ -30,8 +30,5 @@ func (HasherFake) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha *HasherFake) IsInterfaceNil() bool {
-	if sha == nil {
-		return true
-	}
-	return false
+	return sha == nil
 }
