@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type changeOwnerAddress struct {
@@ -38,7 +38,7 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 		return nil, process.ErrInvalidAddressLength
 	}
 
-	err := acntDst.ChangeOwnerAddress(tx.GetSndAddress(), vmInput.Arguments[0])
+	err := acntDst.ChangeOwnerAddress(tx.GetSndAddr(), vmInput.Arguments[0])
 	if err != nil {
 		return nil, err
 	}

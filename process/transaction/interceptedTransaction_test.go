@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -59,7 +58,10 @@ func createFreeTxFeeHandler() *mock.FeeHandlerStub {
 
 func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler) (*transaction.InterceptedTransaction, error) {
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(tx)
+	txBuff, err := marshalizer.Marshal(tx)
+	if err != nil {
+		return nil, err
+	}
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 6
@@ -76,6 +78,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 
 	return transaction.NewInterceptedTransaction(
 		txBuff,
+		marshalizer,
 		marshalizer,
 		mock.HasherMock{},
 		createKeyGenMock(),
@@ -98,6 +101,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		nil,
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -115,6 +119,26 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		nil,
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		nil,
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -134,6 +158,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		nil,
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -151,6 +176,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		nil,
@@ -170,6 +196,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		nil,
@@ -187,6 +214,7 @@ func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -206,6 +234,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -223,6 +252,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -248,6 +278,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 				return errExpected
 			},
 		},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -265,6 +296,7 @@ func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		[]byte("{\"value\": \"0\"}"),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -378,9 +410,12 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	_, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	assert.Nil(t, err)
 
-	assert.Equal(t, data.ErrInvalidValue, err)
+	err = txi.CheckValidity()
+
+	assert.Equal(t, process.ErrNilValue, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
@@ -448,7 +483,7 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 
 	err := txi.CheckValidity()
 
-	assert.Equal(t, errSingleSignKeyGenMock, err)
+	assert.NotNil(t, err)
 }
 
 func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) {
@@ -549,6 +584,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 
 	txIntercepted, err := transaction.NewInterceptedTransaction(
 		txBuff,
+		marshalizer,
 		marshalizer,
 		mock.HasherMock{},
 		createKeyGenMock(),

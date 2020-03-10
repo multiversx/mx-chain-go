@@ -398,7 +398,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 		return
 	}
 
-	account.Balance = balance
+	account.Balance.Set(balance)
 	account.Nonce = nonce
 
 	bh.tempAccounts[string(address)] = account

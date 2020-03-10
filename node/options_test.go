@@ -38,30 +38,82 @@ func TestWithMessenger_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
+func TestWithInternalMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithMarshalizer(nil, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(nil, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.Nil(t, node.marshalizer)
+	assert.Nil(t, node.internalMarshalizer)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
-func TestWithMarshalizer_ShouldWork(t *testing.T) {
+func TestWithInternalMarshalizerr_NilVmMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithVmMarshalizer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.vmMarshalizer)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestWithMarshalizer_NilTxSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxSignMarshalizer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.txSignMarshalizer)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	opt := WithMarshalizer(marshalizer, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(marshalizer, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.True(t, node.marshalizer == marshalizer)
+	assert.True(t, node.internalMarshalizer == marshalizer)
 	assert.True(t, node.sizeCheckDelta == testSizeCheckDelta)
+	assert.Nil(t, err)
+}
+
+func TestWithVmMarshalizer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	opt := WithVmMarshalizer(marshalizer)
+	err := opt(node)
+
+	assert.True(t, node.vmMarshalizer == marshalizer)
+	assert.Nil(t, err)
+}
+
+func TestWithTxSignMarshalizer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	opt := WithTxSignMarshalizer(marshalizer)
+	err := opt(node)
+
+	assert.True(t, node.txSignMarshalizer == marshalizer)
 	assert.Nil(t, err)
 }
 

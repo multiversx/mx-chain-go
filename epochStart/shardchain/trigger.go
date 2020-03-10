@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -538,13 +539,17 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 		return nil, err
 	}
 
-	var neededHash []byte
-	err = t.marshalizer.Unmarshal(neededHash, dataHdr)
+	b := batch.Batch{}
+	err = t.marshalizer.Unmarshal(&b, dataHdr)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.getHeaderWithNonceAndHash(nonce, neededHash)
+	if len(b.Data) != 1 {
+		return nil, marshal.ErrUnmarshallingBadSize
+	}
+
+	return t.getHeaderWithNonceAndHash(nonce, b.Data[0])
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
@@ -576,12 +581,20 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert(_ uint64) {
+func (t *trigger) Revert(header data.HeaderHandler) {
+	if check.IfNil(header) || !header.IsStartOfEpochBlock() {
+		return
+	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
+}
+
+// RevertStateToBlock will revert the state of the trigger to the current block
+func (t *trigger) RevertStateToBlock(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch

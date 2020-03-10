@@ -61,7 +61,8 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	//Step 1. create account with a nonce and a balance
 	address := integrationTests.CreateAccount(accnts, nonce, balance)
-	_, _ = accnts.Commit()
+	_, err := accnts.Commit()
+	assert.Nil(t, err)
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
@@ -73,10 +74,11 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 		GasPrice: 2,
 	}
 
-	err := txProcessor.ProcessTransaction(tx)
+	err = txProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_ = accnts.RevertToSnapshot(0)
+	err = accnts.RevertToSnapshot(0)
+	assert.Nil(t, err)
 
 	accountAfterExec, _ := accnts.LoadAccount(address)
 	assert.Equal(t, nonce, accountAfterExec.(state.UserAccountHandler).GetNonce())

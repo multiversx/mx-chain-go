@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -183,7 +183,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -192,7 +192,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, sc.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
@@ -428,7 +428,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 	}
 
 	txValue := big.NewInt(0).Set(tx.GetValue())
-	sc.tempAccounts.AddTempAccount(tx.GetSndAddress(), txValue, nonce)
+	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
 
 	return nil
 }
@@ -446,7 +446,7 @@ func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.GetRecvAddress())
+	vmType := core.GetVMType(tx.GetRcvAddr())
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -552,7 +552,7 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 		return nil, err
 	}
 
-	vmCallInput.RecipientAddr = tx.GetRecvAddress()
+	vmCallInput.RecipientAddr = tx.GetRcvAddr()
 
 	return vmCallInput, nil
 }
@@ -607,13 +607,13 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 		return nil, err
 	}
 
-	vmInput.CallerAddr = tx.GetSndAddress()
+	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.Arguments, err = sc.argsParser.GetArguments()
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput.CallValue = tx.GetValue()
+	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
 
@@ -801,18 +801,18 @@ func (sc *scProcessor) createSCRsWhenError(
 		return nil, err
 	}
 
-	rcvAddress := tx.GetSndAddress()
+	rcvAddress := tx.GetSndAddr()
 
 	callType := determineCallType(tx)
 	if callType == vmcommon.AsynchronousCallBack {
-		rcvAddress = tx.GetRecvAddress()
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   tx.GetNonce(),
 		Value:   tx.GetValue(),
 		RcvAddr: rcvAddress,
-		SndAddr: tx.GetRecvAddress(),
+		SndAddr: tx.GetRcvAddr(),
 		Code:    nil,
 		Data:    []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
 		TxHash:  txHash,
@@ -850,7 +850,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.Value = outAcc.BalanceDelta
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
-	result.SndAddr = tx.GetRecvAddress()
+	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
 	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
@@ -881,15 +881,15 @@ func (sc *scProcessor) createSCRForSender(
 	refundErd = refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	consumedFee.Sub(consumedFee, refundErd)
 
-	rcvAddress := tx.GetSndAddress()
+	rcvAddress := tx.GetSndAddr()
 	if callType == vmcommon.AsynchronousCallBack {
-		rcvAddress = tx.GetRecvAddress()
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
 	scTx.Value = big.NewInt(0).Add(refundErd, storageFreeRefund)
 	scTx.RcvAddr = rcvAddress
-	scTx.SndAddr = tx.GetRecvAddress()
+	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
 	scTx.TxHash = txHash
 	scTx.GasLimit = gasRemaining
@@ -1011,7 +1011,7 @@ func (sc *scProcessor) updateSmartContractCode(
 
 	isDeployment := len(account.GetCode()) == 0
 	if isDeployment {
-		account.SetOwnerAddress(tx.GetSndAddress())
+		account.SetOwnerAddress(tx.GetSndAddr())
 		account.SetCode(outAcc.Code)
 
 		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
@@ -1019,7 +1019,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	// TODO: implement upgradable flag for smart contracts
-	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddress())
+	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
 	if isUpgradeEnabled {
 		account.SetCode(outAcc.Code)
 

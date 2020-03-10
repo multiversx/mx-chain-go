@@ -537,7 +537,7 @@ func putDeploySCToDataPool(
 
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    transferOnDeploy,
+		Value:    new(big.Int).Set(transferOnDeploy),
 		RcvAddr:  make([]byte, 32),
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),

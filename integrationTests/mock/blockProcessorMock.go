@@ -15,7 +15,7 @@ type BlockProcessorMock struct {
 	Marshalizer                             marshal.Marshalizer
 	ProcessBlockCalled                      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                       func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled                func()
+	RevertAccountStateCalled                func(header data.HeaderHandler)
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
@@ -51,8 +51,8 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertAccountState mocks revert of the accounts state
-func (bpm *BlockProcessorMock) RevertAccountState() {
-	bpm.RevertAccountStateCalled()
+func (bpm *BlockProcessorMock) RevertAccountState(header data.HeaderHandler) {
+	bpm.RevertAccountStateCalled(header)
 }
 
 // CreateNewHeader -
@@ -100,7 +100,7 @@ func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHa
 		return nil, nil
 	}
 
-	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	var marshalizedBodyAndHeader block.BodyHeaderPair
 	err := bpm.Marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
 	if err != nil {
 		return nil, nil
@@ -118,13 +118,13 @@ func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHa
 		return nil, nil
 	}
 
-	return body, &header
+	return &body, &header
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
 func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 	if dta == nil {
-		return nil
+		return &block.Body{}
 	}
 
 	var body block.Body
@@ -134,7 +134,7 @@ func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	return body
+	return &body
 }
 
 // DecodeBlockHeader method decodes block header from a given byte array

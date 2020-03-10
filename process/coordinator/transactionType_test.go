@@ -78,7 +78,7 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 

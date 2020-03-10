@@ -26,7 +26,7 @@ func TestHeader_GetShard(t *testing.T) {
 
 	shardId := uint32(2)
 	h := block.Header{
-		ShardId: shardId,
+		ShardID: shardId,
 	}
 
 	assert.Equal(t, shardId, h.GetShardID())
@@ -244,8 +244,7 @@ func TestHeader_SetTxCount(t *testing.T) {
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
-	body := block.Body{}
-	body = nil
+	var body *block.Body = nil
 	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
@@ -261,9 +260,9 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 
 	mb1 := block.MiniBlock{}
 
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-	body = append(body, &mb1)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &mb0)
+	body.MiniBlocks = append(body.MiniBlocks, &mb1)
 
 	assert.Equal(t, data.ErrMiniBlockEmpty, body.IntegrityAndValidity())
 }
@@ -278,8 +277,8 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 		TxHashes:        [][]byte{txHash0},
 	}
 
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &mb0)
 
 	assert.Equal(t, nil, body.IntegrityAndValidity())
 }

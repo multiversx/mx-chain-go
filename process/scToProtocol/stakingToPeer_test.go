@@ -22,24 +22,27 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		AdrConv:     &mock.AddressConverterMock{},
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerStub{},
-		PeerState:   &mock.AccountsStub{},
-		BaseState:   &mock.AccountsStub{},
-		ArgParser:   &mock.ArgumentParserMock{},
-		CurrTxs:     &mock.TxForCurrentBlockStub{},
-		ScQuery:     &mock.ScQueryMock{},
+		AdrConv:          &mock.AddressConverterMock{},
+		Hasher:           &mock.HasherMock{},
+		ProtoMarshalizer: &mock.MarshalizerStub{},
+		VmMarshalizer:    &mock.MarshalizerStub{},
+		PeerState:        &mock.AccountsStub{},
+		BaseState:        &mock.AccountsStub{},
+		ArgParser:        &mock.ArgumentParserMock{},
+		CurrTxs:          &mock.TxForCurrentBlockStub{},
+		ScQuery:          &mock.ScQueryMock{},
 	}
 }
 
-func createBlockBody() block.Body {
-	return block.Body{
-		{
-			TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
-			ReceiverShardID: 0,
-			SenderShardID:   core.MetachainShardId,
-			Type:            block.SmartContractResultBlock,
+func createBlockBody() *block.Body {
+	return &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+				ReceiverShardID: 0,
+				SenderShardID:   core.MetachainShardId,
+				Type:            block.SmartContractResultBlock,
+			},
 		},
 	}
 }
@@ -70,7 +73,7 @@ func TestNewStakingToPeerNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
-	arguments.Marshalizer = nil
+	arguments.ProtoMarshalizer = nil
 
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
@@ -280,7 +283,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -329,7 +332,8 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
+	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
@@ -386,7 +390,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
+	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
@@ -443,7 +448,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
+	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
@@ -499,7 +505,8 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
+	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
@@ -556,7 +563,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.Marshalizer = marshalizer
+	arguments.ProtoMarshalizer = marshalizer
+	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 

@@ -239,7 +239,7 @@ func (txProc *txProcessor) processTxFee(
 
 	cost := txProc.economicsFee.ComputeFee(tx)
 
-	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRecvAddress())
+	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if isCrossShardSCCall {
 		totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 		err := acntSnd.SubFromBalance(totalCost)
@@ -273,9 +273,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	value := tx.Value
-
-	err = txProc.moveBalances(acntSrc, acntDst, value)
+	err = txProc.moveBalances(acntSrc, acntDst, tx.GetValue())
 	if err != nil {
 		return err
 	}

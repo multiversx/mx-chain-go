@@ -436,7 +436,7 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 	dataNoSig := *cnsDta
 	signature := cnsDta.Signature
 	dataNoSig.Signature = nil
-	dataNoSigString, err := wrk.marshalizer.Marshal(dataNoSig)
+	dataNoSigString, err := wrk.marshalizer.Marshal(&dataNoSig)
 	if err != nil {
 		return err
 	}
@@ -522,7 +522,7 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	log.Debug("account state is reverted to snapshot")
 
-	wrk.blockProcessor.RevertAccountState()
+	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
 
 	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
 		wrk.consensusService.IsSubroundSignature(subroundId)
