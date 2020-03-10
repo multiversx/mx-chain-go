@@ -13,6 +13,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewEpochStartDataProvider_NilPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.PublicKey = nil
+	epStart, err := bootstrap.NewEpochStartDataProvider(args)
+
+	require.Nil(t, epStart)
+	require.Equal(t, bootstrap.ErrNilPublicKey, err)
+}
+
 func TestNewEpochStartDataProvider_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -167,6 +178,7 @@ func TestEpochStartDataProvider_Bootstrap_ShouldWork(t *testing.T) {
 
 func getArguments() bootstrap.ArgsEpochStartDataProvider {
 	return bootstrap.ArgsEpochStartDataProvider{
+		PublicKey:              &mock.PublicKeyMock{},
 		Messenger:              &mock.MessengerStub{},
 		Marshalizer:            &mock2.MarshalizerMock{},
 		Hasher:                 mock2.HasherMock{},

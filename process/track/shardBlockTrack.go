@@ -115,7 +115,7 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 
 		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
-			log.Trace("GetSelfHeaders.GetShardHeader", "error", err.Error())
+			log.Trace("GetSelfHeaders.GetMiniBlock", "error", err.Error())
 			continue
 		}
 

@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-const timeToWaitBeforeCheckingReceivedMetaBlocks = 500 * time.Millisecond
+const timeToWaitBeforeCheckingReceivedHeaders = 1 * time.Second
 const numTriesUntilExit = 5
 
 type simpleMetaBlockInterceptor struct {
@@ -83,9 +83,10 @@ func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 // GetMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 func (s *simpleMetaBlockInterceptor) GetMetaBlock(target int, epoch uint32) (*block.MetaBlock, error) {
 	for count := 0; count < numTriesUntilExit; count++ {
-		time.Sleep(timeToWaitBeforeCheckingReceivedMetaBlocks)
+		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 		s.mutReceivedMetaBlocks.RLock()
 		for hash, peersList := range s.mapMetaBlocksFromPeers {
+			log.Debug("metablock from peers", "num peers", len(peersList), "target", target, "hash", []byte(hash))
 			isOk := s.isMapEntryOk(peersList, hash, target, epoch)
 			if isOk {
 				s.mutReceivedMetaBlocks.RUnlock()

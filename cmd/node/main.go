@@ -561,11 +561,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	marshalizer := &marshal.JsonMarshalizer{}
 	hasher := &blake2b.Blake2b{}
 	epochStartComponentArgs := factory2.EpochStartDataProviderFactoryArgs{
+		PubKey:                pubKey,
 		Messenger:             networkComponents.NetMessenger,
 		Marshalizer:           marshalizer,
 		Hasher:                hasher,
@@ -756,13 +757,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	if isFreshStart {
-		log.Trace("creating network components")
-		networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
-		if err != nil {
-			return err
-		}
-	}
+	//if isFreshStart {
+	//	log.Trace("creating network components")
+	//	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	log.Trace("creating tps benchmark components")
 	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)

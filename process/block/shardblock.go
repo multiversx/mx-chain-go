@@ -1024,7 +1024,7 @@ func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain(chainHandler dat
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeaderByMetachain.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
+		log.Warn("getLastSelfNotarizedHeaderByMetachain.GetMiniBlock", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
 		return nil, nil
 	}
 

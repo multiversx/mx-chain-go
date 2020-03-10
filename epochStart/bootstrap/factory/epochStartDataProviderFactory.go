@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -13,6 +14,7 @@ import (
 )
 
 type epochStartDataProviderFactory struct {
+	pubKey              crypto.PublicKey
 	messenger           p2p.Messenger
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -23,6 +25,7 @@ type epochStartDataProviderFactory struct {
 // EpochStartDataProviderFactoryArgs holds the arguments needed for creating aa factory for the epoch start data
 // provider component
 type EpochStartDataProviderFactoryArgs struct {
+	PubKey                crypto.PublicKey
 	Messenger             p2p.Messenger
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
@@ -35,6 +38,9 @@ type EpochStartDataProviderFactoryArgs struct {
 
 // NewEpochStartDataProviderFactory returns a new instance of epochStartDataProviderFactory
 func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*epochStartDataProviderFactory, error) {
+	if check.IfNil(args.PubKey) {
+		return nil, bootstrap.ErrNilPublicKey
+	}
 	if check.IfNil(args.Messenger) {
 		return nil, bootstrap.ErrNilMessenger
 	}
@@ -57,6 +63,7 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 	shouldSync = true // harcoded so we can test we can sync
 
 	return &epochStartDataProviderFactory{
+		pubKey:              args.PubKey,
 		messenger:           args.Messenger,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
@@ -75,20 +82,18 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 	if err != nil {
 		return nil, err
 	}
-	shardHdrInterceptor := bootstrap.NewSimpleShardHeaderInterceptor(esdpf.marshalizer)
-	metaBlockResolver, err := bootstrap.NewSimpleMetaBlocksResolver(esdpf.messenger, esdpf.marshalizer)
+	shardHdrInterceptor, err := bootstrap.NewSimpleShardHeaderInterceptor(esdpf.marshalizer, esdpf.hasher)
 	if err != nil {
 		return nil, err
 	}
-
 	argsEpochStart := bootstrap.ArgsEpochStartDataProvider{
+		PublicKey:              esdpf.pubKey,
 		Messenger:              esdpf.messenger,
 		Marshalizer:            esdpf.marshalizer,
 		Hasher:                 esdpf.hasher,
 		NodesConfigProvider:    esdpf.nodesConfigProvider,
 		MetaBlockInterceptor:   metaBlockInterceptor,
 		ShardHeaderInterceptor: shardHdrInterceptor,
-		MetaBlockResolver:      metaBlockResolver,
 	}
 	epochStartDataProvider, err := bootstrap.NewEpochStartDataProvider(argsEpochStart)
 

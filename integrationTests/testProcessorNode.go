@@ -1113,7 +1113,7 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 	_ = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
 }
 
-// GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
+// GetMiniBlock returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.Headers() == nil
 	if invalidCachers {

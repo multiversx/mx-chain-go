@@ -106,7 +106,7 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := emptyExcludePeersOnTopic
 
-		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
+		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx, numPeersToQuery)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,13 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	return mrcf.container.AddMultiple(keys, resolversSlice)
 }
 
-func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic string, excludedTopic string, shardID uint32) (dataRetriever.Resolver, error) {
+// createShardHeaderResolver will return a shard header resolver for the given shard ID
+func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
+	topic string,
+	excludedTopic string,
+	shardID uint32,
+	numPeersToQuery int,
+) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(mrcf.messenger, topic, excludedTopic)
@@ -165,7 +171,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic strin
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic
-	resolver, err := mrcf.CreateMetaChainHeaderResolver(identifierHeader, numPeersToQuery, core.MetachainShardId)
+	resolver, err := mrcf.createMetaChainHeaderResolver(identifierHeader, numPeersToQuery, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -173,8 +179,8 @@ func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() er
 	return mrcf.container.Add(identifierHeader, resolver)
 }
 
-// CreateMetaChainHeaderResolver will return a resolver for metachain headers
-func (mrcf *metaResolversContainerFactory) CreateMetaChainHeaderResolver(
+// createMetaChainHeaderResolver will return a resolver for metachain headers
+func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 	identifier string,
 	numPeersToQuery int,
 	shardId uint32,

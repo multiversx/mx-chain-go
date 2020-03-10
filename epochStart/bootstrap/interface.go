@@ -15,12 +15,24 @@ type MetaBlockInterceptorHandler interface {
 // ShardHeaderInterceptorHandler defines what a component which will handle receiving the the shard headers should do
 type ShardHeaderInterceptorHandler interface {
 	process.Interceptor
-	GetAllReceivedShardHeaders() []block.ShardData
+	GetShardHeader(target int) (*block.Header, error)
 }
 
-// MetaBlockResolverHandler defines what a component which will handle requesting a metablock should do
+// MetaBlockResolverHandler defines what a component which will handle requesting a meta block should do
 type MetaBlockResolverHandler interface {
 	RequestEpochStartMetaBlock(epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ShardHeaderResolverHandler defines what a component which will handle requesting a shard block should do
+type ShardHeaderResolverHandler interface {
+	RequestHeaderByHash(hash []byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// MiniBlockResolverHandler defines what a component which will handle requesting a mini block should do
+type MiniBlockResolverHandler interface {
+	RequestHeaderByHash(hash []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
 
