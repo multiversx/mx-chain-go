@@ -99,7 +99,7 @@ VERSION:
 
 func main() {
 	initCliFlags()
-	marshalizer = &marshal.ProtobufMarshalizer{}
+	marshalizer = &marshal.GogoProtoMarshalizer{}
 
 	cliApp.Action = func(c *cli.Context) error {
 		return startLogViewer(c)
