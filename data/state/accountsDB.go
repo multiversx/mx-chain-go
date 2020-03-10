@@ -25,9 +25,11 @@ const (
 	ShardStatistics Type = 1
 	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
 	ValidatorAccount Type = 2
+	// DataTrie identifies the data trie kept under a specific account
+	DataTrie Type = 3
 )
 
-var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount}
+var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount, DataTrie}
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {

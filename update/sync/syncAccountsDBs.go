@@ -130,7 +130,7 @@ func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error 
 func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
-	success := st.tryRecreateTrie(accAdapterIdentifier, trieID, rootHash)
+	success := st.tryRecreateTrie(shardId, accAdapterIdentifier, trieID, rootHash)
 	if success {
 		return nil
 	}
@@ -146,19 +146,25 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID sta
 		return err
 	}
 
-	st.setTries(accAdapterIdentifier, rootHash, accountsDBSyncer.GetSyncedTries())
+	st.setTries(shardId, accAdapterIdentifier, rootHash, accountsDBSyncer.GetSyncedTries())
 
 	return nil
 }
 
-func (st *syncAccountsDBs) setTries(initialID string, rootHash []byte, tries map[string]data.Trie) {
+func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []byte, tries map[string]data.Trie) {
 	for hash, currentTrie := range tries {
-		identifier := genesis.AddRootHashToIdentifier(initialID, hash)
+		if bytes.Equal(rootHash, []byte(hash)) {
+			st.tries.setTrie(initialID, currentTrie)
+			continue
+		}
+
+		dataTrieIdentifier := genesis.CreateTrieIdentifier(shId, state.DataTrie)
+		identifier := genesis.AddRootHashToIdentifier(dataTrieIdentifier, hash)
 		st.tries.setTrie(identifier, currentTrie)
 	}
 }
 
-func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
+func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
 	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
 		currHash, err := savedTrie.Root()
@@ -184,7 +190,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(id string, trieID state.AccountsDbIde
 		}
 	}
 
-	st.setTries(id, rootHash, tries)
+	st.setTries(shardId, id, rootHash, tries)
 
 	return true
 }
