@@ -194,10 +194,10 @@ VERSION:
 	}
 
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
-	// the NodeDisplayName from config.toml
+	// the NodeDisplayName from prefs.toml
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
-		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the prefs.toml one",
 		Value: "",
 	}
 
@@ -579,7 +579,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -714,7 +714,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.ProtoMarshalizer,
+			coreComponents.InternalMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -820,7 +820,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.ProtoMarshalizer,
+		coreComponents.InternalMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -1202,7 +1202,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
 	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
-		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil
@@ -1284,7 +1284,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithInternalMarshalizer(coreData.InternalMarshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(coreData.VmMarshalizer),
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),

@@ -284,6 +284,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
+		AccumulatedFees: big.NewInt(0),
 	}
 }
 
@@ -306,6 +307,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		ValidatorStatsRootHash: rootHash,
 		TxCount:                0,
 		MiniBlockHeaders:       nil,
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 }
 
@@ -1391,7 +1394,7 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),

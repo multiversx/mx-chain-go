@@ -197,7 +197,7 @@ type PreProcessor interface {
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountState()
+	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader(round uint64) data.HeaderHandler
@@ -214,7 +214,7 @@ type BlockProcessor interface {
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
+	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	IsInterfaceNil() bool
@@ -370,7 +370,8 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert(round uint64)
+	Revert(header data.HeaderHandler)
+	RevertStateToBlock(header data.HeaderHandler)
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
