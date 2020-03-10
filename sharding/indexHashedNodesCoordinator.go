@@ -149,7 +149,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	defer ihgs.mutNodesConfig.Unlock()
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
-
 	if !ok {
 		nodesConfig = &epochNodesConfig{}
 	}
@@ -233,9 +232,10 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"randomness", randomness,
 		"round", round)
 
-	if randomness == nil {
+	if len(randomness) == 0 {
 		return nil, ErrNilRandomness
 	}
+
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
@@ -249,10 +249,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
-	}
-
-	if ihgs == nil {
-		return nil, ErrNilRandomness
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
@@ -612,7 +608,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 			shardEligible[string(pubKey)] = struct{}{}
 		}
 	} else {
-		log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
+		log.Trace("not critical error getting shardId for epoch", "epoch", epoch-1, "error", err)
 	}
 
 	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
@@ -669,7 +665,7 @@ func (ihgs *indexHashedNodesCoordinator) updatePeerAccountsForGivenMap(
 				string(account.PubKey()),
 				shardId,
 				string(list),
-				index)
+				int32(index))
 			if err != nil {
 				log.Warn("error while updating list and index for peer",
 					"error", err,

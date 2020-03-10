@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -148,19 +149,20 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
+	hmb := header.(*block.MetaBlock)
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 
 	// all nodes in shard do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, shardNode := range nodesMap[0] {
 		v, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 }
 

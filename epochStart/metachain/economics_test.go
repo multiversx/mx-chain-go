@@ -161,8 +161,8 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		Round: 15000,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 1, Round: 2, Nonce: 3},
-				{ShardId: 2, Round: 2, Nonce: 3},
+				{ShardID: 1, Round: 2, Nonce: 3},
+				{ShardID: 2, Round: 2, Nonce: 3},
 			},
 			Economics: block.Economics{},
 		},
@@ -204,8 +204,8 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 				NodePrice:              big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, Nonce: 0},
-				{ShardId: 1, Nonce: 0},
+				{ShardID: 0, Nonce: 0},
+				{ShardID: 1, Nonce: 0},
 			},
 		},
 	}
@@ -243,8 +243,8 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			Nonce: uint64(numBlocksInEpoch),
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardId: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
-					{ShardId: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+					{ShardID: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+					{ShardID: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
 				},
 				Economics: block.Economics{
 					TotalSupply:            expectedTotalSupply,

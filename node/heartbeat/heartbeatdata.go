@@ -13,6 +13,21 @@ type Duration struct {
 	time.Duration
 }
 
+// PubKeyHeartbeat returns the heartbeat status for a public key
+type PubKeyHeartbeat struct {
+	HexPublicKey    string    `json:"hexPublicKey"`
+	TimeStamp       time.Time `json:"timeStamp"`
+	MaxInactiveTime Duration  `json:"maxInactiveTime"`
+	IsActive        bool      `json:"isActive"`
+	ReceivedShardID uint32    `json:"receivedShardID"`
+	ComputedShardID uint32    `json:"computedShardID"`
+	TotalUpTime     int64     `json:"totalUpTimeSec"`
+	TotalDownTime   int64     `json:"totalDownTimeSec"`
+	VersionNumber   string    `json:"versionNumber"`
+	NodeDisplayName string    `json:"nodeDisplayName"`
+	PeerType        string    `json:"peerType"`
+}
+
 // MarshalJSON is called when a json marshal is triggered on this field
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
