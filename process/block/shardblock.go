@@ -361,7 +361,6 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		header.GetEpoch() == sp.epochStartTrigger.Epoch()
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert(currentBlockHeader)
 		log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
 			process.ErrEpochDoesNotMatch, header.GetEpoch())
