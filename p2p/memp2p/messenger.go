@@ -319,7 +319,7 @@ func (messenger *Messenger) processFromQueue() {
 			continue
 		}
 
-		topic := messageObject.TopicIDs()[0]
+		topic := messageObject.Topics()[0]
 		if topic == "" {
 			continue
 		}

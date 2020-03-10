@@ -58,7 +58,7 @@ type networkMessenger struct {
 	topics              map[string]p2p.MessageProcessor
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
-	goRoutinesThrottler *throttler.NumGoRoutineThrottler
+	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -120,7 +120,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -518,7 +518,10 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	defer netMes.mutTopics.Unlock()
 	validator := netMes.topics[topic]
 	if !check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
+		return fmt.Errorf("%w, operation RegisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -558,7 +561,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 		return p2p.ErrNilTopic
 	}
 	if check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
+		return fmt.Errorf("%w, operation UnregisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.UnregisterTopicValidator(topic)
@@ -579,7 +585,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	processor = netMes.topics[message.TopicIDs()[0]]
+	processor = netMes.topics[message.Topics()[0]]
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {
@@ -591,7 +597,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
-				"topics", msg.TopicIDs(),
+				"topics", msg.Topics(),
 				"pid", p2p.MessageOriginatorPid(msg),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)

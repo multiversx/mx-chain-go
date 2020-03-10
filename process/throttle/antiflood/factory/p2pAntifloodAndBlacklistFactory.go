@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -27,7 +26,7 @@ var log = logger.GetOrCreate("p2p/antiflood/factory")
 func NewP2PAntiFloodAndBlackList(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
-) (consensus.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
+) (process.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
 	if check.IfNil(statusHandler) {
 		return nil, nil, p2p.ErrNilStatusHandler
 	}
@@ -39,11 +38,9 @@ func NewP2PAntiFloodAndBlackList(
 }
 
 func initP2PAntiFloodAndBlackList(
-	config config.Config,
+	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
-) (consensus.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
-	mainConfig := config
-
+) (process.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {

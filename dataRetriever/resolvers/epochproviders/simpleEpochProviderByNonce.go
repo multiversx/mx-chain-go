@@ -1,4 +1,4 @@
-package resolvers
+package epochproviders
 
 import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 

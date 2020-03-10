@@ -177,7 +177,7 @@ type MessageP2P interface {
 	From() []byte
 	Data() []byte
 	SeqNo() []byte
-	TopicIDs() []string
+	Topics() []string
 	Signature() []byte
 	Key() []byte
 	Peer() PeerID

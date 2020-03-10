@@ -576,16 +576,13 @@ func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 
 func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testing.T) {
 	mes := createMockMessenger()
-
 	_ = mes.CreateTopic("test", false)
-
 	//registration
 	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
-
 	//re-registration
 	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
-	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
 
 	_ = mes.Close()
 }
@@ -604,10 +601,9 @@ func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldErr(t
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-
 	err := mes.UnregisterMessageProcessor("test")
 
-	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
 
 	_ = mes.Close()
 }

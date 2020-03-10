@@ -470,7 +470,7 @@ func createConsensusOnlyNode(
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithAntifloodHandler(&mock.NilAntifloodHandler{}),
+		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 	)
 
 	if err != nil {

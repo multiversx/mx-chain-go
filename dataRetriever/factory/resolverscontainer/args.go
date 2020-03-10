@@ -10,14 +10,16 @@ import (
 
 // FactoryArgs will hold the arguments for ResolversContainerFactory for both shard and meta
 type FactoryArgs struct {
-	ShardCoordinator         sharding.Coordinator
-	Messenger                dataRetriever.TopicMessageHandler
-	Store                    dataRetriever.StorageService
-	Marshalizer              marshal.Marshalizer
-	DataPools                dataRetriever.PoolsHolder
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	DataPacker               dataRetriever.DataPacker
-	TriesContainer           state.TriesHolder
-	SizeCheckDelta           uint32
-	AntifloodHandler         dataRetriever.P2PAntifloodHandler
+	ShardCoordinator           sharding.Coordinator
+	Messenger                  dataRetriever.TopicMessageHandler
+	Store                      dataRetriever.StorageService
+	Marshalizer                marshal.Marshalizer
+	DataPools                  dataRetriever.PoolsHolder
+	Uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
+	DataPacker                 dataRetriever.DataPacker
+	TriesContainer             state.TriesHolder
+	SizeCheckDelta             uint32
+	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	NumConcurrentResolvingJobs int32
 }
