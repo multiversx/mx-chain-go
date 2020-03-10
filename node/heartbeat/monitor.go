@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types:. heartbeat.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. heartbeat.proto
 package heartbeat
 
 import (
@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat")
@@ -363,12 +362,12 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		NodeDisplayName: v.nodeDisplayName,
 	}
 
-	ret.TimeStamp, _ = types.TimestampProto(v.timeStamp)
-	ret.MaxInactiveTime = types.DurationProto(v.maxInactiveTime)
-	ret.TotalUpTime = types.DurationProto(v.totalUpTime)
-	ret.TotalDownTime = types.DurationProto(v.totalDownTime)
-	ret.LastUptimeDowntime, _ = types.TimestampProto(v.lastUptimeDowntime)
-	ret.GenesisTime, _ = types.TimestampProto(v.genesisTime)
+	ret.TimeStamp = v.timeStamp.UnixNano()
+	ret.MaxInactiveTime = v.maxInactiveTime.Nanoseconds()
+	ret.TotalUpTime = v.totalUpTime.Nanoseconds()
+	ret.TotalDownTime = v.totalDownTime.Nanoseconds()
+	ret.LastUptimeDowntime = v.lastUptimeDowntime.UnixNano()
+	ret.GenesisTime = v.genesisTime.UnixNano()
 
 	return ret
 }
@@ -384,11 +383,12 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		isValidator:                 hbDTO.IsValidator,
 	}
 
-	hbmi.maxInactiveTime, _ = types.DurationFromProto(hbDTO.MaxInactiveTime)
-	hbmi.timeStamp, _ = types.TimestampFromProto(hbDTO.TimeStamp)
-	hbmi.totalUpTime, _ = types.DurationFromProto(hbDTO.TotalUpTime)
-	hbmi.totalDownTime, _ = types.DurationFromProto(hbDTO.TotalDownTime)
-	hbmi.lastUptimeDowntime, _ = types.TimestampFromProto(hbDTO.LastUptimeDowntime)
-	hbmi.genesisTime, _ = types.TimestampFromProto(hbDTO.GenesisTime)
+	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
+	hbmi.timeStamp = time.Unix(0, hbDTO.TimeStamp)
+	hbmi.totalUpTime = time.Duration(hbDTO.TotalUpTime)
+	hbmi.totalDownTime = time.Duration(hbDTO.TotalDownTime)
+	hbmi.lastUptimeDowntime = time.Unix(0, hbDTO.LastUptimeDowntime)
+	hbmi.genesisTime = time.Unix(0, hbDTO.GenesisTime)
+
 	return hbmi
 }
