@@ -486,7 +486,7 @@ func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
 }
 
 func TestCreateDBFromConfLvlDBOk(t *testing.T) {
-	dir, err := ioutil.TempDir("", "leveldb_temp")
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	arg := storageUnit.ArgDB{
 		DBType:            storageUnit.LvlDB,
 		Path:              dir,
