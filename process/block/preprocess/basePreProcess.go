@@ -192,7 +192,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 ) map[uint32][]*txsHashesInfo {
 
 	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo, 0)
+		return make(map[uint32][]*txsHashesInfo)
 	}
 
 	missingTxsForShard := make(map[uint32][]*txsHashesInfo, bpp.shardCoordinator.NumberOfShards())

@@ -557,7 +557,7 @@ func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo, 0)
+		return make(map[uint32][]*txsHashesInfo)
 	}
 
 	missingTxsForShard := txs.computeExistingAndMissing(
