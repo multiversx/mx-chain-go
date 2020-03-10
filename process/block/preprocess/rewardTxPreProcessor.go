@@ -302,7 +302,7 @@ func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbT
 // from block.Body
 func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo, 0)
+		return make(map[uint32][]*txsHashesInfo)
 	}
 
 	rewardTxs := block.Body{}
