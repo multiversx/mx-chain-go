@@ -191,12 +191,11 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {
 
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body.MiniBlocks))
-
 	if check.IfNil(body) {
-		return missingTxsForShard
+		return make(map[uint32][]*txsHashesInfo, 0)
 	}
 
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, bpp.shardCoordinator.NumberOfShards())
 	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
 	for i := 0; i < len(body.MiniBlocks); i++ {

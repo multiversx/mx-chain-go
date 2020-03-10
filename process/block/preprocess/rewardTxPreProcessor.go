@@ -122,11 +122,6 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 
 // RemoveTxBlockFromPools removes reward transactions and miniblocks from associated pools
 func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	//TODO: PMS analyze if this check is correct and it is realy necessary to be done here
-	if body.MiniBlocks == nil {
-		return process.ErrNilTxBlockBody
-	}
-
 	return rtp.removeDataFromPools(body, miniBlockPool, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 
@@ -307,8 +302,7 @@ func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbT
 // from block.Body
 func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	if check.IfNil(body) {
-		//TODO: PMS analyze if this return is ok
-		return map[uint32][]*txsHashesInfo{}
+		return make(map[uint32][]*txsHashesInfo, 0)
 	}
 
 	rewardTxs := block.Body{}
