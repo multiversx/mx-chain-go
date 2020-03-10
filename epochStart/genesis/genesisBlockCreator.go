@@ -364,26 +364,16 @@ func deploySystemSmartContracts(
 	})
 
 	for _, key := range systemSCAddresses {
-		//addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
-		//if err != nil {
-		//	return err
-		//}
-
-		//_, err = state.NewAccount(addr, accountsDB)
-		//if err != nil {
-		//	return err
-		//}
-
-		_, err := accountsDB.Commit()
-		if err != nil {
-			return err
-		}
-
 		tx.SndAddr = key
-		err = txProcessor.ProcessTransaction(tx)
+		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
+	}
+
+	_, err := accountsDB.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil

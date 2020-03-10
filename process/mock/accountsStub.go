@@ -30,7 +30,7 @@ func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.Accou
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, nil
+	return nil, errNotImplemented
 }
 
 func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {

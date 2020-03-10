@@ -442,7 +442,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -468,7 +468,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -490,7 +490,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	mock2 "github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -220,7 +221,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
-			acc := state.NewEmptyUserAccount()
+			acc, _ := state.NewUserAccount(&mock2.AddressMock{})
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.SetNonce(1)
 

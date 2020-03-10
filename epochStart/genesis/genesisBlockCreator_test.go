@@ -167,7 +167,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		return nil
 	}
 	adb.LoadAccountCalled = func(container state.AddressContainer) (handler state.AccountHandler, err error) {
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(container)
 	}
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(

@@ -241,21 +241,21 @@ type PeerAccountData struct {
 	SchnorrPublicKey           []byte        `protobuf:"bytes,2,opt,name=SchnorrPublicKey,proto3" json:"SchnorrPublicKey,omitempty"`
 	RewardAddress              []byte        `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress,omitempty"`
 	Stake                      *math_big.Int `protobuf:"bytes,4,opt,name=Stake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Stake,omitempty"`
-	AccumulatedFees            *math_big.Int `protobuf:"bytes,5,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
-	JailTime                   TimePeriod    `protobuf:"bytes,6,opt,name=JailTime,proto3" json:"JailTime"`
-	PastJailTimes              []TimePeriod  `protobuf:"bytes,7,rep,name=PastJailTimes,proto3" json:"PastJailTimes"`
-	CurrentShardId             uint32        `protobuf:"varint,8,opt,name=CurrentShardId,proto3" json:"CurrentShardId,omitempty"`
-	NextShardId                uint32        `protobuf:"varint,9,opt,name=NextShardId,proto3" json:"NextShardId,omitempty"`
-	NodeInWaitingList          bool          `protobuf:"varint,10,opt,name=NodeInWaitingList,proto3" json:"NodeInWaitingList,omitempty"`
-	UnStakedNonce              uint64        `protobuf:"varint,11,opt,name=UnStakedNonce,proto3" json:"UnStakedNonce,omitempty"`
-	ValidatorSuccessRate       SignRate      `protobuf:"bytes,12,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
-	LeaderSuccessRate          SignRate      `protobuf:"bytes,13,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
-	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,14,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
-	Rating                     uint32        `protobuf:"varint,15,opt,name=Rating,proto3" json:"Rating,omitempty"`
-	TempRating                 uint32        `protobuf:"varint,16,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
-	Nonce                      uint64        `protobuf:"varint,17,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	CodeHash                   []byte        `protobuf:"bytes,18,opt,name=CodeHash,proto3" json:"CodeHash,omitempty"`
-	RootHash                   []byte        `protobuf:"bytes,19,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	AccumulatedFees            *math_big.Int `protobuf:"bytes,18,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	JailTime                   TimePeriod    `protobuf:"bytes,5,opt,name=JailTime,proto3" json:"JailTime"`
+	PastJailTimes              []TimePeriod  `protobuf:"bytes,6,rep,name=PastJailTimes,proto3" json:"PastJailTimes"`
+	CurrentShardId             uint32        `protobuf:"varint,7,opt,name=CurrentShardId,proto3" json:"CurrentShardId,omitempty"`
+	NextShardId                uint32        `protobuf:"varint,8,opt,name=NextShardId,proto3" json:"NextShardId,omitempty"`
+	NodeInWaitingList          bool          `protobuf:"varint,9,opt,name=NodeInWaitingList,proto3" json:"NodeInWaitingList,omitempty"`
+	UnStakedNonce              uint64        `protobuf:"varint,10,opt,name=UnStakedNonce,proto3" json:"UnStakedNonce,omitempty"`
+	ValidatorSuccessRate       SignRate      `protobuf:"bytes,11,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
+	LeaderSuccessRate          SignRate      `protobuf:"bytes,12,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
+	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,19,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
+	CodeHash                   []byte        `protobuf:"bytes,13,opt,name=CodeHash,proto3" json:"CodeHash,omitempty"`
+	Rating                     uint32        `protobuf:"varint,14,opt,name=Rating,proto3" json:"Rating,omitempty"`
+	TempRating                 uint32        `protobuf:"varint,17,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
+	RootHash                   []byte        `protobuf:"bytes,15,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	Nonce                      uint64        `protobuf:"varint,16,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
 }
 
 func (m *PeerAccountData) Reset()      { *m = PeerAccountData{} }
@@ -384,6 +384,13 @@ func (m *PeerAccountData) GetNumSelectedInSuccessBlocks() uint32 {
 	return 0
 }
 
+func (m *PeerAccountData) GetCodeHash() []byte {
+	if m != nil {
+		return m.CodeHash
+	}
+	return nil
+}
+
 func (m *PeerAccountData) GetRating() uint32 {
 	if m != nil {
 		return m.Rating
@@ -398,25 +405,18 @@ func (m *PeerAccountData) GetTempRating() uint32 {
 	return 0
 }
 
-func (m *PeerAccountData) GetNonce() uint64 {
-	if m != nil {
-		return m.Nonce
-	}
-	return 0
-}
-
-func (m *PeerAccountData) GetCodeHash() []byte {
-	if m != nil {
-		return m.CodeHash
-	}
-	return nil
-}
-
 func (m *PeerAccountData) GetRootHash() []byte {
 	if m != nil {
 		return m.RootHash
 	}
 	return nil
+}
+
+func (m *PeerAccountData) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
 }
 
 func init() {
@@ -430,55 +430,56 @@ func init() {
 func init() { proto.RegisterFile("peerAccountData.proto", fileDescriptor_26bd0314afcce126) }
 
 var fileDescriptor_26bd0314afcce126 = []byte{
-	// 767 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x4f, 0x6f, 0x32, 0x45,
-	0x18, 0x67, 0x69, 0x69, 0x61, 0x0a, 0xa5, 0x4c, 0x6b, 0xb3, 0x69, 0xcc, 0x42, 0x88, 0x31, 0x8d,
-	0xb1, 0x60, 0xac, 0x89, 0x07, 0x53, 0x0d, 0x20, 0x44, 0xb4, 0xd9, 0x90, 0xd9, 0xaa, 0x89, 0x9e,
-	0x86, 0x9d, 0x71, 0xd9, 0x74, 0x99, 0x21, 0xb3, 0xb3, 0xa9, 0xde, 0xfc, 0x08, 0x7e, 0x08, 0x0f,
-	0xc6, 0xef, 0xe0, 0xbd, 0xc7, 0x1e, 0x7b, 0xaa, 0x6f, 0xb7, 0x97, 0x37, 0x3d, 0xf5, 0x23, 0xbc,
-	0xd9, 0xd9, 0x5d, 0xca, 0x02, 0xe1, 0xf4, 0x9e, 0xda, 0xe7, 0xf7, 0x6f, 0x66, 0x1e, 0x9e, 0x67,
-	0xc1, 0x07, 0x33, 0x4a, 0x45, 0xc7, 0xb6, 0x79, 0xc0, 0xe4, 0xb7, 0x58, 0xe2, 0xd6, 0x4c, 0x70,
-	0xc9, 0x61, 0x41, 0xfd, 0x39, 0x39, 0x73, 0x5c, 0x39, 0x09, 0xc6, 0x2d, 0x9b, 0x4f, 0xdb, 0x0e,
-	0x77, 0x78, 0x5b, 0xc1, 0xe3, 0xe0, 0x37, 0x55, 0xa9, 0x42, 0xfd, 0x17, 0xbb, 0x9a, 0x5f, 0x82,
-	0xd2, 0x95, 0x3b, 0xa5, 0x96, 0xc4, 0xd3, 0x19, 0x3c, 0x02, 0x85, 0xfe, 0x8c, 0xdb, 0x13, 0x5d,
-	0x6b, 0x68, 0xa7, 0xdb, 0x28, 0x2e, 0x22, 0x14, 0xf1, 0x80, 0x11, 0x3d, 0x1f, 0xa3, 0xaa, 0x68,
-	0x4a, 0x00, 0x22, 0xe3, 0x88, 0x0a, 0x97, 0x13, 0xf8, 0x05, 0x28, 0x59, 0x12, 0x0b, 0x19, 0x41,
-	0xca, 0xbd, 0xf7, 0xf9, 0x41, 0x7c, 0x42, 0x6b, 0x1e, 0xdf, 0xdd, 0xbe, 0x7d, 0xa8, 0xe7, 0xd0,
-	0xab, 0x10, 0x7e, 0x06, 0x76, 0xfb, 0x8c, 0x28, 0x4f, 0x7e, 0xa3, 0x27, 0x95, 0x35, 0x07, 0xa0,
-	0x68, 0xb9, 0x0e, 0x43, 0x58, 0x52, 0xf8, 0x21, 0x28, 0x99, 0xc2, 0x0a, 0x6c, 0x9b, 0xfa, 0xbe,
-	0x3a, 0xb3, 0x82, 0x5e, 0x81, 0x98, 0x1d, 0x60, 0xd7, 0x0b, 0x44, 0x9c, 0xae, 0xd8, 0x04, 0x68,
-	0xfe, 0x9d, 0x07, 0x47, 0x3f, 0x61, 0xcf, 0x25, 0x58, 0x72, 0xd1, 0x99, 0xb9, 0x88, 0xfa, 0x33,
-	0xce, 0x7c, 0x0a, 0x2f, 0x40, 0xd5, 0x14, 0x97, 0x14, 0x13, 0x9a, 0x8d, 0xee, 0x1e, 0x3e, 0x3f,
-	0xd4, 0xab, 0x2c, 0x4b, 0xa1, 0x65, 0xed, 0xa2, 0x3d, 0x73, 0x76, 0xd6, 0x9e, 0x50, 0x68, 0x59,
-	0x0b, 0x07, 0x00, 0x9a, 0x62, 0x7e, 0xaf, 0xf4, 0x02, 0x5b, 0x2a, 0xe1, 0xf8, 0xf9, 0xa1, 0x0e,
-	0xd9, 0x0a, 0x8b, 0xd6, 0x38, 0x96, 0x72, 0xd2, 0x9b, 0x6c, 0xaf, 0xcd, 0x49, 0x2f, 0xb3, 0xc6,
-	0xd1, 0xfc, 0x6f, 0x17, 0x54, 0x47, 0xd9, 0x69, 0x83, 0x4d, 0x50, 0xee, 0x5e, 0x5a, 0xa3, 0x60,
-	0xec, 0xb9, 0xf6, 0x0f, 0xf4, 0x0f, 0xd5, 0x9e, 0x32, 0xca, 0x60, 0xf0, 0x13, 0x70, 0x60, 0xd9,
-	0x13, 0xc6, 0x85, 0x78, 0xd5, 0xe5, 0x95, 0x6e, 0x05, 0x87, 0x1f, 0x81, 0x0a, 0xa2, 0x37, 0x58,
-	0x90, 0x0e, 0x21, 0x22, 0x7d, 0x6e, 0x19, 0x65, 0x41, 0xf8, 0x2b, 0x28, 0x58, 0x12, 0x5f, 0xc7,
-	0x8f, 0x28, 0x77, 0xfb, 0xff, 0xfe, 0x5f, 0xef, 0x4c, 0xb1, 0x9c, 0xb4, 0xc7, 0xae, 0xd3, 0x1a,
-	0x32, 0xf9, 0xd5, 0xc2, 0xd8, 0xf7, 0x3d, 0xc1, 0x19, 0x31, 0xa9, 0xbc, 0xe1, 0xe2, 0xba, 0x4d,
-	0x55, 0x75, 0xe6, 0xf0, 0x36, 0x89, 0x96, 0xa5, 0xeb, 0x3a, 0x43, 0x26, 0x7b, 0xd8, 0x97, 0x54,
-	0xa0, 0x38, 0x13, 0x72, 0x50, 0xed, 0xd8, 0x76, 0x30, 0x0d, 0x3c, 0x2c, 0x29, 0x19, 0x50, 0xea,
-	0xeb, 0x85, 0xf7, 0x79, 0xcc, 0x72, 0x3a, 0x3c, 0x07, 0xc5, 0xef, 0xb1, 0xeb, 0xa9, 0xc9, 0xdf,
-	0x51, 0x93, 0x5f, 0x5b, 0x98, 0xfc, 0x78, 0xa7, 0x92, 0xd1, 0x9f, 0x0b, 0xe1, 0x05, 0xa8, 0x8c,
-	0xb0, 0x2f, 0xd3, 0xda, 0xd7, 0x77, 0x1b, 0x5b, 0x9b, 0x9c, 0x59, 0x35, 0xfc, 0x18, 0xec, 0xf7,
-	0x02, 0x21, 0x28, 0x93, 0xd6, 0x04, 0x0b, 0x32, 0x24, 0x7a, 0x51, 0x6d, 0xc5, 0x12, 0x0a, 0x1b,
-	0x60, 0xcf, 0xa4, 0xbf, 0xcf, 0x45, 0x25, 0x25, 0x5a, 0x84, 0xe0, 0xa7, 0xa0, 0x66, 0x72, 0x42,
-	0x87, 0xec, 0x67, 0xec, 0x4a, 0x97, 0x39, 0x97, 0xae, 0x2f, 0x75, 0xd0, 0xd0, 0x4e, 0x8b, 0x68,
-	0x95, 0x88, 0x7e, 0xdf, 0x1f, 0x99, 0xea, 0x33, 0x31, 0x39, 0xb3, 0xa9, 0xbe, 0xa7, 0x3e, 0x23,
-	0x59, 0x10, 0x0e, 0x17, 0xf6, 0x31, 0x9d, 0x6c, 0x2c, 0xa9, 0x5e, 0x56, 0xdd, 0xa9, 0x26, 0x6f,
-	0x4c, 0x77, 0x3f, 0x79, 0xe1, 0x5a, 0x0b, 0xec, 0x81, 0x5a, 0x76, 0x4b, 0xa3, 0x9c, 0xca, 0xa6,
-	0x9c, 0x55, 0x3d, 0xfc, 0x1a, 0x9c, 0x98, 0xc1, 0xd4, 0xa2, 0x1e, 0xb5, 0x25, 0x25, 0x43, 0x96,
-	0x70, 0x5d, 0x8f, 0xdb, 0xd7, 0xbe, 0xbe, 0xaf, 0x9a, 0xb2, 0x41, 0x01, 0x8f, 0xc1, 0x0e, 0xc2,
-	0x51, 0x0f, 0xf4, 0xaa, 0xd2, 0x26, 0x15, 0x34, 0x00, 0xb8, 0xa2, 0xd3, 0x59, 0xc2, 0x1d, 0x28,
-	0x6e, 0x01, 0x89, 0x3e, 0xb6, 0x71, 0x97, 0x6a, 0xf1, 0xc7, 0x36, 0xee, 0xce, 0x09, 0x28, 0xf6,
-	0x38, 0xa1, 0xdf, 0x61, 0x7f, 0xa2, 0x43, 0xb5, 0x1e, 0xf3, 0x3a, 0xe2, 0x10, 0xe7, 0x52, 0x71,
-	0x87, 0x31, 0x97, 0xd6, 0xdd, 0x6f, 0xee, 0x1e, 0x8d, 0xdc, 0xfd, 0xa3, 0x91, 0x7b, 0x79, 0x34,
-	0xb4, 0x3f, 0x43, 0x43, 0xfb, 0x27, 0x34, 0xb4, 0xdb, 0xd0, 0xd0, 0xee, 0x42, 0x43, 0xbb, 0x0f,
-	0x0d, 0xed, 0x4d, 0x68, 0x68, 0x6f, 0x43, 0x23, 0xf7, 0x12, 0x1a, 0xda, 0x5f, 0x4f, 0x46, 0xee,
-	0xee, 0xc9, 0xc8, 0xdd, 0x3f, 0x19, 0xb9, 0x5f, 0x0a, 0xbe, 0xc4, 0x92, 0x8e, 0x77, 0x54, 0xbf,
-	0xce, 0xdf, 0x05, 0x00, 0x00, 0xff, 0xff, 0x8d, 0x6b, 0x58, 0xc2, 0x74, 0x06, 0x00, 0x00,
+	// 769 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xc1, 0x6e, 0xeb, 0x44,
+	0x14, 0x8d, 0xd3, 0xa6, 0x4d, 0xa6, 0x49, 0xd3, 0x4c, 0x4b, 0x65, 0x55, 0xc8, 0x89, 0x22, 0x84,
+	0x2a, 0x44, 0x13, 0x44, 0x91, 0x58, 0xa0, 0x82, 0x92, 0x90, 0x88, 0x40, 0x65, 0x45, 0xe3, 0x02,
+	0x12, 0xac, 0x26, 0x9e, 0xc1, 0xb1, 0xea, 0xcc, 0x44, 0xe3, 0xb1, 0x0a, 0x3b, 0x3e, 0x81, 0x8f,
+	0x60, 0x81, 0xf8, 0x07, 0xf6, 0x5d, 0x76, 0xd9, 0x55, 0x79, 0x75, 0x37, 0x4f, 0x5d, 0xf5, 0x13,
+	0x9e, 0x3c, 0xb6, 0xd3, 0x38, 0x89, 0xb2, 0x7a, 0xab, 0xf6, 0x9c, 0x7b, 0xce, 0x99, 0x99, 0x9b,
+	0x7b, 0x0d, 0x3e, 0x98, 0x51, 0x2a, 0x3a, 0xb6, 0xcd, 0x03, 0x26, 0xbf, 0xc5, 0x12, 0xb7, 0x66,
+	0x82, 0x4b, 0x0e, 0x0b, 0xea, 0xcf, 0xc9, 0x99, 0xe3, 0xca, 0x49, 0x30, 0x6e, 0xd9, 0x7c, 0xda,
+	0x76, 0xb8, 0xc3, 0xdb, 0x8a, 0x1e, 0x07, 0xbf, 0x29, 0xa4, 0x80, 0xfa, 0x2f, 0x76, 0x35, 0xbf,
+	0x04, 0xa5, 0x2b, 0x77, 0x4a, 0x2d, 0x89, 0xa7, 0x33, 0x78, 0x04, 0x0a, 0xfd, 0x19, 0xb7, 0x27,
+	0xba, 0xd6, 0xd0, 0x4e, 0xb7, 0x51, 0x0c, 0x22, 0x16, 0xf1, 0x80, 0x11, 0x3d, 0x1f, 0xb3, 0x0a,
+	0x34, 0x25, 0x00, 0x91, 0x71, 0x44, 0x85, 0xcb, 0x09, 0xfc, 0x02, 0x94, 0x2c, 0x89, 0x85, 0x8c,
+	0x28, 0xe5, 0xde, 0xfb, 0xfc, 0x20, 0x3e, 0xa1, 0x35, 0x8f, 0xef, 0x6e, 0xdf, 0x3e, 0xd4, 0x73,
+	0xe8, 0x55, 0x08, 0x3f, 0x03, 0xbb, 0x7d, 0x46, 0x94, 0x27, 0xbf, 0xd1, 0x93, 0xca, 0x9a, 0x03,
+	0x50, 0xb4, 0x5c, 0x87, 0x21, 0x2c, 0x29, 0xfc, 0x10, 0x94, 0x4c, 0x61, 0x05, 0xb6, 0x4d, 0x7d,
+	0x5f, 0x9d, 0x59, 0x41, 0xaf, 0x44, 0x5c, 0x1d, 0x60, 0xd7, 0x0b, 0x44, 0x9c, 0xae, 0xaa, 0x09,
+	0xd1, 0xfc, 0x3b, 0x0f, 0x8e, 0x7e, 0xc2, 0x9e, 0x4b, 0xb0, 0xe4, 0xa2, 0x33, 0x73, 0x11, 0xf5,
+	0x67, 0x9c, 0xf9, 0x14, 0x5e, 0x80, 0xaa, 0x29, 0x2e, 0x29, 0x26, 0x34, 0x1b, 0xdd, 0x3d, 0x7c,
+	0x7e, 0xa8, 0x57, 0x59, 0xb6, 0x84, 0x96, 0xb5, 0x8b, 0xf6, 0xcc, 0xd9, 0x59, 0x7b, 0x52, 0x42,
+	0xcb, 0x5a, 0x38, 0x00, 0xd0, 0x14, 0xf3, 0x7b, 0xa5, 0x17, 0xd8, 0x52, 0x09, 0xc7, 0xcf, 0x0f,
+	0x75, 0xc8, 0x56, 0xaa, 0x68, 0x8d, 0x63, 0x29, 0x27, 0xbd, 0xc9, 0xf6, 0xda, 0x9c, 0xf4, 0x32,
+	0x6b, 0x1c, 0xcd, 0xff, 0x76, 0x41, 0x75, 0x94, 0x9d, 0x36, 0xd8, 0x04, 0xe5, 0xee, 0xa5, 0x35,
+	0x0a, 0xc6, 0x9e, 0x6b, 0xff, 0x40, 0xff, 0x50, 0xed, 0x29, 0xa3, 0x0c, 0x07, 0x3f, 0x01, 0x07,
+	0x96, 0x3d, 0x61, 0x5c, 0x88, 0x57, 0x5d, 0x5e, 0xe9, 0x56, 0x78, 0xf8, 0x11, 0xa8, 0x20, 0x7a,
+	0x83, 0x05, 0xe9, 0x10, 0x22, 0xd2, 0xe7, 0x96, 0x51, 0x96, 0x84, 0xbf, 0x82, 0x82, 0x25, 0xf1,
+	0x75, 0xfc, 0x88, 0x72, 0xb7, 0xff, 0xef, 0xff, 0xf5, 0xce, 0x14, 0xcb, 0x49, 0x7b, 0xec, 0x3a,
+	0xad, 0x21, 0x93, 0x5f, 0x2d, 0x8c, 0x7d, 0xdf, 0x13, 0x9c, 0x11, 0x93, 0xca, 0x1b, 0x2e, 0xae,
+	0xdb, 0x54, 0xa1, 0x33, 0x87, 0xb7, 0x49, 0xb4, 0x2c, 0x5d, 0xd7, 0x19, 0x32, 0xd9, 0xc3, 0xbe,
+	0xa4, 0x02, 0xc5, 0x99, 0x90, 0x83, 0x6a, 0xc7, 0xb6, 0x83, 0x69, 0xe0, 0x61, 0x49, 0xc9, 0x80,
+	0x52, 0x5f, 0x87, 0xef, 0xf3, 0x98, 0xe5, 0x74, 0x78, 0x0e, 0x8a, 0xdf, 0x63, 0xd7, 0x53, 0x93,
+	0x5f, 0x50, 0x93, 0x5f, 0x5b, 0x98, 0xfc, 0x78, 0xa7, 0x92, 0xd1, 0x9f, 0x0b, 0xe1, 0x05, 0xa8,
+	0x8c, 0xb0, 0x2f, 0x53, 0xec, 0xeb, 0x3b, 0x8d, 0xad, 0x4d, 0xce, 0xac, 0x1a, 0x7e, 0x0c, 0xf6,
+	0x7b, 0x81, 0x10, 0x94, 0x49, 0x6b, 0x82, 0x05, 0x19, 0x12, 0x7d, 0x57, 0x6d, 0xc5, 0x12, 0x0b,
+	0x1b, 0x60, 0xcf, 0xa4, 0xbf, 0xcf, 0x45, 0x45, 0x25, 0x5a, 0xa4, 0xe0, 0xa7, 0xa0, 0x66, 0x72,
+	0x42, 0x87, 0xec, 0x67, 0xec, 0x4a, 0x97, 0x39, 0x97, 0xae, 0x2f, 0xf5, 0x52, 0x43, 0x3b, 0x2d,
+	0xa2, 0xd5, 0x42, 0xf4, 0xfb, 0xfe, 0xc8, 0x54, 0x9f, 0x89, 0xc9, 0x99, 0x4d, 0x75, 0xa0, 0x3e,
+	0x23, 0x59, 0x12, 0x0e, 0x17, 0xf6, 0x31, 0x9d, 0x6c, 0x2c, 0xa9, 0xbe, 0xa7, 0xba, 0x53, 0x4d,
+	0xde, 0x98, 0xee, 0x7e, 0xf2, 0xc2, 0xb5, 0x16, 0xd8, 0x03, 0xb5, 0xec, 0x96, 0x46, 0x39, 0xe5,
+	0x4d, 0x39, 0xab, 0x7a, 0xf8, 0x35, 0x38, 0x31, 0x83, 0xa9, 0x45, 0x3d, 0x6a, 0x4b, 0x4a, 0x86,
+	0x2c, 0xa9, 0x75, 0x3d, 0x6e, 0x5f, 0xfb, 0xfa, 0xa1, 0x6a, 0xca, 0x06, 0x05, 0x3c, 0x01, 0xc5,
+	0x1e, 0x27, 0xf4, 0x3b, 0xec, 0x4f, 0xf4, 0x8a, 0x1a, 0xe8, 0x39, 0x86, 0xc7, 0x60, 0x07, 0xe1,
+	0xa8, 0x3f, 0xfa, 0xbe, 0xca, 0x49, 0x10, 0x34, 0x00, 0xb8, 0xa2, 0xd3, 0x59, 0x52, 0xab, 0xa9,
+	0xda, 0x02, 0x13, 0x65, 0x22, 0xce, 0xa5, 0xca, 0xac, 0xc6, 0x99, 0x29, 0x8e, 0x3e, 0xd2, 0x71,
+	0x77, 0x0f, 0xe2, 0x8f, 0xb4, 0x02, 0xdd, 0x6f, 0xee, 0x1e, 0x8d, 0xdc, 0xfd, 0xa3, 0x91, 0x7b,
+	0x79, 0x34, 0xb4, 0x3f, 0x43, 0x43, 0xfb, 0x27, 0x34, 0xb4, 0xdb, 0xd0, 0xd0, 0xee, 0x42, 0x43,
+	0xbb, 0x0f, 0x0d, 0xed, 0x4d, 0x68, 0x68, 0x6f, 0x43, 0x23, 0xf7, 0x12, 0x1a, 0xda, 0x5f, 0x4f,
+	0x46, 0xee, 0xee, 0xc9, 0xc8, 0xdd, 0x3f, 0x19, 0xb9, 0x5f, 0x0a, 0xbe, 0xc4, 0x92, 0x8e, 0x77,
+	0x54, 0xbf, 0xce, 0xdf, 0x05, 0x00, 0x00, 0xff, 0xff, 0x14, 0xbb, 0x10, 0x79, 0x74, 0x06, 0x00,
+	0x00,
 }
 
 func (this *TimeStamp) Equal(that interface{}) bool {
@@ -667,19 +668,19 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 	if this.NumSelectedInSuccessBlocks != that1.NumSelectedInSuccessBlocks {
 		return false
 	}
+	if !bytes.Equal(this.CodeHash, that1.CodeHash) {
+		return false
+	}
 	if this.Rating != that1.Rating {
 		return false
 	}
 	if this.TempRating != that1.TempRating {
 		return false
 	}
-	if this.Nonce != that1.Nonce {
-		return false
-	}
-	if !bytes.Equal(this.CodeHash, that1.CodeHash) {
-		return false
-	}
 	if !bytes.Equal(this.RootHash, that1.RootHash) {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
 		return false
 	}
 	return true
@@ -756,11 +757,11 @@ func (this *PeerAccountData) GoString() string {
 	s = append(s, "ValidatorSuccessRate: "+strings.Replace(this.ValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "LeaderSuccessRate: "+strings.Replace(this.LeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "NumSelectedInSuccessBlocks: "+fmt.Sprintf("%#v", this.NumSelectedInSuccessBlocks)+",\n")
+	s = append(s, "CodeHash: "+fmt.Sprintf("%#v", this.CodeHash)+",\n")
 	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
 	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
-	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
-	s = append(s, "CodeHash: "+fmt.Sprintf("%#v", this.CodeHash)+",\n")
 	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -944,47 +945,58 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.RootHash) > 0 {
-		i -= len(m.RootHash)
-		copy(dAtA[i:], m.RootHash)
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.RootHash)))
+	if m.NumSelectedInSuccessBlocks != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumSelectedInSuccessBlocks))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x9a
+		dAtA[i] = 0x98
 	}
-	if len(m.CodeHash) > 0 {
-		i -= len(m.CodeHash)
-		copy(dAtA[i:], m.CodeHash)
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.CodeHash)))
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.AccumulatedFees)
+		i -= size
+		if _, err := __caster.MarshalTo(m.AccumulatedFees, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x92
+	if m.TempRating != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TempRating))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x92
+		dAtA[i] = 0x88
 	}
 	if m.Nonce != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Nonce))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x88
-	}
-	if m.TempRating != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TempRating))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0x80
+	}
+	if len(m.RootHash) > 0 {
+		i -= len(m.RootHash)
+		copy(dAtA[i:], m.RootHash)
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.RootHash)))
+		i--
+		dAtA[i] = 0x7a
 	}
 	if m.Rating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Rating))
 		i--
-		dAtA[i] = 0x78
-	}
-	if m.NumSelectedInSuccessBlocks != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumSelectedInSuccessBlocks))
-		i--
 		dAtA[i] = 0x70
+	}
+	if len(m.CodeHash) > 0 {
+		i -= len(m.CodeHash)
+		copy(dAtA[i:], m.CodeHash)
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.CodeHash)))
+		i--
+		dAtA[i] = 0x6a
 	}
 	{
 		size, err := m.LeaderSuccessRate.MarshalToSizedBuffer(dAtA[:i])
@@ -995,7 +1007,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x6a
+	dAtA[i] = 0x62
 	{
 		size, err := m.ValidatorSuccessRate.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1005,11 +1017,11 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x62
+	dAtA[i] = 0x5a
 	if m.UnStakedNonce != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.UnStakedNonce))
 		i--
-		dAtA[i] = 0x58
+		dAtA[i] = 0x50
 	}
 	if m.NodeInWaitingList {
 		i--
@@ -1019,17 +1031,17 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x50
+		dAtA[i] = 0x48
 	}
 	if m.NextShardId != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NextShardId))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x40
 	}
 	if m.CurrentShardId != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.CurrentShardId))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x38
 	}
 	if len(m.PastJailTimes) > 0 {
 		for iNdEx := len(m.PastJailTimes) - 1; iNdEx >= 0; iNdEx-- {
@@ -1042,7 +1054,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x3a
+			dAtA[i] = 0x32
 		}
 	}
 	{
@@ -1051,17 +1063,6 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x32
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.AccumulatedFees)
-		i -= size
-		if _, err := __caster.MarshalTo(m.AccumulatedFees, dAtA[i:]); err != nil {
-			return 0, err
-		}
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
@@ -1199,11 +1200,6 @@ func (m *PeerAccountData) Size() (n int) {
 		l = __caster.Size(m.Stake)
 		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.AccumulatedFees)
-		n += 1 + l + sovPeerAccountData(uint64(l))
-	}
 	l = m.JailTime.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	if len(m.PastJailTimes) > 0 {
@@ -1228,25 +1224,30 @@ func (m *PeerAccountData) Size() (n int) {
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	l = m.LeaderSuccessRate.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
-	if m.NumSelectedInSuccessBlocks != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.NumSelectedInSuccessBlocks))
+	l = len(m.CodeHash)
+	if l > 0 {
+		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
 	if m.Rating != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.Rating))
 	}
-	if m.TempRating != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.TempRating))
+	l = len(m.RootHash)
+	if l > 0 {
+		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
 	if m.Nonce != 0 {
 		n += 2 + sovPeerAccountData(uint64(m.Nonce))
 	}
-	l = len(m.CodeHash)
-	if l > 0 {
+	if m.TempRating != 0 {
+		n += 2 + sovPeerAccountData(uint64(m.TempRating))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.AccumulatedFees)
 		n += 2 + l + sovPeerAccountData(uint64(l))
 	}
-	l = len(m.RootHash)
-	if l > 0 {
-		n += 2 + l + sovPeerAccountData(uint64(l))
+	if m.NumSelectedInSuccessBlocks != 0 {
+		n += 2 + sovPeerAccountData(uint64(m.NumSelectedInSuccessBlocks))
 	}
 	return n
 }
@@ -1317,7 +1318,6 @@ func (this *PeerAccountData) String() string {
 		`SchnorrPublicKey:` + fmt.Sprintf("%v", this.SchnorrPublicKey) + `,`,
 		`RewardAddress:` + fmt.Sprintf("%v", this.RewardAddress) + `,`,
 		`Stake:` + fmt.Sprintf("%v", this.Stake) + `,`,
-		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
 		`JailTime:` + strings.Replace(strings.Replace(this.JailTime.String(), "TimePeriod", "TimePeriod", 1), `&`, ``, 1) + `,`,
 		`PastJailTimes:` + repeatedStringForPastJailTimes + `,`,
 		`CurrentShardId:` + fmt.Sprintf("%v", this.CurrentShardId) + `,`,
@@ -1326,12 +1326,13 @@ func (this *PeerAccountData) String() string {
 		`UnStakedNonce:` + fmt.Sprintf("%v", this.UnStakedNonce) + `,`,
 		`ValidatorSuccessRate:` + strings.Replace(strings.Replace(this.ValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`LeaderSuccessRate:` + strings.Replace(strings.Replace(this.LeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
-		`NumSelectedInSuccessBlocks:` + fmt.Sprintf("%v", this.NumSelectedInSuccessBlocks) + `,`,
-		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
-		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
-		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`CodeHash:` + fmt.Sprintf("%v", this.CodeHash) + `,`,
+		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
 		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
+		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
+		`NumSelectedInSuccessBlocks:` + fmt.Sprintf("%v", this.NumSelectedInSuccessBlocks) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1945,6 +1946,341 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JailTime", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.JailTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PastJailTimes", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PastJailTimes = append(m.PastJailTimes, TimePeriod{})
+			if err := m.PastJailTimes[len(m.PastJailTimes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CurrentShardId", wireType)
+			}
+			m.CurrentShardId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CurrentShardId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextShardId", wireType)
+			}
+			m.NextShardId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NextShardId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeInWaitingList", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NodeInWaitingList = bool(v != 0)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedNonce", wireType)
+			}
+			m.UnStakedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UnStakedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorSuccessRate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ValidatorSuccessRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaderSuccessRate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.LeaderSuccessRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeHash = append(m.CodeHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeHash == nil {
+				m.CodeHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
+			}
+			m.Rating = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Rating |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPeerAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.RootHash == nil {
+				m.RootHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
+			}
+			m.TempRating = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TempRating |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 18:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
 			}
 			var byteLen int
@@ -1981,217 +2317,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field JailTime", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.JailTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PastJailTimes", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PastJailTimes = append(m.PastJailTimes, TimePeriod{})
-			if err := m.PastJailTimes[len(m.PastJailTimes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CurrentShardId", wireType)
-			}
-			m.CurrentShardId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CurrentShardId |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextShardId", wireType)
-			}
-			m.NextShardId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NextShardId |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NodeInWaitingList", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.NodeInWaitingList = bool(v != 0)
-		case 11:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedNonce", wireType)
-			}
-			m.UnStakedNonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.UnStakedNonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 12:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorSuccessRate", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ValidatorSuccessRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 13:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LeaderSuccessRate", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.LeaderSuccessRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 14:
+		case 19:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NumSelectedInSuccessBlocks", wireType)
 			}
@@ -2210,131 +2336,6 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 15:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
-			}
-			m.Rating = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Rating |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 16:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
-			}
-			m.TempRating = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TempRating |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 17:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
-			}
-			m.Nonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Nonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 18:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CodeHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CodeHash = append(m.CodeHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.CodeHash == nil {
-				m.CodeHash = []byte{}
-			}
-			iNdEx = postIndex
-		case 19:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.RootHash == nil {
-				m.RootHash = []byte{}
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPeerAccountData(dAtA[iNdEx:])

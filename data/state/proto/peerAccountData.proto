@@ -39,24 +39,25 @@ message PeerAccountData {
     bytes SchnorrPublicKey = 2;
     bytes RewardAddress    = 3;
     bytes Stake            = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes AccumulatedFees  = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes AccumulatedFees  = 18 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 
-    TimePeriod          JailTime      = 6 [(gogoproto.nullable) = false];
-    repeated TimePeriod PastJailTimes = 7 [(gogoproto.nullable) = false];
+    TimePeriod          JailTime      = 5 [(gogoproto.nullable) = false];
+    repeated TimePeriod PastJailTimes = 6 [(gogoproto.nullable) = false];
 
-    uint32 CurrentShardId    = 8;
-    uint32 NextShardId       = 9;
-    bool   NodeInWaitingList = 10;
-    uint64 UnStakedNonce     = 11;
+    uint32 CurrentShardId    = 7;
+    uint32 NextShardId       = 8;
+    bool   NodeInWaitingList = 9;
+    uint64 UnStakedNonce     = 10;
 
-    SignRate ValidatorSuccessRate     = 12 [(gogoproto.nullable) = false];
-    SignRate LeaderSuccessRate        = 13 [(gogoproto.nullable) = false];
-    uint32 NumSelectedInSuccessBlocks = 14;
+    SignRate ValidatorSuccessRate     = 11 [(gogoproto.nullable) = false];
+    SignRate LeaderSuccessRate        = 12 [(gogoproto.nullable) = false];
+    uint32 NumSelectedInSuccessBlocks = 19;
 
-    uint32 Rating     = 15;
-    uint32 TempRating = 16;
+    bytes CodeHash = 13;
 
-    uint64           Nonce         = 17;
-    bytes            CodeHash      = 18;
-    bytes            RootHash      = 19;
+    uint32 Rating     = 14;
+    uint32 TempRating = 17;
+
+    bytes  RootHash = 15;
+    uint64 Nonce    = 16;
 }

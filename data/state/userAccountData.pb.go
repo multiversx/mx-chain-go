@@ -29,13 +29,13 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type UserAccountData struct {
-	Balance         *math_big.Int `protobuf:"bytes,1,opt,name=Balance,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Balance,omitempty"`
-	Address         []byte        `protobuf:"bytes,2,opt,name=Address,proto3" json:"Address,omitempty"`
-	DeveloperReward *math_big.Int `protobuf:"bytes,3,opt,name=DeveloperReward,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"DeveloperReward,omitempty"`
-	OwnerAddress    []byte        `protobuf:"bytes,4,opt,name=OwnerAddress,proto3" json:"OwnerAddress,omitempty"`
-	Nonce           uint64        `protobuf:"varint,5,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	CodeHash        []byte        `protobuf:"bytes,6,opt,name=CodeHash,proto3" json:"CodeHash,omitempty"`
-	RootHash        []byte        `protobuf:"bytes,7,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	Nonce           uint64        `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	Balance         *math_big.Int `protobuf:"bytes,2,opt,name=Balance,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Balance,omitempty"`
+	CodeHash        []byte        `protobuf:"bytes,3,opt,name=CodeHash,proto3" json:"CodeHash,omitempty"`
+	RootHash        []byte        `protobuf:"bytes,4,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
+	Address         []byte        `protobuf:"bytes,5,opt,name=Address,proto3" json:"Address,omitempty"`
+	DeveloperReward *math_big.Int `protobuf:"bytes,6,opt,name=DeveloperReward,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"DeveloperReward,omitempty"`
+	OwnerAddress    []byte        `protobuf:"bytes,7,opt,name=OwnerAddress,proto3" json:"OwnerAddress,omitempty"`
 }
 
 func (m *UserAccountData) Reset()      { *m = UserAccountData{} }
@@ -66,9 +66,30 @@ func (m *UserAccountData) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_UserAccountData proto.InternalMessageInfo
 
+func (m *UserAccountData) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
+}
+
 func (m *UserAccountData) GetBalance() *math_big.Int {
 	if m != nil {
 		return m.Balance
+	}
+	return nil
+}
+
+func (m *UserAccountData) GetCodeHash() []byte {
+	if m != nil {
+		return m.CodeHash
+	}
+	return nil
+}
+
+func (m *UserAccountData) GetRootHash() []byte {
+	if m != nil {
+		return m.RootHash
 	}
 	return nil
 }
@@ -94,27 +115,6 @@ func (m *UserAccountData) GetOwnerAddress() []byte {
 	return nil
 }
 
-func (m *UserAccountData) GetNonce() uint64 {
-	if m != nil {
-		return m.Nonce
-	}
-	return 0
-}
-
-func (m *UserAccountData) GetCodeHash() []byte {
-	if m != nil {
-		return m.CodeHash
-	}
-	return nil
-}
-
-func (m *UserAccountData) GetRootHash() []byte {
-	if m != nil {
-		return m.RootHash
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*UserAccountData)(nil), "proto.UserAccountData")
 }
@@ -122,29 +122,28 @@ func init() {
 func init() { proto.RegisterFile("userAccountData.proto", fileDescriptor_275d64df7d722770) }
 
 var fileDescriptor_275d64df7d722770 = []byte{
-	// 337 bytes of a gzipped FileDescriptorProto
+	// 336 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x91, 0x31, 0x4f, 0xc2, 0x40,
-	0x18, 0x86, 0x7b, 0x48, 0xc1, 0x5c, 0x48, 0x48, 0x2e, 0x9a, 0x34, 0x0c, 0x9f, 0x84, 0x89, 0x05,
-	0x3a, 0x38, 0x3a, 0x18, 0x0a, 0x24, 0xb2, 0x60, 0xd2, 0xc4, 0xc5, 0xc5, 0x5c, 0xdb, 0xb3, 0x10,
-	0xa1, 0x1f, 0xb9, 0x5e, 0x65, 0xf5, 0x27, 0xf8, 0x33, 0x8c, 0xbf, 0xc4, 0x91, 0x91, 0x4d, 0x39,
-	0x16, 0x37, 0xf9, 0x09, 0xa6, 0x47, 0x6a, 0xc4, 0xd9, 0xe9, 0xee, 0xf9, 0xde, 0x7c, 0xef, 0xfb,
-	0xe6, 0x8e, 0x9e, 0x66, 0xa9, 0x90, 0xbd, 0x30, 0xc4, 0x2c, 0x51, 0x03, 0xae, 0x78, 0x77, 0x21,
-	0x51, 0x21, 0xb3, 0xcd, 0xd1, 0xe8, 0xc4, 0x53, 0x35, 0xc9, 0x82, 0x6e, 0x88, 0x73, 0x37, 0xc6,
-	0x18, 0x5d, 0x33, 0x0e, 0xb2, 0x7b, 0x43, 0x06, 0xcc, 0x6d, 0xbf, 0xd5, 0xfa, 0x2a, 0xd1, 0xfa,
-	0xcd, 0xa1, 0x1f, 0xbb, 0xa3, 0x55, 0x8f, 0xcf, 0x78, 0x12, 0x0a, 0x87, 0x34, 0x49, 0xbb, 0xe6,
-	0x0d, 0x5f, 0xdf, 0xcf, 0x7a, 0x73, 0xae, 0x26, 0x6e, 0x30, 0x8d, 0xbb, 0xa3, 0x44, 0x5d, 0xfc,
-	0x0a, 0x19, 0xce, 0x24, 0x26, 0xd1, 0x58, 0xa8, 0x25, 0xca, 0x07, 0x57, 0x18, 0xea, 0xc4, 0xe8,
-	0x46, 0x79, 0x35, 0x6f, 0x1a, 0x8f, 0x12, 0xd5, 0xe7, 0xa9, 0x12, 0xd2, 0x2f, 0x5c, 0x99, 0x43,
-	0xab, 0xbd, 0x28, 0x92, 0x22, 0x4d, 0x9d, 0x52, 0x1e, 0xe0, 0x17, 0xc8, 0x90, 0xd6, 0x07, 0xe2,
-	0x51, 0xcc, 0x70, 0x21, 0xa4, 0x2f, 0x96, 0x5c, 0x46, 0xce, 0xd1, 0x7f, 0x56, 0xf8, 0xeb, 0xce,
-	0x5a, 0xb4, 0x76, 0xbd, 0x4c, 0x84, 0x2c, 0xfa, 0x94, 0x4d, 0x9f, 0x83, 0x19, 0x3b, 0xa1, 0xf6,
-	0x18, 0xf3, 0xd7, 0xb0, 0x9b, 0xa4, 0x5d, 0xf6, 0xf7, 0xc0, 0x1a, 0xf4, 0xb8, 0x8f, 0x91, 0xb8,
-	0xe2, 0xe9, 0xc4, 0xa9, 0x98, 0xad, 0x1f, 0xce, 0x35, 0x1f, 0x51, 0x19, 0xad, 0xba, 0xd7, 0x0a,
-	0xf6, 0x2e, 0x57, 0x1b, 0xb0, 0xd6, 0x1b, 0xb0, 0x76, 0x1b, 0x20, 0x4f, 0x1a, 0xc8, 0x8b, 0x06,
-	0xf2, 0xa6, 0x81, 0xac, 0x34, 0x90, 0xb5, 0x06, 0xf2, 0xa1, 0x81, 0x7c, 0x6a, 0xb0, 0x76, 0x1a,
-	0xc8, 0xf3, 0x16, 0xac, 0xd5, 0x16, 0xac, 0xf5, 0x16, 0xac, 0x5b, 0x3b, 0x55, 0x5c, 0x89, 0xa0,
-	0x62, 0x7e, 0xee, 0xfc, 0x3b, 0x00, 0x00, 0xff, 0xff, 0xfd, 0xc7, 0x9c, 0xe6, 0x08, 0x02, 0x00,
-	0x00,
+	0x1c, 0xc5, 0x7b, 0x48, 0xc1, 0x5c, 0x48, 0x48, 0x2e, 0x9a, 0x34, 0x0c, 0x7f, 0x09, 0x13, 0x0b,
+	0x74, 0x70, 0x74, 0x30, 0x14, 0x48, 0x64, 0xc1, 0xa4, 0x89, 0x8b, 0x8b, 0xb9, 0xb6, 0x67, 0x21,
+	0x42, 0xff, 0xe4, 0x7a, 0x95, 0xd5, 0x8f, 0xe0, 0xc7, 0x30, 0x7e, 0x12, 0x47, 0x46, 0x36, 0xe5,
+	0x58, 0xdc, 0xe4, 0x23, 0x98, 0x1e, 0xa9, 0x11, 0x67, 0xa7, 0xbb, 0xdf, 0x7b, 0xb9, 0xf7, 0x5e,
+	0x72, 0xf4, 0x34, 0x4b, 0x85, 0xec, 0x85, 0x21, 0x66, 0x89, 0x1a, 0x70, 0xc5, 0xbb, 0x0b, 0x89,
+	0x0a, 0x99, 0x6d, 0x8e, 0x46, 0x27, 0x9e, 0xaa, 0x49, 0x16, 0x74, 0x43, 0x9c, 0xbb, 0x31, 0xc6,
+	0xe8, 0x1a, 0x39, 0xc8, 0xee, 0x0d, 0x19, 0x30, 0xb7, 0xfd, 0xab, 0xd6, 0x57, 0x89, 0xd6, 0x6f,
+	0x0e, 0xf3, 0xd8, 0x09, 0xb5, 0xc7, 0x98, 0x84, 0xc2, 0x21, 0x4d, 0xd2, 0x2e, 0xfb, 0x7b, 0x60,
+	0x77, 0xb4, 0xea, 0xf1, 0x19, 0xcf, 0xf5, 0x52, 0x93, 0xb4, 0x6b, 0xde, 0xf0, 0xf5, 0xfd, 0xac,
+	0x37, 0xe7, 0x6a, 0xe2, 0x06, 0xd3, 0xb8, 0x3b, 0x4a, 0xd4, 0xc5, 0xaf, 0xea, 0xe1, 0x4c, 0x62,
+	0x12, 0x8d, 0x85, 0x5a, 0xa2, 0x7c, 0x70, 0x85, 0xa1, 0x4e, 0x8c, 0x6e, 0x94, 0x0f, 0xf6, 0xa6,
+	0xf1, 0x28, 0x51, 0x7d, 0x9e, 0x2a, 0x21, 0xfd, 0x22, 0x95, 0x35, 0xe8, 0x71, 0x1f, 0x23, 0x71,
+	0xc5, 0xd3, 0x89, 0x73, 0x94, 0x37, 0xf8, 0x3f, 0x9c, 0x7b, 0x3e, 0xa2, 0x32, 0x5e, 0x79, 0xef,
+	0x15, 0xcc, 0x1c, 0x5a, 0xed, 0x45, 0x91, 0x14, 0x69, 0xea, 0xd8, 0xc6, 0x2a, 0x90, 0x21, 0xad,
+	0x0f, 0xc4, 0xa3, 0x98, 0xe1, 0x42, 0x48, 0x5f, 0x2c, 0xb9, 0x8c, 0x9c, 0xca, 0x7f, 0x4e, 0xff,
+	0x9b, 0xce, 0x5a, 0xb4, 0x76, 0xbd, 0x4c, 0x84, 0x2c, 0xf6, 0x54, 0xcd, 0x9e, 0x03, 0xcd, 0xbb,
+	0x5c, 0x6d, 0xc0, 0x5a, 0x6f, 0xc0, 0xda, 0x6d, 0x80, 0x3c, 0x69, 0x20, 0x2f, 0x1a, 0xc8, 0x9b,
+	0x06, 0xb2, 0xd2, 0x40, 0xd6, 0x1a, 0xc8, 0x87, 0x06, 0xf2, 0xa9, 0xc1, 0xda, 0x69, 0x20, 0xcf,
+	0x5b, 0xb0, 0x56, 0x5b, 0xb0, 0xd6, 0x5b, 0xb0, 0x6e, 0xed, 0x54, 0x71, 0x25, 0x82, 0x8a, 0xf9,
+	0xb9, 0xf3, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa7, 0x75, 0x36, 0x4d, 0x08, 0x02, 0x00, 0x00,
 }
 
 func (this *UserAccountData) Equal(that interface{}) bool {
@@ -166,11 +165,20 @@ func (this *UserAccountData) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		if !__caster.Equal(this.Balance, that1.Balance) {
 			return false
 		}
+	}
+	if !bytes.Equal(this.CodeHash, that1.CodeHash) {
+		return false
+	}
+	if !bytes.Equal(this.RootHash, that1.RootHash) {
+		return false
 	}
 	if !bytes.Equal(this.Address, that1.Address) {
 		return false
@@ -184,15 +192,6 @@ func (this *UserAccountData) Equal(that interface{}) bool {
 	if !bytes.Equal(this.OwnerAddress, that1.OwnerAddress) {
 		return false
 	}
-	if this.Nonce != that1.Nonce {
-		return false
-	}
-	if !bytes.Equal(this.CodeHash, that1.CodeHash) {
-		return false
-	}
-	if !bytes.Equal(this.RootHash, that1.RootHash) {
-		return false
-	}
 	return true
 }
 func (this *UserAccountData) GoString() string {
@@ -201,13 +200,13 @@ func (this *UserAccountData) GoString() string {
 	}
 	s := make([]string, 0, 11)
 	s = append(s, "&state.UserAccountData{")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "Balance: "+fmt.Sprintf("%#v", this.Balance)+",\n")
+	s = append(s, "CodeHash: "+fmt.Sprintf("%#v", this.CodeHash)+",\n")
+	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
 	s = append(s, "Address: "+fmt.Sprintf("%#v", this.Address)+",\n")
 	s = append(s, "DeveloperReward: "+fmt.Sprintf("%#v", this.DeveloperReward)+",\n")
 	s = append(s, "OwnerAddress: "+fmt.Sprintf("%#v", this.OwnerAddress)+",\n")
-	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
-	s = append(s, "CodeHash: "+fmt.Sprintf("%#v", this.CodeHash)+",\n")
-	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -239,31 +238,12 @@ func (m *UserAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.RootHash) > 0 {
-		i -= len(m.RootHash)
-		copy(dAtA[i:], m.RootHash)
-		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.RootHash)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.CodeHash) > 0 {
-		i -= len(m.CodeHash)
-		copy(dAtA[i:], m.CodeHash)
-		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.CodeHash)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if m.Nonce != 0 {
-		i = encodeVarintUserAccountData(dAtA, i, uint64(m.Nonce))
-		i--
-		dAtA[i] = 0x28
-	}
 	if len(m.OwnerAddress) > 0 {
 		i -= len(m.OwnerAddress)
 		copy(dAtA[i:], m.OwnerAddress)
 		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.OwnerAddress)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x3a
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -275,13 +255,27 @@ func (m *UserAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintUserAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x1a
+	dAtA[i] = 0x32
 	if len(m.Address) > 0 {
 		i -= len(m.Address)
 		copy(dAtA[i:], m.Address)
 		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.Address)))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x2a
+	}
+	if len(m.RootHash) > 0 {
+		i -= len(m.RootHash)
+		copy(dAtA[i:], m.RootHash)
+		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.RootHash)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.CodeHash) > 0 {
+		i -= len(m.CodeHash)
+		copy(dAtA[i:], m.CodeHash)
+		i = encodeVarintUserAccountData(dAtA, i, uint64(len(m.CodeHash)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -293,7 +287,12 @@ func (m *UserAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintUserAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0xa
+	dAtA[i] = 0x12
+	if m.Nonce != 0 {
+		i = encodeVarintUserAccountData(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -314,9 +313,20 @@ func (m *UserAccountData) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Nonce != 0 {
+		n += 1 + sovUserAccountData(uint64(m.Nonce))
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.Balance)
+		n += 1 + l + sovUserAccountData(uint64(l))
+	}
+	l = len(m.CodeHash)
+	if l > 0 {
+		n += 1 + l + sovUserAccountData(uint64(l))
+	}
+	l = len(m.RootHash)
+	if l > 0 {
 		n += 1 + l + sovUserAccountData(uint64(l))
 	}
 	l = len(m.Address)
@@ -329,17 +339,6 @@ func (m *UserAccountData) Size() (n int) {
 		n += 1 + l + sovUserAccountData(uint64(l))
 	}
 	l = len(m.OwnerAddress)
-	if l > 0 {
-		n += 1 + l + sovUserAccountData(uint64(l))
-	}
-	if m.Nonce != 0 {
-		n += 1 + sovUserAccountData(uint64(m.Nonce))
-	}
-	l = len(m.CodeHash)
-	if l > 0 {
-		n += 1 + l + sovUserAccountData(uint64(l))
-	}
-	l = len(m.RootHash)
 	if l > 0 {
 		n += 1 + l + sovUserAccountData(uint64(l))
 	}
@@ -357,13 +356,13 @@ func (this *UserAccountData) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&UserAccountData{`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`Balance:` + fmt.Sprintf("%v", this.Balance) + `,`,
+		`CodeHash:` + fmt.Sprintf("%v", this.CodeHash) + `,`,
+		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
 		`Address:` + fmt.Sprintf("%v", this.Address) + `,`,
 		`DeveloperReward:` + fmt.Sprintf("%v", this.DeveloperReward) + `,`,
 		`OwnerAddress:` + fmt.Sprintf("%v", this.OwnerAddress) + `,`,
-		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
-		`CodeHash:` + fmt.Sprintf("%v", this.CodeHash) + `,`,
-		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -406,6 +405,25 @@ func (m *UserAccountData) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUserAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Balance", wireType)
 			}
@@ -443,7 +461,75 @@ func (m *UserAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUserAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthUserAccountData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUserAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeHash = append(m.CodeHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeHash == nil {
+				m.CodeHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUserAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthUserAccountData
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUserAccountData
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.RootHash == nil {
+				m.RootHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
 			}
@@ -477,7 +563,7 @@ func (m *UserAccountData) Unmarshal(dAtA []byte) error {
 				m.Address = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DeveloperReward", wireType)
 			}
@@ -515,7 +601,7 @@ func (m *UserAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 4:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field OwnerAddress", wireType)
 			}
@@ -547,93 +633,6 @@ func (m *UserAccountData) Unmarshal(dAtA []byte) error {
 			m.OwnerAddress = append(m.OwnerAddress[:0], dAtA[iNdEx:postIndex]...)
 			if m.OwnerAddress == nil {
 				m.OwnerAddress = []byte{}
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
-			}
-			m.Nonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowUserAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Nonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CodeHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowUserAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthUserAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthUserAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CodeHash = append(m.CodeHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.CodeHash == nil {
-				m.CodeHash = []byte{}
-			}
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowUserAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthUserAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthUserAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.RootHash == nil {
-				m.RootHash = []byte{}
 			}
 			iNdEx = postIndex
 		default:

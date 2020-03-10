@@ -2277,7 +2277,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt := state.NewEmptyUserAccount()
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.SetNonce(2)
 	accnt.SetRootHash([]byte("root hash"))

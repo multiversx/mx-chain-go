@@ -14,16 +14,6 @@ type userAccount struct {
 	UserAccountData
 }
 
-func NewEmptyUserAccount() *userAccount {
-	return &userAccount{
-		baseAccount: &baseAccount{},
-		UserAccountData: UserAccountData{
-			Balance:         big.NewInt(0),
-			DeveloperReward: big.NewInt(0),
-		},
-	}
-}
-
 var zero = big.NewInt(0)
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
@@ -74,6 +64,7 @@ func (a *userAccount) GetBalance() *big.Int {
 	return big.NewInt(0).Set(a.Balance)
 }
 
+// ClaimDeveloperRewards returns the accumulated developer rewards and sets it to 0 in the account
 func (a *userAccount) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
 		return nil, ErrOperationNotPermitted
@@ -85,6 +76,7 @@ func (a *userAccount) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error)
 	return oldValue, nil
 }
 
+// AddToDeveloperReward adds new value to developer reward
 func (a *userAccount) AddToDeveloperReward(value *big.Int) {
 	a.DeveloperReward = big.NewInt(0).Add(a.DeveloperReward, value)
 }
@@ -108,13 +100,9 @@ func (a *userAccount) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) e
 	return nil
 }
 
+// SetOwnerAddress sets the owner address of an account,
 func (a *userAccount) SetOwnerAddress(address []byte) {
 	a.OwnerAddress = address
-}
-
-// GetOwnerAddress returns the actual owner address from the account
-func (a *userAccount) GetOwnerAddress() []byte {
-	return a.OwnerAddress
 }
 
 //SetNonce saves the nonce to the account
@@ -122,24 +110,9 @@ func (a *userAccount) SetNonce(nonce uint64) {
 	a.Nonce = nonce
 }
 
-// GetNonce gets the nonce of the account
-func (a *userAccount) GetNonce() uint64 {
-	return a.Nonce
-}
-
-// GetCodeHash returns the code hash associated with this account
-func (a *userAccount) GetCodeHash() []byte {
-	return a.CodeHash
-}
-
 // SetCodeHash sets the code hash associated with the account
 func (a *userAccount) SetCodeHash(codeHash []byte) {
 	a.CodeHash = codeHash
-}
-
-// GetRootHash returns the root hash associated with this account
-func (a *userAccount) GetRootHash() []byte {
-	return a.RootHash
 }
 
 // SetRootHash sets the root hash associated with the account

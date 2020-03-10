@@ -235,12 +235,12 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler AccountHandler) error {
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
 func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
 	if check.IfNil(addressContainer) {
 		return fmt.Errorf("%w in RemoveAccount", ErrNilAddressContainer)
 	}
-
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
 
 	acnt, err := adb.getAccount(addressContainer)
 	if err != nil {
@@ -262,12 +262,12 @@ func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) LoadAccount(addressContainer AddressContainer) (AccountHandler, error) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
 	if check.IfNil(addressContainer) {
 		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddressContainer)
 	}
-
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.LoadAccount",
 		"address", hex.EncodeToString(addressContainer.Bytes()),
@@ -310,12 +310,12 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHan
 
 // GetExistingAccount returns an existing account if exists or nil if missing
 func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
 	if check.IfNil(addressContainer) {
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddressContainer)
 	}
-
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.GetExistingAccount",
 		"address", hex.EncodeToString(addressContainer.Bytes()),

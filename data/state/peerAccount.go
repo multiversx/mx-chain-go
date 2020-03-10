@@ -11,6 +11,7 @@ type peerAccount struct {
 	PeerAccountData
 }
 
+// NewEmptyPeerAccount returns an empty peerAccount
 func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
 		baseAccount: &baseAccount{},
@@ -39,26 +40,14 @@ func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
 	}, nil
 }
 
-func (pa *peerAccount) GetBLSPublicKey() []byte {
-	return pa.BLSPublicKey
-}
-
 // SetBLSPublicKey sets the account's bls public key, saving the old key before changing
 func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) {
 	pa.BLSPublicKey = pubKey
 }
 
-func (pa *peerAccount) GetSchnorrPublicKey() []byte {
-	return pa.SchnorrPublicKey
-}
-
 // SetSchnorrPublicKey sets the account's public key, saving the old key before changing
 func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) {
 	pa.SchnorrPublicKey = pubKey
-}
-
-func (pa *peerAccount) GetRewardAddress() []byte {
-	return pa.RewardAddress
 }
 
 // SetRewardAddress sets the account's reward address, saving the old address before changing
@@ -71,116 +60,72 @@ func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	return nil
 }
 
-func (pa *peerAccount) GetStake() *big.Int {
-	return pa.Stake
-}
-
-// SetStake sets the account's stake, saving the old stake before changing
+// SetStake sets the account's stake
 func (pa *peerAccount) SetStake(stake *big.Int) {
 	pa.Stake = stake
 }
 
-func (pa *peerAccount) GetAccumulatedFees() *big.Int {
-	return pa.AccumulatedFees
-}
-
+// SetAccumulatedFees sets the account's accumulated fees
 func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
 	pa.AccumulatedFees = fees
 }
 
-func (pa *peerAccount) GetJailTime() TimePeriod {
-	return pa.JailTime
-}
-
-// SetJailTime sets the account's jail time, saving the old state before changing
+// SetJailTime sets the account's jail time
 func (pa *peerAccount) SetJailTime(jailTime TimePeriod) {
 	pa.JailTime = jailTime
 }
 
-func (pa *peerAccount) GetCurrentShardId() uint32 {
-	return pa.CurrentShardId
-}
-
-// SetCurrentShardId sets the account's shard id, saving the old state before changing
+// SetCurrentShardId sets the account's shard id
 func (pa *peerAccount) SetCurrentShardId(shId uint32) {
 	pa.CurrentShardId = shId
 }
 
-func (pa *peerAccount) GetNextShardId() uint32 {
-	return pa.NextShardId
-}
-
-// SetNextShardId sets the account's shard id, saving the old state before changing
+// SetNextShardId sets the account's shard id
 func (pa *peerAccount) SetNextShardId(shId uint32) {
 	pa.NextShardId = shId
 }
 
-func (pa *peerAccount) GetNodeInWaitingList() bool {
-	return pa.NodeInWaitingList
-}
-
-// SetNodeInWaitingList sets the account's nodes status whether in waiting list, saving the old state before
+// SetNodeInWaitingList sets the account's nodes status whether in waiting list
 func (pa *peerAccount) SetNodeInWaitingList(nodeInWaitingList bool) {
 	pa.NodeInWaitingList = nodeInWaitingList
 }
 
-func (pa *peerAccount) GetUnStakedNonce() uint64 {
-	return pa.UnStakedNonce
-}
-
-// SetUnStakedNonce sets the account's shard id, saving the old state before changing
+// SetUnStakedNonce sets the account's shard id
 func (pa *peerAccount) SetUnStakedNonce(nonce uint64) {
 	pa.UnStakedNonce = nonce
 }
 
-// IncreaseLeaderSuccessRate increases the account's number of successful signing,
-// saving the old state before changing
+// IncreaseLeaderSuccessRate increases the account's number of successful signing
 func (pa *peerAccount) IncreaseLeaderSuccessRate(value uint32) {
 	pa.LeaderSuccessRate.NrSuccess += value
 }
 
-// DecreaseLeaderSuccessRate increases the account's number of missing signing,
-// saving the old state before changing
+// DecreaseLeaderSuccessRate increases the account's number of missing signing
 func (pa *peerAccount) DecreaseLeaderSuccessRate(value uint32) {
 	pa.LeaderSuccessRate.NrFailure += value
 }
 
-// IncreaseValidatorSuccessRate increases the account's number of successful signing,
-// saving the old state before changing
+// IncreaseValidatorSuccessRate increases the account's number of successful signing
 func (pa *peerAccount) IncreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NrSuccess += value
 }
 
-// DecreaseValidatorSuccessRate increases the account's number of missed signing,
-// saving the old state before changing
+// DecreaseValidatorSuccessRate increases the account's number of missed signing
 func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NrFailure += value
 }
 
-func (pa *peerAccount) GetNumSelectedInSuccessBlocks() uint32 {
-	return pa.NumSelectedInSuccessBlocks
-}
-
+// SetNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
 func (pa *peerAccount) SetNumSelectedInSuccessBlocks(num uint32) {
 	pa.NumSelectedInSuccessBlocks = num
 }
 
-// GetRating gets the rating
-func (pa *peerAccount) GetRating() uint32 {
-	return pa.Rating
-}
-
-// SetRating sets the account's rating id, saving the old state before changing
+// SetRating sets the account's rating id
 func (pa *peerAccount) SetRating(rating uint32) {
 	pa.Rating = rating
 }
 
-// GetTempRating gets the rating
-func (pa *peerAccount) GetTempRating() uint32 {
-	return pa.TempRating
-}
-
-// SetTempRating sets the account's tempRating, saving the old state before changing
+// SetTempRating sets the account's tempRating
 func (pa *peerAccount) SetTempRating(rating uint32) {
 	pa.TempRating = rating
 }
@@ -190,73 +135,16 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 	return pa == nil
 }
 
-// SetTempRating sets the account's tempRating, saving the old state before changing
-func (pa *peerAccount) GetLeaderSuccessRate() SignRate {
-	return pa.LeaderSuccessRate
-}
-
-// SetTempRating sets the account's tempRating, saving the old state before changing
-func (pa *peerAccount) GetValidatorSuccessRate() SignRate {
-	return pa.ValidatorSuccessRate
-}
-
 // ResetAtNewEpoch will reset a set of values after changing epoch
 func (pa *peerAccount) ResetAtNewEpoch() error {
-	//entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//pa.accountTracker.Journalize(entryAccFee)
 	pa.AccumulatedFees = big.NewInt(0)
-
-	//err = pa.accountTracker.SaveAccount(pa)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = pa.SetRatingWithJournal(pa.GetTempRating())
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//pa.accountTracker.Journalize(entryLeaderRate)
+	pa.SetRating(pa.GetTempRating())
 	pa.LeaderSuccessRate.NrFailure = 0
 	pa.LeaderSuccessRate.NrSuccess = 0
-	//
-	//err = pa.accountTracker.SaveAccount(pa)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//pa.accountTracker.Journalize(entryValidatorRate)
 	pa.ValidatorSuccessRate.NrSuccess = 0
 	pa.ValidatorSuccessRate.NrFailure = 0
-	//
-	//err = pa.accountTracker.SaveAccount(pa)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//pa.accountTracker.Journalize(entry)
 	pa.NumSelectedInSuccessBlocks = 0
 
-	//return pa.accountTracker.SaveAccount(pa)
 	return nil
 }
 
@@ -265,24 +153,9 @@ func (pa *peerAccount) SetNonce(nonce uint64) {
 	pa.Nonce = nonce
 }
 
-// GetNonce gets the nonce of the account
-func (pa *peerAccount) GetNonce() uint64 {
-	return pa.Nonce
-}
-
-// GetCodeHash returns the code hash associated with this account
-func (pa *peerAccount) GetCodeHash() []byte {
-	return pa.CodeHash
-}
-
 // SetCodeHash sets the code hash associated with the account
 func (pa *peerAccount) SetCodeHash(codeHash []byte) {
 	pa.CodeHash = codeHash
-}
-
-// GetRootHash returns the root hash associated with this account
-func (pa *peerAccount) GetRootHash() []byte {
-	return pa.RootHash
 }
 
 // SetRootHash sets the root hash associated with the account

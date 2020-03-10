@@ -7,13 +7,12 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message UserAccountData{
-    bytes  Balance         = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  Address         = 2;
-    bytes  DeveloperReward = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  OwnerAddress    = 4;
-
-    uint64           Nonce         = 5;
-    bytes            CodeHash      = 6;
-    bytes            RootHash      = 7;
+message UserAccountData {
+    uint64 Nonce           = 1;
+    bytes  Balance         = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  CodeHash        = 3;
+    bytes  RootHash        = 4;
+    bytes  Address         = 5;
+    bytes  DeveloperReward = 6 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  OwnerAddress    = 7;
 }

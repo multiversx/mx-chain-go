@@ -629,7 +629,7 @@ func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHand
 		return nil, err
 	}
 
-	account, err := txs.accounts.GetAccountWithJournal(addressContainer)
+	account, err := txs.accounts.LoadAccount(addressContainer)
 	if err != nil {
 		return nil, err
 	}
