@@ -1,6 +1,10 @@
 package metachain
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
 
 const keyPrefix = "epochStartTrigger_"
 
@@ -12,6 +16,7 @@ type TriggerRegistry struct {
 	CurrEpochStartRound         uint64
 	PrevEpochStartRound         uint64
 	EpochStartMetaHash          []byte
+	EpochStartMeta              *block.MetaBlock
 }
 
 // LoadState loads into trigger the saved state
@@ -38,6 +43,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.prevEpochStartRound = state.PrevEpochStartRound
 	t.epoch = state.Epoch
 	t.epochStartMetaHash = state.EpochStartMetaHash
+	t.epochStartMeta = state.EpochStartMeta
 	t.mutTrigger.Unlock()
 
 	return nil
@@ -52,6 +58,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.PrevEpochStartRound = t.prevEpochStartRound
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
+	registry.EpochStartMeta = t.epochStartMeta
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
