@@ -334,6 +334,12 @@ func (sp *shardProcessor) checkEpochCorrectness(
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
 	}
 
+	isStartOfEpochWithWrongEpoch := header.GetEpoch() == currentBlockHeader.GetEpoch() && header.IsStartOfEpochBlock()
+	if isStartOfEpochWithWrongEpoch {
+		return fmt.Errorf("%w proposed header with same epoch %d as blockchain and it is of epoch start",
+			process.ErrEpochDoesNotMatch, currentBlockHeader.GetEpoch())
+	}
+
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
