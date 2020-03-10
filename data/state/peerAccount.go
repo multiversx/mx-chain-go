@@ -31,8 +31,8 @@ func NewPeerAccount(
 
 	return &PeerAccount{
 		PeerAccountData: PeerAccountData{
-			AccumulatedFees:  big.NewInt(0),
-			Stake: big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+			Stake:           big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -417,7 +417,7 @@ func (pa *PeerAccount) GetRating() uint32 {
 }
 
 // SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
-func (pa *PeerAccount) SetListAndIndexWithJournal(shardID uint32, list string, index int) error {
+func (pa *PeerAccount) SetListAndIndexWithJournal(shardID uint32, list string, index int32) error {
 	entry, err := NewPeerJournalEntryListIndex(pa, pa.CurrentShardId, pa.List, pa.IndexInList)
 	if err != nil {
 		return err

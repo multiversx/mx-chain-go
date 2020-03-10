@@ -87,7 +87,7 @@ type PeerAccountHandler interface {
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error
 	DecreaseValidatorSuccessRateWithJournal(value uint32) error
 	IncreaseNumSelectedInSuccessBlocks() error
-	SetListAndIndexWithJournal(shardID uint32, list string, index int) error
+	SetListAndIndexWithJournal(shardID uint32, list string, index int32) error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32

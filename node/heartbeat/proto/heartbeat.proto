@@ -28,9 +28,11 @@ message HeartbeatDTO {
 	uint32                    ComputedShardID              = 8 ;
 	string                    VersionNumber                = 9 ;
 	string                    NodeDisplayName              = 10;
-	bool                      IsValidator                  = 11;
-	google.protobuf.Timestamp LastUptimeDowntime           = 12;
-	google.protobuf.Timestamp GenesisTime                  = 13;
+	string                    PeerType                     = 11;
+	bool                      IsValidator                  = 12;
+	google.protobuf.Timestamp LastUptimeDowntime           = 13;
+	google.protobuf.Timestamp GenesisTime                  = 14;
+
 }
 
 message DbTimeStamp {

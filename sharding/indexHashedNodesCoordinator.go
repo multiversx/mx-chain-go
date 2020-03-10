@@ -665,7 +665,7 @@ func (ihgs *indexHashedNodesCoordinator) updatePeerAccountsForGivenMap(
 				string(account.PubKey()),
 				shardId,
 				string(list),
-				index)
+				int32(index))
 			if err != nil {
 				log.Warn("error while updating list and index for peer",
 					"error", err,

@@ -357,11 +357,11 @@ type PeerJournalEntryListIndex struct {
 	account *PeerAccount
 	shardID uint32
 	list    string
-	index   int
+	index   int32
 }
 
 // NewPeerJournalEntryListIndex outputs a new PeerJournalEntryListIndex implementation used to revert a state change
-func NewPeerJournalEntryListIndex(account *PeerAccount, shardID uint32, list string, index int) (*PeerJournalEntryListIndex, error) {
+func NewPeerJournalEntryListIndex(account *PeerAccount, shardID uint32, list string, index int32) (*PeerJournalEntryListIndex, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}

@@ -722,7 +722,7 @@ func (vs *validatorStatistics) getRating(s string) uint32 {
 }
 
 // UpdateListAndIndex updates the list and the index for a given public key
-func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index int) error {
+func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
 	peer, err := vs.GetPeerAccount([]byte(pubKey))
 	if err != nil {
 		log.Debug("error getting peer account", "error", err, "key", pubKey)

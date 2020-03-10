@@ -323,13 +323,15 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
 
 	bdy := block.Body{
-		{
-			ReceiverShardID: 0,
-			Type:            block.RewardsBlock,
-			TxHashes:        [][]byte{rwdTxHash},
+		MiniBlocks: []*block.MiniBlock{
+			{
+				ReceiverShardID: 0,
+				Type:            block.RewardsBlock,
+				TxHashes:        [][]byte{rwdTxHash},
+			},
 		},
 	}
-	res := rwd.CreateMarshalizedData(bdy)
+	res := rwd.CreateMarshalizedData(&bdy)
 
 	assert.NotNil(t, res)
 }
@@ -391,14 +393,16 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
 	bdy := block.Body{
-		{
-			ReceiverShardID: 0,
-			SenderShardID:   core.MetachainShardId,
-			Type:            block.RewardsBlock,
-			TxHashes:        [][]byte{rwdTxHash},
+		MiniBlocks: []*block.MiniBlock{
+			{
+				ReceiverShardID: 0,
+				SenderShardID:   core.MetachainShardId,
+				Type:            block.RewardsBlock,
+				TxHashes:        [][]byte{rwdTxHash},
+			},
 		},
 	}
-	rwd.SaveTxBlockToStorage(&mb2, bdy)
+	rwd.SaveTxBlockToStorage(&mb2, &bdy)
 
 	assert.True(t, putRwdTxWasCalled)
 	assert.True(t, putMbWasCalled)
