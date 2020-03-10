@@ -773,8 +773,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.cleanupBlockTrackerPools(headerHandler)
-
 	err = sp.saveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
@@ -897,6 +895,7 @@ func (sp *shardProcessor) CommitBlock(
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
 
+	sp.cleanupBlockTrackerPools(headerHandler)
 	go sp.cleanupPools(headerHandler)
 
 	return nil
