@@ -767,7 +767,6 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		feeHandlerMock(),
 	)
 
-	body := &block.Body{}
 	txHash := []byte("tx1_hash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -778,8 +777,6 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
-
-	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
@@ -805,18 +802,10 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		feeHandlerMock(),
 	)
 
-	body := &block.Body{}
-
-	txHash := []byte("tx1_hash")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
-
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   0,
 	}
-
-	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
@@ -912,10 +901,6 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 	)
 
 	body := &block.Body{}
-
-	txHash := []byte("tx1_hash")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
 
 	miniblockPool := storage.Cacher(nil)
 

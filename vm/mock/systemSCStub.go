@@ -28,8 +28,5 @@ func (s *SystemSCStub) ValueOf(key interface{}) interface{} {
 
 // IsInterfaceNil -
 func (s *SystemSCStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
