@@ -78,8 +78,5 @@ func (ith *IntermediateTransactionHandlerMock) GetCreatedInShardMiniBlock() *blo
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ith *IntermediateTransactionHandlerMock) IsInterfaceNil() bool {
-	if ith == nil {
-		return true
-	}
-	return false
+	return ith == nil
 }
