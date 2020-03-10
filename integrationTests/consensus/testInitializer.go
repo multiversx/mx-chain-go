@@ -444,7 +444,7 @@ func createConsensusOnlyNode(
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(testMarshalizer, 0),
+		node.WithInternalMarshalizer(testMarshalizer, 0),
 		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),

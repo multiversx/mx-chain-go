@@ -247,7 +247,7 @@
 #     the reencoded version (in percents).
 #     0 disables the feature.
 [Marshalizer]
-   Type = "protobuf"
+   Type = "gogo protobuf"
    SizeCheckDelta = 0
 
 # The marshalizer used for smartcontracts data exchage
