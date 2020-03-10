@@ -147,9 +147,9 @@ func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
 	currentNonce := uint64(20)
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, initialNonce)
-	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed()
+	_ = presenterStatusHandler.CalculateSynchronizationSpeed()
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentNonce)
-	syncSpeed = presenterStatusHandler.CalculateSynchronizationSpeed()
+	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed()
 
 	expectedSpeed := currentNonce - initialNonce
 	assert.Equal(t, expectedSpeed, syncSpeed)

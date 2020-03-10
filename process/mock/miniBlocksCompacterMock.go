@@ -23,8 +23,5 @@ func (mbcm *MiniBlocksCompacterMock) Expand(miniBlocks block.MiniBlockSlice, map
 
 // IsInterfaceNil -
 func (mbcm *MiniBlocksCompacterMock) IsInterfaceNil() bool {
-	if mbcm == nil {
-		return true
-	}
-	return false
+	return mbcm == nil
 }

@@ -377,7 +377,7 @@ func createConsensusOnlyNode(
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
 
-	rounder, err := round.NewRound(
+	rounder, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
@@ -443,7 +443,7 @@ func createConsensusOnlyNode(
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(testMarshalizer, 0),
+		node.WithInternalMarshalizer(testMarshalizer, 0),
 		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),
