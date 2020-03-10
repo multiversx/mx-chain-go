@@ -1932,7 +1932,7 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.ProtoMarshalizer)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -2147,7 +2147,7 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.ProtoMarshalizer)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
 	if err != nil {
 		return nil, err
 	}
