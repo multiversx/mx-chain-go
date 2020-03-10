@@ -306,6 +306,14 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 		}
 	}
 
+	for shardId, shardWaiting := range nodesConfig.waitingMap {
+		for i := 0; i < len(shardWaiting); i++ {
+			if bytes.Equal(publicKey, shardWaiting[i].PubKey()) {
+				return shardWaiting[i], shardId, nil
+			}
+		}
+	}
+
 	return nil, 0, ErrValidatorNotFound
 }
 
@@ -409,8 +417,8 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 	return publicKeys, nil
 }
 
-// GetAllValidatorsPublicKeys will return all validators public keys for all shards
-func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+// GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
@@ -433,6 +441,30 @@ func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys(epoch uint32
 	return validatorsPubKeys, nil
 }
 
+// GetAllWaitingValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	ihgs.mutNodesConfig.RLock()
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, ErrEpochNodesConfigDesNotExist
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	for shardId, shardEligible := range nodesConfig.waitingMap {
+		for i := 0; i < len(shardEligible); i++ {
+			validatorsPubKeys[shardId] = append(validatorsPubKeys[shardId], nodesConfig.waitingMap[shardId][i].PubKey())
+		}
+	}
+
+	return validatorsPubKeys, nil
+}
+
 // GetValidatorsIndexes will return validators indexes for a block
 func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	publicKeys []string,
@@ -440,7 +472,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 ) ([]uint64, error) {
 	signersIndexes := make([]uint64, 0)
 
-	validatorsPubKeys, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	validatorsPubKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -552,13 +584,13 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	var err error
 
 	if epoch > 0 {
-		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
+		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	publicKeysNewEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +619,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, _ *sync.RWMutex) []Validator {
 	//TODO implement an expand eligible list variant
 	return validators
 }
