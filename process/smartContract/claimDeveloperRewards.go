@@ -28,7 +28,7 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	if !bytes.Equal(tx.GetSndAddress(), acntDst.GetOwnerAddress()) {
+	if !bytes.Equal(tx.GetSndAddr(), acntDst.GetOwnerAddress()) {
 		return nil, process.ErrOperationNotPermitted
 	}
 

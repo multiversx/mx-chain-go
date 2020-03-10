@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. userAccountData.proto
 package state
 
 import (
@@ -10,18 +11,16 @@ import (
 // Account is the struct used in serialization/deserialization
 type userAccount struct {
 	*baseAccount
-	Balance *big.Int
-	Address []byte
-
-	DeveloperReward *big.Int
-	OwnerAddress    []byte
+	UserAccountData
 }
 
 func NewEmptyUserAccount() *userAccount {
 	return &userAccount{
-		baseAccount:     &baseAccount{},
-		Balance:         big.NewInt(0),
-		DeveloperReward: big.NewInt(0),
+		baseAccount: &baseAccount{},
+		UserAccountData: UserAccountData{
+			Balance:         big.NewInt(0),
+			DeveloperReward: big.NewInt(0),
+		},
 	}
 }
 
@@ -40,9 +39,11 @@ func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
 			addressContainer: addressContainer,
 			dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 		},
-		DeveloperReward: big.NewInt(0),
-		Balance:         big.NewInt(0),
-		Address:         addressBytes,
+		UserAccountData: UserAccountData{
+			DeveloperReward: big.NewInt(0),
+			Balance:         big.NewInt(0),
+			Address:         addressBytes,
+		},
 	}, nil
 }
 
@@ -114,6 +115,36 @@ func (a *userAccount) SetOwnerAddress(address []byte) {
 // GetOwnerAddress returns the actual owner address from the account
 func (a *userAccount) GetOwnerAddress() []byte {
 	return a.OwnerAddress
+}
+
+//SetNonce saves the nonce to the account
+func (a *userAccount) SetNonce(nonce uint64) {
+	a.Nonce = nonce
+}
+
+// GetNonce gets the nonce of the account
+func (a *userAccount) GetNonce() uint64 {
+	return a.Nonce
+}
+
+// GetCodeHash returns the code hash associated with this account
+func (a *userAccount) GetCodeHash() []byte {
+	return a.CodeHash
+}
+
+// SetCodeHash sets the code hash associated with the account
+func (a *userAccount) SetCodeHash(codeHash []byte) {
+	a.CodeHash = codeHash
+}
+
+// GetRootHash returns the root hash associated with this account
+func (a *userAccount) GetRootHash() []byte {
+	return a.RootHash
+}
+
+// SetRootHash sets the root hash associated with the account
+func (a *userAccount) SetRootHash(roothash []byte) {
+	a.RootHash = roothash
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

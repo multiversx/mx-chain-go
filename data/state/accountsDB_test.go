@@ -259,7 +259,7 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedValue := 45
+	expectedValue := int64(45)
 	adr := mock.NewAddressMock()
 	accnt := mock.NewAccountWrapMock(adr)
 	accnt.MockValue = expectedValue
@@ -663,11 +663,6 @@ func TestAccountsDB_RevertToSnapshotNoEntriesShouldNotErr(t *testing.T) {
 	err := adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
 }
-
-type testEntry struct{}
-
-func (te *testEntry) Revert() (state.AccountHandler, error) { return nil, nil }
-func (te *testEntry) IsInterfaceNil() bool                  { return false }
 
 func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	t.Parallel()

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message UserAccountData{
+    bytes  Balance         = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  Address         = 2;
+    bytes  DeveloperReward = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  OwnerAddress    = 4;
+
+    uint64           Nonce         = 5;
+    bytes            CodeHash      = 6;
+    bytes            RootHash      = 7;
+}

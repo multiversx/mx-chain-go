@@ -5,10 +5,6 @@ import (
 )
 
 type baseAccount struct {
-	Nonce    uint64
-	CodeHash []byte
-	RootHash []byte
-
 	addressContainer AddressContainer
 	code             []byte
 	dataTrieTracker  DataTrieTracker
@@ -19,16 +15,6 @@ func (ba *baseAccount) AddressContainer() AddressContainer {
 	return ba.addressContainer
 }
 
-//SetNonce saves the nonce to the account
-func (ba *baseAccount) SetNonce(nonce uint64) {
-	ba.Nonce = nonce
-}
-
-// GetNonce gets the nonce of the account
-func (ba *baseAccount) GetNonce() uint64 {
-	return ba.Nonce
-}
-
 // GetCode gets the actual code that needs to be run in the VM
 func (ba *baseAccount) GetCode() []byte {
 	return ba.code
@@ -37,26 +23,6 @@ func (ba *baseAccount) GetCode() []byte {
 // SetCode sets the actual code that needs to be run in the VM
 func (ba *baseAccount) SetCode(code []byte) {
 	ba.code = code
-}
-
-// GetCodeHash returns the code hash associated with this account
-func (ba *baseAccount) GetCodeHash() []byte {
-	return ba.CodeHash
-}
-
-// SetCodeHash sets the code hash associated with the account
-func (ba *baseAccount) SetCodeHash(codeHash []byte) {
-	ba.CodeHash = codeHash
-}
-
-// GetRootHash returns the root hash associated with this account
-func (ba *baseAccount) GetRootHash() []byte {
-	return ba.RootHash
-}
-
-// SetRootHash sets the root hash associated with the account
-func (ba *baseAccount) SetRootHash(roothash []byte) {
-	ba.RootHash = roothash
 }
 
 // DataTrie returns the trie that holds the current account's data

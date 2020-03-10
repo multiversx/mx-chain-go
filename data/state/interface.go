@@ -19,32 +19,6 @@ const (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
-// TimeStamp is a moment defined by epoch and round
-type TimeStamp struct {
-	Epoch uint64
-	Round uint64
-}
-
-// TimePeriod holds start and end time
-type TimePeriod struct {
-	StartTime TimeStamp
-	EndTime   TimeStamp
-}
-
-// SignRate is used to keep the number of success and failed signings
-type SignRate struct {
-	NrSuccess uint32
-	NrFailure uint32
-}
-
-// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
-type ValidatorApiResponse struct {
-	NrLeaderSuccess    uint32 `json:"nrLeaderSuccess"`
-	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
-	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
-	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
-}
-
 // AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {
 	AddressLen() int

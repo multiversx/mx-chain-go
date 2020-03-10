@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"

@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
 package state
 
 import (
@@ -7,33 +8,16 @@ import (
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
 	*baseAccount
-	BLSPublicKey     []byte
-	SchnorrPublicKey []byte
-	RewardAddress    []byte
-	Stake            *big.Int
-	AccumulatedFees  *big.Int
-
-	JailTime      TimePeriod
-	PastJailTimes []TimePeriod
-
-	CurrentShardId    uint32
-	NextShardId       uint32
-	NodeInWaitingList bool
-	UnStakedNonce     uint64
-
-	ValidatorSuccessRate       SignRate
-	LeaderSuccessRate          SignRate
-	NumSelectedInSuccessBlocks uint32
-
-	Rating     uint32
-	TempRating uint32
+	PeerAccountData
 }
 
 func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
-		baseAccount:     &baseAccount{},
-		Stake:           big.NewInt(0),
-		AccumulatedFees: big.NewInt(0),
+		baseAccount: &baseAccount{},
+		PeerAccountData: PeerAccountData{
+			Stake:           big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		},
 	}
 }
 
@@ -48,8 +32,10 @@ func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
 			addressContainer: addressContainer,
 			dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
 		},
-		Stake:           big.NewInt(0),
-		AccumulatedFees: big.NewInt(0),
+		PeerAccountData: PeerAccountData{
+			Stake:           big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		},
 	}, nil
 }
 
@@ -272,4 +258,34 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 
 	//return pa.accountTracker.SaveAccount(pa)
 	return nil
+}
+
+//SetNonce saves the nonce to the account
+func (pa *peerAccount) SetNonce(nonce uint64) {
+	pa.Nonce = nonce
+}
+
+// GetNonce gets the nonce of the account
+func (pa *peerAccount) GetNonce() uint64 {
+	return pa.Nonce
+}
+
+// GetCodeHash returns the code hash associated with this account
+func (pa *peerAccount) GetCodeHash() []byte {
+	return pa.CodeHash
+}
+
+// SetCodeHash sets the code hash associated with the account
+func (pa *peerAccount) SetCodeHash(codeHash []byte) {
+	pa.CodeHash = codeHash
+}
+
+// GetRootHash returns the root hash associated with this account
+func (pa *peerAccount) GetRootHash() []byte {
+	return pa.RootHash
+}
+
+// SetRootHash sets the root hash associated with the account
+func (pa *peerAccount) SetRootHash(roothash []byte) {
+	pa.RootHash = roothash
 }
