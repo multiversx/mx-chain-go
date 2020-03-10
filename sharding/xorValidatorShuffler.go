@@ -98,7 +98,8 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 			nbToRemove = len(leavingNodes)
 		}
 
-		vList, leavingNodes = removeValidatorsFromList(vList, leavingNodes, nbToRemove)
+		vList, removedNodes := removeValidatorsFromList(vList, leavingNodes, nbToRemove)
+		leavingNodes, _ = removeValidatorsFromList(leavingNodes, removedNodes, len(removedNodes))
 		waitingAfterReshard[shard] = vList
 	}
 
@@ -153,14 +154,12 @@ func shuffleNodesIntraShards(
 	newNbShards := uint32(len(eligible))
 
 	for shard, validators := range eligible {
-		shuffledOutMap[shard], validators, leaving = shuffleOutShard(
+		shuffledOutMap[shard], eligible[shard], leaving = shuffleOutShard(
 			validators,
 			len(waiting[shard]),
 			leaving,
 			randomness,
 		)
-
-		eligible[shard], _ = removeValidatorsFromList(validators, shuffledOutMap[shard], len(shuffledOutMap[shard]))
 	}
 
 	moveNodesToMap(eligible, waiting)
@@ -251,8 +250,8 @@ func shuffleOutShard(
 	validatorsToSelect -= len(removed)
 	shardShuffledEligible := shuffleList(validators, randomness)
 	shardShuffledOut := shardShuffledEligible[:validatorsToSelect]
-
-	return shardShuffledOut, validators, leaving
+	remainingEligible := shardShuffledEligible[validatorsToSelect:]
+	return shardShuffledOut, remainingEligible, leaving
 }
 
 // shuffleList returns a shuffled list of validators.
@@ -288,16 +287,16 @@ func removeValidatorsFromList(
 	removed := make([]Validator, 0)
 
 	for _, v2 := range validatorsToRemove {
+		if len(removed) == maxToRemove {
+			break
+		}
+
 		for i, v1 := range resultedList {
 			if v1 == v2 {
 				resultedList = removeValidatorFromList(resultedList, i)
 				removed = append(removed, v1)
 				break
 			}
-		}
-
-		if len(removed) == maxToRemove {
-			break
 		}
 	}
 
@@ -343,7 +342,7 @@ func xorBytes(a []byte, b []byte) []byte {
 func (rxs *randXORShuffler) splitShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
-	newNbShards uint32,
+	_ uint32,
 ) (map[uint32][]Validator, map[uint32][]Validator) {
 	log.Error(ErrNotImplemented.Error())
 
@@ -355,7 +354,7 @@ func (rxs *randXORShuffler) splitShards(
 func (rxs *randXORShuffler) mergeShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
-	newNbShards uint32,
+	_ uint32,
 ) (map[uint32][]Validator, map[uint32][]Validator) {
 	log.Error(ErrNotImplemented.Error())
 
