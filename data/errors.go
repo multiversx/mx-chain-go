@@ -19,20 +19,11 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrMiniBlockEmpty signals that mini block is empty
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
 
-// ErrNilElrondAddress signals that nil elrond address was provided
-var ErrNilElrondAddress = errors.New("nil elrond address")
-
-// ErrNilBurnAddress signals that nil burn address was provided
-var ErrNilBurnAddress = errors.New("nil burn address")
-
 // ErrNilAddressConverter signals that nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilShardCoordinator signals that nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
-
-// ErrNilNodesCoordinator signals that nil shard coordinator was provided
-var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
 // ErrNilMarshalizer is raised when the NewTrie() function is called, but a marshalizer isn't provided
 var ErrNilMarshalizer = errors.New("no marshalizer provided")

@@ -167,7 +167,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.Body)
+	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -199,6 +199,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
+		nil,
+		nil,
 		nil,
 		[]byte(sr.SelfPubKey()),
 		nil,
@@ -250,12 +252,23 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.Rounder().Index()
+	if shouldNotCommitBlock {
+		log.Debug("canceled round, extended has been called or round index has been changed",
+			"round", sr.Rounder().Index(),
+			"subround", sr.Name(),
+			"header round", header.GetRound(),
+			"extended called", sr.ExtendedCalled,
+		)
+		return false
+	}
+
 	if sr.isOutOfTime() {
 		return false
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.Body)
+	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,

@@ -139,3 +139,13 @@ var ErrUnknownAccountType = errors.New("account type is unknown")
 
 // ErrNilOrEmptyDataTrieUpdates signals that there are no data trie updates
 var ErrNilOrEmptyDataTrieUpdates = errors.New("no data trie updates")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
+// transaction fee is covered by the current balance
+var ErrInsufficientFunds = errors.New("insufficient funds")

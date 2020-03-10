@@ -17,10 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getRewardValue(node *integrationTests.TestProcessorNode) *big.Int {
-	return node.EconomicsData.RewardsValue()
-}
-
 func getLeaderPercentage(node *integrationTests.TestProcessorNode) float64 {
 	return node.EconomicsData.LeaderPercentage()
 }
@@ -89,9 +85,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		}
 		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -173,9 +168,8 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -245,16 +239,12 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
+		for shardId := range consensusNodes {
 			if shardId == core.MetachainShardId {
 				continue
 			}
 
-			shardRewardsData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			if shardRewardsData == nil {
-				shardRewardsData = &data.ConsensusRewardData{}
-			}
-
+			shardRewardsData := &data.ConsensusRewardData{}
 			addrRewards := shardRewardsData.Addresses
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 		}
@@ -342,15 +332,7 @@ func updateNumberTransactionsProposed(
 	transactionsForLeader[addressProposer] += nbTransactions
 }
 
-func updateRewardsForMetachain(rewardsMap map[string]uint32, consensusNode *integrationTests.TestProcessorNode) {
-	metaRewardDataSlice := consensusNode.SpecialAddressHandler.ConsensusMetaRewardData()
-	if len(metaRewardDataSlice) > 0 {
-		for _, metaRewardData := range metaRewardDataSlice {
-			for _, addr := range metaRewardData.Addresses {
-				rewardsMap[addr]++
-			}
-		}
-	}
+func updateRewardsForMetachain(_ map[string]uint32, _ *integrationTests.TestProcessorNode) {
 }
 
 func verifyRewardsForMetachain(
@@ -358,7 +340,7 @@ func verifyRewardsForMetachain(
 	mapRewardsForMeta map[string]uint32,
 	nodes map[uint32][]*integrationTests.TestProcessorNode,
 ) {
-	rewardValue := getRewardValue(nodes[0][0])
+	rewardValue := big.NewInt(0)
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
@@ -379,7 +361,7 @@ func verifyRewardsForShards(
 	gasPrice uint64,
 	gasLimit uint64,
 ) {
-	rewardValue := getRewardValue(nodesMap[0][0])
+	rewardValue := big.NewInt(0)
 	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {

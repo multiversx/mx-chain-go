@@ -40,8 +40,5 @@ func (acs AddressConverterStub) AddressLen() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (acs *AddressConverterStub) IsInterfaceNil() bool {
-	if acs == nil {
-		return true
-	}
-	return false
+	return acs == nil
 }

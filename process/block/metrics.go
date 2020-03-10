@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -41,17 +42,17 @@ func getMetricsFromMetaHeader(
 }
 
 func getMetricsFromBlockBody(
-	body block.Body,
+	body *block.Body,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 ) {
-	mbLen := len(body)
+	mbLen := len(body.MiniBlocks)
 	miniblocksSize := uint64(0)
 	totalTxCount := 0
 	for i := 0; i < mbLen; i++ {
-		totalTxCount += len(body[i].TxHashes)
+		totalTxCount += len(body.MiniBlocks[i].TxHashes)
 
-		marshalizedBlock, err := marshalizer.Marshal(body[i])
+		marshalizedBlock, err := marshalizer.Marshal(body.MiniBlocks[i])
 		if err == nil {
 			miniblocksSize += uint64(len(marshalizedBlock))
 		}
@@ -79,14 +80,11 @@ func getMetricsFromHeader(
 
 func saveMetricsForACommittedBlock(
 	appStatusHandler core.AppStatusHandler,
-	isInConsensus bool,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
 	headerMeta data.HeaderHandler,
 ) {
-	if isInConsensus {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
-	}
+	// TODO: add consensus metrics from CONSENSUS
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(headerMeta.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
@@ -162,7 +160,7 @@ func saveRoundInfoInElastic(
 
 	go elasticIndexer.SaveRoundInfo(roundInfo)
 
-	if lastHeader == nil {
+	if check.IfNil(lastHeader) {
 		return
 	}
 

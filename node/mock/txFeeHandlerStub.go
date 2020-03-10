@@ -14,6 +14,21 @@ type FeeHandlerStub struct {
 	ComputeGasLimitCalled       func(tx process.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
+	DeveloperPercentageCalled   func() float64
+	MinGasPriceCalled           func() uint64
+}
+
+// MinGasPrice -
+func (fhs *FeeHandlerStub) MinGasPrice() uint64 {
+	if fhs.MinGasPriceCalled != nil {
+		return fhs.MinGasPriceCalled()
+	}
+	return 0
+}
+
+// DeveloperPercentage -
+func (fhs *FeeHandlerStub) DeveloperPercentage() float64 {
+	return fhs.DeveloperPercentageCalled()
 }
 
 // MaxGasLimitPerBlock -
@@ -38,8 +53,5 @@ func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHa
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fhs *FeeHandlerStub) IsInterfaceNil() bool {
-	if fhs == nil {
-		return true
-	}
-	return false
+	return fhs == nil
 }

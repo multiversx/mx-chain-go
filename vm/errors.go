@@ -91,3 +91,6 @@ var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address"
 
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
 var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
+
+// ErrNotEnoughGas signals that there is not enough gas for execution
+var ErrNotEnoughGas = errors.New("not enough gas")

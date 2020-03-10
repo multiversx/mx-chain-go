@@ -77,13 +77,14 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		return trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
 	}
 
-	evictionDb, err := storageUnit.NewDB(
-		storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
-		filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
-		tc.evictionWaitingListCfg.DB.MaxBatchSize,
-		tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
-		tc.evictionWaitingListCfg.DB.MaxOpenFiles,
-	)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
+		Path:              filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
+		BatchDelaySeconds: tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
+		MaxBatchSize:      tc.evictionWaitingListCfg.DB.MaxBatchSize,
+		MaxOpenFiles:      tc.evictionWaitingListCfg.DB.MaxOpenFiles,
+	}
+	evictionDb, err := storageUnit.NewDB(arg)
 	if err != nil {
 		return nil, err
 	}

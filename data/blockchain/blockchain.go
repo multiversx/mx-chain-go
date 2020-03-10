@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -17,7 +18,7 @@ type BlockChain struct {
 	genesisHeaderHash      []byte                // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header         // Current Block Header pointer
 	currentBlockHeaderHash []byte                // Current Block Header hash
-	CurrentBlockBody       block.Body            // Current Block Body pointer
+	CurrentBlockBody       *block.Body           // Current Block Body pointer
 	localHeight            int64                 // Height of the local chain
 	networkHeight          int64                 // Perceived height of the network chain
 	badBlocks              storage.Cacher        // Bad blocks cache
@@ -29,7 +30,7 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
-	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
+	if check.IfNil(badBlocksCache) {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -47,7 +48,7 @@ func NewBlockChain(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler
 	}
 
@@ -57,15 +58,12 @@ func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // GetGenesisHeader returns the genesis block header pointer
 func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
-	if bc.GenesisHeader == nil {
-		return nil
-	}
 	return bc.GenesisHeader
 }
 
 // SetGenesisHeader sets the genesis block header pointer
 func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
-	if genesisBlock == nil || genesisBlock.IsInterfaceNil() {
+	if check.IfNil(genesisBlock) {
 		bc.GenesisHeader = nil
 		return nil
 	}
@@ -90,15 +88,12 @@ func (bc *BlockChain) SetGenesisHeaderHash(hash []byte) {
 
 // GetCurrentBlockHeader returns current block header pointer
 func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
-	if bc.CurrentBlockHeader == nil {
-		return nil
-	}
 	return bc.CurrentBlockHeader
 }
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		bc.CurrentBlockHeader = nil
 		return nil
 	}
@@ -127,20 +122,17 @@ func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 
 // GetCurrentBlockBody returns the tx block body pointer
 func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
-	if bc.CurrentBlockBody == nil {
-		return nil
-	}
 	return bc.CurrentBlockBody
 }
 
 // SetCurrentBlockBody sets the tx block body pointer
 func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	if body == nil || body.IsInterfaceNil() {
+	if check.IfNil(body) {
 		bc.CurrentBlockBody = nil
 		return nil
 	}
 
-	blockBody, ok := body.(block.Body)
+	blockBody, ok := body.(*block.Body)
 	if !ok {
 		return data.ErrInvalidBodyType
 	}
@@ -181,4 +173,9 @@ func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChain) IsInterfaceNil() bool {
 	return bc == nil
+}
+
+// CreateNewHeader creates a new header
+func (bc *BlockChain) CreateNewHeader() data.HeaderHandler {
+	return &block.Header{}
 }

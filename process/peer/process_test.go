@@ -21,18 +21,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
+func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				CommunityAddress: "addr1",
-				BurnAddress:      "addr2",
+		&config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				TotalSupply:      "2000000000000000000000",
+				MinimumInflation: 0,
+				MaximumInflation: 0.5,
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        "1000",
-				CommunityPercentage: 0.10,
-				LeaderPercentage:    0.50,
-				BurnPercentage:      0.40,
+				LeaderPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  "10000000",
@@ -42,7 +40,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:               "500",
+				GenesisNodePrice:         "500",
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
@@ -67,8 +65,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 	)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: nil,
-		Marshalizer:  &mock.MarshalizerMock{},
+		Marshalizer: &mock.MarshalizerMock{},
 		DataPool: &mock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return nil
@@ -79,9 +76,11 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		AdrConv:             &mock.AddressConverterMock{},
 		PeerAdapter:         getAccountsMock(),
-		StakeValue:          economicsData.StakeValue(),
+		StakeValue:          economicsData.GenesisNodePrice(),
 		Rater:               createMockRater(),
+		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
+		StartEpoch:          0,
 	}
 	return arguments
 }
@@ -91,10 +90,14 @@ func createMockRater() *mock.RaterMock {
 	return rater
 }
 
+func createMockCache() map[string]data.HeaderHandler {
+	return make(map[string]data.HeaderHandler)
+}
+
 func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.PeerAdapter = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -105,7 +108,7 @@ func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) 
 func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.AdrConv = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -116,7 +119,7 @@ func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing
 func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -127,7 +130,7 @@ func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing
 func TestNewValidatorStatisticsProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.ShardCoordinator = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -138,7 +141,7 @@ func TestNewValidatorStatisticsProcessor_NilShardCoordinatorShouldErr(t *testing
 func TestNewValidatorStatisticsProcessor_NilStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.StorageService = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -149,7 +152,7 @@ func TestNewValidatorStatisticsProcessor_NilStorageShouldErr(t *testing.T) {
 func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.MaxComputableRounds = 0
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -160,7 +163,7 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -171,7 +174,7 @@ func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.DataPool = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -182,23 +185,11 @@ func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
 func TestNewValidatorStatisticsProcessor(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.NotNil(t, validatorStatistics)
 	assert.Nil(t, err)
-}
-
-func TestValidatorStatisticsProcessor_SaveInitialStateErrOnInvalidNode(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-	initialNodes := []*sharding.InitialNode{{PubKey: "", Address: ""}}
-	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100), uint32(5))
-
-	assert.Equal(t, process.ErrInvalidInitialNodesState, err)
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter(t *testing.T) {
@@ -206,13 +197,25 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 
 	addressErr := errors.New("hex address error")
 	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 			return nil, addressErr
 		},
 	}
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = []*sharding.InitialNode{{PubKey: "aaaa", Address: "aaaa"}}
+	arguments := createMockArguments()
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			keys[0] = make([][]byte, 0)
+			keys[0] = append(keys[0], []byte("aaaa"))
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
+		},
+	}
+
 	arguments.AdrConv = addressConverter
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -231,13 +234,25 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	}
 
 	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 			return &mock.AddressMock{}, nil
 		},
 	}
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = []*sharding.InitialNode{{PubKey: "aaaa", Address: "aaaa"}}
+	arguments := createMockArguments()
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			keys[0] = make([][]byte, 0)
+			keys[0] = append(keys[0], []byte("aaaa"))
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
+		},
+	}
+
 	arguments.PeerAdapter = peerAdapters
 	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -255,13 +270,25 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	}
 
 	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 			return &mock.AddressMock{}, nil
 		},
 	}
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = []*sharding.InitialNode{{PubKey: "aaaa", Address: "aaaa"}}
+	arguments := createMockArguments()
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			keys[0] = make([][]byte, 0)
+			keys[0] = append(keys[0], []byte("aaaa"))
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
+		},
+	}
+
 	arguments.PeerAdapter = peerAdapter
 	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -288,13 +315,25 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	}
 
 	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 			return &mock.AddressMock{}, nil
 		},
 	}
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = []*sharding.InitialNode{{PubKey: "aaaa", Address: "aaaa"}}
+	arguments := createMockArguments()
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			keys[0] = make([][]byte, 0)
+			keys[0] = append(keys[0], []byte("aaaa"))
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
+		},
+	}
+
 	arguments.PeerAdapter = peerAdapter
 	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -329,7 +368,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 		},
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
 	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -363,42 +402,12 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 		},
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
 	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Nil(t, err)
-}
-
-func TestValidatorStatisticsProcessor_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-	isValid := validatorStatistics.IsNodeValid(&sharding.InitialNode{Address: "", PubKey: "aaaaa"})
-	assert.False(t, isValid)
-}
-
-func TestValidatorStatisticsProcessor_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-	isValid := validatorStatistics.IsNodeValid(&sharding.InitialNode{Address: "aaaaa", PubKey: ""})
-	assert.False(t, isValid)
-}
-
-func TestValidatorStatisticsProcessor_IsNodeValid(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-	isValid := validatorStatistics.IsNodeValid(&sharding.InitialNode{Address: "aaaaa", PubKey: "aaaaaa"})
-	assert.True(t, isValid)
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsRootHashForGenesis(t *testing.T) {
@@ -410,13 +419,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsRootHashForGenesis(t
 		return expectedRootHash, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
 	header.Nonce = 0
-	rootHash, err := validatorStatistics.UpdatePeerState(header)
+	rootHash, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRootHash, rootHash)
@@ -431,13 +440,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsErrForRootHashErr(t 
 		return nil, expectedError
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
 	header.Nonce = 0
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, expectedError, err)
 }
@@ -447,8 +456,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 
 	computeValidatorsErr := errors.New("compute validators error")
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = nil
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return nil, computeValidatorsErr
@@ -466,7 +474,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, computeValidatorsErr, err)
 }
@@ -476,8 +484,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 
 	createAddressErr := errors.New("create address error")
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = nil
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
@@ -501,7 +508,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, createAddressErr, err)
 }
@@ -515,7 +522,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 		return nil, existingAccountErr
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
@@ -539,7 +546,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, existingAccountErr, err)
 }
@@ -552,7 +559,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 		return &mock.AccountWrapMock{}, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
@@ -576,7 +583,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, process.ErrInvalidPeerAccount, err)
 }
@@ -593,7 +600,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -626,7 +633,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 
 	header := getMetaHeaderHandler([]byte("header"))
 	header.Nonce = 2
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, process.ErrMissingHeader, err)
 }
@@ -647,7 +654,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -681,7 +688,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 
 	header := getMetaHeaderHandler([]byte("header"))
 	header.Nonce = 2
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
 }
@@ -711,8 +718,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
-	arguments.InitialNodes = nil
+	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -750,10 +756,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		switch v := obj.(type) {
 		case *block.MetaBlock:
 			*v = block.MetaBlock{
-				PubKeysBitmap: []byte{255, 255},
+				PubKeysBitmap:   []byte{255, 255},
+				AccumulatedFees: big.NewInt(0),
 			}
 		case *block.Header:
-			*v = block.Header{}
+			*v = block.Header{
+				AccumulatedFees: big.NewInt(0),
+			}
 		default:
 			fmt.Println(v)
 		}
@@ -761,7 +770,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		return nil
 	}
 
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Nil(t, err)
 	assert.True(t, increaseLeaderCalled)
@@ -787,7 +796,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.DataPool = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
@@ -839,7 +848,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		return nil
 	}
 
-	_, err := validatorStatistics.UpdatePeerState(header)
+	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.Equal(t, missedBlocksErr, err)
 }
@@ -850,7 +859,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	computeValidatorGroupCalled := false
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = &mock.PoolsHolderStub{}
 	arguments.StorageService = &mock.ChainStorerMock{}
@@ -884,7 +893,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	computeErr := errors.New("compute err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = &mock.PoolsHolderStub{}
 	arguments.StorageService = &mock.ChainStorerMock{}
@@ -908,7 +917,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 	peerAccErr := errors.New("peer acc err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = &mock.PoolsHolderStub{}
 	arguments.StorageService = &mock.ChainStorerMock{}
@@ -946,7 +955,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 		}, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
@@ -986,7 +995,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 		}, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
@@ -1045,7 +1054,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		}, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
@@ -1054,6 +1063,10 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1070,7 +1083,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
 	assert.Equal(t, 1, decreaseLeaderCalls)
 	assert.Equal(t, 1, decreaseValidatorCalls)
-	assert.Equal(t, 1, setTempRatingCalls)
+	assert.Equal(t, 2, setTempRatingCalls)
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGreaterThanMaxComputableCallsOnlyOnce(t *testing.T) {
@@ -1108,7 +1121,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		}, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
@@ -1117,6 +1130,10 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1133,7 +1150,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
 	assert.Equal(t, 1, decreaseLeaderCalls)
 	assert.Equal(t, 1, decreaseValidatorCalls)
-	assert.Equal(t, 1, setTempRatingCalls)
+	assert.Equal(t, 2, setTempRatingCalls)
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferences(t *testing.T) {
@@ -1313,7 +1330,7 @@ func DoComputeMissingBlocks(
 		return account, nil
 	}
 
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return consensus, nil
@@ -1323,6 +1340,10 @@ func DoComputeMissingBlocks(
 		},
 		ConsensusGroupSizeCalled: func(uint32) int {
 			return consensusGroupSize
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			return validator, 0, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1345,7 +1366,7 @@ func DoComputeMissingBlocks(
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{}
 	shardInfo := make([]block.ShardData, 0)
@@ -1357,7 +1378,7 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataNoMatch(t *testing.T) {
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
 	shardInfo := []block.ShardData{{ShardID: 1, Nonce: 8}, {ShardID: 2, Nonce: 9}}
@@ -1369,7 +1390,7 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataNoMatch(t *testing
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *testing.T) {
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
 	shardInfo := []block.ShardData{{ShardID: 1, Nonce: 9}, {ShardID: 2, Nonce: 9}}
@@ -1383,7 +1404,7 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *test
 func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *testing.T) {
 	pubKeyCalled := false
 	addressCalled := false
-	arguments := CreateMockArguments()
+	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{
@@ -1411,7 +1432,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	header := getMetaHeaderHandler([]byte("header"))
 
-	_, _ = validatorStatistics.UpdatePeerState(header)
+	_, _ = validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.True(t, pubKeyCalled)
 	assert.False(t, addressCalled)
@@ -1419,10 +1440,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
-		Nonce:         2,
-		PrevRandSeed:  randSeed,
-		PrevHash:      randSeed,
-		PubKeysBitmap: randSeed,
+		Nonce:           2,
+		PrevRandSeed:    randSeed,
+		PrevHash:        randSeed,
+		PubKeysBitmap:   randSeed,
+		AccumulatedFees: big.NewInt(0),
 	}
 }
 

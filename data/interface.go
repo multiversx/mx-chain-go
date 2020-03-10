@@ -39,7 +39,9 @@ type HeaderHandler interface {
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
+	GetAccumulatedFees() *big.Int
 
+	SetAccumulatedFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -93,6 +95,7 @@ type ChainHandler interface {
 	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
 	IsInterfaceNil() bool
+	CreateNewHeader() HeaderHandler
 }
 
 // TransactionHandler defines the type of executable transaction
@@ -102,15 +105,15 @@ type TransactionHandler interface {
 	GetValue() *big.Int
 	GetNonce() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
-	GetSndAddress() []byte
+	GetRcvAddr() []byte
+	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData([]byte)
-	SetRecvAddress([]byte)
-	SetSndAddress([]byte)
+	SetRcvAddr([]byte)
+	SetSndAddr([]byte)
 }
 
 //Trie is an interface for Merkle Trees implementations
@@ -181,10 +184,4 @@ type StorageManager interface {
 type TrieFactory interface {
 	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
-}
-
-// MarshalizedBodyAndHeader holds marshalized body and header
-type MarshalizedBodyAndHeader struct {
-	Body   []byte
-	Header []byte
 }

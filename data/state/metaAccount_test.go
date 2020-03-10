@@ -18,7 +18,7 @@ func TestMetaAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 	acnt, _ := state.NewMetaAccount(addr, addrTr)
 
 	marshalizer := mock.MarshalizerMock{}
-	buff, _ := marshalizer.Marshal(&acnt)
+	buff, _ := marshalizer.Marshal(acnt)
 
 	acntRecovered, _ := state.NewMetaAccount(addr, addrTr)
 	_ = marshalizer.Unmarshal(acntRecovered, buff)
@@ -163,6 +163,7 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 	round := uint64(0)
 	err = acc.SetRoundWithJournal(round)
 
+	assert.Nil(t, err)
 	assert.NotNil(t, acc)
 	assert.Equal(t, round, acc.Round)
 	assert.Equal(t, 1, journalizeCalled)

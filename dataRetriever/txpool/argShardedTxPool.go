@@ -2,6 +2,7 @@ package txpool
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -11,6 +12,7 @@ type ArgShardedTxPool struct {
 	Config         storageUnit.CacheConfig
 	MinGasPrice    uint64
 	NumberOfShards uint32
+	SelfShardID    uint32
 }
 
 func (args *ArgShardedTxPool) verify() error {

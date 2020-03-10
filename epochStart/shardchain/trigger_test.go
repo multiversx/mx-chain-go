@@ -197,7 +197,7 @@ func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100}
-	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
 	epochStartTrigger.ReceivedHeader(header)
 
 	assert.False(t, epochStartTrigger.IsEpochStart())
@@ -216,7 +216,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: prevHash}
-	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
 	epochStartTrigger.ReceivedHeader(header)
 	epochStartTrigger.ReceivedHeader(oldEpHeader)
 
@@ -255,7 +255,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	hash := []byte("hash")
 	epochStartRound := uint64(100)
 	header := &block.MetaBlock{Nonce: 100, Round: epochStartRound, Epoch: 1}
-	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
 	et.ReceivedHeader(header)
 	header = &block.MetaBlock{Nonce: 101, Round: epochStartRound + 1, Epoch: 1}
 	et.ReceivedHeader(header)
@@ -267,7 +267,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	assert.False(t, et.isEpochStart)
 	assert.False(t, et.newEpochHdrReceived)
 
-	et.Revert(epochStartRound)
+	et.Revert(&block.Header{EpochStartMetaHash: []byte("hash")})
 	assert.True(t, et.isEpochStart)
 	assert.True(t, et.newEpochHdrReceived)
 }
@@ -288,7 +288,7 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 	assert.False(t, called)
 
 	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 3,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}}})
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}}})
 	assert.False(t, called)
 
 	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 2})

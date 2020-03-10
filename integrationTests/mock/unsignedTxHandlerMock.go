@@ -13,6 +13,19 @@ type UnsignedTxHandlerMock struct {
 	CreateAllUTxsCalled         func() []data.TransactionHandler
 	VerifyCreatedUTxsCalled     func() error
 	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
+	GetAccumulatedFeesCalled    func() *big.Int
+}
+
+// CreateBlockStarted -
+func (ut *UnsignedTxHandlerMock) CreateBlockStarted() {
+}
+
+// GetAccumulatedFees -
+func (ut *UnsignedTxHandlerMock) GetAccumulatedFees() *big.Int {
+	if ut.GetAccumulatedFeesCalled != nil {
+		return ut.GetAccumulatedFeesCalled()
+	}
+	return big.NewInt(0)
 }
 
 // AddRewardTxFromBlock -
@@ -60,8 +73,5 @@ func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ut *UnsignedTxHandlerMock) IsInterfaceNil() bool {
-	if ut == nil {
-		return true
-	}
-	return false
+	return ut == nil
 }
