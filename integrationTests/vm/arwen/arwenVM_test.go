@@ -430,7 +430,7 @@ func TestWASMMetering(t *testing.T) {
 	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(2090)
+	expectedBalance := big.NewInt(2615)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -444,7 +444,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	assert.Equal(t, 895, int(consumedGasValue))
+	assert.Equal(t, 370, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
