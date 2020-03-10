@@ -474,11 +474,6 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.MiniBlocksCompacterMock{
-			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-				return miniBlocks, nil
-			},
-		},
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
@@ -486,9 +481,12 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			TotalGasConsumedCalled: func() uint64 {
 				return 0
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -522,7 +520,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 	// should return err
 	err = sp.ProcessBlock(&hdr, body, haveTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
 
 func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
@@ -690,11 +688,6 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.MiniBlocksCompacterMock{
-			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-				return miniBlocks, nil
-			},
-		},
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
@@ -702,9 +695,12 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			TotalGasConsumedCalled: func() uint64 {
 				return 0
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -748,7 +744,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	// should return err
 	err2 := sp.ProcessBlock(&hdr, body, haveTime)
-	assert.Equal(t, err, err2)
+	assert.Equal(t, process.ErrReceiptsHashMissmatch, err2)
 	assert.True(t, wasCalled)
 }
 
@@ -2227,9 +2223,9 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2325,7 +2321,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	factory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initStore(),
-		marshalizer,
+		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
 		&mock.AddressConverterMock{},
@@ -2336,9 +2332,9 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2550,7 +2546,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, haveTimeTrue)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2627,7 +2623,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, haveTimeTrue)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -2725,11 +2721,6 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.MiniBlocksCompacterMock{
-			CompactCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
-				return miniBlocks
-			},
-		},
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -2746,6 +2737,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2770,7 +2762,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments.TxCoordinator = tc
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	blockBody, err := bp.CreateMiniBlocks(15000, func() bool { return true })
+	blockBody, err := bp.CreateMiniBlocks(func() bool { return true })
 
 	assert.Nil(t, err)
 	//testing execution
@@ -2924,9 +2916,9 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2994,52 +2986,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
 	assert.Equal(t, tx, txFromPool)
-}
-
-func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool([]byte("tx_hash1"))
-	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizerMock
-
-	sp, err := blproc.NewShardProcessor(arguments)
-	assert.Nil(t, err)
-
-	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
-
-	hdr := &block.Header{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(0)
-	hdr.Signature = []byte("A")
-	hdr.AccumulatedFees = new(big.Int)
-
-	marshalizedBody, err := marshalizerMock.Marshal(body)
-	assert.Nil(t, err)
-
-	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	marshalizedBodyAndHeader := block.BodyHeaderPair{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
-	}
-
-	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
-	assert.Nil(t, err)
-
-	dcdBlk, dcdHdr := sp.DecodeBlockBodyAndHeader(nil)
-	assert.Nil(t, dcdBlk)
-	assert.Nil(t, dcdHdr)
-
-	dcdBlk, dcdHdr = sp.DecodeBlockBodyAndHeader(message)
-	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body.MiniBlocks[0].ReceiverShardID)
-	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }
 
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {

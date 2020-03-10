@@ -62,42 +62,43 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 // GasConsumed gets gas consumed for a given hash
 func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
 	gc.mutGasConsumed.RLock()
-	defer gc.mutGasConsumed.RUnlock()
+	gasConsumed := gc.gasConsumed[string(hash)]
+	gc.mutGasConsumed.RUnlock()
 
-	return gc.gasConsumed[string(hash)]
+	return gasConsumed
 
 }
 
 // GasRefunded gets gas refunded for a given hash
 func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	gc.mutGasRefunded.RLock()
-	defer gc.mutGasRefunded.RUnlock()
+	gasRefunded := gc.gasRefunded[string(hash)]
+	gc.mutGasRefunded.RUnlock()
 
-	return gc.gasRefunded[string(hash)]
+	return gasRefunded
 }
 
 // TotalGasConsumed gets the total gas consumed
 func (gc *gasComputation) TotalGasConsumed() uint64 {
-	gc.mutGasConsumed.RLock()
-	defer gc.mutGasConsumed.RUnlock()
-
 	totalGasConsumed := uint64(0)
+
+	gc.mutGasConsumed.RLock()
 	for _, gasConsumed := range gc.gasConsumed {
 		totalGasConsumed += gasConsumed
 	}
+	gc.mutGasConsumed.RUnlock()
 
 	return totalGasConsumed
 }
 
 // TotalGasRefunded gets the total gas refunded
 func (gc *gasComputation) TotalGasRefunded() uint64 {
-	gc.mutGasRefunded.RLock()
-	defer gc.mutGasRefunded.RUnlock()
-
 	totalGasRefunded := uint64(0)
+	gc.mutGasRefunded.RLock()
 	for _, gasRefunded := range gc.gasRefunded {
 		totalGasRefunded += gasRefunded
 	}
+	gc.mutGasRefunded.RUnlock()
 
 	return totalGasRefunded
 }

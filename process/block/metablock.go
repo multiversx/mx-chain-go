@@ -115,7 +115,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
-	mp.blockProcessor = &mp
 
 	mp.hdrsForCurrBlock = newHdrForBlock()
 
@@ -716,7 +715,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -730,7 +729,6 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 }
 
 func (mp *metaProcessor) createMiniBlocks(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (*block.Body, error) {
 
@@ -743,44 +741,36 @@ func (mp *metaProcessor) createMiniBlocks(
 		return nil, process.ErrTimeIsOut
 	}
 
-	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
+	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
 
-	log.Debug("processed miniblocks and txs with destination in self shard",
-		"num miniblocks", len(destMeMiniBlocks),
-		"num txs", nbTxs,
-	)
-
 	var miniBlocks block.MiniBlockSlice
-	if len(destMeMiniBlocks) > 0 {
-		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
+
+	if len(mbsToMe) > 0 {
+		miniBlocks = append(miniBlocks, mbsToMe...)
+
+		log.Debug("processed miniblocks and txs with destination in self shard",
+			"num miniblocks", len(mbsToMe),
+			"num txs", numTxs,
+			"num shard headers", numShardHeaders,
+		)
 	}
 
-	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(nbTxs)
-	maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
-		maxItemsInBlock,
-		uint32(len(destMeMiniBlocks))+nbHdrs,
-		uint32(len(miniBlocks)))
+	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	if len(mbsFromMe) > 0 {
+		miniBlocks = append(miniBlocks, mbsFromMe...)
 
-	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
-		uint32(maxTxSpaceRemained),
-		uint32(maxMbSpaceRemained),
-		haveTime)
+		numTxs = 0
+		for _, mb := range mbsFromMe {
+			numTxs += uint32(len(mb.TxHashes))
+		}
 
-	nbTxs = 0
-	for _, mb := range mbFromMe {
-		nbTxs += uint32(len(mb.TxHashes))
-	}
-
-	log.Debug("processed miniblocks and txs with from me",
-		"num miniblocks", len(mbFromMe),
-		"num txs", nbTxs,
-	)
-
-	if len(mbFromMe) > 0 {
-		miniBlocks = append(miniBlocks, mbFromMe...)
+		log.Debug("processed miniblocks and txs from self shard",
+			"num miniblocks", len(mbsFromMe),
+			"num txs", numTxs,
+		)
 	}
 
 	log.Debug("creating mini blocks has been finished",
@@ -792,7 +782,6 @@ func (mp *metaProcessor) createMiniBlocks(
 
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -827,6 +816,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	maxShardHeadersFromSameShard := process.MaxShardHeadersAllowedInOneMetaBlock / mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -838,27 +828,27 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
-			log.Debug("max number of mini blocks allowed to be added in one shard block has been reached",
-				"num miniblocks", len(miniBlocks),
-			)
-			break
-		}
-
-		itemsAddedInHeader := uint32(len(mp.hdrsForCurrBlock.hdrHashAndInfo) + len(miniBlocks))
-		if itemsAddedInHeader >= maxItemsInBlock {
-			log.Debug("max records allowed to be added in shard header has been reached",
-				"num max items", maxItemsInBlock,
+		if hdrsAdded > process.MaxShardHeadersAllowedInOneMetaBlock {
+			log.Debug("maximum shard headers allowed to be included in one meta block has been reached",
+				"shard headers added", hdrsAdded,
 			)
 			break
 		}
 
 		currShardHdr := orderedHdrs[i]
 		if currShardHdr.GetNonce() > lastShardHdr[currShardHdr.GetShardID()].GetNonce()+1 {
-			log.Debug("skip searching",
+			log.Trace("skip searching",
 				"shard", currShardHdr.GetShardID(),
 				"last shard hdr nonce", lastShardHdr[currShardHdr.GetShardID()].GetNonce(),
 				"curr shard hdr nonce", currShardHdr.GetNonce())
+			continue
+		}
+
+		if hdrsAddedForShard[currShardHdr.GetShardID()] > maxShardHeadersFromSameShard {
+			log.Trace("maximum shard headers from same shard allowed to be included in one meta block has been reached",
+				"shard", currShardHdr.GetShardID(),
+				"shard headers added", hdrsAddedForShard[currShardHdr.GetShardID()],
+			)
 			continue
 		}
 
@@ -870,51 +860,36 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		itemsAddedInBody := txsAdded
-		if itemsAddedInBody >= maxItemsInBlock {
+		snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
+		currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			currShardHdr,
+			nil,
+			haveTime)
+
+		if !hdrProcessFinished {
+			log.Debug("shard header cannot be fully processed",
+				"round", currShardHdr.GetRound(),
+				"nonce", currShardHdr.GetNonce(),
+				"hash", orderedHdrsHashes[i])
+
+			// shard header must be processed completely
+			errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
+			if errAccountState != nil {
+				// TODO: evaluate if reloading the trie from disk will might solve the problem
+				log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
+			}
 			continue
 		}
 
-		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
-		maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
-			maxItemsInBlock,
-			itemsAddedInHeader+1,
-			uint32(len(miniBlocks)))
+		// all txs processed, add to processed miniblocks
+		miniBlocks = append(miniBlocks, currMBProcessed...)
+		txsAdded += currTxsAdded
 
-		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			snapshot := mp.accountsDB[state.UserAccountsState].JournalLen()
-			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-				currShardHdr,
-				nil,
-				uint32(maxTxSpaceRemained),
-				uint32(maxMbSpaceRemained),
-				haveTime)
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
+		hdrsAdded++
+		hdrsAddedForShard[currShardHdr.GetShardID()]++
 
-			if !hdrProcessFinished {
-				log.Debug("shard header cannot be fully processed",
-					"round", currShardHdr.GetRound(),
-					"nonce", currShardHdr.GetNonce(),
-					"hash", orderedHdrsHashes[i])
-
-				// shard header must be processed completely
-				errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
-				if errAccountState != nil {
-					// TODO: evaluate if reloading the trie from disk will might solve the problem
-					log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
-				}
-				break
-			}
-
-			// all txs processed, add to processed miniblocks
-			miniBlocks = append(miniBlocks, currMBProcessed...)
-			txsAdded += currTxsAdded
-
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
-			hdrsAdded++
-			hdrsAddedForShard[currShardHdr.GetShardID()]++
-
-			lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
-		}
+		lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1005,8 +980,8 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, okTypeAssertion := headerInfo.hdr.(*block.Header)
-		if !okTypeAssertion {
+		shardBlock, isOk := headerInfo.hdr.(*block.Header)
+		if !isOk {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
