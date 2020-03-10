@@ -12,7 +12,7 @@ import (
 type BlockProcessorMock struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
+	RevertAccountStateCalled         func(header data.HeaderHandler)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
@@ -71,8 +71,8 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 }
 
 // RevertAccountState mocks revert of the accounts state
-func (bpm *BlockProcessorMock) RevertAccountState() {
-	bpm.RevertAccountStateCalled()
+func (bpm *BlockProcessorMock) RevertAccountState(header data.HeaderHandler) {
+	bpm.RevertAccountStateCalled(header)
 }
 
 // CreateBlock mocks the creation of a new block with header and body

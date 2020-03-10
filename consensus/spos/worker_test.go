@@ -27,7 +27,7 @@ func initWorker() *spos.Worker {
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -835,7 +835,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 				ChainID: chainID,
 			}
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	})
 	roundDuration := time.Millisecond * 1000
@@ -1023,7 +1023,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertAccountStateCalled: func(header data.HeaderHandler) {
 			},
 		},
 	)
@@ -1063,7 +1063,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertAccountStateCalled: func(header data.HeaderHandler) {
 			},
 		},
 	)
@@ -1538,7 +1538,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker()
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1563,7 +1563,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker()
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1634,7 +1634,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	}
 	bootstrapperMock := &mock.BootstrapperMock{}
