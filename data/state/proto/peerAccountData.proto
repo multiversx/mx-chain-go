@@ -55,7 +55,7 @@ message PeerAccountData {
 	SignRate LeaderSuccessRate        = 12 [(gogoproto.nullable) = false];
 	uint32 NumSelectedInSuccessBlocks = 19;
 
-    int32  IndexInList = 20;
+	int32  IndexInList = 20;
 	string List        = 21;
 
 	bytes CodeHash = 13;
