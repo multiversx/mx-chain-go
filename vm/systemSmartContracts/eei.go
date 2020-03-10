@@ -60,9 +60,8 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 
 // GetStorage get the values saved for a certain key
 func (host *vmContext) GetStorage(key []byte) []byte {
-	strAdr := string(host.scAddress)
-	if _, ok := host.storageUpdate[strAdr]; ok {
-		if value, isInMap := host.storageUpdate[strAdr][string(key)]; isInMap {
+	if storageAdrMap, ok := host.storageUpdate[string(host.scAddress)]; ok {
+		if value, isInMap := storageAdrMap[string(key)]; isInMap {
 			return value
 		}
 	}

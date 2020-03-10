@@ -32,10 +32,7 @@ func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
 
 // IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
-	if awm == nil {
-		return true
-	}
-	return false
+	return awm == nil
 }
 
 // GetCodeHash -

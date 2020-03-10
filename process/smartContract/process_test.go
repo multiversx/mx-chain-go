@@ -1262,7 +1262,6 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
-	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed, err := sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -1278,7 +1277,6 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
-	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed, err = sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -1287,7 +1285,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 		vmOutput.ReturnData,
 		tx,
 		txHash,
-		acntSrc,
+		nil,
 		vmcommon.DirectCall,
 	)
 	assert.Nil(t, err)
@@ -1578,7 +1576,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	assert.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_ = sc.ProcessSmartContractResult(&scr)
 	assert.True(t, called)
 }
 

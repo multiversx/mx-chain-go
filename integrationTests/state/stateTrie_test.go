@@ -759,7 +759,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, hrRoot1, hrRoot2)
 
 	//Step 3. Commit
-	rootCommit, err := adb.Commit()
+	rootCommit, _ := adb.Commit()
 	hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
 	fmt.Printf("State root - committed: %v\n", hrCommit)
 
