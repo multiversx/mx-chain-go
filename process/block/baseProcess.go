@@ -992,10 +992,6 @@ func (bp *baseProcessor) RevertAccountState(header data.HeaderHandler) {
 			log.Debug("RevertToSnapshot", "error", err.Error())
 		}
 	}
-
-	if !check.IfNil(header) && header.IsStartOfEpochBlock() {
-		bp.epochStartTrigger.Revert(header)
-	}
 }
 
 func (bp *baseProcessor) commitAll() error {

@@ -581,7 +581,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Revert(metaBlock)
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
 		return nil
 	}

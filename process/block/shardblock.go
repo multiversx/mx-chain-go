@@ -317,6 +317,8 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
+	sp.epochStartTrigger.RevertStateToBlock(header)
+
 	return nil
 }
 
@@ -577,10 +579,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	restoredTxNr, errNotCritical := sp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
 		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
-	}
-
-	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert(header)
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
