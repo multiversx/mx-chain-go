@@ -9,6 +9,7 @@ import (
 
 func TestNewBlockBalancer_ShouldWork(t *testing.T) {
 	t.Parallel()
+
 	bb, err := track.NewBlockBalancer()
 
 	assert.Nil(t, err)
@@ -17,6 +18,7 @@ func TestNewBlockBalancer_ShouldWork(t *testing.T) {
 
 func TestSetAndGetNumPendingMiniBlocks_ShouldWork(t *testing.T) {
 	t.Parallel()
+
 	bb, _ := track.NewBlockBalancer()
 
 	bb.SetNumPendingMiniBlocks(0, 2)
