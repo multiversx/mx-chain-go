@@ -459,21 +459,42 @@ func TestCreateCacheFromConfOK(t *testing.T) {
 }
 
 func TestCreateDBFromConfWrongType(t *testing.T) {
-	persister, err := storageUnit.NewDB("NotLvlDB", "test", 10, 10, 10)
+	arg := storageUnit.ArgDB{
+		DBType:            "NotLvlDB",
+		Path:              "test",
+		BatchDelaySeconds: 10,
+		MaxBatchSize:      10,
+		MaxOpenFiles:      10,
+	}
+	persister, err := storageUnit.NewDB(arg)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.LvlDB, "", 10, 10, 10)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.LvlDB,
+		Path:              "",
+		BatchDelaySeconds: 10,
+		MaxBatchSize:      10,
+		MaxOpenFiles:      10,
+	}
+	persister, err := storageUnit.NewDB(arg)
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfLvlDBOk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	persister, err := storageUnit.NewDB(storageUnit.LvlDB, dir, 10, 10, 10)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.LvlDB,
+		Path:              dir,
+		BatchDelaySeconds: 10,
+		MaxBatchSize:      10,
+		MaxOpenFiles:      10,
+	}
+	persister, err := storageUnit.NewDB(arg)
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 

@@ -1,6 +1,8 @@
 package state
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -79,14 +81,35 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
+	AddToAccumulatedFees(value *big.Int) error
 	IncreaseLeaderSuccessRateWithJournal(value uint32) error
 	DecreaseLeaderSuccessRateWithJournal(value uint32) error
 	IncreaseValidatorSuccessRateWithJournal(value uint32) error
 	DecreaseValidatorSuccessRateWithJournal(value uint32) error
+	IncreaseNumSelectedInSuccessBlocks() error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+	ResetAtNewEpoch() error
+	SetRewardAddressWithJournal(address []byte) error
+	SetSchnorrPublicKeyWithJournal(address []byte) error
+	SetBLSPublicKeyWithJournal(address []byte) error
+	SetStakeWithJournal(stake *big.Int) error
+}
+
+// UserAccountHandler models a user account, which can journalize account's data with some extra features
+// like balance, developer rewards, owner
+type UserAccountHandler interface {
+	AccountHandler
+	ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error)
+	ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error
+	AddToDeveloperReward(value *big.Int) error
+	AddToBalance(value *big.Int) error
+	SubFromBalance(value *big.Int) error
+	GetBalance() *big.Int
+	SetOwnerAddressWithJournal(ownerAddress []byte) error
+	GetOwnerAddress() []byte
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -122,6 +145,7 @@ type AccountsAdapter interface {
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	ClosePersister() error
+	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -138,4 +162,14 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
+}
+
+type ValidatorInfo interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
 }

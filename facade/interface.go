@@ -23,7 +23,7 @@ type NodeWrapper interface {
 	IsRunning() bool
 
 	// StartConsensus will start the consesus service for the current node
-	StartConsensus(epoch uint32) error
+	StartConsensus() error
 
 	//GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)

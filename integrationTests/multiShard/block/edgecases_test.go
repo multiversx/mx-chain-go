@@ -41,7 +41,6 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	}
 
 	nodesMap, _ := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
-	setRewardParametersToNodes(nodesMap)
 
 	defer func() {
 		_ = advertiser.Close()
@@ -98,14 +97,6 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	}
 
 	printAccount(firstNode)
-}
-
-func setRewardParametersToNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
-	for _, nodes := range nodesMap {
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0).SetUint64(2 * integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice))
-		}
-	}
 }
 
 func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {

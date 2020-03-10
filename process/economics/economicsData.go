@@ -1,7 +1,6 @@
 package economics
 
 import (
-	"math"
 	"math/big"
 	"strconv"
 
@@ -11,22 +10,20 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue             *big.Int
-	communityPercentage      float64
 	leaderPercentage         float64
-	burnPercentage           float64
 	maxGasLimitPerBlock      uint64
 	gasPerDataByte           uint64
 	dataLimitForBaseCalc     uint64
 	minGasPrice              uint64
 	minGasLimit              uint64
-	communityAddress         string
-	burnAddress              string
-	stakeValue               *big.Int
+	genesisNodePrice         *big.Int
 	unBondPeriod             uint64
 	ratingsData              *RatingsData
+	developerPercentage      float64
+	genesisTotalSupply       *big.Int
+	minInflation             float64
+	maxInflation             float64
 	minStep                  *big.Int
-	totalSupply              *big.Int
 	unJailPrice              *big.Int
 	numNodes                 uint32
 	auctionEnableNonce       uint64
@@ -36,19 +33,11 @@ type EconomicsData struct {
 	maximumPercentageToBleed float64
 }
 
-const float64EqualityThreshold = 1e-9
-
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
-	//TODO check what happens if addresses are wrong
+func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	data, err := convertValues(economics)
 	if err != nil {
 		return nil, err
-	}
-
-	notGreaterThanZero := data.rewardsValue.Cmp(big.NewInt(0))
-	if notGreaterThanZero < 0 {
-		return nil, process.ErrInvalidRewardsValue
 	}
 
 	err = checkValues(economics)
@@ -66,21 +55,19 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		rewardsValue:             data.rewardsValue,
-		communityPercentage:      economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:           economics.RewardsSettings.BurnPercentage,
 		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
 		minGasPrice:              data.minGasPrice,
 		minGasLimit:              data.minGasLimit,
-		communityAddress:         economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:              economics.EconomicsAddresses.BurnAddress,
-		stakeValue:               data.stakeValue,
+		genesisNodePrice:         data.genesisNodePrice,
 		unBondPeriod:             data.unBondPeriod,
 		gasPerDataByte:           data.gasPerDataByte,
 		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
 		ratingsData:              rd,
-		totalSupply:              data.totalSupply,
+		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
+		minInflation:             economics.GlobalSettings.MinimumInflation,
+		maxInflation:             economics.GlobalSettings.MaximumInflation,
+		genesisTotalSupply:       data.genesisTotalSupply,
 		minStep:                  data.minStep,
 		numNodes:                 data.numNodes,
 		auctionEnableNonce:       data.auctionEnableNonce,
@@ -92,15 +79,9 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
+func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
-
-	rewardsValue := new(big.Int)
-	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
-	if !ok {
-		return nil, process.ErrInvalidRewardsValue
-	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
@@ -112,8 +93,8 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	stakeValue := new(big.Int)
-	stakeValue, ok = stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
+	genesisNodePrice := new(big.Int)
+	genesisNodePrice, ok := genesisNodePrice.SetString(economics.ValidatorSettings.GenesisNodePrice, conversionBase)
 	if !ok {
 		return nil, process.ErrInvalidRewardsValue
 	}
@@ -138,10 +119,10 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidGasPerDataByte
 	}
 
-	totalSupply := new(big.Int)
-	totalSupply, ok = totalSupply.SetString(economics.ValidatorSettings.TotalSupply, conversionBase)
+	genesisTotalSupply := new(big.Int)
+	genesisTotalSupply, ok = genesisTotalSupply.SetString(economics.GlobalSettings.TotalSupply, conversionBase)
 	if !ok {
-		return nil, process.ErrInvalidTotalSupply
+		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
 	minStepValue := new(big.Int)
@@ -182,15 +163,14 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	}
 
 	return &EconomicsData{
-		rewardsValue:             rewardsValue,
 		minGasPrice:              minGasPrice,
 		minGasLimit:              minGasLimit,
-		stakeValue:               stakeValue,
+		genesisNodePrice:         genesisNodePrice,
 		unBondPeriod:             unBondPeriod,
 		maxGasLimitPerBlock:      maxGasLimitPerBlock,
 		gasPerDataByte:           gasPerDataByte,
 		dataLimitForBaseCalc:     dataLimitForBaseCalc,
-		totalSupply:              totalSupply,
+		genesisTotalSupply:       genesisTotalSupply,
 		minStep:                  minStepValue,
 		numNodes:                 economics.ValidatorSettings.NumNodes,
 		auctionEnableNonce:       auctionEnableNonce,
@@ -202,18 +182,11 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	}, nil
 }
 
-func checkValues(economics *config.ConfigEconomics) error {
-	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
-		return process.ErrInvalidRewardsPercentages
-	}
-
-	sumPercentage := economics.RewardsSettings.BurnPercentage
-	sumPercentage += economics.RewardsSettings.CommunityPercentage
-	sumPercentage += economics.RewardsSettings.LeaderPercentage
-	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
-	if !isEqualsToOne {
+func checkValues(economics *config.EconomicsConfig) error {
+	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
+		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) ||
+		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -229,24 +202,24 @@ func isPercentageInvalid(percentage float64) bool {
 	return false
 }
 
-// RewardsValue will return rewards value
-func (ed *EconomicsData) RewardsValue() *big.Int {
-	return ed.rewardsValue
-}
-
-// CommunityPercentage will return community reward percentage
-func (ed *EconomicsData) CommunityPercentage() float64 {
-	return ed.communityPercentage
-}
-
 // LeaderPercentage will return leader reward percentage
 func (ed *EconomicsData) LeaderPercentage() float64 {
 	return ed.leaderPercentage
 }
 
-// BurnPercentage will return burn percentage
-func (ed *EconomicsData) BurnPercentage() float64 {
-	return ed.burnPercentage
+// MinInflationRate will return the minimum inflation rate
+func (ed *EconomicsData) MinInflationRate() float64 {
+	return ed.minInflation
+}
+
+// MaxInflationRate will return the maximum inflation rate
+func (ed *EconomicsData) MaxInflationRate() float64 {
+	return ed.maxInflation
+}
+
+// GenesisTotalSupply will return the genesis total supply
+func (ed *EconomicsData) GenesisTotalSupply() *big.Int {
+	return ed.genesisTotalSupply
 }
 
 // MinGasPrice will return min gas price
@@ -285,36 +258,24 @@ func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
 	return ed.maxGasLimitPerBlock
 }
 
+// DeveloperPercentage will return the developer percentage value
+func (ed *EconomicsData) DeveloperPercentage() float64 {
+	return ed.developerPercentage
+}
+
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
 func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
-	//TODO reevaluate the formula or delete
-	/* if dataLen < ed.dataLimitForBaseCalc || core.IsEmptyAddress(tx.GetRecvAddress()) {
-		return gasLimit
-	}
-
-	overDataLimit := dataLen - ed.dataLimitForBaseCalc
-	gasLimit += overDataLimit * overDataLimit * ed.gasPerDataByte */
 
 	return gasLimit
 }
 
-// CommunityAddress will return community address
-func (ed *EconomicsData) CommunityAddress() string {
-	return ed.communityAddress
-}
-
-// BurnAddress will return burn address
-func (ed *EconomicsData) BurnAddress() string {
-	return ed.burnAddress
-}
-
-// StakeValue will return the minimum stake value
-func (ed *EconomicsData) StakeValue() *big.Int {
-	return ed.stakeValue
+// GenesisNodePrice will return the minimum stake value
+func (ed *EconomicsData) GenesisNodePrice() *big.Int {
+	return ed.genesisNodePrice
 }
 
 // UnBondPeriod will return the unbond period
@@ -349,7 +310,7 @@ func (ed *EconomicsData) UnJailValue() *big.Int {
 
 // TotalSupply returns the total supply of the protocol
 func (ed *EconomicsData) TotalSupply() *big.Int {
-	return ed.totalSupply
+	return ed.genesisTotalSupply
 }
 
 // NumNodes returns the total node number for current setting

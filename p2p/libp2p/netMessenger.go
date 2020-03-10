@@ -30,8 +30,8 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-const refreshPeersOnTopic = time.Second * 5
-const ttlPeersOnTopic = time.Second * 30
+const refreshPeersOnTopic = time.Second * 3
+const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 const durationBetweenPeersPrints = time.Second * 20
@@ -460,11 +460,8 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator, found := netMes.topics[topic]
-	if !found {
-		return p2p.ErrNilTopic
-	}
-	if validator != nil {
+	validator := netMes.topics[topic]
+	if !check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
@@ -505,12 +502,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
-
 	if !found {
 		return p2p.ErrNilTopic
 	}
-
-	if validator == nil {
+	if check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 

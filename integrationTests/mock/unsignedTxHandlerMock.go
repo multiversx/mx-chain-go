@@ -13,6 +13,19 @@ type UnsignedTxHandlerMock struct {
 	CreateAllUTxsCalled         func() []data.TransactionHandler
 	VerifyCreatedUTxsCalled     func() error
 	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
+	GetAccumulatedFeesCalled    func() *big.Int
+}
+
+// CreateBlockStarted -
+func (ut *UnsignedTxHandlerMock) CreateBlockStarted() {
+}
+
+// GetAccumulatedFees -
+func (ut *UnsignedTxHandlerMock) GetAccumulatedFees() *big.Int {
+	if ut.GetAccumulatedFeesCalled != nil {
+		return ut.GetAccumulatedFeesCalled()
+	}
+	return big.NewInt(0)
 }
 
 // AddRewardTxFromBlock -

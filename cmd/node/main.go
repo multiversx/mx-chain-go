@@ -194,10 +194,10 @@ VERSION:
 	}
 
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
-	// the NodeDisplayName from config.toml
+	// the NodeDisplayName from prefs.toml
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
-		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the prefs.toml one",
 		Value: "",
 	}
 
@@ -579,7 +579,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -714,7 +714,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.Marshalizer,
+			coreComponents.ProtoMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -820,7 +820,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.Marshalizer,
+		coreComponents.ProtoMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -866,9 +866,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode(currentEpoch)
+	err = ef.StartNode()
 	if err != nil {
-		log.Error("starting node failed", err.Error())
+		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
 		return err
 	}
 
@@ -1018,8 +1018,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
-	cfg := &config.ConfigEconomics{}
+func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
+	cfg := &config.EconomicsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1202,7 +1202,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
 	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
-		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil
@@ -1284,7 +1284,9 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithMarshalizer(coreData.Marshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithVmMarshalizer(coreData.VmMarshalizer),
+		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
@@ -1461,7 +1463,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
 		if err != nil {
 			return nil, err
 		}

@@ -64,6 +64,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		TrieNodesCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{}
+		},
 	}
 
 	return pools
@@ -127,7 +130,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -138,7 +141,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	args.SizeCheckDelta = 1
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -422,9 +425,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1
 	numInterceptorsUnsignedTxsForMetachain := noOfShards
+	numInterceptorsRewardsTxsForMetachain := noOfShards
 	numInterceptorsTrieNodes := (noOfShards + 1) * 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
-		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain
+		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
+		numInterceptorsRewardsTxsForMetachain
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
@@ -436,7 +441,8 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
 		Messenger:              &mock.TopicHandlerStub{},
 		Store:                  createMetaStore(),
-		Marshalizer:            &mock.MarshalizerMock{},
+		ProtoMarshalizer:       &mock.MarshalizerMock{},
+		TxSignMarshalizer:      &mock.MarshalizerMock{},
 		Hasher:                 &mock.HasherMock{},
 		MultiSigner:            mock.NewMultiSigner(),
 		DataPool:               createMetaDataPools(),

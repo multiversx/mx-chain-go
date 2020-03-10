@@ -26,13 +26,14 @@ func NewMetaInterceptorsContainerFactory(
 	args MetaInterceptorsContainerFactoryArgs,
 ) (*metaInterceptorsContainerFactory, error) {
 	if args.SizeCheckDelta > 0 {
-		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
+		args.ProtoMarshalizer = marshal.NewSizeCheckUnmarshalizer(args.ProtoMarshalizer, args.SizeCheckDelta)
 	}
 
 	err := checkBaseParams(
 		args.ShardCoordinator,
 		args.Accounts,
-		args.Marshalizer,
+		args.ProtoMarshalizer,
+		args.TxSignMarshalizer,
 		args.Hasher,
 		args.Store,
 		args.DataPool,
@@ -76,7 +77,8 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       args.Marshalizer,
+		ProtoMarshalizer:  args.ProtoMarshalizer,
+		TxSignMarshalizer: args.TxSignMarshalizer,
 		Hasher:            args.Hasher,
 		ShardCoordinator:  args.ShardCoordinator,
 		NodesCoordinator:  args.NodesCoordinator,
@@ -99,7 +101,7 @@ func NewMetaInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.Marshalizer,
+		marshalizer:            args.ProtoMarshalizer,
 		hasher:                 args.Hasher,
 		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
@@ -140,6 +142,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 	}
 
 	err = micf.generateUnsignedTxsInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = micf.generateRewardTxInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -305,6 +312,31 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	trieInterceptors = append(trieInterceptors, interceptor)
 
 	return micf.container.AddMultiple(keys, trieInterceptors)
+}
+
+//------- Reward transactions interceptors
+
+func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() error {
+	shardC := micf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
+		if err != nil {
+			return err
+		}
+
+		keys[int(idx)] = identifierScr
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	return micf.container.AddMultiple(keys, interceptorSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

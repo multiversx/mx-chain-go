@@ -10,18 +10,20 @@ type AccountTrackerStub struct {
 
 // SaveAccount -
 func (ats *AccountTrackerStub) SaveAccount(accountHandler state.AccountHandler) error {
-	return ats.SaveAccountCalled(accountHandler)
+	if ats.SaveAccountCalled != nil {
+		return ats.SaveAccountCalled(accountHandler)
+	}
+	return nil
 }
 
 // Journalize -
 func (ats *AccountTrackerStub) Journalize(entry state.JournalEntry) {
-	ats.JournalizeCalled(entry)
+	if ats.JournalizeCalled != nil {
+		ats.JournalizeCalled(entry)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ats *AccountTrackerStub) IsInterfaceNil() bool {
-	if ats == nil {
-		return true
-	}
-	return false
+	return ats == nil
 }

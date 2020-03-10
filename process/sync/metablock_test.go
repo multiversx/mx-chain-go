@@ -21,15 +21,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMetaBlockProcessor() *mock.BlockProcessorMock {
+func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blk data.ChainHandler, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.MetaBlock))
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
-		CommitBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -302,7 +302,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 	args.Rounder = initRounder()
-	args.BlockProcessor = createMetaBlockProcessor()
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	r := bs.SyncBlock()
@@ -338,7 +338,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 	)
-	args.BlockProcessor = createMetaBlockProcessor()
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	r := bs.SyncBlock()
@@ -350,15 +350,13 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-
-	args.BlockProcessor = createMetaBlockProcessor()
-
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() *process.ForkInfo {
@@ -384,15 +382,13 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-
-	args.BlockProcessor = createMetaBlockProcessor()
-
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	mutDataAvailable := goSync.RWMutex{}
 	dataAvailable := false
@@ -466,7 +462,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 
-	args.BlockProcessor = createMetaBlockProcessor()
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	hdr := block.MetaBlock{Nonce: 1}
 	blkc := &mock.BlockChainMock{}
@@ -538,19 +534,18 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-
-	blockProcessor := createMetaBlockProcessor()
-	blockProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
-	}
-	args.BlockProcessor = blockProcessor
-
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blkc := &mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 	args.ChainHandler = blkc
+
+	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
+	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return process.ErrBlockHashDoesNotMatch
+	}
+	args.BlockProcessor = blockProcessor
 
 	hash := []byte("aaa")
 	pools := createMockPools()
@@ -1083,7 +1078,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
@@ -1121,7 +1116,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		return nil
 	}
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
 		return body
 	}
@@ -1197,6 +1192,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.SetForkNonce(currentHdrNonce)
+
 	err := bs.RollBack(true)
 
 	assert.Nil(t, err)
@@ -1223,7 +1219,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
@@ -1344,7 +1340,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.BlockProcessor = createMetaBlockProcessor()
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	f1 := func(bool) {}
@@ -1361,7 +1357,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.BlockProcessor = createMetaBlockProcessor()
+	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 

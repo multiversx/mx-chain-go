@@ -3,10 +3,10 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.4
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.7
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.25
-	github.com/ElrondNetwork/elrond-vm-common v0.1.9
+	github.com/ElrondNetwork/elrond-vm-common v0.1.12
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
@@ -30,6 +30,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-pubsub v0.1.1
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/pelletier/go-toml v1.2.0

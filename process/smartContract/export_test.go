@@ -25,18 +25,18 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 func (sc *scProcessor) ProcessVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
 ) ([]data.TransactionHandler, *big.Int, error) {
-	return sc.processVMOutput(vmOutput, tx, acntSnd)
+	return sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
 }
 
 func (sc *scProcessor) CreateSCRForSender(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
 	txHash []byte,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
-	return sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
+	return sc.createSCRForSender(vmOutput.GasRefund, vmOutput.GasRemaining, vmOutput.ReturnCode, vmOutput.ReturnData, tx, txHash, acntSnd, vmcommon.DirectCall)
 }
 
 func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount,
@@ -54,7 +54,7 @@ func (sc *scProcessor) GetAccountFromAddress(address []byte) (state.AccountHandl
 	return sc.getAccountFromAddress(address)
 }
 
-func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.UserAccountHandler) error {
 	return sc.processSCPayment(tx, acntSnd)
 }
 

@@ -14,7 +14,7 @@ func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, ad
 }
 
 func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
-) (acntSrc, acntDst *state.Account, err error) {
+) (acntSrc, acntDst state.UserAccountHandler, err error) {
 	return txProc.getAccounts(adrSrc, adrDst)
 }
 
@@ -28,4 +28,11 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *
 
 func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
+}
+
+func (txProc *txProcessor) ProcessTxFee(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) (*big.Int, error) {
+	return txProc.processTxFee(tx, acntSnd, acntDst)
 }

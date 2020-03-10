@@ -167,7 +167,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.Body)
+	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -255,7 +255,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.Body)
+	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,

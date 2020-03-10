@@ -41,6 +41,7 @@ func checkBaseParams(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	marshalizer marshal.Marshalizer,
+	signMarshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
@@ -58,7 +59,7 @@ func checkBaseParams(
 	if check.IfNil(store) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(marshalizer) || check.IfNil(signMarshalizer) {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(hasher) {
@@ -198,41 +199,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
-}
-
-//------- Reward transactions interceptors
-
-func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() error {
-	shardC := bicf.shardCoordinator
-
-	noOfShards := shardC.NumberOfShards()
-
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
-
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-
-		interceptor, err := bicf.createOneRewardTxInterceptor(identifierScr)
-		if err != nil {
-			return err
-		}
-
-		keys[int(idx)] = identifierScr
-		interceptorSlice[int(idx)] = interceptor
-	}
-
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-
-	interceptor, err := bicf.createOneRewardTxInterceptor(identifierTx)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTx)
-	interceptorSlice = append(interceptorSlice, interceptor)
-
-	return bicf.container.AddMultiple(keys, interceptorSlice)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
@@ -455,7 +421,6 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
-
 		interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
 		if err != nil {
 			return err

@@ -26,7 +26,6 @@ type preProcessorsContainerFactory struct {
 	rewardsTxProcessor  process.RewardTransactionProcessor
 	accounts            state.AccountsAdapter
 	requestHandler      process.RequestHandler
-	rewardsProducer     process.InternalTransactionProducer
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
 	gasHandler          process.GasHandler
@@ -47,7 +46,6 @@ func NewPreProcessorsContainerFactory(
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
-	rewardsProducer process.InternalTransactionProducer,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
@@ -90,9 +88,6 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if check.IfNil(rewardsProducer) {
-		return nil, process.ErrNilInternalTransactionProducer
-	}
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
@@ -119,7 +114,6 @@ func NewPreProcessorsContainerFactory(
 		scResultProcessor:   scResultProcessor,
 		rewardsTxProcessor:  rewardsTxProcessor,
 		requestHandler:      requestHandler,
-		rewardsProducer:     rewardsProducer,
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
 		gasHandler:          gasHandler,
@@ -218,9 +212,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.rewardsTxProcessor,
-		ppcm.rewardsProducer,
 		ppcm.shardCoordinator,
-		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
 		ppcm.gasHandler,
 	)

@@ -182,8 +182,8 @@ func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 }
 
 // CreateBody method creates the proposed block body in the subround Block
-func (sr *subroundBlock) CreateBody(hdr data.HeaderHandler) (data.BodyHandler, error) {
-	return sr.createBody(hdr)
+func (sr *subroundBlock) CreateBlock(hdr data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+	return sr.createBlock(hdr)
 }
 
 // SendBlockBody method sends the proposed block body in the subround Block

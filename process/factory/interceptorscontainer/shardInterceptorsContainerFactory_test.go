@@ -139,7 +139,7 @@ func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -150,7 +150,7 @@ func TestNewShardInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldEr
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.Marshalizer = nil
+	args.ProtoMarshalizer = nil
 	args.SizeCheckDelta = 1
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -475,7 +475,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	numInterceptorTxs := noOfShards + 1
 	numInterceptorsUnsignedTxs := numInterceptorTxs
-	numInterceptorsRewardTxs := numInterceptorTxs
+	numInterceptorsRewardTxs := 1
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
 	numInterceptorMetachainHeaders := 1
@@ -494,7 +494,8 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
 		Messenger:              &mock.TopicHandlerStub{},
 		Store:                  createShardStore(),
-		Marshalizer:            &mock.MarshalizerMock{},
+		ProtoMarshalizer:       &mock.MarshalizerMock{},
+		TxSignMarshalizer:      &mock.MarshalizerMock{},
 		Hasher:                 &mock.HasherMock{},
 		KeyGen:                 &mock.SingleSignKeyGenMock{},
 		BlockSignKeyGen:        &mock.SingleSignKeyGenMock{},

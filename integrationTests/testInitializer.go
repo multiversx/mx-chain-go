@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -195,6 +196,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -251,6 +253,8 @@ func CreateMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
 }
@@ -277,10 +281,11 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       shardId,
+		ShardID:       shardId,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
+		AccumulatedFees: big.NewInt(0),
 	}
 }
 
@@ -294,9 +299,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		PeerInfo:               nil,
-		Signature:              nil,
-		PubKeysBitmap:          nil,
+		Signature:              rootHash,
+		PubKeysBitmap:          rootHash,
 		PrevHash:               rootHash,
 		PrevRandSeed:           rootHash,
 		RandSeed:               rootHash,
@@ -304,6 +308,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		ValidatorStatsRootHash: rootHash,
 		TxCount:                0,
 		MiniBlockHeaders:       nil,
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 }
 
@@ -361,6 +367,9 @@ func CreateGenesisMetaBlock(
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	vm.FillGasMapInternal(gasSchedule, 1)
+
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
@@ -375,6 +384,7 @@ func CreateGenesisMetaBlock(
 		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
+		GasMap:                   gasSchedule,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -423,7 +433,7 @@ func CreateRandomAddress() state.AddressContainer {
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
-	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
+	_ = accnt.(*state.Account).AddToBalance(value)
 	_, _ = accnts.Commit()
 }
 
@@ -432,7 +442,7 @@ func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int)
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).AddToBalance(balance)
 
 	return address
 }
@@ -515,18 +525,16 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
 
 	srcVal := acntSrc.Balance
-	destVal := acntDest.Balance
-
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
 	}
 
-	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
+	err := acntSrc.SubFromBalance(value)
 	if err != nil {
 		return err
 	}
 
-	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
+	err = acntDest.AddToBalance(value)
 	if err != nil {
 		return err
 	}
@@ -629,6 +637,18 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
+}
+
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		UpdateRound(nodes, round)
+		ProposeBlock(nodes, idxProposers, round, nonce)
+		SyncBlock(t, nodes, idxProposers, round)
+		round = IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	return nonce, round
 }
 
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
@@ -940,7 +960,7 @@ func CreateAndSendTransaction(
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
-		Value:    txValue,
+		Value:    new(big.Int).Set(txValue),
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
@@ -948,7 +968,7 @@ func CreateAndSendTransaction(
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, err := node.SendTransaction(tx)
@@ -975,7 +995,7 @@ func CreateAndSendTransactionWithGasLimit(
 		GasLimit: gasLimit,
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1005,14 +1025,14 @@ func GenerateTransferTx(
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    valToTransfer,
+		Value:    new(big.Int).Set(valToTransfer),
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
 		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	txBuff, _ := TestMarshalizer.Marshal(&tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1026,14 +1046,14 @@ func generateTx(
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    args.nonce,
-		Value:    args.value,
+		Value:    new(big.Int).Set(args.value),
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
 	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx
@@ -1061,10 +1081,10 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
-func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
-	hashes := make([][]byte, 0)
+func GetMiniBlocksHashesFromShardIds(body *dataBlock.Body, shardIds ...uint32) [][]byte {
+	var hashes [][]byte
 
-	for _, miniblock := range body {
+	for _, miniblock := range body.MiniBlocks {
 		for _, shardId := range shardIds {
 			if miniblock.ReceiverShardID == shardId {
 				buff, _ := TestMarshalizer.Marshal(miniblock)
@@ -1211,7 +1231,7 @@ func CreateMintingForSenders(
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 			account, _ := n.AccntState.GetAccountWithJournal(adr)
-			_ = account.(*state.Account).SetBalanceWithJournal(value)
+			_ = account.(*state.Account).AddToBalance(value)
 		}
 
 		_, _ = n.AccntState.Commit()
@@ -1282,7 +1302,7 @@ func ComputeAndRequestMissingTransactions(
 }
 
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
-	neededTxs := make([][]byte, 0)
+	var neededTxs [][]byte
 
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
@@ -1375,7 +1395,9 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithMarshalizer(TestMarshalizer, 100),
+		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithVmMarshalizer(TestVmMarshalizer),
+		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
@@ -1517,7 +1539,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]sharding.Validator, 0)
+		var shardValidators []sharding.Validator
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
 		for i := 0; i < len(shardNodesPks); i++ {
 			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
@@ -1599,7 +1621,7 @@ func SetupSyncNodesOneShardAndMeta(
 	_ = advertiser.Bootstrap()
 	advertiserAddr := GetConnectableAddress(advertiser)
 
-	nodes := make([]*TestProcessorNode, 0)
+	var nodes []*TestProcessorNode
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestSyncNode(
 			maxShards,
