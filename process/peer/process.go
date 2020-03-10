@@ -308,7 +308,6 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 
 		currentShardId := peerAccount.CurrentShardId
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
-		log.Trace(fmt.Sprintf("ValidatorInfoData %v", validatorInfoData))
 
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}

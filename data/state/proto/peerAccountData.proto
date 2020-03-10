@@ -33,8 +33,8 @@ message ValidatorApiResponse {
 	uint32 NrLeaderFailure = 2 [(gogoproto.jsontag) = "nrLeaderFailure"];
 	uint32 NrValidatorSuccess = 3 [(gogoproto.jsontag) = "nrValidatorSuccess"];
 	uint32 NrValidatorFailure = 4 [(gogoproto.jsontag) = "nrValidatorFailure"];
-	uint32 Rating = 5 [(gogoproto.jsontag) = "rating"];
-	uint32 TempRating = 6 [(gogoproto.jsontag) = "tempRating"];
+	float Rating = 5 [(gogoproto.jsontag) = "rating"];
+	float TempRating = 6 [(gogoproto.jsontag) = "tempRating"];
 }
 
 
