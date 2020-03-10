@@ -580,7 +580,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	bob := []byte("12345678901234567890123456789222")
 	_, _ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
-	testAddresses := createTestAddresses(20000)
+	testAddresses := createTestAddresses(2000000)
 	fmt.Println("done")
 
 	initAlice := big.NewInt(100000)
@@ -589,7 +589,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	for j := 0; j < 20; j++ {
+	for j := 0; j < 2000; j++ {
 		start := time.Now()
 
 		for i := 0; i < 1000; i++ {
