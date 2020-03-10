@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
@@ -469,7 +471,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	}
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	buff, _ := marshalizer.Marshal([][]byte{txHash1, txHash2})
+	buff, _ := marshalizer.Marshal(&batch.Batch{Data: [][]byte{txHash1, txHash2}})
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
 
 	msg := &mock.P2PMessageMock{DataField: data}
@@ -524,11 +526,13 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 
 	buffRequested := [][]byte{[]byte("aaaa"), []byte("bbbb")}
 
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 	arg := createMockArgTxResolver()
+	arg.Marshalizer = marshalizer
 	arg.SenderResolver = res
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	buff, _ := arg.Marshalizer.Marshal(buffRequested)
+	buff, _ := marshalizer.Marshal(&batch.Batch{Data: buffRequested})
 
 	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{

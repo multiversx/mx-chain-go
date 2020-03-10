@@ -904,7 +904,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -975,7 +975,7 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1021,7 +1021,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 			return roundStartTimeStamp
 		},
 	})
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1058,7 +1058,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 	t.Parallel()
 
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1081,7 +1081,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1106,7 +1106,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1131,7 +1131,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1157,7 +1157,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 	t.Parallel()
 	wrk := *initWorker()
 	wrk.ConsensusState().RoundCanceled = true
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1199,7 +1199,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		},
 	)
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1240,7 +1240,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		},
 	)
 
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1331,7 +1331,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilConsensusData(t *testing.T) {
 func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1353,7 +1353,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1381,7 +1381,7 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 		return nil, err
 	}
 	wrk.SetKeyGenerator(keyGeneratorMock)
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1406,7 +1406,7 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 	marshalizerMock := mock.MarshalizerMock{}
 	marshalizerMock.Fail = true
 	wrk.SetMarshalizer(marshalizerMock)
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1428,7 +1428,7 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
@@ -1450,7 +1450,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1477,7 +1477,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1504,7 +1504,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1531,7 +1531,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1558,7 +1558,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1585,7 +1585,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1749,7 +1749,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	blk := make(block.Body, 0)
+	blk := &block.Body{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(

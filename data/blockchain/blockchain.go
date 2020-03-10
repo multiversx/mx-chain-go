@@ -18,7 +18,7 @@ type BlockChain struct {
 	genesisHeaderHash      []byte                // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header         // Current Block Header pointer
 	currentBlockHeaderHash []byte                // Current Block Header hash
-	CurrentBlockBody       block.Body            // Current Block Body pointer
+	CurrentBlockBody       *block.Body           // Current Block Body pointer
 	localHeight            int64                 // Height of the local chain
 	networkHeight          int64                 // Perceived height of the network chain
 	badBlocks              storage.Cacher        // Bad blocks cache
@@ -132,7 +132,7 @@ func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
 		return nil
 	}
 
-	blockBody, ok := body.(block.Body)
+	blockBody, ok := body.(*block.Body)
 	if !ok {
 		return data.ErrInvalidBodyType
 	}

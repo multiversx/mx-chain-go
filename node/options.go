@@ -33,14 +33,36 @@ func WithMessenger(mes P2PMessenger) Option {
 	}
 }
 
-// WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
+// WithProtoMarshalizer sets up the marshalizer option for the Node
+func WithProtoMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
 	return func(n *Node) error {
 		if marshalizer == nil || marshalizer.IsInterfaceNil() {
 			return ErrNilMarshalizer
 		}
 		n.sizeCheckDelta = sizeCheckDelta
-		n.marshalizer = marshalizer
+		n.protoMarshalizer = marshalizer
+		return nil
+	}
+}
+
+// WithVmMarshalizer sets up the marshalizer used in Vm communication (SC)
+func WithVmMarshalizer(marshalizer marshal.Marshalizer) Option {
+	return func(n *Node) error {
+		if marshalizer == nil || marshalizer.IsInterfaceNil() {
+			return ErrNilMarshalizer
+		}
+		n.vmMarshalizer = marshalizer
+		return nil
+	}
+}
+
+// WithTxSignMarshalizer sets up the marshalizer used in transaction singning
+func WithTxSignMarshalizer(marshalizer marshal.Marshalizer) Option {
+	return func(n *Node) error {
+		if marshalizer == nil || marshalizer.IsInterfaceNil() {
+			return ErrNilMarshalizer
+		}
+		n.txSignMarshalizer = marshalizer
 		return nil
 	}
 }

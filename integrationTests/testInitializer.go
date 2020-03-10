@@ -391,7 +391,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       shardId,
+		ShardID:       shardId,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
@@ -408,8 +408,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		Round:                  0,
 		TimeStamp:              0,
 		ShardInfo:              nil,
-		Signature:              nil,
-		PubKeysBitmap:          nil,
+		Signature:              rootHash,
+		PubKeysBitmap:          rootHash,
 		PrevHash:               rootHash,
 		PrevRandSeed:           rootHash,
 		RandSeed:               rootHash,
@@ -746,6 +746,18 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		UpdateRound(nodes, round)
+		ProposeBlock(nodes, idxProposers, round, nonce)
+		SyncBlock(t, nodes, idxProposers, round)
+		round = IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	return nonce, round
+}
+
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
 func IncrementAndPrintRound(round uint64) uint64 {
 	round++
@@ -1055,7 +1067,7 @@ func CreateAndSendTransaction(
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
-		Value:    txValue,
+		Value:    new(big.Int).Set(txValue),
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
@@ -1063,7 +1075,7 @@ func CreateAndSendTransaction(
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, err := node.SendTransaction(tx)
@@ -1090,7 +1102,7 @@ func CreateAndSendTransactionWithGasLimit(
 		GasLimit: gasLimit,
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1120,14 +1132,14 @@ func GenerateTransferTx(
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    valToTransfer,
+		Value:    new(big.Int).Set(valToTransfer),
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
 		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	txBuff, _ := TestMarshalizer.Marshal(&tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1141,14 +1153,14 @@ func generateTx(
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    args.nonce,
-		Value:    args.value,
+		Value:    new(big.Int).Set(args.value),
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
 	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx
@@ -1176,10 +1188,10 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
-func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
-	hashes := make([][]byte, 0)
+func GetMiniBlocksHashesFromShardIds(body *dataBlock.Body, shardIds ...uint32) [][]byte {
+	var hashes [][]byte
 
-	for _, miniblock := range body {
+	for _, miniblock := range body.MiniBlocks {
 		for _, shardId := range shardIds {
 			if miniblock.ReceiverShardID == shardId {
 				buff, _ := TestMarshalizer.Marshal(miniblock)
@@ -1397,7 +1409,7 @@ func ComputeAndRequestMissingTransactions(
 }
 
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
-	neededTxs := make([][]byte, 0)
+	var neededTxs [][]byte
 
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
@@ -1491,7 +1503,9 @@ func generateValidTx(
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	mockNode, _ := node.NewNode(
-		node.WithMarshalizer(TestMarshalizer, 100),
+		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithVmMarshalizer(TestVmMarshalizer),
+		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
@@ -1634,7 +1648,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]sharding.Validator, 0)
+		var shardValidators []sharding.Validator
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
 		for i := 0; i < len(shardNodesPks); i++ {
 			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
@@ -1716,7 +1730,7 @@ func SetupSyncNodesOneShardAndMeta(
 	_ = advertiser.Bootstrap()
 	advertiserAddr := GetConnectableAddress(advertiser)
 
-	nodes := make([]*TestProcessorNode, 0)
+	var nodes []*TestProcessorNode
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestSyncNode(
 			maxShards,

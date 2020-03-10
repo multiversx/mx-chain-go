@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -107,7 +108,8 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
 
-	buff, err := gbbRes.marshalizer.Marshal(miniBlocks)
+	bh := &block.Body{MiniBlocks: miniBlocks}
+	buff, err := gbbRes.marshalizer.Marshal(bh)
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +125,14 @@ func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestDa
 		miniBlockHashes = append(miniBlockHashes, requestData.Value)
 
 	case dataRetriever.HashArrayType:
-		err := gbbRes.marshalizer.Unmarshal(&miniBlockHashes, requestData.Value)
+		{
+			b := &batch.Batch{}
+			err := gbbRes.marshalizer.Unmarshal(b, requestData.Value)
 
-		if err != nil {
-			return nil, dataRetriever.ErrUnmarshalMBHashes
+			if err != nil {
+				return nil, dataRetriever.ErrUnmarshalMBHashes
+			}
+			miniBlockHashes = b.Data
 		}
 
 	default:
@@ -147,7 +153,7 @@ func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte, epoch u
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
 func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
-	hash, err := gbbRes.marshalizer.Marshal(hashes)
+	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 
 	if err != nil {
 		return err

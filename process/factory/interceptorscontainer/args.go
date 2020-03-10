@@ -17,7 +17,8 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	NodesCoordinator       sharding.NodesCoordinator
 	Messenger              process.TopicHandler
 	Store                  dataRetriever.StorageService
-	Marshalizer            marshal.Marshalizer
+	ProtoMarshalizer       marshal.Marshalizer
+	TxSignMarshalizer      marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	KeyGen                 crypto.KeyGenerator
 	BlockSignKeyGen        crypto.KeyGenerator
@@ -43,7 +44,8 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	NodesCoordinator       sharding.NodesCoordinator
 	Messenger              process.TopicHandler
 	Store                  dataRetriever.StorageService
-	Marshalizer            marshal.Marshalizer
+	ProtoMarshalizer       marshal.Marshalizer
+	TxSignMarshalizer      marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	MultiSigner            crypto.MultiSigner
 	DataPool               dataRetriever.PoolsHolder
