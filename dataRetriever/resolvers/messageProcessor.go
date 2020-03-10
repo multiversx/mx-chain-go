@@ -35,7 +35,7 @@ func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnec
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
 func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(mp.marshalizer, message)
+	err := rd.UnmarshalWith(mp.marshalizer, message)
 	if err != nil {
 		return nil, err
 	}
