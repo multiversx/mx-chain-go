@@ -163,6 +163,7 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 	round := uint64(0)
 	err = acc.SetRoundWithJournal(round)
 
+	assert.Nil(t, err)
 	assert.NotNil(t, acc)
 	assert.Equal(t, round, acc.Round)
 	assert.Equal(t, 1, journalizeCalled)
