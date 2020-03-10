@@ -27,11 +27,11 @@ func TestBlockSizeThrottle_MaxItemsToAdd(t *testing.T) {
 func TestBlockSizeThrottle_Add(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItems := uint32(12000)
+	maxItems := uint32(14000)
 	bst.SetMaxItems(maxItems)
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 
 	assert.Equal(t, maxItems, bst.MaxItemsInLastItemAdded())
@@ -44,7 +44,7 @@ func TestBlockSizeThrottle_SucceedInLastItemAdded(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 	assert.False(t, bst.SucceedInLastItemAdded())
 
@@ -59,7 +59,7 @@ func TestBlockSizeThrottle_SucceedInItemAdded(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
 	round := uint64(2)
-	items := uint32(10000)
+	items := uint32(12000)
 	bst.Add(round, items)
 	bst.Add(round+1, items)
 	assert.False(t, bst.SucceedInItemAdded(0))
@@ -96,7 +96,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToMaxItemsInBlockWhen
 func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToAnIncreasedValueWhenLastActionSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	lastActionMaxItems1 := uint32(12000)
+	lastActionMaxItems1 := uint32(process.MaxItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems1)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)
@@ -105,7 +105,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToAnIncreasedValueWhe
 	assert.Equal(t, increasedValue, bst.MaxItemsToAdd())
 
 	bst.SetSucceed(2, false)
-	lastActionMaxItems2 := uint32(10000)
+	lastActionMaxItems2 := uint32(12000)
 	bst.SetMaxItems(lastActionMaxItems2)
 	bst.Add(3, 0)
 	bst.SetSucceed(3, true)

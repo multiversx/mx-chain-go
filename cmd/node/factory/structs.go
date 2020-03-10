@@ -1048,6 +1048,7 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		Config:         storageFactory.GetCacherFromConfig(configs.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
+		SelfShardID:    args.shardCoordinator.SelfId(),
 	})
 	if err != nil {
 		log.Error("error creating txpool")
@@ -1931,7 +1932,7 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -1950,9 +1951,9 @@ func newShardBlockProcessor(
 		scProcessor,
 		rewardsTxProcessor,
 		economics,
-		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2146,7 +2147,7 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economicsData, shardCoordinator, gasHandler)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -2162,9 +2163,10 @@ func newMetaBlockProcessor(
 		transactionProcessor,
 		scProcessor,
 		economicsData,
-		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
+		stateComponents.AddressConverter,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err

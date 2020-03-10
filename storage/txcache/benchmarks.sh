@@ -1,2 +1,2 @@
 #!/bin/bash
-go test -bench="Benchmark_GetSnapshotAscending$" -benchtime=1x
+go test -bench="BenchmarkSendersMap_GetSnapshotAscending$" -benchtime=1x
