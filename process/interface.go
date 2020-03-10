@@ -119,8 +119,8 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
@@ -187,7 +187,7 @@ type PreProcessor interface {
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
-	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
+	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -205,7 +205,6 @@ type BlockProcessor interface {
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
@@ -532,13 +531,6 @@ type SmartContractToProtocolHandler interface {
 type PeerChangesHandler interface {
 	PeerChanges() []block.PeerData
 	VerifyPeerChanges(peerChanges []block.PeerData) error
-	IsInterfaceNil() bool
-}
-
-// MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
-type MiniBlocksCompacter interface {
-	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
-	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
 	IsInterfaceNil() bool
 }
 
