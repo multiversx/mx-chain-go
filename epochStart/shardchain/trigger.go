@@ -304,6 +304,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
+			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 		}
 
 		// save all final-valid epoch start blocks
@@ -578,6 +579,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
 
 	t.saveCurrentState(header.GetRound())
+
+	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 }
 
 // Revert sets the start of epoch back to true
@@ -589,8 +592,16 @@ func (t *trigger) Revert(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	log.Debug("reverted start of epoch block",
+		"epoch", header.GetEpoch(),
+		"shard", header.GetShardID(),
+		"round", header.GetRound(),
+		"nonce", header.GetNonce())
+
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
+
+	log.Debug("trigger.Revert", "isEpochStart", t.isEpochStart)
 }
 
 // RevertStateToBlock will revert the state of the trigger to the current block

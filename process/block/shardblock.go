@@ -657,6 +657,8 @@ func (sp *shardProcessor) CreateBlock(
 	sp.createBlockStarted()
 
 	if sp.epochStartTrigger.IsEpochStart() {
+		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
+			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
 	}
 

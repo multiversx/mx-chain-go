@@ -311,10 +311,14 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Validator stats root hash",
 			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
-		display.NewLineData(true, []string{
+		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
 			display.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
+		display.NewLineData(true, []string{
+			"",
+			"Epoch start meta hash",
+			display.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
 	}
 }
 

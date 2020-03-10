@@ -196,3 +196,8 @@ func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
 func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
 	panic("implement me")
 }
+
+// GetEpochStartMetaHash -
+func (hhs *HeaderHandlerStub) GetEpochStartMetaHash() []byte {
+	panic("implement me")
+}
