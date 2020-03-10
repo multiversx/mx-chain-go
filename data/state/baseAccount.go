@@ -1,8 +1,7 @@
-package accounts
+package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type baseAccount struct {
@@ -10,13 +9,13 @@ type baseAccount struct {
 	CodeHash []byte
 	RootHash []byte
 
-	addressContainer state.AddressContainer
+	addressContainer AddressContainer
 	code             []byte
-	dataTrieTracker  state.DataTrieTracker
+	dataTrieTracker  DataTrieTracker
 }
 
 // AddressContainer returns the address associated with the account
-func (ba *baseAccount) AddressContainer() state.AddressContainer {
+func (ba *baseAccount) AddressContainer() AddressContainer {
 	return ba.addressContainer
 }
 
@@ -71,7 +70,7 @@ func (ba *baseAccount) SetDataTrie(trie data.Trie) {
 }
 
 // DataTrieTracker returns the trie wrapper used in managing the SC data
-func (ba *baseAccount) DataTrieTracker() state.DataTrieTracker {
+func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
 }
 

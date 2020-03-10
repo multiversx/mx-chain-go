@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 )
 
 // PeerAccountCreator has a method to create a new peer account
@@ -16,7 +15,7 @@ func NewPeerAccountCreator() state.AccountFactory {
 
 // CreateAccount calls the new Account creator and returns the result
 func (pac *PeerAccountCreator) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
-	return accounts.NewPeerAccount(address)
+	return state.NewPeerAccount(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

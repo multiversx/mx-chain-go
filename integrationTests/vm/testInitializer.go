@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -47,7 +46,7 @@ type accountFactory struct {
 }
 
 func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
-	return accounts.NewUserAccount(address)
+	return state.NewUserAccount(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

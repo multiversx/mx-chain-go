@@ -8,8 +8,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -261,7 +259,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	})
 
 	for _, pa := range sortedLeaves {
-		peerAccount := accounts.NewEmptyPeerAccount()
+		peerAccount := state.NewEmptyPeerAccount()
 		err := vs.marshalizer.Unmarshal(peerAccount, pa)
 		if err != nil {
 			return nil, err

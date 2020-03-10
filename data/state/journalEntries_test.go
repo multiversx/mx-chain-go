@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -27,7 +25,7 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
-	accnt, _ := accounts.NewUserAccount(mock.NewAddressMock())
+	accnt, _ := state.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, entry)
@@ -39,7 +37,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt, _ := accounts.NewUserAccount(mock.NewAddressMock())
+	accnt, _ := state.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)

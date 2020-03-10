@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -26,13 +25,13 @@ func generateEmptyByteSlice(size int) []byte {
 }
 
 func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
-	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
 
-	acntDst, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 
 	return acntSrc, acntDst
 }
@@ -986,7 +985,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
-		acc, _ := accounts.NewUserAccount(addressContainer)
+		acc, _ := state.NewUserAccount(addressContainer)
 		return acc, nil
 	}
 
@@ -1096,7 +1095,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
 	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := accounts.NewUserAccount(addressContainer)
+		acc, _ := state.NewUserAccount(addressContainer)
 		return acc, nil
 	}
 	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
@@ -1171,7 +1170,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 
-	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	_ = acntSrc.AddToBalance(big.NewInt(45))
 
 	currBalance := acntSrc.GetBalance().Uint64()
@@ -1422,7 +1421,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outputAccounts = append(outputAccounts, outacc1)
 
 	testAddr := mock.NewAddressMock(outaddress)
-	testAcc, _ := accounts.NewUserAccount(testAddr)
+	testAcc, _ := state.NewUserAccount(testAddr)
 
 	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		if bytes.Equal(addressContainer.Bytes(), testAddr.Bytes()) {
@@ -1449,7 +1448,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(int64(10))
 	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
-		fakeAcc, _ := accounts.NewUserAccount(mock.NewAddressMock(address))
+		fakeAcc, _ := state.NewUserAccount(mock.NewAddressMock(address))
 		fakeAcc.Balance = big.NewInt(int64(5))
 		return fakeAcc
 	}
@@ -1498,7 +1497,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := accounts.NewUserAccount(state.NewAddress([]byte("address")))
+	testAccounts, _ := state.NewUserAccount(state.NewAddress([]byte("address")))
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
 			return testAccounts, nil
@@ -1631,7 +1630,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return accounts.NewUserAccount(addressContainer)
+			return state.NewUserAccount(addressContainer)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
@@ -1659,7 +1658,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	putCodeCalled := 0
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return accounts.NewUserAccount(addressContainer)
+			return state.NewUserAccount(addressContainer)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			putCodeCalled++
@@ -1692,7 +1691,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	saveAccountCalled := 0
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return accounts.NewUserAccount(addressContainer)
+			return state.NewUserAccount(addressContainer)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
@@ -1732,7 +1731,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return accounts.NewUserAccount(addressContainer)
+			return state.NewUserAccount(addressContainer)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
@@ -1766,7 +1765,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	t.Parallel()
 
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := accounts.NewUserAccount(mock.NewAddressMock(scAddress))
+	dstScAddress, _ := state.NewUserAccount(mock.NewAddressMock(scAddress))
 	dstScAddress.SetCode([]byte("code"))
 	accountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {

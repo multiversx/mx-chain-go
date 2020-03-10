@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -297,7 +296,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	t.Parallel()
 
 	saveAccountError := errors.New("save account error")
-	peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
+	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
 	peerAdapter := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
@@ -338,7 +337,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 	t.Parallel()
 
 	commitError := errors.New("commit error")
-	peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
+	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
 	peerAdapter := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
@@ -368,7 +367,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	t.Parallel()
 
-	peerAccount, _ := accounts.NewPeerAccount(&mock.AddressMock{})
+	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
 	peerAdapter := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
@@ -581,7 +580,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	marshalizer := &mock.MarshalizerStub{}
 
 	adapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return accounts.NewPeerAccount(addressContainer)
+		return state.NewPeerAccount(addressContainer)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
@@ -635,7 +634,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	}
 
 	adapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return accounts.NewPeerAccount(addressContainer)
+		return state.NewPeerAccount(addressContainer)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 

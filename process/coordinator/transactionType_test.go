@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -76,13 +74,13 @@ func generateRandomByteSlice(size int) []byte {
 }
 
 func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
-	acntSrc, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
 
-	acntDst, _ := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 
 	return acntSrc, acntDst
 }

@@ -1,11 +1,10 @@
-package accounts
+package state
 
 import (
 	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // Account is the struct used in serialization/deserialization
@@ -29,9 +28,9 @@ func NewEmptyUserAccount() *userAccount {
 var zero = big.NewInt(0)
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewUserAccount(addressContainer state.AddressContainer) (*userAccount, error) {
+func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
 	if check.IfNil(addressContainer) {
-		return nil, state.ErrNilAddressContainer
+		return nil, ErrNilAddressContainer
 	}
 
 	addressBytes := addressContainer.Bytes()
@@ -39,7 +38,7 @@ func NewUserAccount(addressContainer state.AddressContainer) (*userAccount, erro
 	return &userAccount{
 		baseAccount: &baseAccount{
 			addressContainer: addressContainer,
-			dataTrieTracker:  state.NewTrackableDataTrie(addressBytes, nil),
+			dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 		},
 		DeveloperReward: big.NewInt(0),
 		Balance:         big.NewInt(0),
@@ -51,7 +50,7 @@ func NewUserAccount(addressContainer state.AddressContainer) (*userAccount, erro
 func (a *userAccount) AddToBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Add(a.Balance, value)
 	if newBalance.Cmp(zero) < 0 {
-		return state.ErrInsufficientFunds
+		return ErrInsufficientFunds
 	}
 
 	a.Balance = newBalance
@@ -62,7 +61,7 @@ func (a *userAccount) AddToBalance(value *big.Int) error {
 func (a *userAccount) SubFromBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Sub(a.Balance, value)
 	if newBalance.Cmp(zero) < 0 {
-		return state.ErrInsufficientFunds
+		return ErrInsufficientFunds
 	}
 
 	a.Balance = newBalance
@@ -76,7 +75,7 @@ func (a *userAccount) GetBalance() *big.Int {
 
 func (a *userAccount) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
-		return nil, state.ErrOperationNotPermitted
+		return nil, ErrOperationNotPermitted
 	}
 
 	oldValue := big.NewInt(0).Set(a.DeveloperReward)
@@ -97,10 +96,10 @@ func (a *userAccount) GetDeveloperReward() *big.Int {
 // ChangeOwnerAddress changes the owner account if operation is permitted
 func (a *userAccount) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error {
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
-		return state.ErrOperationNotPermitted
+		return ErrOperationNotPermitted
 	}
 	if len(newAddress) != len(a.addressContainer.Bytes()) {
-		return state.ErrInvalidAddressLength
+		return ErrInvalidAddressLength
 	}
 
 	a.OwnerAddress = newAddress

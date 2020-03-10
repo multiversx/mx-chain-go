@@ -3,7 +3,8 @@ package smartContract
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -23,7 +24,7 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 
 	addr := []byte("addr")
 
-	acc, _ := accounts.NewUserAccount(mock.NewAddressMock(addr))
+	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
 	vmInput := &vmcommon.ContractCallInput{}
 
 	_, err := coa.ProcessBuiltinFunction(tx, nil, acc, vmInput)

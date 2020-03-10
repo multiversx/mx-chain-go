@@ -8,7 +8,6 @@ import (
 
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -44,8 +43,8 @@ func prepareAccountsAndBalancesMap() (*mock.AccountsStub, map[string]*big.Int, s
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	accnt1, _ := accounts.NewUserAccount(mock.NewAddressMock(adr1))
-	accnt2, _ := accounts.NewUserAccount(mock.NewAddressMock(adr2))
+	accnt1, _ := state.NewUserAccount(mock.NewAddressMock(adr1))
+	accnt2, _ := state.NewUserAccount(mock.NewAddressMock(adr2))
 
 	adb := createAccountStub(adr1, adr2, accnt1, accnt2)
 	adb.JournalLenCalled = func() int {
@@ -168,7 +167,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		return nil
 	}
 	adb.LoadAccountCalled = func(container state.AddressContainer) (handler state.AccountHandler, err error) {
-		return accounts.NewEmptyUserAccount(), nil
+		return state.NewEmptyUserAccount(), nil
 	}
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(

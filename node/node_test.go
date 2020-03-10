@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -49,7 +47,7 @@ func logError(err error) {
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := accounts.NewUserAccount(addressContainer)
+		acc, _ := state.NewUserAccount(addressContainer)
 		_ = acc.AddToBalance(balance)
 		acc.SetNonce(1)
 
@@ -426,7 +424,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return accounts.NewUserAccount(addrContainer)
+			return state.NewUserAccount(addrContainer)
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -528,7 +526,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			acc, _ := accounts.NewUserAccount(addrContainer)
+			acc, _ := state.NewUserAccount(addrContainer)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.SetNonce(nonce)
 
@@ -1070,9 +1068,9 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 				case bytes.Equal(address, []byte(keys[0][0])):
 					return nil, errors.New("error")
 				case bytes.Equal(address, []byte(keys[1][0])):
-					return accounts.NewPeerAccount(mock.NewAddressMock())
+					return state.NewPeerAccount(mock.NewAddressMock())
 				default:
-					return accounts.NewPeerAccount(mock.NewAddressMock())
+					return state.NewPeerAccount(mock.NewAddressMock())
 				}
 			},
 		}),
@@ -2217,7 +2215,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt := accounts.NewEmptyUserAccount()
+	accnt := state.NewEmptyUserAccount()
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.SetNonce(2)
 	accnt.SetRootHash([]byte("root hash"))

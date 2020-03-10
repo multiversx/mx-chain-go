@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -210,7 +208,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	accountsDb := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-			return accounts.NewUserAccount(addressContainer)
+			return state.NewUserAccount(addressContainer)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountWasCalled = true

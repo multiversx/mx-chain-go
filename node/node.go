@@ -10,8 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -874,7 +872,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return accounts.NewEmptyUserAccount(), nil
+			return state.NewEmptyUserAccount(), nil
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}

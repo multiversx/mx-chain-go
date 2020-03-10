@@ -26,7 +26,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -519,7 +518,7 @@ func CreateRandomHexString(chars int) string {
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
 	adb, _, _ := CreateAccountsDB(UserAccount)
-	account, _ := accounts.NewUserAccount(adr)
+	account, _ := state.NewUserAccount(adr)
 
 	return adr, account, adb
 }

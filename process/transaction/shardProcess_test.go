@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -355,8 +353,8 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1, _ := accounts.NewUserAccount(adr1)
-	acnt2, _ := accounts.NewUserAccount(adr2)
+	acnt1, _ := state.NewUserAccount(adr1)
+	acnt2, _ := state.NewUserAccount(adr2)
 
 	adb.LoadAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		if addressContainer == adr1 {
@@ -410,8 +408,8 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1, _ := accounts.NewUserAccount(adr1)
-	acnt2, _ := accounts.NewUserAccount(adr2)
+	acnt1, _ := state.NewUserAccount(adr1)
+	acnt2, _ := state.NewUserAccount(adr2)
 
 	adb.LoadAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		if addressContainer == adr1 {
@@ -462,8 +460,8 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1, _ := accounts.NewUserAccount(adr1)
-	acnt2, _ := accounts.NewUserAccount(adr2)
+	acnt1, _ := state.NewUserAccount(adr1)
+	acnt2, _ := state.NewUserAccount(adr2)
 
 	adb := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
@@ -493,8 +491,8 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{65})
 
-	acnt1, _ := accounts.NewUserAccount(adr1)
-	acnt2, _ := accounts.NewUserAccount(adr2)
+	acnt1, _ := state.NewUserAccount(adr1)
+	acnt2, _ := state.NewUserAccount(adr2)
 
 	adb := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
@@ -523,7 +521,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := accounts.NewUserAccount(adr1)
+	acnt1, err := state.NewUserAccount(adr1)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -538,7 +536,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := accounts.NewUserAccount(adr1)
+	acnt1, err := state.NewUserAccount(adr1)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -553,7 +551,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := accounts.NewUserAccount(adr1)
+	acnt1, err := state.NewUserAccount(adr1)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -568,7 +566,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := accounts.NewUserAccount(adr1)
+	acnt1, err := state.NewUserAccount(adr1)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -584,7 +582,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 	t.Parallel()
 
 	adrDst := mock.NewAddressMock([]byte{67})
-	acntDst, _ := accounts.NewUserAccount(adrDst)
+	acntDst, _ := state.NewUserAccount(adrDst)
 
 	execTx := *createTxProcessor()
 	err := execTx.MoveBalances(nil, acntDst, big.NewInt(0))
@@ -595,7 +593,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, _ := accounts.NewUserAccount(adrSrc)
+	acntSrc, _ := state.NewUserAccount(adrSrc)
 
 	execTx := *createTxProcessor()
 	err := execTx.MoveBalances(acntSrc, nil, big.NewInt(0))
@@ -607,11 +605,11 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := accounts.NewUserAccount(adrSrc)
+	acntSrc, err := state.NewUserAccount(adrSrc)
 	assert.Nil(t, err)
 
 	adrDst := mock.NewAddressMock([]byte{67})
-	acntDst, err := accounts.NewUserAccount(adrDst)
+	acntDst, err := state.NewUserAccount(adrDst)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -629,7 +627,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := accounts.NewUserAccount(adrSrc)
+	acntSrc, err := state.NewUserAccount(adrSrc)
 	assert.Nil(t, err)
 
 	acntDst := acntSrc
@@ -650,7 +648,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := accounts.NewUserAccount(adrSrc)
+	acntSrc, err := state.NewUserAccount(adrSrc)
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -737,9 +735,9 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -782,9 +780,9 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		return 0
 	}
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -823,9 +821,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -873,9 +871,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		return 0
 	}
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -923,9 +921,9 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		return 0
 	}
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -964,9 +962,9 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(61)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
@@ -1012,9 +1010,9 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	tx.GasPrice = 2
 	tx.GasLimit = 2
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
@@ -1073,10 +1071,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -1132,10 +1130,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -1197,10 +1195,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return 0
 	}
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 

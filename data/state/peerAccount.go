@@ -1,9 +1,7 @@
-package accounts
+package state
 
 import (
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
@@ -15,16 +13,16 @@ type peerAccount struct {
 	Stake            *big.Int
 	AccumulatedFees  *big.Int
 
-	JailTime      state.TimePeriod
-	PastJailTimes []state.TimePeriod
+	JailTime      TimePeriod
+	PastJailTimes []TimePeriod
 
 	CurrentShardId    uint32
 	NextShardId       uint32
 	NodeInWaitingList bool
 	UnStakedNonce     uint64
 
-	ValidatorSuccessRate       state.SignRate
-	LeaderSuccessRate          state.SignRate
+	ValidatorSuccessRate       SignRate
+	LeaderSuccessRate          SignRate
 	NumSelectedInSuccessBlocks uint32
 
 	Rating     uint32
@@ -40,15 +38,15 @@ func NewEmptyPeerAccount() *peerAccount {
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(addressContainer state.AddressContainer) (*peerAccount, error) {
+func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
 	if addressContainer == nil {
-		return nil, state.ErrNilAddressContainer
+		return nil, ErrNilAddressContainer
 	}
 
 	return &peerAccount{
 		baseAccount: &baseAccount{
 			addressContainer: addressContainer,
-			dataTrieTracker:  state.NewTrackableDataTrie(addressContainer.Bytes(), nil),
+			dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
 		},
 		Stake:           big.NewInt(0),
 		AccumulatedFees: big.NewInt(0),
@@ -80,7 +78,7 @@ func (pa *peerAccount) GetRewardAddress() []byte {
 // SetRewardAddress sets the account's reward address, saving the old address before changing
 func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	if len(address) < 1 {
-		return state.ErrEmptyAddress
+		return ErrEmptyAddress
 	}
 
 	pa.RewardAddress = address
@@ -104,12 +102,12 @@ func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
 	pa.AccumulatedFees = fees
 }
 
-func (pa *peerAccount) GetJailTime() state.TimePeriod {
+func (pa *peerAccount) GetJailTime() TimePeriod {
 	return pa.JailTime
 }
 
 // SetJailTime sets the account's jail time, saving the old state before changing
-func (pa *peerAccount) SetJailTime(jailTime state.TimePeriod) {
+func (pa *peerAccount) SetJailTime(jailTime TimePeriod) {
 	pa.JailTime = jailTime
 }
 
@@ -207,12 +205,12 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 }
 
 // SetTempRating sets the account's tempRating, saving the old state before changing
-func (pa *peerAccount) GetLeaderSuccessRate() state.SignRate {
+func (pa *peerAccount) GetLeaderSuccessRate() SignRate {
 	return pa.LeaderSuccessRate
 }
 
 // SetTempRating sets the account's tempRating, saving the old state before changing
-func (pa *peerAccount) GetValidatorSuccessRate() state.SignRate {
+func (pa *peerAccount) GetValidatorSuccessRate() SignRate {
 	return pa.ValidatorSuccessRate
 }
 

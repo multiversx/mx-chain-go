@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -395,7 +393,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 	defer bh.mutTempAccounts.Unlock()
 
 	addrContainer := state.NewAddress(address)
-	account, err := accounts.NewUserAccount(addrContainer)
+	account, err := state.NewUserAccount(addrContainer)
 	if err != nil {
 		return
 	}

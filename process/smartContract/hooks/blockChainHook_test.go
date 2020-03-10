@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -211,7 +209,7 @@ func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
 	_ = accnt.AddToBalance(big.NewInt(2))
 	accnt.SetNonce(1)
 
@@ -253,7 +251,7 @@ func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := accounts.NewUserAccount(&mock.AddressMock{})
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
 	_ = accnt.AddToBalance(big.NewInt(2))
 	accnt.SetNonce(1)
 
@@ -444,7 +442,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return accounts.NewEmptyUserAccount(), nil
+		return state.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -470,7 +468,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return accounts.NewEmptyUserAccount(), nil
+		return state.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -492,7 +490,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return accounts.NewEmptyUserAccount(), nil
+		return state.NewEmptyUserAccount(), nil
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv

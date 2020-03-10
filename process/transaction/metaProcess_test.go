@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/accounts"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -209,9 +207,9 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -240,9 +238,9 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -278,10 +276,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -331,10 +329,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -391,10 +389,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return 0
 	}
 
-	acntSrc, err := accounts.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := accounts.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
