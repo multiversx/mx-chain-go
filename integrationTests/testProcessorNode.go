@@ -1010,7 +1010,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
