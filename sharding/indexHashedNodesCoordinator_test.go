@@ -1271,7 +1271,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch0(t *testi
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
 	require.Nil(t, err)
 
-	nodesCurrentEpoch, err := ihgs.GetAllValidatorsPublicKeys(0)
+	nodesCurrentEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
@@ -1313,9 +1313,9 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	nodesPrevEpoch, err := ihgs.GetAllValidatorsPublicKeys(0)
+	nodesPrevEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	require.Nil(t, err)
-	nodesCurrentEpoch, err := ihgs.GetAllValidatorsPublicKeys(1)
+	nodesCurrentEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
@@ -1364,7 +1364,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	nodesEpoch1, err := ihgs.GetAllValidatorsPublicKeys(1)
+	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
