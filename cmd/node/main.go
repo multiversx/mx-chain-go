@@ -581,7 +581,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -718,7 +718,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.ProtoMarshalizer,
+			coreComponents.InternalMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -824,7 +824,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.ProtoMarshalizer,
+		coreComponents.InternalMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -1288,7 +1288,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithInternalMarshalizer(coreData.InternalMarshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(coreData.VmMarshalizer),
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
