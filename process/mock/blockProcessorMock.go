@@ -12,17 +12,16 @@ import (
 type BlockProcessorMock struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
+	RevertAccountStateCalled         func(header data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func() data.HeaderHandler
+	CreateNewHeaderCalled            func(round uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
@@ -50,13 +49,13 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertAccountState -
-func (bpm *BlockProcessorMock) RevertAccountState() {
-	bpm.RevertAccountStateCalled()
+func (bpm *BlockProcessorMock) RevertAccountState(header data.HeaderHandler) {
+	bpm.RevertAccountStateCalled(header)
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
-	return bpm.CreateNewHeaderCalled()
+func (bpm *BlockProcessorMock) CreateNewHeader(round uint64) data.HeaderHandler {
+	return bpm.CreateNewHeaderCalled(round)
 }
 
 // CreateGenesisBlock -
@@ -77,11 +76,6 @@ func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, 
 // MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
-}
-
-// DecodeBlockBodyAndHeader -
-func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	return bpm.DecodeBlockBodyAndHeaderCalled(dta)
 }
 
 // DecodeBlockBody -

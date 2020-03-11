@@ -148,9 +148,9 @@ func TestSchnorrSigner_SignOK(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
-	err = signer.Verify(pubKey, msg, signature)
+	err := signer.Verify(pubKey, msg, signature)
 
 	assert.Nil(t, err)
 }
@@ -160,7 +160,7 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
 	pubKeyNilSuite := &mock.PublicKeyStub{
 		SuiteStub: func() crypto.Suite {
@@ -170,7 +170,7 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 		PointStub:       pubKey.Point,
 	}
 
-	err = signer.Verify(pubKeyNilSuite, msg, signature)
+	err := signer.Verify(pubKeyNilSuite, msg, signature)
 
 	assert.Equal(t, crypto.ErrNilSuite, err)
 }
@@ -180,9 +180,9 @@ func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	_, _, signature, err := signSchnorr(msg, signer, t)
+	_, _, signature, _ := signSchnorr(msg, signer, t)
 
-	err = signer.Verify(nil, msg, signature)
+	err := signer.Verify(nil, msg, signature)
 
 	assert.Equal(t, crypto.ErrNilPublicKey, err)
 }
@@ -192,9 +192,9 @@ func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
-	err = signer.Verify(pubKey, nil, signature)
+	err := signer.Verify(pubKey, nil, signature)
 
 	assert.Equal(t, crypto.ErrNilMessage, err)
 }
@@ -204,9 +204,9 @@ func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, _, err := signSchnorr(msg, signer, t)
+	pubKey, _, _, _ := signSchnorr(msg, signer, t)
 
-	err = signer.Verify(pubKey, msg, nil)
+	err := signer.Verify(pubKey, msg, nil)
 
 	assert.Equal(t, crypto.ErrNilSignature, err)
 }
@@ -216,7 +216,7 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
 	invalidSuite := &mock.SuiteMock{
 		GetUnderlyingSuiteStub: func() interface{} {
@@ -232,7 +232,7 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 		PointStub:       pubKey.Point,
 	}
 
-	err = signer.Verify(pubKeyInvalidSuite, msg, signature)
+	err := signer.Verify(pubKeyInvalidSuite, msg, signature)
 
 	assert.Equal(t, crypto.ErrInvalidSuite, err)
 }
@@ -242,7 +242,7 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
 	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
@@ -252,7 +252,7 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 		},
 	}
 
-	err = signer.Verify(pubKeyInvalidSuite, msg, signature)
+	err := signer.Verify(pubKeyInvalidSuite, msg, signature)
 
 	assert.Equal(t, crypto.ErrNilPublicKeyPoint, err)
 }
@@ -262,7 +262,7 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
 	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
@@ -272,7 +272,7 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 		},
 	}
 
-	err = signer.Verify(pubKeyInvalidSuite, msg, signature)
+	err := signer.Verify(pubKeyInvalidSuite, msg, signature)
 
 	assert.Equal(t, crypto.ErrInvalidPublicKey, err)
 }
@@ -282,9 +282,9 @@ func TestSchnorrSigner_VerifyOK(t *testing.T) {
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	pubKey, _, signature, _ := signSchnorr(msg, signer, t)
 
-	err = signer.Verify(pubKey, msg, signature)
+	err := signer.Verify(pubKey, msg, signature)
 
 	assert.Nil(t, err)
 }

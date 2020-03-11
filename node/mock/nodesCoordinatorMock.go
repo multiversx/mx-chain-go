@@ -33,6 +33,13 @@ func (ncm *NodesCoordinatorMock) GetEligiblePublicKeysPerShard(_ uint32) (map[ui
 		return ncm.GetEligiblePublicKeysPerShardCalled()
 	}
 
+// GetAllEligibleValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
