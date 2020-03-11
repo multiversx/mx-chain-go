@@ -1527,7 +1527,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 			},
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{
-			GetEligiblePublicKeysPerShardCalled: func() (map[uint32][][]byte, error) {
+			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 				return map[uint32][][]byte{
 					0: {[]byte("pk1"), []byte("pk2")},
 					1: {[]byte("pk3")},

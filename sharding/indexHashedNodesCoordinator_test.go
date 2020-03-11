@@ -187,7 +187,7 @@ func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap, 0))
+	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap, 0, false))
 }
 
 func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
@@ -197,7 +197,7 @@ func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil, 0))
+	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil, 0, false))
 }
 
 func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
@@ -965,7 +965,7 @@ func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoc
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	_, _, err := ihgs.GetValidatorWithPublicKey(arguments.EligibleNodes[0][0].PubKey(), 1)
-	require.Equal(t, ErrEpochNodesConfigDesNotExist, err)
+	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
@@ -1070,7 +1070,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		ShardId:                 shardZeroId,
 		NbShards:                2,
@@ -1078,6 +1078,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1129,7 +1130,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	var pKeys []string
 	randomness := []byte("randomness")
 	pKeys, err = ihgs.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
-	require.Equal(t, ErrEpochNodesConfigDesNotExist, err)
+	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
 	require.Nil(t, pKeys)
 }
 
@@ -1261,7 +1262,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 	require.Nil(t, err)
 
 	shardId, err := ihgs.ShardIdForEpoch(1)
-	require.Equal(t, ErrEpochNodesConfigDesNotExist, err)
+	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
 	require.Equal(t, uint32(0), shardId)
 }
 

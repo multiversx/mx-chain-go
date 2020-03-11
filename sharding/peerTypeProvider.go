@@ -57,7 +57,7 @@ func (ptp *PeerTypeProvider) populateCache(epoch uint32) error {
 
 	ptp.cache = make(map[string]core.PeerType)
 
-	nodesMapEligible, err := ptp.nodesCoordinator.GetEligiblePublicKeysPerShard(epoch)
+	nodesMapEligible, err := ptp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (ptp *PeerTypeProvider) populateCache(epoch uint32) error {
 		}
 	}
 
-	nodesMapWaiting, err := ptp.nodesCoordinator.GetWaitingPublicKeysPerShard(epoch)
+	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte, shardID uint32) (co
 
 func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte, shardID uint32) (core.PeerType, error) {
 	peerType := core.ObserverList
-	nodesMapEligible, err := ptp.nodesCoordinator.GetEligiblePublicKeysPerShard(ptp.epochHandler.Epoch())
+	nodesMapEligible, err := ptp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(ptp.epochHandler.Epoch())
 	if err != nil {
 		return "", err
 	}
@@ -109,7 +109,7 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte, shardID uint32) (cor
 		}
 	}
 
-	nodesMapWaiting, err := ptp.nodesCoordinator.GetWaitingPublicKeysPerShard(ptp.epochHandler.Epoch())
+	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(ptp.epochHandler.Epoch())
 	if err != nil {
 		return "", err
 	}

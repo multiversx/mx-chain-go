@@ -72,13 +72,13 @@ message EpochStartShardData {
 
 // Economics holds the block information for total supply and rewards
 message Economics {
-	bytes TotalSupply            = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes TotalToDistribute      = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes NodePrice              = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	uint64 PrevEpochStartRound   = 6;
-	bytes PrevEpochStartHash     = 6;
+	bytes  TotalSupply            = 1 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  TotalToDistribute      = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  NodePrice              = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64 PrevEpochStartRound    = 6;
+	bytes  PrevEpochStartHash     = 7;
 }
 
 // EpochStart holds the block information for end-of-epoch
