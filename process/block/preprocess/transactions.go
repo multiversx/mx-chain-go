@@ -27,7 +27,7 @@ import (
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
-// TODO: increase code coverage with unit tests
+// TODO: increase code coverage with unit test
 
 type transactions struct {
 	*basePreProcess
