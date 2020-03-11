@@ -31,15 +31,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	factory2 "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
+	factoryEpochBootstrap "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	factoryMarshal "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -566,10 +568,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(3 * time.Second)
 
-	// TODO : get marshalizer and hasher based on config and maybe move the functions for extracting these 2 in the core package
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	hasher := &blake2b.Blake2b{}
-	epochStartComponentArgs := factory2.EpochStartDataProviderFactoryArgs{
+	marshalizer, err := factoryMarshal.NewMarshalizer(generalConfig.Marshalizer.Type)
+	if err != nil {
+		return err
+	}
+	hasher, err := factoryHasher.NewHasher(generalConfig.Hasher.Type)
+	if err != nil {
+		return err
+	}
+	epochStartComponentArgs := factoryEpochBootstrap.EpochStartDataProviderFactoryArgs{
 		PubKey:                pubKey,
 		Messenger:             networkComponents.NetMessenger,
 		Marshalizer:           marshalizer,
@@ -581,7 +588,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		IsEpochFoundInStorage: epochFoundInStorage,
 	}
 
-	epochStartComponentFactory, err := factory2.NewEpochStartDataProviderFactory(epochStartComponentArgs)
+	epochStartComponentFactory, err := factoryEpochBootstrap.NewEpochStartDataProviderFactory(epochStartComponentArgs)
 	if err != nil {
 		return err
 	}

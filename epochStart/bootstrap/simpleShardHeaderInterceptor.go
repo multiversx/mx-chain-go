@@ -40,7 +40,6 @@ func NewSimpleShardHeaderInterceptor(marshalizer marshal.Marshalizer, hasher has
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps
 func (s *simpleShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	log.Info("received shard header")
 	var mb block.Header
 	err := s.marshalizer.Unmarshal(&mb, message.Data())
 	if err != nil {
@@ -100,7 +99,6 @@ func (s *simpleShardHeaderInterceptor) isMapEntryOk(
 	hash string,
 	target int,
 ) bool {
-	log.Info("peers map for shard hdr", "target", target, "num", len(peersList))
 	if len(peersList) >= target {
 		log.Info("got consensus for shard header", "len", len(peersList))
 		return true

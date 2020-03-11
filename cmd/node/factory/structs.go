@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -203,7 +204,7 @@ func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.Pat
 
 // CoreComponentsFactory creates the core components
 func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
-	hasher, err := getHasherFromConfig(args.config)
+	hasher, err := factoryHasher.NewHasher(args.config.Hasher.Type)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
 	}
@@ -957,17 +958,6 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	}
 
 	return softwareVersionChecker, nil
-}
-
-func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	switch cfg.Hasher.Type {
-	case "sha256":
-		return sha256.Sha256{}, nil
-	case "blake2b":
-		return &blake2b.Blake2b{}, nil
-	}
-
-	return nil, errors.New("no hasher provided in config file")
 }
 
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
@@ -2203,6 +2193,7 @@ func newMetaBlockProcessor(
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:      core.InternalMarshalizer,
+		Hasher:           core.Hasher,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,

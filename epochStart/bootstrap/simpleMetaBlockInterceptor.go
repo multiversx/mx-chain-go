@@ -41,7 +41,6 @@ func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashi
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps
 func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	log.Info("received meta block")
 	var mb block.MetaBlock
 	err := s.marshalizer.Unmarshal(&mb, message.Data())
 	if err != nil {
@@ -111,7 +110,6 @@ func (s *simpleMetaBlockInterceptor) isMapEntryOk(
 	if err != nil {
 		return false
 	}
-	log.Info("peers map for meta block", "target", target, "num", len(peersList))
 	if bytes.Equal(expectedHash, mbHash) && len(peersList) >= target {
 		log.Info("got consensus for metablock", "len", len(peersList))
 		return true
