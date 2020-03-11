@@ -27,7 +27,7 @@ func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.MetaBlock))
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
@@ -1176,7 +1176,12 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 
@@ -1310,7 +1315,12 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 

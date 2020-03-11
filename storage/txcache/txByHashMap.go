@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -23,8 +22,8 @@ func newTxByHashMap(nChunksHint uint32) txByHashMap {
 }
 
 // addTx adds a transaction to the map
-func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) bool {
-	added := txMap.backingMap.SetIfAbsent(string(txHash), tx)
+func (txMap *txByHashMap) addTx(tx *WrappedTransaction) bool {
+	added := txMap.backingMap.SetIfAbsent(string(tx.TxHash), tx)
 	if added {
 		txMap.counter.Increment()
 		txMap.numBytes.Add(int64(estimateTxSize(tx)))
@@ -34,7 +33,7 @@ func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) bool 
 }
 
 // removeTx removes a transaction from the map
-func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool) {
+func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 	tx, ok := txMap.getTx(txHash)
 	if !ok {
 		return nil, false
@@ -47,13 +46,13 @@ func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool
 }
 
 // getTx gets a transaction from the map
-func (txMap *txByHashMap) getTx(txHash string) (data.TransactionHandler, bool) {
+func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 	txUntyped, ok := txMap.backingMap.Get(txHash)
 	if !ok {
 		return nil, false
 	}
 
-	tx := txUntyped.(data.TransactionHandler)
+	tx := txUntyped.(*WrappedTransaction)
 	return tx, true
 }
 
@@ -71,12 +70,12 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 }
 
 // ForEachTransaction is an iterator callback
-type ForEachTransaction func(txHash []byte, value data.TransactionHandler)
+type ForEachTransaction func(txHash []byte, value *WrappedTransaction)
 
 // forEach iterates over the senders
 func (txMap *txByHashMap) forEach(function ForEachTransaction) {
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
-		tx := item.(data.TransactionHandler)
+		tx := item.(*WrappedTransaction)
 		function([]byte(key), tx)
 	})
 }

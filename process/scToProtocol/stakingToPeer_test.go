@@ -30,7 +30,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		BaseState:        &mock.AccountsStub{},
 		ArgParser:        &mock.ArgumentParserMock{},
 		CurrTxs:          &mock.TxForCurrentBlockStub{},
-		ScQuery:          &mock.ScQueryMock{},
+		ScQuery:          &mock.ScQueryStub{},
 	}
 }
 
@@ -322,7 +322,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter := &mock.ScQueryStub{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
 		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
@@ -381,7 +381,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter := &mock.ScQueryStub{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
 		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
@@ -441,7 +441,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter := &mock.ScQueryStub{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
 		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
@@ -501,7 +501,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter := &mock.ScQueryStub{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
 		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
@@ -561,7 +561,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter := &mock.ScQueryStub{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
 		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil

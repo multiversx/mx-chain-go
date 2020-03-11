@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
+// ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
 //  for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain                    data.ChainHandler
@@ -32,7 +32,7 @@ type ConsensusCore struct {
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 }
 
-// ConsensusCoreArgs define the arguments needed for initializing the consensus core
+// ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
 type ConsensusCoreArgs struct {
 	BlockChain                    data.ChainHandler
 	BlockProcessor                process.BlockProcessor

@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
+	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -49,14 +49,13 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
 
 	tpn.MultiSigner, _ = multisig.NewBLSMultisig(
 		llsig,
-		blsHasher,
 		pubKeysMap[nodeShardId],
 		tpn.NodeKeys.Sk,
 		cp.KeyGen,

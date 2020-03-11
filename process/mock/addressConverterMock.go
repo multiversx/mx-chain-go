@@ -41,7 +41,7 @@ func (acm *AddressConverterMock) ConvertToHex(addressContainer state.AddressCont
 }
 
 // CreateAddressFromHex -
-func (acm *AddressConverterMock) CreateAddressFromHex(hexAddress string) (state.AddressContainer, error) {
+func (acm *AddressConverterMock) CreateAddressFromHex(_ string) (state.AddressContainer, error) {
 	if acm.Fail {
 		return nil, errFailure
 	}
@@ -50,7 +50,7 @@ func (acm *AddressConverterMock) CreateAddressFromHex(hexAddress string) (state.
 }
 
 // PrepareAddressBytes -
-func (acm *AddressConverterMock) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
+func (acm *AddressConverterMock) PrepareAddressBytes(_ []byte) ([]byte, error) {
 	if acm.Fail {
 		return nil, errFailure
 	}

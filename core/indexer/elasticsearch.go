@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -26,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/gin-gonic/gin/json"
 )
 
 const txBulkSize = 1000

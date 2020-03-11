@@ -26,12 +26,12 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 	}
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Trace("pending miniblocks",
+		log.Debug("pending miniblocks",
 			"shard", shardID,
 			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	}

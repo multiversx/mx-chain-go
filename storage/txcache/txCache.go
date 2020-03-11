@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
@@ -44,11 +43,11 @@ func NewTxCache(config CacheConfig) *TxCache {
 
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
-func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool, added bool) {
+func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	ok = false
 	added = false
 
-	if check.IfNil(tx) {
+	if tx == nil || check.IfNil(tx.Tx) {
 		return
 	}
 
@@ -57,9 +56,9 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 	}
 
 	ok = true
-	added = cache.txByHash.addTx(txHash, tx)
+	added = cache.txByHash.addTx(tx)
 	if added {
-		cache.txListBySender.addTx(txHash, tx)
+		cache.txListBySender.addTx(tx)
 		cache.monitorTxAddition()
 	}
 
@@ -67,7 +66,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 }
 
 // GetByTxHash gets the transaction by hash
-func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool) {
+func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	tx, ok := cache.txByHash.getTx(string(txHash))
 	return tx, ok
 }
@@ -75,11 +74,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 // SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
+func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
-	result := make([]data.TransactionHandler, numRequested)
-	resultHashes := make([][]byte, numRequested)
+	result := make([]*WrappedTransaction, numRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
@@ -89,8 +87,8 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
-			shouldResetCopy := pass == 0
-			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizeWithScoreCoefficient)
+			isFirstBatch := pass == 0
+			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -107,7 +105,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
-	return result, resultHashes
+	return result
 }
 
 // RemoveTxByHash removes tx by hash
@@ -172,7 +170,10 @@ func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
 // Get gets a transaction by hash
 func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
-	return tx, ok
+	if ok {
+		return tx.Tx, true
+	}
+	return nil, false
 }
 
 // Has is not implemented
@@ -184,7 +185,10 @@ func (cache *TxCache) Has(key []byte) bool {
 // Peek gets a transaction by hash
 func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
-	return tx, ok
+	if ok {
+		return tx.Tx, true
+	}
+	return nil, false
 }
 
 // HasOrAdd is not implemented
@@ -217,6 +221,12 @@ func (cache *TxCache) MaxSize() int {
 // RegisterHandler is not implemented
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
 	log.Error("TxCache.RegisterHandler is not implemented")
+}
+
+// NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
+// in order to inform the cache about initial nonce gap phenomena
+func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

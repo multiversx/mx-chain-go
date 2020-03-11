@@ -261,6 +261,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 	accounts := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	txValidator, _ := dataValidators.NewTxValidator(accounts, shardCoordinator, 100)
+	_ = txValidator
 	txValidator = nil
 
 	assert.True(t, check.IfNil(txValidator))

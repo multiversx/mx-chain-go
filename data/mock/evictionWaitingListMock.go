@@ -108,6 +108,7 @@ func (ewl *EvictionWaitingList) GetSize() uint {
 	return ewl.CacheSize
 }
 
+// PresentInNewHashes --
 func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 	for key := range ewl.Cache {
 		if len(key) == 0 {

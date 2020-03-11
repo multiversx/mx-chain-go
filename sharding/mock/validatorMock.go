@@ -1,5 +1,6 @@
 package mock
 
+// ValidatorMock -
 type ValidatorMock struct {
 	pubKey  []byte
 	address []byte

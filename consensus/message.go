@@ -7,7 +7,9 @@ type MessageType int
 // NewConsensusMessage creates a new Message object
 func NewConsensusMessage(
 	blHeaderHash []byte,
-	subRoundData []byte,
+	signatureShare []byte,
+	body []byte,
+	header []byte,
 	pubKey []byte,
 	sig []byte,
 	msg int,
@@ -19,7 +21,9 @@ func NewConsensusMessage(
 ) *Message {
 	return &Message{
 		BlockHeaderHash:    blHeaderHash,
-		SubRoundData:       subRoundData,
+		SignatureShare:     signatureShare,
+		Body:               body,
+		Header:             header,
 		PubKey:             pubKey,
 		Signature:          sig,
 		MsgType:            int64(msg),
