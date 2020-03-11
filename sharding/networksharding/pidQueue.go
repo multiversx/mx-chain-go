@@ -2,6 +2,8 @@ package networksharding
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+const indexNotFound = -1
+
 type pidQueue struct {
 	data []p2p.PeerID
 }
@@ -30,7 +32,7 @@ func (pq *pidQueue) indexOf(pid p2p.PeerID) int {
 		}
 	}
 
-	return -1
+	return indexNotFound
 }
 
 func (pq *pidQueue) promote(idx int) {

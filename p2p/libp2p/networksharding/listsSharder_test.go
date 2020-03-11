@@ -20,7 +20,7 @@ var crtPid = peer.ID(fmt.Sprintf("%d pid", crtShardId))
 
 func createStringPeersShardResolver() *mock.PeerShardResolverStub {
 	return &mock.PeerShardResolverStub{
-		ByIDCalled: func(pid p2p.PeerID) uint32 {
+		GetShardIDCalled: func(pid p2p.PeerID) uint32 {
 			strPid := string(pid)
 			if strings.Contains(strPid, fmt.Sprintf("%d", crtShardId)) {
 				return crtShardId

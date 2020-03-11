@@ -227,27 +227,18 @@
     Size = 75000
     Type = "LRU"
 
-#PublicKeyShardId represents the main cache used to map Elrond block signing public keys to their associated
-#peer id's. Both public key and peer id are verified before they are appended in this cache. In time, the current node
-#will learn a large majority (or even the whole network) of the nodes that make up the network. The public key provided
-#by this map is then fed to the nodes coordinator that will output the shard id in which that public key resides.
-#The component that handles these cachers will also have a reversed lookup map that will ensure that there won't be
-#unlimited peer ids with the same public key. This will prevent eclipse attacks.
+#PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Size = 30000
     Type = "LRU"
 
-#PublicKeyShardId is the fallback cache used to map public keys to the shard they belong. Normally, this mapping
-#is done by the nodes coordinator implementation but this fallback map is only used whenever nodes coordinator has a wrong
-#view about the peers in a shard. Not required to have a large size as this is a fallback cache anyway.
+#PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
     Size = 100
     Type = "LRU"
 
-#PeerIdShardId is the fallback cache used in network sharding to allow direct connection between
-#peer id and shard. It is used when mapping observers that can not be computed through nodes coordination implementation
-#The size should be kept low as to not allow eclipse attacks on the nodes by peers that advertise themselves that belong
-#to the targeted node's shard
+#PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
+# Used for observers, size should be kept low.
 [PeerIdShardId]
     Size = 5
     Type = "LRU"

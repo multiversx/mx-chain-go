@@ -8,8 +8,8 @@ import (
 type unknownPeerShardResolver struct {
 }
 
-// ByID returns the sharding.UnknownShardId value
-func (upsr *unknownPeerShardResolver) ByID(_ p2p.PeerID) uint32 {
+// GetShardID returns the sharding.UnknownShardId value
+func (upsr *unknownPeerShardResolver) GetShardID(_ p2p.PeerID) uint32 {
 	return core.UnknownShardId
 }
 

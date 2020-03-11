@@ -684,7 +684,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		IntraShardPeers: make([]string, 0),
 		CrossShardPeers: make([]string, 0),
 	}
-	selfShardId := netMes.peerShardResolver.ByID(netMes.ID())
+	selfShardId := netMes.peerShardResolver.GetShardID(netMes.ID())
 
 	for _, p := range peers {
 		conns := netMes.p2pHost.Network().ConnsToPeer(p)
@@ -693,7 +693,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
 		}
 
-		shardId := netMes.peerShardResolver.ByID(p2p.PeerID(p))
+		shardId := netMes.peerShardResolver.GetShardID(p2p.PeerID(p))
 		switch shardId {
 		case core.UnknownShardId:
 			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)

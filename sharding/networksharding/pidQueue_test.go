@@ -42,7 +42,7 @@ func TestPidQueue_IndexOfShouldWork(t *testing.T) {
 
 	assert.Equal(t, 0, pq.indexOf(pid0))
 	assert.Equal(t, 1, pq.indexOf(pid1))
-	assert.Equal(t, -1, pq.indexOf(pid2))
+	assert.Equal(t, indexNotFound, pq.indexOf(pid2))
 }
 
 func TestPidQueue_PromoteNoElementsShouldNotPanic(t *testing.T) {

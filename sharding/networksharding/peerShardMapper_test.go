@@ -297,20 +297,20 @@ func TestPeerShardMapper_UpdatePeerIdShardIdShouldWorkConcurrently(t *testing.T)
 	assert.Equal(t, shardId, shardidRecovered)
 }
 
-//------- ByID
+//------- GetShardID
 
-func TestPeerShardMapper_ByIDPkNotFoundShouldReturnUnknown(t *testing.T) {
+func TestPeerShardMapper_GetShardIDPkNotFoundShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
 
-	shardId := psm.ByID(pid)
+	shardId := psm.GetShardID(pid)
 
 	assert.Equal(t, core.UnknownShardId, shardId)
 }
 
-func TestPeerShardMapper_ByIDNodesCoordinatorHasTheShardId(t *testing.T) {
+func TestPeerShardMapper_GetShardIDNodesCoordinatorHasTheShardId(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(445)
@@ -333,12 +333,12 @@ func TestPeerShardMapper_ByIDNodesCoordinatorHasTheShardId(t *testing.T) {
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, shardId, recoveredShardId)
 }
 
-func TestPeerShardMapper_ByIDNodesCoordinatorWrongTypeInCacheShouldReturnUnknownAndRemove(t *testing.T) {
+func TestPeerShardMapper_GetShardIDNodesCoordinatorWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
 
 	wrongTypePk := uint64(6)
@@ -352,14 +352,12 @@ func TestPeerShardMapper_ByIDNodesCoordinatorWrongTypeInCacheShouldReturnUnknown
 	pid := p2p.PeerID("dummy peer ID")
 	psm.PeerIdPk().Put([]byte(pid), wrongTypePk)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, core.UnknownShardId, recoveredShardId)
-	_, ok := psm.PeerIdPk().Get([]byte(pid))
-	assert.False(t, ok)
 }
 
-func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnFromTheFallbackMap(t *testing.T) {
+func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromTheFallbackMap(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(445)
@@ -379,12 +377,12 @@ func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnFromTheFall
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePublicKeyShardId(pk, shardId)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, shardId, recoveredShardId)
 }
 
-func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItWrongTypeInCacheShouldReturnUnknownAndRemove(t *testing.T) {
+func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
 
 	pk := []byte("dummy pk")
@@ -404,14 +402,12 @@ func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItWrongTypeInCacheShouldR
 	wrongTypeShardId := "shard 4"
 	psm.FallbackPkShard().Put(pk, wrongTypeShardId)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, core.UnknownShardId, recoveredShardId)
-	_, ok := psm.FallbackPkShard().Get(pk)
-	assert.False(t, ok)
 }
 
-func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnFromTheSecondFallbackMap(t *testing.T) {
+func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromTheSecondFallbackMap(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(445)
@@ -431,12 +427,12 @@ func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnFromTheSeco
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePeerIdShardId(pid, shardId)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, shardId, recoveredShardId)
 }
 
-func TestPeerShardMapper_ByIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
+func TestPeerShardMapper_GetShardIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(445)
@@ -457,12 +453,12 @@ func TestPeerShardMapper_ByIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePublicKeyShardId(pk, shardId)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, shardId, recoveredShardId)
 }
 
-func TestPeerShardMapper_ByIDShouldRetUnknownShardId(t *testing.T) {
+func TestPeerShardMapper_GetShardIDShouldRetUnknownShardId(t *testing.T) {
 	t.Parallel()
 
 	pk := []byte("dummy pk")
@@ -480,12 +476,12 @@ func TestPeerShardMapper_ByIDShouldRetUnknownShardId(t *testing.T) {
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, core.UnknownShardId, recoveredShardId)
 }
 
-func TestPeerShardMapper_ByIDShouldWrongTypeInCacheShouldReturnUnknownAndRemove(t *testing.T) {
+func TestPeerShardMapper_GetShardIDShouldWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
 
 	psm, _ := networksharding.NewPeerShardMapper(
@@ -503,14 +499,12 @@ func TestPeerShardMapper_ByIDShouldWrongTypeInCacheShouldReturnUnknownAndRemove(
 	wrongTypeShardId := "shard 4"
 	psm.FallbackPidShard().Put([]byte(pid), wrongTypeShardId)
 
-	recoveredShardId := psm.ByID(pid)
+	recoveredShardId := psm.GetShardID(pid)
 
 	assert.Equal(t, core.UnknownShardId, recoveredShardId)
-	_, ok := psm.FallbackPidShard().Get([]byte(pid))
-	assert.False(t, ok)
 }
 
-func TestPeerShardMapper_ByIDShouldWorkConcurrently(t *testing.T) {
+func TestPeerShardMapper_GetShardIDShouldWorkConcurrently(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(445)
@@ -535,7 +529,7 @@ func TestPeerShardMapper_ByIDShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numUpdates)
 	for i := 0; i < numUpdates; i++ {
 		go func() {
-			recoveredShardId := psm.ByID(pid)
+			recoveredShardId := psm.GetShardID(pid)
 			assert.Equal(t, shardId, recoveredShardId)
 
 			wg.Done()
