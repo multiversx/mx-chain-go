@@ -1871,17 +1871,17 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
 	gasHandler, err := preprocess.NewGasComputation(economics)
 	if err != nil {
 		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2100,17 +2100,17 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
 	gasHandler, err := preprocess.NewGasComputation(economicsData)
 	if err != nil {
 		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2193,7 +2193,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData.MaxGasLimitPerBlock())
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData)
 	if err != nil {
 		return nil, err
 	}

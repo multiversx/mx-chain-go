@@ -189,9 +189,6 @@ const MetricNumValidators = "erd_metric_num_validators"
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
-//MetricCommunityPercentage is the metric for community rewards percentage
-const MetricCommunityPercentage = "erd_metric_community_percentage"
-
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
 
@@ -209,6 +206,12 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MetricMinGasPrice is the metric that specifies min gas price
+const MetricMinGasPrice = "erd_min_gas_price"
+
+// MetricChainId is the metric that specifies current chain id
+const MetricChainId = "erd_chain_id"
 
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
