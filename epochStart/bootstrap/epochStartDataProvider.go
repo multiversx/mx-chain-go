@@ -306,7 +306,7 @@ func (esdp *epochStartDataProvider) getCurrentEpochStartData(
 ) (*block.EpochStartShardData, error) {
 	shardID := shardCoordinator.SelfId()
 	for _, epochStartData := range metaBlock.EpochStart.LastFinalizedHeaders {
-		if epochStartData.ShardId == shardID {
+		if epochStartData.ShardID == shardID {
 			return &epochStartData, nil
 		}
 	}
@@ -428,11 +428,11 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	if shardID == core.MetachainShardId {
 		for _, entry := range metaBlock.EpochStart.LastFinalizedHeaders {
 			var hdr *block.Header
-			hdr, err := esdp.getShardHeader(entry.HeaderHash, entry.ShardId)
+			hdr, err := esdp.getShardHeader(entry.HeaderHash, entry.ShardID)
 			if err != nil {
 				return nil, err
 			}
-			headersMap[entry.ShardId] = hdr
+			headersMap[entry.ShardID] = hdr
 		}
 
 		return headersMap, nil
@@ -440,7 +440,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 
 	var entryForShard *block.EpochStartShardData
 	for _, entry := range metaBlock.EpochStart.LastFinalizedHeaders {
-		if entry.ShardId == shardID {
+		if entry.ShardID == shardID {
 			entryForShard = &entry
 		}
 	}
@@ -451,7 +451,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 
 	hdr, err := esdp.getShardHeader(
 		entryForShard.HeaderHash,
-		entryForShard.ShardId,
+		entryForShard.ShardID,
 	)
 	if err != nil {
 		return nil, err

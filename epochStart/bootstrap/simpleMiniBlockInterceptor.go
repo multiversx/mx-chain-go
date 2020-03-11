@@ -48,7 +48,7 @@ func (s *simpleMiniBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 		return err
 	}
 	s.mutReceivedMiniBlocks.Lock()
-	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
+	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedMiniBlocks.Unlock()
 		return err

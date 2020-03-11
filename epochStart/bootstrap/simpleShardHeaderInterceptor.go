@@ -47,7 +47,7 @@ func (s *simpleShardHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 		return err
 	}
 	s.mutReceivedShardHeaders.Lock()
-	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
+	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedShardHeaders.Unlock()
 		return err

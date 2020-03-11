@@ -220,16 +220,24 @@ func TestStop_MessengerCloseErrors(t *testing.T) {
 
 func TestStop(t *testing.T) {
 
+	messengerCloseWasCalled := false
+
+	messenger := getMessenger()
+	messenger.CloseCalled = func() error {
+		messengerCloseWasCalled = true
+		return nil
+	}
 	n, _ := node.NewNode(
 		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
+		node.WithMessenger(messenger),
 	)
 	n.Start()
 
 	err := n.Stop()
 	assert.Nil(t, err)
-	assert.False(t, n.IsRunning())
+	assert.True(t, messengerCloseWasCalled)
 }
 
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {

@@ -564,7 +564,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(3 * time.Second)
 
-	marshalizer := &marshal.JsonMarshalizer{}
+	// TODO : get marshalizer and hasher based on config and maybe move the functions for extracting these 2 in the core package
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 	hasher := &blake2b.Blake2b{}
 	epochStartComponentArgs := factory2.EpochStartDataProviderFactoryArgs{
 		PubKey:                pubKey,

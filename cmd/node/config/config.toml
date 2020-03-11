@@ -241,8 +241,8 @@
 [MultisigHasher]
    Type = "blake2b"
 
-# The main marshalizer, used in internod communication
-# Type idenftifies the marshalizer
+# The main marshalizer, used in internodes communication
+# Type identifies the marshalizer
 # SizeCheckDelta the maximum allow drift between the input data buffer and
 #     the reencoded version (in percents).
 #     0 disables the feature.
@@ -250,11 +250,11 @@
    Type = "protobuf"
    SizeCheckDelta = 0
 
-# The marshalizer used for smartcontracts data exchage
+# The marshalizer used for smartcontracts data exchange
 [VmMarshalizer]
    Type = "json"
 
-# The marshalizer used in transction signing
+# The marshalizer used in transaction signing
 [TxSignMarshalizer]
    Type = "json"
 

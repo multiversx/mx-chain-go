@@ -50,7 +50,7 @@ func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2
 		return err
 	}
 	s.mutReceivedMetaBlocks.Lock()
-	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
+	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedMetaBlocks.Unlock()
 		return err
