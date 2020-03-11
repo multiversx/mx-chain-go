@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -462,7 +463,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
-	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
 	go syncer.StartSync()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
@@ -641,7 +642,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -757,14 +758,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	//if isFreshStart {
-	//	log.Trace("creating network components")
-	//	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, coreComponents.Hasher)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-
 	log.Trace("creating tps benchmark components")
 	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
 	if err != nil {
@@ -778,7 +771,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.Marshalizer,
+			coreComponents.ProtoMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -822,7 +815,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		0,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
-		generalConfig.StateTrieConfig.RoundsModulus,
+		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
@@ -884,12 +877,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.Marshalizer,
+		coreComponents.ProtoMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
+		cryptoComponents.MessageSignVerifier,
 	)
 	if err != nil {
 		return err
@@ -929,9 +923,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("starting node...")
-	err = ef.StartNode(currentEpoch)
+	err = ef.StartNode()
 	if err != nil {
-		log.Error("starting node failed", err.Error())
+		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
 		return err
 	}
 
@@ -1081,8 +1075,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
-	cfg := &config.ConfigEconomics{}
+func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
+	cfg := &config.EconomicsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1166,7 +1160,7 @@ func createShardCoordinator(
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	prefsConfig config.PreferencesConfig,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartNotifier epochStart.RegistrationHandler,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
@@ -1219,7 +1213,7 @@ func createNodesCoordinator(
 		ListIndexUpdater:        ratingAndListIndexHandler,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartNotifier,
 		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                nbShards,
@@ -1338,7 +1332,7 @@ func createNode(
 	version string,
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartRegistrationHandler epochStart.RegistrationHandler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1348,7 +1342,9 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithMarshalizer(coreData.Marshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithVmMarshalizer(coreData.VmMarshalizer),
+		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
@@ -1380,7 +1376,7 @@ func createNode(
 		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
@@ -1509,6 +1505,7 @@ func createApiResolver(
 	statusMetrics external.StatusMetricsHandler,
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
+	messageSigVerifier vm.MessageSignVerifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1524,7 +1521,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
 		if err != nil {
 			return nil, err
 		}

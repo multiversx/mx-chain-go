@@ -3,6 +3,8 @@ package coordinator
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,13 +24,13 @@ func NewTxTypeHandler(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*txTypeHandler, error) {
-	if adrConv == nil {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if shardCoordinator == nil {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 
@@ -61,16 +63,16 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
-	acntDst, err := tth.getAccountFromAddress(tx.GetRecvAddress())
+	acntDst, err := tth.getAccountFromAddress(tx.GetRcvAddr())
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
 
-	if acntDst == nil {
+	if check.IfNil(acntDst) {
 		return process.MoveBalance, nil
 	}
 
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 && len(tx.GetData()) > 0 {
+	if len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		return process.SCInvoking, nil
 	}
 
@@ -78,7 +80,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, tth.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
@@ -103,11 +105,11 @@ func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHa
 }
 
 func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}

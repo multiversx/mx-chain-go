@@ -83,6 +83,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		CrossNotarizer:                crossNotarizer,
 		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		Rounder:                       arguments.Rounder,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

@@ -72,10 +72,9 @@ func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 }
 
 // StartNode starts the underlying node
-func (ef *ElrondNodeFacade) StartNode(epoch uint32) error {
+func (ef *ElrondNodeFacade) StartNode() error {
 	ef.node.Start()
-	err := ef.node.StartConsensus(epoch)
-	return err
+	return ef.node.StartConsensus()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
@@ -140,7 +139,6 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	txData []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
-
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex)
 }
 

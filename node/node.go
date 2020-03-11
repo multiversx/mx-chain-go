@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -58,29 +59,31 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	marshalizer              marshal.Marshalizer
-	ctx                      context.Context
-	hasher                   hashing.Hasher
-	feeHandler               process.FeeHandler
-	initialNodesPubkeys      map[uint32][]string
-	roundDuration            uint64
-	consensusGroupSize       int
-	messenger                P2PMessenger
-	syncTimer                ntp.SyncTimer
-	rounder                  consensus.Rounder
-	blockProcessor           process.BlockProcessor
-	genesisTime              time.Time
-	epochStartTrigger        epochStart.TriggerHandler
-	epochStartSubscriber     epochStart.EpochStartSubscriber
-	accounts                 state.AccountsAdapter
-	addrConverter            state.AddressConverter
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer    process.InterceptorsContainer
-	resolversFinder          dataRetriever.ResolversFinder
-	heartbeatMonitor         *heartbeat.Monitor
-	heartbeatSender          *heartbeat.Sender
-	appStatusHandler         core.AppStatusHandler
-	validatorStatistics      process.ValidatorStatisticsProcessor
+	protoMarshalizer         marshal.Marshalizer
+	vmMarshalizer            marshal.Marshalizer
+	txSignMarshalizer                   marshal.Marshalizer
+	ctx                           context.Context
+	hasher                        hashing.Hasher
+	feeHandler                    process.FeeHandler
+	initialNodesPubkeys           map[uint32][]string
+	roundDuration                 uint64
+	consensusGroupSize            int
+	messenger                     P2PMessenger
+	syncTimer                     ntp.SyncTimer
+	rounder                       consensus.Rounder
+	blockProcessor                process.BlockProcessor
+	genesisTime                   time.Time
+	epochStartTrigger             epochStart.TriggerHandler
+	epochStartRegistrationHandler epochStart.RegistrationHandler
+	accounts                      state.AccountsAdapter
+	addrConverter                 state.AddressConverter
+	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
+	interceptorsContainer         process.InterceptorsContainer
+	resolversFinder               dataRetriever.ResolversFinder
+	heartbeatMonitor              *heartbeat.Monitor
+	heartbeatSender               *heartbeat.Sender
+	appStatusHandler              core.AppStatusHandler
+	validatorStatistics           process.ValidatorStatisticsProcessor
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -225,9 +228,9 @@ func (n *Node) CreateShardedStores() error {
 }
 
 // StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus(epoch uint32) error {
-	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
-		n.blkc.GetGenesisHeader() == nil
+func (n *Node) StartConsensus() error {
+	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
+		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
 		return ErrGenesisBlockNotInitialized
 	}
@@ -248,6 +251,12 @@ func (n *Node) StartConsensus(epoch uint32) error {
 	}
 
 	bootstrapper.StartSync()
+	epoch := uint32(0)
+	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(crtBlockHeader) {
+		epoch = crtBlockHeader.GetEpoch()
+	}
+	log.Info("starting consensus", "epoch", epoch)
 
 	consensusState, err := n.createConsensusState(epoch)
 	if err != nil {
@@ -260,7 +269,7 @@ func (n *Node) StartConsensus(epoch uint32) error {
 	}
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
-		n.marshalizer,
+		n.protoMarshalizer,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
@@ -270,9 +279,9 @@ func (n *Node) StartConsensus(epoch uint32) error {
 		return err
 	}
 
-	netInputMarshalizer := n.marshalizer
+	netInputMarshalizer := n.protoMarshalizer
 	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.protoMarshalizer, n.sizeCheckDelta)
 	}
 
 	worker, err := spos.NewWorker(
@@ -304,21 +313,21 @@ func (n *Node) StartConsensus(epoch uint32) error {
 	}
 
 	consensusArgs := &spos.ConsensusCoreArgs{
-		BlockChain:           n.blkc,
-		BlockProcessor:       n.blockProcessor,
-		Bootstrapper:         bootstrapper,
-		BroadcastMessenger:   broadcastMessenger,
-		ChronologyHandler:    chronologyHandler,
-		Hasher:               n.hasher,
-		Marshalizer:          n.marshalizer,
-		BlsPrivateKey:        n.privKey,
-		BlsSingleSigner:      n.singleSigner,
-		MultiSigner:          n.multiSigner,
-		Rounder:              n.rounder,
-		ShardCoordinator:     n.shardCoordinator,
-		NodesCoordinator:     n.nodesCoordinator,
-		SyncTimer:            n.syncTimer,
-		EpochStartSubscriber: n.epochStartSubscriber,
+		BlockChain:                    n.blkc,
+		BlockProcessor:                n.blockProcessor,
+		Bootstrapper:                  bootstrapper,
+		BroadcastMessenger:            broadcastMessenger,
+		ChronologyHandler:             chronologyHandler,
+		Hasher:                        n.hasher,
+		Marshalizer:                   n.protoMarshalizer,
+		BlsPrivateKey:                 n.privKey,
+		BlsSingleSigner:               n.singleSigner,
+		MultiSigner:                   n.multiSigner,
+		Rounder:                       n.rounder,
+		ShardCoordinator:              n.shardCoordinator,
+		NodesCoordinator:              n.nodesCoordinator,
+		SyncTimer:                     n.syncTimer,
+		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -412,18 +421,13 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	if err != nil {
-		return nil, err
-	}
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
 		ChainHandler:        n.blkc,
-		Marshalizer:         n.marshalizer,
+		Marshalizer:         n.protoMarshalizer,
 		Store:               n.store,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
@@ -460,11 +464,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BlockProcessor:      n.blockProcessor,
 		WaitTime:            n.rounder.TimeDuration(),
 		Hasher:              n.hasher,
-		Marshalizer:         n.marshalizer,
+		Marshalizer:         n.protoMarshalizer,
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            accountsWrapper,
+		Accounts:            n.accounts,
 		BlackListHandler:    n.blackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
@@ -487,17 +491,13 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	//TODO: Analyze if should be created accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
-	//to be used instead n.accounts as a parameter for sync.ArgBaseBootstrapper, exactly as it is done in method
-	//createShardBootstrapper
-
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
 		ChainHandler:        n.blkc,
-		Marshalizer:         n.marshalizer,
+		Marshalizer:         n.protoMarshalizer,
 		Store:               n.store,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
@@ -535,7 +535,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BlockProcessor:      n.blockProcessor,
 		WaitTime:            n.rounder.TimeDuration(),
 		Hasher:              n.hasher,
-		Marshalizer:         n.marshalizer,
+		Marshalizer:         n.protoMarshalizer,
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
@@ -652,7 +652,7 @@ func (n *Node) SendTransaction(
 
 	tx := transaction.Transaction{
 		Nonce:     nonce,
-		Value:     valAsBigInt,
+		Value:     new(big.Int).Set(valAsBigInt),
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
@@ -666,14 +666,14 @@ func (n *Node) SendTransaction(
 		return "", err
 	}
 
-	txBuff, err := n.marshalizer.Marshal(&tx)
+	txBuff, err := n.protoMarshalizer.Marshal(&tx)
 	if err != nil {
 		return "", err
 	}
 
 	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
 
-	marshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
+	marshalizedTx, err := n.protoMarshalizer.Marshal(batch.New(txBuff))
 	if err != nil {
 		return "", errors.New("could not marshal transaction")
 	}
@@ -705,7 +705,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 		}
 
 		senderShardId := n.shardCoordinator.ComputeId(senderBytes)
-		marshalizedTx, err := n.marshalizer.Marshal(tx)
+		marshalizedTx, err := n.protoMarshalizer.Marshal(tx)
 		if err != nil {
 			continue
 		}
@@ -737,14 +737,15 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 		return nil
 	}
 
-	marshalizedTx, err := n.marshalizer.Marshal(tx)
+	marshalizedTx, err := n.protoMarshalizer.Marshal(tx)
 	if err != nil {
 		return err
 	}
 
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
-		n.marshalizer,
+		n.protoMarshalizer,
+		n.txSignMarshalizer,
 		n.hasher,
 		n.keyGenForAccounts,
 		n.txSingleSigner,
@@ -765,7 +766,7 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.protoMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -805,7 +806,7 @@ func (n *Node) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data []byte,
+	dataField []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
 
@@ -844,7 +845,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      data,
+		Data:      dataField,
 		Signature: signatureBytes,
 	}, nil
 }
@@ -872,10 +873,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return &state.Account{
-				Balance:  big.NewInt(0),
-				Nonce:    0,
-				RootHash: nil,
-				CodeHash: nil,
+				AccountData: state.AccountData{
+					Nonce:    0,
+					Balance:  big.NewInt(0),
+					RootHash: nil,
+					CodeHash: nil,
+				},
 			}, nil
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
@@ -911,7 +914,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartSubscriber)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
 	if err != nil {
 		return err
 	}
@@ -920,7 +923,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.messenger,
 		n.singleSigner,
 		n.privKey,
-		n.marshalizer,
+		n.protoMarshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
 		peerTypeProvider,
@@ -937,21 +940,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
-		n.marshalizer)
+		n.protoMarshalizer)
 	if err != nil {
 		return err
 	}
 
-	//n.nodesCoordinator
-	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.protoMarshalizer)
 	if err != nil {
 		return err
 	}
 
 	timer := &heartbeat.RealTimer{}
-	netInputMarshalizer := n.marshalizer
+	netInputMarshalizer := n.protoMarshalizer
 	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.protoMarshalizer, n.sizeCheckDelta)
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		netInputMarshalizer,

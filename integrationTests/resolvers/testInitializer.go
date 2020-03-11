@@ -40,20 +40,33 @@ func createResolverRequester(
 
 func createShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.Header{
-		Nonce:            nonce,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          chainID,
+		Nonce:        nonce,
+		PrevHash:     []byte("prev hash"),
+		PrevRandSeed: []byte("prev rand seed"),
+		RandSeed:     []byte("rand seed"),
+		PubKeysBitmap: []byte{
+			255,
+			0,
+		},
+		TimeStamp:       uint64(time.Now().Unix()),
+		Round:           1,
+		Signature:       []byte("signature"),
+		LeaderSignature: nil,
+		RootHash: []byte{
+			255,
+			255,
+		},
+		ValidatorStatsRootHash: nil,
+		MetaBlockHashes:        nil,
+		EpochStartMetaHash:     nil,
+		ReceiptsHash:           nil,
+		ChainID:                chainID,
+		MiniBlockHeaders:       make([]block.MiniBlockHeader, 0),
+		PeerChanges:            nil,
+		Epoch:                  2,
+		TxCount:                0,
+		ShardID:                0,
+		BlockBodyType:          block.TxBlock,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)
@@ -67,7 +80,6 @@ func createMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 		Nonce:         nonce,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
-		PeerInfo:      make([]block.PeerData, 0),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte{1},
 		PrevHash:      []byte("prev hash"),
@@ -99,13 +111,12 @@ func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	return miniblock, hash
 }
 
-func createReward(round uint64, shardId uint32) (data.TransactionHandler, []byte) {
+func createReward(round uint64) (data.TransactionHandler, []byte) {
 	reward := &rewardTx.RewardTx{
 		Round:   round,
 		Epoch:   0,
 		Value:   big.NewInt(1),
 		RcvAddr: make([]byte, integrationTests.TestHasher.Size()),
-		ShardId: shardId,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)

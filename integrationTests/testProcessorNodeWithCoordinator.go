@@ -3,7 +3,7 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -11,6 +11,7 @@ import (
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -196,7 +197,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
 	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := &blake2b.Blake2b{HashSize: factory.BlsHashSize}
+	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)
 	kp := ncp[nodeShardId][keyIndex]

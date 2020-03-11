@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -43,7 +44,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
-	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
+	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -174,12 +175,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
-	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
+	if check.IfNil(sr.indexer) {
 		return
 	}
 
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	if check.IfNil(currentHeader) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
 	}
 
@@ -205,9 +206,9 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	if check.IfNil(currentHeader) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
-		if currentHeader == nil {
+		if check.IfNil(currentHeader) {
 			return spos.ErrNilHeader
 		}
 	}

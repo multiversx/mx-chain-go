@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. metaBlock.proto
 package block
 
 import (
@@ -10,195 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// PeerAction type represents the possible events that a node can trigger for the metachain to notarize
-type PeerAction uint8
-
-// Constants mapping the actions that a node can take
-const (
-	PeerRegistration PeerAction = iota + 1
-	PeerUnstaking
-	PeerDeregistration
-	PeerJailed
-	PeerUnJailed
-	PeerSlashed
-	PeerReStake
-)
-
-func (pa PeerAction) String() string {
-	switch pa {
-	case PeerRegistration:
-		return "PeerRegistration"
-	case PeerUnstaking:
-		return "PeerUnstaking"
-	case PeerDeregistration:
-		return "PeerDeregistration"
-	case PeerJailed:
-		return "PeerJailed"
-	case PeerUnJailed:
-		return "PeerUnjailed"
-	case PeerSlashed:
-		return "PeerSlashed"
-	case PeerReStake:
-		return "PeerReStake"
-	default:
-		return fmt.Sprintf("Unknown type (%d)", pa)
-	}
-}
-
-// PeerData holds information about actions taken by a peer:
-//  - a peer can register with an amount to become a validator
-//  - a peer can choose to deregister and get back the deposited value
-type PeerData struct {
-	Address     []byte
-	PublicKey   []byte
-	Action      PeerAction
-	TimeStamp   uint64
-	ValueChange *big.Int
-}
-
-// ShardMiniBlockHeader holds data for one shard miniblock header
-type ShardMiniBlockHeader struct {
-	Hash            []byte
-	ReceiverShardID uint32
-	SenderShardID   uint32
-	TxCount         uint32
-}
-
-// ShardData holds the block information sent by the shards to the metachain
-type ShardData struct {
-	HeaderHash            []byte
-	ShardMiniBlockHeaders []ShardMiniBlockHeader
-	PrevRandSeed          []byte
-	PubKeysBitmap         []byte
-	Signature             []byte
-	Round                 uint64
-	PrevHash              []byte
-	Nonce                 uint64
-	NumPendingMiniBlocks  uint32
-	ShardID               uint32
-	TxCount               uint32
-}
-
-// EpochStartShardData hold the last finalized headers hash and state root hash
-type EpochStartShardData struct {
-	ShardId                 uint32
-	HeaderHash              []byte
-	RootHash                []byte
-	FirstPendingMetaBlock   []byte
-	LastFinishedMetaBlock   []byte
-	PendingMiniBlockHeaders []ShardMiniBlockHeader
-}
-
-// EpochStart holds the block information for end-of-epoch
-type EpochStart struct {
-	LastFinalizedHeaders []EpochStartShardData
-}
-
-// MetaBlock holds the data that will be saved to the metachain each round
-type MetaBlock struct {
-	Nonce                  uint64
-	Round                  uint64
-	TimeStamp              uint64
-	ShardInfo              []ShardData
-	PeerInfo               []PeerData
-	Signature              []byte
-	LeaderSignature        []byte
-	PubKeysBitmap          []byte
-	PrevHash               []byte
-	PrevRandSeed           []byte
-	RandSeed               []byte
-	RootHash               []byte
-	ValidatorStatsRootHash []byte
-	MiniBlockHeaders       []MiniBlockHeader
-	ReceiptsHash           []byte
-	EpochStart             EpochStart
-	ChainID                []byte
-	Epoch                  uint32
-	TxCount                uint32
-}
+// don't break the interface
+var _ = data.HeaderHandler(&MetaBlock{})
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
 	return core.MetachainShardId
-}
-
-// GetNonce return header nonce
-func (m *MetaBlock) GetNonce() uint64 {
-	return m.Nonce
-}
-
-// GetEpoch return header epoch
-func (m *MetaBlock) GetEpoch() uint32 {
-	return m.Epoch
-}
-
-// GetRound return round from header
-func (m *MetaBlock) GetRound() uint64 {
-	return m.Round
-}
-
-// GetTimeStamp returns the time stamp
-func (m *MetaBlock) GetTimeStamp() uint64 {
-	return m.TimeStamp
-}
-
-// GetRootHash returns the roothash from header
-func (m *MetaBlock) GetRootHash() []byte {
-	return m.RootHash
-}
-
-// GetValidatorStatsRootHash returns the root hash for the validator statistics trie at this current block
-func (m *MetaBlock) GetValidatorStatsRootHash() []byte {
-	return m.ValidatorStatsRootHash
-}
-
-// GetPrevHash returns previous block header hash
-func (m *MetaBlock) GetPrevHash() []byte {
-	return m.PrevHash
-}
-
-// GetPrevRandSeed gets the previous random seed
-func (m *MetaBlock) GetPrevRandSeed() []byte {
-	return m.PrevRandSeed
-}
-
-// GetRandSeed gets the current random seed
-func (m *MetaBlock) GetRandSeed() []byte {
-	return m.RandSeed
-}
-
-// GetPubKeysBitmap return signers bitmap
-func (m *MetaBlock) GetPubKeysBitmap() []byte {
-	return m.PubKeysBitmap
-}
-
-// GetSignature return signed data
-func (m *MetaBlock) GetSignature() []byte {
-	return m.Signature
-}
-
-// GetLeaderSignature returns the signature of the leader
-func (m *MetaBlock) GetLeaderSignature() []byte {
-	return m.LeaderSignature
-}
-
-// GetChainID gets the chain ID on which this block is valid on
-func (m *MetaBlock) GetChainID() []byte {
-	return m.ChainID
-}
-
-// GetTxCount returns transaction count in the current meta block
-func (m *MetaBlock) GetTxCount() uint32 {
-	return m.TxCount
-}
-
-// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
-func (m *MetaBlock) GetReceiptsHash() []byte {
-	return m.ReceiptsHash
-}
-
-// SetShardID sets header shard ID
-func (m *MetaBlock) SetShardID(_ uint32) {
 }
 
 // SetNonce sets header nonce
@@ -261,6 +79,11 @@ func (m *MetaBlock) SetChainID(chainID []byte) {
 	m.ChainID = chainID
 }
 
+// SetAccumulatedFees sets the accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	m.AccumulatedFees.Set(value)
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
@@ -269,6 +92,10 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 // SetTxCount sets the transaction count of the current meta block
 func (m *MetaBlock) SetTxCount(txCount uint32) {
 	m.TxCount = txCount
+}
+
+// SetShardID sets header shard ID
+func (m *MetaBlock) SetShardID(_ uint32) {
 }
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
@@ -310,7 +137,6 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(m.PeerInfo)
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)

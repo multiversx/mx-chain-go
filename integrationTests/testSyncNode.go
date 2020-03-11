@@ -67,17 +67,12 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
-	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.NodesCoordinator,
-	)
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -118,20 +113,24 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = tpn.AccntState
+	accountsDb[state.PeerAccountsState] = tpn.PeerState
+
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:                     tpn.AccntState,
+		AccountsDB:                   accountsDb,
 		ForkDetector:                 nil,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		Store:                        tpn.Storage,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		NodesCoordinator:             tpn.NodesCoordinator,
-		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		FeeHandler:                   tpn.FeeAccumulator,
 		Uint64Converter:              TestUint64Converter,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},
@@ -140,8 +139,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker: tpn.BlockTracker,
-		DataPool:     tpn.DataPool,
+		BlockTracker:           tpn.BlockTracker,
+		DataPool:               tpn.DataPool,
+		StateCheckpointModulus: stateCheckpointModulus,
+		BlockChain:   			tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -153,8 +154,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			ArgBaseProcessor:         argumentsBase,
 			SCDataGetter:             &mock.ScQueryMock{},
 			SCToProtocol:             &mock.SCToProtocolStub{},
-			PeerChangesHandler:       &mock.PeerChangesHandler{},
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:           &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:      &mock.EpochRewardsCreatorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -164,9 +167,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor:       argumentsBase,
-			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: stateCheckpointModulus,
+			ArgBaseProcessor: argumentsBase,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
@@ -178,11 +180,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
-	accountsStateWrapper, err := state.NewAccountsDbWrapperSync(tpn.AccntState)
-	if err != nil {
-		return nil, err
-	}
-
 	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -205,7 +202,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ForkDetector:        tpn.ForkDetector,
 		RequestHandler:      tpn.RequestHandler,
 		ShardCoordinator:    tpn.ShardCoordinator,
-		Accounts:            accountsStateWrapper,
+		Accounts:            tpn.AccntState,
 		BlackListHandler:    tpn.BlackListHandler,
 		NetworkWatcher:      tpn.Messenger,
 		BootStorer:          tpn.BootstrapStorer,

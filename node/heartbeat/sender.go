@@ -122,7 +122,7 @@ func (s *Sender) SendHeartbeat() error {
 
 func (s *Sender) updateMetrics(hb *Heartbeat) {
 	result := s.computePeerList(hb.Pubkey, hb.ShardID)
-	s.statusHandler.SetStringValue(core.MetricValidatorType, result)
+	s.statusHandler.SetStringValue(core.MetricPeerType, result)
 }
 
 func (s *Sender) computePeerList(pubkey []byte, shardID uint32) string {

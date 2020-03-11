@@ -109,8 +109,5 @@ func (awm *AccountWrapMock) GetNonce() uint64 {
 
 // IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
-	if awm == nil {
-		return true
-	}
-	return false
+	return awm == nil
 }

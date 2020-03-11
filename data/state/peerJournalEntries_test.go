@@ -421,3 +421,65 @@ func TestPeerJournalEntryUnStakedNonce_RevertOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, oldUnStakedNonce, accnt.UnStakedNonce)
 }
+
+func TestPeerJournalEntryAccumulatedFees_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewPeerJournalEntryAccumulatedFees(nil, big.NewInt(10))
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestPeerJournalEntryAccumulatedFees_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewPeerJournalEntryAccumulatedFees(accnt, big.NewInt(10))
+
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
+}
+
+func TestPeerJournalEntryAccumulatedFees_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldFee := big.NewInt(37)
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewPeerJournalEntryAccumulatedFees(accnt, oldFee)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, oldFee, accnt.AccumulatedFees)
+}
+
+func TestJournalEntryNumSelectedInSuccessBlocks_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewPeerJournalEntryNumSelectedInSuccessBlocks(nil, 10)
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestJournalEntryNumSelectedInSuccessBlocks_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewPeerJournalEntryNumSelectedInSuccessBlocks(accnt, 10)
+
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
+}
+
+func TestPeerJournalEntryNumSelectedInSuccessBlocks_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldNumSelected := uint32(4)
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewPeerJournalEntryNumSelectedInSuccessBlocks(accnt, oldNumSelected)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, oldNumSelected, accnt.NumSelectedInSuccessBlocks)
+}

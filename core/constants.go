@@ -204,8 +204,8 @@ const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
 
-// MetricValidatorType is the metric which tells the validator's type (in eligible list, in waiting list)
-const MetricValidatorType = "erd_validator_type"
+// MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
+const MetricPeerType = "erd_peer_type"
 
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
@@ -236,3 +236,12 @@ const MetachainShardId = uint32(0xFFFFFFFF)
 
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
+
+// BaseOperationCost represents the field name for base operation costs
+const BaseOperationCost = "BaseOperationCost"
+
+// BuiltInCost represents the field name for built in operation costs
+const BuiltInCost = "BuiltInCost"
+
+// MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
+const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"

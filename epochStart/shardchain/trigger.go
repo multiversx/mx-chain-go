@@ -3,11 +3,13 @@ package shardchain
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -32,7 +34,7 @@ type ArgsShardEpochStartTrigger struct {
 	DataPool           dataRetriever.PoolsHolder
 	Storage            dataRetriever.StorageService
 	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.EpochStartNotifier
+	EpochStartNotifier epochStart.Notifier
 
 	Epoch    uint32
 	Validity uint64
@@ -47,6 +49,7 @@ type trigger struct {
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
+	epochStartMeta              *block.MetaBlock
 
 	mutTrigger        sync.RWMutex
 	mapHashHdr        map[string]*block.MetaBlock
@@ -64,7 +67,7 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.EpochStartNotifier
+	epochStartNotifier epochStart.Notifier
 
 	epoch uint32
 
@@ -226,20 +229,32 @@ func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler
 	}
 }
 
+func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.MetaBlock) {
+	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
+		return
+	}
+	err := t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
+	if err != nil {
+		return
+	}
+
+	t.epochFinalityAttestingRound = metaHdr.GetRound()
+}
+
 // ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled only called with validated metablocks
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
-
-	if t.isEpochStart && header.GetEpoch() == t.epoch {
-		return
-	}
 
 	metaHdr, ok := header.(*block.MetaBlock)
 	if !ok {
 		return
 	}
 
+	if t.isEpochStart && header.GetEpoch() == t.epoch {
+		t.setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr)
+		return
+	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
@@ -284,6 +299,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+			t.epochStartMeta = meta
 			t.saveCurrentState(meta.GetRound())
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
@@ -443,14 +459,30 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash []byte) *block.MetaBlock {
+	lowestRound := uint64(math.MaxUint64)
+	chosenMeta := &block.MetaBlock{}
+
 	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
 	for _, hash := range metaHdrHashesWithNonce {
 		hdrWithNonce := t.mapHashHdr[hash]
-		if hdrWithNonce != nil && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
-			return hdrWithNonce
+		if check.IfNil(hdrWithNonce) {
+			continue
+		}
+		if !bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
+			continue
+		}
+
+		if lowestRound > hdrWithNonce.GetRound() {
+			lowestRound = hdrWithNonce.GetRound()
+			chosenMeta = hdrWithNonce
 		}
 	}
-	return nil
+
+	if lowestRound == uint64(math.MaxUint64) {
+		return nil
+	}
+
+	return chosenMeta
 }
 
 // call only if mutex is locked before
@@ -460,6 +492,8 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 		return nil
 	}
 
+	lowestRound := uint64(math.MaxUint64)
+	chosenMeta := &block.MetaBlock{}
 	for i, header := range headers {
 		if !bytes.Equal(header.GetPrevHash(), prevHash) {
 			continue
@@ -470,12 +504,20 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 			continue
 		}
 
+		if lowestRound > hdrWithNonce.GetRound() {
+			lowestRound = hdrWithNonce.GetRound()
+			chosenMeta = hdrWithNonce
+		}
+
 		t.mapHashHdr[string(hashes[i])] = hdrWithNonce
 		t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hashes[i]))
-		return hdrWithNonce
 	}
 
-	return nil
+	if lowestRound == uint64(math.MaxUint64) {
+		return nil
+	}
+
+	return chosenMeta
 }
 
 // call only if mutex is locked before
@@ -497,13 +539,17 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 		return nil, err
 	}
 
-	var neededHash []byte
-	err = t.marshalizer.Unmarshal(neededHash, dataHdr)
+	b := batch.Batch{}
+	err = t.marshalizer.Unmarshal(&b, dataHdr)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.getHeaderWithNonceAndHash(nonce, neededHash)
+	if len(b.Data) != 1 {
+		return nil, marshal.ErrUnmarshallingBadSize
+	}
+
+	return t.getHeaderWithNonceAndHash(nonce, b.Data[0])
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure

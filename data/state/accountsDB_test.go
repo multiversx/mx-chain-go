@@ -453,7 +453,7 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedValue := 45
+	expectedValue := int64(45)
 	adr := mock.NewAddressMock()
 	accnt := mock.NewAccountWrapMock(adr, nil)
 	accnt.MockValue = expectedValue
@@ -671,7 +671,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 
 	commitCalled := 0
 	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+	serializedAccount, _ := marsh.Marshal(&mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
@@ -791,7 +791,7 @@ func TestAccountsDB_CloseDataTriePersisterReturnsErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+	serializedAccount, _ := marsh.Marshal(&mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			return nil
@@ -853,7 +853,7 @@ func TestAccountsDB_CancelPrune(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.CancelPrune([]byte("roothash"))
+	adb.CancelPrune([]byte("roothash"), data.OldRoot)
 
 	assert.True(t, cancelPruneWasCalled)
 }
@@ -869,7 +869,7 @@ func TestAccountsDB_PruneTrie(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	err := adb.PruneTrie([]byte("roothash"))
+	err := adb.PruneTrie([]byte("roothash"), data.OldRoot)
 
 	assert.Nil(t, err)
 	assert.True(t, pruneTrieWasCalled)

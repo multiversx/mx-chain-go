@@ -21,9 +21,9 @@ type baseTxProcessor struct {
 
 func (txProc *baseTxProcessor) getAccounts(
 	adrSrc, adrDst state.AddressContainer,
-) (*state.Account, *state.Account, error) {
+) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
-	var acntSrc, acntDst *state.Account
+	var acntSrc, acntDst state.UserAccountHandler
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -43,7 +43,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntWrp.(*state.Account)
+		account, ok := acntWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -57,7 +57,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntSrcWrp.(*state.Account)
+		account, ok := acntSrcWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -71,7 +71,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntDstWrp.(*state.Account)
+		account, ok := acntDstWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -82,7 +82,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	return acntSrc, acntDst, nil
 }
 
-func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
+func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.UserAccountHandler, error) {
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
@@ -94,7 +94,12 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContain
 		return nil, err
 	}
 
-	return acnt, nil
+	userAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcc, nil
 }
 
 func (txProc *baseTxProcessor) getAddresses(

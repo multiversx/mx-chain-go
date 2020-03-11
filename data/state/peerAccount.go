@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
 package state
 
 import (
@@ -6,59 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// TimeStamp is a moment defined by epoch and round
-type TimeStamp struct {
-	Epoch uint64
-	Round uint64
-}
-
-// TimePeriod holds start and end time
-type TimePeriod struct {
-	StartTime TimeStamp
-	EndTime   TimeStamp
-}
-
-// SignRate is used to keep the number of success and failed signings
-type SignRate struct {
-	NrSuccess uint32
-	NrFailure uint32
-}
-
-// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
-type ValidatorApiResponse struct {
-	NrLeaderSuccess    uint32 `json:"nrLeaderSuccess"`
-	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
-	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
-	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
-}
-
 // PeerAccount is the struct used in serialization/deserialization
 type PeerAccount struct {
-	BLSPublicKey     []byte
-	SchnorrPublicKey []byte
-	RewardAddress    []byte
-	Stake            *big.Int
-
-	JailTime      TimePeriod
-	PastJailTimes []TimePeriod
-
-	CurrentShardId    uint32
-	NextShardId       uint32
-	NodeInWaitingList bool
-	UnStakedNonce     uint64
-
-	IndexInList int
-	List        string
-
-	ValidatorSuccessRate SignRate
-	LeaderSuccessRate    SignRate
-
-	CodeHash []byte
-
-	Rating     uint32
-	TempRating uint32
-	RootHash   []byte
-	Nonce      uint64
+	PeerAccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -79,7 +30,10 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
-		Stake:            big.NewInt(0),
+		PeerAccountData: PeerAccountData{
+			AccumulatedFees: big.NewInt(0),
+			Stake:           big.NewInt(0),
+		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
@@ -324,6 +278,19 @@ func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
+// IncreaseNumSelectedInSuccessBlocks increases the counter for number of selection in successful blocks
+func (pa *PeerAccount) IncreaseNumSelectedInSuccessBlocks() error {
+	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.NumSelectedInSuccessBlocks += 1
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
 func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
@@ -334,6 +301,84 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 
 	pa.accountTracker.Journalize(entry)
 	pa.ValidatorSuccessRate.NrFailure += value
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
+// AddToAccumulatedFees increases the account's accumulated fees
+func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
+	if value.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	if err != nil {
+		return err
+	}
+
+	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
+	pa.accountTracker.Journalize(entry)
+	pa.AccumulatedFees = newAccumulatedFees
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
+// ResetAtNewEpoch will reset a set of values after changing epoch
+func (pa *PeerAccount) ResetAtNewEpoch() error {
+	entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
+	if err != nil {
+		return err
+	}
+
+	newAccumulatedFees := big.NewInt(0)
+	pa.accountTracker.Journalize(entryAccFee)
+	pa.AccumulatedFees = newAccumulatedFees
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	err = pa.SetRatingWithJournal(pa.GetTempRating())
+	if err != nil {
+		return err
+	}
+
+	entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entryLeaderRate)
+	pa.LeaderSuccessRate.NrFailure = 0
+	pa.LeaderSuccessRate.NrSuccess = 0
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entryValidatorRate)
+	pa.ValidatorSuccessRate.NrSuccess = 0
+	pa.ValidatorSuccessRate.NrFailure = 0
+
+	err = pa.accountTracker.SaveAccount(pa)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.NumSelectedInSuccessBlocks = 0
 
 	return pa.accountTracker.SaveAccount(pa)
 }
@@ -372,13 +417,14 @@ func (pa *PeerAccount) GetRating() uint32 {
 }
 
 // SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
-func (pa *PeerAccount) SetListAndIndexWithJournal(list string, index int) error {
-	entry, err := NewPeerJournalEntryListIndex(pa, pa.List, pa.IndexInList)
+func (pa *PeerAccount) SetListAndIndexWithJournal(shardID uint32, list string, index int32) error {
+	entry, err := NewPeerJournalEntryListIndex(pa, pa.CurrentShardId, pa.List, pa.IndexInList)
 	if err != nil {
 		return err
 	}
 
 	pa.accountTracker.Journalize(entry)
+	pa.CurrentShardId = shardID
 	pa.List = list
 	pa.IndexInList = index
 

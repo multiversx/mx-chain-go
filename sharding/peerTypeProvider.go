@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
@@ -24,7 +25,7 @@ type PeerTypeProvider struct {
 func NewPeerTypeProvider(
 	nodesCoordinator NodesCoordinator,
 	epochHandler EpochHandler,
-	subscriber EpochStartSubscriber,
+	epochStartNotifier EpochStartEventNotifier,
 ) (*PeerTypeProvider, error) {
 	if check.IfNil(nodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
@@ -45,7 +46,7 @@ func NewPeerTypeProvider(
 		return nil, err
 	}
 
-	ptp.registerHandler(subscriber)
+	epochStartNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
 	return ptp, nil
 }
@@ -83,9 +84,9 @@ func (ptp *PeerTypeProvider) populateCache(epoch uint32) error {
 
 // ComputeForPubKey returns the peer type for a given public key and shard id
 func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte, shardID uint32) (core.PeerType, error) {
-	ptp.mutCache.Lock()
+	ptp.mutCache.RLock()
 	peerType, ok := ptp.cache[string(pubKey)]
-	ptp.mutCache.Unlock()
+	ptp.mutCache.RUnlock()
 	if ok {
 		return peerType, nil
 	}
@@ -128,7 +129,7 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte, shardID uint32) (cor
 	return peerType, nil
 }
 
-func (ptp *PeerTypeProvider) registerHandler(handler EpochStartSubscriber) {
+func (ptp *PeerTypeProvider) epochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		err := ptp.populateCache(hdr.GetEpoch())
 		if err != nil {
@@ -136,7 +137,7 @@ func (ptp *PeerTypeProvider) registerHandler(handler EpochStartSubscriber) {
 		}
 	}, func(_ data.HeaderHandler) {})
 
-	handler.RegisterHandler(subscribeHandler)
+	return subscribeHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

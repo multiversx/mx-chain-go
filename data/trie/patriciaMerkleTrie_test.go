@@ -37,7 +37,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -208,7 +208,8 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof(proof, []byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.Nil(t, err)
 	assert.True(t, ok)
 }
 

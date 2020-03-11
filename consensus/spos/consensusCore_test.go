@@ -12,21 +12,21 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	consensusCoreMock := mock.InitConsensusCore()
 
 	args := &spos.ConsensusCoreArgs{
-		BlockChain:           consensusCoreMock.Blockchain(),
-		BlockProcessor:       consensusCoreMock.BlockProcessor(),
-		Bootstrapper:         consensusCoreMock.BootStrapper(),
-		BroadcastMessenger:   consensusCoreMock.BroadcastMessenger(),
-		ChronologyHandler:    consensusCoreMock.Chronology(),
-		Hasher:               consensusCoreMock.Hasher(),
-		Marshalizer:          consensusCoreMock.Marshalizer(),
-		BlsPrivateKey:        consensusCoreMock.PrivateKey(),
-		BlsSingleSigner:      consensusCoreMock.SingleSigner(),
-		MultiSigner:          consensusCoreMock.MultiSigner(),
-		Rounder:              consensusCoreMock.Rounder(),
-		ShardCoordinator:     consensusCoreMock.ShardCoordinator(),
-		NodesCoordinator:     consensusCoreMock.NodesCoordinator(),
-		SyncTimer:            consensusCoreMock.SyncTimer(),
-		EpochStartSubscriber: consensusCoreMock.EpochStartSubscriber(),
+		BlockChain:                    consensusCoreMock.Blockchain(),
+		BlockProcessor:                consensusCoreMock.BlockProcessor(),
+		Bootstrapper:                  consensusCoreMock.BootStrapper(),
+		BroadcastMessenger:            consensusCoreMock.BroadcastMessenger(),
+		ChronologyHandler:             consensusCoreMock.Chronology(),
+		Hasher:                        consensusCoreMock.Hasher(),
+		Marshalizer:                   consensusCoreMock.Marshalizer(),
+		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
+		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
+		MultiSigner:                   consensusCoreMock.MultiSigner(),
+		Rounder:                       consensusCoreMock.Rounder(),
+		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
+		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
+		SyncTimer:                     consensusCoreMock.SyncTimer(),
+		EpochStartRegistrationHandler: consensusCoreMock.EpochStartRegistrationHandler(),
 	}
 	return args
 }

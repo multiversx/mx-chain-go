@@ -33,6 +33,7 @@ type NodesCoordinator interface {
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
+	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
 }
 
@@ -74,7 +75,7 @@ type NodesShuffler interface {
 type PeerAccountListAndRatingHandler interface {
 	RatingReader
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, list string, index int) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
@@ -90,7 +91,7 @@ type PeerAccountListAndRatingHandler interface {
 // ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
 type ListIndexUpdaterHandler interface {
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, list string, index int) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

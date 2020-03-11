@@ -5,14 +5,35 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var _ = node(&extensionNode{})
+
+// Save saves the serialized data of an extension node into a stream through protobuf
+func (en *extensionNode) Save(w io.Writer) error {
+	b, err := en.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
+	return err
+}
+
+// Load loads the data from the stream into an extension node object through protobuf
+func (en *extensionNode) Load(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return en.Unmarshal(b)
+}
 
 func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*extensionNode, error) {
 	if check.IfNil(marshalizer) {
@@ -23,7 +44,7 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	}
 
 	return &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
+		CollapsedEn: CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
 		},

@@ -82,6 +82,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		CrossNotarizer:                crossNotarizer,
 		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		Rounder:                       arguments.Rounder,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

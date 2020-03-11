@@ -49,16 +49,18 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	//Step 1. Generate a block body
 	body := block.Body{
-		{
-			ReceiverShardID: 0,
-			SenderShardID:   0,
-			TxHashes: [][]byte{
-				hasher.Compute("tx1"),
+		MiniBlocks: []*block.MiniBlock{
+			{
+				ReceiverShardID: 0,
+				SenderShardID:   0,
+				TxHashes: [][]byte{
+					hasher.Compute("tx1"),
+				},
 			},
 		},
 	}
 
-	miniBlock := body[0]
+	miniBlock := body.MiniBlocks[0]
 	miniBlockHashes := make([][]byte, 1)
 
 	txBlockBodyBuff, _ := marshalizer.Marshal(miniBlock)

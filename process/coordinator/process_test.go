@@ -171,6 +171,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
@@ -431,19 +432,19 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 
 	separated := tc.separateBodyByType(body)
 	assert.Equal(t, 2, len(separated))
-	assert.Equal(t, 3, len(separated[block.TxBlock]))
-	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock]))
+	assert.Equal(t, 3, len(separated[block.TxBlock].MiniBlocks))
+	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
 }
 
 func createPreProcessorContainer() process.PreProcessorsContainer {
@@ -464,7 +465,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
@@ -482,7 +482,6 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
-		&mock.SpecialAddressHandlerMock{},
 		initStore(),
 		initDataPool([]byte("test_hash1")),
 		economicsData,
@@ -515,7 +514,6 @@ func createPreProcessorContainerWithDataPool(
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -620,9 +618,8 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(nil)
+	mrTxs := tc.CreateMarshalizedData(nil)
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 0, len(mrBody))
 }
 
 func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash []byte) *block.MiniBlock {
@@ -632,15 +629,15 @@ func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash 
 	return &block.MiniBlock{Type: blockType, SenderShardID: sndId, ReceiverShardID: dstId, TxHashes: txHashes}
 }
 
-func createTestBody() block.Body {
-	body := block.Body{}
+func createTestBody() *block.Body {
+	body := &block.Body{}
 
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash4")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash5")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash6")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash4")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash5")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash6")))
 
 	return body
 }
@@ -662,10 +659,8 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
+	mrTxs := tc.CreateMarshalizedData(createTestBody())
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 1, len(mrBody))
-	assert.Equal(t, len(createTestBody()), len(mrBody[1]))
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T) {
@@ -687,28 +682,28 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 	assert.NotNil(t, tc)
 
 	scrs := make([]data.TransactionHandler, 0)
-	body := block.Body{}
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
 
 	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99)}
 	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(199)}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(299)}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scrInterimProc, _ := interimContainer.Get(block.SmartContractResultBlock)
 	_ = scrInterimProc.AddIntermediateTransactions(scrs)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(body)
+	mrTxs := tc.CreateMarshalizedData(body)
 	assert.Equal(t, 1, len(mrTxs))
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -720,8 +715,6 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 
 		assert.Equal(t, unMrsScr, scrs[i])
 	}
-
-	assert.Equal(t, 1, len(mrBody))
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNilHeader(t *testing.T) {
@@ -862,7 +855,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -978,7 +970,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1421,10 +1412,10 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashInPool, txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	tc.RequestBlockTransactions(body)
 
 	tc.mutRequestedTxs.Lock()
@@ -1486,9 +1477,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 	err = tc.SaveBlockDataToStorage(nil)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 
@@ -1497,7 +1488,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
@@ -1526,9 +1517,9 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, nrTxs)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.SaveBlockDataToStorage(body)
@@ -1539,7 +1530,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
@@ -1571,9 +1562,9 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 	err = tc.RemoveBlockDataFromPool(nil)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.RemoveBlockDataFromPool(body)
@@ -1604,7 +1595,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1637,12 +1627,12 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
@@ -1656,7 +1646,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
@@ -1683,12 +1673,12 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
@@ -1702,7 +1692,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
@@ -1742,7 +1732,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
@@ -1867,7 +1856,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -1998,7 +1986,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
@@ -2067,7 +2054,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
-		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2091,18 +2077,29 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, nil)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body := block.Body{&block.MiniBlock{Type: block.TxBlock}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: block.TxBlock}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{
-		Type:            block.SmartContractResultBlock,
-		ReceiverShardID: shardCoordinator.SelfId(),
-		SenderShardID:   shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId(),
+				SenderShardID:   shardCoordinator.SelfId() + 1},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId() + 1,
+			},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
@@ -2120,7 +2117,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
-		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2194,7 +2190,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	err = interProc.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	body := block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
@@ -2233,9 +2229,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 
@@ -2278,9 +2274,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 

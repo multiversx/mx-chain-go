@@ -46,3 +46,51 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
 var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+
+// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
+var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
+
+// ErrBLSPublicKeyMissmatch signals that public keys do not match
+var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+
+// ErrKeyAlreadyRegistered signals that bls key is already registered
+var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
+
+// ErrNotEnoughArgumentsToStake signals that the arguments provided are not enough
+var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
+
+// ErrNilKeyGenerator signals that key generator is nil
+var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrSingleSigner signals that single signer is nil
+var ErrSingleSigner = errors.New("nil single signer")
+
+// ErrIncorrectConfig signals that auction config is incorrect
+var ErrIncorrectConfig = errors.New("config incorrect")
+
+// ErrNilMessageSignVerifier signals that message sign verifier is nil
+var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
+
+// ErrNilStakingSmartContractAddress signals that staking smart contract address is nil
+var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
+
+// ErrNilArgumentsParser signals that arguments parses is nil
+var ErrNilArgumentsParser = errors.New("nil arguments parser")
+
+// ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
+var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
+
+// ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
+var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
+
+// ErrNilValidatorSettings signals that validator settings is nil
+var ErrNilValidatorSettings = errors.New("nil validator settings")
+
+// ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
+var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
+
+// ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
+var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
+
+// ErrNotEnoughGas signals that there is not enough gas for execution
+var ErrNotEnoughGas = errors.New("not enough gas")

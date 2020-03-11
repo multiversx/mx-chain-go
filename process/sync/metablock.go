@@ -94,7 +94,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 		return nil, process.ErrMissingBody
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -232,7 +232,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 
 func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if blockHeader == nil {
+	if check.IfNil(blockHeader) {
 		return nil, process.ErrNilBlockHeader
 	}
 
@@ -279,7 +279,7 @@ func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.He
 		return nil, err
 	}
 
-	blockBody := block.Body(miniBlockSlice)
+	blockBody := &block.Body{MiniBlocks: miniBlockSlice}
 
 	return blockBody, nil
 }

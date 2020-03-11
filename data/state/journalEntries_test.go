@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //------- JournalEntryBalance
@@ -26,11 +27,10 @@ func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, err := state.NewJournalEntryBalance(accnt, nil)
+	entry, err := state.NewJournalEntryBalance(accnt, big.NewInt(0))
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
-
 }
 
 func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
@@ -160,4 +160,57 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, updateWasCalled)
 	assert.True(t, rootWasCalled)
+}
+
+func TestNewJournalEntryDeveloperReward(t *testing.T) {
+	t.Parallel()
+
+	jed, err := state.NewJournalEntryDeveloperReward(nil, big.NewInt(1000))
+	require.Nil(t, jed)
+	require.Equal(t, state.ErrNilAccountHandler, err)
+
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+
+	oldDevReward := big.NewInt(1000)
+	jed, err = state.NewJournalEntryDeveloperReward(accnt, oldDevReward)
+	require.Nil(t, err)
+	require.False(t, check.IfNil(jed))
+
+	accHandler, err := jed.Revert()
+	require.Nil(t, err)
+
+	acc, ok := accHandler.(*state.Account)
+	require.True(t, ok)
+	require.Equal(t, oldDevReward, acc.DeveloperReward)
+}
+
+func TestNewJournalEntryOwnerAddress_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jeoa, err := state.NewJournalEntryOwnerAddress(nil, []byte{})
+
+	assert.True(t, check.IfNil(jeoa))
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestNewJournalEntryOwnerAddress_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	jeoa, err := state.NewJournalEntryOwnerAddress(accnt, []byte{})
+
+	assert.False(t, check.IfNil(jeoa))
+	assert.Nil(t, err)
+}
+
+func TestNewJournalEntryOwnerAddress_RevertShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldOwnerAddr := []byte("addr")
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	jeoa, _ := state.NewJournalEntryOwnerAddress(accnt, oldOwnerAddr)
+
+	_, err := jeoa.Revert()
+	assert.Nil(t, err)
+	assert.Equal(t, oldOwnerAddr, accnt.OwnerAddress)
 }

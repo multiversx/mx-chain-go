@@ -26,7 +26,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Settings           *config.EpochStartConfig
 	Epoch              uint32
 	EpochStartRound    uint64
-	EpochStartNotifier epochStart.EpochStartNotifier
+	EpochStartNotifier epochStart.Notifier
 	Marshalizer        marshal.Marshalizer
 	Storage            dataRetriever.StorageService
 }
@@ -44,7 +44,7 @@ type trigger struct {
 	triggerStateKey             []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
-	epochStartNotifier          epochStart.EpochStartNotifier
+	epochStartNotifier          epochStart.Notifier
 	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer

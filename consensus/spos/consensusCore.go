@@ -15,38 +15,40 @@ import (
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
 //  for the rest of the consensus structures
 type ConsensusCore struct {
-	blockChain           data.ChainHandler
-	blockProcessor       process.BlockProcessor
-	bootstrapper         process.Bootstrapper
-	broadcastMessenger   consensus.BroadcastMessenger
-	chronologyHandler    consensus.ChronologyHandler
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	blsPrivateKey        crypto.PrivateKey
-	blsSingleSigner      crypto.SingleSigner
-	multiSigner          crypto.MultiSigner
-	rounder              consensus.Rounder
-	shardCoordinator     sharding.Coordinator
-	nodesCoordinator     sharding.NodesCoordinator
-	syncTimer            ntp.SyncTimer
-	epochStartSubscriber epochStart.EpochStartSubscriber
+	blockChain                    data.ChainHandler
+	blockProcessor                process.BlockProcessor
+	bootstrapper                  process.Bootstrapper
+	broadcastMessenger            consensus.BroadcastMessenger
+	chronologyHandler             consensus.ChronologyHandler
+	hasher                        hashing.Hasher
+	marshalizer                   marshal.Marshalizer
+	blsPrivateKey                 crypto.PrivateKey
+	blsSingleSigner               crypto.SingleSigner
+	multiSigner                   crypto.MultiSigner
+	rounder                       consensus.Rounder
+	shardCoordinator              sharding.Coordinator
+	nodesCoordinator              sharding.NodesCoordinator
+	syncTimer                     ntp.SyncTimer
+	epochStartRegistrationHandler epochStart.RegistrationHandler
 }
+
+// ConsensusCoreArgs define the arguments needed for initializing the consensus core
 type ConsensusCoreArgs struct {
-	BlockChain           data.ChainHandler
-	BlockProcessor       process.BlockProcessor
-	Bootstrapper         process.Bootstrapper
-	BroadcastMessenger   consensus.BroadcastMessenger
-	ChronologyHandler    consensus.ChronologyHandler
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	BlsPrivateKey        crypto.PrivateKey
-	BlsSingleSigner      crypto.SingleSigner
-	MultiSigner          crypto.MultiSigner
-	Rounder              consensus.Rounder
-	ShardCoordinator     sharding.Coordinator
-	NodesCoordinator     sharding.NodesCoordinator
-	SyncTimer            ntp.SyncTimer
-	EpochStartSubscriber epochStart.EpochStartSubscriber
+	BlockChain                    data.ChainHandler
+	BlockProcessor                process.BlockProcessor
+	Bootstrapper                  process.Bootstrapper
+	BroadcastMessenger            consensus.BroadcastMessenger
+	ChronologyHandler             consensus.ChronologyHandler
+	Hasher                        hashing.Hasher
+	Marshalizer                   marshal.Marshalizer
+	BlsPrivateKey                 crypto.PrivateKey
+	BlsSingleSigner               crypto.SingleSigner
+	MultiSigner                   crypto.MultiSigner
+	Rounder                       consensus.Rounder
+	ShardCoordinator              sharding.Coordinator
+	NodesCoordinator              sharding.NodesCoordinator
+	SyncTimer                     ntp.SyncTimer
+	EpochStartRegistrationHandler epochStart.RegistrationHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -55,21 +57,21 @@ func NewConsensusCore(
 ) (*ConsensusCore, error) {
 
 	consensusCore := &ConsensusCore{
-		blockChain:           args.BlockChain,
-		blockProcessor:       args.BlockProcessor,
-		bootstrapper:         args.Bootstrapper,
-		broadcastMessenger:   args.BroadcastMessenger,
-		chronologyHandler:    args.ChronologyHandler,
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		blsPrivateKey:        args.BlsPrivateKey,
-		blsSingleSigner:      args.BlsSingleSigner,
-		multiSigner:          args.MultiSigner,
-		rounder:              args.Rounder,
-		shardCoordinator:     args.ShardCoordinator,
-		nodesCoordinator:     args.NodesCoordinator,
-		syncTimer:            args.SyncTimer,
-		epochStartSubscriber: args.EpochStartSubscriber,
+		blockChain:                    args.BlockChain,
+		blockProcessor:                args.BlockProcessor,
+		bootstrapper:                  args.Bootstrapper,
+		broadcastMessenger:            args.BroadcastMessenger,
+		chronologyHandler:             args.ChronologyHandler,
+		hasher:                        args.Hasher,
+		marshalizer:                   args.Marshalizer,
+		blsPrivateKey:                 args.BlsPrivateKey,
+		blsSingleSigner:               args.BlsSingleSigner,
+		multiSigner:                   args.MultiSigner,
+		rounder:                       args.Rounder,
+		shardCoordinator:              args.ShardCoordinator,
+		nodesCoordinator:              args.NodesCoordinator,
+		syncTimer:                     args.SyncTimer,
+		epochStartRegistrationHandler: args.EpochStartRegistrationHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -140,9 +142,9 @@ func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
 	return cc.nodesCoordinator
 }
 
-// EpochStartSubscriber returns the epoch start subscriber
-func (cc *ConsensusCore) EpochStartSubscriber() epochStart.EpochStartSubscriber {
-	return cc.epochStartSubscriber
+// EpochStartRegistrationHandler returns the epoch start registration handler
+func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
+	return cc.epochStartRegistrationHandler
 }
 
 // PrivateKey returns the BLS private key stored in the ConsensusStore
@@ -157,8 +159,5 @@ func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (cc *ConsensusCore) IsInterfaceNil() bool {
-	if cc == nil {
-		return true
-	}
-	return false
+	return cc == nil
 }

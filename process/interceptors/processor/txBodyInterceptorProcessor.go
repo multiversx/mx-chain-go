@@ -65,7 +65,7 @@ func (tbip *TxBodyInterceptorProcessor) Save(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
-	for _, miniblock := range interceptedTxBody.TxBlockBody() {
+	for _, miniblock := range interceptedTxBody.TxBlockBody().MiniBlocks {
 		err := tbip.processMiniblock(miniblock)
 		if err != nil {
 			return err
@@ -111,8 +111,5 @@ func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.Int
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tbip *TxBodyInterceptorProcessor) IsInterfaceNil() bool {
-	if tbip == nil {
-		return true
-	}
-	return false
+	return tbip == nil
 }

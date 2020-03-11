@@ -117,13 +117,13 @@ func NewPeerJournalEntryStake(account *PeerAccount, oldStake *big.Int) (*PeerJou
 
 	return &PeerJournalEntryStake{
 		account:  account,
-		oldStake: oldStake,
+		oldStake: big.NewInt(0).Set(oldStake),
 	}, nil
 }
 
 // Revert applies undo operation
 func (pjes *PeerJournalEntryStake) Revert() (AccountHandler, error) {
-	pjes.account.Stake = pjes.oldStake
+	pjes.account.Stake = big.NewInt(0).Set(pjes.oldStake)
 
 	return pjes.account, nil
 }
@@ -355,18 +355,20 @@ func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
 // PeerJournalEntryListIndex is used to revert a list and index change
 type PeerJournalEntryListIndex struct {
 	account *PeerAccount
+	shardID uint32
 	list    string
-	index   int
+	index   int32
 }
 
 // NewPeerJournalEntryListIndex outputs a new PeerJournalEntryListIndex implementation used to revert a state change
-func NewPeerJournalEntryListIndex(account *PeerAccount, list string, index int) (*PeerJournalEntryListIndex, error) {
+func NewPeerJournalEntryListIndex(account *PeerAccount, shardID uint32, list string, index int32) (*PeerJournalEntryListIndex, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryListIndex{
 		account: account,
+		shardID: shardID,
 		list:    list,
 		index:   index,
 	}, nil
@@ -374,6 +376,7 @@ func NewPeerJournalEntryListIndex(account *PeerAccount, list string, index int) 
 
 // Revert applies undo operation
 func (pjeli *PeerJournalEntryListIndex) Revert() (AccountHandler, error) {
+	pjeli.account.CurrentShardId = pjeli.shardID
 	pjeli.account.List = pjeli.list
 	pjeli.account.IndexInList = pjeli.index
 
@@ -443,4 +446,66 @@ func (pjec *PeerJournalEntryUnStakedNonce) Revert() (AccountHandler, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjec *PeerJournalEntryUnStakedNonce) IsInterfaceNil() bool {
 	return pjec == nil
+}
+
+//------- PeerJournalEntryAccumulatedFee
+
+// PeerJournalEntryAccumulatedFee is used to revert an accumulated fee change
+type PeerJournalEntryAccumulatedFee struct {
+	account            *PeerAccount
+	oldAccumulatedFees *big.Int
+}
+
+// NewPeerJournalEntryAccumulatedFees outputs a new PeerJournalEntryAccumulatedFee implementation used to revert an accumulated fee change
+func NewPeerJournalEntryAccumulatedFees(account *PeerAccount, oldAccumulatedFees *big.Int) (*PeerJournalEntryAccumulatedFee, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryAccumulatedFee{
+		account:            account,
+		oldAccumulatedFees: oldAccumulatedFees,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjeaf *PeerJournalEntryAccumulatedFee) Revert() (AccountHandler, error) {
+	pjeaf.account.AccumulatedFees = pjeaf.oldAccumulatedFees
+
+	return pjeaf.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjeaf *PeerJournalEntryAccumulatedFee) IsInterfaceNil() bool {
+	return pjeaf == nil
+}
+
+// PeerJournalEntryNumSelectedInSuccessBlocks is used to revert a num selected in success block change
+type PeerJournalEntryNumSelectedInSuccessBlocks struct {
+	account        *PeerAccount
+	oldNumSelected uint32
+}
+
+// NewPeerJournalEntryNumSelectedInSuccessBlocks outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+func NewPeerJournalEntryNumSelectedInSuccessBlocks(account *PeerAccount, oldNumSelected uint32) (*PeerJournalEntryNumSelectedInSuccessBlocks, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryNumSelectedInSuccessBlocks{
+		account:        account,
+		oldNumSelected: oldNumSelected,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) Revert() (AccountHandler, error) {
+	pjen.account.NumSelectedInSuccessBlocks = pjen.oldNumSelected
+
+	return pjen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjen *PeerJournalEntryNumSelectedInSuccessBlocks) IsInterfaceNil() bool {
+	return pjen == nil
 }

@@ -184,13 +184,13 @@
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
-        Size = 75000
+        Size = 5000
         Type = "LRU"
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 45000
+        MaxBatchSize = 1000
         MaxOpenFiles = 10
 
 [HeadersPoolConfig]
@@ -241,14 +241,22 @@
 [MultisigHasher]
    Type = "blake2b"
 
-# Marshalizer configuration
+# The main marshalizer, used in internod communication
 # Type idenftifies the marshalizer
 # SizeCheckDelta the maximum allow drift between the input data buffer and
 #     the reencoded version (in percents).
 #     0 disables the feature.
 [Marshalizer]
-   Type = "json"
+   Type = "protobuf"
    SizeCheckDelta = 0
+
+# The marshalizer used for smartcontracts data exchage
+[VmMarshalizer]
+   Type = "json"
+
+# The marshalizer used in transction signing
+[TxSignMarshalizer]
+   Type = "json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
@@ -289,8 +297,10 @@
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
    Port = 123
    TimeoutMilliseconds = 100
+   SyncPeriodSeconds = 3600
    Version = 0  # Setting 0 means 'use default value'
 
-[StateTrieConfig]
-    RoundsModulus = 100
-    PruningEnabled = true
+[StateTriesConfig]
+    CheckpointRoundsModulus = 100
+    AccountsStatePruningEnabled = true
+    PeerStatePruningEnabled = true
