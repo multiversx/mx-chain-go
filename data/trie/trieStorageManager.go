@@ -29,7 +29,7 @@ type trieStorageManager struct {
 	snapshotId         int
 	snapshotDbCfg      config.DBConfig
 	snapshotsBuffer    snapshotsBuffer
-	snapshotInProgress bool
+	snapshotInProgress uint32
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -57,7 +57,7 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg config.DBConfig,
 		snapshotDbCfg:         snapshotDbCfg,
 		snapshotsBuffer:       newSnapshotsQueue(),
 		dbEvictionWaitingList: ewl,
-		snapshotInProgress:    false,
+		snapshotInProgress:    0,
 	}, nil
 }
 
@@ -124,7 +124,7 @@ func (tsm *trieStorageManager) EnterSnapshotMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.snapshotInProgress = true
+	tsm.snapshotInProgress++
 }
 
 // ExitSnapshotMode sets the snapshot mode off
@@ -132,7 +132,9 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.snapshotInProgress = false
+	if tsm.snapshotInProgress > 0 {
+		tsm.snapshotInProgress--
+	}
 
 	if tsm.snapshotsBuffer.len() == 0 {
 		keys := tsm.pruningBuffer
@@ -163,7 +165,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	defer tsm.storageOperationMutex.Unlock()
 
 	log.Trace("trie storage manager prune", "root", rootHash)
-	if tsm.snapshotInProgress || tsm.snapshotsBuffer.len() > 0 {
+	if tsm.snapshotInProgress > 0 || tsm.snapshotsBuffer.len() > 0 {
 		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
 		return nil
 	}

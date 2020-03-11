@@ -64,6 +64,8 @@ func NewTrieSyncer(
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
+	// TODO: add implementation to try to request for trie nodes for several times before returning with error
+
 	if len(rootHash) == 0 {
 		return ErrInvalidHash
 	}

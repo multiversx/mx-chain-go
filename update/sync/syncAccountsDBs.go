@@ -48,7 +48,7 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 	return st, nil
 }
 
-// SyncAccountsDBsFrom syncs all the state tries from an epoch start metachain
+// SyncTriesFrom syncs all the state tries from an epoch start metachain
 func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
 	if !meta.IsStartOfEpochBlock() {
 		return update.ErrNotEpochStartBlock
@@ -57,7 +57,10 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 	var errFound error
 	mutErr := sync.Mutex{}
 
+	st.mutSynced.Lock()
 	st.synced = false
+	st.mutSynced.Unlock()
+
 	wg := sync.WaitGroup{}
 	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
 
@@ -142,7 +145,7 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID sta
 
 	err = accountsDBSyncer.SyncAccounts(rootHash)
 	if err != nil {
-		// critical error - should not happen - maybe recreate trie syncer here
+		// TODO: critical error - should not happen - maybe recreate trie syncer here
 		return err
 	}
 
@@ -197,6 +200,9 @@ func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID sta
 
 // GetTries returns the synced tries
 func (st *syncAccountsDBs) GetTries() (map[string]data.Trie, error) {
+	st.mutSynced.Lock()
+	defer st.mutSynced.Unlock()
+
 	if !st.synced {
 		return nil, update.ErrNotSynced
 	}

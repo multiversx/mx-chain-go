@@ -29,6 +29,7 @@ const (
 	DataTrie Type = 3
 )
 
+// SupportedAccountTypes is the list to describe the possible account types in the accounts DB
 var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount, DataTrie}
 
 // AccountsDB is the struct used for accessing accounts
@@ -603,7 +604,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, 
 		}
 	}
 
-	return nil, nil
+	return allTries, nil
 }
 
 // Journalize adds a new object to entries list. Concurrent safe.

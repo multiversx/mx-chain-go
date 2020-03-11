@@ -158,3 +158,6 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrInvalidWaitTime signals that invalid wait time has been provided
 var ErrInvalidWaitTime = errors.New("invalid wait time")
+
+// ErrNilCacher signals that nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

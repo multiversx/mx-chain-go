@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -17,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
-// ArgsNewTrieSyncersContainerFactory defines the arguments needed to create trie syncers container
+// ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
 type ArgsNewAccountsDBSyncersContainerFactory struct {
 	TrieCacher         storage.Cacher
 	RequestHandler     update.RequestHandler
@@ -39,6 +40,8 @@ type accountDBSyncersContainerFactory struct {
 	trieStorageManager data.StorageManager
 }
 
+const minWaitTime = time.Second
+
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
 func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactory) (*accountDBSyncersContainerFactory, error) {
 	if check.IfNil(args.RequestHandler) {
@@ -59,8 +62,8 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.TrieStorageManager) {
 		return nil, update.ErrNilStorageManager
 	}
-	if args.WaitTime < time.Second {
-		return nil, update.ErrInvalidWaitTime
+	if args.WaitTime < minWaitTime {
+		return nil, fmt.Errorf("%w, minWaitTime is %d", update.ErrInvalidWaitTime, minWaitTime)
 	}
 
 	t := &accountDBSyncersContainerFactory{
@@ -102,13 +105,15 @@ func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContai
 
 func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewUserAccountsSyncer{
-		Hasher:             a.hasher,
-		Marshalizer:        a.marshalizer,
-		TrieStorageManager: a.trieStorageManager,
-		RequestHandler:     a.requestHandler,
-		WaitTime:           a.waitTime,
-		ShardId:            shardId,
-		Cacher:             a.trieCacher,
+		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
+			Hasher:             a.hasher,
+			Marshalizer:        a.marshalizer,
+			TrieStorageManager: a.trieStorageManager,
+			RequestHandler:     a.requestHandler,
+			WaitTime:           a.waitTime,
+			Cacher:             a.trieCacher,
+		},
+		ShardId: shardId,
 	}
 	accountSyncer, err := syncer.NewUserAccountsSyncer(args)
 	if err != nil {
@@ -121,13 +126,14 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 
 func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewValidatorAccountsSyncer{
-		Hasher:             a.hasher,
-		Marshalizer:        a.marshalizer,
-		TrieStorageManager: a.trieStorageManager,
-		RequestHandler:     a.requestHandler,
-		WaitTime:           a.waitTime,
-		ShardId:            shardId,
-		Cacher:             a.trieCacher,
+		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
+			Hasher:             a.hasher,
+			Marshalizer:        a.marshalizer,
+			TrieStorageManager: a.trieStorageManager,
+			RequestHandler:     a.requestHandler,
+			WaitTime:           a.waitTime,
+			Cacher:             a.trieCacher,
+		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)
 	if err != nil {
