@@ -1191,7 +1191,14 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
-	mp.epochStartTrigger.RevertStateToBlock(header)
+	err = mp.epochStartTrigger.RevertStateToBlock(header)
+	if err != nil {
+		log.Debug("revert epoch start trigger for header",
+			"nonce", header.GetNonce(),
+			"error", err,
+		)
+		return err
+	}
 
 	return nil
 }
