@@ -76,8 +76,8 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
-		//TODO: Check if it is possible to send message only to leader with O(1) instead of O(n)
+	if !sr.IsSelfLeaderInCurrentRound() {
+		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
 			signatureShare,

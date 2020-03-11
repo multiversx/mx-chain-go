@@ -212,15 +212,15 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
-	metaBuff, err := t.marshalizer.Marshal(metaBlock)
-	if err != nil {
-		log.Debug("SetProcessed marshal", "error", err.Error())
+	metaBuff, errNotCritical := t.marshalizer.Marshal(metaBlock)
+	if errNotCritical != nil {
+		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
-	errNotCritical := t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Debug("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
 	}
@@ -234,11 +234,12 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.epoch = metaBlock.Epoch
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
 	t.epochStartNotifier.NotifyAll(metaBlock)
-	t.saveCurrentState(metaBlock.Round)
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
+
+	t.saveCurrentState(metaBlock.Round)
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
@@ -253,53 +254,72 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 }
 
 // RevertStateToBlock will revert the state of the trigger to the current block
-func (t *trigger) RevertStateToBlock(header data.HeaderHandler) {
+func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	if check.IfNil(header) {
-		return
+		return epochStart.ErrNilHeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
 		log.Debug("RevertStateToBlock with epoch start block called")
 		t.SetProcessed(header)
-		return
+		return nil
 	}
 
-	t.mutTrigger.Lock()
-	t.currentRound = header.GetRound()
+	t.mutTrigger.RLock()
 	prevMeta := t.epochStartMeta
-	t.mutTrigger.Unlock()
+	t.mutTrigger.RUnlock()
 
 	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
 	if err != nil {
 		log.Warn("RevertStateToBlock error on hashing", "error", err)
-		return
+		return err
 	}
 
 	if !bytes.Equal(prevMeta.GetPrevHash(), currentHeaderHash) {
-		return
+		return nil
 	}
 
 	log.Debug("RevertStateToBlock to revert behind epoch start block is called")
-	t.Revert(prevMeta)
+	err = t.revert(prevMeta)
+	if err != nil {
+		return err
+	}
+
+	t.mutTrigger.Lock()
+	t.currentRound = header.GetRound()
+	t.mutTrigger.Unlock()
+
+	return nil
 }
 
-// Revert sets the start of epoch back to true
-func (t *trigger) Revert(header data.HeaderHandler) {
+func (t *trigger) revert(header data.HeaderHandler) error {
 	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
-		return
+		return nil
 	}
 
 	metaHdr, ok := header.(*block.MetaBlock)
 	if !ok {
 		log.Warn("wrong type assertion in Revert metachain trigger")
-		return
+		return epochStart.ErrWrongTypeAssertion
 	}
 
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	if t.currentRound != header.GetRound() {
-		return
+	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
+
+	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
+	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+	if err != nil {
+		log.Warn("Revert get previous meta from storage", "error", err)
+		return err
+	}
+
+	epochStartMeta := &block.MetaBlock{}
+	err = t.marshalizer.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	if err != nil {
+		log.Warn("Revert unmarshal previous meta", "error", err)
+		return err
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
@@ -316,24 +336,9 @@ func (t *trigger) Revert(header data.HeaderHandler) {
 	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
 	t.epoch = metaHdr.Epoch - 1
 	t.isEpochStart = false
-
-	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
-
-	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
-	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
-	if err != nil {
-		log.Warn("Revert get previous meta from storage", "error", err)
-		return
-	}
-
-	epochStartMeta := &block.MetaBlock{}
-	err = t.marshalizer.Unmarshal(epochStartMeta, epochStartMetaBuff)
-	if err != nil {
-		log.Warn("Revert unmarshal previous meta", "error", err)
-		return
-	}
-
 	t.epochStartMeta = epochStartMeta
+
+	return nil
 }
 
 // Epoch return the current epoch

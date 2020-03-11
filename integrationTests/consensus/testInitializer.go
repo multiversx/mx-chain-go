@@ -16,8 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -243,7 +244,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
@@ -260,7 +261,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 }
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
-	suite := kyber.NewSuitePairingBn256()
+	suite := mcl.NewSuiteBLS12()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
@@ -372,7 +373,7 @@ func createConsensusOnlyNode(
 	startTime := int64(0)
 
 	singlesigner := &singlesig.SchnorrSigner{}
-	singleBlsSigner := &singlesig.BlsSingleSigner{}
+	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
