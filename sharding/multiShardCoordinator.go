@@ -45,16 +45,21 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 	return (1 << uint(n)) - 1, (1 << uint(n-1)) - 1
 }
 
-// ComputeId calculates the shard for a given address used for transaction dispatching
+// ComputeId calculates the shard for a given address container
 func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
+	return msc.ComputeIdFromBytes(address.Bytes())
+}
+
+// ComputeIdFromBytes calculates the shard for a given address
+func (msc *multiShardCoordinator) ComputeIdFromBytes(address []byte) uint32 {
 	bytesNeed := int(msc.numberOfShards/256) + 1
 	startingIndex := 0
-	if len(address.Bytes()) > bytesNeed {
-		startingIndex = len(address.Bytes()) - bytesNeed
+	if len(address) > bytesNeed {
+		startingIndex = len(address) - bytesNeed
 	}
 
-	buffNeeded := address.Bytes()[startingIndex:]
-	if core.IsSmartContractOnMetachain(buffNeeded, address.Bytes()) {
+	buffNeeded := address[startingIndex:]
+	if core.IsSmartContractOnMetachain(buffNeeded, address) {
 		return core.MetachainShardId
 	}
 
@@ -98,10 +103,7 @@ func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) st
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (msc *multiShardCoordinator) IsInterfaceNil() bool {
-	if msc == nil {
-		return true
-	}
-	return false
+	return msc == nil
 }
 
 // communicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2

@@ -14,19 +14,20 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	dataPool            dataRetriever.PoolsHolder
-	txProcessor         process.TransactionProcessor
-	scResultProcessor   process.SmartContractResultProcessor
-	accounts            state.AccountsAdapter
-	requestHandler      process.RequestHandler
-	economicsFee        process.FeeHandler
-	miniBlocksCompacter process.MiniBlocksCompacter
-	gasHandler          process.GasHandler
-	blockTracker        preprocess.BlockTracker
+	shardCoordinator     sharding.Coordinator
+	store                dataRetriever.StorageService
+	marshalizer          marshal.Marshalizer
+	hasher               hashing.Hasher
+	dataPool             dataRetriever.PoolsHolder
+	txProcessor          process.TransactionProcessor
+	scResultProcessor    process.SmartContractResultProcessor
+	accounts             state.AccountsAdapter
+	requestHandler       process.RequestHandler
+	economicsFee         process.FeeHandler
+	gasHandler           process.GasHandler
+	blockTracker         preprocess.BlockTracker
+	addressConverter     state.AddressConverter
+	blockSizeComputation preprocess.BlockSizeComputationHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -41,9 +42,10 @@ func NewPreProcessorsContainerFactory(
 	txProcessor process.TransactionProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
 	economicsFee process.FeeHandler,
-	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
+	addressConverter state.AddressConverter,
+	blockSizeComputation preprocess.BlockSizeComputationHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -73,9 +75,6 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(miniBlocksCompacter) {
-		return nil, process.ErrNilMiniBlocksCompacter
-	}
 	if check.IfNil(scResultProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
@@ -85,21 +84,28 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
+	if check.IfNil(addressConverter) {
+		return nil, process.ErrNilAddressConverter
+	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		dataPool:            dataPool,
-		txProcessor:         txProcessor,
-		accounts:            accounts,
-		requestHandler:      requestHandler,
-		economicsFee:        economicsFee,
-		miniBlocksCompacter: miniBlocksCompacter,
-		scResultProcessor:   scResultProcessor,
-		gasHandler:          gasHandler,
-		blockTracker:        blockTracker,
+		shardCoordinator:     shardCoordinator,
+		store:                store,
+		marshalizer:          marshalizer,
+		hasher:               hasher,
+		dataPool:             dataPool,
+		txProcessor:          txProcessor,
+		accounts:             accounts,
+		requestHandler:       requestHandler,
+		economicsFee:         economicsFee,
+		scResultProcessor:    scResultProcessor,
+		gasHandler:           gasHandler,
+		blockTracker:         blockTracker,
+		addressConverter:     addressConverter,
+		blockSizeComputation: blockSizeComputation,
 	}, nil
 }
 
@@ -141,10 +147,11 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.accounts,
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
-		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		block.TxBlock,
+		ppcm.addressConverter,
+		ppcm.blockSizeComputation,
 	)
 
 	return txPreprocessor, err
@@ -162,6 +169,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
+		ppcm.blockSizeComputation,
 	)
 
 	return scrPreprocessor, err

@@ -13,13 +13,13 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
-// GetEligiblePublicKeysPerShard -
-func (ncm *NodesCoordinatorStub) GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+// GetAllEligibleValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
-// GetWaitingPublicKeysPerShard -
-func (ncm *NodesCoordinatorStub) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 

@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -28,12 +30,14 @@ type ArgsNewMetaEpochStartTrigger struct {
 	EpochStartRound    uint64
 	EpochStartNotifier epochStart.Notifier
 	Marshalizer        marshal.Marshalizer
+	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
 }
 
 type trigger struct {
 	isEpochStart                bool
 	epoch                       uint32
+	epochStartMeta              *block.MetaBlock
 	currentRound                uint64
 	epochFinalityAttestingRound uint64
 	currEpochStartRound         uint64
@@ -48,6 +52,7 @@ type trigger struct {
 	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
+	hasher                      hashing.Hasher
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -76,6 +81,9 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.Storage) {
 		return nil, epochStart.ErrNilStorageService
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, epochStart.ErrNilHasher
+	}
 
 	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
 	if check.IfNil(triggerStorage) {
@@ -103,6 +111,8 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		metaHeaderStorage:           metaBlockStorage,
 		triggerStorage:              triggerStorage,
 		marshalizer:                 args.Marshalizer,
+		hasher:                      args.Hasher,
+		epochStartMeta:              &block.MetaBlock{},
 	}
 
 	err := trigger.saveState(trigger.triggerStateKey)
@@ -171,11 +181,11 @@ func (t *trigger) Update(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	t.currentRound = round
+
 	if t.isEpochStart {
 		return
 	}
-
-	t.currentRound = round
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.epoch += 1
@@ -207,6 +217,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		log.Debug("SetProcessed marshal", "error", err.Error())
 	}
 
+	metaHash := t.hasher.Compute(string(metaBuff))
+
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
 	errNotCritical := t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
@@ -224,6 +236,9 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.saveCurrentState(metaBlock.Round)
 	t.isEpochStart = false
+	t.currentRound = metaBlock.Round
+	t.epochStartMeta = metaBlock
+	t.epochStartMetaHash = metaHash
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
@@ -237,12 +252,57 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 	}
 }
 
+// RevertStateToBlock will revert the state of the trigger to the current block
+func (t *trigger) RevertStateToBlock(header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	if header.IsStartOfEpochBlock() {
+		log.Debug("RevertStateToBlock with epoch start block called")
+		t.SetProcessed(header)
+		return
+	}
+
+	t.mutTrigger.Lock()
+	t.currentRound = header.GetRound()
+	prevMeta := t.epochStartMeta
+	t.mutTrigger.Unlock()
+
+	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
+	if err != nil {
+		log.Warn("RevertStateToBlock error on hashing", "error", err)
+		return
+	}
+
+	if !bytes.Equal(prevMeta.GetPrevHash(), currentHeaderHash) {
+		return
+	}
+
+	log.Debug("RevertStateToBlock to revert behind epoch start block is called")
+	t.Revert(prevMeta)
+}
+
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert(round uint64) {
+func (t *trigger) Revert(header data.HeaderHandler) {
+	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
+		return
+	}
+
+	metaHdr, ok := header.(*block.MetaBlock)
+	if !ok {
+		log.Warn("wrong type assertion in Revert metachain trigger")
+		return
+	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
+	if t.currentRound != header.GetRound() {
+		return
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -253,15 +313,27 @@ func (t *trigger) Revert(round uint64) {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	t.currEpochStartRound = t.prevEpochStartRound
-	t.epoch--
+	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
+	t.epoch = metaHdr.Epoch - 1
 	t.isEpochStart = false
-	t.currentRound = round
-	if t.currentRound > 0 {
-		t.currentRound--
-	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
+
+	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
+	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+	if err != nil {
+		log.Warn("Revert get previous meta from storage", "error", err)
+		return
+	}
+
+	epochStartMeta := &block.MetaBlock{}
+	err = t.marshalizer.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	if err != nil {
+		log.Warn("Revert unmarshal previous meta", "error", err)
+		return
+	}
+
+	t.epochStartMeta = epochStartMeta
 }
 
 // Epoch return the current epoch
@@ -290,7 +362,7 @@ func (t *trigger) GetSavedStateKey() []byte {
 	return t.triggerStateKey
 }
 
-// SetEpochStartMetaHdrHash sets the epoch start meta header hase
+// SetEpochStartMetaHdrHash sets the epoch start meta header has
 func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 	t.epochStartMetaHash = metaHdrHash
 }

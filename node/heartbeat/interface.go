@@ -21,8 +21,8 @@ type MessageHandler interface {
 
 // EligibleListProvider defines what an eligible list provider should do
 type EligibleListProvider interface {
-	GetEligiblePublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
-	GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }
 
