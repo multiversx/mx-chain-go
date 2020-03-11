@@ -265,10 +265,9 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	t.mutTrigger.Lock()
-	t.currentRound = header.GetRound()
+	t.mutTrigger.RLock()
 	prevMeta := t.epochStartMeta
-	t.mutTrigger.Unlock()
+	t.mutTrigger.RUnlock()
 
 	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
 	if err != nil {
@@ -281,7 +280,16 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	log.Debug("RevertStateToBlock to revert behind epoch start block is called")
-	return t.revert(prevMeta)
+	err = t.revert(prevMeta)
+	if err != nil {
+		return err
+	}
+
+	t.mutTrigger.Lock()
+	t.currentRound = header.GetRound()
+	t.mutTrigger.Unlock()
+
+	return nil
 }
 
 func (t *trigger) revert(header data.HeaderHandler) error {
@@ -292,22 +300,11 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	metaHdr, ok := header.(*block.MetaBlock)
 	if !ok {
 		log.Warn("wrong type assertion in Revert metachain trigger")
-		return nil
+		return epochStart.ErrWrongTypeAssertion
 	}
 
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
-
-	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
-	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
-	if errNotCritical != nil {
-		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
-	}
-
-	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
-	if errNotCritical != nil {
-		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
-	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 
@@ -323,6 +320,17 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	if err != nil {
 		log.Warn("Revert unmarshal previous meta", "error", err)
 		return err
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
+	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
 	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound

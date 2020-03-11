@@ -625,24 +625,17 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	if t.epochStartShardHeader.Epoch < 1 {
+	if t.epochStartShardHeader.Epoch <= 1 {
 		t.epochStartShardHeader = &block.Header{}
 		return nil
 	}
 
 	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
 
-	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch)
-	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
-	if errNotCritical != nil {
-		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)
-	}
-
 	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
 	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
 	if err != nil {
 		log.Warn("RevertStateToBlock get header from storage error", "err", err)
-		t.epochStartShardHeader = &block.Header{}
 		return err
 	}
 
@@ -651,6 +644,12 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	if err != nil {
 		log.Warn("RevertStateToBlock unmarshal error", "err", err)
 		return err
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch)
+	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)
 	}
 
 	t.epochStartShardHeader = shardHdr
