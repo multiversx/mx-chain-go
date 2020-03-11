@@ -234,8 +234,8 @@ func MessageOriginatorSeq(msg MessageP2P) string {
 
 // PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
 type PeerShardResolver interface {
-	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
-	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
+	GetShardID(pid PeerID) uint32 //GetShardID get the shard id of the given peer.ID
+	IsInterfaceNil() bool         //IsInterfaceNil returns true if there is no value under the interface
 }
 
 // ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers

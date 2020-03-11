@@ -1,18 +1,36 @@
 package networksharding
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
+const maxNumPidsPerPk = 3
+
+var log = logger.GetOrCreate("sharding/networksharding")
+
 // PeerShardMapper stores the mappings between peer IDs and shard IDs
+// Both public key and peer id are verified before they are appended in this cache. In time, the current node
+// will learn a large majority (or even the whole network) of the nodes that make up the network. The public key provided
+// by this map is then fed to the nodes coordinator that will output the shard id in which that public key resides.
+// This component also have a reversed lookup map that will ensure that there won't be unlimited peer ids with the
+// same public key. This will prevent eclipse attacks.
+// The mapping between shard id and public key is done by the nodes coordinator implementation but the fallbackPkShard
+// fallback map is only used whenever nodes coordinator has a wrong view about the peers in a shard.
 type PeerShardMapper struct {
 	peerIdPk         storage.Cacher
+	pkPeerId         storage.Cacher
 	fallbackPkShard  storage.Cacher
 	fallbackPidShard storage.Cacher
+
+	mutUpdatePeerIdPublicKey sync.Mutex
 
 	nodesCoordinator sharding.NodesCoordinator
 	epochHandler     sharding.EpochHandler
@@ -43,8 +61,14 @@ func NewPeerShardMapper(
 		return nil, sharding.ErrNilEpochHandler
 	}
 
+	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
+	if err != nil {
+		return nil, err
+	}
+
 	return &PeerShardMapper{
 		peerIdPk:         peerIdPk,
+		pkPeerId:         pkPeerId,
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
 		nodesCoordinator: nodesCoordinator,
@@ -52,23 +76,23 @@ func NewPeerShardMapper(
 	}, nil
 }
 
-// ByID returns the corresponding shard ID of a given peer ID.
+// GetShardID returns the corresponding shard ID of a given peer ID.
 // If the pid is unknown, it will return sharding.UnknownShardId
-func (psm *PeerShardMapper) ByID(pid p2p.PeerID) (shardId uint32) {
-	shardId, pk, ok := psm.byIDWithNodesCoordinator(pid)
+func (psm *PeerShardMapper) GetShardID(pid p2p.PeerID) (shardId uint32) {
+	shardId, pk, ok := psm.getShardIDWithNodesCoordinator(pid)
 	if ok {
 		return shardId
 	}
 
-	shardId, ok = psm.byIDSearchingPkInFallbackCache(pk)
+	shardId, ok = psm.getShardIDSearchingPkInFallbackCache(pk)
 	if ok {
 		return shardId
 	}
 
-	return psm.byIDSearchingPidInFallbackCache(pid)
+	return psm.getShardIDSearchingPidInFallbackCache(pid)
 }
 
-func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
+func (psm *PeerShardMapper) getShardIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
 		return core.UnknownShardId, nil, false
@@ -76,6 +100,7 @@ func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId ui
 
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
+		log.Warn("PeerShardMapper.getShardIDWithNodesCoordinator: the contained element should have been of type []byte")
 		return core.UnknownShardId, nil, false
 	}
 
@@ -87,7 +112,7 @@ func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId ui
 	return shardId, pkBuff, true
 }
 
-func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
+func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
 	if len(pkBuff) == 0 {
 		return core.UnknownShardId, false
 	}
@@ -99,13 +124,14 @@ func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shard
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
+		log.Warn("PeerShardMapper.getShardIDSearchingPkInFallbackCache: the contained element should have been of type uint32")
 		return core.UnknownShardId, false
 	}
 
 	return shard, true
 }
 
-func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
+func (psm *PeerShardMapper) getShardIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
 		return core.UnknownShardId
@@ -113,6 +139,7 @@ func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (sha
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
+		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
 		return core.UnknownShardId
 	}
 
@@ -120,8 +147,78 @@ func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (sha
 }
 
 // UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map
+// It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
+// the same Elrond PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
-	psm.peerIdPk.HasOrAdd([]byte(pid), pk)
+	//mutUpdatePeerIdPublicKey is used as to consider this function a critical section
+	psm.mutUpdatePeerIdPublicKey.Lock()
+	defer psm.mutUpdatePeerIdPublicKey.Unlock()
+
+	psm.removePidAssociation(pid)
+
+	objPidsQueue, found := psm.pkPeerId.Get(pk)
+	if !found {
+		psm.peerIdPk.Put([]byte(pid), pk)
+		pq := newPidQueue()
+		pq.push(pid)
+		psm.pkPeerId.Put(pk, pq)
+		return
+	}
+
+	pq, ok := objPidsQueue.(*pidQueue)
+	if !ok {
+		log.Warn("PeerShardMapper.UpdatePeerIdPublicKey: the contained element should have been of type pidQueue")
+		return
+	}
+
+	idxPid := pq.indexOf(pid)
+	if idxPid != indexNotFound {
+		pq.promote(idxPid)
+		psm.peerIdPk.Put([]byte(pid), pk)
+		return
+	}
+
+	pq.push(pid)
+	for len(pq.data) > maxNumPidsPerPk {
+		evictedPid := pq.pop()
+
+		psm.peerIdPk.Remove([]byte(evictedPid))
+		psm.fallbackPidShard.Remove([]byte(evictedPid))
+	}
+	psm.pkPeerId.Put(pk, pq)
+	psm.peerIdPk.Put([]byte(pid), pk)
+}
+
+func (psm *PeerShardMapper) removePidAssociation(pid p2p.PeerID) {
+	oldPk, found := psm.peerIdPk.Get([]byte(pid))
+	if !found {
+		return
+	}
+
+	oldPkBuff, ok := oldPk.([]byte)
+	if !ok {
+		psm.peerIdPk.Remove([]byte(pid))
+		return
+	}
+
+	objPidsQueue, found := psm.pkPeerId.Get(oldPkBuff)
+	if !found {
+		return
+	}
+
+	pq, ok := objPidsQueue.(*pidQueue)
+	if !ok {
+		psm.pkPeerId.Remove(oldPkBuff)
+		return
+	}
+
+	pq.remove(pid)
+	if len(pq.data) == 0 {
+		psm.pkPeerId.Remove(oldPkBuff)
+		return
+	}
+
+	psm.pkPeerId.Put(oldPkBuff, pq)
 }
 
 // UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs

@@ -31,7 +31,7 @@ type testKadResolver struct {
 	f func(p2p.PeerID) uint32
 }
 
-func (tkr *testKadResolver) ByID(peer p2p.PeerID) uint32 {
+func (tkr *testKadResolver) GetShardID(peer p2p.PeerID) uint32 {
 	return tkr.f(peer)
 }
 

@@ -140,7 +140,7 @@ func has(pid peer.ID, list []peer.ID) bool {
 //TODO study if we need to hve a dedicated section for metanodes
 func (ls *listsSharder) splitPeerIds(peers []peer.ID) (sorting.PeerDistances, sorting.PeerDistances, sorting.PeerDistances) {
 	ls.mutResolver.RLock()
-	selfId := ls.peerShardResolver.ByID(p2p.PeerID(ls.selfPeerId))
+	selfId := ls.peerShardResolver.GetShardID(p2p.PeerID(ls.selfPeerId))
 	ls.mutResolver.RUnlock()
 
 	intraShard := sorting.PeerDistances{}
@@ -154,7 +154,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) (sorting.PeerDistances, so
 		}
 		pid := p2p.PeerID(p)
 		ls.mutResolver.RLock()
-		shardId := ls.peerShardResolver.ByID(pid)
+		shardId := ls.peerShardResolver.GetShardID(pid)
 		ls.mutResolver.RUnlock()
 
 		switch shardId {

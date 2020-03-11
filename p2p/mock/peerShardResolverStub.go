@@ -2,14 +2,17 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+// PeerShardResolverStub -
 type PeerShardResolverStub struct {
-	ByIDCalled func(pid p2p.PeerID) uint32
+	GetShardIDCalled func(pid p2p.PeerID) uint32
 }
 
-func (psrs *PeerShardResolverStub) ByID(pid p2p.PeerID) uint32 {
-	return psrs.ByIDCalled(pid)
+// GetShardID -
+func (psrs *PeerShardResolverStub) GetShardID(pid p2p.PeerID) uint32 {
+	return psrs.GetShardIDCalled(pid)
 }
 
+// IsInterfaceNil -
 func (psrs *PeerShardResolverStub) IsInterfaceNil() bool {
 	return psrs == nil
 }

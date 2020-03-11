@@ -18,10 +18,10 @@ func TestUnknownPeerShardResolver_IsInterfaceNil(t *testing.T) {
 	assert.False(t, check.IfNil(upsr))
 }
 
-func TestUnknownPeerShardResolver_ByIDShouldReturnUnknownId(t *testing.T) {
+func TestUnknownPeerShardResolver_GetShardIDShouldReturnUnknownId(t *testing.T) {
 	t.Parallel()
 
 	upsr := &unknownPeerShardResolver{}
 
-	assert.Equal(t, core.UnknownShardId, upsr.ByID(""))
+	assert.Equal(t, core.UnknownShardId, upsr.GetShardID(""))
 }
