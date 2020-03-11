@@ -49,6 +49,7 @@ type trigger struct {
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
+	epochStartShardHeader       *block.Header
 	epochStartMeta              *block.MetaBlock
 
 	mutTrigger        sync.RWMutex
@@ -57,6 +58,7 @@ type trigger struct {
 	mapEpochStartHdrs map[string]*block.MetaBlock
 
 	headersPool         dataRetriever.HeadersPool
+	shardHdrStorage     storage.Storer
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
@@ -123,6 +125,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilMetaNonceHashStorage
 	}
 
+	shardHdrStorage := args.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	if check.IfNil(shardHdrStorage) {
+		return nil, epochStart.ErrNilShardHeaderStorage
+	}
+
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
 
 	newTrigger := &trigger{
@@ -141,6 +148,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
 		headersPool:                 args.DataPool.Headers(),
 		metaHdrStorage:              metaHdrStorage,
+		shardHdrStorage:             shardHdrStorage,
 		triggerStorage:              triggerStorage,
 		metaNonceHdrStorage:         metaHdrNoncesStorage,
 		uint64Converter:             args.Uint64Converter,
@@ -150,6 +158,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
+		epochStartMeta:              &block.MetaBlock{},
+		epochStartShardHeader:       &block.Header{},
 	}
 
 	err := newTrigger.saveState(newTrigger.triggerStateKey)
@@ -304,6 +314,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
+			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 		}
 
 		// save all final-valid epoch start blocks
@@ -570,6 +581,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
+	t.epochStartShardHeader = shardHdr
 
 	t.epochStartNotifier.NotifyAll(shardHdr)
 
@@ -578,23 +590,74 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
 
 	t.saveCurrentState(header.GetRound())
+
+	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
+	shardHdrBuff, errNotCritical := t.marshalizer.Marshal(shardHdr)
+	if errNotCritical != nil {
+		log.Warn("SetProcessed marshal error", "error", errNotCritical)
+		return
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.Epoch)
+	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
+	if errNotCritical != nil {
+		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
+		return
+	}
 }
 
-// Revert sets the start of epoch back to true
-func (t *trigger) Revert(header data.HeaderHandler) {
-	if check.IfNil(header) || !header.IsStartOfEpochBlock() {
-		return
+// RevertStateToBlock will revert the state of the trigger to the current block
+func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		return epochStart.ErrNilHeaderHandler
 	}
 
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
+	if err != nil {
+		log.Warn("RevertStateToBlock error on hashing", "error", err)
+		return err
+	}
+
+	if !bytes.Equal(t.epochStartShardHeader.GetPrevHash(), currentHeaderHash) {
+		return nil
+	}
+
+	if t.epochStartShardHeader.Epoch <= 1 {
+		t.epochStartShardHeader = &block.Header{}
+		return nil
+	}
+
+	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
+
+	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
+	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+	if err != nil {
+		log.Warn("RevertStateToBlock get header from storage error", "err", err)
+		return err
+	}
+
+	shardHdr := &block.Header{}
+	err = t.marshalizer.Unmarshal(shardHdr, shardHdrBuff)
+	if err != nil {
+		log.Warn("RevertStateToBlock unmarshal error", "err", err)
+		return err
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch)
+	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)
+	}
+
+	t.epochStartShardHeader = shardHdr
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
-}
+	t.epoch = header.GetEpoch()
 
-// RevertStateToBlock will revert the state of the trigger to the current block
-func (t *trigger) RevertStateToBlock(_ data.HeaderHandler) {
+	return nil
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
