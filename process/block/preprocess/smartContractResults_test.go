@@ -1005,6 +1005,7 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	txshardInfo := txShardInfo{0, 3}
