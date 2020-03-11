@@ -5,11 +5,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/mock"
 	mock2 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,6 +43,7 @@ func TestNewEpochStartDataProvider_NilMarshalizerShouldErr(t *testing.T) {
 	require.Nil(t, epStart)
 	require.Equal(t, bootstrap.ErrNilMarshalizer, err)
 }
+
 func TestNewEpochStartDataProvider_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -55,6 +54,7 @@ func TestNewEpochStartDataProvider_NilHasherShouldErr(t *testing.T) {
 	require.Nil(t, epStart)
 	require.Equal(t, bootstrap.ErrNilHasher, err)
 }
+
 func TestNewEpochStartDataProvider_NilNodesConfigProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -65,6 +65,7 @@ func TestNewEpochStartDataProvider_NilNodesConfigProviderShouldErr(t *testing.T)
 	require.Nil(t, epStart)
 	require.Equal(t, bootstrap.ErrNilNodesConfigProvider, err)
 }
+
 func TestNewEpochStartDataProvider_NilMetablockInterceptorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -75,6 +76,7 @@ func TestNewEpochStartDataProvider_NilMetablockInterceptorShouldErr(t *testing.T
 	require.Nil(t, epStart)
 	require.Equal(t, bootstrap.ErrNilMetaBlockInterceptor, err)
 }
+
 func TestNewEpochStartDataProvider_NilShardHeaderInterceptorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -85,16 +87,29 @@ func TestNewEpochStartDataProvider_NilShardHeaderInterceptorShouldErr(t *testing
 	require.Nil(t, epStart)
 	require.Equal(t, bootstrap.ErrNilShardHeaderInterceptor, err)
 }
-func TestNewEpochStartDataProvider_NilMetaBlockResolverShouldErr(t *testing.T) {
+
+func TestNewEpochStartDataProvider_NilMetaBlockInterceptorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.MetaBlockResolver = nil
+	args.MetaBlockInterceptor = nil
 	epStart, err := bootstrap.NewEpochStartDataProvider(args)
 
 	require.Nil(t, epStart)
-	require.Equal(t, bootstrap.ErrNilMetaBlockResolver, err)
+	require.Equal(t, bootstrap.ErrNilMetaBlockInterceptor, err)
 }
+
+func TestNewEpochStartDataProvider_NilMiniBlockInterceptorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.MiniBlockInterceptor = nil
+	epStart, err := bootstrap.NewEpochStartDataProvider(args)
+
+	require.Nil(t, epStart)
+	require.Equal(t, bootstrap.ErrNilMiniBlockInterceptor, err)
+}
+
 func TestNewEpochStartDataProvider_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -123,68 +138,16 @@ func TestEpochStartDataProvider_Bootstrap_TopicCreationFailsShouldErr(t *testing
 	require.Equal(t, expectedErr, err)
 }
 
-func TestEpochStartDataProvider_Bootstrap_MetaBlockRequestFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("error while creating topic")
-	args := getArguments()
-	args.MetaBlockResolver = &mock.MetaBlockResolverStub{
-		RequestEpochStartMetaBlockCalled: func(_ uint32) error {
-			return expectedErr
-		},
-	}
-	epStart, _ := bootstrap.NewEpochStartDataProvider(args)
-
-	res, err := epStart.Bootstrap()
-
-	require.Nil(t, res)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestEpochStartDataProvider_Bootstrap_GetNodesConfigFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("error while creating topic")
-	args := getArguments()
-	args.NodesConfigProvider = &mock.NodesConfigProviderStub{
-		GetNodesConfigForMetaBlockCalled: func(_ *block.MetaBlock) (*sharding.NodesSetup, error) {
-			return &sharding.NodesSetup{}, expectedErr
-		},
-	}
-	epStart, _ := bootstrap.NewEpochStartDataProvider(args)
-
-	res, err := epStart.Bootstrap()
-
-	require.Nil(t, res)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestEpochStartDataProvider_Bootstrap_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArguments()
-	args.NodesConfigProvider = &mock.NodesConfigProviderStub{
-		GetNodesConfigForMetaBlockCalled: func(_ *block.MetaBlock) (*sharding.NodesSetup, error) {
-			return &sharding.NodesSetup{}, nil
-		},
-	}
-	epStart, _ := bootstrap.NewEpochStartDataProvider(args)
-
-	res, err := epStart.Bootstrap()
-
-	require.Nil(t, err)
-	require.NotNil(t, res)
-}
-
 func getArguments() bootstrap.ArgsEpochStartDataProvider {
 	return bootstrap.ArgsEpochStartDataProvider{
-		PublicKey:              &mock.PublicKeyMock{},
-		Messenger:              &mock.MessengerStub{},
-		Marshalizer:            &mock2.MarshalizerMock{},
-		Hasher:                 mock2.HasherMock{},
-		NodesConfigProvider:    &mock.NodesConfigProviderStub{},
-		MetaBlockInterceptor:   &mock.MetaBlockInterceptorStub{},
-		ShardHeaderInterceptor: &mock.ShardHeaderInterceptorStub{},
-		MetaBlockResolver:      &mock.MetaBlockResolverStub{},
+		PublicKey:                      &mock.PublicKeyMock{},
+		Messenger:                      &mock.MessengerStub{},
+		Marshalizer:                    &mock2.MarshalizerMock{},
+		Hasher:                         mock2.HasherMock{},
+		NodesConfigProvider:            &mock.NodesConfigProviderStub{},
+		EpochStartMetaBlockInterceptor: &mock.EpochStartMetaBlockInterceptorStub{},
+		MetaBlockInterceptor:           &mock.MetaBlockInterceptorStub{},
+		ShardHeaderInterceptor:         &mock.ShardHeaderInterceptorStub{},
+		MiniBlockInterceptor:           &mock.MiniBlockInterceptorStub{},
 	}
 }

@@ -78,6 +78,10 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		return &disabledEpochStartDataProvider{}, nil
 	}
 
+	epochStartMetaBlockInterceptor, err := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(esdpf.marshalizer, esdpf.hasher)
+	if err != nil {
+		return nil, err
+	}
 	metaBlockInterceptor, err := bootstrap.NewSimpleMetaBlockInterceptor(esdpf.marshalizer, esdpf.hasher)
 	if err != nil {
 		return nil, err
@@ -86,14 +90,21 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 	if err != nil {
 		return nil, err
 	}
+	miniBlockInterceptor, err := bootstrap.NewSimpleMiniBlockInterceptor(esdpf.marshalizer, esdpf.hasher)
+	if err != nil {
+		return nil, err
+	}
+
 	argsEpochStart := bootstrap.ArgsEpochStartDataProvider{
-		PublicKey:              esdpf.pubKey,
-		Messenger:              esdpf.messenger,
-		Marshalizer:            esdpf.marshalizer,
-		Hasher:                 esdpf.hasher,
-		NodesConfigProvider:    esdpf.nodesConfigProvider,
-		MetaBlockInterceptor:   metaBlockInterceptor,
-		ShardHeaderInterceptor: shardHdrInterceptor,
+		PublicKey:                      esdpf.pubKey,
+		Messenger:                      esdpf.messenger,
+		Marshalizer:                    esdpf.marshalizer,
+		Hasher:                         esdpf.hasher,
+		NodesConfigProvider:            esdpf.nodesConfigProvider,
+		EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
+		MetaBlockInterceptor:           metaBlockInterceptor,
+		ShardHeaderInterceptor:         shardHdrInterceptor,
+		MiniBlockInterceptor:           miniBlockInterceptor,
 	}
 	epochStartDataProvider, err := bootstrap.NewEpochStartDataProvider(argsEpochStart)
 

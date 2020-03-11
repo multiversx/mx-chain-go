@@ -46,9 +46,8 @@ func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
 func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
 		},
 		P2PBootstrapHandler: func() error {
 			return nil
@@ -63,39 +62,18 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode(0, true)
+	err := ef.StartNode(0)
 	assert.Nil(t, err)
 
 	isRunning := ef.IsNodeRunning()
 	assert.True(t, isRunning)
 }
 
-func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.T) {
-	started := false
-	node := &mock.NodeMock{
-		StartHandler: func() error {
-			return fmt.Errorf("error on start node")
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-	}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-
-	err := ef.StartNode(0, true)
-	assert.NotNil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
 func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
 		},
 		P2PBootstrapHandler: func() error {
 			return nil
@@ -111,7 +89,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
-	err := ef.StartNode(0, true)
+	err := ef.StartNode(0)
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()

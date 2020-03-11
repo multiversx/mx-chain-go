@@ -77,7 +77,7 @@ func (s *simpleShardHeaderInterceptor) addToPeerList(hash string, id p2p.PeerID)
 	s.mapShardHeadersFromPeers[hash] = append(s.mapShardHeadersFromPeers[hash], id)
 }
 
-// GetMiniBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
+// GetShardHeader will return the metablock after it is confirmed or an error if the number of tries was exceeded
 func (s *simpleShardHeaderInterceptor) GetShardHeader(target int) (*block.Header, error) {
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
@@ -102,7 +102,7 @@ func (s *simpleShardHeaderInterceptor) isMapEntryOk(
 ) bool {
 	log.Info("peers map for shard hdr", "target", target, "num", len(peersList))
 	if len(peersList) >= target {
-		log.Info("got consensus for metablock", "len", len(peersList))
+		log.Info("got consensus for shard header", "len", len(peersList))
 		return true
 	}
 

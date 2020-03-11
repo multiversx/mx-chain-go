@@ -8,7 +8,7 @@ import (
 // MetaBlockInterceptorStub -
 type MetaBlockInterceptorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
-	GetMetaBlockCalled           func(target int, epoch uint32) (*block.MetaBlock, error)
+	GetMetaBlockCalled           func(hash []byte, target int) (*block.MetaBlock, error)
 }
 
 // ProcessReceivedMessage -
@@ -21,9 +21,9 @@ func (m *MetaBlockInterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P
 }
 
 // GetMetaBlock -
-func (m *MetaBlockInterceptorStub) GetMetaBlock(target int, epoch uint32) (*block.MetaBlock, error) {
+func (m *MetaBlockInterceptorStub) GetMetaBlock(hash []byte, target int) (*block.MetaBlock, error) {
 	if m.GetMetaBlockCalled != nil {
-		return m.GetMetaBlockCalled(target, epoch)
+		return m.GetMetaBlockCalled(hash, target)
 	}
 
 	return &block.MetaBlock{}, nil

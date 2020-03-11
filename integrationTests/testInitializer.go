@@ -860,7 +860,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-		_ = n.Node.Start()
+		n.Node.Start()
 		_ = n.Node.P2PBootstrap()
 	}
 

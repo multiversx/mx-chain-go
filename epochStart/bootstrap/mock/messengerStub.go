@@ -4,51 +4,72 @@ import "github.com/ElrondNetwork/elrond-go/p2p"
 
 // MessengerStub -
 type MessengerStub struct {
-	CloseCalled                       func() error
-	IDCalled                          func() p2p.PeerID
-	PeersCalled                       func() []p2p.PeerID
-	AddressesCalled                   func() []string
-	ConnectToPeerCalled               func(address string) error
-	ConnectedPeersOnTopicCalled       func(topic string) []p2p.PeerID
-	TrimConnectionsCalled             func()
-	IsConnectedCalled                 func(peerID p2p.PeerID) bool
-	ConnectedPeersCalled              func() []p2p.PeerID
-	CreateTopicCalled                 func(name string, createChannelForTopic bool) error
-	HasTopicCalled                    func(name string) bool
-	HasTopicValidatorCalled           func(name string) bool
-	BroadcastOnChannelCalled          func(channel string, topic string, buff []byte)
-	BroadcastCalled                   func(topic string, buff []byte)
-	RegisterMessageProcessorCalled    func(topic string, handler p2p.MessageProcessor) error
-	UnregisterMessageProcessorCalled  func(topic string) error
-	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID p2p.PeerID) error
-	OutgoingChannelLoadBalancerCalled func() p2p.ChannelLoadBalancer
-	BootstrapCalled                   func() error
+	CloseCalled                          func() error
+	IDCalled                             func() p2p.PeerID
+	PeersCalled                          func() []p2p.PeerID
+	AddressesCalled                      func() []string
+	ConnectToPeerCalled                  func(address string) error
+	ConnectedPeersOnTopicCalled          func(topic string) []p2p.PeerID
+	TrimConnectionsCalled                func()
+	IsConnectedCalled                    func(peerID p2p.PeerID) bool
+	ConnectedPeersCalled                 func() []p2p.PeerID
+	CreateTopicCalled                    func(name string, createChannelForTopic bool) error
+	HasTopicCalled                       func(name string) bool
+	HasTopicValidatorCalled              func(name string) bool
+	BroadcastOnChannelCalled             func(channel string, topic string, buff []byte)
+	BroadcastCalled                      func(topic string, buff []byte)
+	RegisterMessageProcessorCalled       func(topic string, handler p2p.MessageProcessor) error
+	UnregisterAllMessageProcessorsCalled func() error
+	UnregisterMessageProcessorCalled     func(topic string) error
+	SendToConnectedPeerCalled            func(topic string, buff []byte, peerID p2p.PeerID) error
+	OutgoingChannelLoadBalancerCalled    func() p2p.ChannelLoadBalancer
+	BootstrapCalled                      func() error
 }
 
+// UnregisterAllMessageProcessors -
+func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
+	if ms.UnregisterAllMessageProcessorsCalled != nil {
+		return ms.UnregisterAllMessageProcessorsCalled()
+	}
+
+	return nil
+}
+
+// ConnectedAddresses -
 func (ms *MessengerStub) ConnectedAddresses() []string {
 	panic("implement me")
 }
 
+// PeerAddress -
 func (ms *MessengerStub) PeerAddress(pid p2p.PeerID) string {
 	panic("implement me")
 }
 
+// ConnectedPeersOnTopic -
 func (ms *MessengerStub) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	return ms.ConnectedPeersOnTopicCalled(topic)
+	if ms.ConnectedPeersOnTopicCalled != nil {
+		return ms.ConnectedPeersOnTopicCalled(topic)
+	}
+
+	return nil
 }
 
+// BroadcastOnChannelBlocking -
 func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
 	panic("implement me")
 }
 
+// IsConnectedToTheNetwork -
 func (ms *MessengerStub) IsConnectedToTheNetwork() bool {
 	panic("implement me")
 }
 
+// ThresholdMinConnectedPeers -
 func (ms *MessengerStub) ThresholdMinConnectedPeers() int {
 	panic("implement me")
 }
 
+// SetThresholdMinConnectedPeers -
 func (ms *MessengerStub) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
 	panic("implement me")
 }

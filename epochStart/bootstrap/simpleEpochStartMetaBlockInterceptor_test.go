@@ -14,7 +14,7 @@ import (
 func TestNewSimpleMetaBlockInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	smbi, err := bootstrap.NewSimpleMetaBlockInterceptor(nil, &mock.HasherMock{})
+	smbi, err := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(nil, &mock.HasherMock{})
 	require.Nil(t, smbi)
 	require.Equal(t, bootstrap.ErrNilMarshalizer, err)
 }
@@ -22,7 +22,7 @@ func TestNewSimpleMetaBlockInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewSimpleMetaBlockInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	smbi, err := bootstrap.NewSimpleMetaBlockInterceptor(&mock.MarshalizerMock{}, nil)
+	smbi, err := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(&mock.MarshalizerMock{}, nil)
 	require.Nil(t, smbi)
 	require.Equal(t, bootstrap.ErrNilHasher, err)
 }
@@ -30,7 +30,7 @@ func TestNewSimpleMetaBlockInterceptor_NilHasherShouldErr(t *testing.T) {
 func TestNewSimpleMetaBlockInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	smbi, err := bootstrap.NewSimpleMetaBlockInterceptor(&mock.MarshalizerMock{}, &mock.HasherMock{})
+	smbi, err := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(&mock.MarshalizerMock{}, &mock.HasherMock{})
 	require.Nil(t, err)
 	require.False(t, check.IfNil(smbi))
 }
@@ -38,7 +38,7 @@ func TestNewSimpleMetaBlockInterceptor_OkValsShouldWork(t *testing.T) {
 func TestSimpleMetaBlockInterceptor_ProcessReceivedMessage_ReceivedMessageIsNotAMetaBlockShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(&mock.MarshalizerMock{}, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(&mock.MarshalizerMock{}, &mock.HasherMock{})
 
 	message := mock2.P2PMessageMock{
 		DataField: []byte("not a metablock"),
@@ -53,7 +53,7 @@ func TestSimpleMetaBlockInterceptor_ProcessReceivedMessage_UnmarshalFailsShouldE
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{Fail: true}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	mb := &block.MetaBlock{Epoch: 5}
 	mbBytes, _ := marshalizer.Marshal(mb)
@@ -70,7 +70,7 @@ func TestSimpleMetaBlockInterceptor_ProcessReceivedMessage_ReceivedMessageIsAMet
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	mb := &block.MetaBlock{Epoch: 5}
 	mbBytes, _ := marshalizer.Marshal(mb)
@@ -87,7 +87,7 @@ func TestSimpleMetaBlockInterceptor_ProcessReceivedMessage_ShouldAddForMorePeers
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	mb := &block.MetaBlock{Epoch: 5}
 	mbBytes, _ := marshalizer.Marshal(mb)
@@ -112,7 +112,7 @@ func TestSimpleMetaBlockInterceptor_ProcessReceivedMessage_ShouldNotAddTwiceForT
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	mb := &block.MetaBlock{Epoch: 5}
 	mbBytes, _ := marshalizer.Marshal(mb)
@@ -137,10 +137,10 @@ func TestSimpleMetaBlockInterceptor_GetMetaBlock_NumTriesExceededShouldErr(t *te
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	// no message received, so should exit with err
-	mb, err := smbi.GetMetaBlock(2, 5)
+	mb, err := smbi.GetEpochStartMetaBlock(2, 5)
 	require.Zero(t, mb)
 	require.Equal(t, bootstrap.ErrNumTriesExceeded, err)
 }
@@ -149,7 +149,7 @@ func TestSimpleMetaBlockInterceptor_GetMetaBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	smbi, _ := bootstrap.NewSimpleMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
+	smbi, _ := bootstrap.NewSimpleEpochStartMetaBlockInterceptor(marshalizer, &mock.HasherMock{})
 
 	mb := &block.MetaBlock{Epoch: 5}
 	mbBytes, _ := marshalizer.Marshal(mb)
@@ -165,7 +165,7 @@ func TestSimpleMetaBlockInterceptor_GetMetaBlockShouldWork(t *testing.T) {
 	_ = smbi.ProcessReceivedMessage(message1, nil)
 	_ = smbi.ProcessReceivedMessage(message2, nil)
 
-	mb, err := smbi.GetMetaBlock(2, 5)
+	mb, err := smbi.GetEpochStartMetaBlock(2, 5)
 	require.Nil(t, err)
 	require.NotNil(t, mb)
 }

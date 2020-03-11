@@ -161,13 +161,9 @@ func (n *Node) IsRunning() bool {
 	return n.isRunning
 }
 
-// Start will create a new messenger and and set up the Node state as running
-func (n *Node) Start() error {
-	err := n.P2PBootstrap()
-	if err == nil {
-		n.isRunning = true
-	}
-	return err
+// Start will set up the Node state as running
+func (n *Node) Start() {
+	n.isRunning = true
 }
 
 // Stop closes the messenger and undos everything done in Start

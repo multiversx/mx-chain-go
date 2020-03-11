@@ -154,7 +154,7 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-		_ = n.node.Start()
+		n.node.Start()
 		_ = n.node.P2PBootstrap()
 	}
 }

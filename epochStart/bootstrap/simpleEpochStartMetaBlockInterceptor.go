@@ -1,7 +1,7 @@
 package bootstrap
 
 import (
-	"bytes"
+	"math"
 	"sync"
 	"time"
 
@@ -13,7 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-type simpleMetaBlockInterceptor struct {
+const timeToWaitBeforeCheckingReceivedHeaders = 1 * time.Second
+const numTriesUntilExit = 5
+
+type simpleEpochStartMetaBlockInterceptor struct {
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	mutReceivedMetaBlocks  sync.RWMutex
@@ -21,8 +24,8 @@ type simpleMetaBlockInterceptor struct {
 	mapMetaBlocksFromPeers map[string][]p2p.PeerID
 }
 
-// NewSimpleMetaBlockInterceptor will return a new instance of simpleMetaBlockInterceptor
-func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*simpleMetaBlockInterceptor, error) {
+// NewSimpleEpochStartMetaBlockInterceptor will return a new instance of simpleEpochStartMetaBlockInterceptor
+func NewSimpleEpochStartMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*simpleEpochStartMetaBlockInterceptor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
@@ -30,7 +33,7 @@ func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashi
 		return nil, ErrNilHasher
 	}
 
-	return &simpleMetaBlockInterceptor{
+	return &simpleEpochStartMetaBlockInterceptor{
 		marshalizer:            marshalizer,
 		hasher:                 hasher,
 		mutReceivedMetaBlocks:  sync.RWMutex{},
@@ -40,8 +43,7 @@ func NewSimpleMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashi
 }
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps
-func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	log.Info("received meta block")
+func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	var mb block.MetaBlock
 	err := s.marshalizer.Unmarshal(&mb, message.Data())
 	if err != nil {
@@ -61,7 +63,7 @@ func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 }
 
 // this func should be called under mutex protection
-func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
+func (s *simpleEpochStartMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	peersListForHash, ok := s.mapMetaBlocksFromPeers[hash]
 
 	if !ok {
@@ -78,16 +80,19 @@ func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
 }
 
-// GetMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
-func (s *simpleMetaBlockInterceptor) GetMetaBlock(hash []byte, target int) (*block.MetaBlock, error) {
+// GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
+func (s *simpleEpochStartMetaBlockInterceptor) GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error) {
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 		s.mutReceivedMetaBlocks.RLock()
-		for hashInMap, peersList := range s.mapMetaBlocksFromPeers {
-			isOk := s.isMapEntryOk(hash, peersList, hashInMap, target)
+		for hash, peersList := range s.mapMetaBlocksFromPeers {
+			log.Debug("metablock from peers", "num peers", len(peersList), "target", target, "hash", []byte(hash))
+			isOk := s.isMapEntryOk(peersList, hash, target, epoch)
 			if isOk {
 				s.mutReceivedMetaBlocks.RUnlock()
-				return s.mapReceivedMetaBlocks[hashInMap], nil
+				metaBlockToReturn := s.mapReceivedMetaBlocks[hash]
+				s.clearFields()
+				return metaBlockToReturn, nil
 			}
 		}
 		s.mutReceivedMetaBlocks.RUnlock()
@@ -96,31 +101,31 @@ func (s *simpleMetaBlockInterceptor) GetMetaBlock(hash []byte, target int) (*blo
 	return nil, ErrNumTriesExceeded
 }
 
-func (s *simpleMetaBlockInterceptor) isMapEntryOk(
-	expectedHash []byte,
+func (s *simpleEpochStartMetaBlockInterceptor) isMapEntryOk(
 	peersList []p2p.PeerID,
 	hash string,
 	target int,
+	epoch uint32,
 ) bool {
-	mb, ok := s.mapReceivedMetaBlocks[string(expectedHash)]
-	if !ok {
-		return false
-	}
-
-	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
-	if err != nil {
-		return false
-	}
-	log.Info("peers map for meta block", "target", target, "num", len(peersList))
-	if bytes.Equal(expectedHash, mbHash) && len(peersList) >= target {
-		log.Info("got consensus for metablock", "len", len(peersList))
+	mb := s.mapReceivedMetaBlocks[hash]
+	epochCheckNotRequired := epoch == math.MaxUint32
+	isEpochOk := epochCheckNotRequired || mb.Epoch == epoch
+	if len(peersList) >= target && isEpochOk {
+		log.Info("got consensus for epoch start metablock", "len", len(peersList))
 		return true
 	}
 
 	return false
 }
 
+func (s *simpleEpochStartMetaBlockInterceptor) clearFields() {
+	s.mutReceivedMetaBlocks.Lock()
+	s.mapReceivedMetaBlocks = make(map[string]*block.MetaBlock)
+	s.mapMetaBlocksFromPeers = make(map[string][]p2p.PeerID)
+	s.mutReceivedMetaBlocks.Unlock()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *simpleMetaBlockInterceptor) IsInterfaceNil() bool {
+func (s *simpleEpochStartMetaBlockInterceptor) IsInterfaceNil() bool {
 	return s == nil
 }

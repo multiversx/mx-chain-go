@@ -6,10 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// EpochStartMetaBlockInterceptorHandler defines what a component which will handle receiving the epoch start meta blocks should do
+type EpochStartMetaBlockInterceptorHandler interface {
+	process.Interceptor
+	GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)
+}
+
 // MetaBlockInterceptorHandler defines what a component which will handle receiving the meta blocks should do
 type MetaBlockInterceptorHandler interface {
 	process.Interceptor
-	GetMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)
+	GetMetaBlock(hash []byte, target int) (*block.MetaBlock, error)
 }
 
 // ShardHeaderInterceptorHandler defines what a component which will handle receiving the the shard headers should do
@@ -18,22 +24,10 @@ type ShardHeaderInterceptorHandler interface {
 	GetShardHeader(target int) (*block.Header, error)
 }
 
-// MetaBlockResolverHandler defines what a component which will handle requesting a meta block should do
-type MetaBlockResolverHandler interface {
-	RequestEpochStartMetaBlock(epoch uint32) error
-	IsInterfaceNil() bool
-}
-
-// ShardHeaderResolverHandler defines what a component which will handle requesting a shard block should do
-type ShardHeaderResolverHandler interface {
-	RequestHeaderByHash(hash []byte, epoch uint32) error
-	IsInterfaceNil() bool
-}
-
-// MiniBlockResolverHandler defines what a component which will handle requesting a mini block should do
-type MiniBlockResolverHandler interface {
-	RequestHeaderByHash(hash []byte, epoch uint32) error
-	IsInterfaceNil() bool
+// MiniBlockInterceptorHandler defines what a component which will handle receiving the mini blocks should do
+type MiniBlockInterceptorHandler interface {
+	process.Interceptor
+	GetMiniBlock(hash []byte, target int) (*block.MiniBlock, error)
 }
 
 // NodesConfigProviderHandler defines what a component which will handle the nodes config should be able to do

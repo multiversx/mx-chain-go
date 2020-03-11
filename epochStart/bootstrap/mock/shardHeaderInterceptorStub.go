@@ -9,6 +9,16 @@ import (
 type ShardHeaderInterceptorStub struct {
 	ProcessReceivedMessageCalled     func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	GetAllReceivedShardHeadersCalled func() []block.ShardData
+	GetShardHeaderCalled             func(target int) (*block.Header, error)
+}
+
+// GetShardHeader -
+func (s *ShardHeaderInterceptorStub) GetShardHeader(target int) (*block.Header, error) {
+	if s.GetShardHeaderCalled != nil {
+		return s.GetShardHeaderCalled(target)
+	}
+
+	return &block.Header{}, nil
 }
 
 // ProcessReceivedMessage -
