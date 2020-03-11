@@ -1939,8 +1939,14 @@ func (sp *shardProcessor) processPeerMiniBlocks(sod startOfEpochData) bool {
 
 		for _, txHash := range actualMiniblock.TxHashes {
 			vid := &state.ValidatorInfo{}
-			sp.marshalizer.Unmarshal(vid, txHash)
-			sp.validatorStatisticsProcessor.Process(vid)
+			err := sp.marshalizer.Unmarshal(vid, txHash)
+			if err != nil {
+				log.Warn("processPeerMiniBlocks: unmarshal validatorInfoData failed", "error", err.Error())
+			}
+			err = sp.validatorStatisticsProcessor.Process(vid)
+			if err != nil {
+				log.Warn("processPeerMiniBlocks: processing validatorInfoData failed", "error", err.Error())
+			}
 		}
 	}
 	return false
