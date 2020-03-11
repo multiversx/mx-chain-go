@@ -289,36 +289,6 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	t.tryUpdateTriggerFromMeta(metaHdr, hdrHash)
-}
-
-func (t *trigger) tryUpdateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte) {
-	if !metaHdr.IsStartOfEpochBlock() {
-		t.updateTriggerFromMeta(metaHdr, hdrHash)
-		return
-	}
-
-	for _, miniblock := range metaHdr.MiniBlockHeaders {
-		if miniblock.Type == block.PeerBlock {
-			log.Trace("Searching for peerminiblock", "hash", miniblock.Hash)
-			mb, found := t.miniblocksPool.Get(miniblock.Hash)
-
-			if !found {
-				var err error
-				mb, err = t.miniblocksStorage.Get(miniblock.Hash)
-				if err != nil {
-					return
-				}
-			}
-
-			_, ok := mb.(*block.MiniBlock)
-
-			if !ok {
-				return
-			}
-		}
-	}
-
 	t.updateTriggerFromMeta(metaHdr, hdrHash)
 }
 
