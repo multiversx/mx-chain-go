@@ -534,11 +534,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 		}
 	}
 
-	publicKeysNewEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
-	if err != nil {
-		return nil, err
-	}
-
 	var prevEpochShardId uint32
 	if prevEpochConfigExists {
 		prevEpochShardId, err = ihgs.ShardIdForEpoch(epoch - 1)
@@ -551,14 +546,14 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 		}
 	}
 
-	publicKeysNewEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
-	if err != nil {
-		return nil, err
+	publicKeysNewEpoch, errGetEligible := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
+	if errGetEligible != nil {
+		return nil, errGetEligible
 	}
 
-	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
-	if err != nil {
-		return nil, err
+	epochShardId, errShardIdForEpoch := ihgs.ShardIdForEpoch(epoch)
+	if errShardIdForEpoch != nil {
+		return nil, errShardIdForEpoch
 	}
 
 	for _, pubKey := range publicKeysNewEpoch[epochShardId] {
