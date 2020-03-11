@@ -11,7 +11,7 @@ import (
 var log = logger.GetOrCreate("syncer")
 
 type userAccountsSyncer struct {
-	baseAccountsSyncer
+	*baseAccountsSyncer
 }
 
 // ArgsNewUserAccountsSyncer defines the arguments needed for the new account syncer
@@ -27,7 +27,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		return nil, err
 	}
 
-	b := baseAccountsSyncer{
+	b := &baseAccountsSyncer{
 		hasher:             args.Hasher,
 		marshalizer:        args.Marshalizer,
 		trieSyncers:        make(map[string]data.TrieSyncer),

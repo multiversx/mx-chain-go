@@ -6,7 +6,7 @@ import (
 )
 
 type validatorAccountsSyncer struct {
-	baseAccountsSyncer
+	*baseAccountsSyncer
 }
 
 // ArgsNewValidatorAccountsSyncer defines the arguments needed for the new account syncer
@@ -21,7 +21,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		return nil, err
 	}
 
-	b := baseAccountsSyncer{
+	b := &baseAccountsSyncer{
 		hasher:             args.Hasher,
 		marshalizer:        args.Marshalizer,
 		trieSyncers:        make(map[string]data.TrieSyncer),
