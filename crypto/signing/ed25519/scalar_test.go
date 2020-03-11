@@ -92,3 +92,37 @@ func TestEd25519ScalarClone_CopiesValue(t *testing.T) {
 	eq, _ := scalar2.Equal(scalar)
 	assert.False(t, eq)
 }
+
+func TestEd25519ScalarMarshalUnmarshal(t *testing.T) {
+	suite := ed25519.NewEd25519()
+	scalar := suite.CreateScalar()
+
+	bytes, _ := scalar.MarshalBinary()
+	scalar2 := suite.CreateScalar()
+	scalar2.UnmarshalBinary(bytes)
+
+	eq, _ := scalar.Equal(scalar2)
+	assert.True(t, eq)
+}
+
+func TestEd25519ScalarUnmarshal_WorksWithSeed(t *testing.T) {
+	suite := ed25519.NewEd25519()
+	scalar := suite.CreateScalar()
+	scalar2 := suite.CreateScalar()
+
+	bytes, _ := scalar.MarshalBinary()
+	scalar2.UnmarshalBinary(bytes[:32])
+
+	eq, _ := scalar.Equal(scalar2)
+	assert.True(t, eq)
+}
+
+func TestEd25519ScalarUnmarshal_ErrorOnWrongSize(t *testing.T) {
+	suite := ed25519.NewEd25519()
+	scalar := suite.CreateScalar()
+
+	err := scalar.UnmarshalBinary([]byte("wrong size"))
+
+
+	assert.Equal(t, crypto.ErrInvalidPrivateKey, err)
+}

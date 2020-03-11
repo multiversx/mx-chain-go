@@ -38,12 +38,7 @@ func (s *suitePairingBn256) CreatePoint() crypto.Point {
 //  to the provided Scalar in the Bn256 signature scheme
 func (s *suitePairingBn256) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
 	point := s.CreatePoint().Base()
-	pubKeyPoint, err := point.Mul(scalar)
-	if err != nil {
-		return nil, err
-	}
-
-	return pubKeyPoint, nil
+	return point.Mul(scalar)
 }
 
 // String returns the string for the group

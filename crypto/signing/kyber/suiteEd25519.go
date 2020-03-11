@@ -39,12 +39,7 @@ func (s *suiteEd25519) CreatePoint() crypto.Point {
 //  to the provided Scalar on the ed25519 curve using the Schnorr signature scheme
 func (s *suiteEd25519) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
 	point := s.CreatePoint()
-	pubKeyPoint, err := point.Mul(scalar)
-	if err != nil {
-		return nil, err
-	}
-
-	return pubKeyPoint, nil
+	return point.Mul(scalar)
 }
 
 // String returns the string for the group

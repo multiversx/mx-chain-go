@@ -31,11 +31,6 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-	consensusType = cli.StringFlag{
-		Name:  "consensus-type",
-		Usage: "Consensus type to be used and for which, private/public keys, to generate",
-		Value: "bls",
-	}
 
 	initialBalancesSkFileName = "./initialBalancesSk.pem"
 	initialNodesSkFileName    = "./initialNodesSk.pem"
@@ -47,7 +42,6 @@ func main() {
 	app.Name = "Key generation Tool"
 	app.Version = "v0.0.1"
 	app.Usage = "This binary will generate a initialBalancesSk.pem and initialNodesSk.pem, each containing one private key"
-	app.Flags = []cli.Flag{consensusType}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -56,7 +50,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		return generateFiles(c)
+		return generateFiles()
 	}
 
 	err := app.Run(os.Args)
@@ -76,7 +70,7 @@ func backupFileIfExists(filename string) {
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 }
 
-func generateFiles(ctx *cli.Context) error {
+func generateFiles() error {
 	var initialBalancesSkFile, initialNodesSkFile *os.File
 
 	defer func() {
@@ -118,8 +112,7 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	consensusTypeFlagValue := ctx.GlobalString(consensusType.Name)
-	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusTypeFlagValue))
+	genForBlockSigningSk := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {
@@ -171,19 +164,6 @@ func generateFiles(ctx *cli.Context) error {
 
 func getSuiteForBalanceSk() crypto.Suite {
 	return ed25519.NewEd25519()
-}
-
-func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go project
-	// Ex: crypto.NewSuite(consensusType) crypto.Suite
-	switch consensusType {
-	case "bls":
-		return kyber.NewSuitePairingBn256()
-	case "bn":
-		return ed25519.NewEd25519()
-	default:
-		return nil
-	}
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {

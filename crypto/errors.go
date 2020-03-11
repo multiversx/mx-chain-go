@@ -111,3 +111,6 @@ var ErrEd25519InvalidSignature = errors.New("ed25519: invalid signature")
 
 // ErrGeneratingPubFromPriv signals that there was an error generating a public key corresponding to a provided private key
 var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from provided private key")
+
+// ErrNotImplemented signals that a method is not implemented for an interface implementation
+var ErrNotImplemented = errors.New("not implemented")

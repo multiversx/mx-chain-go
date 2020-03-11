@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/ed25519"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -17,6 +18,10 @@ type ed25519Point struct {
 
 // Equal tests if receiver is equal with the Point p given as parameter.
 func (ep *ed25519Point) Equal(p crypto.Point) (bool, error) {
+	if check.IfNil(p) {
+		return false, crypto.ErrNilParam
+	}
+
 	ed25519P, ok := p.(*ed25519Point)
 	if !ok {
 		return false, crypto.ErrInvalidPublicKey
@@ -42,6 +47,10 @@ func (ep *ed25519Point) UnmarshalBinary(point []byte) error {
 
 // Set sets the receiver equal to another Point p.
 func (ep *ed25519Point) Set(p crypto.Point) error {
+	if check.IfNil(p) {
+		return crypto.ErrNilParam
+	}
+
 	point, ok := p.(*ed25519Point)
 	if !ok {
 		return crypto.ErrInvalidPublicKey
@@ -60,45 +69,59 @@ func (ep *ed25519Point) Clone() crypto.Point {
 }
 
 // Null is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
 func (ep *ed25519Point) Null() crypto.Point {
-	panic("ed25519Point Null not implemented")
+	log.Error("ed25519Point",
+		"message", "Null for ed25519Point is not implemented, should not be called")
+
+	return nil
 }
 
 // Base is not needed for this use case, should be removed if possible
-// - panics to prevent using it
 func (ep *ed25519Point) Base() crypto.Point {
-	panic("ed25519Point Base not implemented")
+	log.Error("ed25519Point",
+		"message", "Base for ed25519Point is not implemented, should not be called")
+
+	return nil
 }
 
 // Add is not needed for this use case, should be removed if possible
-// - panics to prevent using it
-func (ep *ed25519Point) Add(p crypto.Point) (crypto.Point, error) {
-	panic("ed25519Point Add not implemented")
+func (ep *ed25519Point) Add(_ crypto.Point) (crypto.Point, error) {
+	log.Error("ed25519Point",
+		"message", "Add for ed25519Point is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Sub is not needed for this use case, should be removed if possible
-// - panics to prevent using it
-func (ep *ed25519Point) Sub(p crypto.Point) (crypto.Point, error) {
-	panic("ed25519Point Sub not implemented")
+func (ep *ed25519Point) Sub(_ crypto.Point) (crypto.Point, error) {
+	log.Error("ed25519Point",
+		"message", "Sub for ed25519Point is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Neg is not needed for this use case, should be removed if possible
-// - panics to prevent using it
 func (ep *ed25519Point) Neg() crypto.Point {
-	panic("ed25519Point Neg not implemented")
+	log.Error("ed25519Point",
+		"message", "Neg for ed25519Point is not implemented, should not be called")
+
+	return nil
 }
 
 // Mul is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
-func (ep *ed25519Point) Mul(s crypto.Scalar) (crypto.Point, error) {
-	panic("ed25519Point Mul not implemented")
+func (ep *ed25519Point) Mul(_ crypto.Scalar) (crypto.Point, error) {
+	log.Error("ed25519Point",
+		"message", "Mul for ed25519Point is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Pick is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
-func (ep *ed25519Point) Pick(rand cipher.Stream) (crypto.Point, error) {
-	panic("ed25519Point Pick not implemented")
+func (ep *ed25519Point) Pick(_ cipher.Stream) (crypto.Point, error) {
+	log.Error("ed25519Point",
+		"message", "Pick for ed25519Point is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

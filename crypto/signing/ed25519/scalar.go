@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/ed25519"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -67,65 +68,90 @@ func (es *ed25519Scalar) UnmarshalBinary(s []byte) error {
 }
 
 // SetInt64 is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
-func (es *ed25519Scalar) SetInt64(v int64) {
-	panic("ed25519Scalar SetInt64 not implemented")	
+func (es *ed25519Scalar) SetInt64(_ int64) {
+	log.Error("ed25519Scalar",
+		"message", "SetInt64 for ed25519Scalar is not implemented, should not be called")
 }
 
 // Zero is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
 func (es *ed25519Scalar) Zero() crypto.Scalar {
-	panic("ed25519Scalar Zero not implemented")
+	log.Error("ed25519Scalar",
+		"message", "SetInt64 for ed25519Scalar is not implemented, should not be called")
+
+	return nil
 }
 
 // Add is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
-func (es *ed25519Scalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
-	panic("ed25519Scalar Add not implemented")
+func (es *ed25519Scalar) Add(_ crypto.Scalar) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Add for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Sub is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
-func (es *ed25519Scalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
-	panic("ed25519Scalar Sub not implemented")
+func (es *ed25519Scalar) Sub(_ crypto.Scalar) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Sub for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Neg is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
 func (es *ed25519Scalar) Neg() crypto.Scalar {
-	panic("ed25519Scalar Neg not implemented")
+	log.Error("ed25519Scalar",
+		"message", "Neg for ed25519Scalar is not implemented, should not be called")
+
+	return nil
 }
 
 // One is not needed for this use case, should be removed if possible
-//  - panics to prevent using it
 func (es *ed25519Scalar) One() crypto.Scalar {
-	panic("ed25519Scalar One not implemented")
+	log.Error("ed25519Scalar",
+		"message", "One for ed25519Scalar is not implemented, should not be called")
+
+	return nil
 }
 
 // Mul returns the modular product of receiver with scalar s given as parameter
-func (es *ed25519Scalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
-	panic("ed25519Scalar Mul not implemented")
+func (es *ed25519Scalar) Mul(_ crypto.Scalar) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Mul for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Div returns the modular division between receiver and scalar s given as parameter
-func (es *ed25519Scalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
-	panic("ed25519Scalar Div not implemented")
+func (es *ed25519Scalar) Div(_ crypto.Scalar) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Div for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Inv returns the modular inverse of scalar s given as parameter
-func (es *ed25519Scalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
-	panic("ed25519Scalar Inv not implemented")
+func (es *ed25519Scalar) Inv(_ crypto.Scalar) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Inv for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // Pick returns a fresh random or pseudo-random scalar
-func (es *ed25519Scalar) Pick(rand cipher.Stream) (crypto.Scalar, error) {
-	panic("ed25519Scalar Pick not implemented")
+func (es *ed25519Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "Pick for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // SetBytes sets the scalar from a byte-slice,
 // reducing if necessary to the appropriate modulus.
-func (es *ed25519Scalar) SetBytes(s []byte) (crypto.Scalar, error) {
-	panic("ed25519Scalar SetBytes not implemented")
+func (es *ed25519Scalar) SetBytes(_ []byte) (crypto.Scalar, error) {
+	log.Error("ed25519Scalar",
+		"message", "SetBytes for ed25519Scalar is not implemented, should not be called")
+
+	return nil, crypto.ErrNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -134,7 +160,7 @@ func (es *ed25519Scalar) IsInterfaceNil() bool {
 }
 
 func(es *ed25519Scalar) getPrivateKeyFromScalar(s crypto.Scalar) (ed25519.PrivateKey, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 

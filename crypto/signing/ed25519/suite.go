@@ -5,7 +5,10 @@ import (
 	"crypto/ed25519"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
+
+var log = logger.GetOrCreate("crypto/signing/ed25519")
 
 // ED25519 is the string representations of the ed25519 scheme
 const ED25519 = "Ed25519"
@@ -18,7 +21,7 @@ func NewEd25519() *suiteEd25519 {
 }
 
 // CreateKeyPair returns a pair of Ed25519 keys
-func (s *suiteEd25519) CreateKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+func (s *suiteEd25519) CreateKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
 	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic("could not create ed25519 key pair: " + err.Error())
@@ -77,11 +80,17 @@ func (s *suiteEd25519) PointLen() int {
 
 // GetUnderlyingSuite returns nothing because this is not a wrapper over another suite implementation
 func (s *suiteEd25519) GetUnderlyingSuite() interface{} {
+	log.Warn("suiteEd25519",
+		"message", "calling GetUnderlyingSuite for suiteEd25519 which has no underlying suite")
+
 	return nil
 }
 
 // RandomStream returns nothing - TODO: Remove this
 func (s *suiteEd25519) RandomStream() cipher.Stream {
+	log.Warn("suiteEd25519",
+		"message", "calling RandomStream for suiteEd25519 - this function should not be used")
+
 	return nil
 }
 
