@@ -956,7 +956,7 @@ func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoc
 	require.Equal(t, ErrEpochNodesConfigDesNotExist, err)
 }
 
-func TestIndexHashedNodesCoordinator_GetAllValidatorsPublicKeys(t *testing.T) {
+func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
 	t.Parallel()
 
 	shardZeroId := uint32(0)
@@ -1008,7 +1008,68 @@ func TestIndexHashedNodesCoordinator_GetAllValidatorsPublicKeys(t *testing.T) {
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	allValidatorsPublicKeys, err := ihgs.GetAllValidatorsPublicKeys(0)
+	allValidatorsPublicKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
+	require.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
+	require.Nil(t, err)
+}
+
+func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T) {
+	t.Parallel()
+
+	shardZeroId := uint32(0)
+	shardOneId := uint32(1)
+	expectedValidatorsPubKeys := map[uint32][][]byte{
+		shardZeroId:           {[]byte("pk0_shard0"), []byte("pk1_shard0"), []byte("pk2_shard0")},
+		shardOneId:            {[]byte("pk0_shard1"), []byte("pk1_shard1"), []byte("pk2_shard1")},
+		core.MetachainShardId: {[]byte("pk0_meta"), []byte("pk1_meta"), []byte("pk2_meta")},
+	}
+
+	listMeta := []Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], []byte("addr0_meta")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], []byte("addr1_meta")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], []byte("addr2_meta")),
+	}
+	listShard0 := []Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], []byte("addr0_shard0")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], []byte("addr1_shard0")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], []byte("addr2_shard0")),
+	}
+	listShard1 := []Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], []byte("addr0_shard1")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], []byte("addr1_shard1")),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], []byte("addr2_shard1")),
+	}
+
+	waitingMap := make(map[uint32][]Validator)
+	waitingMap[core.MetachainShardId] = listMeta
+	waitingMap[shardZeroId] = listShard0
+	waitingMap[shardOneId] = listShard1
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
+	eligibleMap := make(map[uint32][]Validator)
+	eligibleMap[core.MetachainShardId] = []Validator{&mock.ValidatorMock{}}
+	eligibleMap[shardZeroId] = []Validator{&mock.ValidatorMock{}}
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
+		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
+		ShardId:                 shardZeroId,
+		NbShards:                2,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
+		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+	}
+
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	allValidatorsPublicKeys, err := ihgs.GetAllWaitingValidatorsPublicKeys(0)
 	require.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 	require.Nil(t, err)
 }
@@ -1036,7 +1097,7 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	validators, err := ihgs.GetAllValidatorsPublicKeys(1)
+	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
@@ -1210,7 +1271,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch0(t *testi
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
 	require.Nil(t, err)
 
-	nodesCurrentEpoch, err := ihgs.GetAllValidatorsPublicKeys(0)
+	nodesCurrentEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
@@ -1252,9 +1313,9 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	nodesPrevEpoch, err := ihgs.GetAllValidatorsPublicKeys(0)
+	nodesPrevEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	require.Nil(t, err)
-	nodesCurrentEpoch, err := ihgs.GetAllValidatorsPublicKeys(1)
+	nodesCurrentEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
@@ -1303,7 +1364,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	ihgs.EpochStartPrepare(header)
 	ihgs.EpochStartAction(header)
 
-	nodesEpoch1, err := ihgs.GetAllValidatorsPublicKeys(1)
+	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 
 	allNodesList := make([]string, 0)
