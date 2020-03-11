@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// HeaderHandlerStub --
 type HeaderHandlerStub struct {
 	GetPrevRandSeedCalled     func() []byte
 	GetRandSeedCalled         func() []byte
@@ -13,22 +14,27 @@ type HeaderHandlerStub struct {
 	GetEpochCaled             func() uint32
 }
 
+// GetAccumulatedFees --
 func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetAccumulatedFees(value *big.Int) {
+// SetAccumulatedFees --
+func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
 	panic("implement me")
 }
 
+// GetReceiptsHash --
 func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 	return []byte("hash")
 }
 
+// Clone --
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
 	panic("implement me")
 }
 
+// IsStartOfEpochBlock --
 func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
 	if hhs.IsStartOfEpochBlockCalled != nil {
 		return hhs.IsStartOfEpochBlockCalled()
@@ -37,17 +43,21 @@ func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
 	return false
 }
 
+// GetShardID --
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetShardID(shId uint32) {
+// SetShardID --
+func (hhs *HeaderHandlerStub) SetShardID(_ uint32) {
 }
 
+// GetNonce -
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {
 	panic("implement me")
 }
 
+// GetEpoch -
 func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 	if hhs.GetEpochCaled != nil {
 		return hhs.GetEpochCaled()
@@ -56,22 +66,27 @@ func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 	return 0
 }
 
+// GetRound -
 func (hhs *HeaderHandlerStub) GetRound() uint64 {
 	panic("implement me")
 }
 
+// GetTimeStamp -
 func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 	panic("implement me")
 }
 
+// GetRootHash -
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
 	panic("implement me")
 }
 
+// GetPrevHash -
 func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
 	panic("implement me")
 }
 
+// GetPrevRandSeed -
 func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
 	if hhs.GetPrevRandSeedCalled != nil {
 		return hhs.GetPrevRandSeedCalled()
@@ -80,6 +95,7 @@ func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
 	return []byte("prev rand seed")
 }
 
+// GetRandSeed -
 func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
 	if hhs.GetRandSeedCalled != nil {
 		return hhs.GetRandSeedCalled()
@@ -88,94 +104,117 @@ func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
 	return []byte("rand seed")
 }
 
+// GetPubKeysBitmap -
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
 	panic("implement me")
 }
 
+// GetSignature -
 func (hhs *HeaderHandlerStub) GetSignature() []byte {
 	panic("implement me")
 }
 
+// GetLeaderSignature -
 func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
 	panic("implement me")
 }
 
+// GetChainID -
 func (hhs *HeaderHandlerStub) GetChainID() []byte {
 	panic("implement me")
 }
 
+// GetTxCount -
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
 
+// SetNonce -
 func (hhs *HeaderHandlerStub) SetNonce(_ uint64) {
 	panic("implement me")
 }
 
+// SetEpoch -
 func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) {
 	panic("implement me")
 }
 
+// SetRound -
 func (hhs *HeaderHandlerStub) SetRound(_ uint64) {
 	panic("implement me")
 }
 
+// SetTimeStamp -
 func (hhs *HeaderHandlerStub) SetTimeStamp(_ uint64) {
 	panic("implement me")
 }
 
+// SetRootHash -
 func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) {
 	panic("implement me")
 }
 
+// SetPrevHash -
 func (hhs *HeaderHandlerStub) SetPrevHash(_ []byte) {
 	panic("implement me")
 }
 
+// SetPrevRandSeed -
 func (hhs *HeaderHandlerStub) SetPrevRandSeed(_ []byte) {
 	panic("implement me")
 }
 
+// SetRandSeed -
 func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) {
 	panic("implement me")
 }
 
+// SetPubKeysBitmap -
 func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) {
 	panic("implement me")
 }
 
+// SetSignature -
 func (hhs *HeaderHandlerStub) SetSignature(_ []byte) {
 	panic("implement me")
 }
 
+// SetLeaderSignature -
 func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) {
 	panic("implement me")
 }
 
+// SetChainID -
 func (hhs *HeaderHandlerStub) SetChainID(_ []byte) {
 	panic("implement me")
 }
 
+// SetTxCount -
 func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+// GetMiniBlockHeadersWithDst -
+func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(_ uint32) map[string]uint32 {
 	panic("implement me")
 }
 
+// GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	panic("implement me")
 }
 
+// SetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
 	panic("implement me")
 }
 
+// GetMiniBlockProcessed -
 func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(_ []byte) bool {
 	panic("implement me")
 }
 
+// SetMiniBlockProcessed -
 func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(_ []byte, _ bool) {
 	panic("implement me")
 }
@@ -185,14 +224,17 @@ func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
 	return hhs == nil
 }
 
+// ItemsInHeader -
 func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {
 	panic("implement me")
 }
 
+// ItemsInBody -
 func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
+// CheckChainID -
+func (hhs *HeaderHandlerStub) CheckChainID(_ []byte) error {
 	panic("implement me")
 }

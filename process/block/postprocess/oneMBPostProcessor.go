@@ -102,12 +102,15 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 }
 
 // VerifyInterMiniBlocks verifies if the receipts/bad transactions added to the block are valid
-func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body block.Body) error {
-	scrMbs := opp.CreateAllInterMiniBlocks()
+func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
+	if body == nil {
+		return nil
+	}
 
+	scrMbs := opp.CreateAllInterMiniBlocks()
 	verifiedOne := false
-	for i := 0; i < len(body); i++ {
-		mb := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
 		if mb.Type != opp.blockType {
 			continue
 		}

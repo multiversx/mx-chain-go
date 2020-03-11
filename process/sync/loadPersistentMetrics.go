@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/metrics"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -48,14 +49,14 @@ func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConver
 		return nil, nil
 	}
 
-	metricsMap := make(map[string]interface{})
-	err = marshalizer.Unmarshal(&metricsMap, statusMetricsDbBytes)
+	metricsList := &metrics.MetricsList{}
+	err = marshalizer.Unmarshal(metricsList, statusMetricsDbBytes)
 	if err != nil {
 		log.Info("cannot unmarshal persistent metrics", err)
 		return nil, nil
 	}
 
-	return prepareMetricMaps(metricsMap)
+	return prepareMetricMaps(metrics.MapFromList(metricsList))
 }
 
 func saveUint64Metrics(statusHandler core.AppStatusHandler, metrics map[string]uint64) {

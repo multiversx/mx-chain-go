@@ -65,6 +65,25 @@ The node binary has some flags defined (for a brief description, the user can us
 $ go test ./...	
 ```
 
+## Compiling new fields in .proto files (should be updated when required PR will be merged in gogo protobuf master branch):
+1. Download protoc compiler: https://github.com/protocolbuffers/protobuf/releases 
+ (if you are running under linux on a x64 you might want to download protoc-3.11.4-linux-x86_64.zip)
+2. Expand archive, copy the /include/google folder in /usr/include using <br>
+`sudo cp -r google /usr/include`
+3. Copy bin/protoc using <br>
+`sudo cp protoc  /usr/bin` 
+4. Fetch the repo https://github.com/traian-schiau/protobuf
+5. Checkout branch `casttypewith`
+6. Copy repo in $GOPATH/github.com/gogo/protobuf replacing everything 
+7. Compile gogo slick & copy binary using
+```
+cd protoc-gen-gogoslick
+go build
+sudo cp protoc-gen-gogoslick /usr/bin/
+```
+
+Done
+
 ## Progress
 
 ### Done

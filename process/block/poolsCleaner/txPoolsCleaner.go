@@ -126,7 +126,7 @@ func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func(
 			continue
 		}
 
-		sndAddr := tx.GetSndAddress()
+		sndAddr := tx.GetSndAddr()
 		addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
 		if err != nil {
 			txsPool.Remove(key)
@@ -179,8 +179,5 @@ func (tpc *TxPoolsCleaner) NumRemovedTxs() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tpc *TxPoolsCleaner) IsInterfaceNil() bool {
-	if tpc == nil {
-		return true
-	}
-	return false
+	return tpc == nil
 }

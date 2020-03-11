@@ -61,10 +61,7 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
 
 // CreateKey -

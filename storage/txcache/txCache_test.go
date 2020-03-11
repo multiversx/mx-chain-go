@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -15,14 +14,14 @@ import (
 func Test_AddTx(t *testing.T) {
 	cache := newCacheToTest()
 
-	tx := createTx("alice", 1)
+	tx := createTx([]byte("hash-1"), "alice", 1)
 
-	ok, added := cache.AddTx([]byte("hash-1"), tx)
+	ok, added := cache.AddTx(tx)
 	require.True(t, ok)
 	require.True(t, added)
 
 	// Add it again (no-operation)
-	ok, added = cache.AddTx([]byte("hash-1"), tx)
+	ok, added = cache.AddTx(tx)
 	require.True(t, ok)
 	require.False(t, added)
 
@@ -36,7 +35,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 
 	txHash := []byte("hash-1")
 
-	ok, added := cache.AddTx(txHash, nil)
+	ok, added := cache.AddTx(&WrappedTransaction{Tx: nil, TxHash: txHash})
 	require.False(t, ok)
 	require.False(t, added)
 
@@ -48,8 +47,8 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 func Test_RemoveByTxHash(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
+	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
 
 	err := cache.RemoveTxByHash([]byte("hash-1"))
 	require.Nil(t, err)
@@ -67,9 +66,9 @@ func Test_RemoveByTxHash(t *testing.T) {
 func Test_CountTx_And_Len(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
-	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
+	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-3"), "alice", 3))
 
 	require.Equal(t, int64(3), cache.CountTx())
 	require.Equal(t, 3, cache.Len())
@@ -79,8 +78,8 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
-	tx := createTx("alice", 1)
-	cache.AddTx(txHash, tx)
+	tx := createTx(txHash, "alice", 1)
+	cache.AddTx(tx)
 
 	foundTx, ok := cache.GetByTxHash(txHash)
 	require.True(t, ok)
@@ -88,11 +87,19 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 
 	foundTxPeek, okPeek := cache.Peek(txHash)
 	require.True(t, okPeek)
-	require.Equal(t, tx, foundTxPeek)
+	require.Equal(t, tx.Tx, foundTxPeek)
+
+	foundTxPeek, okPeek = cache.Peek([]byte("missing"))
+	require.False(t, okPeek)
+	require.Nil(t, foundTxPeek)
 
 	foundTxGet, okGet := cache.Get(txHash)
 	require.True(t, okGet)
-	require.Equal(t, tx, foundTxGet)
+	require.Equal(t, tx.Tx, foundTxGet)
+
+	foundTxGet, okGet = cache.Get([]byte("missing"))
+	require.False(t, okGet)
+	require.Nil(t, foundTxGet)
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
@@ -105,8 +112,8 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
-	tx := createTx("alice", 1)
-	cache.AddTx(txHash, tx)
+	tx := createTx(txHash, "alice", 1)
+	cache.AddTx(tx)
 
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
 	cache.txListBySender.removeTx(tx)
@@ -118,9 +125,9 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 func Test_Clear(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
-	cache.AddTx([]byte("hash-alice-42"), createTx("alice", 42))
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
+	cache.AddTx(createTx([]byte("hash-alice-42"), "alice", 42))
 	require.Equal(t, int64(3), cache.CountTx())
 
 	cache.Clear()
@@ -130,11 +137,11 @@ func Test_Clear(t *testing.T) {
 func Test_ForEachTransaction(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
 
 	counter := 0
-	cache.ForEachTransaction(func(txHash []byte, value data.TransactionHandler) {
+	cache.ForEachTransaction(func(txHash []byte, value *WrappedTransaction) {
 		counter++
 	})
 	require.Equal(t, 2, counter)
@@ -143,17 +150,38 @@ func Test_ForEachTransaction(t *testing.T) {
 func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
-	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
-	cache.AddTx([]byte("hash-alice-2"), createTx("alice", 2))
-	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
-	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
-	cache.AddTx([]byte("hash-bob-6"), createTx("bob", 6))
-	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
-	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
+	cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
+	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
+	cache.AddTx(createTx([]byte("hash-bob-6"), "bob", 6))
+	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
+	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-	sorted, _ := cache.SelectTransactions(10, 2)
+	sorted := cache.SelectTransactions(10, 2)
 	require.Len(t, sorted, 8)
+}
+
+func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
+	cache := newCacheToTest()
+
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+	cache.AddTx(createTx([]byte("hash-alice-5"), "alice", 5))
+	cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+	cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 44))
+	cache.AddTx(createTx([]byte("hash-bob-45"), "bob", 45))
+	cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+	cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+	cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10))
+	cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
+
+	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+
+	sorted := cache.SelectTransactions(10, 2)
+	require.Len(t, sorted, numSelected)
 }
 
 func Test_SelectTransactions(t *testing.T) {
@@ -170,22 +198,22 @@ func Test_SelectTransactions(t *testing.T) {
 
 		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
 			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
-			tx := createTx(sender, uint64(txNonce))
-			cache.AddTx([]byte(txHash), tx)
+			tx := createTx([]byte(txHash), sender, uint64(txNonce))
+			cache.AddTx(tx)
 		}
 	}
 
 	require.Equal(t, int64(nTotalTransactions), cache.CountTx())
 
-	sorted, _ := cache.SelectTransactions(nRequestedTransactions, 2)
+	sorted := cache.SelectTransactions(nRequestedTransactions, 2)
 
 	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 
 	// Check order
 	nonces := make(map[string]uint64, nSenders)
 	for _, tx := range sorted {
-		nonce := tx.GetNonce()
-		sender := string(tx.GetSndAddress())
+		nonce := tx.Tx.GetNonce()
+		sender := string(tx.Tx.GetSndAddr())
 		previousNonce := nonces[sender]
 
 		require.LessOrEqual(t, previousNonce, nonce)
@@ -196,10 +224,10 @@ func Test_SelectTransactions(t *testing.T) {
 func Test_Keys(t *testing.T) {
 	cache := newCacheToTest()
 
-	cache.AddTx([]byte("alice-x"), createTx("alice", 42))
-	cache.AddTx([]byte("alice-y"), createTx("alice", 43))
-	cache.AddTx([]byte("bob-x"), createTx("bob", 42))
-	cache.AddTx([]byte("bob-y"), createTx("bob", 43))
+	cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+	cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
+	cache.AddTx(createTx([]byte("bob-x"), "bob", 42))
+	cache.AddTx(createTx([]byte("bob-y"), "bob", 43))
 
 	keys := cache.Keys()
 	require.Equal(t, 4, len(keys))

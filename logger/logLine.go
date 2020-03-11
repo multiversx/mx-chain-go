@@ -1,9 +1,8 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. logLineMessage.proto
 package logger
 
 import (
 	"time"
-
-	protobuf "github.com/ElrondNetwork/elrond-go/logger/proto"
 )
 
 // LogLine is the structure used to hold a log line
@@ -26,7 +25,7 @@ func newLogLine(message string, logLevel LogLevel, args ...interface{}) *LogLine
 // LogLineWrapper is a wrapper over protobuf.LogLineMessage that enables the structure to be used with
 // protobuf marshaller
 type LogLineWrapper struct {
-	protobuf.LogLineMessage
+	LogLineMessage
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

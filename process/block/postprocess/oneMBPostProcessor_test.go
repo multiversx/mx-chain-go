@@ -186,9 +186,9 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
-	body := block.Body{}
-	body = append(body, miniBlock)
-	body = append(body, miniBlock)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, process.ErrTooManyReceiptsMiniBlocks, err)
@@ -210,8 +210,8 @@ func TestOneMBPostProcessor_VerifyNilMiniBlocks(t *testing.T) {
 		SenderShardID:   0,
 		ReceiverShardID: 0,
 		Type:            block.TxBlock}
-	body := block.Body{}
-	body = append(body, miniBlock)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err := irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
@@ -253,8 +253,8 @@ func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
 		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
-	body := block.Body{}
-	body = append(body, miniBlock)
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
