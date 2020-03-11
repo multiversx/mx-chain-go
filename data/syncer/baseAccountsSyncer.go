@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -28,6 +29,8 @@ type baseAccountsSyncer struct {
 	rootHash           []byte
 }
 
+const minWaitTime = time.Second
+
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
 	Hasher             hashing.Hasher
@@ -51,8 +54,8 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.RequestHandler) {
 		return state.ErrNilRequestHandler
 	}
-	if args.WaitTime < time.Second {
-		return state.ErrInvalidWaitTime
+	if args.WaitTime < minWaitTime {
+		return fmt.Errorf("%w, minWaitTime is %d", state.ErrInvalidWaitTime, minWaitTime)
 	}
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher

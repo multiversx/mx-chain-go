@@ -562,6 +562,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}
