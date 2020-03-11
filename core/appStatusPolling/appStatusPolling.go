@@ -5,7 +5,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
+
+const minPollingDuration = time.Second
 
 // AppStatusPolling will update an AppStatusHandler by polling components at a predefined interval
 type AppStatusPolling struct {
@@ -16,16 +19,15 @@ type AppStatusPolling struct {
 }
 
 // NewAppStatusPolling will return an instance of AppStatusPolling
-func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDurationSec int) (*AppStatusPolling, error) {
-	if appStatusHandler == nil || appStatusHandler.IsInterfaceNil() {
+func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDuration time.Duration) (*AppStatusPolling, error) {
+	if check.IfNil(appStatusHandler) {
 		return nil, ErrNilAppStatusHandler
 	}
-	//TODO: maybe add pollingDuration min
-	if pollingDurationSec < 1 {
-		return nil, ErrPollingDurationNegative
+	if pollingDuration < minPollingDuration {
+		return nil, ErrPollingDurationToSmall
 	}
 	return &AppStatusPolling{
-		pollingDuration:  time.Duration(pollingDurationSec) * time.Second,
+		pollingDuration:  pollingDuration,
 		appStatusHandler: appStatusHandler,
 	}, nil
 }

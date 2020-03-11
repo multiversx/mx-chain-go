@@ -421,7 +421,6 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	return hdrsForCurrentBlock
 }
 
-//TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
 	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
 
