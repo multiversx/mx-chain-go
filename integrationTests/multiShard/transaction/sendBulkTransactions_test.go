@@ -180,7 +180,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, txs []*tran
 
 	tx := &transaction.Transaction{
 		Nonce:     nonce,
-		Value:     new(big.Int).SetInt64(10),
+		Value:     big.NewInt(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
 		GasPrice:  integrationTests.MinTxGasPrice,

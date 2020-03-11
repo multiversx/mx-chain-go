@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	multisig2 "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -107,7 +107,7 @@ func createTestSingleSigner() crypto.SingleSigner {
 
 func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {
 	numShards := uint32(0)
-	suiteBlock := kyber.NewSuitePairingBn256()
+	suiteBlock := mcl.NewSuiteBLS12()
 	suiteTx := ed25519.NewEd25519()
 
 	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
@@ -197,15 +197,15 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Pk: ncp[nodeShardId][keyIndex].BlockSignPk,
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
-	llsig := &kmultisig.KyberMultiSignerBLS{}
+
 	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)
 	kp := ncp[nodeShardId][keyIndex]
 	var err error
 	tpn.MultiSigner, err = multisig.NewBLSMultisig(
 		llsig,
-		blsHasher,
 		pubKeysMap[nodeShardId],
 		tpn.NodeKeys.Sk,
 		kp.BlockSignKeyGen,

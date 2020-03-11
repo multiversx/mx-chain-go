@@ -60,8 +60,6 @@ type Point interface {
 	Equal(p Point) (bool, error)
 	// Null returns the neutral identity element.
 	Null() Point
-	// Base returns the Group's base point.
-	Base() Point
 	// Set sets the receiver equal to another Point p.
 	Set(p Point) error
 	// Clone returns a clone of the receiver.
@@ -97,6 +95,8 @@ type Group interface {
 	PointLen() int
 	// CreatePoint creates a new point
 	CreatePoint() Point
+	// CreatePointForScalar creates a new point corresponding to the given scalar
+	CreatePointForScalar(scalar Scalar) (Point, error)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -117,8 +117,6 @@ type Suite interface {
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair(cipher.Stream) (Scalar, Point)
-	// GetPublicKeyPoint will generate a Point that will be the representation of the implemented signature scheme
-	GetPublicKeyPoint(scalar Scalar) (Point, error)
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }
@@ -214,14 +212,7 @@ type LowLevelSignerBLS interface {
 	// VerifySigBytes verifies if a byte array represents a BLS signature
 	VerifySigBytes(suite Suite, sig []byte) error
 	// AggregateSignatures aggregates BLS single signatures given as byte arrays
-	AggregateSignatures(suite Suite, sigs ...[]byte) ([]byte, error)
+	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
-	VerifyAggregatedSig(suite Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error
-	// AggregatePublicKeys aggregates a list of public key Points. Returns the byte array representation of the point
-	AggregatePublicKeys(suite Suite, pubKeys ...Point) ([]byte, error)
-	// ScalarMulSig provides the result of multiplying a scalar with a signature.
-	// This is used in the modified BLS multi-signature scheme
-	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
+	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
 }

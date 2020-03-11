@@ -62,12 +62,12 @@ func (mscf *multipleShardsCoordinatorFake) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (mscf *multipleShardsCoordinatorFake) SetSelfId(shardId uint32) error {
+func (mscf *multipleShardsCoordinatorFake) SetSelfId(_ uint32) error {
 	return nil
 }
 
 // SameShard -
-func (mscf *multipleShardsCoordinatorFake) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (mscf *multipleShardsCoordinatorFake) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
@@ -92,8 +92,5 @@ func (mscf *multipleShardsCoordinatorFake) CommunicationIdentifier(destShardID u
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mscf *multipleShardsCoordinatorFake) IsInterfaceNil() bool {
-	if mscf == nil {
-		return true
-	}
-	return false
+	return mscf == nil
 }

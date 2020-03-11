@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
 )
@@ -112,7 +113,7 @@ func generateFiles() error {
 	}
 
 	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	genForBlockSigningSk := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {

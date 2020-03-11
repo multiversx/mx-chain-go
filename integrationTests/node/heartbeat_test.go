@@ -210,7 +210,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 	suite := ed25519.NewEd25519()
 	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
-	marshalizer := &marshal.JsonMarshalizer{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 
 	mp, _ := heartbeat.NewMessageProcessor(singlesigner, keyGen, marshalizer)
 

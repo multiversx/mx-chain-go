@@ -35,11 +35,18 @@ func (s *suiteEd25519) CreatePoint() crypto.Point {
 	return &po
 }
 
-// GetPublicKeyPoint returns a Point that is the representation of a public key corresponding
-//  to the provided Scalar on the ed25519 curve using the Schnorr signature scheme
-func (s *suiteEd25519) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
-	point := s.CreatePoint()
-	return point.Mul(scalar)
+// CreatePointForScalar creates a new point corresponding to the given scalar
+func (s *suiteEd25519) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
+	p := kyberPoint{}
+	sc, ok := scalar.(*kyberScalar)
+	if !ok {
+		return nil, crypto.ErrInvalidPrivateKey
+	}
+
+	p1 := s.suite.Curve.Point().Base().Mul(sc.Scalar, nil)
+	p.Point = p1
+
+	return &p, nil
 }
 
 // String returns the string for the group

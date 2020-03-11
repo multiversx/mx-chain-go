@@ -29,18 +29,18 @@ func TestTransaction_SettersAndGetters(t *testing.T) {
 	}
 	assert.False(t, check.IfNil(tx))
 
-	tx.SetSndAddress(sender)
+	tx.SetSndAddr(sender)
 	tx.SetData(txData)
 	tx.SetValue(value)
-	tx.SetRecvAddress(receiver)
+	tx.SetRcvAddr(receiver)
 
 	assert.Equal(t, nonce, tx.GetNonce())
 	assert.Equal(t, value, tx.GetValue())
 	assert.Equal(t, txData, tx.GetData())
 	assert.Equal(t, gasPrice, tx.GetGasPrice())
 	assert.Equal(t, gasLimit, tx.GetGasLimit())
-	assert.Equal(t, sender, tx.GetSndAddress())
-	assert.Equal(t, receiver, tx.GetRecvAddress())
+	assert.Equal(t, sender, tx.GetSndAddr())
+	assert.Equal(t, receiver, tx.GetRcvAddr())
 }
 
 func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
@@ -49,7 +49,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 	value := big.NewInt(445566)
 	tx := &transaction.Transaction{
 		Nonce:     112233,
-		Value:     value,
+		Value:     new(big.Int).Set(value),
 		RcvAddr:   []byte("receiver"),
 		SndAddr:   []byte("sender"),
 		GasPrice:  1234,

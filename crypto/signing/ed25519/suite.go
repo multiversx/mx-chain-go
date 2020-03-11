@@ -36,9 +36,9 @@ func (s *suiteEd25519) CreatePoint() crypto.Point {
 	return publicKey
 }
 
-// GetPublicKeyPoint returns a Point that is the representation of a public key corresponding
+// CreatePointForScalar returns a Point that is the representation of a public key corresponding
 //  to the provided Scalar in the ed25519 signature scheme
-func (s *suiteEd25519) GetPublicKeyPoint(scalar crypto.Scalar) (crypto.Point, error) {
+func (s *suiteEd25519) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 	privateKey, ok := scalar.GetUnderlyingObj().(ed25519.PrivateKey)
 	if !ok {
 		return nil, crypto.ErrInvalidPrivateKey
