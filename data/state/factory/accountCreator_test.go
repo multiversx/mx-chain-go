@@ -17,6 +17,7 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 
 	_, ok := accF.(*factory.AccountCreator)
 	assert.Equal(t, true, ok)
+	assert.False(t, check.IfNil(accF))
 
 	acc, err := accF.CreateAccount(nil)
 

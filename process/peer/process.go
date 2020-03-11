@@ -405,8 +405,8 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
-		swInner.Stop("SetTempRating")
 		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)
+		swInner.Stop("SetTempRating")
 		if err != nil {
 			return err
 		}

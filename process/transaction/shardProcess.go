@@ -289,12 +289,7 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
-	err = txProc.saveAccounts(acntSrc, acntDst)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return txProc.saveAccounts(acntSrc, acntDst)
 }
 
 func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {

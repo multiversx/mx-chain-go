@@ -652,14 +652,14 @@ func TestAccountsDB_IsPruningEnabled(t *testing.T) {
 	assert.Equal(t, true, res)
 }
 
-func TestAccountsDB_RevertToSnapshotNoEntriesShouldNotErr(t *testing.T) {
+func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &mock.TrieStub{}
 	adb := generateAccountDBFromTrie(trieStub)
 
 	err := adb.RevertToSnapshot(1)
-	assert.Nil(t, err)
+	assert.Equal(t, state.ErrSnapshotValueOutOfBounds, err)
 }
 
 func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {

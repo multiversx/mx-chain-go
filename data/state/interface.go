@@ -168,6 +168,7 @@ type TriesHolder interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorInfo is used to access information about the validator
 type ValidatorInfo interface {
 	GetPublicKey() []byte
 	GetShardId() uint32

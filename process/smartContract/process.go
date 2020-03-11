@@ -218,14 +218,9 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, tx, err.Error())
-			if err != nil {
+			errNotCritical := sc.processIfError(acntSnd, tx, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
-			}
-
-			err = sc.accounts.SaveAccount(acntSnd)
-			if err != nil {
-				log.Debug("error saving account")
 			}
 		}
 	}()
@@ -406,6 +401,11 @@ func (sc *scProcessor) processIfError(
 		if err != nil {
 			return err
 		}
+
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			log.Debug("error saving account")
+		}
 	} else {
 		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
@@ -480,14 +480,9 @@ func (sc *scProcessor) DeploySmartContract(
 
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, tx, err.Error())
-			if err != nil {
+			errNotCritical := sc.processIfError(acntSnd, tx, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
-			}
-
-			err = sc.accounts.SaveAccount(acntSnd)
-			if err != nil {
-				log.Debug("error saving account")
 			}
 		}
 	}()
@@ -1091,8 +1086,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	var err error
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(nil, scr, err.Error())
-			if err != nil {
+			errNotCritical := sc.processIfError(nil, scr, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}

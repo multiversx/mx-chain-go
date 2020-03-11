@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-// AccountsDB is the struct used for accessing accounts
+// AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
 	mainTrie       data.Trie
 	hasher         hashing.Hasher
@@ -71,14 +71,15 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 		return err
 	}
 
+	var entry JournalEntry
 	if oldAccount == nil {
-		entry, err := NewJournalEntryAccountCreation(account.AddressContainer().Bytes(), adb.mainTrie)
+		entry, err = NewJournalEntryAccountCreation(account.AddressContainer().Bytes(), adb.mainTrie)
 		if err != nil {
 			return err
 		}
 		adb.journalize(entry)
 	} else {
-		entry, err := NewJournalEntryAccount(oldAccount)
+		entry, err = NewJournalEntryAccount(oldAccount)
 		if err != nil {
 			return err
 		}
@@ -157,9 +158,6 @@ func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler AccountHandler) error {
-	if check.IfNil(accountHandler) {
-		return fmt.Errorf("%w in SaveDataTrie", ErrNilAccountHandler)
-	}
 	if check.IfNil(accountHandler.DataTrieTracker()) {
 		return ErrNilTrackableDataTrie
 	}
@@ -187,6 +185,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
+		//TODO use trackableDataTrie.originalData() instead of getting from the trie
 		val, err := dataTrie.Get([]byte(k))
 		if err != nil {
 			return err
@@ -278,7 +277,17 @@ func (adb *AccountsDB) LoadAccount(addressContainer AddressContainer) (AccountHa
 		return nil, err
 	}
 	if acnt != nil {
-		return adb.loadAccountHandler(acnt)
+		err = adb.loadCode(acnt)
+		if err != nil {
+			return nil, err
+		}
+
+		err = adb.loadDataTrie(acnt)
+		if err != nil {
+			return nil, err
+		}
+
+		return acnt, nil
 	}
 
 	return adb.accountFactory.CreateAccount(addressContainer)
@@ -314,7 +323,7 @@ func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (Ac
 	defer adb.mutOp.Unlock()
 
 	if check.IfNil(addressContainer) {
-		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddressContainer)
+		return nil, fmt.Errorf("%w in GetExistingAccount, address: %s", ErrNilAddressContainer, hex.EncodeToString(addressContainer.Bytes()))
 	}
 
 	log.Trace("accountsDB.GetExistingAccount",
@@ -329,35 +338,17 @@ func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (Ac
 		return nil, ErrAccNotFound
 	}
 
-	err = adb.loadCodeAndDataIntoAccountHandler(acnt)
+	err = adb.loadCode(acnt)
+	if err != nil {
+		return nil, err
+	}
+
+	err = adb.loadDataTrie(acnt)
 	if err != nil {
 		return nil, err
 	}
 
 	return acnt, nil
-}
-
-func (adb *AccountsDB) loadAccountHandler(accountHandler AccountHandler) (AccountHandler, error) {
-	err := adb.loadCodeAndDataIntoAccountHandler(accountHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	return accountHandler, nil
-}
-
-func (adb *AccountsDB) loadCodeAndDataIntoAccountHandler(accountHandler AccountHandler) error {
-	err := adb.loadCode(accountHandler)
-	if err != nil {
-		return err
-	}
-
-	err = adb.loadDataTrie(accountHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
@@ -376,9 +367,7 @@ func (adb *AccountsDB) loadCode(accountHandler AccountHandler) error {
 }
 
 // RevertToSnapshot apply Revert method over accounts object and removes entries from the list
-// If snapshot > len(entries) will do nothing, return will be nil
-// 0 index based. Calling this method with negative value will do nothing. Calling with 0 revert everything.
-// Concurrent safe.
+// Calling with 0 will revert everything. If the snapshot value is out of bounds, an err will be returned
 func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	log.Trace("accountsDB.RevertToSnapshot started",
 		"snapshot", snapshot,
@@ -392,8 +381,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	}()
 
 	if snapshot > len(adb.entries) || snapshot < 0 {
-		//outside of bounds array, not quite error, just return
-		return nil
+		return ErrSnapshotValueOutOfBounds
 	}
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
@@ -416,7 +404,6 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 }
 
 // JournalLen will return the number of entries
-// Concurrent safe.
 func (adb *AccountsDB) JournalLen() int {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
@@ -505,7 +492,7 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	return nil
 }
 
-// Journalize adds a new object to entries list. Concurrent safe.
+// Journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
 	if check.IfNil(entry) {
 		return

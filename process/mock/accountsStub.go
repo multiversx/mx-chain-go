@@ -26,6 +26,7 @@ type AccountsStub struct {
 	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
 }
 
+// LoadAccount -
 func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.AccountHandler, error) {
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
@@ -33,6 +34,7 @@ func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.Accou
 	return nil, errNotImplemented
 }
 
+// SaveAccount -
 func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 	if as.SaveAccountCalled != nil {
 		return as.SaveAccountCalled(account)

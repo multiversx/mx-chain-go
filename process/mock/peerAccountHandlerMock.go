@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// PeerAccountHandlerMock -
 type PeerAccountHandlerMock struct {
 	IncreaseLeaderSuccessRateCalled    func(uint32)
 	DecreaseLeaderSuccessRateCalled    func(uint32)
@@ -18,38 +19,47 @@ type PeerAccountHandlerMock struct {
 	GetAccumulatedFeesCalled           func() *big.Int
 }
 
+// GetBLSPublicKey -
 func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
 	return nil
 }
 
+// SetBLSPublicKey -
 func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) {
 
 }
 
+// GetSchnorrPublicKey -
 func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
 	return nil
 }
 
+// SetSchnorrPublicKey -
 func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) {
 
 }
 
+// GetRewardAddress -
 func (p *PeerAccountHandlerMock) GetRewardAddress() []byte {
 	return nil
 }
 
+// SetRewardAddress -
 func (p *PeerAccountHandlerMock) SetRewardAddress([]byte) error {
 	return nil
 }
 
+// GetStake -
 func (p *PeerAccountHandlerMock) GetStake() *big.Int {
 	return nil
 }
 
+// SetStake -
 func (p *PeerAccountHandlerMock) SetStake(*big.Int) {
 
 }
 
+// GetAccumulatedFees -
 func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	if p.GetAccumulatedFeesCalled != nil {
 		p.GetAccumulatedFeesCalled()
@@ -57,100 +67,122 @@ func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
+// SetAccumulatedFees -
 func (p *PeerAccountHandlerMock) SetAccumulatedFees(val *big.Int) {
 	if p.SetAccumulatedFeesCalled != nil {
 		p.SetAccumulatedFeesCalled(val)
 	}
 }
 
+// GetJailTime -
 func (p *PeerAccountHandlerMock) GetJailTime() state.TimePeriod {
 	return state.TimePeriod{}
 }
 
+// SetJailTime -
 func (p *PeerAccountHandlerMock) SetJailTime(state.TimePeriod) {
 
 }
 
+// GetCurrentShardId -
 func (p *PeerAccountHandlerMock) GetCurrentShardId() uint32 {
 	return 0
 }
 
+// SetCurrentShardId -
 func (p *PeerAccountHandlerMock) SetCurrentShardId(uint32) {
 
 }
 
+// GetNextShardId -
 func (p *PeerAccountHandlerMock) GetNextShardId() uint32 {
 	return 0
 }
 
+// SetNextShardId -
 func (p *PeerAccountHandlerMock) SetNextShardId(uint32) {
 
 }
 
+// GetNodeInWaitingList -
 func (p *PeerAccountHandlerMock) GetNodeInWaitingList() bool {
 	return false
 }
 
+// SetNodeInWaitingList -
 func (p *PeerAccountHandlerMock) SetNodeInWaitingList(bool) {
 
 }
 
+// GetUnStakedNonce -
 func (p *PeerAccountHandlerMock) GetUnStakedNonce() uint64 {
 	return 0
 }
 
+// SetUnStakedNonce -
 func (p *PeerAccountHandlerMock) SetUnStakedNonce(uint64) {
 
 }
 
+// IncreaseLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) IncreaseLeaderSuccessRate(val uint32) {
 	if p.IncreaseLeaderSuccessRateCalled != nil {
 		p.IncreaseLeaderSuccessRateCalled(val)
 	}
 }
 
+// DecreaseLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
 	if p.DecreaseLeaderSuccessRateCalled != nil {
 		p.DecreaseLeaderSuccessRateCalled(val)
 	}
 }
 
+// IncreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
 	if p.IncreaseValidatorSuccessRateCalled != nil {
 		p.IncreaseValidatorSuccessRateCalled(val)
 	}
 }
 
+// DecreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
 	if p.DecreaseValidatorSuccessRateCalled != nil {
 		p.DecreaseValidatorSuccessRateCalled(val)
 	}
 }
 
+// GetNumSelectedInSuccessBlocks -
 func (p *PeerAccountHandlerMock) GetNumSelectedInSuccessBlocks() uint32 {
 	return 0
 }
 
+// SetNumSelectedInSuccessBlocks -
 func (p *PeerAccountHandlerMock) SetNumSelectedInSuccessBlocks(uint32) {
 
 }
 
+// GetLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetRating -
 func (p *PeerAccountHandlerMock) GetRating() uint32 {
 	return 0
 }
 
+// SetRating -
 func (p *PeerAccountHandlerMock) SetRating(uint32) {
 
 }
 
+// GetTempRating -
 func (p *PeerAccountHandlerMock) GetTempRating() uint32 {
 	if p.GetTempRatingCalled != nil {
 		return p.GetTempRatingCalled()
@@ -158,64 +190,79 @@ func (p *PeerAccountHandlerMock) GetTempRating() uint32 {
 	return 0
 }
 
+// SetTempRating -
 func (p *PeerAccountHandlerMock) SetTempRating(val uint32) {
 	if p.SetTempRatingCalled != nil {
 		p.SetTempRatingCalled(val)
 	}
 }
 
+// ResetAtNewEpoch -
 func (p *PeerAccountHandlerMock) ResetAtNewEpoch() error {
 	return nil
 }
 
+// AddressContainer -
 func (p *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
 	return nil
 }
 
-func (p *PeerAccountHandlerMock) SetNonce(nonce uint64) {
+// SetNonce -
+func (p *PeerAccountHandlerMock) SetNonce(_ uint64) {
 
 }
 
+// GetNonce -
 func (p *PeerAccountHandlerMock) GetNonce() uint64 {
 	return 0
 }
 
-func (p *PeerAccountHandlerMock) SetCode(code []byte) {
+// SetCode -
+func (p *PeerAccountHandlerMock) SetCode(_ []byte) {
 
 }
 
+// GetCode -
 func (p *PeerAccountHandlerMock) GetCode() []byte {
 	return nil
 }
 
+// SetCodeHash -
 func (p *PeerAccountHandlerMock) SetCodeHash([]byte) {
 
 }
 
+// GetCodeHash -
 func (p *PeerAccountHandlerMock) GetCodeHash() []byte {
 	return nil
 }
 
+// SetRootHash -
 func (p *PeerAccountHandlerMock) SetRootHash([]byte) {
 
 }
 
+// GetRootHash -
 func (p *PeerAccountHandlerMock) GetRootHash() []byte {
 	return nil
 }
 
-func (p *PeerAccountHandlerMock) SetDataTrie(trie data.Trie) {
+// SetDataTrie -
+func (p *PeerAccountHandlerMock) SetDataTrie(_ data.Trie) {
 
 }
 
+// DataTrie -
 func (p *PeerAccountHandlerMock) DataTrie() data.Trie {
 	return nil
 }
 
+// DataTrieTracker -
 func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
 }
 
+// IsInterfaceNil -
 func (p *PeerAccountHandlerMock) IsInterfaceNil() bool {
 	return false
 }
