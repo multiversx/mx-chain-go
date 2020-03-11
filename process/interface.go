@@ -363,8 +363,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert(header data.HeaderHandler)
-	RevertStateToBlock(header data.HeaderHandler)
+	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
