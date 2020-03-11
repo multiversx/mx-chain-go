@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"sync/atomic"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -73,4 +75,20 @@ func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.Transactio
 		}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
+}
+
+func (bsc *blockSizeComputation) MiniblockSize() uint32 {
+	return bsc.miniblockSize
+}
+
+func (bsc *blockSizeComputation) TxSize() uint32 {
+	return bsc.txSize
+}
+
+func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
+	return atomic.LoadUint32(&bsc.numMiniBlocks)
+}
+
+func (bsc *blockSizeComputation) NumTxs() uint32 {
+	return atomic.LoadUint32(&bsc.numTxs)
 }

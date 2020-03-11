@@ -54,7 +54,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.protoMarshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.internalMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (n *Node) generateAndSignSingleTx(
 	dataField string,
 	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-	if check.IfNil(n.protoMarshalizer) {
+	if check.IfNil(n.internalMarshalizer) {
 		return nil, nil, ErrNilMarshalizer
 	}
 	if check.IfNil(n.txSignMarshalizer) {
@@ -219,7 +219,7 @@ func (n *Node) generateAndSignSingleTx(
 	}
 
 	tx.Signature = sig
-	txBuff, err := n.protoMarshalizer.Marshal(&tx)
+	txBuff, err := n.internalMarshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -240,7 +240,7 @@ func (n *Node) generateAndSignTxBuffArray(
 		return nil, nil, err
 	}
 
-	signedMarshalizedTx, err := n.protoMarshalizer.Marshal(&batch.Batch{Data: [][]byte{txBuff}})
+	signedMarshalizedTx, err := n.internalMarshalizer.Marshal(&batch.Batch{Data: [][]byte{txBuff}})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}

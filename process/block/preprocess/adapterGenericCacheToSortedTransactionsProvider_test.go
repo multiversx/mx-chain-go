@@ -39,9 +39,9 @@ func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 	t.Parallel()
 
 	cacher, _ := storageUnit.NewCache(storageUnit.LRUCache, 100, 1)
-	transactions, txHashes := sortTxByNonce(cacher)
+	txs, txHashes := sortTxByNonce(cacher)
 
-	require.Equal(t, 0, len(transactions))
+	require.Equal(t, 0, len(txs))
 	require.Equal(t, 0, len(txHashes))
 }
 
@@ -51,12 +51,12 @@ func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 	cacher, _ := storageUnit.NewCache(storageUnit.LRUCache, 100, 1)
 	hash, tx := createRandTx(randomizer)
 	cacher.HasOrAdd(hash, tx)
-	transactions, txHashes := sortTxByNonce(cacher)
+	txs, txHashes := sortTxByNonce(cacher)
 
-	require.Equal(t, 1, len(transactions))
+	require.Equal(t, 1, len(txs))
 	require.Equal(t, 1, len(txHashes))
 	require.True(t, hashInSlice(hash, txHashes))
-	require.True(t, txInSlice(tx, transactions))
+	require.True(t, txInSlice(tx, txs))
 }
 
 func createRandTx(rand *rand.Rand) ([]byte, *transaction.Transaction) {
@@ -97,9 +97,9 @@ func TestSortTxByNonce_MoreTransactionsShouldRetSameSize(t *testing.T) {
 	t.Parallel()
 
 	cache, genTransactions, _ := genCacherTransactionsHashes(100)
-	transactions, txHashes := sortTxByNonce(cache)
+	txs, txHashes := sortTxByNonce(cache)
 
-	require.Equal(t, len(genTransactions), len(transactions))
+	require.Equal(t, len(genTransactions), len(txs))
 	require.Equal(t, len(genTransactions), len(txHashes))
 }
 
@@ -107,11 +107,11 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSameElements(t *testing.T) {
 	t.Parallel()
 
 	cache, genTransactions, genHashes := genCacherTransactionsHashes(100)
-	transactions, txHashes := sortTxByNonce(cache)
+	txs, txHashes := sortTxByNonce(cache)
 
 	for i := 0; i < len(genTransactions); i++ {
 		require.True(t, hashInSlice(genHashes[i], txHashes))
-		require.True(t, txInSlice(genTransactions[i], transactions))
+		require.True(t, txInSlice(genTransactions[i], txs))
 	}
 }
 
@@ -119,11 +119,11 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T)
 	t.Parallel()
 
 	cache, _, _ := genCacherTransactionsHashes(100)
-	transactions, _ := sortTxByNonce(cache)
+	txs, _ := sortTxByNonce(cache)
 	lastNonce := uint64(0)
 
-	for i := 0; i < len(transactions); i++ {
-		tx := transactions[i]
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
 		require.True(t, lastNonce <= tx.GetNonce())
 		fmt.Println(tx.GetNonce())
 		lastNonce = tx.GetNonce()
@@ -133,7 +133,7 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T)
 func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 	t.Parallel()
 
-	transactions := []*transaction.Transaction{
+	txs := []*transaction.Transaction{
 		{Nonce: 1, Signature: []byte("sig1")},
 		{Nonce: 2, Signature: []byte("sig2")},
 		{Nonce: 1, Signature: []byte("sig3")},
@@ -141,9 +141,9 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 		{Nonce: 3, Signature: []byte("sig5")},
 	}
 
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, uint32(len(transactions)), 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, uint32(len(txs)), 1)
 
-	for _, tx := range transactions {
+	for _, tx := range txs {
 		marshalizer := &mock.MarshalizerMock{}
 		buffTx, _ := marshalizer.Marshal(tx)
 		hash := mock.HasherMock{}.Compute(string(buffTx))
@@ -159,10 +159,10 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 		lastNonce = tx.GetNonce()
 	}
 
-	require.Equal(t, len(sortedTxs), len(transactions))
+	require.Equal(t, len(sortedTxs), len(txs))
 
 	//test if one transaction from transactions might not be in sortedTx
-	for _, tx := range transactions {
+	for _, tx := range txs {
 		found := false
 		for _, stx := range sortedTxs {
 			if reflect.DeepEqual(tx, stx) {

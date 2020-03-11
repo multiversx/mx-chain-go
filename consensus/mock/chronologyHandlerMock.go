@@ -43,8 +43,5 @@ func (chrm *ChronologyHandlerMock) StartRounds() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (chrm *ChronologyHandlerMock) IsInterfaceNil() bool {
-	if chrm == nil {
-		return true
-	}
-	return false
+	return chrm == nil
 }
