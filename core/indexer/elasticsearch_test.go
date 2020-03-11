@@ -3,6 +3,7 @@ package indexer_test
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
