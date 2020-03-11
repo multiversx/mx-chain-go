@@ -36,7 +36,6 @@ import (
 var log = logger.GetOrCreate("registration")
 var _ process.Interceptor = (*simpleMetaBlockInterceptor)(nil)
 
-const requestSuffix = "_REQUEST"
 const delayBetweenRequests = 1 * time.Second
 const delayAfterRequesting = 1 * time.Second
 const thresholdForConsideringMetaBlockCorrect = 0.2
