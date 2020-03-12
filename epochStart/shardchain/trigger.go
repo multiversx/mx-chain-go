@@ -627,6 +627,9 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	if t.epochStartShardHeader.Epoch <= 1 {
 		t.epochStartShardHeader = &block.Header{}
+		t.isEpochStart = true
+		t.newEpochHdrReceived = true
+		t.epoch = header.GetEpoch()
 		return nil
 	}
 
