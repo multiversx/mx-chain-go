@@ -306,8 +306,6 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
-
 	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
 	if err != nil {
@@ -337,6 +335,8 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	t.epoch = metaHdr.Epoch - 1
 	t.isEpochStart = false
 	t.epochStartMeta = epochStartMeta
+
+	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 
 	return nil
 }

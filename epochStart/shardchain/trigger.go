@@ -625,6 +625,8 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
+	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
+
 	if t.epochStartShardHeader.Epoch <= 1 {
 		t.epochStartShardHeader = &block.Header{}
 		t.isEpochStart = true
@@ -632,8 +634,6 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		t.epoch = header.GetEpoch()
 		return nil
 	}
-
-	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
 
 	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
 	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
