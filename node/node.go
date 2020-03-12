@@ -842,7 +842,7 @@ func (n *Node) CreateTransaction(
 	}
 
 	var txHash []byte
-	txHash, err = core.CalculateHash(n.protoMarshalizer, n.hasher, tx)
+	txHash, err = core.CalculateHash(n.internalMarshalizer, n.hasher, tx)
 	if err != nil {
 		return nil, nil, err
 	}

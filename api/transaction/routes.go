@@ -207,7 +207,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.CreateTransaction(
+	tx, _, err := ef.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
