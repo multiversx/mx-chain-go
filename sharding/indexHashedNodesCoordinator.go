@@ -210,27 +210,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator
 	return make([]Validator, 0)
 }
 
-// GetNodesPerShard returns the eligible nodes per shard map
-func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uint32][]Validator, error) {
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
-	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-	eligibleCopy := make(map[uint32][]Validator)
-	// Copy from the original map to the target map
-	for key, value := range nodesConfig.eligibleMap {
-		eligibleCopy[key] = value
-	}
-
-	return eligibleCopy, nil
-}
-
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
@@ -495,7 +474,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  leaving,
+		Leaving:  make([]Validator, 0),
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}

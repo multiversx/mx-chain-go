@@ -167,15 +167,18 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 			continue
 		}
 
-		vip.allPeerMiniblocks[string(mb.Hash)] = nil
+		vip.allPeerMiniblocks[string(mb.Hash)] = &miniBlockInfo{}
 		mbObjectFound, ok := vip.miniBlocksPool.Peek(mb.Hash)
 		if !ok {
 			missingNumber++
+			continue
 		}
 
 		mbFound := mbObjectFound.(*block.MiniBlock)
+		if mbFound == nil {
+			missingNumber++
+		}
 		vip.allPeerMiniblocks[string(mb.Hash)] = &miniBlockInfo{mb: mbFound}
-		missingNumber++
 	}
 
 	vip.numMissing = missingNumber
@@ -192,22 +195,18 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() error {
 	}
 	vip.mutMiniBlocksForBlock.Unlock()
 
-	if len(missingMiniblocks) > 0 {
-		go vip.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
+	if len(missingMiniblocks) == 0 {
+		return nil
 	}
 
-	vip.mutMiniBlocksForBlock.Unlock()
+	go vip.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
 
-	if len(missingMiniblocks) > 0 {
-		select {
-		case <-vip.chRcvAllMiniblocks:
-			return nil
-		case <-time.After(time.Second):
-			return process.ErrTimeIsOut
-		}
+	select {
+	case <-vip.chRcvAllMiniblocks:
+		return nil
+	case <-time.After(time.Second):
+		return process.ErrTimeIsOut
 	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
