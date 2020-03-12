@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const ProcessingThresholdPercent = processingThresholdPercent
+
 // factory
 
 // Factory defines a type for the factory structure

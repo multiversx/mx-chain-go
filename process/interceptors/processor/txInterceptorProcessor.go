@@ -2,15 +2,14 @@ package processor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	shardedDataCache dataRetriever.ShardedDataCacherNotifier
-	txValidator      process.TxValidator
+	shardedPool ShardedPool
+	txValidator process.TxValidator
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -26,8 +25,8 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	}
 
 	return &TxInterceptorProcessor{
-		shardedDataCache: argument.ShardedDataCache,
-		txValidator:      argument.TxValidator,
+		shardedPool: argument.ShardedDataCache,
+		txValidator: argument.TxValidator,
 	}, nil
 }
 
@@ -54,7 +53,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 	}
 
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
-	txip.shardedDataCache.AddData(
+	txip.shardedPool.AddData(
 		data.Hash(),
 		interceptedTx.Transaction(),
 		cacherIdentifier,
@@ -69,8 +68,5 @@ func (txip *TxInterceptorProcessor) SignalEndOfProcessing(_ []process.Intercepte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
-	if txip == nil {
-		return true
-	}
-	return false
+	return txip == nil
 }

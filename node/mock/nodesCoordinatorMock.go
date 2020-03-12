@@ -11,7 +11,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 }
 
-// GetAllValidatorsPublicKeys -
+// GetAllEligibleValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
@@ -126,7 +126,7 @@ func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil
 }
 
-// GetSavedStateKey
+// GetSavedStateKey -
 func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 	return []byte("key")
 }

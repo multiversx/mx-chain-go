@@ -84,11 +84,7 @@ func (rtp *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.M
 }
 
 // CreateAndProcessMiniBlocks does nothing
-func (rtp *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(
-	_ uint32,
-	_ uint32,
-	_ func() bool,
-) (block.MiniBlockSlice, error) {
+func (rtp *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
 	// validatorInfos are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
 }
