@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
@@ -60,13 +59,4 @@ type ArgMetaProcessor struct {
 	EpochEconomics            process.EndOfEpochEconomics
 	EpochRewardsCreator       process.EpochStartRewardsCreator
 	EpochValidatorInfoCreator process.EpochStartValidatorInfoCreator
-}
-
-// ArgValidatorInfoProcessor holds all dependencies required to create a validatorInfoProcessor
-type ArgValidatorInfoProcessor struct {
-	MiniBlocksPool               storage.Cacher
-	Marshalizer                  marshal.Marshalizer
-	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	Requesthandler               process.RequestHandler
-	Hasher                       hashing.Hasher
 }

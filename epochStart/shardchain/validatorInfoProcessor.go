@@ -1,4 +1,4 @@
-package block
+package shardchain
 
 import (
 	"bytes"
@@ -14,6 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+// ArgValidatorInfoProcessor holds all dependencies required to create a validatorInfoProcessor
+type ArgValidatorInfoProcessor struct {
+	MiniBlocksPool               storage.Cacher
+	Marshalizer                  marshal.Marshalizer
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Requesthandler               process.RequestHandler
+	Hasher                       hashing.Hasher
+}
 
 // ValidatorInfoProcessor implements validator info processing for miniblocks of type peerMiniblock
 type ValidatorInfoProcessor struct {
@@ -53,7 +62,9 @@ func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorI
 
 	return vip, nil
 }
-func (vip *ValidatorInfoProcessor) TryProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error {
+
+// ProcessMetaBlock processes an epochstart block asyncrhonous, processing the PeerMiniblocks
+func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error {
 	vip.state.init(metaBlock, metablockHash)
 
 	vip.computeMissingPeerBlocks(metaBlock)
@@ -62,6 +73,7 @@ func (vip *ValidatorInfoProcessor) TryProcessMetaBlock(metaBlock *block.MetaBloc
 	if err != nil {
 		return err
 	}
+
 	err = vip.tryProcessAllPeerMiniBlocks(metaBlock)
 	if err != nil {
 		return err
@@ -72,44 +84,45 @@ func (vip *ValidatorInfoProcessor) TryProcessMetaBlock(metaBlock *block.MetaBloc
 func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte) {
 	log.Debug("miniblock key", "key", key)
 	mb, ok := vip.miniBlocksPool.Get(key)
-	if ok {
-		peerMb, ok := mb.(*block.MiniBlock)
-		if ok && peerMb.Type == block.PeerBlock {
-			log.Trace(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
+	if !ok {
+		return
+	}
+	peerMb, isMiniBlock := mb.(*block.MiniBlock)
+	if isMiniBlock && peerMb.Type == block.PeerBlock {
+		log.Trace(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
 
-			vip.state.mutMiniBlocksForBlock.Lock()
-			defer vip.state.mutMiniBlocksForBlock.Unlock()
+		vip.state.mutMiniBlocksForBlock.Lock()
+		defer vip.state.mutMiniBlocksForBlock.Unlock()
 
-			mb, exists := vip.miniBlocksPool.Peek(key)
-			if exists {
-				peerMb, ok := mb.(*block.MiniBlock)
-				if ok {
-					marshalledMiniblock, err := vip.marshalizer.Marshal(peerMb)
-					if err != nil {
-						log.Debug("receivedMiniBlock", "error", err.Error())
+		mb, exists := vip.miniBlocksPool.Peek(key)
+		if exists {
+			peerMb, ok := mb.(*block.MiniBlock)
+			if ok {
+				marshalledMiniblock, err := vip.marshalizer.Marshal(peerMb)
+				if err != nil {
+					log.Debug("receivedMiniBlock", "error", err.Error())
+				} else {
+					hash := vip.Hasher.Compute(string(marshalledMiniblock))
+					if bytes.Equal(hash, key) {
+						log.Debug("hash and key do not match")
 					} else {
-						hash := vip.Hasher.Compute(string(marshalledMiniblock))
-						if bytes.Equal(hash, key) {
-							log.Debug("hash and key do not match")
-						} else {
-							vip.state.allPeerMiniblocks[string(key)] = peerMb
-						}
+						vip.state.allPeerMiniblocks[string(key)] = peerMb
 					}
 				}
 			}
-
-			for _, peerMb := range vip.state.allPeerMiniblocks {
-				if peerMb == nil {
-					return
-				}
-			}
-
-			select {
-			case vip.state.chRcvAllMiniblocks <- struct{}{}:
-			default:
-			}
-
 		}
+
+		for _, peerMb := range vip.state.allPeerMiniblocks {
+			if peerMb == nil {
+				return
+			}
+		}
+
+		select {
+		case vip.state.chRcvAllMiniblocks <- struct{}{}:
+		default:
+		}
+
 	}
 }
 
@@ -143,7 +156,6 @@ func (vip *ValidatorInfoProcessor) tryProcessAllPeerMiniBlocks(metaBlock *block.
 func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {
 	log.Trace("got a startEpochBlock", "miniblockHeaders len", len(metaBlock.MiniBlockHeaders))
 	peerMiniBlocks := make(map[string]*block.MiniBlock)
-	missingNumber := 0
 	for _, mb := range metaBlock.MiniBlockHeaders {
 		if mb.Type == block.PeerBlock {
 			mbObjectFound, ok := vip.miniBlocksPool.Peek(mb.Hash)
@@ -155,7 +167,6 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 				}
 			}
 			peerMiniBlocks[string(mb.Hash)] = nil
-			missingNumber++
 		}
 	}
 
@@ -175,9 +186,11 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() error {
 			missingMiniblocks = append(missingMiniblocks, []byte(mbHash))
 		}
 	}
-	if len(missingMiniblocks) > 0 {
-		go vip.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
+	if len(missingMiniblocks) == 0 {
+		return nil
 	}
+
+	go vip.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
 
 	if len(missingMiniblocks) > 0 {
 		select {
@@ -191,6 +204,7 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() error {
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (vip *ValidatorInfoProcessor) IsInterfaceNil() bool {
 	return vip == nil
 }

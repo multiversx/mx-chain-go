@@ -58,13 +58,12 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 // ComputeLeaving - computes the validators that have a threshold below the minimum rating
 func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators []Validator) []Validator {
 	leavingValidators := make([]Validator, 0)
-	for _, validator := range allValidators {
-		pk := validator.PubKey()
+	for _, val := range allValidators {
+		pk := val.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
 		if chances == 0 {
-			log.Trace("should be leaving node because of rating", "pk", validator.PubKey(), "address", validator.Address())
-			leavingValidators = append(leavingValidators, validator)
+			leavingValidators = append(leavingValidators, val)
 		}
 	}
 

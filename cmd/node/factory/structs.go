@@ -864,7 +864,7 @@ func newEpochStartTrigger(
 			return nil, err
 		}
 
-		argsValidatorInfoProcessor := block.ArgValidatorInfoProcessor{
+		argsValidatorInfoProcessor := shardchain.ArgValidatorInfoProcessor{
 			MiniBlocksPool:               args.data.Datapool.MiniBlocks(),
 			Marshalizer:                  args.coreData.InternalMarshalizer,
 			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
@@ -872,7 +872,7 @@ func newEpochStartTrigger(
 			Hasher:                       args.coreData.Hasher,
 		}
 
-		validatorInfoProcessor, err := block.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
+		validatorInfoProcessor, err := shardchain.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
 		if err != nil {
 			return nil, err
 		}

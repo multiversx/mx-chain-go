@@ -715,6 +715,6 @@ type RatingsInfo interface {
 	SelectionChances() []SelectionChance
 }
 type ValidatorInfoProcessorHandler interface {
-	TryProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
 	IsInterfaceNil() bool
 }

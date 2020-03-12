@@ -173,7 +173,12 @@ func (vs *validatorStatistics) saveInitialState(
 	return nil
 }
 
-func (vs *validatorStatistics) saveInitialValueForMap(nodesMap map[uint32][][]byte, startEpoch uint32, stakeValue *big.Int, startRating uint32) error {
+func (vs *validatorStatistics) saveInitialValueForMap(
+	nodesMap map[uint32][][]byte,
+	startEpoch uint32,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
 			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
@@ -898,25 +903,16 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 }
 
 // Process - processes a validatorInfo and updates fields
-func (vsp *validatorStatistics) Process(vid *state.ValidatorInfo) error {
+func (vs *validatorStatistics) Process(vid *state.ValidatorInfo) error {
 	log.Trace("ValidatorInfoData", "pk", vid.GetPublicKey(), "rating", vid.GetRating(), "tempRating", vid.GetTempRating())
 
-	pa, err := vsp.GetPeerAccount(vid.GetPublicKey())
-	if err != nil {
-		return err
-	}
-
-	err = pa.SetRatingWithJournal(vid.GetRating())
-	if err != nil {
-		return err
-	}
-
-	err = pa.SetTempRatingWithJournal(vid.GetTempRating())
+	pa, err := vs.GetPeerAccount(vid.GetPublicKey())
 	if err != nil {
 		return err
 	}
 
 	err = pa.SetRatingWithJournal(vid.GetTempRating())
+
 	if err != nil {
 		return err
 	}

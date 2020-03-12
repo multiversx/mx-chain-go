@@ -323,6 +323,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
+			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 		}
 
 		// save all final-valid epoch start blocks
@@ -404,11 +405,12 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
-	err := t.validatorInfoProcessor.TryProcessMetaBlock(metaHdr, []byte(hash))
+	err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
 	if err != nil {
-		log.Debug("tryProcessMetablock failed", "error", err)
+		log.Debug("processMetablock failed", "error", err)
 		return false, 0
 	}
+
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
 }

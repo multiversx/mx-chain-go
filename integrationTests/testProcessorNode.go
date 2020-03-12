@@ -511,7 +511,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
-	if tpn.EpochStartNotifier == nil {
+	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
 	}
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -935,7 +935,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChain:             tpn.BlockChain,
 	}
 
-	if tpn.EpochStartNotifier == nil {
+	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
 	}
 
@@ -1031,7 +1031,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		if tpn.EpochStartTrigger == nil {
+		if check.IfNil(tpn.EpochStartTrigger) {
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 				Marshalizer:        TestMarshalizer,
 				Hasher:             TestHasher,

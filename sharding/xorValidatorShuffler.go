@@ -286,15 +286,15 @@ func removeValidatorsFromList(
 	resultedList = append(resultedList, validatorList...)
 	removed := make([]Validator, 0)
 
-	for _, v2 := range validatorsToRemove {
+	for _, valToRemove := range validatorsToRemove {
 		if len(removed) == maxToRemove {
 			break
 		}
 
-		for i, v1 := range resultedList {
-			if v1 == v2 {
-				resultedList = removeValidatorFromList(resultedList, i)
-				removed = append(removed, v1)
+		for index, val := range resultedList {
+			if val == valToRemove {
+				resultedList = removeValidatorFromList(resultedList, index)
+				removed = append(removed, val)
 				break
 			}
 		}
