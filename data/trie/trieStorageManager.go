@@ -132,6 +132,10 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	if tsm.snapshotInProgress < 1 {
+		log.Error("ExitSnapshotMode called too many times")
+	}
+
 	if tsm.snapshotInProgress > 0 {
 		tsm.snapshotInProgress--
 	}
