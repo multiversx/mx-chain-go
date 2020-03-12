@@ -27,11 +27,11 @@ func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
 func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) error {
 	var res *esapi.Response
 	var err error
+	defer func() {
+		closeESResponseBody(res)
+	}()
 
 	res, err = dw.dbWriter.Indices.Exists([]string{index})
-
-	defer closeESResponseBody(res)
-
 	if err != nil {
 		return err
 	}
@@ -56,14 +56,15 @@ func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) erro
 func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) error {
 	var err error
 	var res *esapi.Response
+	defer func() {
+		closeESResponseBody(res)
+	}()
 
 	if body != nil {
 		res, err = dw.dbWriter.Indices.Create(index, dw.dbWriter.Indices.Create.WithBody(body))
 	} else {
 		res, err = dw.dbWriter.Indices.Create(index)
 	}
-
-	defer closeESResponseBody(res)
 
 	if err != nil {
 		return err
@@ -86,13 +87,14 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 func (dw *databaseWriter) DoRequest(req *esapi.IndexRequest) error {
 	var err error
 	var res *esapi.Response
+	defer func() {
+		closeESResponseBody(res)
+	}()
 
 	res, err = req.Do(context.Background(), dw.dbWriter)
 	if err != nil {
 		return err
 	}
-
-	defer closeESResponseBody(res)
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
@@ -107,13 +109,14 @@ func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error 
 
 	var err error
 	var res *esapi.Response
+	defer func() {
+		closeESResponseBody(res)
+	}()
 
 	res, err = dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
 	if err != nil {
 		return err
 	}
-
-	defer closeESResponseBody(res)
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
