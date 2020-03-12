@@ -3,6 +3,7 @@ package kyber
 import (
 	"crypto/cipher"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"go.dedis.ch/kyber/v3"
 )
@@ -15,7 +16,7 @@ type kyberScalar struct {
 // Equal tests if receiver is equal with the scalar s given as parameter.
 // Both scalars need to be derived from the same Group
 func (ks *kyberScalar) Equal(s crypto.Scalar) (bool, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return false, crypto.ErrNilParam
 	}
 
@@ -32,7 +33,7 @@ func (ks *kyberScalar) Equal(s crypto.Scalar) (bool, error) {
 
 // Set sets the receiver to Scalar s given as parameter
 func (ks *kyberScalar) Set(s crypto.Scalar) error {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return crypto.ErrNilParam
 	}
 
@@ -70,7 +71,7 @@ func (ks *kyberScalar) Zero() crypto.Scalar {
 
 // Add returns the modular sum of receiver with scalar s given as parameter
 func (ks *kyberScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -88,7 +89,7 @@ func (ks *kyberScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Sub returns the modular difference between receiver and scalar s given as parameter
 func (ks *kyberScalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -124,7 +125,7 @@ func (ks *kyberScalar) One() crypto.Scalar {
 
 // Mul returns the modular product of receiver with scalar s given as parameter
 func (ks *kyberScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -142,7 +143,7 @@ func (ks *kyberScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Div returns the modular division between receiver and scalar s given as parameter
 func (ks *kyberScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -160,7 +161,7 @@ func (ks *kyberScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Inv returns the modular inverse of scalar s given as parameter
 func (ks *kyberScalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil || s.IsInterfaceNil() {
+	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -191,7 +192,7 @@ func (ks *kyberScalar) Pick(rand cipher.Stream) (crypto.Scalar, error) {
 // SetBytes sets the scalar from a byte-slice,
 // reducing if necessary to the appropriate modulus.
 func (ks *kyberScalar) SetBytes(s []byte) (crypto.Scalar, error) {
-	if s == nil {
+	if len(s) == 0 {
 		return nil, crypto.ErrNilParam
 	}
 

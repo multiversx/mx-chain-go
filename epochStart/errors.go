@@ -88,3 +88,6 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
+
+// ErrNilShardHeaderStorage signals that shard header storage is nil
+var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
