@@ -14,10 +14,7 @@ func (rs *ReconnecterStub) ReconnectToNetwork() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rs *ReconnecterStub) IsInterfaceNil() bool {
-	if rs == nil {
-		return true
-	}
-	return false
+	return rs == nil
 }
 
 // Pause -

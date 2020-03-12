@@ -21,7 +21,7 @@ const FileModeUserReadWrite = 0600
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 15000
+const MaxTxNonceDeltaAllowed = 30000
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
@@ -168,9 +168,6 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
-// MaxMiniBlocksInBlock specifies the max number of mini blocks which can be added in one block
-const MaxMiniBlocksInBlock = 100
-
 //MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
 const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
 
@@ -212,6 +209,12 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MetricMinGasPrice is the metric that specifies min gas price
+const MetricMinGasPrice = "erd_min_gas_price"
+
+// MetricChainId is the metric that specifies current chain id
+const MetricChainId = "erd_chain_id"
 
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)

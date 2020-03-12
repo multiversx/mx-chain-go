@@ -15,21 +15,21 @@ import (
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
-	Running                    bool
-	ShouldErrorStart           bool
-	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
-	GetHeartbeatsHandler       func() ([]heartbeat.PubKeyHeartbeat, error)
-	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (*state.Account, error)
-	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler      func(hash string) (*transaction.Transaction, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
-	SendBulkTransactionsHandler func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler        func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler  func() (map[string]*state.ValidatorApiResponse, error)
+	Running                           bool
+	ShouldErrorStart                  bool
+	ShouldErrorStop                   bool
+	TpsBenchmarkHandler               func() *statistics.TpsBenchmark
+	GetHeartbeatsHandler              func() ([]heartbeat.PubKeyHeartbeat, error)
+	BalanceHandler                    func(string) (*big.Int, error)
+	GetAccountHandler                 func(address string) (*state.Account, error)
+	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler             func(hash string) (*transaction.Transaction, error)
+	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler              func() external.StatusMetricsHandler
+	ValidatorStatisticsHandler        func() (map[string]*state.ValidatorApiResponse, error)
+	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 }
 
 // RestApiInterface -
@@ -135,6 +135,11 @@ func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, err
 // StatusMetrics is the mock implementation for the StatusMetrics
 func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 	return f.StatusMetricsHandler()
+}
+
+// ComputeTransactionGasLimit --
+func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return f.ComputeTransactionGasLimitHandler(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

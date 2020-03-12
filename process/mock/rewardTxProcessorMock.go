@@ -20,8 +20,5 @@ func (scrp *RewardTxProcessorMock) ProcessRewardTransaction(rTx *rewardTx.Reward
 
 // IsInterfaceNil -
 func (scrp *RewardTxProcessorMock) IsInterfaceNil() bool {
-	if scrp == nil {
-		return true
-	}
-	return false
+	return scrp == nil
 }

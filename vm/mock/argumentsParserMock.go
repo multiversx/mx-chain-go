@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// ArgumentParserMock -
 type ArgumentParserMock struct {
 	ParseDataCalled                   func(data string) error
 	GetArgumentsCalled                func() ([][]byte, error)
@@ -14,6 +15,7 @@ type ArgumentParserMock struct {
 	GetStorageUpdatesCalled           func(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
+// ParseData -
 func (ap *ArgumentParserMock) ParseData(data string) error {
 	if ap.ParseDataCalled == nil {
 		return nil
@@ -21,6 +23,7 @@ func (ap *ArgumentParserMock) ParseData(data string) error {
 	return ap.ParseDataCalled(data)
 }
 
+// GetArguments -
 func (ap *ArgumentParserMock) GetArguments() ([][]byte, error) {
 	if ap.GetArgumentsCalled == nil {
 		return make([][]byte, 0), nil
@@ -28,6 +31,7 @@ func (ap *ArgumentParserMock) GetArguments() ([][]byte, error) {
 	return ap.GetArgumentsCalled()
 }
 
+// GetCode -
 func (ap *ArgumentParserMock) GetCode() ([]byte, error) {
 	if ap.GetCodeCalled == nil {
 		return []byte(""), nil
@@ -35,6 +39,7 @@ func (ap *ArgumentParserMock) GetCode() ([]byte, error) {
 	return ap.GetCodeCalled()
 }
 
+// GetFunction -
 func (ap *ArgumentParserMock) GetFunction() (string, error) {
 	if ap.GetFunctionCalled == nil {
 		return "", nil
@@ -42,6 +47,7 @@ func (ap *ArgumentParserMock) GetFunction() (string, error) {
 	return ap.GetFunctionCalled()
 }
 
+// GetSeparator -
 func (ap *ArgumentParserMock) GetSeparator() string {
 	if ap.GetSeparatorCalled == nil {
 		return "@"
@@ -49,6 +55,7 @@ func (ap *ArgumentParserMock) GetSeparator() string {
 	return ap.GetSeparatorCalled()
 }
 
+// CreateDataFromStorageUpdate -
 func (ap *ArgumentParserMock) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string {
 	if ap.CreateDataFromStorageUpdateCalled == nil {
 		return ""
@@ -56,6 +63,7 @@ func (ap *ArgumentParserMock) CreateDataFromStorageUpdate(storageUpdates []*vmco
 	return ap.CreateDataFromStorageUpdateCalled(storageUpdates)
 }
 
+// GetStorageUpdates -
 func (ap *ArgumentParserMock) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
 	if ap.GetStorageUpdatesCalled == nil {
 		return nil, nil

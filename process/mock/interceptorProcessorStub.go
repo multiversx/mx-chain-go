@@ -24,8 +24,5 @@ func (ips *InterceptorProcessorStub) SignalEndOfProcessing(_ []process.Intercept
 
 // IsInterfaceNil -
 func (ips *InterceptorProcessorStub) IsInterfaceNil() bool {
-	if ips == nil {
-		return true
-	}
-	return false
+	return ips == nil
 }

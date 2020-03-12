@@ -157,6 +157,9 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 	}
 
 	buffsToSend, err := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
+	if err != nil {
+		return err
+	}
 
 	for _, buff := range buffsToSend {
 		err = txRes.Send(buff, pid)

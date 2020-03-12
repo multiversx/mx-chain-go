@@ -400,7 +400,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllValidatorsPublicKeys(t *testing
 	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 	assert.Nil(t, err)
 
-	allValidatorsPublicKeys, err := ihgs.GetAllValidatorsPublicKeys(0)
+	allValidatorsPublicKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 }

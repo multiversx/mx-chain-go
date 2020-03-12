@@ -17,7 +17,7 @@ var ErrNilBloomFilter = errors.New("expected not nil bloom filter")
 var ErrNotSupportedCacheType = errors.New("not supported cache type")
 
 // ErrNotSupportedDBType is raised when an unsupported database type is provided
-var ErrNotSupportedDBType = errors.New("nit supported db type")
+var ErrNotSupportedDBType = errors.New("not supported db type")
 
 // ErrNotSupportedHashType is raised when an unsupported hasher is provided
 var ErrNotSupportedHashType = errors.New("hash type not supported")

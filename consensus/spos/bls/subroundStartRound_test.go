@@ -16,7 +16,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -27,7 +27,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 	startRound, _ := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -42,8 +42,8 @@ func defaultSubround(
 
 	return spos.NewSubround(
 		-1,
-		SrStartRound,
-		SrBlock,
+		bls.SrStartRound,
+		bls.SrBlock,
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -62,7 +62,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	srStartRound, _ := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -80,7 +80,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 	srStartRound, err := bls.NewSubroundStartRound(
 		nil,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -248,7 +248,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 
 	sr := *initSubroundStartRound()
 
-	sr.SetStatus(SrStartRound, spos.SsFinished)
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.True(t, ok)

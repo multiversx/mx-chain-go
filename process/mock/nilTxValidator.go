@@ -20,8 +20,5 @@ func (ntv *nilTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntv *nilTxValidator) IsInterfaceNil() bool {
-	if ntv == nil {
-		return true
-	}
-	return false
+	return ntv == nil
 }

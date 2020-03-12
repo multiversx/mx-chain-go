@@ -26,7 +26,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertAccountStateCalled = func() {}
+	blockProcessorMock.RevertAccountStateCalled = func(header data.HeaderHandler) {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -39,7 +39,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
-	blockProcessorMock.CreateNewHeaderCalled = func() data.HeaderHandler {
+	blockProcessorMock.CreateNewHeaderCalled = func(round uint64) data.HeaderHandler {
 		return &block.Header{}
 	}
 

@@ -274,7 +274,7 @@
     Prefix = "0x"
 
 [BLSPublicKey]
-    Length = 128
+    Length = 96
     Prefix = "0x"
 
 [Hasher]
@@ -289,7 +289,7 @@
 #     the reencoded version (in percents).
 #     0 disables the feature.
 [Marshalizer]
-   Type = "protobuf"
+   Type = "gogo protobuf"
    SizeCheckDelta = 0
 
 # The marshalizer used for smartcontracts data exchage

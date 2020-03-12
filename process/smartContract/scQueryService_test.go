@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
@@ -19,16 +21,25 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(nil, uint64(math.MaxUint64))
+	target, err := NewSCQueryService(nil, &mock.FeeHandlerStub{})
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNoVM, err)
 }
 
+func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(&mock.VMContainerMock{}, uint64(math.MaxUint64))
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
@@ -38,7 +49,7 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, uint64(math.MaxUint64))
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
 	query := process.SCQuery{
 		ScAddress: nil,
@@ -55,7 +66,7 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, uint64(math.MaxUint64))
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
 	query := process.SCQuery{
 		ScAddress: []byte{0},
@@ -97,7 +108,11 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return mockVM, nil
 			},
 		},
-		uint64(math.MaxUint64),
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
 	)
 
 	dataArgs := make([][]byte, len(args))
@@ -117,13 +132,13 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
 
-	data := [][]byte{[]byte("90"), []byte("91")}
+	d := [][]byte{[]byte("90"), []byte("91")}
 
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
 				ReturnCode: vmcommon.Ok,
-				ReturnData: data,
+				ReturnData: d,
 			}, nil
 		},
 	}
@@ -134,7 +149,11 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 				return mockVM, nil
 			},
 		},
-		uint64(math.MaxUint64),
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
 	)
 
 	query := process.SCQuery{
@@ -146,8 +165,8 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	vmOutput, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, err)
-	assert.Equal(t, data[0], vmOutput.ReturnData[0])
-	assert.Equal(t, data[1], vmOutput.ReturnData[1])
+	assert.Equal(t, d[0], vmOutput.ReturnData[0])
+	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
 func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
@@ -166,7 +185,11 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 				return mockVM, nil
 			},
 		},
-		uint64(math.MaxUint64),
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
 	)
 
 	query := process.SCQuery{
@@ -209,7 +232,11 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 				return mockVM, nil
 			},
 		},
-		uint64(math.MaxUint64),
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
 	)
 
 	noOfGoRoutines := 50
@@ -229,4 +256,39 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
+	t.Parallel()
+
+	consumedGas := uint64(10000)
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				GasRemaining: uint64(math.MaxUint64) - consumedGas,
+				ReturnCode:   vmcommon.Ok,
+			}, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+	)
+
+	tx := &transaction.Transaction{
+		RcvAddr: []byte(DummyScAddress),
+		Data:    []byte("increment"),
+	}
+	cost, err := target.ComputeScCallGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, consumedGas, cost)
 }

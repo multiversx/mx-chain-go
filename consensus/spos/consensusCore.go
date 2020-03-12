@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
+// ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
 //  for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain           data.ChainHandler
@@ -32,6 +32,8 @@ type ConsensusCore struct {
 	epochStartSubscriber epochStart.EpochStartSubscriber
 	antifloodHandler     consensus.P2PAntifloodHandler
 }
+
+// ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
 type ConsensusCoreArgs struct {
 	BlockChain           data.ChainHandler
 	BlockProcessor       process.BlockProcessor
@@ -165,8 +167,5 @@ func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (cc *ConsensusCore) IsInterfaceNil() bool {
-	if cc == nil {
-		return true
-	}
-	return false
+	return cc == nil
 }
