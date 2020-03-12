@@ -136,8 +136,8 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Valid
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving(_ []sharding.Validator) ([]sharding.Validator, error) {
-	return make([]sharding.Validator, 0), nil
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
+	return make([]sharding.Validator, 0)
 }
 
 // SetConsensusGroupSize -

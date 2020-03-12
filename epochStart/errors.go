@@ -74,8 +74,8 @@ var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
-// ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
-var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
+// ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
+var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")

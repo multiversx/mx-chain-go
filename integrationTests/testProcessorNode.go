@@ -561,17 +561,18 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			HeaderValidator:    tpn.HeaderValidator,
-			Uint64Converter:    TestUint64Converter,
-			DataPool:           tpn.DataPool,
-			Storage:            tpn.Storage,
-			RequestHandler:     tpn.RequestHandler,
-			Epoch:              0,
-			Validity:           1,
-			Finality:           1,
-			EpochStartNotifier: tpn.EpochStartNotifier,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			HeaderValidator:        tpn.HeaderValidator,
+			Uint64Converter:        TestUint64Converter,
+			DataPool:               tpn.DataPool,
+			Storage:                tpn.Storage,
+			RequestHandler:         tpn.RequestHandler,
+			Epoch:                  0,
+			Validity:               1,
+			Finality:               1,
+			EpochStartNotifier:     tpn.EpochStartNotifier,
+			ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}

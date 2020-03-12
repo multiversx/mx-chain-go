@@ -45,8 +45,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler:     &mock.RequestHandlerStub{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		RequestHandler:         &mock.RequestHandlerStub{},
+		EpochStartNotifier:     &mock.EpochStartNotifierStub{},
+		ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
 	}
 }
 
@@ -182,26 +183,6 @@ func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMetaNonceHashStorage, err)
 }
 
-func TestNewEpochStartTrigger_NilMiniblockStorageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.MiniBlockUnit:
-				return nil
-			default:
-				return &mock.StorerStub{}
-			}
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMiniblocksStorage, err)
-}
-
 func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -218,24 +199,6 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilMetaBlocksPool, err)
-}
-
-func TestNewEpochStartTrigger_NilMiniblocksPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
-		},
-		MiniBlocksCalled: func() storage.Cacher {
-			return nil
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMiniblocksPool, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {

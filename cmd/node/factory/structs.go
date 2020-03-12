@@ -636,7 +636,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler, validatorStatisticsProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -644,11 +649,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
 	}
@@ -851,7 +851,8 @@ func newRequestHandler(
 
 func newEpochStartTrigger(
 	args *processComponentsFactoryArgs,
-	requestHandler epochStart.RequestHandler,
+	requestHandler process.RequestHandler,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
@@ -863,18 +864,32 @@ func newEpochStartTrigger(
 			return nil, err
 		}
 
+		argsValidatorInfoProcessor := block.ArgValidatorInfoProcessor{
+			MiniBlocksPool:               args.data.Datapool.MiniBlocks(),
+			Marshalizer:                  args.coreData.ProtoMarshalizer,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			Requesthandler:               requestHandler,
+			Hasher:                       args.coreData.Hasher,
+		}
+
+		validatorInfoProcessor, err := block.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
+		if err != nil {
+			return nil, err
+		}
+
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        args.coreData.ProtoMarshalizer,
-			Hasher:             args.coreData.Hasher,
-			HeaderValidator:    headerValidator,
-			Uint64Converter:    args.coreData.Uint64ByteSliceConverter,
-			DataPool:           args.data.Datapool,
-			Storage:            args.data.Store,
-			RequestHandler:     requestHandler,
-			Epoch:              args.startEpochNum,
-			EpochStartNotifier: args.epochStartNotifier,
-			Validity:           process.MetaBlockValidity,
-			Finality:           process.BlockFinality,
+			Marshalizer:            args.coreData.ProtoMarshalizer,
+			Hasher:                 args.coreData.Hasher,
+			HeaderValidator:        headerValidator,
+			Uint64Converter:        args.coreData.Uint64ByteSliceConverter,
+			DataPool:               args.data.Datapool,
+			Storage:                args.data.Store,
+			RequestHandler:         requestHandler,
+			Epoch:                  args.startEpochNum,
+			EpochStartNotifier:     args.epochStartNotifier,
+			Validity:               process.MetaBlockValidity,
+			Finality:               process.BlockFinality,
+			ValidatorInfoProcessor: validatorInfoProcessor,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -2031,8 +2046,9 @@ func newShardBlockProcessor(
 		HeaderValidator:              headerValidator,
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
+		DataPool:                     data.Datapool,
+		FeeHandler:                   txFeeHandler,
+		BlockChain:                   data.Blkc,
 		StateCheckpointModulus:       stateCheckpointModulus,
 		ValidatorStatisticsProcessor: validatoStatiscProcessor,
 	}

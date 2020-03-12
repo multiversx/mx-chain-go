@@ -723,3 +723,7 @@ type RatingsInfo interface {
 	ValidatorDecreaseRatingStep() uint32
 	SelectionChances() []SelectionChance
 }
+type ValidatorInfoProcessorHandler interface {
+	TryProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	IsInterfaceNil() bool
+}

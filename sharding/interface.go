@@ -71,7 +71,7 @@ type NodesPerShardSetter interface {
 		waiting map[uint32][]Validator,
 		epoch uint32,
 	) error
-	ComputeLeaving(allValidators []Validator) ([]Validator, error)
+	ComputeLeaving(allValidators []Validator) []Validator
 }
 
 //RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics

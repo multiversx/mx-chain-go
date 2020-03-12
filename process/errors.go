@@ -677,3 +677,6 @@ var ErrNoChancesProvided = errors.New("no chances are provided")
 
 // ErrNilMinChanceIfZero signals that there was no min chance provided if a chance is still needed
 var ErrNilMinChanceIfZero = errors.New("no min chance ")
+
+// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
+var ErrNilValidatorStatistics = errors.New("nil validator statistics")

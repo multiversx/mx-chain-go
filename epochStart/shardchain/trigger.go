@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -31,10 +32,11 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool           dataRetriever.PoolsHolder
-	Storage            dataRetriever.StorageService
-	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.EpochStartNotifier
+	DataPool               dataRetriever.PoolsHolder
+	Storage                dataRetriever.StorageService
+	RequestHandler         epochStart.RequestHandler
+	EpochStartNotifier     epochStart.EpochStartNotifier
+	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -60,8 +62,6 @@ type trigger struct {
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
-	miniblocksPool      storage.Cacher
-	miniblocksStorage   storage.Storer
 
 	uint64Converter typeConverters.Uint64ByteSliceConverter
 
@@ -76,6 +76,8 @@ type trigger struct {
 
 	newEpochHdrReceived bool
 	isEpochStart        bool
+
+	validatorInfoProcessor process.ValidatorInfoProcessorHandler
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -104,8 +106,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(args.DataPool.MiniBlocks()) {
-		return nil, epochStart.ErrNilMiniblocksPool
+	if check.IfNil(args.ValidatorInfoProcessor) {
+		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
@@ -127,11 +129,6 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if check.IfNil(metaHdrNoncesStorage) {
 		return nil, epochStart.ErrNilMetaNonceHashStorage
-	}
-
-	miniblocksUnit := args.Storage.GetStorer(dataRetriever.MiniBlockUnit)
-	if check.IfNil(miniblocksUnit) {
-		return nil, epochStart.ErrNilMiniblocksStorage
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
@@ -161,8 +158,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
-		miniblocksPool:              args.DataPool.MiniBlocks(),
-		miniblocksStorage:           miniblocksUnit,
+		validatorInfoProcessor:      args.ValidatorInfoProcessor,
 	}
 
 	err := newTrigger.saveState(newTrigger.triggerStateKey)
@@ -398,6 +394,11 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
+	err := t.validatorInfoProcessor.TryProcessMetaBlock(metaHdr, []byte(hash))
+	if err != nil {
+		log.Debug("tryProcessMetablock failed", "error", err)
+		return false, 0
+	}
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
 }
