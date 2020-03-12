@@ -10,9 +10,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -22,6 +23,7 @@ import (
 )
 
 var stepDelay = time.Second
+var log = logger.GetOrCreate("integrationtests/node")
 
 // TestHeartbeatMonitorWillUpdateAnInactivePeer test what happen if a peer out of 2 stops being responsive on heartbeat status
 // The active monitor should change it's active flag to false when a new heartbeat message has arrived.
@@ -49,8 +51,11 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	fmt.Println("Sending first messages from both public keys...")
-	_ = senders[0].SendHeartbeat()
-	_ = senders[1].SendHeartbeat()
+	err := senders[0].SendHeartbeat()
+	log.LogIfError(err)
+
+	err = senders[1].SendHeartbeat()
+	log.LogIfError(err)
 
 	time.Sleep(stepDelay)
 
@@ -188,8 +193,8 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 }
 
 func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*heartbeat.Sender, crypto.PublicKey) {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	signer := &singlesig.SchnorrSigner{}
+	suite := mcl.NewSuiteBLS12()
+	signer := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
@@ -207,8 +212,8 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 }
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singlesigner := &singlesig.SchnorrSigner{}
+	suite := mcl.NewSuiteBLS12()
+	singlesigner := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
