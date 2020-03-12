@@ -8,13 +8,14 @@ import (
 
 // SuiteMock -
 type SuiteMock struct {
-	StringStub             func() string
-	ScalarLenStub          func() int
-	CreateScalarStub       func() crypto.Scalar
-	PointLenStub           func() int
-	CreatePointStub        func() crypto.Point
-	RandomStreamStub       func() cipher.Stream
-	GetUnderlyingSuiteStub func() interface{}
+	StringStub               func() string
+	ScalarLenStub            func() int
+	CreateScalarStub         func() crypto.Scalar
+	PointLenStub             func() int
+	CreatePointStub          func() crypto.Point
+	CreatePointForScalarStub func(scalar crypto.Scalar) crypto.Point
+	RandomStreamStub         func() cipher.Stream
+	GetUnderlyingSuiteStub   func() interface{}
 }
 
 // GeneratorSuite -
@@ -61,10 +62,7 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
 
 // CreateKey -

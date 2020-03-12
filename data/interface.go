@@ -40,6 +40,7 @@ type HeaderHandler interface {
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
+	GetEpochStartMetaHash() []byte
 
 	SetAccumulatedFees(value *big.Int)
 	SetShardID(shId uint32)
@@ -95,6 +96,7 @@ type ChainHandler interface {
 	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
 	IsInterfaceNil() bool
+	CreateNewHeader() HeaderHandler
 }
 
 // TransactionHandler defines the type of executable transaction

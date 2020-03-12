@@ -142,23 +142,24 @@ func (vs *validatorStatistics) saveInitialState(
 	startRating uint32,
 	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(startEpoch)
 	if err != nil {
 		return err
 	}
 
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
-			if err != nil {
-				return err
-			}
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
+	}
 
-			err = vs.initializeNode(node, stakeValue, startRating)
-			if err != nil {
-				return err
-			}
-		}
+	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(startEpoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
 	}
 
 	hash, err := vs.peerAdapter.Commit()
@@ -173,7 +174,7 @@ func (vs *validatorStatistics) saveInitialState(
 
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
-func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
 	}
@@ -205,7 +206,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateShardDataPeerState(header)
+	err = vs.updateShardDataPeerState(header, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +449,7 @@ func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error 
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
-func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
+func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler, cacheMap map[string]data.HeaderHandler) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
@@ -475,12 +476,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			continue
 		}
 
-		prevShardData, shardInfoErr := process.GetShardHeader(
-			h.PrevHash,
-			vs.dataPool.Headers(),
-			vs.marshalizer,
-			vs.storageService,
-		)
+		prevShardData, shardInfoErr := vs.searchInMap(h.PrevHash, cacheMap)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -498,6 +494,20 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	}
 
 	return nil
+}
+
+func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (*block.Header, error) {
+	blkHandler := cacheMap[string(hash)]
+	if check.IfNil(blkHandler) {
+		return nil, process.ErrMissingHeader
+	}
+
+	blk, ok := blkHandler.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return blk, nil
 }
 
 func (vs *validatorStatistics) initializeNode(
@@ -558,6 +568,9 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int) error {
+	if len(signingBitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
+	}
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -734,7 +747,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
@@ -782,5 +795,22 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
 
+	return nil
+}
+
+func (vs *validatorStatistics) saveInitialValueForMap(nodesMap map[uint32][][]byte, startEpoch uint32, stakeValue *big.Int, startRating uint32) error {
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
+			if err != nil {
+				return err
+			}
+
+			err = vs.initializeNode(node, stakeValue, startRating)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

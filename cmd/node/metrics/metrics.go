@@ -3,6 +3,7 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -83,15 +84,20 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
-// SaveCurrentNodeName will save metric in status handler with nodeName
-func SaveCurrentNodeName(ash core.AppStatusHandler, nodeName string) {
-	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
+// SaveUint64Metric will save a uint64 metric in status handler
+func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
+	ash.SetUInt64Value(key, value)
+}
+
+// SaveStringMetric will save a string metric in status handler
+func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
+	ash.SetStringValue(key, value)
 }
 
 // StartStatusPolling will start save information in status handler about network
 func StartStatusPolling(
 	ash core.AppStatusHandler,
-	pollingInterval int,
+	pollingInterval time.Duration,
 	networkComponents *factory.Network,
 	processComponents *factory.Process,
 ) error {

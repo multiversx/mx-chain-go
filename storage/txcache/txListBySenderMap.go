@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -26,10 +25,10 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListByS
 }
 
 // addTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *txListBySenderMap) addTx(txHash []byte, tx data.TransactionHandler) {
-	sender := string(tx.GetSndAddr())
+func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) {
+	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	listForSender.AddTx(txHash, tx)
+	listForSender.AddTx(tx)
 	txMap.notifyScoreChange(listForSender)
 }
 
@@ -66,8 +65,8 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 }
 
 // removeTx removes a transaction from the map
-func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
-	sender := string(tx.GetSndAddr())
+func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
+	sender := string(tx.Tx.GetSndAddr())
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
@@ -106,6 +105,16 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	newCount := uint32(txMap.counter.Get())
 	nRemoved := oldCount - newCount
 	return nRemoved
+}
+
+func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
+	sender := string(accountKey)
+	listForSender, ok := txMap.getListForSender(sender)
+	if !ok {
+		return
+	}
+
+	listForSender.notifyAccountNonce(nonce)
 }
 
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {

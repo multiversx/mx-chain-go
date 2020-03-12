@@ -102,7 +102,7 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 		pprof.Register(ws)
 	}
 
-	marshalizerForLogs := &marshal.ProtobufMarshalizer{}
+	marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
 	registerLoggerWsRoute(ws, marshalizerForLogs)
 }
 
