@@ -247,7 +247,13 @@ func isInTxHashes(searched []byte, list [][]byte) bool {
 type wrongBody struct {
 }
 
-func (wr wrongBody) IntegrityAndValidity() error {
+func (wr *wrongBody) Clone() data.BodyHandler {
+	wrCopy := *wr
+
+	return &wrCopy
+}
+
+func (wr *wrongBody) IntegrityAndValidity() error {
 	return nil
 }
 
@@ -296,7 +302,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			},
 			DataPool:     initDataPool([]byte("")),
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockChain:   &blockchain.BlockChain{},
+			BlockChain:   blockchain.NewBlockChain(),
 		},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}

@@ -212,9 +212,7 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 
 	opt := WithBlockChain(blkc)
 	err := opt(node)

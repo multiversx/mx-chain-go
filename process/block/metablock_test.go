@@ -387,12 +387,14 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
-	}
+	)
+
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
@@ -409,12 +411,13 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
-	}
+	)
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
@@ -432,12 +435,13 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Nonce:                  0,
 			AccumulatedFeesInEpoch: big.NewInt(0),
 		},
-	}
+	)
 	hdr := createMetaBlockHeader()
 	body := &block.Body{}
 	// set accounts not dirty
@@ -572,9 +576,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewMetaChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewMetaChain()
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -799,7 +801,11 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
-	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: 0}}}
+	bodyHandler := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{Type: 0},
+		},
+	}
 	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
@@ -2176,7 +2182,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{[]byte("hashTx")},
 				ReceiverShardID: 0,
 			},
@@ -2227,7 +2233,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{hash1},
 				ReceiverShardID: 0,
 			},

@@ -426,13 +426,11 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
 	args.Store = store
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
-	blkc.CurrentBlockHeader = &hdr
+	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -1598,9 +1596,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	requestedHash = append(requestedHash, mbh)
 	txBlock := make(block.MiniBlockSlice, 0)
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -1638,9 +1634,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		},
 	}
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -1664,9 +1658,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	requestedHash = append(requestedHash, mbh)
 	txBlock := make(block.MiniBlockSlice, 0)
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -1839,8 +1831,8 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 			return []byte("hdr"), nil
 		}
 		if bytes.Equal(key, []byte("hdr")) {
-			hdr := block.Header{}
-			mshlzdHdr, _ := json.Marshal(hdr)
+			newHdr := block.Header{}
+			mshlzdHdr, _ := json.Marshal(newHdr)
 			return mshlzdHdr, nil
 		}
 

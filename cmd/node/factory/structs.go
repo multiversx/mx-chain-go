@@ -390,7 +390,7 @@ func NewDataComponentsFactoryArgs(
 // DataComponentsFactory creates the data components
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
+	blkc, err := createBlockChainFromConfig(args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -966,27 +966,16 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	return nil, errors.New("no hasher provided in config file")
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
-	badBlockCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size,
-		config.BadBlocksCache.Shards)
-	if err != nil {
-		return nil, err
-	}
+func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 
 	if coordinator == nil {
 		return nil, state.ErrNilShardCoordinator
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		var blockChain *blockchain.BlockChain
-		blockChain, err = blockchain.NewBlockChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewBlockChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -994,13 +983,9 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == core.MetachainShardId {
-		var blockChain *blockchain.MetaChain
-		blockChain, err = blockchain.NewMetaChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewMetaChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -1570,12 +1555,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 func createInMemoryStoreBlkc(
 	shardCoordinator sharding.Coordinator,
 ) (dataRetriever.StorageService, data.ChainHandler, error) {
-
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	blkc, err := blockchain.NewMetaChain(cache)
-	if err != nil {
-		return nil, nil, err
-	}
+	blkc := blockchain.NewMetaChain()
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())

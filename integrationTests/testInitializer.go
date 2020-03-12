@@ -231,14 +231,10 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
-func CreateShardChain() *blockchain.BlockChain {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	blockChain, _ := blockchain.NewBlockChain(
-		badBlockCache,
-	)
-	blockChain.GenesisHeader = &dataBlock.Header{}
-	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+func CreateShardChain() data.ChainHandler {
+	blockChain := blockchain.NewBlockChain()
+	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
 	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
@@ -247,13 +243,9 @@ func CreateShardChain() *blockchain.BlockChain {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	metaChain, _ := blockchain.NewMetaChain(
-		badBlockCache,
-	)
-	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
-	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain := blockchain.NewMetaChain()
+	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
@@ -276,15 +268,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -397,8 +389,7 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
-		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-		newBlkc, _ := blockchain.NewMetaChain(cache)
+		newBlkc := blockchain.NewMetaChain()
 		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -639,6 +630,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
+// WaitOperationToBeDone calls nrOfRounds times propose and sync
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		UpdateRound(nodes, round)
@@ -952,6 +944,7 @@ func CreateSendersWithInitialBalances(
 	return sendersPrivateKeys
 }
 
+// CreateAndSendTransaction creates and sends a transaction generated with the provided node's sk
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -978,6 +971,7 @@ func CreateAndSendTransaction(
 	node.OwnAccount.Nonce++
 }
 
+// CreateAndSendTransactionWithGasLimit creates and sends a transaction generated with the provided node's sk
 func CreateAndSendTransactionWithGasLimit(
 	node *TestProcessorNode,
 	txValue *big.Int,

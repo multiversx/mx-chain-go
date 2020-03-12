@@ -277,10 +277,8 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	args.Store = createMetaStore()
 
-	blkc, _ := blockchain.NewMetaChain(
-		&mock.CacherStub{},
-	)
-	blkc.CurrentBlock = &hdr
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -984,9 +982,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	}
 	args.Store = createMetaStore()
 	args.Store.AddStorer(dataRetriever.MetaBlockUnit, headerStorage)
-	args.ChainHandler, _ = blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	args.ChainHandler = blockchain.NewBlockChain()
 	args.Rounder = initRounder()
 
 	bs, _ := sync.NewMetaBootstrap(args)

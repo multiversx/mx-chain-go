@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -96,18 +97,19 @@ func initAccountsMock() *mock.AccountsStub {
 	}
 }
 
-func initBasicTestData() (*mock.PoolsHolderMock, *blockchain.BlockChain, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
+func initBasicTestData() (*mock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Round:    1,
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -145,7 +147,7 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	arguments.DataPool = initDataPool([]byte("tx_hash1"))
 	arguments.AccountsDB[state.UserAccountsState] = initAccountsMock()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	arguments.BlockChain = &blockchain.BlockChain{}
+	arguments.BlockChain = blockchain.NewBlockChain()
 
 	return arguments
 }
@@ -575,12 +577,13 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	}
 
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
@@ -602,12 +605,13 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -754,12 +758,13 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -837,12 +842,13 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -912,12 +918,13 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	randSeed := []byte("rand seed")
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1069,12 +1076,13 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	tdp := initDataPool(txHash)
 
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1209,12 +1217,13 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1575,9 +1584,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -1651,9 +1658,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -3793,7 +3798,8 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	arguments.Marshalizer = marshalizer
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
-	sp, _ := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
