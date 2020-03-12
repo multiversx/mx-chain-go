@@ -90,7 +90,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -152,7 +152,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:          argumentsBase,
-			SCDataGetter:              &mock.ScQueryMock{},
+			SCDataGetter:              &mock.ScQueryStub{},
 			SCToProtocol:              &mock.SCToProtocolStub{},
 			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
 			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},

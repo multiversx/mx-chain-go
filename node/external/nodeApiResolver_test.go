@@ -14,7 +14,7 @@ import (
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{})
+	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilSCQueryService, err)
@@ -23,16 +23,25 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil)
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
 }
 
+func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
+	t.Parallel()
+
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, nil)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
+}
+
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{})
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(nar))
@@ -48,7 +57,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 			return &vmcommon.VMOutput{}, nil
 		},
 	},
-		&mock.StatusMetricsStub{})
+		&mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	_, _ = nar.ExecuteSCQuery(&process.SCQuery{
 		ScAddress: []byte{0},
@@ -69,7 +78,7 @@ func TestNodeApiResolver_StatusMetricsMapShouldBeCalled(t *testing.T) {
 				wasCalled = true
 				return nil, nil
 			},
-		})
+		}, &mock.TransactionCostEstimatorMock{})
 	_, _ = nar.StatusMetrics().StatusMetricsMap()
 
 	assert.True(t, wasCalled)

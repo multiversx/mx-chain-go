@@ -72,12 +72,19 @@ func createKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
 
 func createMockSuite() crypto.Suite {
 	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
+		CreateKeyPairStub:        createKeyPair,
+		CreateScalarStub:         createScalar,
+		CreatePointStub:          createPoint,
+		CreatePointForScalarStub: createPointForScalar,
 	}
 
 	return suite
+}
+
+func createPointForScalar(scalar crypto.Scalar) crypto.Point {
+	point, _ := createPoint().Mul(scalar)
+
+	return point
 }
 
 func TestNewKeyGenerator(t *testing.T) {
@@ -237,7 +244,8 @@ func TestPrivateKey_GeneratePublicOK(t *testing.T) {
 	pubkey := privKey.GeneratePublic() // pubKey = privKey * BasePoint.Y
 	pubKeyBytes, _ := pubkey.Point().MarshalBinary()
 
-	assert.Equal(t, []byte(fmt.Sprintf("%d%d", initScalar, initScalar)), pubKeyBytes)
+	expectedResult, _ := marshalPublic(initScalar*initPointX, initScalar*initPointY)
+	assert.Equal(t, expectedResult, pubKeyBytes)
 }
 
 func TestPrivateKey_SuiteOK(t *testing.T) {

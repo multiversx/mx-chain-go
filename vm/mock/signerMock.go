@@ -4,11 +4,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// SignerMock -
 type SignerMock struct {
 	SignCalled   func(private crypto.PrivateKey, msg []byte) ([]byte, error)
 	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
 }
 
+// Sign -
 func (s *SignerMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	if s.SignCalled == nil {
 		return nil, nil
@@ -17,6 +19,7 @@ func (s *SignerMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error)
 	return s.SignCalled(private, msg)
 }
 
+// Verify -
 func (s *SignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	if s.VerifyCalled == nil {
 		return nil

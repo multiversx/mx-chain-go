@@ -40,7 +40,7 @@ type NodesCoordinator interface {
 type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte

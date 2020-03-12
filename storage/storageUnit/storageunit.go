@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
 // CacheType represents the type of the supported caches
@@ -40,7 +41,8 @@ var log = logger.GetOrCreate("storage/storageUnit")
 // More to be added
 const (
 	LvlDB       DBType = "LvlDB"
-	LvlDbSerial DBType = "LvlDBSerial"
+	LvlDBSerial DBType = "LvlDBSerial"
+	MemoryDB    DBType = "MemoryDB"
 )
 
 const (
@@ -361,8 +363,10 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	switch argDB.DBType {
 	case LvlDB:
 		db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
-	case LvlDbSerial:
+	case LvlDBSerial:
 		db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+	case MemoryDB:
+		db = memorydb.New()
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}

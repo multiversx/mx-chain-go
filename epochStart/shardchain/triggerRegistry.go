@@ -1,6 +1,10 @@
 package shardchain
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
 
 const keyPrefix = "epochStartTrigger_"
 
@@ -13,6 +17,7 @@ type TriggerRegistry struct {
 	IsEpochStart                bool
 	NewEpochHeaderReceived      bool
 	EpochFinalityAttestingRound uint64
+	EpochStartShardHeader       *block.Header
 }
 
 // LoadState loads into trigger the saved state
@@ -40,6 +45,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.isEpochStart = state.IsEpochStart
 	t.newEpochHdrReceived = state.NewEpochHeaderReceived
 	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
+	t.epochStartShardHeader = state.EpochStartShardHeader
 	t.mutTrigger.Unlock()
 
 	return nil
@@ -56,6 +62,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.IsEpochStart = t.isEpochStart
 	registry.NewEpochHeaderReceived = t.newEpochHdrReceived
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
+	registry.EpochStartShardHeader = t.epochStartShardHeader
 
 	data, err := json.Marshal(registry)
 	if err != nil {

@@ -20,6 +20,9 @@ import (
 
 var log = logger.GetOrCreate("process/track")
 
+const maxNumHeadersToKeepPerShard = 1200
+const numHeadersToRemovePerShard = 200
+
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -70,6 +73,11 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		"hash", shardHeaderHash,
 	)
 
+	if !bbt.shouldAddHeader(headerHandler) {
+		log.Trace("received shard header is out of range", "nonce", headerHandler.GetNonce())
+		return
+	}
+
 	bbt.addHeader(shardHeader, shardHeaderHash)
 	bbt.blockProcessor.ProcessReceivedHeader(shardHeader)
 }
@@ -89,8 +97,53 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		"hash", metaBlockHash,
 	)
 
+	if !bbt.shouldAddHeader(headerHandler) {
+		log.Trace("received meta block is out of range", "nonce", headerHandler.GetNonce())
+		return
+	}
+
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
+}
+
+func (bbt *baseBlockTrack) shouldAddHeader(headerHandler data.HeaderHandler) bool {
+	shardID := headerHandler.GetShardID()
+	if shardID == bbt.shardCoordinator.SelfId() {
+		return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
+	}
+
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer, shardID)
+}
+
+func (bbt *baseBlockTrack) shouldAddHeaderForShard(
+	headerHandler data.HeaderHandler,
+	blockNotarizer blockNotarizerHandler,
+	shardForFirstNotarizedHeader uint32,
+) bool {
+	firstNotarizedHeader, _, err := blockNotarizer.GetFirstNotarizedHeader(shardForFirstNotarizedHeader)
+	if err != nil {
+		log.Debug("shouldAddHeaderForShard.GetFirstNotarizedHeader",
+			"shard", shardForFirstNotarizedHeader,
+			"error", err.Error())
+		return false
+	}
+
+	firstNotarizedHeaderNonce := firstNotarizedHeader.GetNonce()
+
+	lastNotarizedHeader, _, err := blockNotarizer.GetLastNotarizedHeader(headerHandler.GetShardID())
+	if err != nil {
+		log.Debug("shouldAddHeaderForShard.GetLastNotarizedHeader",
+			"shard", headerHandler.GetShardID(),
+			"error", err.Error())
+		return false
+	}
+
+	lastNotarizedHeaderNonce := lastNotarizedHeader.GetNonce()
+
+	isHeaderOutOfRange := headerHandler.GetNonce() < firstNotarizedHeaderNonce ||
+		headerHandler.GetNonce() > lastNotarizedHeaderNonce+maxNumHeadersToKeepPerShard
+
+	return !isHeaderOutOfRange
 }
 
 func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
@@ -98,12 +151,10 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 		return
 	}
 
-	bbt.mutHeaders.Lock()
-	defer bbt.mutHeaders.Unlock()
-
 	shardID := header.GetShardID()
 	nonce := header.GetNonce()
 
+	bbt.mutHeaders.Lock()
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
 		headersForShard = make(map[uint64][]*HeaderInfo)
@@ -112,11 +163,40 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 
 	for _, hdrInfo := range headersForShard[nonce] {
 		if bytes.Equal(hdrInfo.Hash, hash) {
+			bbt.mutHeaders.Unlock()
 			return
 		}
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
+	numHeadersForShard := len(headersForShard)
+	bbt.mutHeaders.Unlock()
+
+	if numHeadersForShard > maxNumHeadersToKeepPerShard {
+		bbt.cleanupWhenMaxCapacityIsReached(shardID)
+	}
+}
+
+func (bbt *baseBlockTrack) cleanupWhenMaxCapacityIsReached(shardID uint32) {
+	headers, _ := bbt.GetTrackedHeaders(shardID)
+	trackedHeadersCount := len(headers)
+	if trackedHeadersCount <= maxNumHeadersToKeepPerShard {
+		return
+	}
+
+	bbt.mutHeaders.Lock()
+	if shardID == bbt.shardCoordinator.SelfId() {
+		index := trackedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+		for i := 0; i < index; i++ {
+			delete(bbt.headers[shardID], headers[i].GetNonce())
+		}
+	} else {
+		index := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard
+		for i := trackedHeadersCount - 1; i >= index; i-- {
+			delete(bbt.headers[shardID], headers[i].GetNonce())
+		}
+	}
+	bbt.mutHeaders.Unlock()
 }
 
 // AddCrossNotarizedHeader adds cross notarized header to the tracker lists

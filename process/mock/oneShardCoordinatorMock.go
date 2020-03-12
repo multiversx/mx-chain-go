@@ -36,8 +36,7 @@ func (scm *oneShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (scm *oneShardCoordinatorMock) SetSelfId(selfId uint32) error {
-	scm.selfId = selfId
+func (scm *oneShardCoordinatorMock) SetSelfId(_ uint32) error {
 	return nil
 }
 
@@ -52,17 +51,10 @@ func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) 
 		return "_0_META"
 	}
 
-	if destShardID == core.AllShardId {
-		return "_ALL"
-	}
-
 	return "_0"
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *oneShardCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

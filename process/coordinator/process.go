@@ -131,18 +131,23 @@ func NewTransactionCoordinator(
 // separateBodyByType creates a map of bodies according to type
 func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
 	separatedBodies := make(map[block.Type]*block.Body)
-	if body == nil {
+	if check.IfNil(body) {
 		return separatedBodies
 	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
 
-		if _, ok := separatedBodies[mb.Type]; !ok {
-			separatedBodies[mb.Type] = &block.Body{}
+		separatedMbType := mb.Type
+		if mb.Type == block.InvalidBlock {
+			separatedMbType = block.TxBlock
 		}
 
-		separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
+		if _, ok := separatedBodies[separatedMbType]; !ok {
+			separatedBodies[separatedMbType] = &block.Body{}
+		}
+
+		separatedBodies[separatedMbType].MiniBlocks = append(separatedBodies[separatedMbType].MiniBlocks, mb)
 	}
 
 	return separatedBodies
@@ -367,7 +372,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
-	mbIndex, err := tc.processMiniBlocksDestinationMe(body, haveTime)
+	startTime := time.Now()
+	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to processMiniBlocksToMe",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -377,7 +387,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to processMiniBlocksFromMe",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -389,6 +404,9 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
 
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
@@ -417,7 +435,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	return nil
 }
 
-func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
+func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
 	haveTime func() bool,
 ) (int, error) {
@@ -449,8 +467,6 @@ func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
@@ -490,12 +506,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
-		// overflow would happen if processing would continue
-		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
-		if txOverFlow {
-			return miniBlocks, nrTxAdded, false, nil
-		}
-
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			continue
@@ -510,11 +520,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
-
-		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
-		if mbOverFlow {
-			return miniBlocks, nrTxAdded, false, nil
-		}
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
@@ -524,8 +529,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
@@ -536,11 +539,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			return nil
 		}
 
-		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
-			maxTxSpaceRemained,
-			maxMbSpaceRemained,
-			haveTime,
-		)
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime)
 		if err != nil {
 			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
@@ -650,7 +649,7 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
 
-	if body == nil {
+	if check.IfNil(body) {
 		return mrsTxs
 	}
 

@@ -48,8 +48,13 @@ func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	return 1
 }
 
-// GetAllValidatorsPublicKeys -
+// GetAllEligibleValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 

@@ -17,3 +17,8 @@ type InterceptedTransactionHandler interface {
 	Fee() *big.Int
 	Transaction() data.TransactionHandler
 }
+
+// ShardedPool is a perspective of the sharded data pool
+type ShardedPool interface {
+	AddData(key []byte, data interface{}, cacheID string)
+}

@@ -61,8 +61,5 @@ func (sc *SCProcessorMock) ProcessSmartContractResult(scr *smartContractResult.S
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *SCProcessorMock) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }
