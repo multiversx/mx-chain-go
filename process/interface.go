@@ -221,7 +221,7 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
-	Process(validatorInfo *state.ValidatorInfo) error
+	Process(validatorInfo data.ValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
@@ -714,6 +714,7 @@ type RatingsInfo interface {
 	ValidatorDecreaseRatingStep() uint32
 	SelectionChances() []SelectionChance
 }
+
 type ValidatorInfoProcessorHandler interface {
 	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
 	IsInterfaceNil() bool

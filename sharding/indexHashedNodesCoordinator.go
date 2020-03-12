@@ -222,8 +222,13 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uin
 
 	nodesConfig.mutNodesMaps.RLock()
 	defer nodesConfig.mutNodesMaps.RUnlock()
+	eligibleCopy := make(map[uint32][]Validator)
+	// Copy from the original map to the target map
+	for key, value := range nodesConfig.eligibleMap {
+		eligibleCopy[key] = value
+	}
 
-	return nodesConfig.eligibleMap, nil
+	return eligibleCopy, nil
 }
 
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
