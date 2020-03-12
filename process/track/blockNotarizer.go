@@ -10,28 +10,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type blockNotarizer struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
 
 	mutNotarizedHeaders sync.RWMutex
 	notarizedHeaders    map[uint32][]*HeaderInfo
 }
 
 // NewBlockNotarizer creates a block notarizer object which implements blockNotarizerHandler interface
-func NewBlockNotarizer(hasher hashing.Hasher, marshalizer marshal.Marshalizer) (*blockNotarizer, error) {
+func NewBlockNotarizer(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	shardCoordinator sharding.Coordinator,
+) (*blockNotarizer, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	bn := blockNotarizer{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
 	}
 
 	bn.notarizedHeaders = make(map[uint32][]*HeaderInfo)
@@ -51,12 +61,35 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 
 	bn.mutNotarizedHeaders.Lock()
 	bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
-	if len(bn.notarizedHeaders[shardID]) > 1 {
+	numNotarizedHeadersForShard := len(bn.notarizedHeaders[shardID])
+	if numNotarizedHeadersForShard > 1 {
 		sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
 			return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
 		})
 	}
 	bn.mutNotarizedHeaders.Unlock()
+
+	if numNotarizedHeadersForShard > maxNumHeadersToKeepPerShard {
+		bn.cleanupWhenMaxCapacityIsReached(shardID)
+	}
+}
+
+func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
+	bn.mutNotarizedHeaders.Lock()
+	defer bn.mutNotarizedHeaders.Unlock()
+
+	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+	if notarizedHeadersCount <= maxNumHeadersToKeepPerShard {
+		return
+	}
+
+	if bn.shardCoordinator.SelfId() == shardID {
+		index := notarizedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][index:]
+	} else {
+		index := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard
+		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:index]
+	}
 }
 
 // CleanupNotarizedHeadersBehindNonce cleanups notarized headers for a given shard behind a given nonce
@@ -77,6 +110,15 @@ func (bn *blockNotarizer) CleanupNotarizedHeadersBehindNonce(shardID uint32, non
 	for _, hdrInfo := range notarizedHeaders {
 		if hdrInfo.Header.GetNonce() < nonce {
 			continue
+		}
+
+		headersInfo = append(headersInfo, hdrInfo)
+	}
+
+	if len(headersInfo) == 0 {
+		hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
+		if hdrInfo == nil {
+			return
 		}
 
 		headersInfo = append(headersInfo, hdrInfo)

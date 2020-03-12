@@ -44,8 +44,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, haveTime func() bool) (*block.Body, error) {
-	return sp.createMiniBlocks(maxItemsInBlock, haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, error) {
+	return sp.createMiniBlocks(haveTime)
 }
 
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
@@ -72,7 +72,7 @@ func NewShardProcessorEmptyWith3shards(
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
+	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
@@ -94,7 +94,7 @@ func NewShardProcessorEmptyWith3shards(
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-			HeaderValidator:              headerValidator,
+			HeaderValidator:              hdrValidator,
 			Rounder:                      &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -108,8 +108,8 @@ func NewShardProcessorEmptyWith3shards(
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
-	shardProcessor, err := NewShardProcessor(arguments)
-	return shardProcessor, err
+	shardProc, err := NewShardProcessor(arguments)
+	return shardProc, err
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
@@ -144,12 +144,12 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)]
+	hdrInfoValue, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)]
 	if !ok {
 		return true
 	}
 
-	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
+	return check.IfNil(hdrInfoValue.hdr)
 }
 
 func (mp *metaProcessor) CreateShardInfo() ([]block.ShardData, error) {
@@ -270,10 +270,9 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
-	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
+	return sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 }
 
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {

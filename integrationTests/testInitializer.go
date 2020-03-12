@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -119,9 +120,9 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestDataPool creates a test data pool for shard nodes
-func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShardID uint32) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = createTxPool()
+		txPool, _ = createTxPool(selfShardID)
 	}
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
@@ -215,7 +216,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
@@ -284,6 +285,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
+		AccumulatedFees: big.NewInt(0),
 	}
 }
 
@@ -306,6 +308,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		ValidatorStatsRootHash: rootHash,
 		TxCount:                0,
 		MiniBlockHeaders:       nil,
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 }
 
@@ -391,7 +395,7 @@ func CreateGenesisMetaBlock(
 
 		newStore := CreateMetaStore(newShardCoordinator)
 
-		newDataPool := CreateTestDataPool(nil)
+		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
@@ -1320,7 +1324,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
 	return CreateTestDataPool(&mock.ShardedDataStub{
@@ -1346,7 +1350,7 @@ func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, 
 		},
 		RegisterHandlerCalled: func(i func(key []byte)) {
 		},
-	})
+	}, selfShardID)
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -1360,7 +1364,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := createTxPool()
+	txPool, _ := createTxPool(shardCoordinator.SelfId())
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -1370,7 +1374,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestDataPool(txPool), txHashes, txsSndAddr
+	return CreateTestDataPool(txPool, shardCoordinator.SelfId()), txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1392,7 +1396,7 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
@@ -1555,7 +1559,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
-	suite := kyber.NewSuitePairingBn256()
+	suite := mcl.NewSuiteBLS12()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
@@ -1760,7 +1764,7 @@ func proposeBlocks(
 	}
 }
 
-func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
+func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
@@ -1770,6 +1774,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 			},
 			MinGasPrice:    100000000000000,
 			NumberOfShards: 1,
+			SelfShardID:    selfShardID,
 		},
 	)
 }

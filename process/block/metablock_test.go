@@ -66,7 +66,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			DataPool:     mdp,
 			BlockChain:   createTestBlockchain(),
 		},
-		SCDataGetter:              &mock.ScQueryMock{},
+		SCDataGetter:              &mock.ScQueryStub{},
 		SCToProtocol:              &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
@@ -624,8 +624,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			return errPersister
 		},
 		GetCalled: func(key []byte) (i []byte, e error) {
-			hdr, _ := marshalizer.Marshal(&block.MetaBlock{})
-			return hdr, nil
+			hdrBuff, _ := marshalizer.Marshal(&block.MetaBlock{})
+			return hdrBuff, nil
 		},
 	}
 	store := initStore()
@@ -1128,7 +1128,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	notarizedHdrs := mp.NotarizedHdrs()
@@ -1175,7 +1175,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
@@ -1233,7 +1233,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -1326,7 +1326,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
@@ -1384,7 +1384,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
+	haveTimeHandler := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -1477,7 +1477,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
@@ -1764,7 +1764,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     []byte("prevhash"),
 		RootHash:     []byte("currRootHash")}
-	currHash, _ := mp.ComputeHeaderHash(currHdr)
+	currHash := []byte("currHash")
 	pool.Headers().AddHeader(currHash, currHdr)
 	metaHdr := &block.MetaBlock{Round: 20}
 
@@ -1819,8 +1819,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		RootHash:        []byte("currRootHash"),
 		AccumulatedFees: big.NewInt(0),
 	}
-	currHash, _ := mp.ComputeHeaderHash(currHdr)
-
+	currHash := []byte("currhash")
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: currHash, AccumulatedFees: big.NewInt(0)}
@@ -2037,49 +2036,6 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
-	t.Parallel()
-
-	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := createMockMetaArguments()
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
-
-	hdr := &block.MetaBlock{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(0)
-	hdr.Signature = []byte("A")
-	hdr.AccumulatedFees = new(big.Int)
-	hdr.AccumulatedFeesInEpoch = new(big.Int)
-
-	marshalizedBody, err := marshalizerMock.Marshal(body)
-	assert.Nil(t, err)
-
-	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
-	assert.Nil(t, err)
-
-	marshalizedBodyAndHeader := block.BodyHeaderPair{
-		Body:   marshalizedBody,
-		Header: marshalizedHeader,
-	}
-
-	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
-	assert.Nil(t, err)
-
-	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
-	assert.Nil(t, dcdBlk)
-	assert.Nil(t, dcdHdr)
-
-	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
-	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body.MiniBlocks[0].ReceiverShardID)
-	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
-}
-
 func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 
@@ -2102,6 +2058,11 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	arguments := createMockMetaArguments()
+	arguments.BlockChain = &mock.BlockChainMock{
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{}
 	hdr.Nonce = 1
@@ -2241,10 +2202,10 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{expectedMiniBlock2}
 		},
 	}
@@ -2404,10 +2365,10 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
 			return block.MiniBlockSlice{miniBlock2}
 		},
 	}
@@ -2497,7 +2458,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}

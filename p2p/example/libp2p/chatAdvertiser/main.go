@@ -12,7 +12,6 @@ import (
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	libp2pdht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/whyrusleeping/go-logging"
 )
 
 var logger = log.Logger("rendezvous")
@@ -52,7 +51,6 @@ func readData(rw *bufio.ReadWriter) {
 }
 
 func main() {
-	log.SetAllLoggers(logging.WARNING)
 	_ = log.SetLogLevel("rendezvous", "info")
 
 	ctx := context.Background()

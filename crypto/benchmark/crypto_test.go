@@ -162,7 +162,6 @@ func tblsVerify(sig []byte, msg []byte, suite pairing.Suite, pubKey kyber.Point)
 
 func benchmarkMultiSig(b *testing.B, n int, f int) {
 	// Generate key pairs
-	var kps []*key.Pair
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 
@@ -170,7 +169,6 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
-		kps = append(kps, kp)
 		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}

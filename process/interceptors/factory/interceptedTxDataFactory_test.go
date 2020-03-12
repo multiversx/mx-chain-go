@@ -124,6 +124,7 @@ func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	interceptedData, err := imh.Create(emptyTxBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*transaction.InterceptedTransaction)
 	assert.True(t, ok)

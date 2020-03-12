@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
@@ -50,7 +49,7 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
