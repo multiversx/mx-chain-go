@@ -276,12 +276,12 @@ func (boot *baseBootstrap) computeNodeState() {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
 		)
-		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
+	boot.isNodeSynchronized = isNodeSynchronized
 	boot.isNodeStateCalculated = true
 	boot.roundIndex = boot.rounder.Index()
+	boot.notifySyncStateListeners(isNodeSynchronized)
 
 	result := uint64(1)
 	if isNodeSynchronized {
