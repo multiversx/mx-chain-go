@@ -529,7 +529,7 @@ func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string,
 	go func() {
 		err := netMes.BroadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
-			log.Debug("p2p broadcast", "error", err.Error())
+			log.Warn("p2p broadcast", "error", err.Error())
 		}
 	}()
 }

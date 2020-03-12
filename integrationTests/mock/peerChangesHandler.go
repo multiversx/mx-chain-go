@@ -26,8 +26,5 @@ func (p *PeerChangesHandler) VerifyPeerChanges(peerChanges []block.PeerData) err
 
 // IsInterfaceNil -
 func (p *PeerChangesHandler) IsInterfaceNil() bool {
-	if p == nil {
-		return true
-	}
-	return false
+	return p == nil
 }

@@ -38,19 +38,19 @@ func TestWithMessenger_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
+func TestWithInternalMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithProtoMarshalizer(nil, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(nil, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.Nil(t, node.protoMarshalizer)
+	assert.Nil(t, node.internalMarshalizer)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
-func TestWithMarshalizer_NilVmMarshalizerShouldErr(t *testing.T) {
+func TestWithInternalMarshalizerr_NilVmMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
@@ -81,10 +81,10 @@ func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	opt := WithProtoMarshalizer(marshalizer, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(marshalizer, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.True(t, node.protoMarshalizer == marshalizer)
+	assert.True(t, node.internalMarshalizer == marshalizer)
 	assert.True(t, node.sizeCheckDelta == testSizeCheckDelta)
 	assert.Nil(t, err)
 }

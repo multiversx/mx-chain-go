@@ -13,10 +13,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-discovery"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	libp2pdht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/whyrusleeping/go-logging"
 )
 
 var logger = log.Logger("rendezvous")
@@ -81,7 +80,6 @@ func writeData(rw *bufio.ReadWriter, chanStr chan string) {
 func main() {
 	chans = make([]chan string, 0)
 
-	log.SetAllLoggers(logging.WARNING)
 	_ = log.SetLogLevel("rendezvous", "info")
 	help := flag.Bool("h", false, "Display Help")
 	config, err := ParseFlags()

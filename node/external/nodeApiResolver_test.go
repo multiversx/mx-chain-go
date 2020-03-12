@@ -14,7 +14,7 @@ import (
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{})
+	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilSCQueryService, err)
@@ -23,16 +23,25 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil)
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
 }
 
+func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
+	t.Parallel()
+
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, nil)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
+}
+
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{})
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(nar))
@@ -48,7 +57,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 			return &vmcommon.VMOutput{}, nil
 		},
 	},
-		&mock.StatusMetricsStub{})
+		&mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
 	_, _ = nar.ExecuteSCQuery(&process.SCQuery{
 		ScAddress: []byte{0},
@@ -69,7 +78,9 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
@@ -86,7 +97,9 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
@@ -103,7 +116,9 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
@@ -120,7 +135,9 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)

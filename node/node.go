@@ -59,7 +59,7 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	protoMarshalizer         marshal.Marshalizer
+	internalMarshalizer      marshal.Marshalizer
 	vmMarshalizer            marshal.Marshalizer
 	txSignMarshalizer        marshal.Marshalizer
 	ctx                      context.Context
@@ -275,7 +275,7 @@ func (n *Node) StartConsensus() error {
 	}
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
-		n.protoMarshalizer,
+		n.internalMarshalizer,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
@@ -285,9 +285,9 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	netInputMarshalizer := n.protoMarshalizer
+	netInputMarshalizer := n.internalMarshalizer
 	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.protoMarshalizer, n.sizeCheckDelta)
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
 
 	worker, err := spos.NewWorker(
@@ -326,7 +326,7 @@ func (n *Node) StartConsensus() error {
 		BroadcastMessenger:   broadcastMessenger,
 		ChronologyHandler:    chronologyHandler,
 		Hasher:               n.hasher,
-		Marshalizer:          n.protoMarshalizer,
+		Marshalizer:          n.internalMarshalizer,
 		BlsPrivateKey:        n.privKey,
 		BlsSingleSigner:      n.singleSigner,
 		MultiSigner:          n.multiSigner,
@@ -434,7 +434,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
 		ChainHandler:        n.blkc,
-		Marshalizer:         n.protoMarshalizer,
+		Marshalizer:         n.internalMarshalizer,
 		Store:               n.store,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
@@ -471,7 +471,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BlockProcessor:      n.blockProcessor,
 		WaitTime:            n.rounder.TimeDuration(),
 		Hasher:              n.hasher,
-		Marshalizer:         n.protoMarshalizer,
+		Marshalizer:         n.internalMarshalizer,
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
@@ -504,7 +504,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
 		ChainHandler:        n.blkc,
-		Marshalizer:         n.protoMarshalizer,
+		Marshalizer:         n.internalMarshalizer,
 		Store:               n.store,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
@@ -542,7 +542,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BlockProcessor:      n.blockProcessor,
 		WaitTime:            n.rounder.TimeDuration(),
 		Hasher:              n.hasher,
-		Marshalizer:         n.protoMarshalizer,
+		Marshalizer:         n.internalMarshalizer,
 		ForkDetector:        n.forkDetector,
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
@@ -673,14 +673,14 @@ func (n *Node) SendTransaction(
 		return "", err
 	}
 
-	txBuff, err := n.protoMarshalizer.Marshal(&tx)
+	txBuff, err := n.internalMarshalizer.Marshal(&tx)
 	if err != nil {
 		return "", err
 	}
 
 	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
 
-	marshalizedTx, err := n.protoMarshalizer.Marshal(batch.New(txBuff))
+	marshalizedTx, err := n.internalMarshalizer.Marshal(batch.New(txBuff))
 	if err != nil {
 		return "", errors.New("could not marshal transaction")
 	}
@@ -712,7 +712,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 		}
 
 		senderShardId := n.shardCoordinator.ComputeId(senderBytes)
-		marshalizedTx, err := n.protoMarshalizer.Marshal(tx)
+		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
 			continue
 		}
@@ -744,14 +744,14 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 		return nil
 	}
 
-	marshalizedTx, err := n.protoMarshalizer.Marshal(tx)
+	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 	if err != nil {
 		return err
 	}
 
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
-		n.protoMarshalizer,
+		n.internalMarshalizer,
 		n.txSignMarshalizer,
 		n.hasher,
 		n.keyGenForAccounts,
@@ -773,7 +773,7 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.protoMarshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.internalMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -862,7 +862,7 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-// GetAccount will return acount details for a given address
+// GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
@@ -925,7 +925,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.messenger,
 		n.singleSigner,
 		n.privKey,
-		n.protoMarshalizer,
+		n.internalMarshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
 		versionNumber,
@@ -940,22 +940,22 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
-		n.protoMarshalizer,
+		n.internalMarshalizer,
 		n.networkShardingCollector,
 	)
 	if err != nil {
 		return err
 	}
 
-	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.protoMarshalizer)
+	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.internalMarshalizer)
 	if err != nil {
 		return err
 	}
 
 	timer := &heartbeat.RealTimer{}
-	netInputMarshalizer := n.protoMarshalizer
+	netInputMarshalizer := n.internalMarshalizer
 	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.protoMarshalizer, n.sizeCheckDelta)
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		netInputMarshalizer,
@@ -1063,8 +1063,5 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (n *Node) IsInterfaceNil() bool {
-	if n == nil {
-		return true
-	}
-	return false
+	return n == nil
 }

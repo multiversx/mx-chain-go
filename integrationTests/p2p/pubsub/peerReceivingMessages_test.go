@@ -27,10 +27,7 @@ func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mps *messageProcessorStub) IsInterfaceNil() bool {
-	if mps == nil {
-		return true
-	}
-	return false
+	return mps == nil
 }
 
 func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {

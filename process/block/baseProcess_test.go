@@ -759,7 +759,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	arguments.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch:    3,
+				Epoch:    2,
 				RandSeed: randSeed,
 			}
 		},

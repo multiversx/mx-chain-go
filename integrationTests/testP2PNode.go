@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -105,21 +105,19 @@ func (tP2pNode *TestP2PNode) initStorage() {
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {
-	tP2pNode.SingleSigner = &singlesig.BlsSingleSigner{}
-	suite := kyber.NewSuitePairingBn256()
+	tP2pNode.SingleSigner = &mclsig.BlsSingleSigner{}
+	suite := mcl.NewSuiteBLS12()
 	tP2pNode.KeyGen = signing.NewKeyGenerator(suite)
 }
 
 func (tP2pNode *TestP2PNode) initNode() {
 	var err error
 
-	validators, err := tP2pNode.NodesCoordinator.GetAllValidatorsPublicKeys(0)
-	if err != nil {
-		fmt.Println(err)
-	}
+	pubkeys := tP2pNode.getPubkeys()
+
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
-		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithKeyGen(tP2pNode.KeyGen),
 		node.WithShardCoordinator(tP2pNode.ShardCoordinator),
@@ -129,7 +127,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithPubKey(tP2pNode.NodeKeys.Pk),
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithDataStore(tP2pNode.Storage),
-		node.WithInitialNodesPubKeys(convertInitialPks(validators)),
+		node.WithInitialNodesPubKeys(pubkeys),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
@@ -145,6 +143,21 @@ func (tP2pNode *TestP2PNode) initNode() {
 	if err != nil {
 		fmt.Printf("Error starting heartbeat: %s\n", err.Error())
 	}
+}
+
+func (tP2pNode *TestP2PNode) getPubkeys() map[uint32][]string {
+	eligible, err := tP2pNode.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(0)
+	log.LogIfError(err)
+
+	validators := make(map[uint32][]string)
+
+	for shardId, shardValidators := range eligible {
+		for _, v := range shardValidators {
+			validators[shardId] = append(validators[shardId], string(v))
+		}
+	}
+
+	return validators
 }
 
 // CreateTestInterceptors creates test interceptors that count the number of received messages
@@ -205,22 +218,6 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
 	}
-}
-
-func convertInitialPks(validatorsPk map[uint32][][]byte) map[uint32][]string {
-	m := make(map[uint32][]string)
-
-	for shardId, pkBuffs := range validatorsPk {
-		pkStrs := make([]string, len(pkBuffs))
-
-		for i, pkBuff := range pkBuffs {
-			pkStrs[i] = string(pkBuff)
-		}
-
-		m[shardId] = pkStrs
-	}
-
-	return m
 }
 
 // CreateNodesWithTestP2PNodes returns a map with nodes per shard each using a real nodes coordinator
