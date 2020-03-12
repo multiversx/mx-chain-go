@@ -3,6 +3,7 @@ package state
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -20,16 +21,16 @@ func NewPeerAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 ) (*PeerAccountsDB, error) {
-	if trie == nil || trie.IsInterfaceNil() {
+	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if accountFactory == nil || accountFactory.IsInterfaceNil() {
+	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
 	}
 
@@ -44,4 +45,25 @@ func NewPeerAccountsDB(
 			mutEntries:     sync.RWMutex{},
 		},
 	}, nil
+}
+
+// SnapshotState triggers the snapshotting process of the state trie
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
+	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
+	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.TakeSnapshot(rootHash)
+	adb.mainTrie.ExitSnapshotMode()
+}
+
+// RecreateAllTries recreates all the tries from the accounts DB
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]data.Trie)
+	allTries[string(rootHash)] = recreatedTrie
+
+	return allTries, nil
 }

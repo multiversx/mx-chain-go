@@ -13,7 +13,7 @@ import (
 func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	accF, err := factory.NewAccountFactoryCreator(state.ShardStatistics)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.MetaAccountCreator)
@@ -28,7 +28,7 @@ func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	accF, err := factory.NewAccountFactoryCreator(state.ShardStatistics)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.MetaAccountCreator)
@@ -43,7 +43,7 @@ func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	accF, err := factory.NewAccountFactoryCreator(state.ShardStatistics)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(accF))
 

@@ -38,6 +38,7 @@ type AddressContainer interface {
 // AccountFactory creates an account of different types
 type AccountFactory interface {
 	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
+	GetType() Type
 	IsInterfaceNil() bool
 }
 
@@ -146,6 +147,7 @@ type AccountsAdapter interface {
 	IsPruningEnabled() bool
 	ClosePersister() error
 	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 

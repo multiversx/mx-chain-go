@@ -15,6 +15,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// Type defines account types to save in accounts trie
+type Type uint8
+
+const (
+	// UserAccount identifies an account holding balance, storage updates, code
+	UserAccount Type = 0
+	// ShardStatistics identifies a shard, keeps the statistics
+	ShardStatistics Type = 1
+	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
+	ValidatorAccount Type = 2
+	// DataTrie identifies the data trie kept under a specific account
+	DataTrie Type = 3
+)
+
+// SupportedAccountTypes is the list to describe the possible account types in the accounts DB
+var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount, DataTrie}
+
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
 	mainTrie       data.Trie
@@ -546,12 +563,48 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	if err != nil {
 		return err
 	}
-	if newTrie == nil {
+	if check.IfNil(newTrie) {
 		return ErrNilTrie
 	}
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+// RecreateAllTries recreates all the tries from the accounts DB
+func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	leafs, err := recreatedTrie.GetAllLeaves()
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]data.Trie)
+	allTries[string(rootHash)] = recreatedTrie
+
+	for _, leaf := range leafs {
+		account := &Account{}
+		err = adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) > 0 {
+			dataTrie, err := adb.mainTrie.Recreate(account.RootHash)
+			if err != nil {
+				return nil, err
+			}
+
+			allTries[string(account.RootHash)] = dataTrie
+		}
+	}
+
+	return allTries, nil
 }
 
 // Journalize adds a new object to entries list. Concurrent safe.
@@ -584,15 +637,42 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
-
+	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
+
+	go func() {
+		adb.snapshotUserAccountDataTrie(rootHash)
+		adb.mainTrie.ExitSnapshotMode()
+	}()
+}
+
+func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
+	leafs, err := adb.GetAllLeaves(rootHash)
+	if err != nil {
+		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
+		return
+	}
+
+	for _, leaf := range leafs {
+		account := &Account{}
+		err = adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) > 0 {
+			adb.mainTrie.TakeSnapshot(account.RootHash)
+		}
+	}
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
 func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
-
+	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.SetCheckpoint(rootHash)
+	adb.mainTrie.ExitSnapshotMode()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

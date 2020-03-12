@@ -41,14 +41,13 @@ type ArgsExporter struct {
 	RequestHandler           process.RequestHandler
 	ShardCoordinator         sharding.Coordinator
 	Messenger                p2p.Messenger
-	ActiveTries              state.TriesHolder
+	ActiveAccountsDBs        map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ExistingResolvers        dataRetriever.ResolversContainer
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.InterceptedDataWhiteList
 	InterceptorsContainer    process.InterceptorsContainer
-	Accounts                 state.AccountsAdapter
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
 	SingleSigner             crypto.SingleSigner
@@ -71,7 +70,7 @@ type exportHandlerFactory struct {
 	requestHandler           process.RequestHandler
 	shardCoordinator         sharding.Coordinator
 	messenger                p2p.Messenger
-	activeTries              state.TriesHolder
+	activeAccountsDBs        map[state.AccountsDbIdentifier]state.AccountsAdapter
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
@@ -122,8 +121,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.Messenger) {
 		return nil, update.ErrNilMessenger
 	}
-	if check.IfNil(args.ActiveTries) {
-		return nil, update.ErrNilActiveTries
+	if args.ActiveAccountsDBs == nil {
+		return nil, update.ErrNilAccounts
 	}
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, update.ErrNilWhiteListHandler
@@ -133,9 +132,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	}
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
-	}
-	if check.IfNil(args.Accounts) {
-		return nil, update.ErrNilAccounts
 	}
 	if check.IfNil(args.MultiSigner) {
 		return nil, update.ErrNilMultiSigner
@@ -175,14 +171,14 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		requestHandler:           args.RequestHandler,
 		shardCoordinator:         args.ShardCoordinator,
 		messenger:                args.Messenger,
-		activeTries:              args.ActiveTries,
+		activeAccountsDBs:        args.ActiveAccountsDBs,
 		exportFolder:             args.ExportFolder,
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
 		existingResolvers:        args.ExistingResolvers,
-		accounts:                 args.Accounts,
+		accounts:                 args.ActiveAccountsDBs[state.UserAccountsState],
 		multiSigner:              args.MultiSigner,
 		nodesCoordinator:         args.NodesCoordinator,
 		singleSigner:             args.SingleSigner,
@@ -250,18 +246,20 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsTrieSyncers := ArgsNewTrieSyncersContainerFactory{
-		TrieCacher:        e.dataPool.TrieNodes(),
-		SyncFolder:        e.exportFolder,
-		RequestHandler:    e.requestHandler,
-		DataTrieContainer: dataTries,
-		ShardCoordinator:  e.shardCoordinator,
+	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
+		TrieCacher:         e.dataPool.TrieNodes(),
+		RequestHandler:     e.requestHandler,
+		ShardCoordinator:   e.shardCoordinator,
+		Hasher:             e.hasher,
+		Marshalizer:        e.marshalizer,
+		TrieStorageManager: dataTriesContainerFactory.TrieStorageManager(),
+		WaitTime:           time.Minute,
 	}
-	trieSyncContainersFactory, err := NewTrieSyncersContainerFactory(argsTrieSyncers)
+	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
 		return nil, err
 	}
-	trieSyncers, err := trieSyncContainersFactory.Create()
+	accountsDBSyncerContainer, err := accountsDBSyncerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -279,11 +277,11 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsNewEpochStartTrieSyncer := sync.ArgsNewSyncTriesHandler{
-		TrieSyncers: trieSyncers,
-		ActiveTries: e.activeTries,
+	argsNewSyncAccountsDBsHandler := sync.ArgsNewSyncAccountsDBsHandler{
+		AccountsDBsSyncers: accountsDBSyncerContainer,
+		ActiveAccountsDBs:  e.activeAccountsDBs,
 	}
-	epochStartTrieSyncer, err := sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
+	epochStartTrieSyncer, err := sync.NewSyncAccountsDBsHandler(argsNewSyncAccountsDBsHandler)
 	if err != nil {
 		return nil, err
 	}

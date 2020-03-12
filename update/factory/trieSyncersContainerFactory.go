@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factoryTrie "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -65,18 +64,18 @@ func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error)
 	container := containers.NewTrieSyncersContainer()
 
 	for i := uint32(0); i < t.shardCoordinator.NumberOfShards(); i++ {
-		err := t.createOneTrieSyncer(i, factory.UserAccount, container)
+		err := t.createOneTrieSyncer(i, state.UserAccount, container)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := t.createOneTrieSyncer(core.MetachainShardId, factory.UserAccount, container)
+	err := t.createOneTrieSyncer(core.MetachainShardId, state.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.createOneTrieSyncer(core.MetachainShardId, factory.ValidatorAccount, container)
+	err = t.createOneTrieSyncer(core.MetachainShardId, state.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error)
 
 func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	shId uint32,
-	accType factory.Type,
+	accType state.Type,
 	container update.TrieSyncContainer,
 ) error {
 	trieId := genesis.CreateTrieIdentifier(shId, accType)
@@ -109,11 +108,11 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	return nil
 }
 
-func trieTopicFromAccountType(accType factory.Type) string {
+func trieTopicFromAccountType(accType state.Type) string {
 	switch accType {
-	case factory.UserAccount:
+	case state.UserAccount:
 		return factoryTrie.AccountTrieNodesTopic
-	case factory.ValidatorAccount:
+	case state.ValidatorAccount:
 		return factoryTrie.ValidatorTrieNodesTopic
 	}
 	return ""

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -98,34 +99,53 @@ func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
 }
 
 func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
-	args := ArgsNewSyncTriesHandler{
-		TrieSyncers: &mock.TrieSyncersStub{
-			GetCalled: func(key string) (syncer update.TrieSyncer, err error) {
-				if retErr {
-					return nil, errors.New("err")
-				}
-				return &mock.TrieSyncersStub{}, nil
+	args := ArgsNewSyncAccountsDBsHandler{
+		AccountsDBsSyncers: &mock.AccountsDBSyncersStub{
+			GetCalled: func(key string) (syncer update.AccountsDBSyncer, err error) {
+				return &mock.AccountsDBSyncerStub{
+					SyncAccountsCalled: func(rootHash []byte) error {
+						if retErr {
+							return errors.New("err")
+						}
+						return nil
+					},
+				}, nil
 			},
 		},
-		ActiveTries: &mock.TriesHolderMock{
-			GetCalled: func(bytes []byte) data.Trie {
-				return &mock.TrieStub{
-					RecreateCalled: func(root []byte) (trie data.Trie, err error) {
-						return &mock.TrieStub{
-							CommitCalled: func() error {
-								if retErr {
-									return errors.New("err")
-								}
-								return nil
-							},
-						}, nil
-					},
-				}
-			},
+		ActiveAccountsDBs: make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
+	}
+
+	args.ActiveAccountsDBs[state.UserAccountsState] = &mock.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
+			tries := make(map[string]data.Trie)
+			tries[string(rootHash)] = &mock.TrieStub{
+				CommitCalled: func() error {
+					if retErr {
+						return errors.New("err")
+					}
+					return nil
+				},
+			}
+			return tries, nil
 		},
 	}
 
-	triesSyncHandler, _ := NewSyncTriesHandler(args)
+	args.ActiveAccountsDBs[state.PeerAccountsState] = &mock.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
+			tries := make(map[string]data.Trie)
+			tries[string(rootHash)] = &mock.TrieStub{
+				CommitCalled: func() error {
+					if retErr {
+						return errors.New("err")
+					}
+					return nil
+				},
+			}
+			return tries, nil
+		},
+	}
+
+	triesSyncHandler, _ := NewSyncAccountsDBsHandler(args)
 	return triesSyncHandler
 }
 

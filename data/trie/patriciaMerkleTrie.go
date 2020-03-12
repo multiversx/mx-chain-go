@@ -346,9 +346,8 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	defer tr.mutOperation.Unlock()
 
 	if emptyTrie(root) {
-		clonedTrieStorage := tr.trieStorage.Clone()
 		return NewTrie(
-			clonedTrieStorage,
+			tr.trieStorage,
 			tr.marshalizer,
 			tr.hasher,
 		)
@@ -477,9 +476,8 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 		return nil, ErrHashNotFound
 	}
 
-	clonedTrieStorage := tr.trieStorage.Clone()
 	newTr, err := NewTrie(
-		clonedTrieStorage,
+		tr.trieStorage,
 		tr.marshalizer,
 		tr.hasher,
 	)
@@ -503,6 +501,16 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 	}
 
 	return newTr, nil
+}
+
+// EnterSnapshotMode sets the snapshot mode on
+func (tr *patriciaMerkleTrie) EnterSnapshotMode() {
+	tr.trieStorage.EnterSnapshotMode()
+}
+
+// ExitSnapshotMode sets the snapshot mode off
+func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
+	tr.trieStorage.ExitSnapshotMode()
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
@@ -554,6 +562,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}
