@@ -33,7 +33,7 @@ type databaseHandler interface {
 
 // databaseWriterHandler is an interface that do requests to elasticsearch server do save data
 type databaseWriterHandler interface {
-	DoRequest(req esapi.IndexRequest) error
+	DoRequest(req *esapi.IndexRequest) error
 	DoBulkRequest(buff *bytes.Buffer, index string) error
 	CheckAndCreateIndex(index string, body io.Reader) error
 }

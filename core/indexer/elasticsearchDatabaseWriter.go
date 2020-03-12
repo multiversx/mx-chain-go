@@ -26,10 +26,12 @@ func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
 // CheckAndCreateIndex will check if a index exits and if dont will create a new one
 func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) error {
 	var res *esapi.Response
+	var err error
+
+	res, err = dw.dbWriter.Indices.Exists([]string{index})
 
 	defer closeESResponseBody(res)
 
-	res, err := dw.dbWriter.Indices.Exists([]string{index})
 	if err != nil {
 		return err
 	}
@@ -55,13 +57,13 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 	var err error
 	var res *esapi.Response
 
-	defer closeESResponseBody(res)
-
 	if body != nil {
 		res, err = dw.dbWriter.Indices.Create(index, dw.dbWriter.Indices.Create.WithBody(body))
 	} else {
 		res, err = dw.dbWriter.Indices.Create(index)
 	}
+
+	defer closeESResponseBody(res)
 
 	if err != nil {
 		return err
@@ -81,16 +83,16 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 }
 
 // DoRequest will do a request to elastic server
-func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
+func (dw *databaseWriter) DoRequest(req *esapi.IndexRequest) error {
 	var err error
 	var res *esapi.Response
-
-	defer closeESResponseBody(res)
 
 	res, err = req.Do(context.Background(), dw.dbWriter)
 	if err != nil {
 		return err
 	}
+
+	defer closeESResponseBody(res)
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
@@ -106,12 +108,12 @@ func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error 
 	var err error
 	var res *esapi.Response
 
-	defer closeESResponseBody(res)
-
 	res, err = dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
 	if err != nil {
 		return err
 	}
+
+	defer closeESResponseBody(res)
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
@@ -122,6 +124,9 @@ func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error 
 
 func closeESResponseBody(res *esapi.Response) {
 	if res != nil && res.Body != nil {
-		_ = res.Body.Close()
+		err := res.Body.Close()
+		if err != nil {
+			log.Trace("error closing elastic search response body", "error", err)
+		}
 	}
 }
