@@ -99,7 +99,7 @@ func TestEd25519ScalarMarshalUnmarshal(t *testing.T) {
 
 	bytes, _ := scalar.MarshalBinary()
 	scalar2 := suite.CreateScalar()
-	scalar2.UnmarshalBinary(bytes)
+	_ = scalar2.UnmarshalBinary(bytes)
 
 	eq, _ := scalar.Equal(scalar2)
 	assert.True(t, eq)
@@ -111,7 +111,7 @@ func TestEd25519ScalarUnmarshal_WorksWithSeed(t *testing.T) {
 	scalar2 := suite.CreateScalar()
 
 	bytes, _ := scalar.MarshalBinary()
-	scalar2.UnmarshalBinary(bytes[:32])
+	_ = scalar2.UnmarshalBinary(bytes[:32])
 
 	eq, _ := scalar.Equal(scalar2)
 	assert.True(t, eq)

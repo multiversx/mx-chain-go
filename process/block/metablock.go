@@ -581,7 +581,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Revert(metaBlock)
 		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
 		return nil
 	}
@@ -1192,7 +1191,14 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
-	mp.epochStartTrigger.RevertStateToBlock(header)
+	err = mp.epochStartTrigger.RevertStateToBlock(header)
+	if err != nil {
+		log.Debug("revert epoch start trigger for header",
+			"nonce", header.GetNonce(),
+			"error", err,
+		)
+		return err
+	}
 
 	return nil
 }

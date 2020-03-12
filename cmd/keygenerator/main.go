@@ -49,7 +49,7 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
+	app.Action = func(_ *cli.Context) error {
 		return generateFiles()
 	}
 
@@ -160,10 +160,6 @@ func generateFiles() error {
 	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
-}
-
-func getSuiteForBalanceSk() crypto.Suite {
-	return ed25519.NewEd25519()
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {

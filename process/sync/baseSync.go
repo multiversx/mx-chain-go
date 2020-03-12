@@ -271,7 +271,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		currentBlockNonce := boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= currentBlockNonce &&
+			!boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentBlockNonce+1)
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()

@@ -99,7 +99,7 @@ func TestEd25519PointMarshalUnmarshal(t *testing.T) {
 
 	bytes, _ := point.MarshalBinary()
 	point2 := suite.CreatePoint()
-	point2.UnmarshalBinary(bytes)
+	_ = point2.UnmarshalBinary(bytes)
 
 	eq, _ := point.Equal(point2)
 	assert.True(t, eq)

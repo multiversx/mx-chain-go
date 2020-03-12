@@ -837,9 +837,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("starting status pooling components")
+	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
-		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		statusPollingInterval,
 		networkComponents,
 		processComponents,
 	)
@@ -847,8 +848,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	updateMachineStatisticsDurationSec := 1
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	updateMachineStatisticsDuration := time.Second
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}
@@ -1230,15 +1231,18 @@ func createElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (indexer.Indexer, error) {
+	arguments := indexer.ElasticIndexerArgs{
+		Url:              url,
+		UserName:         elasticSearchConfig.Username,
+		Password:         elasticSearchConfig.Password,
+		ShardCoordinator: coordinator,
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+	}
+
 	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(
-		url,
-		elasticSearchConfig.Username,
-		elasticSearchConfig.Password,
-		coordinator,
-		marshalizer,
-		hasher,
-		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
+	dbIndexer, err = indexer.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
 	}
