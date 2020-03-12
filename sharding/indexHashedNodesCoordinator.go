@@ -490,7 +490,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  leaving,
+		Leaving:  make([]Validator, 0),
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}
