@@ -60,13 +60,13 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	GetBLSPublicKey() []byte
-	SetBLSPublicKey([]byte)
+	SetBLSPublicKey([]byte) error
 	GetSchnorrPublicKey() []byte
-	SetSchnorrPublicKey([]byte)
+	SetSchnorrPublicKey([]byte) error
 	GetRewardAddress() []byte
 	SetRewardAddress([]byte) error
 	GetStake() *big.Int
-	SetStake(*big.Int)
+	SetStake(*big.Int) error
 	GetAccumulatedFees() *big.Int
 	SetAccumulatedFees(*big.Int)
 	GetJailTime() TimePeriod
@@ -84,7 +84,7 @@ type PeerAccountHandler interface {
 	IncreaseValidatorSuccessRate(uint32)
 	DecreaseValidatorSuccessRate(uint32)
 	GetNumSelectedInSuccessBlocks() uint32
-	SetNumSelectedInSuccessBlocks(uint32)
+	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
 	GetRating() uint32

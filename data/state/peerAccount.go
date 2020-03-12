@@ -41,13 +41,23 @@ func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
 }
 
 // SetBLSPublicKey sets the account's bls public key, saving the old key before changing
-func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) {
+func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
+	if len(pubKey) < 1 {
+		return ErrNilBLSPublicKey
+	}
+
 	pa.BLSPublicKey = pubKey
+	return nil
 }
 
 // SetSchnorrPublicKey sets the account's public key, saving the old key before changing
-func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) {
+func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) error {
+	if len(pubKey) < 1 {
+		return ErrNilSchnorrPublicKey
+	}
+
 	pa.SchnorrPublicKey = pubKey
+	return nil
 }
 
 // SetRewardAddress sets the account's reward address, saving the old address before changing
@@ -61,8 +71,13 @@ func (pa *peerAccount) SetRewardAddress(address []byte) error {
 }
 
 // SetStake sets the account's stake
-func (pa *peerAccount) SetStake(stake *big.Int) {
+func (pa *peerAccount) SetStake(stake *big.Int) error {
+	if stake == nil {
+		return ErrNilStake
+	}
+
 	pa.Stake = stake
+	return nil
 }
 
 // SetAccumulatedFees sets the account's accumulated fees
@@ -115,9 +130,9 @@ func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NrFailure += value
 }
 
-// SetNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
-func (pa *peerAccount) SetNumSelectedInSuccessBlocks(num uint32) {
-	pa.NumSelectedInSuccessBlocks = num
+// IncreaseNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
+func (pa *peerAccount) IncreaseNumSelectedInSuccessBlocks() {
+	pa.NumSelectedInSuccessBlocks++
 }
 
 // SetRating sets the account's rating id

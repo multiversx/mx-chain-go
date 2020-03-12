@@ -541,9 +541,21 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	peerAccount.SetSchnorrPublicKey(data.Address())
-	peerAccount.SetBLSPublicKey(data.PubKey())
-	peerAccount.SetStake(stakeValue)
+	err = peerAccount.SetSchnorrPublicKey(data.Address())
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetBLSPublicKey(data.PubKey())
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetStake(stakeValue)
+	if err != nil {
+		return err
+	}
+
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 
@@ -558,7 +570,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			return err
 		}
 
-		peerAcc.SetNumSelectedInSuccessBlocks(peerAcc.GetNumSelectedInSuccessBlocks() + 1)
+		peerAcc.IncreaseNumSelectedInSuccessBlocks()
 
 		var newRating uint32
 		isLeader := i == 0

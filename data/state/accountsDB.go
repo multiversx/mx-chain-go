@@ -72,7 +72,7 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	}
 
 	var entry JournalEntry
-	if oldAccount == nil {
+	if check.IfNil(oldAccount) {
 		entry, err = NewJournalEntryAccountCreation(account.AddressContainer().Bytes(), adb.mainTrie)
 		if err != nil {
 			return err

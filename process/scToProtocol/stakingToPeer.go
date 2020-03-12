@@ -201,8 +201,15 @@ func (stp *stakingToPeer) updatePeerState(
 		return err
 	}
 
-	account.SetBLSPublicKey(blsPubKey)
-	account.SetStake(stakingData.StakeValue)
+	err = account.SetBLSPublicKey(blsPubKey)
+	if err != nil {
+		return err
+	}
+
+	err = account.SetStake(stakingData.StakeValue)
+	if err != nil {
+		return err
+	}
 
 	if stakingData.RegisterNonce != account.GetNonce() {
 		account.SetNonce(stakingData.RegisterNonce)

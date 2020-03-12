@@ -332,11 +332,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	err = sc.saveAccounts(acntSnd, acntDst)
-	if err != nil {
-		return true, err
-	}
-
 	txHash, err := sc.computeTransactionHash(tx)
 	if err != nil {
 		return true, err
@@ -345,11 +340,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	gasConsumed := builtIn.GasUsed()
 	if tx.GetGasLimit() < gasConsumed {
 		return true, process.ErrNotEnoughGas
-	}
-
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
-	if err != nil {
-		return true, err
 	}
 
 	gasRemaining := tx.GetGasLimit() - gasConsumed
@@ -377,12 +367,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
-	err = sc.saveAccounts(acntSnd, acntDst)
-	if err != nil {
-		return true, err
-	}
-
-	return true, nil
+	return true, sc.saveAccounts(acntSnd, acntDst)
 }
 
 func (sc *scProcessor) processIfError(
@@ -513,7 +498,8 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err = sc.accounts.SaveAccount(acntSnd)
 	if err != nil {
-		return err
+		log.Debug("Save account error", "error", err.Error())
+		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
@@ -730,9 +716,11 @@ func (sc *scProcessor) processVMOutput(
 
 	scrTxs = append(scrTxs, scrRefund)
 
-	err = sc.saveAccounts(acntSnd, nil)
-	if err != nil {
-		return nil, nil, err
+	if !check.IfNil(acntSnd) {
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
@@ -982,7 +970,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return nil, err
 		}
 
-		err = sc.saveAccounts(acc, nil)
+		err = sc.accounts.SaveAccount(acc)
 		if err != nil {
 			return nil, err
 		}

@@ -25,8 +25,8 @@ func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
 }
 
 // SetBLSPublicKey -
-func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) {
-
+func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
+	return nil
 }
 
 // GetSchnorrPublicKey -
@@ -35,8 +35,8 @@ func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
 }
 
 // SetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) {
-
+func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) error {
+	return nil
 }
 
 // GetRewardAddress -
@@ -55,8 +55,8 @@ func (p *PeerAccountHandlerMock) GetStake() *big.Int {
 }
 
 // SetStake -
-func (p *PeerAccountHandlerMock) SetStake(*big.Int) {
-
+func (p *PeerAccountHandlerMock) SetStake(*big.Int) error {
+	return nil
 }
 
 // GetAccumulatedFees -
@@ -157,8 +157,8 @@ func (p *PeerAccountHandlerMock) GetNumSelectedInSuccessBlocks() uint32 {
 	return 0
 }
 
-// SetNumSelectedInSuccessBlocks -
-func (p *PeerAccountHandlerMock) SetNumSelectedInSuccessBlocks(uint32) {
+// IncreaseNumSelectedInSuccessBlocks -
+func (p *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() {
 
 }
 
