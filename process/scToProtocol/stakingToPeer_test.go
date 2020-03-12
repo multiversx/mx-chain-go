@@ -265,8 +265,8 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(addressContainer)
 		_ = peerAcc.SetRewardAddress([]byte("addr"))
-		peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
-		peerAcc.SetStake(big.NewInt(100))
+		_ = peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
+		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
@@ -312,7 +312,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(addressContainer)
 		_ = peerAcc.SetRewardAddress([]byte("key"))
-		peerAcc.SetStake(big.NewInt(100))
+		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
