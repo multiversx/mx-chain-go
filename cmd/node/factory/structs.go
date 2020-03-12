@@ -872,7 +872,7 @@ func newEpochStartTrigger(
 			Hasher:                       args.coreData.Hasher,
 		}
 
-		validatorInfoProcessor, err := block.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
+		validatorInfoProcessor, err := shardchain.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
 		if err != nil {
 			return nil, err
 		}

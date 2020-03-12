@@ -59,6 +59,7 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
