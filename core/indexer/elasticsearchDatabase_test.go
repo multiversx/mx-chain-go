@@ -113,7 +113,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	signerIndexes := []uint64{0, 1}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
 		},
 	}
@@ -134,7 +134,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	signerIndexes := []uint64{0, 1}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
@@ -188,7 +188,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
 		},
 	}
@@ -208,7 +208,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	valPubKeys := []string{"key1", "key2"}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(shardId), 10), req.DocumentID)
 			return nil
 		},
@@ -275,7 +275,7 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(roundInfo.ShardId), 10)+"_"+strconv.FormatUint(roundInfo.Index, 10), req.DocumentID)
 			return nil
 		},
@@ -294,7 +294,7 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	localError := errors.New("local err")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req esapi.IndexRequest) error {
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localError
 		},
 	}
