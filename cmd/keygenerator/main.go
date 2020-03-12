@@ -111,7 +111,7 @@ func generateFiles() error {
 		return err
 	}
 
-	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
+	genForBalanceSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
