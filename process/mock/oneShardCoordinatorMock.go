@@ -36,7 +36,8 @@ func (scm *oneShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (scm *oneShardCoordinatorMock) SetSelfId(_ uint32) error {
+func (scm *oneShardCoordinatorMock) SetSelfId(selfId uint32) error {
+	scm.selfId = selfId
 	return nil
 }
 
@@ -49,6 +50,10 @@ func (scm *oneShardCoordinatorMock) SameShard(_, _ state.AddressContainer) bool 
 func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
 	if destShardID == core.MetachainShardId {
 		return "_0_META"
+	}
+
+	if destShardID == core.AllShardId {
+		return "_ALL"
 	}
 
 	return "_0"
