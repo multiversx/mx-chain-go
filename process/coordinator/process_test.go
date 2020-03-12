@@ -806,7 +806,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		return true
 	}
 	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime)
-
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
