@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/stretchr/testify/assert"
@@ -65,8 +64,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		10000,
 		nRequester.ShardCoordinator.SelfId(),
 	)
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	waitTime := 5 * time.Second
 	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime, core.MetachainShardId, factory.AccountTrieNodesTopic)
