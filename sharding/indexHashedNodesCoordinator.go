@@ -32,7 +32,7 @@ type epochNodesConfig struct {
 	shardId                 uint32
 	eligibleMap             map[uint32][]Validator
 	waitingMap              map[uint32][]Validator
-	expandedEligibleMap map[uint32][]Validator
+	expandedEligibleMap     map[uint32][]Validator
 	publicKeyToValidatorMap map[string]*validatorWithShardId
 	mutNodesMaps            sync.RWMutex
 }
@@ -500,10 +500,6 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
-	}
-
-	for _, leavingNode := range leaving {
-		log.Trace("should  be leaving node because of rating", "pk", leavingNode.PubKey(), "address", leavingNode.Address())
 	}
 
 	err = ihgs.saveState(randomness)

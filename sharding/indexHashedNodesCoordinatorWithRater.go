@@ -63,7 +63,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators [
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
 		if chances == 0 {
-			log.Trace("Is leaving", "pk", pk)
+			log.Trace("should be leaving node because of rating", "pk", validator.PubKey(), "address", validator.Address())
 			leavingValidators = append(leavingValidators, validator)
 		}
 	}

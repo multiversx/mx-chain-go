@@ -323,7 +323,6 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
-			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 		}
 
 		// save all final-valid epoch start blocks
