@@ -152,13 +152,3 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 func (pa *peerAccount) SetNonce(nonce uint64) {
 	pa.Nonce = nonce
 }
-
-// SetCodeHash sets the code hash associated with the account
-func (pa *peerAccount) SetCodeHash(codeHash []byte) {
-	pa.CodeHash = codeHash
-}
-
-// SetRootHash sets the root hash associated with the account
-func (pa *peerAccount) SetRootHash(roothash []byte) {
-	pa.RootHash = roothash
-}

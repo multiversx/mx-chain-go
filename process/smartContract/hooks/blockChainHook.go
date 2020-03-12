@@ -152,7 +152,12 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	value, err := account.DataTrieTracker().RetrieveValue(index)
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	value, err := userAcc.DataTrieTracker().RetrieveValue(index)
 	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
 	return value, err
 }
@@ -172,7 +177,12 @@ func (bh *BlockChainHookImpl) IsCodeEmpty(address []byte) (bool, error) {
 		return false, err
 	}
 
-	isCodeEmpty := len(account.GetCode()) == 0
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return false, process.ErrWrongTypeAssertion
+	}
+
+	isCodeEmpty := len(userAcc.GetCode()) == 0
 	return isCodeEmpty, nil
 }
 
@@ -183,7 +193,12 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	code := account.GetCode()
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	code := userAcc.GetCode()
 	if len(code) == 0 {
 		return nil, ErrEmptyCode
 	}

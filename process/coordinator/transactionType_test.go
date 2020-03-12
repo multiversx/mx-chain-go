@@ -73,7 +73,7 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
-func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
+func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
 	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)

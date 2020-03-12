@@ -180,6 +180,12 @@ func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
+	args.Accounts = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return &mock.PeerAccountHandlerMock{}, nil
+		},
+	}
+
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	balance, err := bh.GetBalance(make([]byte, 0))

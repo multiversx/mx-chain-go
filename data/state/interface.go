@@ -53,15 +53,6 @@ type AccountHandler interface {
 	AddressContainer() AddressContainer
 	SetNonce(nonce uint64)
 	GetNonce() uint64
-	SetCode(code []byte)
-	GetCode() []byte
-	SetCodeHash([]byte)
-	GetCodeHash() []byte
-	SetRootHash([]byte)
-	GetRootHash() []byte
-	SetDataTrie(trie data.Trie)
-	DataTrie() data.Trie
-	DataTrieTracker() DataTrieTracker
 	IsInterfaceNil() bool
 }
 
@@ -107,6 +98,15 @@ type PeerAccountHandler interface {
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
+	SetCode(code []byte)
+	GetCode() []byte
+	SetCodeHash([]byte)
+	GetCodeHash() []byte
+	SetRootHash([]byte)
+	GetRootHash() []byte
+	SetDataTrie(trie data.Trie)
+	DataTrie() data.Trie
+	DataTrieTracker() DataTrieTracker
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -177,4 +177,20 @@ type ValidatorInfo interface {
 	GetTempRating() uint32
 	GetRating() uint32
 	String() string
+}
+
+type baseAccountHandler interface {
+	AddressContainer() AddressContainer
+	SetNonce(nonce uint64)
+	GetNonce() uint64
+	SetCode(code []byte)
+	GetCode() []byte
+	SetCodeHash([]byte)
+	GetCodeHash() []byte
+	SetRootHash([]byte)
+	GetRootHash() []byte
+	SetDataTrie(trie data.Trie)
+	DataTrie() data.Trie
+	DataTrieTracker() DataTrieTracker
+	IsInterfaceNil() bool
 }

@@ -180,7 +180,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 
 	accountsDb := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(addressContainer), nil
+			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
 

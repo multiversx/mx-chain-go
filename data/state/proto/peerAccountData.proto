@@ -51,11 +51,9 @@ message PeerAccountData {
     SignRate ValidatorSuccessRate     = 11 [(gogoproto.nullable) = false];
     SignRate LeaderSuccessRate        = 12 [(gogoproto.nullable) = false];
 
-    bytes CodeHash                    = 13;
-    uint32 Rating                     = 14;
-    bytes  RootHash                   = 15;
-    uint64 Nonce                      = 16;
-    uint32 TempRating                 = 17;
-    bytes  AccumulatedFees            = 18 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 NumSelectedInSuccessBlocks = 19;
+    uint32 Rating                     = 13;
+    uint64 Nonce                      = 14;
+    uint32 TempRating                 = 15;
+    bytes  AccumulatedFees            = 16 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumSelectedInSuccessBlocks = 17;
 }

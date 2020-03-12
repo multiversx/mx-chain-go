@@ -297,15 +297,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -518,7 +518,7 @@ func CreateRandomHexString(chars int) string {
 }
 
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
-func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
+func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
 	adb, _, _ := CreateAccountsDB(UserAccount)
 	account, _ := state.NewUserAccount(adr)

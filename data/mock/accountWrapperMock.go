@@ -2,6 +2,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -20,6 +22,51 @@ type AccountWrapMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
+}
+
+// AddToBalance -
+func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
+	return nil
+}
+
+// SubFromBalance -
+func (awm *AccountWrapMock) SubFromBalance(_ *big.Int) error {
+	return nil
+}
+
+// GetBalance -
+func (awm *AccountWrapMock) GetBalance() *big.Int {
+	return nil
+}
+
+// ClaimDeveloperRewards -
+func (awm *AccountWrapMock) ClaimDeveloperRewards([]byte) (*big.Int, error) {
+	return nil, nil
+}
+
+// AddToDeveloperReward -
+func (awm *AccountWrapMock) AddToDeveloperReward(*big.Int) {
+
+}
+
+// GetDeveloperReward -
+func (awm *AccountWrapMock) GetDeveloperReward() *big.Int {
+	return nil
+}
+
+// ChangeOwnerAddress -
+func (awm *AccountWrapMock) ChangeOwnerAddress([]byte, []byte) error {
+	return nil
+}
+
+// SetOwnerAddress -
+func (awm *AccountWrapMock) SetOwnerAddress([]byte) {
+
+}
+
+// GetOwnerAddress -
+func (awm *AccountWrapMock) GetOwnerAddress() []byte {
+	return nil
 }
 
 // NewAccountWrapMock -

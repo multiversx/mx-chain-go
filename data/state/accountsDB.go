@@ -86,20 +86,23 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 		adb.journalize(entry)
 	}
 
-	err = adb.saveCode(account)
-	if err != nil {
-		return err
-	}
+	baseAcc, ok := account.(baseAccountHandler)
+	if ok {
+		err = adb.saveCode(baseAcc)
+		if err != nil {
+			return err
+		}
 
-	err = adb.saveDataTrie(account)
-	if err != nil {
-		return err
+		err = adb.saveDataTrie(baseAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return adb.saveAccountToTrie(account)
 }
 
-func (adb *AccountsDB) saveCode(accountHandler AccountHandler) error {
+func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	//TODO enable code pruning
 	code := accountHandler.GetCode()
 	if len(code) == 0 {
@@ -134,7 +137,7 @@ func (adb *AccountsDB) saveCode(accountHandler AccountHandler) error {
 
 // LoadDataTrie retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
+func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 	if len(accountHandler.GetRootHash()) == 0 {
 		return nil
 	}
@@ -157,7 +160,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
-func (adb *AccountsDB) saveDataTrie(accountHandler AccountHandler) error {
+func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	if check.IfNil(accountHandler.DataTrieTracker()) {
 		return ErrNilTrackableDataTrie
 	}
@@ -276,21 +279,24 @@ func (adb *AccountsDB) LoadAccount(addressContainer AddressContainer) (AccountHa
 	if err != nil {
 		return nil, err
 	}
-	if acnt != nil {
-		err = adb.loadCode(acnt)
-		if err != nil {
-			return nil, err
-		}
-
-		err = adb.loadDataTrie(acnt)
-		if err != nil {
-			return nil, err
-		}
-
-		return acnt, nil
+	if acnt == nil {
+		return adb.accountFactory.CreateAccount(addressContainer)
 	}
 
-	return adb.accountFactory.CreateAccount(addressContainer)
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if ok {
+		err = adb.loadCode(baseAcc)
+		if err != nil {
+			return nil, err
+		}
+
+		err = adb.loadDataTrie(baseAcc)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return acnt, nil
 }
 
 func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHandler, error) {
@@ -338,21 +344,24 @@ func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (Ac
 		return nil, ErrAccNotFound
 	}
 
-	err = adb.loadCode(acnt)
-	if err != nil {
-		return nil, err
-	}
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if ok {
+		err = adb.loadCode(baseAcc)
+		if err != nil {
+			return nil, err
+		}
 
-	err = adb.loadDataTrie(acnt)
-	if err != nil {
-		return nil, err
+		err = adb.loadDataTrie(baseAcc)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return acnt, nil
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) loadCode(accountHandler AccountHandler) error {
+func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 	if len(accountHandler.GetCodeHash()) == 0 {
 		return nil
 	}

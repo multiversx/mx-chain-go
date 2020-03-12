@@ -508,7 +508,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	adb := generateAccountDBFromTrie(&trieStub)
 
 	state2, _ := adb.LoadAccount(mock.NewAddressMock())
-	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
+	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
 	_ = adb.SaveAccount(state2)
 
 	_, err := adb.Commit()
@@ -674,7 +674,7 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
 
 	acc, _ := adb.LoadAccount(mock.NewAddressMock())
-	acc.SetCode([]byte("code"))
+	acc.(state.UserAccountHandler).SetCode([]byte("code"))
 	_ = adb.SaveAccount(acc)
 
 	err := adb.RevertToSnapshot(0)
