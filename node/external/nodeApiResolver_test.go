@@ -78,7 +78,9 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
@@ -95,7 +97,9 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
@@ -112,7 +116,9 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 				wasCalled = true
 				return nil
 			},
-		})
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
@@ -132,7 +138,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 		},
 		&mock.TransactionCostEstimatorMock{},
 	)
-	_, _ = nar.StatusMetrics().StatusP2pMetricsMap()
+	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
 }

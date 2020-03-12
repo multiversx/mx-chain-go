@@ -113,13 +113,9 @@ func (tP2pNode *TestP2PNode) initCrypto() {
 func (tP2pNode *TestP2PNode) initNode() {
 	var err error
 
-	validators, err := tP2pNode.NodesCoordinator.GetAllValidatorsPublicKeys(0)
-	if err != nil {
-		fmt.Println(err)
-	}
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
-		node.WithProtoMarshalizer(TestMarshalizer, 100),
+		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithKeyGen(tP2pNode.KeyGen),
 		node.WithShardCoordinator(tP2pNode.ShardCoordinator),
@@ -129,7 +125,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithPubKey(tP2pNode.NodeKeys.Pk),
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithDataStore(tP2pNode.Storage),
-		node.WithInitialNodesPubKeys(convertInitialPks(validators)),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
@@ -205,22 +200,6 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
 	}
-}
-
-func convertInitialPks(validatorsPk map[uint32][][]byte) map[uint32][]string {
-	m := make(map[uint32][]string)
-
-	for shardId, pkBuffs := range validatorsPk {
-		pkStrs := make([]string, len(pkBuffs))
-
-		for i, pkBuff := range pkBuffs {
-			pkStrs[i] = string(pkBuff)
-		}
-
-		m[shardId] = pkStrs
-	}
-
-	return m
 }
 
 // CreateNodesWithTestP2PNodes returns a map with nodes per shard each using a real nodes coordinator
