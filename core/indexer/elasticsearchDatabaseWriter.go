@@ -82,7 +82,12 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 
 // DoRequest will do a request to elastic server
 func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
-	res, err := req.Do(context.Background(), dw.dbWriter)
+	var err error
+	var res *esapi.Response
+
+	defer closeESResponseBody(res)
+
+	res, err = req.Do(context.Background(), dw.dbWriter)
 	if err != nil {
 		return err
 	}
@@ -98,7 +103,12 @@ func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
 func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	reader := bytes.NewReader(buff.Bytes())
 
-	res, err := dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
+	var err error
+	var res *esapi.Response
+
+	defer closeESResponseBody(res)
+
+	res, err = dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
 	if err != nil {
 		return err
 	}
