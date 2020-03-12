@@ -289,10 +289,7 @@ func (boot *baseBootstrap) computeNodeState() {
 	}
 
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
-
 	boot.requestHeadersIfSyncIsStuck()
-
-	return
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
