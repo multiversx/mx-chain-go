@@ -2,6 +2,7 @@
 
 package state
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (vi *ValidatorInfo) IsInterfaceNil() bool {
 	return vi == nil
 }

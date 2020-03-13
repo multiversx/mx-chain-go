@@ -715,6 +715,7 @@ type RatingsInfo interface {
 	SelectionChances() []SelectionChance
 }
 
+// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
 type ValidatorInfoProcessorHandler interface {
 	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
 	IsInterfaceNil() bool

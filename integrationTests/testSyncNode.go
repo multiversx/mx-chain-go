@@ -118,22 +118,21 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
 	argumentsBase := block.ArgBaseProcessor{
-		AccountsDB:                   accountsDb,
-		ForkDetector:                 nil,
-		Hasher:                       TestHasher,
-		Marshalizer:                  TestMarshalizer,
-		Store:                        tpn.Storage,
-		ShardCoordinator:             tpn.ShardCoordinator,
-		NodesCoordinator:             tpn.NodesCoordinator,
-		FeeHandler:                   tpn.FeeAccumulator,
-		Uint64Converter:              TestUint64Converter,
-		RequestHandler:               tpn.RequestHandler,
-		Core:                         nil,
-		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		HeaderValidator:              tpn.HeaderValidator,
-		Rounder:                      &mock.RounderMock{},
+		AccountsDB:        accountsDb,
+		ForkDetector:      nil,
+		Hasher:            TestHasher,
+		Marshalizer:       TestMarshalizer,
+		Store:             tpn.Storage,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		NodesCoordinator:  tpn.NodesCoordinator,
+		FeeHandler:        tpn.FeeAccumulator,
+		Uint64Converter:   TestUint64Converter,
+		RequestHandler:    tpn.RequestHandler,
+		Core:              nil,
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		HeaderValidator:   tpn.HeaderValidator,
+		Rounder:           &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -151,14 +150,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:          argumentsBase,
-			SCDataGetter:              &mock.ScQueryStub{},
-			SCToProtocol:              &mock.SCToProtocolStub{},
-			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
-			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
-			EpochEconomics:            &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:       &mock.EpochRewardsCreatorStub{},
-			EpochValidatorInfoCreator: &mock.EpochValidatorInfoCreatorStub{},
+			ArgBaseProcessor:             argumentsBase,
+			SCDataGetter:                 &mock.ScQueryStub{},
+			SCToProtocol:                 &mock.SCToProtocolStub{},
+			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:               &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
+			EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

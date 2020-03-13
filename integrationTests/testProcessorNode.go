@@ -909,21 +909,20 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
 	argumentsBase := block.ArgBaseProcessor{
-		AccountsDB:                   accountsDb,
-		ForkDetector:                 tpn.ForkDetector,
-		Hasher:                       TestHasher,
-		Marshalizer:                  TestMarshalizer,
-		Store:                        tpn.Storage,
-		ShardCoordinator:             tpn.ShardCoordinator,
-		NodesCoordinator:             tpn.NodesCoordinator,
-		FeeHandler:                   tpn.FeeAccumulator,
-		Uint64Converter:              TestUint64Converter,
-		RequestHandler:               tpn.RequestHandler,
-		Core:                         nil,
-		BlockChainHook:               tpn.BlockchainHook,
-		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
-		HeaderValidator:              tpn.HeaderValidator,
-		Rounder:                      tpn.Rounder,
+		AccountsDB:       accountsDb,
+		ForkDetector:     tpn.ForkDetector,
+		Hasher:           TestHasher,
+		Marshalizer:      TestMarshalizer,
+		Store:            tpn.Storage,
+		ShardCoordinator: tpn.ShardCoordinator,
+		NodesCoordinator: tpn.NodesCoordinator,
+		FeeHandler:       tpn.FeeAccumulator,
+		Uint64Converter:  TestUint64Converter,
+		RequestHandler:   tpn.RequestHandler,
+		Core:             nil,
+		BlockChainHook:   tpn.BlockchainHook,
+		HeaderValidator:  tpn.HeaderValidator,
+		Rounder:          tpn.Rounder,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -1019,14 +1018,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:          argumentsBase,
-			SCDataGetter:              tpn.SCQueryService,
-			SCToProtocol:              scToProtocol,
-			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
-			EpochEconomics:            epochEconomics,
-			EpochStartDataCreator:     epochStartDataCreator,
-			EpochRewardsCreator:       epochStartRewards,
-			EpochValidatorInfoCreator: epochStartValidatorInfo,
+			ArgBaseProcessor:             argumentsBase,
+			SCDataGetter:                 tpn.SCQueryService,
+			SCToProtocol:                 scToProtocol,
+			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
+			EpochEconomics:               epochEconomics,
+			EpochStartDataCreator:        epochStartDataCreator,
+			EpochRewardsCreator:          epochStartRewards,
+			EpochValidatorInfoCreator:    epochStartValidatorInfo,
+			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

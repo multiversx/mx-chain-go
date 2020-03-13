@@ -407,7 +407,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 
 	err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
 	if err != nil {
-		log.Debug("processMetablock failed", "error", err)
+		log.Warn("processMetablock failed", "error", err)
 		return false, 0
 	}
 

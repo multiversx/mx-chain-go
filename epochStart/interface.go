@@ -82,6 +82,8 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
+// needed in the epoch events
 type ValidatorStatisticsProcessorHandler interface {
 	Process(info data.ValidatorInfoHandler) error
 	IsInterfaceNil() bool

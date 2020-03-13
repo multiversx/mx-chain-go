@@ -912,7 +912,6 @@ func (vs *validatorStatistics) Process(vid data.ValidatorInfoHandler) error {
 	}
 
 	err = pa.SetRatingWithJournal(vid.GetTempRating())
-
 	if err != nil {
 		return err
 	}

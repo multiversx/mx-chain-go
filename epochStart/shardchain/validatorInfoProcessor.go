@@ -193,6 +193,7 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() error {
 			missingMiniblocks = append(missingMiniblocks, []byte(mbHash))
 		}
 	}
+	vip.numMissing = uint32(len(missingMiniblocks))
 	vip.mutMiniBlocksForBlock.Unlock()
 
 	if len(missingMiniblocks) == 0 {
