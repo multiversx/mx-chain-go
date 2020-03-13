@@ -82,7 +82,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 	shardId := uint32(1)
 	sendersSks := make([]crypto.PrivateKey, 0)
 	// generate cross shard txs from shard 1 to shard 0
-	for len(txs) < numOfCrossShardTxsToSend {
+	for i := 0; i < numOfCrossShardTxsToSend; i++ {
 		// generate a tx from shard 0 to shard 1 and check if signature is correct
 		randomSenderId := getRandomIndex(accountsByShard[1])
 		sender := accountsByShard[1][randomSenderId]
@@ -90,14 +90,14 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		randomReceiverId := getRandomIndex(accountsByShard[0])
 		receiver := accountsByShard[0][randomReceiverId]
 
-		tx := generateTx(sender.sk, receiver.pk)
+		tx := generateTx(sender.sk, receiver.pk, uint64(i))
 		txs = append(txs, tx)
 
 		sendersSks = append(sendersSks, sender.sk)
 	}
 
 	// generate intra shard txs in shard 1
-	for len(txs) < totalNumOfTxs {
+	for i := 0; i < totalNumOfTxs; i++ {
 		// generate a tx from a random account from shard 1 to other random account from shard 1
 		randomSenderId := getRandomIndex(accountsByShard[1])
 		sender := accountsByShard[1][randomSenderId]
@@ -105,7 +105,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		randomReceiverId := getRandomIndex(accountsByShard[1])
 		receiver := accountsByShard[1][randomReceiverId]
 
-		tx := generateTx(sender.sk, receiver.pk)
+		tx := generateTx(sender.sk, receiver.pk, uint64(i))
 		txs = append(txs, tx)
 		sendersSks = append(sendersSks, sender.sk)
 	}
@@ -166,11 +166,11 @@ func generateAccounts(numOfAccounts int) []keyPair {
 	return accounts
 }
 
-func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transaction.Transaction {
+func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint64) *transaction.Transaction {
 	receiverBytes, _ := receiver.ToByteArray()
 	senderBytes, _ := sender.GeneratePublic().ToByteArray()
 	tx := &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     nonce,
 		Value:     big.NewInt(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
