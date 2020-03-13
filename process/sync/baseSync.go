@@ -105,6 +105,7 @@ type baseBootstrap struct {
 	mutRcvMiniBlocks   sync.Mutex
 	miniBlocksResolver process.MiniBlocksResolver
 	poolsHolder        dataRetriever.PoolsHolder
+	mutRequestHeaders  sync.Mutex
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -297,7 +298,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	}
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
-	boot.requestHeadersIfSyncIsStuck()
+	go boot.requestHeadersIfSyncIsStuck()
 
 	return !isNodeSynchronized
 }
@@ -322,12 +323,12 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 	toNonce := fromNonce + numHeadersToRequest - 1
 
-	go boot.requestHeaders(fromNonce, toNonce)
-
 	log.Debug("requestHeadersIfSyncIsStuck",
 		"from nonce", fromNonce,
 		"to nonce", toNonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -399,7 +400,13 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	go boot.requestHeaders(fromNonce, toNonce)
+
+	log.Debug("requestHeadersFromNonceIfMissing",
+		"from nonce", fromNonce,
+		"to nonce", toNonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
 }
 
 // StopSync method will stop SyncBlocks
@@ -851,6 +858,7 @@ func (boot *baseBootstrap) init() {
 }
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
+	boot.mutRequestHeaders.Lock()
 	numRequestedHeaders := 0
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
 		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
@@ -870,4 +878,6 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
+
+	boot.mutRequestHeaders.Unlock()
 }
