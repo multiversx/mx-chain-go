@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -74,9 +73,9 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched        sync.RWMutex
+	mutNodeState          sync.RWMutex
 	isNodeSynchronized    bool
-	isNodeStateCalculated atomic.Flag
+	isNodeStateCalculated bool
 	hasLastBlock          bool
 	roundIndex            int64
 
@@ -252,18 +251,13 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 	}
 }
 
-// ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
-// is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synced and it can participate to the consensus, if it is in the jobDone group of this rounder.
-// Note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
-// is not automatically called
-func (boot *baseBootstrap) ShouldSync() bool {
-	boot.mutNodeSynched.Lock()
-	defer boot.mutNodeSynched.Unlock()
+func (boot *baseBootstrap) computeNodeState() {
+	boot.mutNodeState.Lock()
+	defer boot.mutNodeState.Unlock()
 
-	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated.IsSet()
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated
 	if isNodeStateCalculatedInCurrentRound {
-		return !boot.isNodeSynchronized
+		return
 	}
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
@@ -283,24 +277,20 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
 		)
-		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
-	boot.isNodeStateCalculated.Set()
+	boot.isNodeSynchronized = isNodeSynchronized
+	boot.isNodeStateCalculated = true
 	boot.roundIndex = boot.rounder.Index()
+	boot.notifySyncStateListeners(isNodeSynchronized)
 
-	var result uint64
+	result := uint64(1)
 	if isNodeSynchronized {
 		result = uint64(0)
-	} else {
-		result = uint64(1)
 	}
+
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
-
 	boot.requestHeadersIfSyncIsStuck()
-
-	return !isNodeSynchronized
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
@@ -465,12 +455,16 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
+	boot.computeNodeState()
+
 	if !boot.ShouldSync() {
 		return nil
 	}
 
 	defer func() {
-		boot.isNodeStateCalculated.Unset()
+		boot.mutNodeState.Lock()
+		boot.isNodeStateCalculated = false
+		boot.mutNodeState.Unlock()
 	}()
 
 	if boot.forkInfo.IsDetected {
@@ -871,4 +865,21 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
+}
+
+// ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
+// is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
+// synced and it can participate to the consensus. Note that when the node is not connected to the network,
+// ShouldSync returns true but the SyncBlock is not automatically called
+func (boot *baseBootstrap) ShouldSync() bool {
+	boot.mutNodeState.RLock()
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated
+	isNodeSynchronized := boot.isNodeSynchronized
+	boot.mutNodeState.RUnlock()
+
+	if isNodeStateCalculatedInCurrentRound {
+		return !isNodeSynchronized
+	}
+
+	return true
 }

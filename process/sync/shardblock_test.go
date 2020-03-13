@@ -858,6 +858,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	args.Rounder = initRounder()
 
 	bs, _ := sync.NewShardBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -883,6 +884,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -910,6 +912,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	args.Rounder = initRounder()
 
 	bs, _ := sync.NewShardBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -942,6 +945,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -1001,18 +1005,18 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
-	shouldSync := bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 
-	if shouldSync && bs.IsForkDetected() {
+	if bs.ShouldSync() && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
-	shouldSync = bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 }
 
@@ -1072,19 +1076,19 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
-	shouldSync := bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 
-	if shouldSync && bs.IsForkDetected() {
+	if bs.ShouldSync() && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 		bs.SetNodeStateCalculated(false)
 	}
 
-	shouldSync = bs.ShouldSync()
-	assert.False(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.False(t, bs.ShouldSync())
 	assert.False(t, bs.IsForkDetected())
 }
 

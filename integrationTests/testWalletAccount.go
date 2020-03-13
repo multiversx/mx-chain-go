@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -50,7 +50,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 
 // initCrypto initializes the crypto for the account
 func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shardId uint32) {
-	twa.SingleSigner = &singlesig.SchnorrSigner{}
+	twa.SingleSigner = &ed25519SingleSig.Ed25519Signer{}
 	twa.BlockSingleSigner = &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return nil

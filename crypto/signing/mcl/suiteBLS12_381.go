@@ -92,8 +92,8 @@ func (s *SuiteBLS12) CreateScalar() crypto.Scalar {
 }
 
 // CreatePointForScalar creates a new point corresponding to the given scalar
-func (s *SuiteBLS12) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
-	return s.G2.CreatePointForScalar(scalar)
+func (s *SuiteBLS12) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
+	return s.G2.CreatePointForScalar(scalar), nil
 }
 
 // PointLen returns the max length of point in nb of bytes
