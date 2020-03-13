@@ -3,12 +3,15 @@ package transaction
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -135,4 +138,26 @@ func checkTransactionsInPoolAreForTheNode(t *testing.T, n *integrationTests.Test
 
 		return true
 	})
+}
+
+func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint64) *transaction.Transaction {
+	receiverBytes, _ := receiver.ToByteArray()
+	senderBytes, _ := sender.GeneratePublic().ToByteArray()
+
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     big.NewInt(10),
+		RcvAddr:   receiverBytes,
+		SndAddr:   senderBytes,
+		GasPrice:  integrationTests.MinTxGasPrice,
+		GasLimit:  integrationTests.MinTxGasLimit,
+		Data:      []byte(""),
+		Signature: nil,
+	}
+	marshalizedTxBeforeSigning, _ := json.Marshal(tx)
+	signer := ed25519SingleSig.Ed25519Signer{}
+
+	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
+	tx.Signature = signature
+	return tx
 }
