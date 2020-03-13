@@ -9,9 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +28,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
-	singleSigner := &singlesig.BlsSingleSigner{}
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -148,19 +149,20 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
+	hmb := header.(*block.MetaBlock)
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 
 	// all nodes in shard do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, shardNode := range nodesMap[0] {
 		v, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 }
 
@@ -179,8 +181,8 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := &singlesig.BlsSingleSigner{}
-	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,
@@ -256,8 +258,8 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := &singlesig.BlsSingleSigner{}
-	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,

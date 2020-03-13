@@ -40,8 +40,5 @@ func (lctx *Libp2pContext) Host() ConnectableHost {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (lctx *Libp2pContext) IsInterfaceNil() bool {
-	if lctx == nil {
-		return true
-	}
-	return false
+	return lctx == nil
 }

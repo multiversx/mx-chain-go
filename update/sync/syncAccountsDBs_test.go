@@ -61,7 +61,7 @@ func TestNewSyncState(t *testing.T) {
 		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, RootHash: []byte("shardDataRootHash")},
+				{ShardID: 0, RootHash: []byte("shardDataRootHash")},
 			},
 		},
 	}

@@ -170,7 +170,7 @@ func runWASMVMBenchmark(
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     new(big.Int).Set(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -194,7 +194,7 @@ func runWASMVMBenchmark(
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  0,
@@ -331,7 +331,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     new(big.Int).Set(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -360,7 +360,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
@@ -389,7 +389,7 @@ func TestWASMMetering(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     new(big.Int).Set(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -418,7 +418,7 @@ func TestWASMMetering(t *testing.T) {
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  gasPrice,

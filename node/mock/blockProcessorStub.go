@@ -12,17 +12,16 @@ import (
 type BlockProcessorStub struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
+	RevertAccountStateCalled         func(header data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func() data.HeaderHandler
+	CreateNewHeaderCalled            func(round uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
@@ -46,8 +45,8 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertAccountState mocks revert of the accounts state
-func (bps *BlockProcessorStub) RevertAccountState() {
-	bps.RevertAccountStateCalled()
+func (bps *BlockProcessorStub) RevertAccountState(header data.HeaderHandler) {
+	bps.RevertAccountStateCalled(header)
 }
 
 // CreateGenesisBlock mocks the creation of a genesis block body
@@ -77,11 +76,6 @@ func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHand
 	return bps.MarshalizedDataToBroadcastCalled(header, body)
 }
 
-// DecodeBlockBodyAndHeader -
-func (bps *BlockProcessorStub) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
-	return bps.DecodeBlockBodyAndHeaderCalled(dta)
-}
-
 // DecodeBlockBody -
 func (bps *BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return bps.DecodeBlockBodyCalled(dta)
@@ -98,8 +92,8 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader(_ uint64) data.HeaderHandler {
-	return bps.CreateNewHeaderCalled()
+func (bps *BlockProcessorStub) CreateNewHeader(round uint64) data.HeaderHandler {
+	return bps.CreateNewHeaderCalled(round)
 }
 
 // ApplyProcessedMiniBlocks -

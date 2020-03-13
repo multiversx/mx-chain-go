@@ -1,17 +1,18 @@
 package preprocess
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +22,10 @@ func haveTime() time.Duration {
 
 func haveTimeTrue() bool {
 	return true
+}
+
+func isShardStuckFalse(_ uint32) bool {
+	return false
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
@@ -38,6 +43,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -60,6 +66,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -82,6 +89,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -104,6 +112,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -126,6 +135,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -148,6 +158,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -170,6 +181,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -191,6 +203,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 		nil,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -213,10 +226,57 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		requestTransaction,
 		nil,
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
+	)
+
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(txs))
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputationHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		nil,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 }
 
 func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
@@ -235,6 +295,7 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -261,17 +322,18 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId(), ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
-	body = append(body, &mBlk)
+	body.MiniBlocks = append(body.MiniBlocks, &mBlk)
 
 	txsRequested := txs.RequestBlockTransactions(body)
 
@@ -295,17 +357,18 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId() + 1, ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
-	body = append(body, &mBlk)
+	body.MiniBlocks = append(body.MiniBlocks, &mBlk)
 
 	txsRequested := txs.RequestBlockTransactions(body)
 
@@ -328,6 +391,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -374,6 +438,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -442,6 +507,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	mb := &block.MiniBlock{
@@ -481,6 +547,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) 
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
@@ -505,9 +572,10 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -517,7 +585,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
 
@@ -542,6 +610,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -566,6 +635,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
 	go func() {
@@ -595,9 +665,10 @@ func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
@@ -609,7 +680,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	err := txs.SaveTxBlockToStorage(body)
 	assert.Nil(t, err)
@@ -631,9 +702,10 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 
 	txHash := []byte(nil)
 	txHashes := make([][]byte, 0)
@@ -646,7 +718,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 		Type:            block.SmartContractResultBlock,
 	}
 
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	err := txs.SaveTxBlockToStorage(body)
 
@@ -673,9 +745,10 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
@@ -688,7 +761,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scr.AddScrHashToRequestedList([]byte("txHash"))
 	txshardInfo := txShardInfo{0, 0}
@@ -742,9 +815,9 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
 	txHash := []byte("tx1_hash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -755,8 +828,6 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
-
-	body = append(body, &miniblock)
 
 	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
@@ -780,20 +851,13 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
-
-	body := make(block.Body, 0)
-
-	txHash := []byte("tx1_hash")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   0,
 	}
-
-	body = append(body, &miniblock)
 
 	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
@@ -847,9 +911,10 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -861,7 +926,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 	miniblockPool := mock.NewCacherMock()
 	scrRestored, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
@@ -886,13 +951,10 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 		requestTransaction,
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
 	)
 
-	body := make(block.Body, 0)
-
-	txHash := []byte("tx1_hash")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
+	body := &block.Body{}
 
 	miniblockPool := storage.Cacher(nil)
 
@@ -900,4 +962,59 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMiniBlockPool)
+}
+
+func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
+	)
+
+	scr.CreateBlockStarted()
+	assert.Equal(t, 0, len(scr.scrForBlock.txHashAndInfo))
+}
+
+func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		&mock.BlockSizeComputationStub{},
+	)
+
+	txshardInfo := txShardInfo{0, 3}
+	smartcr := smartContractResult.SmartContractResult{
+		Nonce: 1,
+		Data:  []byte("tx"),
+	}
+	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
+
+	retMap := scr.GetAllCurrentUsedTxs()
+	assert.NotNil(t, retMap)
 }

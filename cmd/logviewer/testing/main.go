@@ -57,7 +57,7 @@ VERSION:
 // log lines-type of messages
 func main() {
 	initCliFlags()
-	marshalizer = &marshal.ProtobufMarshalizer{}
+	marshalizer = &marshal.GogoProtoMarshalizer{}
 
 	cliApp.Action = func(c *cli.Context) error {
 		startTestLogViewer()

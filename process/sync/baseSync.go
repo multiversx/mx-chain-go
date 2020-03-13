@@ -271,7 +271,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		currentBlockNonce := boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= currentBlockNonce &&
+			!boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentBlockNonce+1)
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -301,16 +303,17 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
-	if !boot.isNodeSynchronized {
+	if boot.rounder.Index() < 0 {
 		return
 	}
 
+	lastSyncedRound := uint64(0)
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if check.IfNil(currHeader) {
-		return
+	if !check.IfNil(currHeader) {
+		lastSyncedRound = currHeader.GetRound()
 	}
 
-	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
+	roundDiff := uint64(boot.rounder.Index()) - lastSyncedRound
 	if roundDiff <= process.MaxRoundsWithoutNewBlockReceived {
 		return
 	}

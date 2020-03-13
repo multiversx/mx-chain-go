@@ -40,14 +40,11 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 }
 
 // RemainingTime -
-func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rndm *RounderMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return rndm.RoundTimeDuration
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rndm *RounderMock) IsInterfaceNil() bool {
-	if rndm == nil {
-		return true
-	}
-	return false
+	return rndm == nil
 }

@@ -110,6 +110,8 @@ type Config struct {
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig
+	VmMarshalizer               TypeConfig
+	TxSignMarshalizer           TypeConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig

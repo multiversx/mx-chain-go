@@ -25,7 +25,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
-					ShardId:                 0,
+					ShardID:                 0,
 					RootHash:                []byte("shardDataRootHash"),
 					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash")}},
 					FirstPendingMetaBlock:   []byte("firstPending"),

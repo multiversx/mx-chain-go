@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -26,7 +25,7 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 
 	marsh, hasher := getTestMarshAndHasher()
 	expectedLn := &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   []byte("dog"),
 			Value: []byte("dog"),
 		},

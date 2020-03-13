@@ -15,8 +15,5 @@ func (*ContextProviderMock) Context() context.Context {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *ContextProviderMock) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+	return c == nil
 }

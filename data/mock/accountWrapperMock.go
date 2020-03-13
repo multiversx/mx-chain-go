@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. accountWrapperMock.proto
 package mock
 
 import (
@@ -7,7 +8,7 @@ import (
 
 // AccountWrapMock -
 type AccountWrapMock struct {
-	MockValue         int
+	AccountWrapMockData
 	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
@@ -33,10 +34,7 @@ func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker
 
 // IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
-	if awm == nil {
-		return true
-	}
-	return false
+	return awm == nil
 }
 
 // GetCodeHash -

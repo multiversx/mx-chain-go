@@ -11,3 +11,6 @@ var ErrUnmarshallingProto = errors.New("obj does not implement proto.Message")
 // ErrUnmarshallingBadSize is raised when the provided serialized data size exceeds the re-serialized data size
 // plus an additional provided delta
 var ErrUnmarshallingBadSize = errors.New("imput buffer too long")
+
+// ErrUnknownMarshalizer signals that the specified marshalizer does not have a ready to use implementation
+var ErrUnknownMarshalizer = errors.New("unknown marshalizer")
