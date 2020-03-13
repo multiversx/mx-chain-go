@@ -88,7 +88,7 @@ func (s *suiteEd25519) GetUnderlyingSuite() interface{} {
 
 // RandomStream returns nothing - TODO: Remove this
 func (s *suiteEd25519) RandomStream() cipher.Stream {
-	log.Warn("suiteEd25519",
+	log.Debug("suiteEd25519",
 		"message", "calling RandomStream for suiteEd25519 - this function should not be used")
 
 	return nil
