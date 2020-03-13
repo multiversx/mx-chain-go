@@ -70,17 +70,19 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+	signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
-		//TODO: Check if it is possible to send message only to leader with O(1) instead of O(n)
+	if !sr.IsSelfLeaderInCurrentRound() {
+		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
-			sigPart,
+			signatureShare,
+			nil,
+			nil,
 			[]byte(sr.SelfPubKey()),
 			nil,
 			int(MtSignature),
@@ -149,7 +151,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	currentMultiSigner := sr.MultiSigner()
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
+	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
 			"index", index,

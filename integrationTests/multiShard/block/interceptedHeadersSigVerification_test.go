@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -28,7 +28,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
-	singleSigner := &singlesig.BlsSingleSigner{}
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -181,8 +181,8 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := &singlesig.BlsSingleSigner{}
-	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,
@@ -258,8 +258,8 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := &singlesig.BlsSingleSigner{}
-	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,

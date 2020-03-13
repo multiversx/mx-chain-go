@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -41,12 +41,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -205,7 +207,7 @@ VERSION:
 	}
 
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
-	// the NodeDisplayName from config.toml
+	// the NodeDisplayName from prefs.toml
 	nodeDisplayName = cli.StringFlag{
 		Name: "display-name",
 		Usage: "The user-friendly name for the node, appearing in the public monitoring tools. Will override the " +
@@ -375,7 +377,7 @@ func main() {
 func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
-		return kyber.NewSuitePairingBn256(), nil
+		return mcl.NewSuiteBLS12(), nil
 	default:
 		return nil, errors.New("no consensus provided in config file")
 	}
@@ -600,7 +602,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -681,7 +683,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	metrics.SaveCurrentNodeName(coreComponents.StatusHandler, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, nodesConfig.ChainID)
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
@@ -735,7 +739,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			externalConfig.ElasticSearchConnector,
 			externalConfig.ElasticSearchConnector.URL,
 			shardCoordinator,
-			coreComponents.ProtoMarshalizer,
+			coreComponents.InternalMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -841,7 +845,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.ProtoMarshalizer,
+		coreComponents.InternalMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -854,9 +858,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("starting status pooling components")
+	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
-		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		statusPollingInterval,
 		networkComponents,
 		processComponents,
 	)
@@ -864,8 +869,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	updateMachineStatisticsDurationSec := 1
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	updateMachineStatisticsDuration := time.Second
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}
@@ -1007,7 +1012,7 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
+	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
 
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
@@ -1223,7 +1228,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
 	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
-		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil
@@ -1247,15 +1252,18 @@ func createElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (indexer.Indexer, error) {
+	arguments := indexer.ElasticIndexerArgs{
+		Url:              url,
+		UserName:         elasticSearchConfig.Username,
+		Password:         elasticSearchConfig.Password,
+		ShardCoordinator: coordinator,
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+	}
+
 	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(
-		url,
-		elasticSearchConfig.Username,
-		elasticSearchConfig.Password,
-		coordinator,
-		marshalizer,
-		hasher,
-		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
+	dbIndexer, err = indexer.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -1305,7 +1313,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
-		node.WithProtoMarshalizer(coreData.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
+		node.WithInternalMarshalizer(coreData.InternalMarshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(coreData.VmMarshalizer),
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
@@ -1500,10 +1508,20 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics)
+	txTypeHandler, err := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accnts)
+	if err != nil {
+		return nil, err
+	}
+
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
 }

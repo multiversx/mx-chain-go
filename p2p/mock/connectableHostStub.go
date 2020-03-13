@@ -102,8 +102,5 @@ func (hs *ConnectableHostStub) ConnManager() connmgr.ConnManager {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hs *ConnectableHostStub) IsInterfaceNil() bool {
-	if hs == nil {
-		return true
-	}
-	return false
+	return hs == nil
 }

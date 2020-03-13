@@ -16,8 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -243,7 +244,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
@@ -260,8 +261,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 }
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
-	suite := kyber.NewSuitePairingBn256()
-	singleSigner := &singlesig.SchnorrSigner{}
+	suite := mcl.NewSuiteBLS12()
+	singleSigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*keyPair)
@@ -332,7 +333,7 @@ func createConsensusOnlyNode(
 			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, &dataBlock.Body{}, nil
@@ -342,7 +343,7 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func() data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
 			return &dataBlock.Header{}
 		},
 	}
@@ -371,13 +372,13 @@ func createConsensusOnlyNode(
 
 	startTime := int64(0)
 
-	singlesigner := &singlesig.SchnorrSigner{}
-	singleBlsSigner := &singlesig.BlsSingleSigner{}
+	singlesigner := &ed25519SingleSig.Ed25519Signer{}
+	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	go syncer.StartSync()
 
-	rounder, err := round.NewRound(
+	rounder, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
@@ -393,6 +394,7 @@ func createConsensusOnlyNode(
 		Epoch:       0,
 		Storage:     createTestStore(),
 		Marshalizer: testMarshalizer,
+		Hasher:      testHasher,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
@@ -442,7 +444,7 @@ func createConsensusOnlyNode(
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(testMarshalizer, 0),
+		node.WithInternalMarshalizer(testMarshalizer, 0),
 		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),
@@ -542,7 +544,6 @@ func createNodes(
 			epochStartSubscriber,
 		)
 
-		testNodeObject.node = n
 		testNodeObject.node = n
 		testNodeObject.sk = kp.sk
 		testNodeObject.mesenger = mes

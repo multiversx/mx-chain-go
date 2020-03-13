@@ -243,35 +243,6 @@ func TestTrigger_Epoch(t *testing.T) {
 	assert.Equal(t, epoch, currentEpoch)
 }
 
-func TestTrigger_ProcessedAndRevert(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.Validity = 0
-	args.Finality = 0
-	args.EpochStartNotifier = &mock.EpochStartNotifierStub{NotifyAllCalled: func(hdr data.HeaderHandler) {}}
-	et, _ := NewEpochStartTrigger(args)
-
-	hash := []byte("hash")
-	epochStartRound := uint64(100)
-	header := &block.MetaBlock{Nonce: 100, Round: epochStartRound, Epoch: 1}
-	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
-	et.ReceivedHeader(header)
-	header = &block.MetaBlock{Nonce: 101, Round: epochStartRound + 1, Epoch: 1}
-	et.ReceivedHeader(header)
-
-	assert.True(t, et.IsEpochStart())
-	assert.Equal(t, epochStartRound, et.EpochStartRound())
-
-	et.SetProcessed(&block.Header{EpochStartMetaHash: []byte("metahash")})
-	assert.False(t, et.isEpochStart)
-	assert.False(t, et.newEpochHdrReceived)
-
-	et.Revert(epochStartRound)
-	assert.True(t, et.isEpochStart)
-	assert.True(t, et.newEpochHdrReceived)
-}
-
 func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 	t.Parallel()
 
@@ -300,4 +271,55 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 
 	et.RequestEpochStartIfNeeded(&block.MetaBlock{Epoch: 4})
 	assert.True(t, called)
+}
+
+func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+
+	prevEpochHdr := &block.Header{Round: 20, Epoch: 2}
+	prevEpochHdrBuff, _ := args.Marshalizer.Marshal(prevEpochHdr)
+
+	args.Storage = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) (bytes []byte, err error) {
+					return []byte("hash"), nil
+				},
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+				SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
+					return prevEpochHdrBuff, nil
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
+		},
+	}
+	et, _ := NewEpochStartTrigger(args)
+
+	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	prevHash, _ := core.CalculateHash(et.marshalizer, et.hasher, prevHdr)
+
+	epochStartShHdr := &block.Header{
+		Nonce:              30,
+		PrevHash:           prevHash,
+		Round:              30,
+		EpochStartMetaHash: []byte("metaHash"),
+		Epoch:              3,
+	}
+	et.SetProcessed(epochStartShHdr)
+
+	err := et.RevertStateToBlock(epochStartShHdr)
+	assert.Nil(t, err)
+	assert.Equal(t, et.epoch, epochStartShHdr.Epoch)
+	assert.False(t, et.IsEpochStart())
+
+	err = et.RevertStateToBlock(prevHdr)
+	assert.Nil(t, err)
+	assert.True(t, et.IsEpochStart())
+
 }

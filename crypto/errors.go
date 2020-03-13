@@ -16,6 +16,9 @@ var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
 // ErrInvalidScalar is raised when an invalid scalar is used
 var ErrInvalidScalar = errors.New("scalar is invalid")
 
+// ErrInvalidPoint is raised when an invalid point is used
+var ErrInvalidPoint = errors.New("point is invalid")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -105,3 +108,12 @@ var ErrEmptyPubKeyString = errors.New("public key string is empty")
 
 // ErrInvalidSigner is raised when the signer is invalid
 var ErrInvalidSigner = errors.New("signer is invalid")
+
+// ErrEd25519InvalidSignature will be returned when ed25519 signature verification fails
+var ErrEd25519InvalidSignature = errors.New("ed25519: invalid signature")
+
+// ErrGeneratingPubFromPriv signals that there was an error generating a public key corresponding to a provided private key
+var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from provided private key")
+
+// ErrNotImplemented signals that a method is not implemented for an interface implementation
+var ErrNotImplemented = errors.New("not implemented")
