@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -41,7 +42,7 @@ func initWorker() *spos.Worker {
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -905,9 +906,11 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -931,11 +934,13 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
-	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		hdrHash,
 		nil,
+		nil,
+		hdrStr,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bls.MtUnknown),
@@ -976,9 +981,11 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte("X"),
 		[]byte("sig"),
@@ -1006,7 +1013,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 				ChainID: chainID,
 			}
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	})
 	roundDuration := time.Millisecond * 1000
@@ -1021,10 +1028,12 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 			return roundStartTimeStamp
 		},
 	})
-	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		hdrHash,
+		nil,
+		nil,
 		nil,
 		[]byte("A"),
 		[]byte("sig"),
@@ -1059,9 +1068,11 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1082,9 +1093,11 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1107,9 +1120,11 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
@@ -1132,9 +1147,11 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().SelfPubKey()),
 		[]byte("sig"),
@@ -1158,9 +1175,11 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 	wrk := *initWorker()
 	wrk.ConsensusState().RoundCanceled = true
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1194,21 +1213,23 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertAccountStateCalled: func(header data.HeaderHandler) {
 			},
 		},
 	)
 
-	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	hdr := &block.Header{ChainID: wrongChainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		hdrHash,
+		nil,
+		nil,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bls.MtBlockHeader),
 		0,
-		chainID,
+		wrongChainID,
 		nil,
 		nil,
 		nil,
@@ -1235,15 +1256,17 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertAccountStateCalled: func(header data.HeaderHandler) {
 			},
 		},
 	)
 
-	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		hdrHash,
+		nil,
+		nil,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1268,6 +1291,8 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
+		nil,
+		nil,
 		[]byte(wrk.ConsensusState().SelfPubKey()),
 		nil,
 		0,
@@ -1288,6 +1313,8 @@ func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
+		nil,
+		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
 		0,
@@ -1305,6 +1332,8 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
 		nil,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -1332,9 +1361,11 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		nil,
 		[]byte("sig"),
@@ -1354,9 +1385,11 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
@@ -1382,9 +1415,11 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 	}
 	wrk.SetKeyGenerator(keyGeneratorMock)
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1407,9 +1442,11 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 	marshalizerMock.Fail = true
 	wrk.SetMarshalizer(marshalizerMock)
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1429,9 +1466,11 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1451,10 +1490,12 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1478,10 +1519,12 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1505,10 +1548,12 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1532,10 +1577,12 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1559,10 +1606,12 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1586,10 +1635,12 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1624,10 +1675,12 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
-	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
-		message,
+		nil,
+		nil,
+		hdrStr,
 		[]byte(cnsGroup[0]),
 		[]byte("sig"),
 		int(bls.MtBlockHeader),
@@ -1710,7 +1763,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker()
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1735,7 +1788,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker()
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1750,10 +1803,12 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		nil,
+		nil,
+		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
@@ -1806,7 +1861,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 	}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -1860,10 +1915,13 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
-	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
-		message,
+		hdrHash,
 		nil,
+		nil,
+		hdrStr,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bls.MtBlockHeader),

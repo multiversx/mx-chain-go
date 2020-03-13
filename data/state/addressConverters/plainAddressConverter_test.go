@@ -230,7 +230,7 @@ func TestPlainAddressConverter_FromBech32AddressValidDataWithPrefixShouldWork(t 
 
 	str := "0x" + hex.EncodeToString(buff)
 
-	adr, err := ac.CreateAddressFromHex(str)
+	adr, _ := ac.CreateAddressFromHex(str)
 
 	bech32, err := ac.ConvertToBech32(adr)
 	assert.Nil(t, err)

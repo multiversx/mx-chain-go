@@ -132,7 +132,7 @@ func TestStart_CorrectParams(t *testing.T) {
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
@@ -149,7 +149,7 @@ func TestStart_CannotApplyOptions(t *testing.T) {
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -168,7 +168,7 @@ func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 	messenger := getMessenger()
 	err := n.ApplyOptions(
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
@@ -188,7 +188,7 @@ func TestApplyOptions_NodeStarted(t *testing.T) {
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 	)
@@ -202,7 +202,7 @@ func TestApplyOptions_NodeStarted(t *testing.T) {
 func TestStop_NotStartedYet(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 	)
@@ -220,7 +220,7 @@ func TestStop_MessengerCloseErrors(t *testing.T) {
 	}
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 	)
@@ -235,7 +235,7 @@ func TestStop_MessengerCloseErrors(t *testing.T) {
 func TestStop(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 	)
@@ -250,7 +250,7 @@ func TestStop(t *testing.T) {
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -263,7 +263,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
@@ -287,7 +287,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 	}
 	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -308,7 +308,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -339,7 +339,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -355,7 +355,7 @@ func TestGetBalance(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(100))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -371,7 +371,7 @@ func TestGetBalance(t *testing.T) {
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -383,7 +383,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
@@ -395,7 +395,7 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
@@ -411,7 +411,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -431,7 +431,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -454,7 +454,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -474,7 +474,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -498,7 +498,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithVmMarshalizer(marshalizer),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(addrConverter),
@@ -517,7 +517,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	singleSigner := &mock.SinglesignFailMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -538,7 +538,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -571,7 +571,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -593,7 +593,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -609,7 +609,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -636,7 +636,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{
@@ -666,7 +666,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -699,7 +699,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	expectedHash := []byte("expected hash")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(
@@ -744,7 +744,7 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	hasher := &mock.HasherFake{}
 	adrConverter := mock.NewAddressConverterFake(32, "0x")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithVmMarshalizer(marshalizer),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithAddressConverter(adrConverter),
@@ -766,7 +766,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithDataPool(dataPool),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -787,7 +787,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithShardCoordinator(shardCoordinator),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -816,7 +816,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		node.WithMessenger(messenger),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithDataPool(dataPool),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -846,7 +846,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 		node.WithMessenger(messenger),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithDataPool(dataPool),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -883,7 +883,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		node.WithMessenger(messenger),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithDataPool(dataPool),
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
@@ -1139,7 +1139,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithMessenger(&mock.MessengerStub{
@@ -1182,7 +1182,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithKeyGen(&mock.KeyGenMock{}),
@@ -1216,7 +1216,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithKeyGen(&mock.KeyGenMock{}),
@@ -1256,7 +1256,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithKeyGen(&mock.KeyGenMock{}),
@@ -1303,7 +1303,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 	wasBroadcast.Store(false)
 	buffData := []byte("buff data")
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return buffData, nil
 			},
@@ -1370,7 +1370,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return make([]byte, 0), nil
 			}}, testSizeCheckDelta),
@@ -1430,7 +1430,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return make([]byte, 0), nil
 			},
@@ -1495,7 +1495,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 	var registeredHandler p2p.MessageProcessor
 
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
 				return make([]byte, 0), nil
 			},
@@ -1655,7 +1655,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{
 			CheckForkCalled: func() *process.ForkInfo {
 				return &process.ForkInfo{}
@@ -1716,7 +1716,7 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
@@ -1765,7 +1765,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
@@ -1811,7 +1811,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
@@ -1909,7 +1909,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
@@ -1997,7 +1997,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
 		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
@@ -2085,7 +2085,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithProtoMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{
 			CheckForkCalled: func() *process.ForkInfo {
 				return &process.ForkInfo{}
@@ -2493,7 +2493,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithProtoMarshalizer(marshalizer, testSizeCheckDelta),
+		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithVmMarshalizer(marshalizer),
 		node.WithTxSignMarshalizer(marshalizer),
 		node.WithHasher(&mock.HasherMock{}),

@@ -14,7 +14,8 @@ import (
 func TestNewLibp2pContext_NilContextShoulsErr(t *testing.T) {
 	t.Parallel()
 
-	lctx, err := libp2p.NewLibp2pContext(nil, &mock.ConnectableHostStub{})
+	var ctx context.Context = nil
+	lctx, err := libp2p.NewLibp2pContext(ctx, &mock.ConnectableHostStub{})
 
 	assert.True(t, check.IfNil(lctx))
 	assert.Equal(t, p2p.ErrNilContext, err)

@@ -48,12 +48,16 @@ const MaxHeaderRequestsAllowed = 10
 
 // MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
+// TODO might remove this and make use of the blockSizeComputation
 const MaxItemsInBlock = 15000
 
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
 const NumTxPerSenderBatchForFillingMiniblock = 10
+
+// NumTxFactorForSelectTransactions is used to compute the number of transactions that should be selected from the cache
+const NumTxFactorForSelectTransactions = float32(2)
 
 // MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
@@ -89,13 +93,15 @@ const MaxRoundsWithoutCommittedBlock = 10
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
-// to be stored in advance in block tracker
-const MaxNonceDifferences = uint64(1000)
-
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100
 
 // MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
 // before a special action to be applied
 const MaxRoundsWithoutNewBlockReceived = 10
+
+// MaxMetaHeadersAllowedInOneShardBlock defines the maximum meta headers allowed to be included in one shard block
+const MaxMetaHeadersAllowedInOneShardBlock = 100
+
+// MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
+const MaxShardHeadersAllowedInOneMetaBlock = 100

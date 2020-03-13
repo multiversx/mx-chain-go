@@ -21,8 +21,5 @@ func (tpc *TxPoolsCleanerMock) NumRemovedTxs() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tpc *TxPoolsCleanerMock) IsInterfaceNil() bool {
-	if tpc == nil {
-		return true
-	}
-	return false
+	return tpc == nil
 }

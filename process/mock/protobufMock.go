@@ -1,15 +1,17 @@
-package marshal
+package mock
 
 import (
+	"errors"
+
 	"github.com/gogo/protobuf/proto"
 )
 
-// ProtobufMarshalizer implements marshaling with protobuf
-type ProtobufMarshalizer struct {
+// ProtobufMarshalizerMock implements marshaling with protobuf
+type ProtobufMarshalizerMock struct {
 }
 
 // Marshal does the actual serialization of an object through protobuf
-func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (x *ProtobufMarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if msg, ok := obj.(proto.Message); ok {
 		enc, err := proto.Marshal(msg)
 		if err != nil {
@@ -17,18 +19,18 @@ func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 		}
 		return enc, nil
 	}
-	return nil, ErrMarshallingProto
+	return nil, errors.New("can not serialize the object")
 }
 
 // Unmarshal does the actual deserialization of an object through protobuf
-func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (x *ProtobufMarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if msg, ok := obj.(proto.Message); ok {
 		return proto.Unmarshal(buff, msg)
 	}
-	return ErrUnmarshallingProto
+	return errors.New("obj does not implement proto.Message")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (pm *ProtobufMarshalizer) IsInterfaceNil() bool {
-	return pm == nil
+func (x *ProtobufMarshalizerMock) IsInterfaceNil() bool {
+	return x == nil
 }
