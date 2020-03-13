@@ -53,7 +53,6 @@ func (kms *KyberMultiSignerBLS) AggregateSignatures(
 	suite crypto.Suite,
 	signatures [][]byte,
 	pubKeysSigners []crypto.PublicKey,
-	_ []crypto.PublicKey,
 ) ([]byte, error) {
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
@@ -82,7 +81,6 @@ func (kms *KyberMultiSignerBLS) AggregateSignatures(
 func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(
 	suite crypto.Suite,
 	pubKeys []crypto.PublicKey,
-	_ []crypto.PublicKey,
 	aggSigBytes []byte,
 	msg []byte,
 ) error {

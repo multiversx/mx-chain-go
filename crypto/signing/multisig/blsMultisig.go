@@ -243,7 +243,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		pubKeysSigners = append(pubKeysSigners, bms.data.pubKeys[i])
 	}
 
-	return bms.llSigner.AggregateSignatures(bms.keyGen.Suite(), signatures, pubKeysSigners, bms.data.pubKeys)
+	return bms.llSigner.AggregateSignatures(bms.keyGen.Suite(), signatures, pubKeysSigners)
 }
 
 // SetAggregatedSig sets the aggregated signature
@@ -286,7 +286,7 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 		pubKeys = append(pubKeys, bms.data.pubKeys[i])
 	}
 
-	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), pubKeys, bms.data.pubKeys, bms.data.aggSig, message)
+	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), pubKeys, bms.data.aggSig, message)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

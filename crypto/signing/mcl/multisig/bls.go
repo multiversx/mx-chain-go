@@ -53,7 +53,6 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 	suite crypto.Suite,
 	signatures [][]byte,
 	pubKeysSigners []crypto.PublicKey,
-	allPubKeys []crypto.PublicKey,
 ) ([]byte, error) {
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
@@ -69,7 +68,7 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 		return nil, crypto.ErrInvalidSuite
 	}
 
-	sigsBLS, err := bms.prepareSignatures(suite, signatures, pubKeysSigners, allPubKeys)
+	sigsBLS, err := bms.prepareSignatures(suite, signatures, pubKeysSigners)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +83,6 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 func (bms *BlsMultiSigner) VerifyAggregatedSig(
 	suite crypto.Suite,
 	pubKeys []crypto.PublicKey,
-	allPubKeys []crypto.PublicKey,
 	aggSigBytes []byte,
 	msg []byte,
 ) error {
@@ -106,16 +104,7 @@ func (bms *BlsMultiSigner) VerifyAggregatedSig(
 		return crypto.ErrInvalidSuite
 	}
 
-	pubKeyPoint := make([]crypto.Point, len(pubKeys))
-	for i, pubKey := range pubKeys {
-		if check.IfNil(pubKey) {
-			return crypto.ErrNilPublicKey
-		}
-
-		pubKeyPoint[i] = pubKey.Point()
-	}
-
-	preparedPubKeys, err := preparePublicKeys(pubKeyPoint, bms.Hasher, suite, allPubKeys)
+	preparedPubKeys, err := preparePublicKeys(pubKeys, bms.Hasher, suite)
 	if err != nil {
 		return err
 	}
@@ -135,15 +124,24 @@ func (bms *BlsMultiSigner) VerifyAggregatedSig(
 }
 
 func preparePublicKeys(
-	pubKeysPoints []crypto.Point,
+	pubKeys []crypto.PublicKey,
 	hasher hashing.Hasher,
 	suite crypto.Suite,
-	allPubKeys []crypto.PublicKey,
 ) ([]bls.PublicKey, error) {
-	prepPubKeysPoints := make([]bls.PublicKey, len(pubKeysPoints))
-	concatPKs, err := concatPubKeys(allPubKeys)
+	prepPubKeysPoints := make([]bls.PublicKey, len(pubKeys))
+
+	concatPKs, err := concatPubKeys(pubKeys)
 	if err != nil {
 		return nil, err
+	}
+
+	pubKeysPoints := make([]crypto.Point, len(pubKeys))
+	for i, pubKey := range pubKeys {
+		if check.IfNil(pubKey) {
+			return nil, crypto.ErrNilPublicKey
+		}
+
+		pubKeysPoints[i] = pubKey.Point()
 	}
 
 	var hPk []byte
@@ -175,12 +173,11 @@ func (bms *BlsMultiSigner) prepareSignatures(
 	suite crypto.Suite,
 	signatures [][]byte,
 	pubKeysSigners []crypto.PublicKey,
-	allPubKeys []crypto.PublicKey,
 ) ([]bls.Sign, error) {
 	if len(signatures) == 0 {
 		return nil, crypto.ErrNilSignaturesList
 	}
-	concatPKs, err := concatPubKeys(allPubKeys)
+	concatPKs, err := concatPubKeys(pubKeysSigners)
 	if err != nil {
 		return nil, err
 	}

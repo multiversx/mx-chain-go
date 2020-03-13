@@ -212,7 +212,7 @@ type LowLevelSignerBLS interface {
 	// VerifySigBytes verifies if a byte array represents a BLS signature
 	VerifySigBytes(suite Suite, sig []byte) error
 	// AggregateSignatures aggregates BLS single signatures given as byte arrays
-	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey, allPubKeys []PublicKey) ([]byte, error)
+	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
-	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, allPubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
+	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
 }
