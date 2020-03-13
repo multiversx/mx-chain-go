@@ -5,9 +5,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/herumi/bls-go-binary/bls"
 )
 
 // 16bytes output hasher!
@@ -163,7 +163,7 @@ func preparePublicKeys(
 		if !ok {
 			return nil, crypto.ErrInvalidPoint
 		}
-		bls.BlsG2ToPublicKey(prepPubKeyG2, &prepPubKeysPoints[i])
+		prepPubKeysPoints[i] = *bls.CastG2ToPublicKey(prepPubKeyG2)
 	}
 
 	return prepPubKeysPoints, nil
@@ -198,7 +198,7 @@ func (bms *BlsMultiSigner) prepareSignatures(
 		}
 
 		sigPoint := mcl.NewPointG1()
-		bls.BlsSignatureToG1(sigBLS, sigPoint.G1)
+		sigPoint.G1 = bls.CastG1FromSign(sigBLS)
 
 		pubKeyPoint := pubKeysSigners[i].Point()
 		hPk, err = hashPublicKeyPoints(bms.Hasher, pubKeyPoint, concatPKs)
@@ -211,7 +211,7 @@ func (bms *BlsMultiSigner) prepareSignatures(
 			return nil, err
 		}
 
-		bls.BlsG1ToSignature(sPointG1.G1, sigBLS)
+		sigBLS = bls.CastG1ToSign(sPointG1.G1)
 		prepSigs = append(prepSigs, *sigBLS)
 	}
 
@@ -274,7 +274,7 @@ func (bms *BlsMultiSigner) sigBytesToPoint(sig []byte) (crypto.Point, error) {
 	}
 
 	pG1 := mcl.NewPointG1()
-	bls.BlsSignatureToG1(sigBLS, pG1.G1)
+	pG1.G1 = bls.CastG1FromSign(sigBLS)
 
 	return pG1, nil
 }
