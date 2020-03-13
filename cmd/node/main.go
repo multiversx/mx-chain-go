@@ -66,13 +66,14 @@ import (
 )
 
 const (
-	defaultStatsPath      = "stats"
-	defaultLogsPath       = "logs"
-	defaultDBPath         = "db"
-	defaultEpochString    = "Epoch"
-	defaultStaticDbString = "Static"
-	defaultShardString    = "Shard"
-	metachainShardName    = "metachain"
+	defaultStatsPath             = "stats"
+	defaultLogsPath              = "logs"
+	defaultDBPath                = "db"
+	defaultEpochString           = "Epoch"
+	defaultStaticDbString        = "Static"
+	defaultShardString           = "Shard"
+	metachainShardName           = "metachain"
+	secondsToWaitForP2PBootstrap = 3
 )
 
 var (
@@ -545,6 +546,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var errNotCritical error
+	// TODO: add a component which opens headers storer and gets the last epoch start metablock
+	// in order to provide the last known epoch in storage. Right now, it won't work as expected
+	// if storage pruning is disabled
 	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
 		workingDir,
 		nodesConfig.ChainID,
@@ -566,7 +570,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	marshalizer, err := factoryMarshal.NewMarshalizer(generalConfig.Marshalizer.Type)
 	if err != nil {

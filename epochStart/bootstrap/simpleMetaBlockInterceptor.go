@@ -46,12 +46,14 @@ func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 	if err != nil {
 		return err
 	}
+
 	s.mutReceivedMetaBlocks.Lock()
 	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedMetaBlocks.Unlock()
 		return err
 	}
+
 	s.mapReceivedMetaBlocks[string(mbHash)] = &mb
 	s.addToPeerList(string(mbHash), message.Peer())
 	s.mutReceivedMetaBlocks.Unlock()
@@ -62,7 +64,6 @@ func (s *simpleMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 // this func should be called under mutex protection
 func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	peersListForHash, ok := s.mapMetaBlocksFromPeers[hash]
-
 	if !ok {
 		s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
 		return
@@ -79,6 +80,7 @@ func (s *simpleMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 
 // GetMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 func (s *simpleMetaBlockInterceptor) GetMetaBlock(hash []byte, target int) (*block.MetaBlock, error) {
+	// TODO : replace this with a channel which will be written in when data is ready
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 		s.mutReceivedMetaBlocks.RLock()

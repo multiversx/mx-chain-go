@@ -21,7 +21,7 @@ type MetaBlockInterceptorHandler interface {
 // ShardHeaderInterceptorHandler defines what a component which will handle receiving the the shard headers should do
 type ShardHeaderInterceptorHandler interface {
 	process.Interceptor
-	GetShardHeader(target int) (*block.Header, error)
+	GetShardHeader(hash []byte, target int) (*block.Header, error)
 }
 
 // MiniBlockInterceptorHandler defines what a component which will handle receiving the mini blocks should do

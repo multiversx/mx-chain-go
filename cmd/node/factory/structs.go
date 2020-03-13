@@ -1533,7 +1533,10 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 			return nil, err
 		}
 
-		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+		cache, errNewCache := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+		if errNewCache != nil {
+			return nil, errNewCache
+		}
 		newBlkc, errNewMetachain := blockchain.NewMetaChain(cache)
 		if errNewMetachain != nil {
 			return nil, errNewMetachain

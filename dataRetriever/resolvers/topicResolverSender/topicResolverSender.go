@@ -9,6 +9,8 @@ import (
 // topicRequestSuffix represents the topic name suffix
 const topicRequestSuffix = "_REQUEST"
 
+const minNumPeersToQuery = 1
+
 type topicResolverSender struct {
 	messenger       dataRetriever.MessageHandler
 	marshalizer     marshal.Marshalizer
@@ -42,7 +44,7 @@ func NewTopicResolverSender(
 	if peerListCreator == nil || peerListCreator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilPeerListCreator
 	}
-	if numPeersToQuery < 1 {
+	if numPeersToQuery < minNumPeersToQuery {
 		return nil, dataRetriever.ErrInvalidNumberOfPeersToQuery
 	}
 

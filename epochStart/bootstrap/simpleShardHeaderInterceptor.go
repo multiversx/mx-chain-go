@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"bytes"
 	"sync"
 	"time"
 
@@ -45,12 +46,14 @@ func (s *simpleShardHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 	if err != nil {
 		return err
 	}
+
 	s.mutReceivedShardHeaders.Lock()
 	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedShardHeaders.Unlock()
 		return err
 	}
+
 	s.mapReceivedShardHeaders[string(mbHash)] = &mb
 	s.addToPeerList(string(mbHash), message.Peer())
 	s.mutReceivedShardHeaders.Unlock()
@@ -61,7 +64,6 @@ func (s *simpleShardHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 // this func should be called under mutex protection
 func (s *simpleShardHeaderInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	peersListForHash, ok := s.mapShardHeadersFromPeers[hash]
-
 	if !ok {
 		s.mapShardHeadersFromPeers[hash] = append(s.mapShardHeadersFromPeers[hash], id)
 		return
@@ -76,16 +78,17 @@ func (s *simpleShardHeaderInterceptor) addToPeerList(hash string, id p2p.PeerID)
 	s.mapShardHeadersFromPeers[hash] = append(s.mapShardHeadersFromPeers[hash], id)
 }
 
-// GetShardHeader will return the metablock after it is confirmed or an error if the number of tries was exceeded
-func (s *simpleShardHeaderInterceptor) GetShardHeader(target int) (*block.Header, error) {
+// GetShardHeader will return the shard header
+func (s *simpleShardHeaderInterceptor) GetShardHeader(hash []byte, target int) (*block.Header, error) {
+	// TODO : replace this with a channel which will be written in when data is ready
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 		s.mutReceivedShardHeaders.RLock()
-		for hash, peersList := range s.mapShardHeadersFromPeers {
-			isOk := s.isMapEntryOk(peersList, hash, target)
+		for hashInMap, peersList := range s.mapShardHeadersFromPeers {
+			isOk := s.isMapEntryOk(hash, peersList, hashInMap, target)
 			if isOk {
 				s.mutReceivedShardHeaders.RUnlock()
-				return s.mapReceivedShardHeaders[hash], nil
+				return s.mapReceivedShardHeaders[hashInMap], nil
 			}
 		}
 		s.mutReceivedShardHeaders.RUnlock()
@@ -95,12 +98,22 @@ func (s *simpleShardHeaderInterceptor) GetShardHeader(target int) (*block.Header
 }
 
 func (s *simpleShardHeaderInterceptor) isMapEntryOk(
+	expectedHash []byte,
 	peersList []p2p.PeerID,
-	hash string,
+	hashInMap string,
 	target int,
 ) bool {
-	if len(peersList) >= target {
-		log.Info("got consensus for shard header", "len", len(peersList))
+	mb, ok := s.mapReceivedShardHeaders[string(expectedHash)]
+	if !ok {
+		return false
+	}
+
+	hdrHash, err := core.CalculateHash(s.marshalizer, s.hasher, mb)
+	if err != nil {
+		return false
+	}
+	if bytes.Equal(expectedHash, hdrHash) && len(peersList) >= target {
+		log.Info("got consensus for shard block", "len", len(peersList))
 		return true
 	}
 

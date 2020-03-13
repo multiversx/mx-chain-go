@@ -10,10 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -22,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -40,6 +38,7 @@ const delayBetweenRequests = 1 * time.Second
 const delayAfterRequesting = 1 * time.Second
 const thresholdForConsideringMetaBlockCorrect = 0.2
 const numRequestsToSendOnce = 4
+const maxNumTimesToRetry = 100
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
@@ -61,7 +60,7 @@ type epochStartDataProvider struct {
 	metaBlockInterceptor           MetaBlockInterceptorHandler
 	shardHeaderInterceptor         ShardHeaderInterceptorHandler
 	miniBlockInterceptor           MiniBlockInterceptorHandler
-	requestHandlerMeta             process.RequestHandler
+	requestHandler                 process.RequestHandler
 }
 
 // ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
@@ -135,7 +134,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 		return nil, err
 	}
 
-	esdp.requestHandlerMeta = requestHandlerMeta
+	esdp.requestHandler = requestHandlerMeta
 
 	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
 	metaBlock, err := esdp.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
@@ -172,9 +171,9 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 	}
 
 	for _, mb := range epochStartData.PendingMiniBlockHeaders {
-		receivedMb, err := esdp.getMiniBlock(&mb)
-		if err != nil {
-			return nil, err
+		receivedMb, errGetMb := esdp.getMiniBlock(&mb)
+		if errGetMb != nil {
+			return nil, errGetMb
 		}
 		log.Info("received miniblock", "type", receivedMb.Type)
 	}
@@ -191,7 +190,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 	}
 	log.Info("received first pending meta block", "nonce", firstPendingMetaBlock.Nonce)
 
-	trie, err := esdp.getTrieFromRootHash(epochStartData.RootHash)
+	trieToReturn, err := esdp.getTrieFromRootHash(epochStartData.RootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +200,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 		NodesConfig:         nodesConfig,
 		ShardHeaders:        shardHeaders,
 		ShardCoordinator:    shardCoordinator,
-		Tries:               trie,
+		Tries:               trieToReturn,
 	}, nil
 }
 
@@ -236,13 +235,26 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 
 	cacher := disabled.NewDisabledPoolsHolder()
 	triesHolder := state.NewDataTriesHolder()
-	var stateTrie data.Trie
-	// TODO: change from integrationsTests.CreateAccountsDB
-	_, stateTrie, _ = integrationTests.CreateAccountsDB(factory2.UserAccount)
+
+	stateTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
+	if err != nil {
+		return nil, err
+	}
+	stateTrie, err := trie.NewTrie(stateTrieStorageManager, esdp.marshalizer, esdp.hasher)
+	if err != nil {
+		return nil, err
+	}
 	triesHolder.Put([]byte(factory3.UserAccountTrie), stateTrie)
 
-	var peerTrie data.Trie
-	_, peerTrie, _ = integrationTests.CreateAccountsDB(factory2.ValidatorAccount)
+	peerTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
+	if err != nil {
+		return nil, err
+	}
+
+	peerTrie, err := trie.NewTrie(peerTrieStorageManager, esdp.marshalizer, esdp.hasher)
+	if err != nil {
+		return nil, err
+	}
 	triesHolder.Put([]byte(factory3.PeerAccountTrie), peerTrie)
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
@@ -297,7 +309,7 @@ func (esdp *epochStartDataProvider) getMiniBlock(miniBlockHeader *block.ShardMin
 }
 
 func (esdp *epochStartDataProvider) requestMiniBlock(miniBlockHeader *block.ShardMiniBlockHeader) {
-	esdp.requestHandlerMeta.RequestMiniBlock(miniBlockHeader.ReceiverShardID, miniBlockHeader.Hash)
+	esdp.requestHandler.RequestMiniBlock(miniBlockHeader.ReceiverShardID, miniBlockHeader.Hash)
 }
 
 func (esdp *epochStartDataProvider) getCurrentEpochStartData(
@@ -390,8 +402,13 @@ func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block
 	esdp.requestEpochStartMetaBlock(epoch)
 
 	time.Sleep(delayAfterRequesting)
+	count := 0
 
 	for {
+		if count > maxNumTimesToRetry {
+			panic("can't sync with other peers")
+		}
+		count++
 		numConnectedPeers := len(esdp.messenger.Peers())
 		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
 		mb, errConsensusNotReached := esdp.epochStartMetaBlockInterceptor.GetEpochStartMetaBlock(threshold, epoch)
@@ -410,10 +427,6 @@ func (esdp *epochStartDataProvider) getShardCoordinator(metaBlock *block.MetaBlo
 	}
 
 	numOfShards := len(metaBlock.EpochStart.LastFinalizedHeaders)
-	if numOfShards == 1 {
-		return &sharding.OneShardCoordinator{}, nil
-	}
-
 	return sharding.NewMultiShardCoordinator(uint32(numOfShards), shardID)
 }
 
@@ -468,10 +481,15 @@ func (esdp *epochStartDataProvider) getShardHeader(
 	esdp.requestShardHeader(shardID, hash)
 	time.Sleep(delayBetweenRequests)
 
+	count := 0
 	for {
+		if count > maxNumTimesToRetry {
+			panic("can't sync with the other peers")
+		}
+		count++
 		numConnectedPeers := len(esdp.messenger.Peers())
 		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(threshold)
+		mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(hash, threshold)
 		if errConsensusNotReached == nil {
 			return mb, nil
 		}
@@ -485,7 +503,7 @@ func (esdp *epochStartDataProvider) requestMetaBlock(hash []byte) {
 	log.Debug("requested meta block", "hash", hash)
 	for i := 0; i < numRequestsToSendOnce; i++ {
 		time.Sleep(delayBetweenRequests)
-		esdp.requestHandlerMeta.RequestMetaHeader(hash)
+		esdp.requestHandler.RequestMetaHeader(hash)
 	}
 }
 
@@ -494,7 +512,7 @@ func (esdp *epochStartDataProvider) requestShardHeader(shardID uint32, hash []by
 	log.Debug("requested shard block", "shard ID", shardID, "hash", hash)
 	for i := 0; i < numRequestsToSendOnce; i++ {
 		time.Sleep(delayBetweenRequests)
-		esdp.requestHandlerMeta.RequestShardHeader(shardID, hash)
+		esdp.requestHandler.RequestShardHeader(shardID, hash)
 	}
 }
 
@@ -502,7 +520,7 @@ func (esdp *epochStartDataProvider) requestEpochStartMetaBlock(epoch uint32) {
 	// send more requests
 	for i := 0; i < numRequestsToSendOnce; i++ {
 		time.Sleep(delayBetweenRequests)
-		esdp.requestHandlerMeta.RequestStartOfEpochMetaBlock(epoch)
+		esdp.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 	}
 }
 

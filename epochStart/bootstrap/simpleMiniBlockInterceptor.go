@@ -46,12 +46,14 @@ func (s *simpleMiniBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 	if err != nil {
 		return err
 	}
+
 	s.mutReceivedMiniBlocks.Lock()
 	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {
 		s.mutReceivedMiniBlocks.Unlock()
 		return err
 	}
+
 	s.mapReceivedMiniBlocks[string(mbHash)] = &mb
 	s.addToPeerList(string(mbHash), message.Peer())
 	s.mutReceivedMiniBlocks.Unlock()
@@ -62,7 +64,6 @@ func (s *simpleMiniBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP
 // this func should be called under mutex protection
 func (s *simpleMiniBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	peersListForHash, ok := s.mapMiniBlocksFromPeers[hash]
-
 	if !ok {
 		s.mapMiniBlocksFromPeers[hash] = append(s.mapMiniBlocksFromPeers[hash], id)
 		return
@@ -77,8 +78,9 @@ func (s *simpleMiniBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
 	s.mapMiniBlocksFromPeers[hash] = append(s.mapMiniBlocksFromPeers[hash], id)
 }
 
-// GetMiniBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
+// GetMiniBlock will return the miniblock with the given hash
 func (s *simpleMiniBlockInterceptor) GetMiniBlock(hash []byte, target int) (*block.MiniBlock, error) {
+	// TODO : replace this with a channel which will be written in when data is ready
 	for count := 0; count < numTriesUntilExit; count++ {
 		time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 		s.mutReceivedMiniBlocks.RLock()
@@ -111,7 +113,7 @@ func (s *simpleMiniBlockInterceptor) isMapEntryOk(
 		return false
 	}
 	if bytes.Equal(expectedHash, mbHash) && len(peersList) >= target {
-		log.Info("got consensus for metablock", "len", len(peersList))
+		log.Info("got consensus for mini block", "len", len(peersList))
 		return true
 	}
 
