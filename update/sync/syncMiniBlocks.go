@@ -167,7 +167,7 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 
-		pendingFromCurrentMeta := getAllMiniBlocksWithDst(meta, shardData.ShardId)
+		pendingFromCurrentMeta := getAllMiniBlocksWithDst(meta, shardData.ShardID)
 		pending = append(pending, pendingFromCurrentMeta...)
 	}
 

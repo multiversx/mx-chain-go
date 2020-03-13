@@ -124,7 +124,7 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, shardData.ShardId, shardData.RootHash)
+	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
 	if err != nil {
 		return err
 	}

@@ -257,15 +257,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -615,18 +615,6 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
-}
-
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
-	for i := 0; i < nrOfRounds; i++ {
-		UpdateRound(nodes, round)
-		ProposeBlock(nodes, idxProposers, round, nonce)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	return nonce, round
 }
 
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round

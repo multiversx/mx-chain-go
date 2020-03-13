@@ -105,7 +105,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
-					ShardId:                 0,
+					ShardID:                 0,
 					RootHash:                []byte("shardDataRootHash"),
 					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
 					FirstPendingMetaBlock:   []byte("firstPending"),
@@ -156,7 +156,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
-					ShardId:                 0,
+					ShardID:                 0,
 					RootHash:                []byte("shardDataRootHash"),
 					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
 					FirstPendingMetaBlock:   []byte("firstPending"),
@@ -198,7 +198,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
-					ShardId:                 0,
+					ShardID:                 0,
 					RootHash:                []byte("shardDataRootHash"),
 					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
 					FirstPendingMetaBlock:   []byte("firstPending"),

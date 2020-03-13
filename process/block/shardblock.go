@@ -947,7 +947,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 		}
 
 		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
-			if epochStartShData.ShardId != header.ShardId {
+			if epochStartShData.ShardID != header.ShardID {
 				continue
 			}
 

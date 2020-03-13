@@ -218,7 +218,7 @@ func createHardForkExporter(
 				},
 				DB: config.DBConfig{
 					FilePath:          "ExportTrie" + fmt.Sprintf("%d", id),
-					Type:              "MemDB",
+					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,
@@ -230,7 +230,7 @@ func createHardForkExporter(
 				},
 				DB: config.DBConfig{
 					FilePath:          "ExportState" + fmt.Sprintf("%d", id),
-					Type:              "MemDB",
+					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
 					MaxOpenFiles:      10,

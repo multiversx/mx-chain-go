@@ -135,7 +135,6 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       args.Marshalizer,
 		Hasher:            args.Hasher,
 		ShardCoordinator:  args.ShardCoordinator,
 		MultiSigVerifier:  args.MultiSigner,
