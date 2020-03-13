@@ -1,6 +1,8 @@
 module github.com/ElrondNetwork/elrond-go
 
-go 1.12
+go 1.13
+
+replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3
 
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.7
@@ -21,6 +23,7 @@ require (
 	github.com/google/gops v0.3.6
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.3
+	github.com/herumi/bls-go-binary v0.0.0-00010101000000-000000000000
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
@@ -40,7 +43,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0
-	github.com/whyrusleeping/go-logging v0.0.1
+	github.com/whyrusleeping/go-logging v0.0.1 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	go.dedis.ch/kyber/v3 v3.0.7
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550

@@ -18,8 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// TODO: increase code coverage with unit tests
-
 type smartContractResults struct {
 	*basePreProcess
 	chRcvAllScrs                 chan bool
