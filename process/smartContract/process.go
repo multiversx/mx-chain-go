@@ -1095,23 +1095,6 @@ func (sc *scProcessor) processSimpleSCR(
 	scr *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	if len(scr.Data) > 0 {
-		storageUpdates, err := sc.argsParser.GetStorageUpdates(string(scr.Data))
-		if err != nil {
-			log.Debug("storage updates could not be parsed")
-		}
-
-		for i := 0; i < len(storageUpdates); i++ {
-			dstAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
-		}
-
-		//SC with data variables
-		err = sc.accounts.SaveDataTrie(dstAcc)
-		if err != nil {
-			return err
-		}
-	}
-
 	err := sc.updateSmartContractCode(dstAcc, &vmcommon.OutputAccount{Code: scr.Code, Address: scr.RcvAddr}, scr)
 	if err != nil {
 		return err
