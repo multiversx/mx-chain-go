@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +99,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
-		err := n.node.StartConsensus(0)
+		err := n.node.StartConsensus()
 		if err != nil {
 			return err
 		}
@@ -190,6 +191,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE,*:TRACE")
 	runFullConsensusTest(t, blsConsensusType)
 }
 

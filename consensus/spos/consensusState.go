@@ -27,6 +27,7 @@ type ConsensusState struct {
 	RoundIndex     int64
 	RoundTimeStamp time.Time
 	RoundCanceled  bool
+	ExtendedCalled bool
 
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
@@ -63,6 +64,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.initReceivedHeaders()
 
 	cns.RoundCanceled = false
+	cns.ExtendedCalled = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()

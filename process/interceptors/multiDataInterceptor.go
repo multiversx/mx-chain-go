@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -70,12 +71,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return err
 	}
 
-	multiDataBuff := make([][]byte, 0)
-	err = mdi.marshalizer.Unmarshal(&multiDataBuff, message.Data())
+	b := batch.Batch{}
+	err = mdi.marshalizer.Unmarshal(&b, message.Data())
 	if err != nil {
 		mdi.throttler.EndProcessing()
 		return err
 	}
+	multiDataBuff := b.Data
 	if len(multiDataBuff) == 0 {
 		mdi.throttler.EndProcessing()
 		return process.ErrNoDataInMessage
@@ -123,7 +125,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	var buffToSend []byte
 	haveDataForBroadcast := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
 	if haveDataForBroadcast {
-		buffToSend, err = mdi.marshalizer.Marshal(filteredMultiDataBuff)
+		buffToSend, err = mdi.marshalizer.Marshal(&batch.Batch{Data: filteredMultiDataBuff})
 		if err != nil {
 			return err
 		}

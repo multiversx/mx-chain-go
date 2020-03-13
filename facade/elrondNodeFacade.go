@@ -72,13 +72,13 @@ func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 }
 
 // StartNode starts the underlying node
-func (ef *ElrondNodeFacade) StartNode(epoch uint32) error {
+func (ef *ElrondNodeFacade) StartNode() error {
 	err := ef.node.Start()
 	if err != nil {
 		return err
 	}
 
-	err = ef.node.StartConsensus(epoch)
+	err = ef.node.StartConsensus()
 	return err
 }
 
@@ -144,7 +144,6 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	txData []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
-
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex)
 }
 
@@ -176,6 +175,11 @@ func (ef *ElrondNodeFacade) SendBulkTransactions(txs []*transaction.Transaction)
 // GetTransaction gets the transaction with a specified hash
 func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return ef.node.GetTransaction(hash)
+}
+
+// ComputeTransactionGasLimit will estimate how many gas a transaction will consume
+func (ef *ElrondNodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	return ef.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
 // GetAccount returns an accountResponse containing information

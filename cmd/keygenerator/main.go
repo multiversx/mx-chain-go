@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
 )
@@ -54,8 +55,8 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
-		return generateFiles(c)
+	app.Action = func(_ *cli.Context) error {
+		return generateFiles()
 	}
 
 	err := app.Run(os.Args)
@@ -75,7 +76,7 @@ func backupFileIfExists(filename string) {
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 }
 
-func generateFiles(ctx *cli.Context) error {
+func generateFiles() error {
 	var initialBalancesSkFile, initialNodesSkFile *os.File
 
 	defer func() {
@@ -116,9 +117,8 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
-	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	consensusTypeFlagValue := ctx.GlobalString(consensusType.Name)
-	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusTypeFlagValue))
+	genForBalanceSk := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {
@@ -166,23 +166,6 @@ func generateFiles(ctx *cli.Context) error {
 	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
-}
-
-func getSuiteForBalanceSk() crypto.Suite {
-	return kyber.NewBlakeSHA256Ed25519()
-}
-
-func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go project
-	// Ex: crypto.NewSuite(consensusType) crypto.Suite
-	switch consensusType {
-	case "bls":
-		return kyber.NewSuitePairingBn256()
-	case "bn":
-		return kyber.NewBlakeSHA256Ed25519()
-	default:
-		return nil
-	}
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {

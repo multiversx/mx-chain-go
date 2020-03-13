@@ -23,7 +23,7 @@ type NodeWrapper interface {
 	IsRunning() bool
 
 	// StartConsensus will start the consesus service for the current node
-	StartConsensus(epoch uint32) error
+	StartConsensus() error
 
 	//GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
@@ -58,6 +58,7 @@ type NodeWrapper interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }

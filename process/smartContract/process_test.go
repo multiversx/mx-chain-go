@@ -12,9 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateEmptyByteSlice(size int) []byte {
@@ -37,10 +38,10 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
@@ -635,7 +636,8 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
-	assert.NotNil(t, vmInput)
+	require.NotNil(t, vmInput)
+	assert.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 	assert.True(t, bytes.Equal(vmArg, vmType))
 	assert.Nil(t, err)
 }
@@ -774,7 +776,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 
 	acntSrc, _, tx := createAccountsAndTransaction()
 
-	_, _, err = sc.processVMOutput(nil, tx, acntSrc)
+	_, _, err = sc.processVMOutput(nil, tx, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -793,7 +795,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, acntSrc)
+	_, _, err = sc.processVMOutput(vmOutput, nil, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -815,7 +817,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: 0,
 	}
-	_, _, err = sc.processVMOutput(vmOutput, tx, nil)
+	_, _, err = sc.processVMOutput(vmOutput, tx, nil, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -845,7 +847,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(0)
-	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd)
+	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -1241,7 +1243,16 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1264,16 +1275,32 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
-	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err := sc.CreateSCRForSender(vmOutput, tx, txHash, nil)
+	sctx, consumed, err := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		nil,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
-	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
+	sctx, consumed, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		nil,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
@@ -1305,7 +1332,16 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.DirectCall,
+	)
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * minGasPrice
@@ -1563,7 +1599,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	assert.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_ = sc.ProcessSmartContractResult(&scr)
 	assert.True(t, called)
 }
 

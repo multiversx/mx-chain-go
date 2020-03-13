@@ -36,8 +36,5 @@ func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) stri
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (osc *OneShardCoordinator) IsInterfaceNil() bool {
-	if osc == nil {
-		return true
-	}
-	return false
+	return osc == nil
 }

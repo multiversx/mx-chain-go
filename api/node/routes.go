@@ -14,7 +14,7 @@ import (
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	IsNodeRunning() bool
-	StartNode(epoch uint32) error
+	StartNode() error
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
@@ -25,7 +25,6 @@ type statisticsResponse struct {
 	LiveTPS               float64                   `json:"liveTPS"`
 	PeakTPS               float64                   `json:"peakTPS"`
 	NrOfShards            uint32                    `json:"nrOfShards"`
-	NrOfNodes             uint32                    `json:"nrOfNodes"`
 	BlockNumber           uint64                    `json:"blockNumber"`
 	RoundNumber           uint64                    `json:"roundNumber"`
 	RoundTime             uint64                    `json:"roundTime"`
@@ -104,8 +103,6 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 	sr.LiveTPS = tpsBenchmark.LiveTPS()
 	sr.PeakTPS = tpsBenchmark.PeakTPS()
 	sr.NrOfShards = tpsBenchmark.NrOfShards()
-	// TODO: Should be filled
-	sr.NrOfNodes = 1
 	sr.RoundTime = tpsBenchmark.RoundTime()
 	sr.BlockNumber = tpsBenchmark.BlockNumber()
 	sr.RoundNumber = tpsBenchmark.RoundNumber()

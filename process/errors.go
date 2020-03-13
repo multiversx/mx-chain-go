@@ -525,9 +525,6 @@ var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
 
-// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
-var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
-
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
 
@@ -671,3 +668,21 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
+
+// ErrInvalidShardCacherIdentifier signals an invalid identifier
+var ErrInvalidShardCacherIdentifier = errors.New("invalid identifier for shard cacher")
+
+// ErrMaxBlockSizeReached signals that max block size has been reached
+var ErrMaxBlockSizeReached = errors.New("max block size has been reached")
+
+// ErrBlockBodyHashMismatch signals that block body hashes does not match
+var ErrBlockBodyHashMismatch = errors.New("block bodies does not match")
+
+// ErrInvalidMiniBlockType signals that an invalid miniblock type has been provided
+var ErrInvalidMiniBlockType = errors.New("invalid miniblock type")
+
+// ErrInvalidBody signals that an invalid body has been provided
+var ErrInvalidBody = errors.New("invalid body")
+
+// ErrNilBlockSizeComputationHandler signals that a nil block size computation handler has been provided
+var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation handler")
