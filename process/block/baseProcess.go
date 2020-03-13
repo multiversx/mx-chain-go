@@ -203,14 +203,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	maxRound uint64,
 ) error {
 
-	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
-
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {
 		return err
 	}
 
-	lastNotarizedHdrNonce := prevHdr.GetNonce()
 	lastNotarizedHdrRound := prevHdr.GetRound()
 
 	missingNonces := make([]uint64, 0)
@@ -230,6 +227,10 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			break
 		}
 
+		if !bp.blockTracker.ShouldAddHeader(currHdr) {
+			break
+		}
+
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
 			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
 				missingNonces = append(missingNonces, j)
@@ -241,11 +242,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	requested := 0
 	for _, nonce := range missingNonces {
-		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
-		if isHeaderOutOfRange {
-			break
-		}
-
 		if requested >= process.MaxHeaderRequestsAllowed {
 			break
 		}
