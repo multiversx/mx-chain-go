@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -105,8 +105,8 @@ func (tP2pNode *TestP2PNode) initStorage() {
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {
-	tP2pNode.SingleSigner = &mclsig.BlsSingleSigner{}
-	suite := mcl.NewSuiteBLS12()
+	tP2pNode.SingleSigner = &ed25519SingleSig.Ed25519Signer{}
+	suite := ed25519.NewEd25519()
 	tP2pNode.KeyGen = signing.NewKeyGenerator(suite)
 }
 
@@ -231,7 +231,7 @@ func CreateNodesWithTestP2PNodes(
 	p2pConfig config.P2PConfig,
 ) map[uint32][]*TestP2PNode {
 
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParamsEd2551(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestP2PNode)

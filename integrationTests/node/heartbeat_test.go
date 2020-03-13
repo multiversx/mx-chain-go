@@ -10,8 +10,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -193,8 +193,8 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 }
 
 func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*heartbeat.Sender, crypto.PublicKey) {
-	suite := mcl.NewSuiteBLS12()
-	signer := &mclsig.BlsSingleSigner{}
+	suite := ed25519.NewEd25519()
+	signer := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
@@ -212,8 +212,8 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 }
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
-	suite := mcl.NewSuiteBLS12()
-	singlesigner := &mclsig.BlsSingleSigner{}
+	suite := ed25519.NewEd25519()
+	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 

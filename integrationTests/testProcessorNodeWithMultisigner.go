@@ -103,11 +103,11 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	metaConsensusGroupSize int,
 	seedAddress string,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParamsMcl(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
+	cpWaiting := CreateCryptoParamsMcl(1, 1, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 
@@ -223,7 +223,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	signer crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParamsMcl(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -294,11 +294,11 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	singleSigner crypto.SingleSigner,
 	keyGenForBlocks crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParamsMcl(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	cpWaiting := CreateCryptoParamsMcl(2, 2, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 

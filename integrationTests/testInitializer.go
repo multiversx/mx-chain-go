@@ -289,15 +289,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -1572,10 +1572,32 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 	return validatorsMap
 }
 
-// CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
-func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
-	suite := mcl.NewSuiteBLS12()
-	singleSigner := &ed25519SingleSig.Ed25519Signer{}
+// CreateCryptoParamsMcl generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
+// using mcl package
+func CreateCryptoParamsMcl(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+	return createCryptoParams(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		mcl.NewSuiteBLS12(),
+		&ed25519SingleSig.Ed25519Signer{},
+	)
+}
+
+// CreateCryptoParamsEd2551 generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
+// using Ed25519 package
+func CreateCryptoParamsEd2551(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+	return createCryptoParams(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		ed25519.NewEd25519(),
+		&ed25519SingleSig.Ed25519Signer{},
+	)
+}
+
+// createCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
+func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, suite crypto.Suite, singleSigner crypto.SingleSigner) *CryptoParams {
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
