@@ -410,13 +410,13 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitsEligibleAndWaiting(
 	//verify 6 saves
 	for _, validators := range eligibleMap {
 		for _, val := range validators {
-			assert.Equal(t, 6, actualMap[string(val.PubKey())])
+			assert.Equal(t, 1, actualMap[string(val.PubKey())])
 		}
 	}
 
 	for _, validators := range waitingMap {
 		for _, val := range validators {
-			assert.Equal(t, 6, actualMap[string(val.PubKey())])
+			assert.Equal(t, 1, actualMap[string(val.PubKey())])
 		}
 	}
 
@@ -1533,17 +1533,13 @@ func createCustomArgumentsForSaveInitialState() (peer.ArgValidatorStatisticsProc
 	actualMap := make(map[string]int)
 
 	peerAdapter := &mock.AccountsStub{
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			peerAccount, _ := state.NewPeerAccount(addressContainer, &mock.AccountTrackerStub{
-				JournalizeCalled: func(entry state.JournalEntry) {
-
-				},
-				SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-					actualMap[string(accountHandler.AddressContainer().Bytes())]++
-					return nil
-				},
-			})
+		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			peerAccount, _ := state.NewPeerAccount(addressContainer)
 			return peerAccount, nil
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			actualMap[string(accountHandler.AddressContainer().Bytes())]++
+			return nil
 		},
 		CommitCalled: func() (bytes []byte, e error) {
 			return nil, nil
