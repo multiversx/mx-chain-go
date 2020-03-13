@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +64,8 @@ func TestSuiteBLS12_CreatePointForScalar(t *testing.T) {
 	scalar := NewScalar()
 	bls.BlsFrToSecretKey(scalar.Scalar, secretKey)
 
-	point := suite.CreatePointForScalar(scalar)
+	point, err := suite.CreatePointForScalar(scalar)
+	require.Nil(t, err)
 	pG2, ok := point.GetUnderlyingObj().(*bls.G2)
 	require.True(t, ok)
 	require.NotNil(t, pG2)
@@ -126,7 +128,7 @@ func TestSuiteBLS12_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 	var suite *SuiteBLS12
 
-	require.True(t, suite.IsInterfaceNil())
+	require.True(t, check.IfNil(suite))
 	suite = NewSuiteBLS12()
-	require.False(t, suite.IsInterfaceNil())
+	require.False(t, check.IfNil(suite))
 }
