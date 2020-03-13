@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
+	"github.com/herumi/bls-go-binary/bls"
 )
 
 // BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
@@ -35,8 +35,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrInvalidPrivateKey
 	}
 
-	sk := &bls.SecretKey{}
-	bls.BlsFrToSecretKey(mclScalar.Scalar, sk)
+	sk := bls.CastToSecretKey(mclScalar.Scalar)
 	sig := sk.Sign(string(msg))
 
 	return sig.Serialize(), nil
@@ -64,9 +63,7 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrInvalidPublicKey
 	}
 
-	mclPubKey := &bls.PublicKey{}
-
-	bls.BlsG2ToPublicKey(pubKeyPoint.G2, mclPubKey)
+	mclPubKey := bls.CastG2ToPublicKey(pubKeyPoint.G2)
 	signature := &bls.Sign{}
 
 	err := signature.Deserialize(sig)
