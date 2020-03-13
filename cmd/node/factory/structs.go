@@ -22,9 +22,10 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	blsMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
+	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -96,7 +97,7 @@ import (
 )
 
 const (
-	// BlsConsensusType specifies te signature scheme used in the consensus
+	// BlsConsensusType specifies the signature scheme used in the consensus
 	BlsConsensusType = "bls"
 
 	// MaxTxsToRequest specifies the maximum number of txs to request
@@ -105,10 +106,6 @@ const (
 
 //TODO remove this
 var log = logger.GetOrCreate("main")
-
-// ErrCreateForkDetector signals that a fork detector could not be created
-//TODO: Extract all others error messages from this file in some defined errors
-var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
@@ -447,7 +444,7 @@ func NewCryptoComponentsFactoryArgs(
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
 	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &singlesig.SchnorrSigner{}
+	txSingleSigner := &singlesig.Ed25519Signer{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -468,7 +465,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, err
 	}
 
-	txSignKeyGen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
 	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
 	if err != nil {
@@ -1106,7 +1103,7 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
 	case BlsConsensusType:
-		return &singlesig.BlsSingleSigner{}, nil
+		return &mclsig.BlsSingleSigner{}, nil
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}
@@ -1140,8 +1137,8 @@ func createMultiSigner(
 
 	switch config.Consensus.Type {
 	case BlsConsensusType:
-		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
-		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
+		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
+		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}
@@ -1720,7 +1717,7 @@ func newForkDetector(
 		return processSync.NewMetaForkDetector(rounder, headerBlackList, blockTracker, genesisTime)
 	}
 
-	return nil, ErrCreateForkDetector
+	return nil, errors.New("could not create fork detector")
 }
 
 func newBlockProcessor(
@@ -1857,17 +1854,17 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
 	gasHandler, err := preprocess.NewGasComputation(economics)
 	if err != nil {
 		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2086,17 +2083,17 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
 	gasHandler, err := preprocess.NewGasComputation(economicsData)
 	if err != nil {
 		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2179,7 +2176,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData.MaxGasLimitPerBlock())
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData)
 	if err != nil {
 		return nil, err
 	}

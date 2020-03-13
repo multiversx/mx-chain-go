@@ -66,7 +66,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			DataPool:     mdp,
 			BlockChain:   createTestBlockchain(),
 		},
-		SCDataGetter:             &mock.ScQueryMock{},
+		SCDataGetter:             &mock.ScQueryStub{},
 		SCToProtocol:             &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:    &mock.EpochStartDataCreatorStub{},

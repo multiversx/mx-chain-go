@@ -142,23 +142,24 @@ func (vs *validatorStatistics) saveInitialState(
 	startRating uint32,
 	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(startEpoch)
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(startEpoch)
 	if err != nil {
 		return err
 	}
 
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
-			if err != nil {
-				return err
-			}
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
+	}
 
-			err = vs.initializeNode(node, stakeValue, startRating)
-			if err != nil {
-				return err
-			}
-		}
+	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(startEpoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	if err != nil {
+		return err
 	}
 
 	hash, err := vs.peerAdapter.Commit()
@@ -563,6 +564,9 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int) error {
+	if len(signingBitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
+	}
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -729,7 +733,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
@@ -772,5 +776,22 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
 
+	return nil
+}
+
+func (vs *validatorStatistics) saveInitialValueForMap(nodesMap map[uint32][][]byte, startEpoch uint32, stakeValue *big.Int, startRating uint32) error {
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
+			if err != nil {
+				return err
+			}
+
+			err = vs.initializeNode(node, stakeValue, startRating)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

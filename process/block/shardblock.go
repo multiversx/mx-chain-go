@@ -317,6 +317,15 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
+	err = sp.epochStartTrigger.RevertStateToBlock(header)
+	if err != nil {
+		log.Debug("revert epoch start trigger for header",
+			"nonce", header.GetNonce(),
+			"error", err,
+		)
+		return err
+	}
+
 	return nil
 }
 
@@ -332,6 +341,12 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	if headerEpochBehindCurrentHeader {
 		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
+	}
+
+	isStartOfEpochButShouldNotBe := header.GetEpoch() == currentBlockHeader.GetEpoch() && header.IsStartOfEpochBlock()
+	if isStartOfEpochButShouldNotBe {
+		return fmt.Errorf("%w proposed header with same epoch %d as blockchain and it is of epoch start",
+			process.ErrEpochDoesNotMatch, currentBlockHeader.GetEpoch())
 	}
 
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
@@ -361,7 +376,6 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		header.GetEpoch() == sp.epochStartTrigger.Epoch()
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert(currentBlockHeader)
 		log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
 			process.ErrEpochDoesNotMatch, header.GetEpoch())
@@ -574,10 +588,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
 	}
 
-	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert(header)
-	}
-
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
@@ -657,6 +667,8 @@ func (sp *shardProcessor) CreateBlock(
 	sp.createBlockStarted()
 
 	if sp.epochStartTrigger.IsEpochStart() {
+		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
+			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
 	}
 
