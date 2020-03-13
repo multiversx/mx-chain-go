@@ -21,7 +21,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	if check.IfNil(private) {
 		return nil, crypto.ErrNilPrivateKey
 	}
-	if msg == nil {
+	if len(msg) == 0 {
 		return nil, crypto.ErrNilMessage
 	}
 

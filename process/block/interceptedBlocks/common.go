@@ -13,7 +13,7 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.HdrBuff == nil {
+	if len(arg.HdrBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -45,7 +45,7 @@ func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.TxBlockBodyBuff == nil {
+	if len(arg.TxBlockBodyBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -62,22 +62,22 @@ func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 }
 
 func checkHeaderHandler(hdr data.HeaderHandler) error {
-	if hdr.GetPubKeysBitmap() == nil {
+	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-	if hdr.GetPrevHash() == nil {
+	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if hdr.GetSignature() == nil {
+	if len(hdr.GetSignature()) == 0 {
 		return process.ErrNilSignature
 	}
-	if hdr.GetRootHash() == nil {
+	if len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
-	if hdr.GetRandSeed() == nil {
+	if len(hdr.GetRandSeed()) == 0 {
 		return process.ErrNilRandSeed
 	}
-	if hdr.GetPrevRandSeed() == nil {
+	if len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
 

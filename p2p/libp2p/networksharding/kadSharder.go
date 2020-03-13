@@ -3,6 +3,7 @@ package networksharding
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -30,7 +31,7 @@ type kadSharder struct {
 // prioBits - Number of reseted bits.
 // f - Callback used to get the shard id for a given peer.ID
 func NewKadSharder(prioBits uint32, kgs KadPeerShardResolver) (Sharder, error) {
-	if prioBits == 0 || kgs == nil || kgs.IsInterfaceNil() {
+	if prioBits == 0 || check.IfNil(kgs) {
 		return nil, ErrBadParams
 	}
 	k := &kadSharder{
