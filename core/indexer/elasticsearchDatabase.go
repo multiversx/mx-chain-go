@@ -100,7 +100,7 @@ func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersI
 		log.Warn("elastic search: save header, write", "error", err.Error())
 	}
 
-	req := esapi.IndexRequest{
+	req := &esapi.IndexRequest{
 		Index:      blockIndex,
 		DocumentID: hex.EncodeToString(headerHash),
 		Body:       bytes.NewReader(buff.Bytes()),
@@ -258,7 +258,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 		return
 	}
 
-	req := esapi.IndexRequest{
+	req := &esapi.IndexRequest{
 		Index:      roundIndex,
 		DocumentID: strconv.FormatUint(uint64(info.ShardId), 10) + "_" + strconv.FormatUint(info.Index, 10),
 		Body:       bytes.NewReader(buff.Bytes()),
@@ -289,7 +289,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 		log.Warn("elastic search: save shard validators pub keys, write", "error", err.Error())
 	}
 
-	req := esapi.IndexRequest{
+	req := &esapi.IndexRequest{
 		Index:      validatorsIndex,
 		DocumentID: strconv.FormatUint(uint64(shardId), 10),
 		Body:       bytes.NewReader(buff.Bytes()),

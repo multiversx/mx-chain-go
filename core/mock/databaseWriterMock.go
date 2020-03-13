@@ -9,12 +9,12 @@ import (
 
 // DatabaseWriterStub --
 type DatabaseWriterStub struct {
-	DoRequestCalled     func(req esapi.IndexRequest) error
+	DoRequestCalled     func(req *esapi.IndexRequest) error
 	DoBulkRequestCalled func(buff *bytes.Buffer, index string) error
 }
 
 // DoRequest --
-func (dwm *DatabaseWriterStub) DoRequest(req esapi.IndexRequest) error {
+func (dwm *DatabaseWriterStub) DoRequest(req *esapi.IndexRequest) error {
 	if dwm.DoRequestCalled != nil {
 		return dwm.DoRequestCalled(req)
 	}
