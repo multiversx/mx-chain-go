@@ -128,9 +128,8 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 }
 
 //IncreaseNonce -
-func (awm *AccountWrapMock) IncreaseNonce(val uint64) error {
+func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
-	return nil
 }
 
 // GetNonce -

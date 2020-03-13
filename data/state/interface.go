@@ -51,7 +51,7 @@ type Updater interface {
 // It knows about code and data, as data structures not hashes
 type AccountHandler interface {
 	AddressContainer() AddressContainer
-	IncreaseNonce(nonce uint64) error
+	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	IsInterfaceNil() bool
 }
@@ -181,7 +181,7 @@ type ValidatorInfo interface {
 
 type baseAccountHandler interface {
 	AddressContainer() AddressContainer
-	IncreaseNonce(nonce uint64) error
+	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	SetCode(code []byte)
 	GetCode() []byte

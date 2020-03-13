@@ -217,7 +217,7 @@ func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 
 	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
 	_ = accnt.AddToBalance(big.NewInt(2))
-	_ = accnt.IncreaseNonce(1)
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -259,7 +259,7 @@ func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 
 	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
 	_ = accnt.AddToBalance(big.NewInt(2))
-	_ = accnt.IncreaseNonce(1)
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{

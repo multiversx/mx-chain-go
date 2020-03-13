@@ -164,11 +164,6 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 }
 
 //IncreaseNonce adds the given value to the current nonce
-func (pa *peerAccount) IncreaseNonce(val uint64) error {
-	if val < 0 {
-		return ErrNegativeValue
-	}
-
+func (pa *peerAccount) IncreaseNonce(val uint64) {
 	pa.Nonce = pa.Nonce + val
-	return nil
 }

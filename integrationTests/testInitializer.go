@@ -464,7 +464,7 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	account, _ := accnts.LoadAccount(address)
-	_ = account.(state.UserAccountHandler).IncreaseNonce(nonce)
+	account.(state.UserAccountHandler).IncreaseNonce(nonce)
 	_ = account.(state.UserAccountHandler).AddToBalance(balance)
 	_ = accnts.SaveAccount(account)
 
@@ -563,7 +563,7 @@ func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntD
 		return err
 	}
 
-	_ = acntSrc.IncreaseNonce(1)
+	acntSrc.IncreaseNonce(1)
 
 	err = accounts.SaveAccount(acntSrc)
 	if err != nil {

@@ -622,12 +622,8 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return nil
 	}
 
-	err := acntSnd.IncreaseNonce(1)
-	if err != nil {
-		return err
-	}
-
-	err = sc.economicsFee.CheckValidityTxValues(tx)
+	acntSnd.IncreaseNonce(1)
+	err := sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -954,10 +950,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			}
 
 			nonceDifference := outAcc.Nonce - acc.GetNonce()
-			err = acc.IncreaseNonce(nonceDifference)
-			if err != nil {
-				return nil, err
-			}
+			acc.IncreaseNonce(nonceDifference)
 		}
 
 		// if no change then continue

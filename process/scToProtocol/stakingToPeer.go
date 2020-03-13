@@ -213,10 +213,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 	if stakingData.RegisterNonce != account.GetNonce() {
 		nonceDifference := stakingData.RegisterNonce - account.GetNonce()
-		err = account.IncreaseNonce(nonceDifference)
-		if err != nil {
-			return err
-		}
+		account.IncreaseNonce(nonceDifference)
 		account.SetNodeInWaitingList(true)
 	}
 	account.SetUnStakedNonce(stakingData.UnStakedNonce)

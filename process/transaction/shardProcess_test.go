@@ -655,8 +655,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 
 	acntSrc.Nonce = 45
 
-	err = execTx.IncreaseNonce(acntSrc)
-	assert.Nil(t, err)
+	execTx.IncreaseNonce(acntSrc)
 	assert.Equal(t, uint64(46), acntSrc.Nonce)
 }
 

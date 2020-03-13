@@ -106,13 +106,8 @@ func (a *userAccount) SetOwnerAddress(address []byte) {
 }
 
 //IncreaseNonce adds the given value to the current nonce
-func (a *userAccount) IncreaseNonce(value uint64) error {
-	if value < 0 {
-		return ErrNegativeValue
-	}
-
+func (a *userAccount) IncreaseNonce(value uint64) {
 	a.Nonce = a.Nonce + value
-	return nil
 }
 
 // SetCodeHash sets the code hash associated with the account

@@ -450,7 +450,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set Nonces and save data
-	_ = state1.(state.UserAccountHandler).IncreaseNonce(40)
+	state1.(state.UserAccountHandler).IncreaseNonce(40)
 	_ = adb.SaveAccount(state1)
 
 	rootHash, err = adb.RootHash()
@@ -458,7 +458,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithNonce1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
-	_ = state2.(state.UserAccountHandler).IncreaseNonce(50)
+	state2.(state.UserAccountHandler).IncreaseNonce(50)
 	_ = adb.SaveAccount(state2)
 
 	rootHash, err = adb.RootHash()
