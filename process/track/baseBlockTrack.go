@@ -106,6 +106,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
 }
 
+// ShouldAddHeader returns if the given header should be added or not in the tracker list (is out of the interest range)
 func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
 	shardID := headerHandler.GetShardID()
 	if shardID == bbt.shardCoordinator.SelfId() {

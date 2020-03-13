@@ -853,6 +853,8 @@ func (boot *baseBootstrap) init() {
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	boot.mutRequestHeaders.Lock()
+	defer boot.mutRequestHeaders.Unlock()
+
 	numRequestedHeaders := 0
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
 		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
@@ -872,8 +874,6 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
-
-	boot.mutRequestHeaders.Unlock()
 }
 
 // ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
