@@ -34,3 +34,6 @@ var ErrNumTriesExceeded = errors.New("num of tries exceeded. try re-request")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrShardDataNotFound signals that no shard header has been found for the calculated shard
+var ErrShardDataNotFound = errors.New("shard data not found")

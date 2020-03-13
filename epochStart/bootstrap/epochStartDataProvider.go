@@ -163,7 +163,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 
 	shardHeaders, err := esdp.getShardHeaders(metaBlock, nodesConfig, shardCoordinator)
 	if err != nil {
-		return nil, err
+		log.Debug("shard headers not found", "error", err)
 	}
 
 	epochStartData, err := esdp.getCurrentEpochStartData(shardCoordinator, metaBlock)
@@ -409,12 +409,12 @@ func (esdp *epochStartDataProvider) getShardCoordinator(metaBlock *block.MetaBlo
 		return nil, err
 	}
 
-	numOfShards := len(metaBlock.EpochStart.LastFinalizedHeaders)
+	numOfShards := nodesConfig.NumberOfShards()
 	if numOfShards == 1 {
 		return &sharding.OneShardCoordinator{}, nil
 	}
 
-	return sharding.NewMultiShardCoordinator(uint32(numOfShards), shardID)
+	return sharding.NewMultiShardCoordinator(numOfShards, shardID)
 }
 
 func (esdp *epochStartDataProvider) getShardHeaders(
@@ -446,7 +446,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	}
 
 	if entryForShard == nil {
-		return nil, errors.New("shard data not found")
+		return nil, ErrShardDataNotFound
 	}
 
 	hdr, err := esdp.getShardHeader(
