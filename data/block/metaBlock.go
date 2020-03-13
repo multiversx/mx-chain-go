@@ -169,3 +169,8 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 
 	return nil
 }
+
+// GetEpochStartMetaHash returns the hash of the epoch start meta block
+func (m *MetaBlock) GetEpochStartMetaHash() []byte {
+	return nil
+}

@@ -97,7 +97,7 @@ import (
 )
 
 const (
-	// BlsConsensusType specifies te signature scheme used in the consensus
+	// BlsConsensusType specifies the signature scheme used in the consensus
 	BlsConsensusType = "bls"
 
 	// MaxTxsToRequest specifies the maximum number of txs to request
@@ -106,10 +106,6 @@ const (
 
 //TODO remove this
 var log = logger.GetOrCreate("main")
-
-// ErrCreateForkDetector signals that a fork detector could not be created
-//TODO: Extract all others error messages from this file in some defined errors
-var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
@@ -1734,7 +1730,7 @@ func newForkDetector(
 		return processSync.NewMetaForkDetector(rounder, headerBlackList, blockTracker, genesisTime)
 	}
 
-	return nil, ErrCreateForkDetector
+	return nil, errors.New("could not create fork detector")
 }
 
 func newBlockProcessor(
