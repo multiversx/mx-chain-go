@@ -92,11 +92,6 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
 }
 
-// SetCodeHashWithJournal -
-func (awm *AccountWrapMock) SetCodeHashWithJournal(codeHash []byte) error {
-	return awm.SetCodeHashWithJournalCalled(codeHash)
-}
-
 // GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
@@ -138,19 +133,10 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
-// SetDataTrieTracker -
-func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
-	awm.trackableDataTrie = tracker
-}
-
-// SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
-func (awm *AccountWrapMock) SetNonceWithJournal(nonce uint64) error {
-	return awm.SetNonceWithJournalCalled(nonce)
-}
-
-//SetNonce saves the nonce to the account
-func (awm *AccountWrapMock) SetNonce(nonce uint64) {
-	awm.nonce = nonce
+//IncreaseNonce adds the given value to the current nonce
+func (awm *AccountWrapMock) IncreaseNonce(val uint64) error {
+	awm.nonce = awm.nonce + val
+	return nil
 }
 
 // GetNonce gets the nonce of the account

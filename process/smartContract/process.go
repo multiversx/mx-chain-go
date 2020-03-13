@@ -622,9 +622,12 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return nil
 	}
 
-	acntSnd.SetNonce(acntSnd.GetNonce() + 1)
+	err := acntSnd.IncreaseNonce(1)
+	if err != nil {
+		return err
+	}
 
-	err := sc.economicsFee.CheckValidityTxValues(tx)
+	err = sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -950,7 +953,11 @@ func (sc *scProcessor) processSCOutputAccounts(
 				return nil, process.ErrWrongNonceInVMOutput
 			}
 
-			acc.SetNonce(outAcc.Nonce)
+			nonceDifference := outAcc.Nonce - acc.GetNonce()
+			err = acc.IncreaseNonce(nonceDifference)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// if no change then continue

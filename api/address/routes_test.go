@@ -223,7 +223,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
 			acc, _ := state.NewUserAccount(&mock2.AddressMock{})
 			_ = acc.AddToBalance(big.NewInt(100))
-			acc.SetNonce(1)
+			_ = acc.IncreaseNonce(1)
 
 			return acc, nil
 		},

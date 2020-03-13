@@ -86,11 +86,6 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
 }
 
-// SetCodeHashWithJournal -
-func (awm *AccountWrapMock) SetCodeHashWithJournal(codeHash []byte) error {
-	return awm.SetCodeHashWithJournalCalled(codeHash)
-}
-
 // GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
@@ -104,11 +99,6 @@ func (awm *AccountWrapMock) GetRootHash() []byte {
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.rootHash = rootHash
-}
-
-// SetNonceWithJournal -
-func (awm *AccountWrapMock) SetNonceWithJournal(nonce uint64) error {
-	return awm.SetNonceWithJournalCalled(nonce)
 }
 
 // AddressContainer -
@@ -137,14 +127,10 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
-// SetDataTrieTracker -
-func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
-	awm.trackableDataTrie = tracker
-}
-
-// SetNonce -
-func (awm *AccountWrapMock) SetNonce(nonce uint64) {
-	awm.nonce = nonce
+//IncreaseNonce -
+func (awm *AccountWrapMock) IncreaseNonce(val uint64) error {
+	awm.nonce = awm.nonce + val
+	return nil
 }
 
 // GetNonce -

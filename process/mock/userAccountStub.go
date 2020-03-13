@@ -65,9 +65,9 @@ func (u *UserAccountStub) AddressContainer() state.AddressContainer {
 	return nil
 }
 
-// SetNonce -
-func (u *UserAccountStub) SetNonce(_ uint64) {
-
+//IncreaseNonce -
+func (u *UserAccountStub) IncreaseNonce(_ uint64) error {
+	return nil
 }
 
 // GetNonce -

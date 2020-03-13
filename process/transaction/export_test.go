@@ -27,8 +27,7 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.UserAccountHandle
 }
 
 func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) error {
-	acntSrc.SetNonce(acntSrc.GetNonce() + 1)
-	return nil
+	return acntSrc.IncreaseNonce(1)
 }
 
 func (txProc *txProcessor) ProcessTxFee(

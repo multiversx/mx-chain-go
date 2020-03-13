@@ -40,7 +40,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	nonce := uint64(2233)
 	account, _ := accDB.LoadAccount(address)
-	account.SetNonce(nonce)
+	_ = account.IncreaseNonce(nonce)
 	_ = accDB.SaveAccount(account)
 	_, _ = accDB.Commit()
 

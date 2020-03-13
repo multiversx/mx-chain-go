@@ -76,13 +76,13 @@ func (pa *peerAccount) SetStake(stake *big.Int) error {
 		return ErrNilStake
 	}
 
-	pa.Stake = stake
+	pa.Stake = big.NewInt(0).Set(stake)
 	return nil
 }
 
 // SetAccumulatedFees sets the account's accumulated fees
 func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
-	pa.AccumulatedFees = fees
+	pa.AccumulatedFees = big.NewInt(0).Set(fees)
 }
 
 // SetJailTime sets the account's jail time
@@ -163,7 +163,12 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 	return nil
 }
 
-//SetNonce saves the nonce to the account
-func (pa *peerAccount) SetNonce(nonce uint64) {
-	pa.Nonce = nonce
+//IncreaseNonce adds the given value to the current nonce
+func (pa *peerAccount) IncreaseNonce(val uint64) error {
+	if val < 0 {
+		return ErrNegativeValue
+	}
+
+	pa.Nonce = pa.Nonce + val
+	return nil
 }

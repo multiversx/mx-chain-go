@@ -157,7 +157,11 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	acntSnd.SetNonce(acntSnd.GetNonce() + 1)
+	err = acntSnd.IncreaseNonce(1)
+	if err != nil {
+		return err
+	}
+
 	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
 	if err != nil {
 		return err
@@ -280,7 +284,10 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		acntSrc.SetNonce(acntSrc.GetNonce() + 1)
+		err = acntSrc.IncreaseNonce(+1)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = txProc.createReceiptWithReturnedGas(tx, acntSrc)

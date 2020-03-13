@@ -151,4 +151,4 @@ var ErrInvalidAddressLength = errors.New("invalid address length")
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
 // ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
-var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out off bounds")
+var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")

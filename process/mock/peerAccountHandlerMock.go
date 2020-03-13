@@ -207,9 +207,9 @@ func (p *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
 	return nil
 }
 
-// SetNonce -
-func (p *PeerAccountHandlerMock) SetNonce(_ uint64) {
-
+// IncreaseNonce -
+func (p *PeerAccountHandlerMock) IncreaseNonce(_ uint64) error {
+	return nil
 }
 
 // GetNonce -
