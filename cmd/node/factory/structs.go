@@ -22,8 +22,8 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	kybersig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
@@ -452,7 +452,7 @@ func NewCryptoComponentsFactoryArgs(
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
 	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &kybersig.SchnorrSigner{}
+	txSingleSigner := &singlesig.Ed25519Signer{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -473,7 +473,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, err
 	}
 
-	txSignKeyGen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
 	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
 	if err != nil {
