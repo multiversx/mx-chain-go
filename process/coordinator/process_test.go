@@ -2034,16 +2034,16 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, nil)
+	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, &block.Body{})
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: block.TxBlock}}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.TxBlock}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
 	body = &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				Type:            block.SmartContractResultBlock,
 				ReceiverShardID: shardCoordinator.SelfId(),
 				SenderShardID:   shardCoordinator.SelfId() + 1},
@@ -2054,7 +2054,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 
 	body = &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				Type:            block.SmartContractResultBlock,
 				ReceiverShardID: shardCoordinator.SelfId() + 1,
 			},
@@ -2150,7 +2150,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	err = interProc.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
