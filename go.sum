@@ -8,6 +8,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.10 h1:rcuYeLScr/+KAT4P9TL+MiVgFdP7pX
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.10/go.mod h1:hF6eHBO8xL8LXPxcnV5Ygxv91I77dT/m1n7cDIKbjYE=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
+github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3 h1:hxuf96BbVDOVNXmb7EBYu4WZvJmb/ED+S/FW5NX9Mhk=
+github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3/go.mod h1:+zuAdzNaBTOOGSHssMFxQ1UlmcFw1sT4PcTnWpi/o0g=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.25 h1:FIALKEneTS6BsGgdKDUx16w81S1MvwYnLcaH4o5BMtw=
