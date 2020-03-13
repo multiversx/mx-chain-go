@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
@@ -31,11 +31,6 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-	consensusType = cli.StringFlag{
-		Name:  "consensus-type",
-		Usage: "Consensus type to be used and for which, private/public keys, to generate",
-		Value: "bls",
-	}
 
 	initialBalancesSkFileName = "./initialBalancesSk.pem"
 	initialNodesSkFileName    = "./initialNodesSk.pem"
@@ -47,7 +42,6 @@ func main() {
 	app.Name = "Key generation Tool"
 	app.Version = "v0.0.1"
 	app.Usage = "This binary will generate a initialBalancesSk.pem and initialNodesSk.pem, each containing one private key"
-	app.Flags = []cli.Flag{consensusType}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -117,7 +111,7 @@ func generateFiles() error {
 		return err
 	}
 
-	genForBalanceSk := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	genForBalanceSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
