@@ -229,7 +229,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrBitmapMismatch
 	}
 
-	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
+	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pk_i, {pk1,..., pk_n})*sig_i
 	signatures := make([][]byte, 0, len(bms.data.sigShares))
 	pubKeysSigners := make([]crypto.PublicKey, 0, len(bms.data.sigShares))
 
@@ -243,7 +243,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		pubKeysSigners = append(pubKeysSigners, bms.data.pubKeys[i])
 	}
 
-	return bms.llSigner.AggregateSignatures(bms.keyGen.Suite(), signatures, pubKeysSigners)
+	return bms.llSigner.AggregateSignatures(bms.keyGen.Suite(), signatures, pubKeysSigners, bms.data.pubKeys)
 }
 
 // SetAggregatedSig sets the aggregated signature
@@ -286,7 +286,7 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 		pubKeys = append(pubKeys, bms.data.pubKeys[i])
 	}
 
-	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), pubKeys, bms.data.aggSig, message)
+	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), pubKeys, bms.data.pubKeys, bms.data.aggSig, message)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
