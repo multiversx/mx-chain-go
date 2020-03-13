@@ -268,10 +268,11 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		currentBlockNonce := boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		currentBlockNonce := currentHeader.GetNonce()
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= currentBlockNonce &&
 			!boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentBlockNonce+1)
 	}

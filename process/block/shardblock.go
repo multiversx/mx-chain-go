@@ -549,7 +549,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error("error indexing round %d block header %s", header.GetRound(), err.Error())
+		log.Error("shardblock.GetValidatorsIndexes",
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"error", err.Error(),
+		)
 		return
 	}
 
@@ -833,11 +837,6 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
-
-	err = sp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
 
 	err = sp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {

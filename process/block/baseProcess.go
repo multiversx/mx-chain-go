@@ -454,15 +454,8 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
-	if check.IfNil(body) {
-		return 0, nil, process.ErrNilBlockBody
-	}
-
 	totalTxCount := 0
-	var miniBlockHeaders []block.MiniBlockHeader
-	if len(body.MiniBlocks) > 0 {
-		miniBlockHeaders = make([]block.MiniBlockHeader, len(body.MiniBlocks))
-	}
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -894,8 +887,9 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
 
+	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue
@@ -941,11 +935,13 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
-	if check.IfNil(chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := chainHandler.GetCurrentBlockHeader()
+	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
+	if check.IfNil(currentHeader) {
 		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
 	}
 
-	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
+	return currentHeader, currentBlockHash
 }
 
 func (bp *baseProcessor) updateStateStorage(
@@ -984,7 +980,7 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(header data.HeaderHandler) {
+func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {

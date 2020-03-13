@@ -528,7 +528,6 @@ func (wrk *Worker) Extend(subroundId int) {
 
 func (wrk *Worker) broadcastLastCommittedHeader() {
 	header := wrk.blockChain.GetCurrentBlockHeader()
-
 	if check.IfNil(header) {
 		return
 	}
