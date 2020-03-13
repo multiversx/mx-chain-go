@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"fmt"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -42,11 +43,11 @@ func init() {
 	bls.BlsGetGeneratorForPublicKey(pubKey)
 	blsSwapG := bls.IsSwapG()
 	if blsSwapG {
-		generatorG1 := bls.CastG1FromPublicKey(pubKey)
+		generatorG1 := (*bls.G1)(unsafe.Pointer(pubKey))
 		basePointG1Str.Store(generatorG1.GetString(10))
 		basePointG2Str.Store(g2str)
 	} else {
-		generatorG2 := bls.CastG2FromPublicKey(pubKey)
+		generatorG2 := (*bls.G2)(unsafe.Pointer(pubKey))
 		basePointG1Str.Store(g1str)
 		basePointG2Str.Store(generatorG2.GetString(10))
 	}
