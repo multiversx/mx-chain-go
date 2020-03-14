@@ -454,15 +454,12 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
-	if check.IfNil(body) {
-		return 0, nil, process.ErrNilBlockBody
+	if len(body.MiniBlocks) == 0 {
+		return 0, nil, nil
 	}
 
 	totalTxCount := 0
-	var miniBlockHeaders []block.MiniBlockHeader
-	if len(body.MiniBlocks) > 0 {
-		miniBlockHeaders = make([]block.MiniBlockHeader, len(body.MiniBlocks))
-	}
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -984,7 +981,7 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(header data.HeaderHandler) {
+func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
