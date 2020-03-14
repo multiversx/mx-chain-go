@@ -381,7 +381,6 @@ type EpochBootstrapper interface {
 
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
 	GetNumPendingMiniBlocks(shardID uint32) uint32
