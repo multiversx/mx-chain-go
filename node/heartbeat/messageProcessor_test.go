@@ -292,7 +292,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		FromField:      nil,
 		DataField:      nil,
 		SeqNoField:     nil,
-		TopicIDsField:  nil,
+		TopicsField:    nil,
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -307,14 +307,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		},
 	)
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
-func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	message := &mock.P2PMessageStub{
@@ -427,7 +426,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 		},
 	)
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(nil)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(nil)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilMessage, err)

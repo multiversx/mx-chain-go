@@ -489,11 +489,16 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
+func NetworkComponentsFactory(
+	p2pConfig config.P2PConfig,
+	mainConfig config.Config,
+	statusHandler core.AppStatusHandler,
+) (*Network, error) {
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Context:       context.Background(),
 		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     *p2pConfig,
+		P2pConfig:     p2pConfig,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
@@ -501,7 +506,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
 		return nil, err
 	}
 
-	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(*mainConfig, core.StatusHandler)
+	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(mainConfig, statusHandler)
 	if errNewAntiflood != nil {
 		return nil, errNewAntiflood
 	}
@@ -511,7 +516,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(*mainConfig)
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
 	if errOutputAntiflood != nil {
 		return nil, errOutputAntiflood
 	}
@@ -521,9 +526,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	err = netMessenger.ApplyOptions(
-		libp2p.WithPeerBlackList(p2pPeerBlackList),
-	)
+	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
 	if err != nil {
 		return nil, err
 	}

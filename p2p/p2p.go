@@ -74,7 +74,6 @@ type ReconnecterWithPauseResumeAndWatchdog interface {
 	KickWatchdog() error               // KickWatchdog kicks the watchdog
 }
 
-//TODO(iulian) remove AppyOptions ?
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
@@ -168,6 +167,7 @@ type Messenger interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	SetPeerBlackListHandler(handler BlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -281,17 +281,17 @@ type CommonSharder interface {
 }
 
 // BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+//TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
+//TODO move antiflooding inside network messenger
 type BlacklistHandler interface {
 	Has(key string) bool
 	IsInterfaceNil() bool
 }
 
-// ConnectionMonitor defines what a peer-management component should do
-//TODO(iulian) what is this?
-type ConnectionMonitor interface {
-	HandleConnectedPeer(pid PeerID) error
-	HandleDisconnectedPeer(pid PeerID)
-	DoReconnectionBlocking()
+// ConnectionMonitorWrapper uses a connection monitor but checks if the peer is blacklisted or not
+//TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
+type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
+	SetBlackListHandler(handler BlacklistHandler) error
 	IsInterfaceNil() bool
 }

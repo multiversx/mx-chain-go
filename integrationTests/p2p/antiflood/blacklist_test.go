@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
@@ -26,6 +26,11 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:INFO,p2p:ERROR")
+	defer func() {
+		_ = logger.SetLogLevel("*:INFO")
+	}()
 
 	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
@@ -148,9 +153,7 @@ func reConnectFloodingPeer(peers []p2p.Messenger, flooderIdx int, floodedIdxes [
 
 func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.BlackListHandler) {
 	for idx, peer := range peers {
-		_ = peer.ApplyOptions(
-			libp2p.WithPeerBlackList(blacklistHandler[idx]),
-		)
+		_ = peer.SetPeerBlackListHandler(blacklistHandler[idx])
 	}
 }
 

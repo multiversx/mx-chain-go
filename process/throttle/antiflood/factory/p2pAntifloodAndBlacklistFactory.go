@@ -121,15 +121,15 @@ func initP2PAntiFloodAndBlackList(
 	return p2pAntiflood, p2pPeerBlackList, nil
 }
 
-func setMaxMessages(topicFloodPreventer p2p.TopicFloodPreventer, topicMaxMessages []config.TopicMaxMessagesConfig) {
+func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMessages []config.TopicMaxMessagesConfig) {
 	for _, topicMaxMsg := range topicMaxMessages {
 		topicFloodPreventer.SetMaxMessagesForTopic(topicMaxMsg.Topic, topicMaxMsg.NumMessagesPerSec)
 	}
 }
 
 func startResettingFloodPreventers(
-	floodPreventer p2p.FloodPreventer,
-	topicFloodPreventer p2p.TopicFloodPreventer,
+	floodPreventer process.FloodPreventer,
+	topicFloodPreventer process.TopicFloodPreventer,
 	topicMaxMessages []config.TopicMaxMessagesConfig,
 ) {
 	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))

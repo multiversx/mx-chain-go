@@ -129,36 +129,3 @@ func TestWithAuthentication_ShouldWork(t *testing.T) {
 	assert.True(t, notifeeCalled)
 	assert.True(t, setStreamHandlerCalled)
 }
-
-//------- WithPeerBlackList
-
-func TestWithPeerBlackList_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	opt := WithPeerBlackList(&mock.NilBlacklistHandler{})
-	err := opt(nil)
-
-	assert.Equal(t, p2p.ErrNilConfigVariable, err)
-}
-
-func TestWithPeerBlackList_NilBlackListHadlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	opt := WithPeerBlackList(nil)
-	cfg := &p2p.Config{}
-	err := opt(cfg)
-
-	assert.Equal(t, p2p.ErrNilPeerBlacklistHandler, err)
-}
-
-func TestWithPeerBlackList_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	nblh := &mock.NilBlacklistHandler{}
-	opt := WithPeerBlackList(nblh)
-	cfg := &p2p.Config{}
-	err := opt(cfg)
-
-	assert.Nil(t, err)
-	assert.True(t, cfg.BlacklistHandler == nblh)
-}

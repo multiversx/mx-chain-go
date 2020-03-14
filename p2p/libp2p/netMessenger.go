@@ -29,11 +29,6 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-const durationBetweenSends = time.Microsecond * 10
-
-const durationBetweenReconnectionAttempts = time.Second * 5
-const durationCheckConnections = time.Second
-
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
@@ -43,6 +38,8 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
+const durationBetweenSends = time.Microsecond * 10
+const durationCheckConnections = time.Second
 const refreshPeersOnTopic = time.Second * 3
 const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
@@ -59,11 +56,13 @@ var log = logger.GetOrCreate("p2p/libp2p")
 
 //TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	ctx                 context.Context
-	p2pHost             ConnectableHost
-	pb                  *pubsub.PubSub
-	ds                  p2p.DirectSender
+	ctx     context.Context
+	p2pHost ConnectableHost
+	pb      *pubsub.PubSub
+	ds      p2p.DirectSender
+	//TODO refactor this (connMonitor & connMonitorWrapper)
 	connMonitor         ConnectionMonitor
+	connMonitorWrapper  p2p.ConnectionMonitorWrapper
 	peerDiscoverer      p2p.PeerDiscoverer
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
@@ -181,7 +180,7 @@ func createMessenger(
 		return nil, err
 	}
 
-	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +276,21 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	if err != nil {
 		return err
 	}
-	netMes.p2pHost.Network().Notify(netMes.connMonitor)
+
+	cmw := newConnectionMonitorWrapper(
+		netMes.p2pHost.Network(),
+		netMes.connMonitor,
+		&nilBlacklistHandler{},
+	)
+	netMes.p2pHost.Network().Notify(cmw)
+	netMes.connMonitorWrapper = cmw
+
+	go func() {
+		for {
+			cmw.CheckConnectionsBlocking()
+			time.Sleep(durationCheckConnections)
+		}
+	}()
 
 	return nil
 }
@@ -332,61 +345,6 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (netMes *networkMessenger) createConnectionMonitor(targetConnCount int) error {
-	var err error
-
-	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
-	netMes.connMonitor, err = newConnectionMonitor(
-		reconnecter,
-		netMes.ctxProvider,
-		defaultThresholdMinConnectedPeers,
-		targetConnCount,
-	)
-	if err != nil {
-		return err
-
-	}
-	notifer := &connectionMonitorNotifier{
-		ConnectionMonitor: netMes.connMonitor,
-	}
-	netMes.ctxProvider.connHost.Network().Notify(notifer)
-
-	go func() {
-		for {
-			netMes.connMonitor.DoReconnectionBlocking()
-			time.Sleep(durationBetweenReconnectionAttempts)
-		}
-	}()
-
-	go func() {
-		for {
-			netMes.connMonitor.CheckConnectionsBlocking()
-			time.Sleep(durationCheckConnections)
-		}
-	}()
-
-	return nil
-}
-
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...p2p.Option) error {
-	cfg := &p2p.Config{}
-
-	for _, opt := range opts {
-		err := opt(cfg)
-		if err != nil {
-			return err
-		}
-	}
-
-	err := netMes.ctxProvider.SetPeerBlacklist(cfg.BlacklistHandler)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -734,6 +692,12 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	netMes.peerShardResolver = peerShardResolver
 
 	return nil
+}
+
+// SetPeerBlackListHandler sets the peer black list handler
+//TODO decide if we continue on using setters or switch to options. Refactor if necessary
+func (netMes *networkMessenger) SetPeerBlackListHandler(handler p2p.BlacklistHandler) error {
+	return netMes.connMonitorWrapper.SetBlackListHandler(handler)
 }
 
 // GetConnectedPeersInfo gets the current connected peers information

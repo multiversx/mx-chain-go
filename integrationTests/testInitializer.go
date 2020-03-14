@@ -132,17 +132,27 @@ func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) 
 }
 
 // CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery(ctx context.Context) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: 0,
+			Seed: "",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
 
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewNullDiscoverer(),
-	)
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -206,7 +216,7 @@ func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
 	peers := make([]p2p.Messenger, numPeers)
 
 	for i := 0; i < numPeers; i++ {
-		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
+		peers[i] = CreateMessengerWithNoDiscovery()
 	}
 
 	return peers
@@ -400,15 +410,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -763,6 +773,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
+// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		UpdateRound(nodes, round)

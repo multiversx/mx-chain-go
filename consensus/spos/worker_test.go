@@ -22,6 +22,7 @@ import (
 )
 
 const roundTimeDuration = 100 * time.Millisecond
+
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
 
 func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
@@ -695,6 +696,7 @@ func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		nil,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, wrk)
@@ -734,6 +736,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		&mock.NetworkShardingCollectorStub{},
 		nil,
 	)
 
@@ -822,6 +825,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		&mock.NetworkShardingCollectorStub{},
 		antifloodHandler,
 	)
 
@@ -873,6 +877,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		&mock.NetworkShardingCollectorStub{},
 		antifloodHandler,
 	)
 
