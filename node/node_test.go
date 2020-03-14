@@ -1282,6 +1282,10 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1346,6 +1350,10 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
@@ -1409,6 +1417,10 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
@@ -1470,6 +1482,10 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
@@ -1536,6 +1552,10 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
@@ -2138,6 +2158,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 

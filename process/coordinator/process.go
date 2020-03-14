@@ -833,27 +833,26 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		}
 
 		mb := interProc.GetCreatedInShardMiniBlock()
-
-		if len(mb.TxHashes) > 0 {
-			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
-				"type", mb.Type,
-				"senderShardID", mb.SenderShardID,
-				"receiverShardID", mb.ReceiverShardID,
-			)
-
-			for _, hash := range mb.TxHashes {
-				log.Trace("tx", "hash", hash)
-			}
-
-			currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
-			if err != nil {
-				return nil, err
-			}
-
-			allReceiptsHashes = append(allReceiptsHashes, currHash)
-		} else {
-			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock -> nil miniblock", "block.Type", value)
+		if mb == nil {
+			continue
 		}
+
+		log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+			"type", mb.Type,
+			"senderShardID", mb.SenderShardID,
+			"receiverShardID", mb.ReceiverShardID,
+		)
+
+		for _, hash := range mb.TxHashes {
+			log.Trace("tx", "hash", hash)
+		}
+
+		currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+
+		allReceiptsHashes = append(allReceiptsHashes, currHash)
 	}
 
 	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: allReceiptsHashes})

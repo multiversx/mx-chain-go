@@ -22,8 +22,15 @@ import (
 )
 
 const roundTimeDuration = 100 * time.Millisecond
-
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
+
+func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
+	return &mock.NetworkShardingCollectorStub{
+		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
+		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
+		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
+	}
+}
 
 func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
@@ -84,6 +91,7 @@ func initWorker() *spos.Worker {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -134,6 +142,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -173,6 +182,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -212,6 +222,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -251,6 +262,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -290,6 +302,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -328,6 +341,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -366,6 +380,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -404,6 +419,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -442,6 +458,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -480,6 +497,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -518,6 +536,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -556,6 +575,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -594,6 +614,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		nil,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -633,11 +654,51 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		createMockNetworkShardingCollector(),
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrInvalidChainID, err)
+}
+
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
+	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bls.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
 }
 
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
@@ -713,6 +774,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -1909,6 +1971,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		syncTimerMock,
 		headerSigVerifier,
 		chainID,
+		createMockNetworkShardingCollector(),
 		antiFloodHandler,
 	)
 

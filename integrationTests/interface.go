@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -25,4 +26,13 @@ type TestEpochStartTrigger interface {
 // BlockProcessorInitializer offers initialization for block processor
 type BlockProcessorInitializer interface {
 	InitBlockProcessor()
+}
+
+// NetworkShardingUpdater defines the updating methods used by the network sharding component
+type NetworkShardingUpdater interface {
+	GetShardID(pid p2p.PeerID) (shardId uint32)
+	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
 }

@@ -292,7 +292,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	publicKey []byte,
 	epoch uint32,
 ) (Validator, uint32, error) {
-	if publicKey == nil {
+	if len(publicKey) == 0 {
 		return nil, 0, ErrNilPubKey
 	}
 	ihgs.mutNodesConfig.RLock()
@@ -306,9 +306,9 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	nodesConfig.mutNodesMaps.RLock()
 	defer nodesConfig.mutNodesMaps.RUnlock()
 
-	validatorWithShardId, ok := nodesConfig.publicKeyToValidatorMap[string(publicKey)]
+	shardIdValidator, ok := nodesConfig.publicKeyToValidatorMap[string(publicKey)]
 	if ok {
-		return validatorWithShardId.validator, validatorWithShardId.shardId, nil
+		return shardIdValidator.validator, shardIdValidator.shardId, nil
 	}
 
 	return nil, 0, ErrValidatorNotFound

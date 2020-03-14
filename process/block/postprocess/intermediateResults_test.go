@@ -391,7 +391,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	err = irp.VerifyInterMiniBlocks(nil)
+	body := &block.Body{}
+	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 }
 

@@ -392,6 +392,15 @@ func (messenger *Messenger) NumMessagesReceived() uint64 {
 	return atomic.LoadUint64(&messenger.numReceived)
 }
 
+// SetPeerShardResolver is a dummy function, not setting anything
+func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
+	return nil
+}
+
+func (messenger *Messenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
+	return nil
+}
+
 // Close disconnects this Messenger from the network it was connected to.
 func (messenger *Messenger) Close() error {
 	messenger.network.UnregisterPeer(messenger.ID())

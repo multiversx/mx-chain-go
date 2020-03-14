@@ -129,10 +129,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
 
-	if body == nil {
-		return nil
-	}
-
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]

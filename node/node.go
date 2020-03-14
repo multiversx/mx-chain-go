@@ -96,6 +96,8 @@ type Node struct {
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
 
+	networkShardingCollector NetworkShardingCollector
+
 	consensusTopic string
 	consensusType  string
 
@@ -303,6 +305,7 @@ func (n *Node) StartConsensus() error {
 		n.syncTimer,
 		n.headerSigVerifier,
 		n.chainID,
+		n.networkShardingCollector,
 		n.inputAntifloodHandler,
 	)
 	if err != nil {
@@ -933,7 +936,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
-		n.internalMarshalizer)
+		n.internalMarshalizer,
+		n.networkShardingCollector,
+	)
 	if err != nil {
 		return err
 	}
