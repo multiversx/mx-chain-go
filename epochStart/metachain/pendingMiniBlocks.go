@@ -102,10 +102,6 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 	crossShard := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, miniBlockHeader := range metaHdr.MiniBlockHeaders {
-		if miniBlockHeader.ReceiverShardID != core.MetachainShardId {
-			continue
-		}
-
 		shardMiniBlockHeader := block.ShardMiniBlockHeader{
 			Hash:            miniBlockHeader.Hash,
 			ReceiverShardID: miniBlockHeader.ReceiverShardID,
