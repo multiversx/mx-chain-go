@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"fmt"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -20,13 +21,12 @@ type SuiteBLS12 struct {
 	strSuite string
 }
 
-// Is enabled if compiling mcl/bls/bls-go-binary with BLS_SWAP_G flag
+// blsSwapG Is enabled if compiling mcl/bls/bls-go-binary with BLS_SWAP_G flag
 // Compiling with the flag will give Public Keys on G1 (48 bytes) and Signatures on G2 (96 bytes)
 // Compiling without the flag will give Public Keys on G2 and Signatures on G1
 // For Elrond the public keys for the validators are known during an epoch and also are not set on blocks
 // BLS signatures are however set on every block header, so in order to optimise the header size flag will be false
 // to have smaller signatures, so on G1(48 bytes)
-var blsSwapG = bls.IsSwapG()
 
 const g2str = "1 352701069587466618187139116011060144890029952792775240219908644239793785735715026873347600343865175952761926303160 3059144344244213709971259814753781636986470325476647558659373206291635324768958432433509563104347017837885763365758 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582"
 const g1str = "1 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569"
@@ -41,12 +41,13 @@ func init() {
 
 	pubKey := &bls.PublicKey{}
 	bls.BlsGetGeneratorForPublicKey(pubKey)
+	blsSwapG := bls.IsSwapG()
 	if blsSwapG {
-		generatorG1 := bls.CastG1FromPublicKey(pubKey)
+		generatorG1 := (*bls.G1)(unsafe.Pointer(pubKey))
 		basePointG1Str.Store(generatorG1.GetString(10))
 		basePointG2Str.Store(g2str)
 	} else {
-		generatorG2 := bls.CastG2FromPublicKey(pubKey)
+		generatorG2 := (*bls.G2)(unsafe.Pointer(pubKey))
 		basePointG1Str.Store(g1str)
 		basePointG2Str.Store(generatorG2.GetString(10))
 	}
