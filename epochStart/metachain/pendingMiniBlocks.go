@@ -88,6 +88,11 @@ func (p *pendingMiniBlocksHeaders) AddProcessedHeader(headerHandler data.HeaderH
 			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
 		}
 	}
+
+	for shardID, numPendingMiniBlocks := range p.mapShardNumMiniBlocks {
+		log.Trace("pending miniblocks", "shard", shardID, "num", numPendingMiniBlocks)
+	}
+
 	p.mutPending.Unlock()
 
 	return nil
