@@ -28,6 +28,11 @@ func (p *pendingMiniBlocksHeaders) getAllCrossShardMiniBlocks(metaBlock *block.M
 	crossShardMiniBlocks := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		//TODO: Activate the following code when EN-5464-peer-rating-process-in-shard will be merged in dev
+		//if mbHeader.ReceiverShardID == core.AllShardId {
+		//	continue
+		//}
+
 		shardMiniBlockHeader := block.ShardMiniBlockHeader{
 			Hash:            mbHeader.Hash,
 			ReceiverShardID: mbHeader.ReceiverShardID,
