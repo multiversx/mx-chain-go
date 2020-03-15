@@ -12,6 +12,7 @@ import (
 
 type pendingMiniBlocksHeaders struct {
 	mutPending            sync.RWMutex
+	//TODO: Also this map should be saved in BootStorer
 	mapMiniBlockHeaders   map[string]block.ShardMiniBlockHeader
 	mapShardNumMiniBlocks map[uint32]uint32
 }
@@ -28,8 +29,11 @@ func (p *pendingMiniBlocksHeaders) getAllCrossShardMiniBlocks(metaBlock *block.M
 	crossShardMiniBlocks := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
+			continue
+		}
 		//TODO: Activate the following code when EN-5464-peer-rating-process-in-shard will be merged in dev
-		//if mbHeader.ReceiverShardID == core.AllShardId {
+		//if mbHeader.SenderShardID == core.MetachainShardId && mbHeader.ReceiverShardID == core.AllShardId {
 		//	continue
 		//}
 
@@ -47,7 +51,7 @@ func (p *pendingMiniBlocksHeaders) getAllCrossShardMiniBlocks(metaBlock *block.M
 			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
-			if mbHeader.ReceiverShardID == core.MetachainShardId {
+			if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
 				continue
 			}
 
