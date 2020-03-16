@@ -307,7 +307,17 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 }
 
 func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeader(header)
+	blockBody, err := st.bootstrapper.getBlockBody(header)
+	if err != nil {
+		return err
+	}
+
+	err = st.blkc.SetCurrentBlockBody(blockBody)
+	if err != nil {
+		return err
+	}
+
+	err = st.blkc.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
 	}
@@ -327,6 +337,11 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	err = st.blkc.SetCurrentBlockHeader(nil)
 	if err != nil {
 		log.Debug("cannot set current block header", "error", err.Error())
+	}
+
+	err = st.blkc.SetCurrentBlockBody(nil)
+	if err != nil {
+		log.Debug("cannot set current block body", "error", err.Error())
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
@@ -300,11 +301,10 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		bodyHandler := node.BlockChain.GetCurrentBlockBody()
 		body, ok := bodyHandler.(*block.Body)
 		numInvalid := 0
-		if ok {
-			for _, mb := range body.MiniBlocks {
-				if mb.Type == block.InvalidBlock {
-					numInvalid++
-				}
+		require.True(t, ok)
+		for _, mb := range body.MiniBlocks {
+			if mb.Type == block.InvalidBlock {
+				numInvalid++
 			}
 		}
 		assert.Equal(t, 1, numInvalid)
