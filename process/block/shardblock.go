@@ -680,12 +680,20 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
-	body, err = sp.applyBodyToHeader(shardHdr, body)
+	finalBody, err := sp.applyBodyToHeader(shardHdr, body)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return shardHdr, body, nil
+	for _, miniBlock := range finalBody.MiniBlocks {
+		log.Debug("CreateBlock: miniblock",
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"type", miniBlock.Type,
+			"num txs", len(miniBlock.TxHashes))
+	}
+
+	return shardHdr, finalBody, nil
 }
 
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
