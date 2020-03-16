@@ -373,6 +373,8 @@ func (txs *transactions) processTxsToMe(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
+	log.Debug("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	for index := range txsToMe {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -782,6 +784,8 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
+	log.Debug("createAndProcessMiniBlocks", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	senderAddressToSkip := []byte("")
 
 	defer func() {
@@ -1053,6 +1057,8 @@ func (txs *transactions) ProcessMiniBlock(
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+
+	log.Debug("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range miniBlockTxs {
 		if !haveTime() {

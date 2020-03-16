@@ -459,6 +459,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
+	log.Debug("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	for index := range miniBlockScrs {
 		if !haveTime() {
 			return process.ErrTimeIsOut
