@@ -1,4 +1,4 @@
-package metachain
+package pendingMb
 
 import (
 	"testing"

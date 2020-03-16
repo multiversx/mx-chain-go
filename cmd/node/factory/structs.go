@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -721,7 +722,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = metachainEpochStart.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
 		if err != nil {
 			return nil, err
 		}

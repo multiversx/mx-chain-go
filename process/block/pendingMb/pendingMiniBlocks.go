@@ -1,4 +1,4 @@
-package metachain
+package pendingMb
 
 import (
 	"sync"
@@ -8,7 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
+
+var log = logger.GetOrCreate("process/block/pendingMb")
 
 type pendingMiniBlocksHeaders struct {
 	mutPending            sync.RWMutex
