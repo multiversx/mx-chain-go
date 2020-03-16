@@ -827,6 +827,8 @@ func newRequestHandler(
 			return nil, err
 		}
 
+		resolversFinder.PrintResolvers()
+
 		return requestHandler, nil
 	}
 
@@ -839,6 +841,8 @@ func newRequestHandler(
 		if err != nil {
 			return nil, err
 		}
+
+		resolversFinder.PrintResolvers()
 
 		return requestHandler, nil
 	}

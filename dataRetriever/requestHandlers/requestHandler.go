@@ -456,6 +456,8 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 	if err != nil {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
+
+		rrh.resolversFinder.PrintResolvers()
 		return nil, err
 	}
 
