@@ -865,7 +865,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		elapsedTime := time.Since(startTime)
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
-			log.Trace("createAndProcessMiniBlock.computeGasConsumed", "error", err)
+			log.Debug("createAndProcessMiniBlock.computeGasConsumed", "error", err)
 			continue
 		}
 
@@ -892,7 +892,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 			}
 
 			numTxsBad++
-			log.Trace("bad tx",
+			log.Debug("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
 			)
