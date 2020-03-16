@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -45,7 +46,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	for _, txInfoValue := range bpp.interResultsForBlock {
-		if txInfoValue.tx == nil {
+		if check.IfNil(txInfoValue.tx) {
 			return process.ErrMissingTransaction
 		}
 
@@ -79,7 +80,7 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txInfoObject := bpp.interResultsForBlock[string(txHash)]
-		if txInfoObject == nil || txInfoObject.tx == nil {
+		if txInfoObject == nil || check.IfNil(txInfoObject.tx) {
 			continue
 		}
 
@@ -114,7 +115,7 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 
 func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBlock, mb *block.MiniBlock) error {
 	createdScrMb, ok := createMBs[mb.ReceiverShardID]
-	if createdScrMb == nil || !ok {
+	if !ok {
 		return process.ErrNilMiniBlocks
 	}
 
