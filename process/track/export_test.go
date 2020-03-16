@@ -7,8 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const MaxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
-const NumHeadersToRemovePerShard = numHeadersToRemovePerShard
+const PercentToKeep = percentToKeep
 
 // metaBlockTrack
 
@@ -38,8 +37,8 @@ func (bbt *baseBlockTrack) ReceivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.receivedMetaBlock(headerHandler, metaBlockHash)
 }
 
-func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
-	return bbt.shouldAddHeader(headerHandler)
+func (bbt *baseBlockTrack) GetMaxNumHeadersToKeepPerShard() int {
+	return bbt.maxNumHeadersToKeepPerShard
 }
 
 func (bbt *baseBlockTrack) ShouldAddHeaderForCrossShard(headerHandler data.HeaderHandler) bool {
@@ -138,6 +137,10 @@ func (bn *blockNotarizer) GetNotarizedHeaderWithIndex(shardID uint32, index int)
 
 func (bn *blockNotarizer) LastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
 	return bn.lastNotarizedHeaderInfo(shardID)
+}
+
+func (bn *blockNotarizer) GetMaxNumHeadersToKeepPerShard() int {
+	return bn.maxNumHeadersToKeepPerShard
 }
 
 // blockProcessor

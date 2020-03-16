@@ -95,11 +95,13 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := !boot.ShouldSync()
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := !boot.ShouldSync()
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
@@ -186,9 +188,11 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 }
 
 func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
-	if state {
-		boot.isNodeStateCalculated.Set()
-	} else {
-		boot.isNodeStateCalculated.Unset()
-	}
+	boot.mutNodeState.Lock()
+	boot.isNodeStateCalculated = state
+	boot.mutNodeState.Unlock()
+}
+
+func (boot *baseBootstrap) ComputeNodeState() {
+	boot.computeNodeState()
 }

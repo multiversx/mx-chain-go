@@ -4,7 +4,8 @@ import (
 	"crypto/cipher"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/herumi/bls-go-binary/bls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,16 +62,16 @@ func TestSuiteBLS12_CreatePointForScalar(t *testing.T) {
 	secretKey.GetPublicKey()
 
 	scalar := NewScalar()
-	bls.BlsFrToSecretKey(scalar.Scalar, secretKey)
+	scalar.Scalar = bls.CastFromSecretKey(secretKey)
 
-	point := suite.CreatePointForScalar(scalar)
+	point, err := suite.CreatePointForScalar(scalar)
+	require.Nil(t, err)
 	pG2, ok := point.GetUnderlyingObj().(*bls.G2)
 	require.True(t, ok)
 	require.NotNil(t, pG2)
 
 	pubKey := secretKey.GetPublicKey()
-	point2G2 := &bls.G2{}
-	bls.BlsPublicKeyToG2(pubKey, point2G2)
+	point2G2 := bls.CastG2FromPublicKey(pubKey)
 
 	require.True(t, pG2.IsEqual(point2G2))
 }
@@ -81,16 +82,14 @@ func TestSuiteBLS12_CreateKeyPair(t *testing.T) {
 	scalar, point := suite.CreateKeyPair(nil)
 	mclScalar := scalar.GetUnderlyingObj().(*bls.Fr)
 
-	secretKey := &bls.SecretKey{}
-	bls.BlsFrToSecretKey(mclScalar, secretKey)
+	secretKey := bls.CastToSecretKey(mclScalar)
 
 	pG2, ok := point.GetUnderlyingObj().(*bls.G2)
 	require.True(t, ok)
 	require.NotNil(t, pG2)
 
 	pubKey := secretKey.GetPublicKey()
-	point2G2 := &bls.G2{}
-	bls.BlsPublicKeyToG2(pubKey, point2G2)
+	point2G2 := bls.CastG2FromPublicKey(pubKey)
 
 	require.True(t, pG2.IsEqual(point2G2))
 }
@@ -126,7 +125,7 @@ func TestSuiteBLS12_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 	var suite *SuiteBLS12
 
-	require.True(t, suite.IsInterfaceNil())
+	require.True(t, check.IfNil(suite))
 	suite = NewSuiteBLS12()
-	require.False(t, suite.IsInterfaceNil())
+	require.False(t, check.IfNil(suite))
 }
