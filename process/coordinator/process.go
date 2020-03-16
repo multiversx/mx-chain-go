@@ -157,6 +157,10 @@ func (tc *transactionCoordinator) initRequestedTxs() {
 
 // RequestBlockTransactions verifies missing transaction and requests them
 func (tc *transactionCoordinator) RequestBlockTransactions(body *block.Body) {
+	if check.IfNil(body) {
+		return
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 
 	tc.initRequestedTxs()
