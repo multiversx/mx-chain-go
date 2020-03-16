@@ -450,8 +450,15 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
+	if check.IfNil(body) {
+		return 0, nil, process.ErrNilBlockBody
+	}
+
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	var miniBlockHeaders []block.MiniBlockHeader
+	if len(body.MiniBlocks) > 0 {
+		miniBlockHeaders = make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -913,10 +920,11 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
 	currentHeader := chainHandler.GetCurrentBlockHeader()
-	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
 	if check.IfNil(currentHeader) {
 		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
 	}
+
+	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
 
 	return currentHeader, currentBlockHash
 }
