@@ -834,7 +834,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 		mb := interProc.GetCreatedInShardMiniBlock()
 		if mb == nil {
-			log.Debug("nil inshard miniblock for type", "type", value)
+			log.Debug("CreateReceiptsHash nil inshard miniblock for type", "type", value)
 			continue
 		}
 
