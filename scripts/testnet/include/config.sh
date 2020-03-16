@@ -12,8 +12,7 @@ generateConfig() {
     -consensus-group-size $SHARD_CONSENSUS_SIZE           \
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
-    -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -consensus-type $CONSENSUS_TYPE
+    -metachain-consensus-group-size $META_CONSENSUS_SIZE
   popd
 }
 
