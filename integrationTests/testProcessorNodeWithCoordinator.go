@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	multisig2 "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
@@ -102,13 +102,13 @@ func CreateProcessorNodesWithNodesCoordinator(
 }
 
 func createTestSingleSigner() crypto.SingleSigner {
-	return &singlesig.SchnorrSigner{}
+	return &ed25519SingleSig.Ed25519Signer{}
 }
 
 func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {
 	numShards := uint32(0)
 	suiteBlock := mcl.NewSuiteBLS12()
-	suiteTx := kyber.NewBlakeSHA256Ed25519()
+	suiteTx := ed25519.NewEd25519()
 
 	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
 	txSignKeyGen := signing.NewKeyGenerator(suiteTx)

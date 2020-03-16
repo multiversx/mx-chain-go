@@ -96,7 +96,7 @@ type Group interface {
 	// CreatePoint creates a new point
 	CreatePoint() Point
 	// CreatePointForScalar creates a new point corresponding to the given scalar
-	CreatePointForScalar(scalar Scalar) Point
+	CreatePointForScalar(scalar Scalar) (Point, error)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

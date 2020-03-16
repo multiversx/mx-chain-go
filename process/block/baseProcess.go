@@ -202,14 +202,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	maxRound uint64,
 ) error {
 
-	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
-
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {
 		return err
 	}
 
-	lastNotarizedHdrNonce := prevHdr.GetNonce()
 	lastNotarizedHdrRound := prevHdr.GetRound()
 
 	missingNonces := make([]uint64, 0)
@@ -229,6 +226,10 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			break
 		}
 
+		if !bp.blockTracker.ShouldAddHeader(currHdr) {
+			break
+		}
+
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
 			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
 				missingNonces = append(missingNonces, j)
@@ -240,11 +241,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	requested := 0
 	for _, nonce := range missingNonces {
-		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
-		if isHeaderOutOfRange {
-			break
-		}
-
 		if requested >= process.MaxHeaderRequestsAllowed {
 			break
 		}
@@ -525,25 +521,6 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler) bool {
-	if check.IfNil(header) {
-		return false
-	}
-
-	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
-	if err != nil {
-		log.Debug("isHeaderOutOfRange.GetLastCrossNotarizedHeader",
-			"shard", header.GetShardID(),
-			"error", err.Error())
-		return false
-	}
-
-	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
-	isHeaderOutOfRange := header.GetNonce() > lastCrossNotarizedHeader.GetNonce()+allowedSize
-
-	return isHeaderOutOfRange
 }
 
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for

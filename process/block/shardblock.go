@@ -1324,7 +1324,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if sp.isHeaderOutOfRange(metaBlock) {
+	if !sp.blockTracker.ShouldAddHeader(metaBlock) {
 		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
 		return
 	}
