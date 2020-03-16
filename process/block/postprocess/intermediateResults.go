@@ -184,7 +184,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return process.ErrWrongTypeAssertion
 		}
 
-		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, txs[i])
+		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
 			return err
 		}
