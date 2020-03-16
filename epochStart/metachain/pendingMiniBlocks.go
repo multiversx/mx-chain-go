@@ -84,9 +84,17 @@ func (p *pendingMiniBlocksHeaders) AddProcessedHeader(headerHandler data.HeaderH
 		}
 
 		delete(p.mapMiniBlockHeaders, mbHash)
-		if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] > 0 {
-			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
+		if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] == 0 {
+			log.Error("AddProcessedHeader: trying to remove an unpending miniblock",
+				"epoch", metaBlock.Epoch,
+				"round", metaBlock.Round,
+				"nonce", metaBlock.Nonce,
+				"mb hash", mbHash,
+				"mb sender shard", mbHeader.SenderShardID,
+				"mb receiver shard", mbHeader.ReceiverShardID)
+			continue
 		}
+		p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
 	}
 
 	for shardID, numPendingMiniBlocks := range p.mapShardNumMiniBlocks {
@@ -115,9 +123,18 @@ func (p *pendingMiniBlocksHeaders) RevertHeader(headerHandler data.HeaderHandler
 	for mbHash, mbHeader := range crossShardMiniBlocks {
 		if _, ok = p.mapMiniBlockHeaders[mbHash]; ok {
 			delete(p.mapMiniBlockHeaders, mbHash)
-			if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] > 0 {
-				p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
+			if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] == 0 {
+				log.Error("RevertHeader: trying to remove an unpending miniblock",
+					"epoch", metaBlock.Epoch,
+					"round", metaBlock.Round,
+					"nonce", metaBlock.Nonce,
+					"mb hash", mbHash,
+					"mb sender shard", mbHeader.SenderShardID,
+					"mb receiver shard", mbHeader.ReceiverShardID)
+				continue
 			}
+
+			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
 			continue
 		}
 
