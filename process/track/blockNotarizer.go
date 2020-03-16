@@ -18,8 +18,9 @@ type blockNotarizer struct {
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 
-	mutNotarizedHeaders sync.RWMutex
-	notarizedHeaders    map[uint32][]*HeaderInfo
+	mutNotarizedHeaders         sync.RWMutex
+	notarizedHeaders            map[uint32][]*HeaderInfo
+	maxNumHeadersToKeepPerShard int
 }
 
 // NewBlockNotarizer creates a block notarizer object which implements blockNotarizerHandler interface
@@ -27,6 +28,7 @@ func NewBlockNotarizer(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
+	maxNumHeadersToKeepPerShard int,
 ) (*blockNotarizer, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -45,6 +47,7 @@ func NewBlockNotarizer(
 	}
 
 	bn.notarizedHeaders = make(map[uint32][]*HeaderInfo)
+	bn.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
 
 	return &bn, nil
 }
@@ -69,7 +72,7 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 	}
 	bn.mutNotarizedHeaders.Unlock()
 
-	if numNotarizedHeadersForShard > maxNumHeadersToKeepPerShard {
+	if numNotarizedHeadersForShard > bn.maxNumHeadersToKeepPerShard {
 		bn.cleanupWhenMaxCapacityIsReached(shardID)
 	}
 }
@@ -79,15 +82,15 @@ func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
 	defer bn.mutNotarizedHeaders.Unlock()
 
 	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
-	if notarizedHeadersCount <= maxNumHeadersToKeepPerShard {
+	if notarizedHeadersCount <= bn.maxNumHeadersToKeepPerShard {
 		return
 	}
 
 	if bn.shardCoordinator.SelfId() == shardID {
-		index := notarizedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+		index := notarizedHeadersCount - int(float64(bn.maxNumHeadersToKeepPerShard)*percentToKeep)
 		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][index:]
 	} else {
-		index := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard
+		index := int(float64(bn.maxNumHeadersToKeepPerShard) * percentToKeep)
 		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:index]
 	}
 }
