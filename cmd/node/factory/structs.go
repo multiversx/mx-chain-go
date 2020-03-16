@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
@@ -64,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -90,7 +90,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -722,11 +722,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = newPendingMiniBlocks(
-			args.data.Store,
-			args.coreData.InternalMarshalizer,
-			args.data.Datapool,
-		)
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
 		if err != nil {
 			return nil, err
 		}
@@ -1684,36 +1680,6 @@ func newBlockTracker(
 	}
 
 	return nil, errors.New("could not create block tracker")
-}
-
-func newPendingMiniBlocks(
-	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-	dataPool dataRetriever.PoolsHolder,
-) (process.PendingMiniBlocksHandler, error) {
-
-	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
-	if check.IfNil(miniBlockHeaderStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
-	}
-
-	metaBlocksStore := store.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaBlocksStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
-	}
-
-	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
-		Marshalizer:      marshalizer,
-		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    dataPool.Headers(),
-		MetaBlockStorage: metaBlocksStore,
-	}
-	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	return pendingMiniBlocks, nil
 }
 
 func newForkDetector(
