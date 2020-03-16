@@ -481,6 +481,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	needToRemove := epochToRemove >= 0
 	ihgs.currentEpoch = newEpoch
 
+	err := ihgs.saveState(ihgs.savedStateKey)
+	if err != nil {
+		log.Error("saving nodes coordinator config failed", "error", err.Error())
+	}
+
 	ihgs.mutNodesConfig.Lock()
 	if needToRemove {
 		for epoch := range ihgs.nodesConfig {
@@ -490,6 +495,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 		}
 	}
 	ihgs.mutNodesConfig.Unlock()
+}
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (ihgs *indexHashedNodesCoordinator) NotifyOrder() uint32 {
+	return core.NodesCoordinatorOrder
 }
 
 // GetSavedStateKey returns the key for the last nodes coordinator saved state
