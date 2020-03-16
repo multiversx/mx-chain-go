@@ -227,3 +227,12 @@ const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
+
+const (
+	// StorerOrder defines the order of storers to be notified of a start of epoch event
+	StorerOrder = iota
+	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
+	NodesCoordinatorOrder
+	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
+	ConsensusOrder
+)
