@@ -371,6 +371,14 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
+	for _, miniBlock := range body.MiniBlocks {
+		log.Debug("ProcessBlockTransaction: miniblock",
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"type", miniBlock.Type,
+			"num txs", len(miniBlock.TxHashes))
+	}
+
 	startTime := time.Now()
 	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
 	elapsedTime := time.Since(startTime)
