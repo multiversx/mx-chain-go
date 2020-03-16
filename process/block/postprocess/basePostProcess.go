@@ -114,6 +114,7 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 }
 
 func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBlock, mb *block.MiniBlock) error {
+	log.Debug("verifyMiniBlock called for ", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
 	createdScrMb, ok := createMBs[mb.ReceiverShardID]
 	if !ok {
 		log.Debug("missing miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
@@ -131,6 +132,8 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	}
 
 	if !bytes.Equal(createdHash, receivedHash) {
+		log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		log.Debug("create miniblock", "type", createdScrMb.Type, "sender", createdScrMb.SenderShardID, "receiver", createdScrMb.ReceiverShardID, "numTxs", len(createdScrMb.TxHashes))
 		return process.ErrMiniBlockHashMismatch
 	}
 

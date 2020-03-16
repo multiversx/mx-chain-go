@@ -834,7 +834,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 		mb := interProc.GetCreatedInShardMiniBlock()
 		if mb == nil {
-			log.Debug("nil in shard miniblock")
+			log.Debug("nil inshard miniblock for type", "type", value)
 			continue
 		}
 
@@ -843,6 +843,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 			"senderShardID", mb.SenderShardID,
 			"receiverShardID", mb.ReceiverShardID,
 			"numTxHashes", len(mb.TxHashes),
+			"interimProcType", value,
 		)
 
 		for _, hash := range mb.TxHashes {
