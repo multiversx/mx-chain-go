@@ -78,7 +78,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	peerList := trs.peerListCreator.PeerList()
 	if len(peerList) == 0 {
-		return dataRetriever.ErrNoConnectedPeerToSendRequest
+		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrNoConnectedPeerToSendRequest, trs.topicName)
 	}
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix

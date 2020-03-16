@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -92,7 +92,7 @@ var TestAddressConverterBLS, _ = addressConverters.NewPlainAddressConverter(96, 
 var TestMultiSig = mock.NewMultiSigner(1)
 
 // TestKeyGenForAccounts represents a mock key generator for balances
-var TestKeyGenForAccounts = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -184,14 +184,15 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
 
-	ForkDetector          process.ForkDetector
-	BlockProcessor        process.BlockProcessor
-	BroadcastMessenger    consensus.BroadcastMessenger
-	Bootstrapper          TestBootstrapper
-	Rounder               *mock.RounderMock
-	BootstrapStorer       *mock.BoostrapStorerMock
-	StorageBootstrapper   *mock.StorageBootstrapperMock
-	RequestedItemsHandler dataRetriever.RequestedItemsHandler
+	ForkDetector             process.ForkDetector
+	BlockProcessor           process.BlockProcessor
+	BroadcastMessenger       consensus.BroadcastMessenger
+	Bootstrapper             TestBootstrapper
+	Rounder                  *mock.RounderMock
+	BootstrapStorer          *mock.BoostrapStorerMock
+	StorageBootstrapper      *mock.StorageBootstrapperMock
+	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
+	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
@@ -320,6 +321,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initEconomicsData()
@@ -1049,6 +1051,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
 		node.WithDataPool(tpn.DataPool),
+		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 	)
 	log.LogIfError(err)

@@ -136,7 +136,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -149,7 +149,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 			)
 		}
 
@@ -176,8 +176,8 @@ func createNode(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
-	nodeKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	nodesKeys := cp.Keys[shardId][keyIndex]
+	pubKeyBytes, _ := nodesKeys.Pk.ToByteArray()
 	bootStorer := CreateMemUnit()
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{

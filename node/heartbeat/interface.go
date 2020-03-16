@@ -35,6 +35,15 @@ type HeartbeatStorageHandler interface {
 	IsInterfaceNil() bool
 }
 
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {

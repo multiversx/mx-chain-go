@@ -35,18 +35,18 @@ func (s *suitePairingBn256) CreatePoint() crypto.Point {
 }
 
 // CreatePointForScalar creates a new point corresponding to the given scalar
-func (s *suitePairingBn256) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
+func (s *suitePairingBn256) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 	po := kyberPoint{}
 
 	s1, ok := scalar.(*kyberScalar)
 	if !ok {
-		return nil
+		return nil, crypto.ErrInvalidPrivateKey
 	}
 
 	p1 := s.suite.G2().Point().Mul(s1.Scalar, nil)
 	po.Point = p1
 
-	return &po
+	return &po, nil
 }
 
 // String returns the string for the group

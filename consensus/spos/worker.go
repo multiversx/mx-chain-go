@@ -40,6 +40,8 @@ type Worker struct {
 	appStatusHandler   core.AppStatusHandler
 	chainID            []byte
 
+	networkShardingCollector consensus.NetworkShardingCollector
+
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
 
@@ -75,6 +77,7 @@ func NewWorker(
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
+	networkShardingCollector consensus.NetworkShardingCollector,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -93,6 +96,7 @@ func NewWorker(
 		syncTimer,
 		headerSigVerifier,
 		chainID,
+		networkShardingCollector,
 		antifloodHandler,
 	)
 	if err != nil {
@@ -100,23 +104,24 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		consensusService:   consensusService,
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessor,
-		bootstrapper:       bootstrapper,
-		broadcastMessenger: broadcastMessenger,
-		consensusState:     consensusState,
-		forkDetector:       forkDetector,
-		keyGenerator:       keyGenerator,
-		marshalizer:        marshalizer,
-		rounder:            rounder,
-		shardCoordinator:   shardCoordinator,
-		singleSigner:       singleSigner,
-		syncTimer:          syncTimer,
-		headerSigVerifier:  headerSigVerifier,
-		chainID:            chainID,
-		appStatusHandler:   statusHandler.NewNilStatusHandler(),
-		antifloodHandler:   antifloodHandler,
+		consensusService:         consensusService,
+		blockChain:               blockChain,
+		blockProcessor:           blockProcessor,
+		bootstrapper:             bootstrapper,
+		broadcastMessenger:       broadcastMessenger,
+		consensusState:           consensusState,
+		forkDetector:             forkDetector,
+		keyGenerator:             keyGenerator,
+		marshalizer:              marshalizer,
+		rounder:                  rounder,
+		shardCoordinator:         shardCoordinator,
+		singleSigner:             singleSigner,
+		syncTimer:                syncTimer,
+		headerSigVerifier:        headerSigVerifier,
+		chainID:                  chainID,
+		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		networkShardingCollector: networkShardingCollector,
+		antifloodHandler:         antifloodHandler,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -154,6 +159,7 @@ func checkNewWorkerParams(
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
+	networkShardingCollector consensus.NetworkShardingCollector,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
@@ -200,6 +206,9 @@ func checkNewWorkerParams(
 	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
+	}
+	if check.IfNil(networkShardingCollector) {
+		return ErrNilNetworkShardingCollector
 	}
 	if check.IfNil(antifloodHandler) {
 		return ErrNilAntifloodHandler
@@ -351,6 +360,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			sigVerifErr.Error())
 	}
 
+	go wrk.updateNetworkShardingVals(message, cnsDta)
+
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
@@ -423,6 +434,11 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	sinceRoundStart := time.Since(wrk.rounder.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.rounder.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
+}
+
+func (wrk *Worker) updateNetworkShardingVals(message p2p.MessageP2P, cnsMsg *consensus.Message) {
+	wrk.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), cnsMsg.PubKey)
+	wrk.networkShardingCollector.UpdatePublicKeyShardId(cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

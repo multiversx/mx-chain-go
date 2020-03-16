@@ -637,6 +637,15 @@ type FloodPreventer interface {
 	IsInterfaceNil() bool
 }
 
+// TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls, on a given topic
+type TopicFloodPreventer interface {
+	Accumulate(identifier string, topic string) bool
+	ResetForTopic(topic string)
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {

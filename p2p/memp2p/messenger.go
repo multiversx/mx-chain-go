@@ -68,11 +68,6 @@ func NewMessenger(network *Network) (*Messenger, error) {
 	return messenger, nil
 }
 
-// ApplyOptions does not apply any option provided in this implementation
-func (messenger *Messenger) ApplyOptions(_ ...p2p.Option) error {
-	return nil
-}
-
 // ID returns the P2P ID of the messenger
 func (messenger *Messenger) ID() p2p.PeerID {
 	return messenger.p2pID
@@ -390,6 +385,21 @@ func (messenger *Messenger) ThresholdMinConnectedPeers() int {
 // NumMessagesReceived returns the number of messages received
 func (messenger *Messenger) NumMessagesReceived() uint64 {
 	return atomic.LoadUint64(&messenger.numReceived)
+}
+
+// SetPeerShardResolver is a dummy function, not setting anything
+func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
+	return nil
+}
+
+// SetPeerBlackListHandler does nothing
+func (messenger *Messenger) SetPeerBlackListHandler(_ p2p.BlacklistHandler) error {
+	return nil
+}
+
+// GetConnectedPeersInfo returns a nil object. Not implemented.
+func (messenger *Messenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
+	return nil
 }
 
 // Close disconnects this Messenger from the network it was connected to.

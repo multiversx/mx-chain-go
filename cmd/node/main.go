@@ -446,7 +446,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
+		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
@@ -702,7 +702,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, generalConfig, log, coreComponents)
+	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -1312,6 +1312,17 @@ func createNode(
 		return nil, err
 	}
 
+	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
+		network,
+		config,
+		nodesCoordinator,
+		shardCoordinator,
+		process.EpochStartTrigger,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -1352,6 +1363,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),

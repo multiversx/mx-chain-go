@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -21,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -49,8 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -59,8 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -87,32 +82,48 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
-func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
-	arg := discovery.ArgKadDht{
-		PeersRefreshInterval: peerRefreshInterval,
-		RandezVous:           "test",
-		InitialPeersList:     initialPeersList,
-		BucketSize:           100,
-		RoutingTableRefresh:  time.Minute,
+func createP2PConfig(initialPeerList []string) config.P2PConfig {
+	return config.P2PConfig{
+		Node: config.NodeConfig{},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             2,
+			RandezVous:                       "",
+			InitialPeerList:                  initialPeerList,
+			BucketSize:                       100,
+			RoutingTableRefreshIntervalInSec: 2,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
 	}
-	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
-
-	return peerDiscovery
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
 func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     createP2PConfig([]string{initialAddr}),
+	}
 
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
-	)
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
+func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -121,17 +132,27 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery(ctx context.Context) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: 0,
+			Seed: "",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
 
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewNullDiscoverer(),
-	)
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -195,7 +216,7 @@ func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
 	peers := make([]p2p.Messenger, numPeers)
 
 	for i := 0; i < numPeers; i++ {
-		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
+		peers[i] = CreateMessengerWithNoDiscovery()
 	}
 
 	return peers
@@ -287,6 +308,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -308,6 +330,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -387,15 +410,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -750,6 +773,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
+// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		UpdateRound(nodes, round)
@@ -1063,6 +1087,8 @@ func CreateSendersWithInitialBalances(
 	return sendersPrivateKeys
 }
 
+// CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
+// node's tx sign private key and send it on the transaction topic
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -1089,6 +1115,7 @@ func CreateAndSendTransaction(
 	node.OwnAccount.Nonce++
 }
 
+// CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price
 func CreateAndSendTransactionWithGasLimit(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -1144,7 +1171,7 @@ func GenerateTransferTx(
 		GasPrice: gasPrice,
 	}
 	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
-	signer := &singlesig.SchnorrSigner{}
+	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
 	return &tx
@@ -1254,7 +1281,7 @@ func GenerateSkAndPkInShard(
 	coordinator sharding.Coordinator,
 	shardId uint32,
 ) (crypto.PrivateKey, crypto.PublicKey, crypto.KeyGenerator) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+	suite := ed25519.NewEd25519()
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
@@ -1512,8 +1539,8 @@ func generateValidTx(
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
-		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
-		node.WithTxSingleSigner(&singlesig.SchnorrSigner{}),
+		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
+		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
 		node.WithAccountsAdapter(accnts),
 		node.WithTxAccumulator(txAccumulator),
 	)
@@ -1672,7 +1699,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
 	suite := mcl.NewSuiteBLS12()
-	singleSigner := &singlesig.SchnorrSigner{}
+	singleSigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)

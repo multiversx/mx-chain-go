@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -24,6 +25,11 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:INFO,p2p:ERROR")
+	defer func() {
+		_ = logger.SetLogLevel("*:INFO")
+	}()
 
 	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
@@ -135,6 +141,11 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:INFO,p2p:ERROR")
+	defer func() {
+		_ = logger.SetLogLevel("*:INFO")
+	}()
 
 	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
