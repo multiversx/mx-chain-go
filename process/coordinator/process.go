@@ -130,10 +130,6 @@ func NewTransactionCoordinator(
 // separateBodyByType creates a map of bodies according to type
 func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
 	separatedBodies := make(map[block.Type]*block.Body)
-	if check.IfNil(body) {
-		return separatedBodies
-	}
-
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
 
@@ -403,10 +399,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
-	if check.IfNil(body) {
-		return process.ErrNilBlockBody
-	}
-
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
 			return process.ErrMiniBlocksInWrongOrder
@@ -561,14 +553,8 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
-		if blockType == block.RewardsBlock {
-			// this has to be processed last
-			continue
-		}
-
 		interimProc := tc.getInterimProcessor(blockType)
 		if check.IfNil(interimProc) {
-			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
 			continue
 		}
 
@@ -655,7 +641,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniblock := body.MiniBlocks[i]
 		receiverShardId := miniblock.ReceiverShardID
-		if receiverShardId == tc.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
+		if receiverShardId == tc.shardCoordinator.SelfId() {
 			continue
 		}
 
