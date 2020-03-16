@@ -29,6 +29,7 @@ type BlockTrackerStub struct {
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
+	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
 }
 
 // AddTrackedHeader -
@@ -221,6 +222,15 @@ func (bts *BlockTrackerStub) RestoreToGenesis() {
 	if bts.RestoreToGenesisCalled != nil {
 		bts.RestoreToGenesisCalled()
 	}
+}
+
+// ShouldAddHeader -
+func (bts *BlockTrackerStub) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
+	if bts.ShouldAddHeaderCalled != nil {
+		return bts.ShouldAddHeaderCalled(headerHandler)
+	}
+
+	return true
 }
 
 // IsInterfaceNil -
