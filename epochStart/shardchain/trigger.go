@@ -295,6 +295,14 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
+	if metaHdr.IsStartOfEpochBlock() {
+		err = t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, hdrHash)
+		if err != nil {
+			log.Warn("processMetablock failed", "error", err)
+			return
+		}
+	}
+
 	t.updateTriggerFromMeta(metaHdr, hdrHash)
 }
 
@@ -402,12 +410,6 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
-		return false, 0
-	}
-
-	err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
-	if err != nil {
-		log.Warn("processMetablock failed", "error", err)
 		return false, 0
 	}
 

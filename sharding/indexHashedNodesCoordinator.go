@@ -474,12 +474,12 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  make([]Validator, 0),
+		Leaving:  leaving,
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
 	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
@@ -491,7 +491,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	displayNodesConfiguration(eligibleMap, waitingMap, leaving)
+	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
@@ -640,23 +640,28 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
-func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator) {
+func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
 	for shardId, validators := range eligible {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Debug("Eligible", "pk", pk, "shardId", shardId)
+			log.Debug("eligible", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for shardId, validators := range waiting {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Debug("Waiting", "pk", pk, "shardId", shardId)
+			log.Debug("waiting", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for _, validator := range leaving {
 		pk := validator.PubKey()
-		log.Debug("Leaving", "pk", pk)
+		log.Debug("computed leaving", "pk", pk)
+	}
+
+	for _, validator := range actualLeaving {
+		pk := validator.PubKey()
+		log.Debug("actually remaining", "pk", pk)
 	}
 }
