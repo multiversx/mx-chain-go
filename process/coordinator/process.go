@@ -226,6 +226,10 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 // SaveBlockDataToStorage saves the data from block body into storage units
 func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error {
+	if check.IfNil(body) {
+		return nil
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -283,6 +287,10 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
 func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, nil
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -325,6 +333,10 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 
 // RemoveBlockDataFromPool deletes block data from pools
 func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) error {
+	if check.IfNil(body) {
+		return nil
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
