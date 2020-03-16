@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -2351,7 +2352,7 @@ func GetSigningParams(
 	suite crypto.Suite,
 ) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
-	sk, err := getSk(ctx, skName, skIndexName, skPemFileName)
+	sk, readPk, err := getSkPk(ctx, skName, skIndexName, skPemFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -2364,6 +2365,17 @@ func GetSigningParams(
 	}
 
 	pubKey = privKey.GeneratePublic()
+	if len(readPk) > 0 {
+		var computedPkBytes []byte
+		computedPkBytes, err = pubKey.ToByteArray()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if !bytes.Equal(computedPkBytes, readPk) {
+			return nil, nil, nil, errPublicKeyMismatch
+		}
+	}
 
 	return keyGen, privKey, pubKey, err
 }
@@ -2386,24 +2398,36 @@ func decodeAddress(address string) ([]byte, error) {
 	return hex.DecodeString(address)
 }
 
-func getSk(
+func getSkPk(
 	ctx *cli.Context,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
-) ([]byte, error) {
+) ([]byte, []byte, error) {
 
 	//if flag is defined, it shall overwrite what was read from pem file
 	if ctx.GlobalIsSet(skName) {
 		encodedSk := []byte(ctx.GlobalString(skName))
-		return decodeAddress(string(encodedSk))
+		sk, err := decodeAddress(string(encodedSk))
+
+		return sk, nil, err
 	}
 
 	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, skIndex)
+	encodedSk, encodedPk, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return decodeAddress(string(encodedSk))
+	skBytes, err := decodeAddress(string(encodedSk))
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
+	}
+
+	pkBytes, err := decodeAddress(string(encodedPk))
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w for encoded public key", err)
+	}
+
+	return skBytes, pkBytes, nil
 }
