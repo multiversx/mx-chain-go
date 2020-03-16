@@ -791,26 +791,19 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 }
 
 func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
-	for i := 0; i < len(body.MiniBlocks); {
+	newBody := &block.Body{}
+	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
-		if mb.ReceiverShardID != mb.SenderShardID {
-			i++
+		isInShardUnsignedMB := mb.ReceiverShardID == mb.SenderShardID &&
+			(mb.Type == block.ReceiptBlock || mb.Type == block.SmartContractResultBlock)
+		if isInShardUnsignedMB {
 			continue
 		}
 
-		if mb.Type != block.ReceiptBlock && mb.Type != block.SmartContractResultBlock {
-			i++
-			continue
-		}
-
-		body.MiniBlocks[i] = body.MiniBlocks[len(body.MiniBlocks)-1]
-		body.MiniBlocks = body.MiniBlocks[:len(body.MiniBlocks)-1]
-		if i == len(body.MiniBlocks)-1 {
-			break
-		}
+		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
 	}
 
-	return body
+	return newBody
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
