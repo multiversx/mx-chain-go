@@ -463,6 +463,14 @@ func (txs *transactions) processTxsFromMe(
 	}
 
 	if !bytes.Equal(receivedBodyHash, calculatedBodyHash) {
+		for _, mb := range receivedMiniBlocks {
+			log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		}
+
+		for _, mb := range calculatedMiniBlocks {
+			log.Debug("calculated miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		}
+
 		log.Debug("block body missmatch",
 			"received body hash", receivedBodyHash,
 			"calculated body hash", calculatedBodyHash)

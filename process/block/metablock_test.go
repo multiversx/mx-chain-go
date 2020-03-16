@@ -799,7 +799,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
-	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{Type: 0}}}
+	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: 0}}}
 	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
@@ -1971,7 +1971,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	assert.Nil(t, err)
 
 	dcdBlk := mp.DecodeBlockBody(nil)
-	assert.Equal(t, &block.Body{}, dcdBlk)
+	assert.Nil(t, dcdBlk)
 
 	dcdBlk = mp.DecodeBlockBody(message)
 	assert.Equal(t, b, dcdBlk)
@@ -2176,7 +2176,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{[]byte("hashTx")},
 				ReceiverShardID: 0,
 			},
@@ -2227,7 +2227,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{hash1},
 				ReceiverShardID: 0,
 			},

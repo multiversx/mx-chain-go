@@ -824,7 +824,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 
 // CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
-	var allReceiptsHashes [][]byte
+	allReceiptsHashes := make([][]byte, 0)
 
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
@@ -834,13 +834,15 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 		mb := interProc.GetCreatedInShardMiniBlock()
 		if mb == nil {
+			log.Debug("nil in shard miniblock")
 			continue
 		}
 
-		log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+		log.Debug("CreateReceiptsHash.GetCreatedInShardMiniBlock",
 			"type", mb.Type,
 			"senderShardID", mb.SenderShardID,
 			"receiverShardID", mb.ReceiverShardID,
+			"numTxHashes", len(mb.TxHashes),
 		)
 
 		for _, hash := range mb.TxHashes {
