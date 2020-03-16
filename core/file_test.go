@@ -137,7 +137,7 @@ func TestLoadSkPkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 
 	assert.Nil(t, dataSk)
 	assert.Nil(t, dataPk)
-	assert.Equal(t, core.ErrEmptyFile, err)
+	assert.True(t, errors.Is(err, core.ErrEmptyFile))
 }
 
 func TestLoadSkPkFromPemFile_ShouldPass(t *testing.T) {
@@ -167,7 +167,7 @@ func TestLoadSkPkFromPemFile_ShouldPass(t *testing.T) {
 func TestLoadSkPkFromPemFile_IncorrectHeaderShoukldErr(t *testing.T) {
 	t.Parallel()
 
-	fileName := "testFile8"
+	fileName := "testFile9"
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
 
@@ -188,7 +188,7 @@ func TestLoadSkPkFromPemFile_IncorrectHeaderShoukldErr(t *testing.T) {
 func TestLoadSkPkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	fileName := "testFile9"
+	fileName := "testFile10"
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
 
@@ -201,13 +201,13 @@ func TestLoadSkPkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 
 	assert.Nil(t, dataSk)
 	assert.Nil(t, dataPk)
-	assert.Equal(t, core.ErrPemFileIsInvalid, err)
+	assert.True(t, errors.Is(err, core.ErrPemFileIsInvalid))
 }
 
 func TestLoadSkPkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	t.Parallel()
 
-	fileName := "testFile10"
+	fileName := "testFile11"
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
 
@@ -222,7 +222,7 @@ func TestLoadSkPkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 
 	assert.Nil(t, dataSk)
 	assert.Nil(t, dataPk)
-	assert.Equal(t, core.ErrInvalidIndex, err)
+	assert.True(t, errors.Is(err, core.ErrInvalidIndex))
 }
 
 func TestSaveSkToPemFile_NilFileShouldErr(t *testing.T) {
@@ -239,7 +239,7 @@ func TestSaveSkToPemFile_NilFileShouldErr(t *testing.T) {
 func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
 	t.Parallel()
 
-	fileName := "testFile11"
+	fileName := "testFile12"
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
 
