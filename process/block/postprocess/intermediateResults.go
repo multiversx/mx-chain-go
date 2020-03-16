@@ -75,7 +75,7 @@ func NewIntermediateResultsProcessor(
 }
 
 // CreateAllInterMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
-func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	miniBlocks := make(map[uint32]*block.MiniBlock, int(irp.shardCoordinator.NumberOfShards())+1)
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
@@ -91,7 +91,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		irp.currTxs.AddTx([]byte(key), value.tx)
 	}
 
-	finalMBs := make(map[uint32]*block.MiniBlock)
+	finalMBs := make([]*block.MiniBlock, 0)
 	for shId, miniblock := range miniBlocks {
 		if len(miniblock.TxHashes) > 0 {
 			miniblock.SenderShardID = irp.shardCoordinator.SelfId()
@@ -112,13 +112,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 				log.Trace("tx", "hash", hash)
 			}
 
-			finalMBs[shId] = miniblock
+			finalMBs = append(finalMBs, miniblock)
+
+			if miniblock.ReceiverShardID == irp.shardCoordinator.SelfId() {
+				irp.intraShardMiniBlock = miniblock.Clone()
+			}
 		}
 	}
 
-	if _, ok := finalMBs[irp.shardCoordinator.SelfId()]; ok {
-		irp.intraShardMiniBlock = finalMBs[irp.shardCoordinator.SelfId()].Clone()
-	}
+	sort.Slice(finalMBs, func(i, j int) bool {
+		return finalMBs[i].ReceiverShardID < finalMBs[j].ReceiverShardID
+	})
 
 	irp.mutInterResultsForBlock.Unlock()
 
@@ -128,6 +132,10 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
+	createMapMbs := make(map[uint32]*block.MiniBlock)
+	for _, mb := range scrMbs {
+		createMapMbs[mb.ReceiverShardID] = mb
+	}
 
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -140,7 +148,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 		}
 
 		countedCrossShard++
-		err := irp.verifyMiniBlock(scrMbs, mb)
+		err := irp.verifyMiniBlock(createMapMbs, mb)
 		if err != nil {
 			return err
 		}

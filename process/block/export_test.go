@@ -333,7 +333,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	return mp.applyBodyToHeader(metaHdr, bodyHandler)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, bodyHandler *block.Body) (*block.Body, error) {
 	return sp.applyBodyToHeader(shardHdr, bodyHandler)
 }
 

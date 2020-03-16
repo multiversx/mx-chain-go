@@ -690,7 +690,7 @@ func (sp *shardProcessor) CreateBlock(
 
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
 	sp.blockSizeThrottler.ComputeMaxItems()
 
 	log.Debug("started creating block body",
@@ -1634,7 +1634,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *block.Body) (*block.Body, error) {
 	sw := core.NewStopWatch()
 	sw.Start("applyBodyToHeader")
 	defer func() {
@@ -1649,13 +1649,8 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 		go sp.checkAndRequestIfMetaHeadersMissing(shardHeader.GetRound())
 	}()
 
-	if check.IfNil(bodyHandler) {
+	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
-	}
-
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
 	}
 
 	var err error

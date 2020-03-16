@@ -461,7 +461,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			return process.ErrTimeIsOut
+			err = process.ErrTimeIsOut
+			return err
 		}
 
 		err = scr.computeGasConsumed(
@@ -482,7 +483,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			return process.ErrTimeIsOut
+			err = process.ErrTimeIsOut
+			return err
 		}
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])

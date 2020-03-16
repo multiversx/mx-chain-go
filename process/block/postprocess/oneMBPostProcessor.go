@@ -61,10 +61,10 @@ func NewOneMiniBlockPostProcessor(
 }
 
 // CreateAllInterMiniBlocks returns the miniblock for the current round created from the receipts/bad transactions
-func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	selfId := opp.shardCoordinator.SelfId()
 
-	miniBlocks := make(map[uint32]*block.MiniBlock)
+	miniBlocks := make([]*block.MiniBlock, 0)
 	opp.mutInterResultsForBlock.Lock()
 	defer opp.mutInterResultsForBlock.Unlock()
 
@@ -72,31 +72,31 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 		return miniBlocks
 	}
 
-	miniBlocks[selfId] = &block.MiniBlock{
+	miniBlock := &block.MiniBlock{
 		Type:            opp.blockType,
 		ReceiverShardID: selfId,
 		SenderShardID:   selfId,
 	}
 
 	for key := range opp.interResultsForBlock {
-		miniBlocks[selfId].TxHashes = append(miniBlocks[selfId].TxHashes, []byte(key))
+		miniBlock.TxHashes = append(miniBlock.TxHashes, []byte(key))
 	}
 
-	sort.Slice(miniBlocks[selfId].TxHashes, func(a, b int) bool {
-		return bytes.Compare(miniBlocks[selfId].TxHashes[a], miniBlocks[selfId].TxHashes[b]) < 0
+	sort.Slice(miniBlock.TxHashes, func(a, b int) bool {
+		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
 	log.Trace("oneMBPostProcessor.CreateAllInterMiniBlocks",
-		"type", miniBlocks[selfId].Type,
-		"senderShardID", miniBlocks[selfId].SenderShardID,
-		"receiverShardID", miniBlocks[selfId].ReceiverShardID,
+		"type", miniBlock.Type,
+		"senderShardID", miniBlock.SenderShardID,
+		"receiverShardID", miniBlock.ReceiverShardID,
 	)
 
-	for _, hash := range miniBlocks[selfId].TxHashes {
+	for _, hash := range miniBlock.TxHashes {
 		log.Trace("tx", "hash", hash)
 	}
-
-	opp.intraShardMiniBlock = miniBlocks[selfId].Clone()
+	miniBlocks = append(miniBlocks, miniBlock)
+	opp.intraShardMiniBlock = miniBlock.Clone()
 
 	return miniBlocks
 }
@@ -104,6 +104,11 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 // VerifyInterMiniBlocks verifies if the receipts/bad transactions added to the block are valid
 func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := opp.CreateAllInterMiniBlocks()
+	createMapMbs := make(map[uint32]*block.MiniBlock)
+	for _, mb := range scrMbs {
+		createMapMbs[mb.ReceiverShardID] = mb
+	}
+
 	verifiedOne := false
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
@@ -115,7 +120,7 @@ func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 			return process.ErrTooManyReceiptsMiniBlocks
 		}
 
-		err := opp.verifyMiniBlock(scrMbs, mb)
+		err := opp.verifyMiniBlock(createMapMbs, mb)
 		if err != nil {
 			return err
 		}

@@ -792,8 +792,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 
 func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 	newBody := &block.Body{}
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		mb := body.MiniBlocks[i]
+	for _, mb := range body.MiniBlocks {
 		isInShardUnsignedMB := mb.ReceiverShardID == mb.SenderShardID &&
 			(mb.Type == block.ReceiptBlock || mb.Type == block.SmartContractResultBlock)
 		if isInShardUnsignedMB {
