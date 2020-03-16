@@ -104,6 +104,7 @@ type baseBootstrap struct {
 	mutRcvMiniBlocks   sync.Mutex
 	miniBlocksResolver process.MiniBlocksResolver
 	poolsHolder        dataRetriever.PoolsHolder
+	mutRequestHeaders  sync.Mutex
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -289,14 +290,30 @@ func (boot *baseBootstrap) computeNodeState() {
 	}
 
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
-	boot.requestHeadersIfSyncIsStuck()
+
+	if boot.shouldTryToRequestHeaders() {
+		go boot.requestHeadersIfSyncIsStuck()
+	}
+}
+
+func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
+	if boot.rounder.Index() < 0 {
+		return false
+	}
+	if boot.isForcedRollBackOneBlock() {
+		return false
+	}
+	if boot.isForcedRollBackToNonce() {
+		return false
+	}
+	if !boot.isNodeSynchronized {
+		return true
+	}
+
+	return boot.rounder.Index()%process.RoundModulusTriggerWhenSyncIsStuck == 0
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
-	if boot.rounder.Index() < 0 {
-		return
-	}
-
 	lastSyncedRound := uint64(0)
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currHeader) {
@@ -312,12 +329,12 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 	toNonce := fromNonce + numHeadersToRequest - 1
 
-	go boot.requestHeaders(fromNonce, toNonce)
-
 	log.Debug("requestHeadersIfSyncIsStuck",
 		"from nonce", fromNonce,
 		"to nonce", toNonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -326,6 +343,13 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		log.Debug("CalculateHash", "error", err.Error())
 		return nil
 	}
+
+	log.Debug("removeHeaderFromPools",
+		"shard", header.GetShardID(),
+		"epoch", header.GetEpoch(),
+		"round", header.GetRound(),
+		"nonce", header.GetNonce(),
+		"hash", hash)
 
 	boot.headers.RemoveHeaderByHash(hash)
 
@@ -389,7 +413,13 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	go boot.requestHeaders(fromNonce, toNonce)
+
+	log.Debug("requestHeadersFromNonceIfMissing",
+		"from nonce", fromNonce,
+		"to nonce", toNonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
 }
 
 // StopSync method will stop SyncBlocks
@@ -469,9 +499,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		if boot.isForcedFork() {
-			log.Debug("fork has been forced")
-			boot.rollBackOnForcedFork()
+		if boot.isForcedRollBackOneBlock() {
+			log.Debug("roll back one block has been forced")
+			boot.rollBackOneBlockForced()
+			return nil
+		}
+
+		if boot.isForcedRollBackToNonce() {
+			log.Debug("roll back to nonce has been forced", "nonce", boot.forkInfo.Nonce)
+			boot.rollBackToNonceForced()
 			return nil
 		}
 
@@ -689,19 +725,34 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
-func (boot *baseBootstrap) isForcedFork() bool {
+func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce == math.MaxUint64 &&
 		boot.forkInfo.Hash == nil
 }
 
-func (boot *baseBootstrap) rollBackOnForcedFork() {
+func (boot *baseBootstrap) isForcedRollBackToNonce() bool {
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Round == math.MaxUint64 &&
+		boot.forkInfo.Hash == nil
+}
+
+func (boot *baseBootstrap) rollBackOneBlockForced() {
 	err := boot.rollBack(false)
 	if err != nil {
-		log.Debug("rollBack", "error", err.Error())
+		log.Debug("rollBackOneBlockForced", "error", err.Error())
 	}
 
 	boot.forkDetector.ResetFork()
+}
+
+func (boot *baseBootstrap) rollBackToNonceForced() {
+	err := boot.rollBack(true)
+	if err != nil {
+		log.Debug("rollBackToNonceForced", "error", err.Error())
+	}
+
+	boot.forkDetector.ResetProbableHighestNonce()
 }
 
 func (boot *baseBootstrap) restoreState(
@@ -845,6 +896,9 @@ func (boot *baseBootstrap) init() {
 }
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
+	boot.mutRequestHeaders.Lock()
+	defer boot.mutRequestHeaders.Unlock()
+
 	numRequestedHeaders := 0
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
 		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)

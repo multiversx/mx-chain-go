@@ -491,7 +491,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
 	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
