@@ -1970,8 +1970,9 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(b)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := mp.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = mp.DecodeBlockBody(message)
 	assert.Equal(t, b, dcdBlk)

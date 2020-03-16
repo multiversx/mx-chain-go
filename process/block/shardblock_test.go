@@ -3002,8 +3002,9 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := sp.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = sp.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
