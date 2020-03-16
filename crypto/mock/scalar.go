@@ -12,6 +12,8 @@ type ScalarMock struct {
 
 	MarshalBinaryStub   func(x int) ([]byte, error)
 	UnmarshalBinaryStub func([]byte) (int, error)
+	GetUnderlyingObjStub func() interface{}
+
 }
 
 // Equal tests if receiver is equal with the scalar s given as parameter.
@@ -99,6 +101,9 @@ func (sm *ScalarMock) SetBytes([]byte) (crypto.Scalar, error) {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (sm *ScalarMock) GetUnderlyingObj() interface{} {
+	if sm.GetUnderlyingObjStub != nil {
+		return sm.GetUnderlyingObjStub()
+	}
 	return sm.X
 }
 

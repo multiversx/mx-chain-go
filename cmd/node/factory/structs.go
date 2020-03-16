@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -15,15 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	kybersig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
@@ -64,6 +64,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -90,7 +91,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -452,7 +453,7 @@ func NewCryptoComponentsFactoryArgs(
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
 	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &kybersig.SchnorrSigner{}
+	txSingleSigner := &singlesig.Ed25519Signer{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -473,7 +474,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, err
 	}
 
-	txSignKeyGen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
 	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
 	if err != nil {
@@ -722,11 +723,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = newPendingMiniBlocks(
-			args.data.Store,
-			args.coreData.InternalMarshalizer,
-			args.data.Datapool,
-		)
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
 		if err != nil {
 			return nil, err
 		}
@@ -1686,36 +1683,6 @@ func newBlockTracker(
 	return nil, errors.New("could not create block tracker")
 }
 
-func newPendingMiniBlocks(
-	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-	dataPool dataRetriever.PoolsHolder,
-) (process.PendingMiniBlocksHandler, error) {
-
-	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
-	if check.IfNil(miniBlockHeaderStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
-	}
-
-	metaBlocksStore := store.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaBlocksStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
-	}
-
-	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
-		Marshalizer:      marshalizer,
-		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    dataPool.Headers(),
-		MetaBlockStorage: metaBlocksStore,
-	}
-	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	return pendingMiniBlocks, nil
-}
-
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -2397,7 +2364,7 @@ func GetSigningParams(
 	suite crypto.Suite,
 ) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
-	sk, err := getSk(ctx, skName, skIndexName, skPemFileName)
+	sk, readPk, err := getSkPk(ctx, skName, skIndexName, skPemFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -2410,6 +2377,17 @@ func GetSigningParams(
 	}
 
 	pubKey = privKey.GeneratePublic()
+	if len(readPk) > 0 {
+		var computedPkBytes []byte
+		computedPkBytes, err = pubKey.ToByteArray()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if !bytes.Equal(computedPkBytes, readPk) {
+			return nil, nil, nil, errPublicKeyMismatch
+		}
+	}
 
 	return keyGen, privKey, pubKey, err
 }
@@ -2432,24 +2410,36 @@ func decodeAddress(address string) ([]byte, error) {
 	return hex.DecodeString(address)
 }
 
-func getSk(
+func getSkPk(
 	ctx *cli.Context,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
-) ([]byte, error) {
+) ([]byte, []byte, error) {
 
 	//if flag is defined, it shall overwrite what was read from pem file
 	if ctx.GlobalIsSet(skName) {
 		encodedSk := []byte(ctx.GlobalString(skName))
-		return decodeAddress(string(encodedSk))
+		sk, err := decodeAddress(string(encodedSk))
+
+		return sk, nil, err
 	}
 
 	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, skIndex)
+	encodedSk, encodedPk, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return decodeAddress(string(encodedSk))
+	skBytes, err := decodeAddress(string(encodedSk))
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
+	}
+
+	pkBytes, err := decodeAddress(string(encodedPk))
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w for encoded public key", err)
+	}
+
+	return skBytes, pkBytes, nil
 }
