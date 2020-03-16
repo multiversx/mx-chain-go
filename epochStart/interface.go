@@ -66,6 +66,7 @@ type RequestHandler interface {
 type EpochStartHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(hdr data.HeaderHandler)
+	NotifyOrder() uint32
 }
 
 // EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
