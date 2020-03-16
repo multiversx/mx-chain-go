@@ -624,6 +624,7 @@ type BlockTracker interface {
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
+	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
 
