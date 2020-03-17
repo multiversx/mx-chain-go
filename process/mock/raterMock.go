@@ -13,15 +13,14 @@ type RaterMock struct {
 	IncreaseValidator uint32
 	DecreaseValidator uint32
 
-	GetRatingCalled                  func(string) uint32
-	UpdateRatingFromTempRatingCalled func([]string) error
-	GetStartRatingCalled             func() uint32
-	ComputeIncreaseProposerCalled    func(val uint32) uint32
-	ComputeDecreaseProposerCalled    func(val uint32) uint32
-	ComputeIncreaseValidatorCalled   func(val uint32) uint32
-	ComputeDecreaseValidatorCalled   func(val uint32) uint32
-	GetChancesCalled                 func(val uint32) uint32
-	RatingReader                     sharding.RatingReader
+	GetRatingCalled                func(string) uint32
+	GetStartRatingCalled           func() uint32
+	ComputeIncreaseProposerCalled  func(val uint32) uint32
+	ComputeDecreaseProposerCalled  func(val uint32) uint32
+	ComputeIncreaseValidatorCalled func(val uint32) uint32
+	ComputeDecreaseValidatorCalled func(val uint32) uint32
+	GetChancesCalled               func(val uint32) uint32
+	RatingReader                   sharding.RatingReader
 }
 
 // GetNewMockRater -
@@ -29,9 +28,6 @@ func GetNewMockRater() *RaterMock {
 	raterMock := &RaterMock{}
 	raterMock.GetRatingCalled = func(s string) uint32 {
 		return raterMock.StartRating
-	}
-	raterMock.UpdateRatingFromTempRatingCalled = func(s []string) error {
-		return nil
 	}
 	raterMock.GetStartRatingCalled = func() uint32 {
 		return raterMock.StartRating
@@ -72,11 +68,6 @@ func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
 // GetRating -
 func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
-}
-
-// UpdateRatingFromTempRating -
-func (rm *RaterMock) UpdateRatingFromTempRating(pks []string) error {
-	return rm.UpdateRatingFromTempRatingCalled(pks)
 }
 
 // GetStartRating -

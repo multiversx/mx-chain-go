@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestNewValidatorInfoProcessor_NilValidatorStatisticsProcessorShouldErr(t *t
 	validatorInfoProcessor, err := NewValidatorInfoProcessor(args)
 
 	require.Nil(t, validatorInfoProcessor)
-	require.Equal(t, process.ErrNilValidatorStatistics, err)
+	require.Equal(t, epochStart.ErrNilValidatorStatistics, err)
 }
 
 func TestNewValidatorInfoProcessor_NilMarshalizerShouldErr(t *testing.T) {
@@ -46,7 +47,7 @@ func TestNewValidatorInfoProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	validatorInfoProcessor, err := NewValidatorInfoProcessor(args)
 
 	require.Nil(t, validatorInfoProcessor)
-	require.Equal(t, process.ErrNilMarshalizer, err)
+	require.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
 func TestNewValidatorInfoProcessor_NilHasherShouldErr(t *testing.T) {
@@ -57,7 +58,7 @@ func TestNewValidatorInfoProcessor_NilHasherShouldErr(t *testing.T) {
 	validatorInfoProcessor, err := NewValidatorInfoProcessor(args)
 
 	require.Nil(t, validatorInfoProcessor)
-	require.Equal(t, process.ErrNilHasher, err)
+	require.Equal(t, epochStart.ErrNilHasher, err)
 }
 
 func TestNewValidatorInfoProcessor_NilMiniBlocksPoolErr(t *testing.T) {
@@ -68,7 +69,7 @@ func TestNewValidatorInfoProcessor_NilMiniBlocksPoolErr(t *testing.T) {
 	validatorInfoProcessor, err := NewValidatorInfoProcessor(args)
 
 	require.Nil(t, validatorInfoProcessor)
-	require.Equal(t, process.ErrNilMiniBlockPool, err)
+	require.Equal(t, epochStart.ErrNilMiniBlockPool, err)
 }
 
 func TestNewValidatorInfoProcessor_NilRequestHandlerShouldErr(t *testing.T) {
@@ -79,7 +80,7 @@ func TestNewValidatorInfoProcessor_NilRequestHandlerShouldErr(t *testing.T) {
 	validatorInfoProcessor, err := NewValidatorInfoProcessor(args)
 
 	require.Nil(t, validatorInfoProcessor)
-	require.Equal(t, process.ErrNilRequestHandler, err)
+	require.Equal(t, epochStart.ErrNilRequestHandler, err)
 }
 
 func TestValidatorInfoProcessor_IsInterfaceNil(t *testing.T) {

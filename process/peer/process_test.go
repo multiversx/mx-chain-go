@@ -162,6 +162,38 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
 }
 
+func TestNewValidatorStatisticsProcessor_NilStakeValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.StakeValue = nil
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrNilEconomicsData, err)
+}
+
+func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.Rater = nil
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrNilRater, err)
+}
+
+func TestNewValidatorStatisticsProcessor_NilRewardsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.RewardsHandler = nil
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrNilRewardsHandler, err)
+}
 func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 

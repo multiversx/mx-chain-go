@@ -49,19 +49,19 @@ type ValidatorInfoProcessor struct {
 // NewValidatorInfoProcessor creates a new ValidatorInfoProcessor object
 func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorInfoProcessor, error) {
 	if check.IfNil(arguments.ValidatorStatisticsProcessor) {
-		return nil, process.ErrNilValidatorStatistics
+		return nil, epochStart.ErrNilValidatorStatistics
 	}
 	if check.IfNil(arguments.Hasher) {
-		return nil, process.ErrNilHasher
+		return nil, epochStart.ErrNilHasher
 	}
 	if check.IfNil(arguments.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.MiniBlocksPool) {
-		return nil, process.ErrNilMiniBlockPool
+		return nil, epochStart.ErrNilMiniBlockPool
 	}
 	if check.IfNil(arguments.Requesthandler) {
-		return nil, process.ErrNilRequestHandler
+		return nil, epochStart.ErrNilRequestHandler
 	}
 
 	vip := &ValidatorInfoProcessor{
