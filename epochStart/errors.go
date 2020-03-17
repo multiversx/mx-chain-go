@@ -44,6 +44,12 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 // ErrNilArgsPendingMiniblocks signals that nil argument was passed
 var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
 
+// ErrNilMiniblocks signals that nil argument was passed
+var ErrNilMiniblocks = errors.New("nil arguments for miniblocks object")
+
+// ErrNilMiniblock signals that nil miniblock has been provided
+var ErrNilMiniblock = errors.New("nil miniblock")
+
 // ErrMetaHdrNotFound signals that metaheader was not found
 var ErrMetaHdrNotFound = errors.New("meta header not found")
 
@@ -68,6 +74,9 @@ var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
+// ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
+var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
+
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
 
@@ -76,6 +85,15 @@ var ErrNilTriggerStorage = errors.New("nil trigger storage")
 
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
+
+// ErrNilMiniblocksStorage signals that nil miniblocks storage has been provided
+var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
+
+// ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
+var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
+
+// ErrTxHashDoesNotMatch signals that created and received tx hash does not match
+var ErrTxHashDoesNotMatch = errors.New("validatorInfo miniblock tx hash does not match")
 
 // ErrRewardMiniBlockHashDoesNotMatch signals that created and received rewards miniblock hash does not match
 var ErrRewardMiniBlockHashDoesNotMatch = errors.New("reward miniblock hash does not match")
@@ -91,3 +109,9 @@ var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and recei
 
 // ErrNilShardHeaderStorage signals that shard header storage is nil
 var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
+
+// ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
+var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
+
+// ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
+var ErrNilValidatorInfo = errors.New("validator info is nil")
