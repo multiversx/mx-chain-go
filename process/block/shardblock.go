@@ -60,29 +60,28 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accountsDB:                   arguments.AccountsDB,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
-		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
-		stateCheckpointModulus:       arguments.StateCheckpointModulus,
-		blockChain:                   arguments.BlockChain,
-		feeHandler:                   arguments.FeeHandler,
+		accountsDB:             arguments.AccountsDB,
+		blockSizeThrottler:     blockSizeThrottler,
+		forkDetector:           arguments.ForkDetector,
+		hasher:                 arguments.Hasher,
+		marshalizer:            arguments.Marshalizer,
+		store:                  arguments.Store,
+		shardCoordinator:       arguments.ShardCoordinator,
+		nodesCoordinator:       arguments.NodesCoordinator,
+		uint64Converter:        arguments.Uint64Converter,
+		requestHandler:         arguments.RequestHandler,
+		appStatusHandler:       statusHandler.NewNilStatusHandler(),
+		blockChainHook:         arguments.BlockChainHook,
+		txCoordinator:          arguments.TxCoordinator,
+		rounder:                arguments.Rounder,
+		epochStartTrigger:      arguments.EpochStartTrigger,
+		headerValidator:        arguments.HeaderValidator,
+		bootStorer:             arguments.BootStorer,
+		blockTracker:           arguments.BlockTracker,
+		dataPool:               arguments.DataPool,
+		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		blockChain:             arguments.BlockChain,
+		feeHandler:             arguments.FeeHandler,
 	}
 
 	if check.IfNil(arguments.TxsPoolsCleaner) {
@@ -1527,10 +1526,14 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		currMBProcessed, currTxsAdded, hdrProcessFinished, err := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currMetaHdr,
 			processedMiniBlocksHashes,
 			haveTime)
+
+		if err != nil {
+			return nil, 0, 0, err
+		}
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, currMBProcessed...)
