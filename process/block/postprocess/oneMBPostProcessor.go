@@ -48,6 +48,7 @@ func NewOneMiniBlockPostProcessor(
 		shardCoordinator: coordinator,
 		store:            store,
 		storageType:      storageType,
+		mapTxToResult:    make(map[string]string),
 	}
 
 	opp := &oneMBPostProcessor{
@@ -147,6 +148,7 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
 		opp.interResultsForBlock[string(txHash)] = scrInfo
+		opp.mapTxToResult[string(txHash)] = string(txHash)
 	}
 
 	return nil

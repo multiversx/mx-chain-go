@@ -14,6 +14,14 @@ type IntermediateTransactionHandlerMock struct {
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
+	RemoveProcessedResultsForCalled          func(txHashes [][]byte)
+}
+
+// RemoveProcessedResultsFor -
+func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResultsFor(txHashes [][]byte) {
+	if ith.RemoveProcessedResultsForCalled != nil {
+		ith.RemoveProcessedResultsForCalled(txHashes)
+	}
 }
 
 // GetCreatedInShardMiniBlock -

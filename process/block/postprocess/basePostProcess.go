@@ -37,6 +37,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
+	mapTxToResult           map[string]string
 	intraShardMiniBlock     *block.MiniBlock
 }
 
@@ -69,6 +70,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
+	bpp.mapTxToResult = make(map[string]string)
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -155,4 +157,24 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	}
 
 	return bpp.intraShardMiniBlock.Clone()
+}
+
+// RemoveProcessedResultsFor will remove the created results for the transactions which were reverted
+func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
+	bpp.mutInterResultsForBlock.Lock()
+	defer bpp.mutInterResultsForBlock.Unlock()
+
+	if len(bpp.mapTxToResult) == 0 {
+		return
+	}
+
+	for _, txHash := range txHashes {
+		resultHash, ok := bpp.mapTxToResult[string(txHash)]
+		if !ok {
+			continue
+		}
+
+		delete(bpp.interResultsForBlock, resultHash)
+		delete(bpp.mapTxToResult, string(txHash))
+	}
 }

@@ -772,7 +772,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	snapshot := tc.accounts.JournalLen()
 
-	err := preproc.ProcessMiniBlock(miniBlock, haveTime)
+	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())
 
@@ -782,10 +782,22 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
+		tc.revertProcessedTxsResults(processedTxs)
+
 		return err
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
+	for _, value := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[value]
+		if !ok {
+			continue
+		}
+		interProc.RemoveProcessedResultsFor(txHashes)
+	}
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed

@@ -97,11 +97,11 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
-		return nil
+		return nil, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
+	return nil, ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

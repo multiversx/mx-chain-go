@@ -428,22 +428,19 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (bloc
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(
-	miniBlock *block.MiniBlock,
-	haveTime func() bool,
-) error {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return nil, process.ErrWrongTypeInMiniBlock
 	}
 
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if scr.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockScrs)) {
-		return process.ErrMaxBlockSizeReached
+		return nil, process.ErrMaxBlockSizeReached
 	}
 
 	processedTxHashes := make([][]byte, 0)
@@ -464,7 +461,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	for index := range miniBlockScrs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return err
+			return processedTxHashes, err
 		}
 
 		err = scr.computeGasConsumed(
@@ -477,7 +474,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
-			return err
+			return processedTxHashes, err
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
@@ -486,12 +483,12 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	for index := range miniBlockScrs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return err
+			return processedTxHashes, err
 		}
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {
-			return err
+			return processedTxHashes, err
 		}
 	}
 
@@ -506,7 +503,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	scr.blockSizeComputation.AddNumMiniBlocks(1)
 	scr.blockSizeComputation.AddNumTxs(len(miniBlockScrs))
 
-	return nil
+	return nil, nil
 }
 
 // CreateMarshalizedData marshalizes smartContractResults and creates and saves them into a new structure
