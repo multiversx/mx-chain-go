@@ -264,3 +264,8 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 
 	sr.SetEligibleList(epochNodes)
 }
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (sr *subroundStartRound) NotifyOrder() uint32 {
+	return core.ConsensusOrder
+}
