@@ -653,9 +653,10 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Trace("smart contract processing returned with error",
+		log.Debug("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
+			"return message", vmOutput.ReturnMessage,
 		)
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
