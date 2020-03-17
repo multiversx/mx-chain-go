@@ -19,6 +19,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200309134340-0572f9a1bf99 h1:j
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200309134340-0572f9a1bf99/go.mod h1:xbYM5GJvyzcMU8sICLLWrxknw4DQ7TiJCawPuN0UQX0=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200311155408-d889e6eb1049 h1:gLpSci+uxfItBrxtrKveTipvdUgsGjV84GX26BJOU/k=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200311155408-d889e6eb1049/go.mod h1:xbYM5GJvyzcMU8sICLLWrxknw4DQ7TiJCawPuN0UQX0=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200317152459-7c1b064f8cc5 h1:c6jSx5cVuJwH7w0ZLkG5EHMLzN7J1E17yaJXN7l3H3Y=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200317152459-7c1b064f8cc5/go.mod h1:xbYM5GJvyzcMU8sICLLWrxknw4DQ7TiJCawPuN0UQX0=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
