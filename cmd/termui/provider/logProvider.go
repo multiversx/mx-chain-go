@@ -89,7 +89,7 @@ func writeMessage(presenter PresenterHandler, message []byte) {
 func formatMessage(message []byte) []byte {
 	logLine := &logger.LogLineWrapper{}
 
-	marshalizer := &marshal.ProtobufMarshalizer{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 	err := marshalizer.Unmarshal(logLine, message)
 	if err != nil {
 		log.Debug("can not unmarshal received data", "data", hex.EncodeToString(message))

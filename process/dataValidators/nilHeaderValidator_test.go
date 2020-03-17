@@ -31,6 +31,7 @@ func TestNilHeaderValidator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	hdrValidator, _ := dataValidators.NewNilHeaderValidator()
+	_ = hdrValidator
 	hdrValidator = nil
 
 	assert.True(t, check.IfNil(hdrValidator))

@@ -20,7 +20,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &mock.MarshalizerMock{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }
@@ -55,7 +55,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,

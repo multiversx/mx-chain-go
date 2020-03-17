@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -50,7 +51,13 @@ func (ewl *EvictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes)
 		return nil
 	}
 
-	marshalizedHashes, err := ewl.Marshalizer.Marshal(hashes)
+	b := &batch.Batch{}
+
+	for h := range hashes {
+		b.Data = append(b.Data, []byte(h))
+	}
+
+	marshalizedHashes, err := ewl.Marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
@@ -79,9 +86,16 @@ func (ewl *EvictionWaitingList) Evict(rootHash []byte) (data.ModifiedHashes, err
 		return nil, err
 	}
 
-	err = ewl.Marshalizer.Unmarshal(&hashes, marshalizedHashes)
+	b := &batch.Batch{}
+
+	err = ewl.Marshalizer.Unmarshal(b, marshalizedHashes)
 	if err != nil {
 		return nil, err
+	}
+
+	hashes = make(data.ModifiedHashes, len(b.Data))
+	for _, h := range b.Data {
+		hashes[string(h)] = struct{}{}
 	}
 
 	err = ewl.Db.Remove(rootHash)
@@ -97,6 +111,7 @@ func (ewl *EvictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
+// PresentInNewHashes --
 func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 	ewl.OpMutex.Lock()
 	defer ewl.OpMutex.Unlock()
@@ -118,9 +133,16 @@ func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 				return false, err
 			}
 
-			err = ewl.Marshalizer.Unmarshal(&hashes, marshalizedHashes)
+			b := &batch.Batch{}
+
+			err = ewl.Marshalizer.Unmarshal(b, marshalizedHashes)
 			if err != nil {
 				return false, err
+			}
+
+			hashes = make(data.ModifiedHashes, len(b.Data))
+			for _, h := range b.Data {
+				hashes[string(h)] = struct{}{}
 			}
 		}
 		_, ok := hashes[hash]

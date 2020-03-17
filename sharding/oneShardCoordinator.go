@@ -13,7 +13,7 @@ func (osc *OneShardCoordinator) NumberOfShards() uint32 {
 }
 
 // ComputeId gets shard for the given address
-func (osc *OneShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
+func (osc *OneShardCoordinator) ComputeId(_ state.AddressContainer) uint32 {
 	return 0
 }
 
@@ -23,7 +23,7 @@ func (osc *OneShardCoordinator) SelfId() uint32 {
 }
 
 // SameShard returns weather two addresses belong to the same shard
-func (osc *OneShardCoordinator) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (osc *OneShardCoordinator) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
@@ -35,8 +35,5 @@ func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) stri
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (osc *OneShardCoordinator) IsInterfaceNil() bool {
-	if osc == nil {
-		return true
-	}
-	return false
+	return osc == nil
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,7 +65,7 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 
 	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
+		CollapsedEn: CollapsedEn{
 			Key:          []byte{2},
 			EncodedChild: []byte("doge"),
 		},

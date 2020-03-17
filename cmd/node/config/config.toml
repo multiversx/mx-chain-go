@@ -232,7 +232,7 @@
     Prefix = "0x"
 
 [BLSPublicKey]
-    Length = 128
+    Length = 96
     Prefix = "0x"
 
 [Hasher]
@@ -241,14 +241,22 @@
 [MultisigHasher]
    Type = "blake2b"
 
-# Marshalizer configuration
+# The main marshalizer, used in internod communication
 # Type idenftifies the marshalizer
 # SizeCheckDelta the maximum allow drift between the input data buffer and
 #     the reencoded version (in percents).
 #     0 disables the feature.
 [Marshalizer]
-   Type = "json"
+   Type = "gogo protobuf"
    SizeCheckDelta = 0
+
+# The marshalizer used for smartcontracts data exchage
+[VmMarshalizer]
+   Type = "json"
+
+# The marshalizer used in transction signing
+[TxSignMarshalizer]
+   Type = "json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]

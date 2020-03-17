@@ -38,7 +38,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,

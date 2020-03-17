@@ -85,7 +85,7 @@ func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 // displayLogInfo writes to the output information about the block and transactions
 func (txc *transactionCounter) displayLogInfo(
 	header *block.Header,
-	body block.Body,
+	body *block.Body,
 	headerHash []byte,
 	numShards uint32,
 	selfId uint32,
@@ -122,7 +122,7 @@ func (txc *transactionCounter) displayLogInfo(
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	header *block.Header,
-	body block.Body,
+	body *block.Body,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -135,7 +135,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.ShardId)}),
+			fmt.Sprintf("%d", header.ShardID)}),
 	}
 
 	lines := displayHeader(header)
@@ -190,11 +190,11 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 	return lines
 }
 
-func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
+func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
 	currentBlockTxs := 0
 
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
 			miniBlock.Type.String(),

@@ -30,6 +30,8 @@ func (cache *TxCache) doEviction() {
 
 	stopWatch := cache.monitorEvictionStart()
 
+	// TODO: first phase, evict sweepable.
+
 	if tooManyTxs {
 		cache.makeSnapshotOfSenders()
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()

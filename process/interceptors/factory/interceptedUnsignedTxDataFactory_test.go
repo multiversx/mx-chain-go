@@ -23,7 +23,18 @@ func TestNewInterceptedUnsignedTxDataFactory_NilMarshalizerShouldErr(t *testing.
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedUnsignedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -77,6 +88,7 @@ func TestInterceptedUnsignedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyTx := &smartContractResult.SmartContractResult{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	interceptedData, err := imh.Create(emptyTxBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*unsigned.InterceptedUnsignedTransaction)
 	assert.True(t, ok)

@@ -29,8 +29,5 @@ func (hash *HasherStub) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hash *HasherStub) IsInterfaceNil() bool {
-	if hash == nil {
-		return true
-	}
-	return false
+	return hash == nil
 }

@@ -33,8 +33,5 @@ func (v *validator) Address() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (v *validator) IsInterfaceNil() bool {
-	if v == nil {
-		return true
-	}
-	return false
+	return v == nil
 }

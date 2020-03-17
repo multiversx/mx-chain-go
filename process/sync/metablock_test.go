@@ -27,7 +27,7 @@ func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.MetaBlock))
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
@@ -612,8 +612,9 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 	args.Rounder, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, err := sync.NewMetaBootstrap(args)
-
 	assert.Nil(t, err)
+
+	bs.ComputeNodeState()
 	assert.False(t, bs.ShouldSync())
 }
 
@@ -633,6 +634,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -660,6 +662,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	args.Rounder = initRounder()
 
 	bs, _ := sync.NewMetaBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -687,6 +690,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(args)
+	bs.ComputeNodeState()
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -737,18 +741,18 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
-	shouldSync := bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 
-	if shouldSync && bs.IsForkDetected() {
+	if bs.ShouldSync() && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
-	shouldSync = bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 }
 
@@ -798,11 +802,11 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
-	shouldSync := bs.ShouldSync()
-	assert.True(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.True(t, bs.ShouldSync())
 	assert.True(t, bs.IsForkDetected())
 
-	if shouldSync && bs.IsForkDetected() {
+	if bs.ShouldSync() && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
@@ -811,8 +815,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 
 	time.Sleep(500 * time.Millisecond)
 
-	shouldSync = bs.ShouldSync()
-	assert.False(t, shouldSync)
+	bs.ComputeNodeState()
+	assert.False(t, bs.ShouldSync())
 	assert.False(t, bs.IsForkDetected())
 }
 
@@ -1078,7 +1082,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
@@ -1116,7 +1120,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		return nil
 	}
 
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
 		return body
 	}
@@ -1176,7 +1180,12 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 
@@ -1192,6 +1201,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.SetForkNonce(currentHdrNonce)
+
 	err := bs.RollBack(true)
 
 	assert.Nil(t, err)
@@ -1218,7 +1228,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	//constantly need to check some defined symbols
 	//prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := make(block.Body, 0)
+	prevTxBlockBody := &block.Body{}
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
@@ -1309,7 +1319,12 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj = prevTxBlockBody
+				_, ok := obj.(*block.Body)
+				if !ok {
+					return nil
+				}
+
+				obj.(*block.Body).MiniBlocks = prevTxBlockBody.MiniBlocks
 				return nil
 			}
 

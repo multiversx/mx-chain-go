@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/metrics"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -91,7 +92,7 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 		return true
 	})
 
-	statusMetricsBytes, err := psh.marshalizer.Marshal(metricsMap)
+	statusMetricsBytes, err := psh.marshalizer.Marshal(metrics.ListFromMap(metricsMap))
 	if err != nil {
 		log.Debug("cannot marshal metrics map",
 			"error", err)
