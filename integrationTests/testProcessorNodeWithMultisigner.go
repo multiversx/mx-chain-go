@@ -197,9 +197,6 @@ func createNode(
 
 	initialNodes := createInitialNodes(validatorsMap, waitingMap)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-
-	nodesKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodesKeys.Pk.ToByteArray()
 	bootStorer := CreateMemUnit()
 
 	argFactory := ArgIndexHashedNodesCoordinatorFactory{
