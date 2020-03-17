@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,6 +98,77 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	}
 
 	printAccount(firstNode)
+}
+
+// TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch tests that metachain produces valid block
+// in a higher round that is the start of a new epoch
+func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodesPerShard := 2
+	nbMetaNodes := 2
+	nbShards := 1
+	consensusGroupSize := 1
+	maxGasLimitPerBlock := uint64(100000)
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	roundsPerEpoch := uint64(7)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes)
+		for _, node := range nodes {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	//edge case on the epoch change
+	round := roundsPerEpoch*10 - 1
+	nonce := uint64(1)
+	round = integrationTests.IncrementAndPrintRound(round)
+
+	for _, nodes := range nodesMap {
+		integrationTests.UpdateRound(nodes, round)
+	}
+
+	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+	integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, nonce)
+
+	for _, nodes := range nodesMap {
+		for _, node := range nodes {
+			hdr := node.BlockChain.GetCurrentBlockHeader()
+			require.NotNil(t, hdr)
+			assert.Equal(t, uint64(1), hdr.GetNonce())
+		}
+	}
 }
 
 func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {

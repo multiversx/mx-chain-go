@@ -287,6 +287,11 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 	allPending := make([]block.ShardMiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
+		if shardData.Nonce == 0 {
+			//shard has only the genesis block
+			continue
+		}
+
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
 			return nil, err
