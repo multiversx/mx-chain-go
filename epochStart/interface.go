@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -24,16 +23,6 @@ type TriggerHandler interface {
 	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
-	IsInterfaceNil() bool
-}
-
-// PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
-type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
-	AddProcessedHeader(handler data.HeaderHandler) error
-	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocksForShard(shardID uint32) uint32
-	SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32)
 	IsInterfaceNil() bool
 }
 
@@ -66,6 +55,7 @@ type RequestHandler interface {
 type EpochStartHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(hdr data.HeaderHandler)
+	NotifyOrder() uint32
 }
 
 // EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events

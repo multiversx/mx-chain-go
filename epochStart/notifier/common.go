@@ -9,10 +9,12 @@ import (
 func NewHandlerForEpochStart(
 	actionFunc func(hdr data.HeaderHandler),
 	prepareFunc func(metaHeader data.HeaderHandler),
+	id uint32,
 ) epochStart.EpochStartHandler {
 	handler := handlerStruct{
 		act:     actionFunc,
 		prepare: prepareFunc,
+		id:      id,
 	}
 
 	return &handler
@@ -22,6 +24,7 @@ func NewHandlerForEpochStart(
 type handlerStruct struct {
 	act     func(hdr data.HeaderHandler)
 	prepare func(metaHeader data.HeaderHandler)
+	id      uint32
 }
 
 // EpochStartPrepare will notify the subscriber to prepare for a start of epoch.
@@ -37,4 +40,9 @@ func (hs *handlerStruct) EpochStartAction(hdr data.HeaderHandler) {
 	if hs.act != nil {
 		hs.act(hdr)
 	}
+}
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (hs *handlerStruct) NotifyOrder() uint32 {
+	return hs.id
 }
