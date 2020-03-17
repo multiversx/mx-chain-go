@@ -76,7 +76,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockInvalidMiniBlo
 		Type:            0,
 	}
 
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -96,7 +96,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockShouldWork(t *
 		Type:            block.PeerBlock,
 	}
 
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Nil(t, err)
 }
 
@@ -116,6 +116,6 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockNotFromMeta(t 
 		Type:            block.PeerBlock,
 	}
 
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
+	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }
