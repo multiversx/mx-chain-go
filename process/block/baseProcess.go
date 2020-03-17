@@ -40,29 +40,28 @@ type hdrInfo struct {
 }
 
 type baseProcessor struct {
-	shardCoordinator             sharding.Coordinator
-	nodesCoordinator             sharding.NodesCoordinator
-	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
-	forkDetector                 process.ForkDetector
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	hasher                       hashing.Hasher
-	marshalizer                  marshal.Marshalizer
-	store                        dataRetriever.StorageService
-	uint64Converter              typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler           process.BlockSizeThrottler
-	epochStartTrigger            process.EpochStartTriggerHandler
-	headerValidator              process.HeaderConstructionValidator
-	blockChainHook               process.BlockChainHookHandler
-	txCoordinator                process.TransactionCoordinator
-	rounder                      consensus.Rounder
-	bootStorer                   process.BootStorer
-	requestBlockBodyHandler      process.RequestBlockBodyHandler
-	requestHandler               process.RequestHandler
-	blockTracker                 process.BlockTracker
-	dataPool                     dataRetriever.PoolsHolder
-	feeHandler                   process.TransactionFeeHandler
-	blockChain                   data.ChainHandler
-	hdrsForCurrBlock             *hdrForBlock
+	shardCoordinator        sharding.Coordinator
+	nodesCoordinator        sharding.NodesCoordinator
+	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	forkDetector            process.ForkDetector
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	store                   dataRetriever.StorageService
+	uint64Converter         typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler      process.BlockSizeThrottler
+	epochStartTrigger       process.EpochStartTriggerHandler
+	headerValidator         process.HeaderConstructionValidator
+	blockChainHook          process.BlockChainHookHandler
+	txCoordinator           process.TransactionCoordinator
+	rounder                 consensus.Rounder
+	bootStorer              process.BootStorer
+	requestBlockBodyHandler process.RequestBlockBodyHandler
+	requestHandler          process.RequestHandler
+	blockTracker            process.BlockTracker
+	dataPool                dataRetriever.PoolsHolder
+	feeHandler              process.TransactionFeeHandler
+	blockChain              data.ChainHandler
+	hdrsForCurrBlock        *hdrForBlock
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -491,6 +490,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
+		if miniBlock == nil {
+			return process.ErrNilMiniBlock
+		}
 
 		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {

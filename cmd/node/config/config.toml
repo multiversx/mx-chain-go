@@ -260,7 +260,7 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 30
+    MinRoundsBetweenEpochs = 50
     RoundsPerEpoch         = 50
 
 # ResourceStats, if enabled, will output in a folder called "stats"

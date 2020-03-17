@@ -133,8 +133,8 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	shardC := brcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards+1)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
+	keys := make([]string, noOfShards+2)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+2)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -159,6 +159,15 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 
 	resolverSlice[noOfShards] = resolver
 	keys[noOfShards] = identifierMiniBlocks
+
+	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
+	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, emptyExcludePeersOnTopic)
+	if err != nil {
+		return err
+	}
+
+	resolverSlice[noOfShards+1] = allShardMiniblocksResolver
+	keys[noOfShards+1] = identifierAllShardMiniBlocks
 
 	return brcf.container.AddMultiple(keys, resolverSlice)
 }
