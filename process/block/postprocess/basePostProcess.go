@@ -135,12 +135,6 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	if !bytes.Equal(createdHash, receivedHash) {
 		log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
 		log.Debug("create miniblock", "type", createdScrMb.Type, "sender", createdScrMb.SenderShardID, "receiver", createdScrMb.ReceiverShardID, "numTxs", len(createdScrMb.TxHashes))
-
-		for i := 0; i < len(mb.TxHashes); i++ {
-			if !bytes.Equal(mb.TxHashes[i], createdScrMb.TxHashes[i]) {
-				log.Debug("tx hash missmatch in miniblock", "index", i, "received", mb.TxHashes[i], "created", createdScrMb.TxHashes[i])
-			}
-		}
 		return process.ErrMiniBlockHashMismatch
 	}
 

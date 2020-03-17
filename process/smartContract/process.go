@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -231,13 +231,15 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	vmInput, err := sc.createVMCallInput(tx)
+	var vmInput *vmcommon.ContractCallInput
+	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
-	executed, err := sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
+	var executed bool
+	executed, err = sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return nil
@@ -246,19 +248,23 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	vm, err := sc.getVMFromRecvAddress(tx)
+	var vm vmcommon.VMExecutionHandler
+	vm, err = sc.getVMFromRecvAddress(tx)
 	if err != nil {
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
 
-	vmOutput, err := vm.RunSmartContractCall(vmInput)
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
+	var consumedFee *big.Int
+	var results []data.TransactionHandler
+	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
@@ -487,7 +493,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
-	log.Trace("SmartContract deployed")
+	log.Debug("SmartContract deployed")
 	return nil
 }
 
