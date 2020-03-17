@@ -63,7 +63,17 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[u
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	for _, validators := range validatorInfo {
+	shardIds := make([]uint32, 0)
+	for k := range validatorInfo {
+		shardIds = append(shardIds, k)
+	}
+
+	sort.Slice(shardIds, func(a, b int) bool {
+		return shardIds[a] < shardIds[b]
+	})
+
+	for _, shardId := range shardIds {
+		validators := validatorInfo[shardId]
 		if len(validators) == 0 {
 			continue
 		}
