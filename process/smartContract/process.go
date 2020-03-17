@@ -266,7 +266,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Trace("process vm output error", "error", err.Error())
+		log.Debug("process vm output error", "error", err.Error())
 		return nil
 	}
 
@@ -834,7 +834,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddr()

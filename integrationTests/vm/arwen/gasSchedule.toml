@@ -67,8 +67,8 @@
     CallCode            = 160000
     CallDelegate        = 160000
     CallStatic          = 160000
-    StorageStore        = 200000
-    StorageLoad         = 50000
+    StorageStore        = 250000
+    StorageLoad         = 100000
     GetCaller           = 100
     GetCallValue        = 100
     CodeCopy            = 1000

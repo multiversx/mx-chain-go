@@ -105,9 +105,9 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 // VerifyInterMiniBlocks verifies if the receipts/bad transactions added to the block are valid
 func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := opp.CreateAllInterMiniBlocks()
-	createMapMbs := make(map[uint32]*block.MiniBlock)
+	createdMapMbs := make(map[uint32]*block.MiniBlock)
 	for _, mb := range scrMbs {
-		createMapMbs[mb.ReceiverShardID] = mb
+		createdMapMbs[mb.ReceiverShardID] = mb
 	}
 
 	verifiedOne := false
@@ -121,7 +121,7 @@ func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 			return process.ErrTooManyReceiptsMiniBlocks
 		}
 
-		err := opp.verifyMiniBlock(createMapMbs, mb)
+		err := opp.verifyMiniBlock(createdMapMbs, mb)
 		if err != nil {
 			return err
 		}

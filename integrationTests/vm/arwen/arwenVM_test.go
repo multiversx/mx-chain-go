@@ -213,7 +213,7 @@ func runWASMVMBenchmark(
 }
 
 func TestGasModel(t *testing.T) {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+	_ = logger.SetLogLevel("*:INFO,process/smartcontract:TRACE")
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("./gasSchedule.toml")
 
