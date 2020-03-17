@@ -373,6 +373,8 @@ func (txs *transactions) processTxsToMe(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
+	log.Debug("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	for index := range txsToMe {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -463,6 +465,14 @@ func (txs *transactions) processTxsFromMe(
 	}
 
 	if !bytes.Equal(receivedBodyHash, calculatedBodyHash) {
+		for _, mb := range receivedMiniBlocks {
+			log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		}
+
+		for _, mb := range calculatedMiniBlocks {
+			log.Debug("calculated miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		}
+
 		log.Debug("block body missmatch",
 			"received body hash", receivedBodyHash,
 			"calculated body hash", calculatedBodyHash)
@@ -774,6 +784,8 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
+	log.Debug("createAndProcessMiniBlocks", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	senderAddressToSkip := []byte("")
 
 	defer func() {
@@ -853,7 +865,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		elapsedTime := time.Since(startTime)
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
-			log.Trace("createAndProcessMiniBlock.computeGasConsumed", "error", err)
+			log.Debug("createAndProcessMiniBlock.computeGasConsumed", "error", err)
 			continue
 		}
 
@@ -1014,26 +1026,21 @@ func (txs *transactions) computeSortedTxs(
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(
-	miniBlock *block.MiniBlock,
-	haveTime func() bool,
-) error {
+func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 	if miniBlock.Type != block.TxBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return nil, process.ErrWrongTypeInMiniBlock
 	}
 
 	var err error
-
+	processedTxHashes := make([][]byte, 0)
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if txs.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockTxs)) {
-		return process.ErrMaxBlockSizeReached
+		return nil, process.ErrMaxBlockSizeReached
 	}
-
-	processedTxHashes := make([][]byte, 0)
 
 	defer func() {
 		if err != nil {
@@ -1046,10 +1053,12 @@ func (txs *transactions) ProcessMiniBlock(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
+	log.Debug("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return err
+			return processedTxHashes, err
 		}
 
 		err = txs.computeGasConsumed(
@@ -1062,7 +1071,7 @@ func (txs *transactions) ProcessMiniBlock(
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
-			return err
+			return processedTxHashes, err
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
@@ -1071,12 +1080,12 @@ func (txs *transactions) ProcessMiniBlock(
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return err
+			return processedTxHashes, err
 		}
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
-			return err
+			return processedTxHashes, err
 		}
 	}
 
@@ -1091,7 +1100,7 @@ func (txs *transactions) ProcessMiniBlock(
 	txs.blockSizeComputation.AddNumMiniBlocks(1)
 	txs.blockSizeComputation.AddNumTxs(len(miniBlockTxs))
 
-	return nil
+	return nil, nil
 }
 
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure

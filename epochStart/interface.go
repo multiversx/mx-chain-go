@@ -48,6 +48,7 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -55,6 +56,7 @@ type RequestHandler interface {
 type EpochStartHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(hdr data.HeaderHandler)
+	NotifyOrder() uint32
 }
 
 // EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
@@ -67,5 +69,12 @@ type EpochStartSubscriber interface {
 type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
+// needed in the epoch events
+type ValidatorStatisticsProcessorHandler interface {
+	Process(info data.ValidatorInfoHandler) error
 	IsInterfaceNil() bool
 }

@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -31,6 +32,7 @@ type epochNodesConfig struct {
 	shardId                 uint32
 	eligibleMap             map[uint32][]Validator
 	waitingMap              map[uint32][]Validator
+	expandedEligibleMap     map[uint32][]Validator
 	publicKeyToValidatorMap map[string]*validatorWithShardId
 	mutNodesMaps            sync.RWMutex
 }
@@ -42,7 +44,6 @@ type EpochStartSubscriber interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
@@ -56,6 +57,7 @@ type indexHashedNodesCoordinator struct {
 	numTotalEligible        uint64
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	nodesPerShardSetter     NodesPerShardSetter
 	consensusGroupCacher    Cacher
 }
 
@@ -92,9 +94,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
-	ihgs.doExpandEligibleList = ihgs.expandEligibleList
-
-	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
+	ihgs.nodesPerShardSetter = ihgs
+	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +205,11 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	return nil
 }
 
+// ComputeLeaving -
+func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator {
+	return make([]Validator, 0)
+}
+
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
@@ -219,8 +225,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
-	var eligibleShardList []Validator
-	var mut *sync.RWMutex
+	var expandedList []Validator
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
@@ -235,8 +240,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
-		eligibleShardList = nodesConfig.eligibleMap[shardId]
-		mut = &nodesConfig.mutNodesMaps
+		expandedList = nodesConfig.eligibleMap[shardId]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 
@@ -255,9 +259,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 
 	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
-
-	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
 
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,
@@ -452,23 +453,46 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		return
 	}
 
+	allValidators := make([]Validator, 0)
+
+	for _, shardValidators := range nodesConfig.eligibleMap {
+		allValidators = append(allValidators, shardValidators...)
+	}
+
+	for _, shardValidators := range nodesConfig.waitingMap {
+		allValidators = append(allValidators, shardValidators...)
+	}
+
+	sort.Slice(allValidators, func(i, j int) bool {
+		return bytes.Compare(allValidators[i].PubKey(), allValidators[j].PubKey()) < 0
+	})
+
+	leaving := ihgs.nodesPerShardSetter.ComputeLeaving(allValidators)
+
 	// TODO: update the new nodes and leaving nodes as well
 	shufflerArgs := ArgsUpdateNodes{
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  make([]Validator, 0),
+		Leaving:  leaving,
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	_ = ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
-	err := ihgs.saveState(randomness)
+	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	if err != nil {
+		log.Error("set nodes per shard failed", "error", err.Error())
+	}
+
+	err = ihgs.saveState(randomness)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
+
+	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining)
+
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
@@ -482,6 +506,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	needToRemove := epochToRemove >= 0
 	ihgs.currentEpoch = newEpoch
 
+	err := ihgs.saveState(ihgs.savedStateKey)
+	if err != nil {
+		log.Error("saving nodes coordinator config failed", "error", err.Error())
+	}
+
 	ihgs.mutNodesConfig.Lock()
 	if needToRemove {
 		for epoch := range ihgs.nodesConfig {
@@ -491,6 +520,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 		}
 	}
 	ihgs.mutNodesConfig.Unlock()
+}
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (ihgs *indexHashedNodesCoordinator) NotifyOrder() uint32 {
+	return core.NodesCoordinatorOrder
 }
 
 // GetSavedStateKey returns the key for the last nodes coordinator saved state
@@ -563,11 +597,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, _ *sync.RWMutex) []Validator {
-	//TODO implement an expand eligible list variant
-	return validators
-}
-
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := uint32(0)
@@ -619,4 +648,30 @@ func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
+}
+
+func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
+	for shardId, validators := range eligible {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Debug("eligible", "pk", pk, "shardId", shardId)
+		}
+	}
+
+	for shardId, validators := range waiting {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Debug("waiting", "pk", pk, "shardId", shardId)
+		}
+	}
+
+	for _, validator := range leaving {
+		pk := validator.PubKey()
+		log.Debug("computed leaving", "pk", pk)
+	}
+
+	for _, validator := range actualLeaving {
+		pk := validator.PubKey()
+		log.Debug("actually remaining", "pk", pk)
+	}
 }
