@@ -42,6 +42,7 @@ func init() {
 	pubKey := &bls.PublicKey{}
 	bls.BlsGetGeneratorForPublicKey(pubKey)
 	blsSwapG := bls.IsSwapG()
+	//TODO fix unsafe casts for generators G1 and G2, maybe remove calling the bls.IsSwapG()
 	if blsSwapG {
 		generatorG1 := (*bls.G1)(unsafe.Pointer(pubKey))
 		basePointG1Str.Store(generatorG1.GetString(10))
