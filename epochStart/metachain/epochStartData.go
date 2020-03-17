@@ -195,6 +195,10 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 	shardHdrList = append(shardHdrList, shardHdr)
 
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
+		if currentHdr.Round == 0 {
+			break
+		}
+
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
 			return nil, nil, nil, err
@@ -253,6 +257,9 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	if epoch == 0 {
+		if len(lastMetaHash) == 0 {
+			lastMetaHash = []byte(epochStartIdentifier)
+		}
 		return lastMetaHash, []byte(epochStartIdentifier), nil
 	}
 
