@@ -122,7 +122,7 @@ func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte) {
 
 	vip.mutMiniBlocksForBlock.Lock()
 	mbInfo, ok := vip.allPeerMiniblocks[string(key)]
-	if !ok || mbInfo == nil {
+	if !ok || mbInfo.mb != nil {
 		vip.mutMiniBlocksForBlock.Unlock()
 		return
 	}
@@ -178,9 +178,6 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 		}
 
 		mbFound := mbObjectFound.(*block.MiniBlock)
-		if mbFound == nil {
-			missingNumber++
-		}
 		vip.allPeerMiniblocks[string(mb.Hash)] = &miniBlockInfo{mb: mbFound}
 	}
 
