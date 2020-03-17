@@ -265,7 +265,7 @@ type HashAccesser interface {
 // to synchronize the node
 type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
-	ShouldSync() bool
+	GetNodeState() core.NodeState
 	StopSync()
 	StartSync()
 	SetStatusHandler(handler core.AppStatusHandler) error
