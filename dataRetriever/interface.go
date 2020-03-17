@@ -86,7 +86,7 @@ type ResolversContainer interface {
 	Replace(key string, val Resolver) error
 	Remove(key string)
 	Len() int
-	PrintResolvers()
+	ResolverKeys() string
 	IsInterfaceNil() bool
 }
 

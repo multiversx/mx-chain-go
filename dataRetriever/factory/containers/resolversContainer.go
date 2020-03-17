@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/cornelk/hashmap"
 )
 
@@ -90,9 +89,8 @@ func (rc *resolversContainer) Len() int {
 	return rc.objects.Len()
 }
 
-func (rc *resolversContainer) PrintResolvers() {
-	log := logger.GetOrCreate("jls")
-
+// ResolverKeys will return the contained resolvers keys in a concatenated string
+func (rc *resolversContainer) ResolverKeys() string {
 	ch := rc.objects.Iter()
 	keys := make([]string, 0)
 	for kv := range ch {
@@ -103,9 +101,7 @@ func (rc *resolversContainer) PrintResolvers() {
 		return strings.Compare(keys[i], keys[j]) < 0
 	})
 
-	for _, k := range keys {
-		log.Warn("resolver", "name", k)
-	}
+	return strings.Join(keys, ", ")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -827,7 +827,9 @@ func newRequestHandler(
 			return nil, err
 		}
 
-		resolversFinder.PrintResolvers()
+		log.Debug("created resolvers",
+			"resolvers", resolversFinder.ResolverKeys(),
+		)
 
 		return requestHandler, nil
 	}
@@ -842,7 +844,9 @@ func newRequestHandler(
 			return nil, err
 		}
 
-		resolversFinder.PrintResolvers()
+		log.Debug("created resolvers",
+			"resolvers", resolversFinder.ResolverKeys(),
+		)
 
 		return requestHandler, nil
 	}

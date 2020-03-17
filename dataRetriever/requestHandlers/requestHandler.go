@@ -457,7 +457,9 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
 
-		rrh.resolversFinder.PrintResolvers()
+		log.Warn("available resolvers in container",
+			"resolvers", rrh.resolversFinder.ResolverKeys(),
+		)
 		return nil, err
 	}
 
