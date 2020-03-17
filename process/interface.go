@@ -145,24 +145,19 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
+	RemoveProcessedResultsFor(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
 // DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
 type DataMarshalizer interface {
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
-}
-
-// InternalTransactionProducer creates system transactions (e.g. rewards)
-type InternalTransactionProducer interface {
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	IsInterfaceNil() bool
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
@@ -191,7 +186,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler

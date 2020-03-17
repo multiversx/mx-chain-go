@@ -85,15 +85,15 @@ func (rtp *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) 
 }
 
 // ProcessMiniBlock does nothing
-func (rtp *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool) error {
+func (rtp *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool) ([][]byte, error) {
 	if miniBlock.Type != block.PeerBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return nil, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
-		return process.ErrValidatorInfoMiniBlockNotFromMeta
+		return nil, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
-	return nil
+	return nil, nil
 }
 
 // CreateMarshalizedData does nothing

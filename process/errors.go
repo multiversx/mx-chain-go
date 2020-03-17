@@ -86,9 +86,6 @@ var ErrNilMiniBlocks = errors.New("nil mini blocks")
 // ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
 var ErrNilMiniBlock = errors.New("nil mini block")
 
-// ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
-var ErrNilTxHashes = errors.New("nil transaction hashes")
-
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 

@@ -384,27 +384,6 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 	assert.False(t, tc.IsInterfaceNil())
 }
 
-func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
-	t.Parallel()
-
-	tc, err := NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		&mock.PreProcessorContainerMock{},
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
-
-	separated := tc.separateBodyByType(nil)
-	assert.Equal(t, 0, len(separated))
-}
-
 func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 	t.Parallel()
 
@@ -2124,7 +2103,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, nil)
+	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, &block.Body{})
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
 	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.TxBlock}}}
