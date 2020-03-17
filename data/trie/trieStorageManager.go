@@ -273,7 +273,7 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 		tsm.snapshotsBuffer.add(entry.rootHash)
 		return
 	default:
-		log.Error("snapshots buffer is full")
+		log.Debug("snapshots buffer is full")
 		return
 	}
 }

@@ -105,8 +105,8 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 
 // PresentInNewHashes searches for the given hash in all of the evictionWaitingList's newHashes
 func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
-	ewl.opMutex.Lock()
-	defer ewl.opMutex.Unlock()
+	ewl.opMutex.RLock()
+	defer ewl.opMutex.RUnlock()
 
 	for key := range ewl.cache {
 		if len(key) == 0 {

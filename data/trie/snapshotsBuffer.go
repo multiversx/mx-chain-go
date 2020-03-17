@@ -5,7 +5,7 @@ import (
 )
 
 type snapshotsBuffer struct {
-	mutOp  sync.Mutex
+	mutOp  sync.RWMutex
 	buffer map[string]struct{}
 }
 
@@ -24,8 +24,8 @@ func (sb *snapshotsBuffer) add(rootHash []byte) {
 }
 
 func (sb *snapshotsBuffer) contains(rootHash []byte) bool {
-	sb.mutOp.Lock()
-	defer sb.mutOp.Unlock()
+	sb.mutOp.RLock()
+	defer sb.mutOp.RUnlock()
 
 	_, ok := sb.buffer[string(rootHash)]
 	return ok
@@ -40,8 +40,8 @@ func (sb *snapshotsBuffer) remove(rootHash []byte) {
 }
 
 func (sb *snapshotsBuffer) len() int {
-	sb.mutOp.Lock()
-	defer sb.mutOp.Unlock()
+	sb.mutOp.RLock()
+	defer sb.mutOp.RUnlock()
 
 	log.Trace("snapshots buffer", "len", len(sb.buffer))
 	return len(sb.buffer)
