@@ -121,6 +121,9 @@ func preparePublicKeys(
 	hasher hashing.Hasher,
 	suite crypto.Suite,
 ) ([]bls.PublicKey, error) {
+	var hPk []byte
+	var prepPublicKeyPoint crypto.Point
+	var pubKeyPoint crypto.Point
 	prepPubKeysPoints := make([]bls.PublicKey, len(pubKeys))
 
 	concatPKs, err := concatPubKeys(pubKeys)
@@ -128,18 +131,13 @@ func preparePublicKeys(
 		return nil, err
 	}
 
-	pubKeysPoints := make([]crypto.Point, len(pubKeys))
 	for i, pubKey := range pubKeys {
 		if check.IfNil(pubKey) {
 			return nil, crypto.ErrNilPublicKey
 		}
 
-		pubKeysPoints[i] = pubKey.Point()
-	}
+		pubKeyPoint = pubKey.Point()
 
-	var hPk []byte
-	var prepPublicKeyPoint crypto.Point
-	for i, pubKeyPoint := range pubKeysPoints {
 		// t_i = H(pk_i, {pk_1, ..., pk_n})
 		hPk, err = hashPublicKeyPoints(hasher, pubKeyPoint, concatPKs)
 		if err != nil {
@@ -337,7 +335,7 @@ func hashPublicKeyPoints(hasher hashing.Hasher, pubKeyPoint crypto.Point, concat
 		return nil, err
 	}
 
-	concatPkWithPKs := append(concatPubKeys, pointBytes...)
+	concatPkWithPKs := append(pointBytes, concatPubKeys...)
 
 	// H1(pk_i, {pk_1, ..., pk_n})
 	h := hasher.Compute(string(concatPkWithPKs))
