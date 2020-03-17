@@ -236,3 +236,15 @@ const (
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
 )
+
+// NodeState specifies what type of state a node could have
+type NodeState int
+
+const (
+	// NsSynchronized defines ID of a state of synchronized
+	NsSynchronized NodeState = iota
+	// NsNotSynchronized defines ID of a state of not synchronized
+	NsNotSynchronized
+	// NsNotCalculated defines ID of a state which is not calculated
+	NsNotCalculated
+)
