@@ -692,3 +692,6 @@ var ErrInvalidBody = errors.New("invalid body")
 
 // ErrNilBlockSizeComputationHandler signals that a nil block size computation handler has been provided
 var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation handler")
+
+// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
+var ErrNilValidatorStatistics = errors.New("nil validator statistics")

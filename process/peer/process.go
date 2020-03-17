@@ -173,6 +173,28 @@ func (vs *validatorStatistics) saveInitialState(
 	return nil
 }
 
+func (vs *validatorStatistics) saveInitialValueForMap(
+	nodesMap map[uint32][][]byte,
+	startEpoch uint32,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
+			if err != nil {
+				return err
+			}
+
+			err = vs.initializeNode(node, stakeValue, startRating)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
@@ -880,19 +902,19 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 	return nil
 }
 
-func (vs *validatorStatistics) saveInitialValueForMap(nodesMap map[uint32][][]byte, startEpoch uint32, stakeValue *big.Int, startRating uint32) error {
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
-			if err != nil {
-				return err
-			}
+// Process - processes a validatorInfo and updates fields
+func (vs *validatorStatistics) Process(vid data.ValidatorInfoHandler) error {
+	log.Trace("ValidatorInfoData", "pk", vid.GetPublicKey(), "rating", vid.GetRating(), "tempRating", vid.GetTempRating())
 
-			err = vs.initializeNode(node, stakeValue, startRating)
-			if err != nil {
-				return err
-			}
-		}
+	pa, err := vs.GetPeerAccount(vid.GetPublicKey())
+	if err != nil {
+		return err
 	}
+
+	err = pa.SetRatingWithJournal(vid.GetTempRating())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

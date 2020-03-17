@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewIndexHashedNodesCoordinatorWithRater_NilRaterShouldErr(t *testing.T) {
@@ -508,4 +509,55 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeLeavingShouldWork(t *testing.T) {
+	t.Parallel()
+	pkLeaving := "leavingPK"
+	pkNotLeaving := "notLeavingPK"
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetRatingCalled: func(s string) uint32 {
+			if s == pkLeaving {
+				return 1
+			}
+			return 100
+		},
+		GetChancesCalled: func(u uint32) uint32 {
+			if u == 1 {
+				return 0
+			}
+			return 10
+		},
+	})
+
+	leavingValidator := mock.NewValidatorMock([]byte(pkLeaving), []byte(pkLeaving))
+	notLeavingValidator := mock.NewValidatorMock([]byte(pkNotLeaving), []byte(pkNotLeaving))
+	validators := []Validator{leavingValidator, notLeavingValidator}
+	leavingValidators := ihgs.ComputeLeaving(validators)
+
+	require.Equal(t, 1, len(leavingValidators))
+	require.Equal(t, leavingValidator, leavingValidators[0])
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeLeavingWithAllChancesBigShouldNotRemove(t *testing.T) {
+	t.Parallel()
+	pkLeaving := "leavingPK"
+	pkNotLeaving := "notLeavingPK"
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetRatingCalled: func(s string) uint32 {
+			return 100
+		},
+		GetChancesCalled: func(u uint32) uint32 {
+			return 10
+		},
+	})
+
+	leavingValidator := mock.NewValidatorMock([]byte(pkLeaving), []byte(pkLeaving))
+	notLeavingValidator := mock.NewValidatorMock([]byte(pkNotLeaving), []byte(pkNotLeaving))
+	validators := []Validator{leavingValidator, notLeavingValidator}
+	leavingValidators := ihgs.ComputeLeaving(validators)
+
+	require.Equal(t, 0, len(leavingValidators))
 }

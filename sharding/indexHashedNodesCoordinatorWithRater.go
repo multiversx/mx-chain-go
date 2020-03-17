@@ -55,6 +55,22 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 	return ihgs.expandAllLists(epoch)
 }
 
+// ComputeLeaving - computes the validators that have a threshold below the minimum rating
+func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators []Validator) []Validator {
+	leavingValidators := make([]Validator, 0)
+	minChances := ihgs.GetChance(0)
+	for _, val := range allValidators {
+		pk := val.PubKey()
+		rating := ihgs.GetRating(string(pk))
+		chances := ihgs.GetChance(rating)
+		if chances < minChances {
+			leavingValidators = append(leavingValidators, val)
+		}
+	}
+
+	return leavingValidators
+}
+
 //IsInterfaceNil verifies that the underlying value is nil
 func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihgs == nil
@@ -112,7 +128,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochN
 }
 
 func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators []Validator) ([]Validator, error) {
-	minChance := ihgs.GetChance(1)
+	minChance := ihgs.GetChance(0)
 	minSize := len(validators) * int(minChance)
 	validatorList := make([]Validator, 0, minSize)
 
@@ -120,9 +136,9 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 		pk := validatorInShard.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
-		if chances == 0 {
+		if chances < minChance {
 			//default chance if all validators need to be selected
-			chances = ihgs.GetChance(0)
+			chances = minChance
 		}
 		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
 

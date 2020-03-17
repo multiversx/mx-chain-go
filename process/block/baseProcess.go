@@ -40,29 +40,28 @@ type hdrInfo struct {
 }
 
 type baseProcessor struct {
-	shardCoordinator             sharding.Coordinator
-	nodesCoordinator             sharding.NodesCoordinator
-	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
-	forkDetector                 process.ForkDetector
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	hasher                       hashing.Hasher
-	marshalizer                  marshal.Marshalizer
-	store                        dataRetriever.StorageService
-	uint64Converter              typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler           process.BlockSizeThrottler
-	epochStartTrigger            process.EpochStartTriggerHandler
-	headerValidator              process.HeaderConstructionValidator
-	blockChainHook               process.BlockChainHookHandler
-	txCoordinator                process.TransactionCoordinator
-	rounder                      consensus.Rounder
-	bootStorer                   process.BootStorer
-	requestBlockBodyHandler      process.RequestBlockBodyHandler
-	requestHandler               process.RequestHandler
-	blockTracker                 process.BlockTracker
-	dataPool                     dataRetriever.PoolsHolder
-	feeHandler                   process.TransactionFeeHandler
-	blockChain                   data.ChainHandler
-	hdrsForCurrBlock             *hdrForBlock
+	shardCoordinator        sharding.Coordinator
+	nodesCoordinator        sharding.NodesCoordinator
+	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	forkDetector            process.ForkDetector
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	store                   dataRetriever.StorageService
+	uint64Converter         typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler      process.BlockSizeThrottler
+	epochStartTrigger       process.EpochStartTriggerHandler
+	headerValidator         process.HeaderConstructionValidator
+	blockChainHook          process.BlockChainHookHandler
+	txCoordinator           process.TransactionCoordinator
+	rounder                 consensus.Rounder
+	bootStorer              process.BootStorer
+	requestBlockBodyHandler process.RequestBlockBodyHandler
+	requestHandler          process.RequestHandler
+	blockTracker            process.BlockTracker
+	dataPool                dataRetriever.PoolsHolder
+	feeHandler              process.TransactionFeeHandler
+	blockChain              data.ChainHandler
+	hdrsForCurrBlock        *hdrForBlock
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -964,7 +963,7 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(header data.HeaderHandler) {
+func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {

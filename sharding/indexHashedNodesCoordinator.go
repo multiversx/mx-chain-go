@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -31,7 +32,7 @@ type epochNodesConfig struct {
 	shardId                 uint32
 	eligibleMap             map[uint32][]Validator
 	waitingMap              map[uint32][]Validator
-	expandedEligibleMap map[uint32][]Validator
+	expandedEligibleMap     map[uint32][]Validator
 	publicKeyToValidatorMap map[string]*validatorWithShardId
 	mutNodesMaps            sync.RWMutex
 }
@@ -201,11 +202,12 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
-
-	displayNodesConfiguration(eligible, waiting)
-
 	return nil
+}
+
+// ComputeLeaving -
+func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator {
+	return make([]Validator, 0)
 }
 
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list,
@@ -451,23 +453,46 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		return
 	}
 
+	allValidators := make([]Validator, 0)
+
+	for _, shardValidators := range nodesConfig.eligibleMap {
+		allValidators = append(allValidators, shardValidators...)
+	}
+
+	for _, shardValidators := range nodesConfig.waitingMap {
+		allValidators = append(allValidators, shardValidators...)
+	}
+
+	sort.Slice(allValidators, func(i, j int) bool {
+		return bytes.Compare(allValidators[i].PubKey(), allValidators[j].PubKey()) < 0
+	})
+
+	leaving := ihgs.nodesPerShardSetter.ComputeLeaving(allValidators)
+
 	// TODO: update the new nodes and leaving nodes as well
 	shufflerArgs := ArgsUpdateNodes{
 		Eligible: nodesConfig.eligibleMap,
 		Waiting:  nodesConfig.waitingMap,
 		NewNodes: make([]Validator, 0),
-		Leaving:  make([]Validator, 0),
+		Leaving:  leaving,
 		Rand:     randomness,
 		NbShards: nodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	_ = ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
-	err := ihgs.saveState(randomness)
+	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	if err != nil {
+		log.Error("set nodes per shard failed", "error", err.Error())
+	}
+
+	err = ihgs.saveState(randomness)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
+
+	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining)
+
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
@@ -625,18 +650,28 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
-func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator) {
+func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
 	for shardId, validators := range eligible {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Trace("Eligible", "shardId", shardId, "pk", pk)
+			log.Debug("eligible", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for shardId, validators := range waiting {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			log.Trace("Waiting", "shardId", shardId, "pk", pk)
+			log.Debug("waiting", "pk", pk, "shardId", shardId)
 		}
+	}
+
+	for _, validator := range leaving {
+		pk := validator.PubKey()
+		log.Debug("computed leaving", "pk", pk)
+	}
+
+	for _, validator := range actualLeaving {
+		pk := validator.PubKey()
+		log.Debug("actually remaining", "pk", pk)
 	}
 }

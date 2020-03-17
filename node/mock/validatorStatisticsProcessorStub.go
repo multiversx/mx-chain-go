@@ -13,6 +13,16 @@ type ValidatorStatisticsProcessorStub struct {
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	ProcessCalled                            func(vid data.ValidatorInfoHandler) error
+}
+
+// Process -
+func (vsp *ValidatorStatisticsProcessorStub) Process(vid data.ValidatorInfoHandler) error {
+	if vsp.ProcessCalled != nil {
+		return vsp.ProcessCalled(vid)
+	}
+
+	return nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch -

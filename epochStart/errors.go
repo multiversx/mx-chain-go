@@ -74,6 +74,9 @@ var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
+// ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
+var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
+
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
 
@@ -82,6 +85,9 @@ var ErrNilTriggerStorage = errors.New("nil trigger storage")
 
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
+
+// ErrNilMiniblocksStorage signals that nil miniblocks storage has been provided
+var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
 
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")

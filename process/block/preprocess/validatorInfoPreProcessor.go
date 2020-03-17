@@ -13,9 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+//TODO: add functionality if needed
 type validatorInfoPreprocessor struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
@@ -30,10 +29,7 @@ func NewValidatorInfoPreprocessor(
 		return nil, process.ErrNilMarshalizer
 	}
 
-	rtp := &validatorInfoPreprocessor{
-		hasher:      hasher,
-		marshalizer: marshalizer,
-	}
+	rtp := &validatorInfoPreprocessor{}
 	return rtp, nil
 }
 
