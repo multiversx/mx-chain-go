@@ -332,12 +332,12 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return mp.verifyCrossShardMiniBlockDstMe(header)
 }
 
-func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	return mp.applyBodyToHeader(metaHdr, bodyHandler)
+func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, body *block.Body) (data.BodyHandler, error) {
+	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	return sp.applyBodyToHeader(shardHdr, bodyHandler)
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, body *block.Body) (*block.Body, error) {
+	return sp.applyBodyToHeader(shardHdr, body)
 }
 
 func (mp *metaProcessor) CreateBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {

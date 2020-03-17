@@ -1753,7 +1753,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, saveTrieCalled)
+	assert.Equal(t, 0, saveTrieCalled)
 }
 
 func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T) {

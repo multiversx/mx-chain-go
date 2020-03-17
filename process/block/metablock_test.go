@@ -875,8 +875,8 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
-	bodyHandler := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: 0}}}
-	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: 0}}}
+	_, err := mp.ApplyBodyToHeader(metaBlk, body)
 	assert.Nil(t, err)
 }
 
@@ -2046,8 +2046,9 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(b)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := mp.DecodeBlockBody(nil)
-	assert.Equal(t, &block.Body{}, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = mp.DecodeBlockBody(message)
 	assert.Equal(t, b, dcdBlk)
