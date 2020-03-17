@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type epochStartDataProviderFactory struct {
@@ -18,7 +19,9 @@ type epochStartDataProviderFactory struct {
 	messenger           p2p.Messenger
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
+	pathManager         storage.PathManagerHandler
 	nodesConfigProvider bootstrap.NodesConfigProviderHandler
+	generalConfig       config.Config
 	shouldSync          bool
 }
 
@@ -30,6 +33,7 @@ type EpochStartDataProviderFactoryArgs struct {
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
 	NodesConfigProvider   bootstrap.NodesConfigProviderHandler
+	PathManager           storage.PathManagerHandler
 	StartTime             time.Time
 	OriginalNodesConfig   *sharding.NodesSetup
 	GeneralConfig         *config.Config
@@ -46,6 +50,9 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, bootstrap.ErrNilMarshalizer
+	}
+	if check.IfNil(args.PathManager) {
+		return nil, bootstrap.ErrNilPathManager
 	}
 	if check.IfNil(args.Hasher) {
 		return nil, bootstrap.ErrNilHasher
@@ -67,6 +74,8 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 		messenger:           args.Messenger,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
+		pathManager:         args.PathManager,
+		generalConfig:       *args.GeneralConfig,
 		nodesConfigProvider: args.NodesConfigProvider,
 		shouldSync:          shouldSync,
 	}, nil
@@ -101,6 +110,8 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		Marshalizer:                    esdpf.marshalizer,
 		Hasher:                         esdpf.hasher,
 		NodesConfigProvider:            esdpf.nodesConfigProvider,
+		GeneralConfig:                  esdpf.generalConfig,
+		PathManager:                    esdpf.pathManager,
 		EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
 		MetaBlockInterceptor:           metaBlockInterceptor,
 		ShardHeaderInterceptor:         shardHdrInterceptor,

@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -20,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/storagehandler"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -40,21 +43,14 @@ const thresholdForConsideringMetaBlockCorrect = 0.2
 const numRequestsToSendOnce = 4
 const maxNumTimesToRetry = 100
 
-// ComponentsNeededForBootstrap holds the components which need to be initialized from network
-type ComponentsNeededForBootstrap struct {
-	EpochStartMetaBlock *block.MetaBlock
-	NodesConfig         *sharding.NodesSetup
-	ShardHeaders        map[uint32]*block.Header
-	ShardCoordinator    sharding.Coordinator
-	Tries               state.TriesHolder
-}
-
 // epochStartDataProvider will handle requesting the needed data to start when joining late the network
 type epochStartDataProvider struct {
 	publicKey                      crypto.PublicKey
 	marshalizer                    marshal.Marshalizer
 	hasher                         hashing.Hasher
 	messenger                      p2p.Messenger
+	generalConfig                  config.Config
+	pathManager                    PathManagerHandler
 	nodesConfigProvider            NodesConfigProviderHandler
 	epochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	metaBlockInterceptor           MetaBlockInterceptorHandler
@@ -69,6 +65,8 @@ type ArgsEpochStartDataProvider struct {
 	Messenger                      p2p.Messenger
 	Marshalizer                    marshal.Marshalizer
 	Hasher                         hashing.Hasher
+	GeneralConfig                  config.Config
+	PathManager                    PathManagerHandler
 	NodesConfigProvider            NodesConfigProviderHandler
 	EpochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	MetaBlockInterceptor           MetaBlockInterceptorHandler
@@ -91,6 +89,9 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
+	if check.IfNil(args.PathManager) {
+		return nil, ErrNilPathManager
+	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, ErrNilNodesConfigProvider
 	}
@@ -111,6 +112,8 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		marshalizer:                    args.Marshalizer,
 		hasher:                         args.Hasher,
 		messenger:                      args.Messenger,
+		generalConfig:                  args.GeneralConfig,
+		pathManager:                    args.PathManager,
 		nodesConfigProvider:            args.NodesConfigProvider,
 		epochStartMetaBlockInterceptor: args.EpochStartMetaBlockInterceptor,
 		metaBlockInterceptor:           args.MetaBlockInterceptor,
@@ -120,7 +123,7 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
-func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, error) {
+func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
 	err := esdp.initTopicsAndInterceptors()
 	if err != nil {
 		return nil, err
@@ -165,16 +168,23 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 		return nil, err
 	}
 
+	var shardHeaderForShard *block.Header
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		shardHeaderForShard = shardHeaders[shardCoordinator.SelfId()]
+	}
+
 	epochStartData, err := esdp.getCurrentEpochStartData(shardCoordinator, metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
+	pendingMiniBlocks := make([]*block.MiniBlock, 0)
 	for _, mb := range epochStartData.PendingMiniBlockHeaders {
 		receivedMb, errGetMb := esdp.getMiniBlock(&mb)
 		if errGetMb != nil {
 			return nil, errGetMb
 		}
+		pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
 		log.Info("received miniblock", "type", receivedMb.Type)
 	}
 
@@ -195,13 +205,50 @@ func (esdp *epochStartDataProvider) Bootstrap() (*ComponentsNeededForBootstrap, 
 		return nil, err
 	}
 
-	return &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: metaBlock,
-		NodesConfig:         nodesConfig,
-		ShardHeaders:        shardHeaders,
-		ShardCoordinator:    shardCoordinator,
-		Tries:               trieToReturn,
-	}, nil
+	components := &structs.ComponentsNeededForBootstrap{
+		EpochStartMetaBlock:         metaBlock,
+		PreviousEpochStartMetaBlock: prevMetaBlock,
+		ShardHeader:                 shardHeaderForShard,
+		NodesConfig:                 nodesConfig,
+		ShardHeaders:                shardHeaders,
+		ShardCoordinator:            shardCoordinator,
+		Tries:                       trieToReturn,
+		PendingMiniBlocks:           pendingMiniBlocks,
+	}
+
+	var storageHandlerComponent StorageHandler
+	if shardCoordinator.SelfId() > shardCoordinator.NumberOfShards() {
+		storageHandlerComponent, err = storagehandler.NewMetaStorageHandler(
+			esdp.generalConfig,
+			shardCoordinator,
+			esdp.pathManager,
+			esdp.marshalizer,
+			esdp.hasher,
+			metaBlock.Epoch,
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		storageHandlerComponent, err = storagehandler.NewShardStorageHandler(
+			esdp.generalConfig,
+			shardCoordinator,
+			esdp.pathManager,
+			esdp.marshalizer,
+			esdp.hasher,
+			metaBlock.Epoch,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(*components)
+	if errSavingToStorage != nil {
+		return nil, errSavingToStorage
+	}
+
+	return components, nil
 }
 
 func (esdp *epochStartDataProvider) changeMessageProcessorsForMetaBlocks() {

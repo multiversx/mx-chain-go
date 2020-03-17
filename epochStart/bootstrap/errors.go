@@ -11,6 +11,9 @@ var ErrNilMessenger = errors.New("nil messenger")
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")
+
 // ErrNilHasher signals that a nil hasher has been provider
 var ErrNilHasher = errors.New("nil hasher")
 

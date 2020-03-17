@@ -586,6 +586,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Marshalizer:           marshalizer,
 		Hasher:                hasher,
 		NodesConfigProvider:   nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
+		PathManager:           pathManager,
 		StartTime:             startTime,
 		OriginalNodesConfig:   nodesConfig,
 		GeneralConfig:         generalConfig,
@@ -606,6 +607,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	isFreshStart := err != nil
 	if !isFreshStart {
 		nodesConfig = res.NodesConfig
+		currentEpoch = res.EpochStartMetaBlock.Epoch
+		bootstrapRoundIndex.Value = res.EpochStartMetaBlock.Round
 		log.Info("received epoch start metablock from network",
 			"nonce", res.EpochStartMetaBlock.GetNonce(),
 			"epoch", res.EpochStartMetaBlock.GetEpoch())

@@ -14,7 +14,7 @@ type metaStorageBootstrapper struct {
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 }
 
-// NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
+// NewMetaStorageBootstrapper is method used to create a new storage bootstrapper
 func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
 	err := checkMetaStorageBootstrapperArgs(arguments)
 	if err != nil {
@@ -111,7 +111,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		}
 
 		log.Debug("removing shard header from ShardHdrNonceHashDataUnit storage",
-			"shradId", shardHeader.GetShardID(),
+			"shardId", shardHeader.GetShardID(),
 			"nonce", shardHeader.GetNonce(),
 			"hash", shardHeaderHash)
 
@@ -121,7 +121,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		err = storer.Remove(nonceToByteSlice)
 		if err != nil {
 			log.Debug("shard header was not removed from ShardHdrNonceHashDataUnit storage",
-				"shradId", shardHeader.GetShardID(),
+				"shardId", shardHeader.GetShardID(),
 				"nonce", shardHeader.GetNonce(),
 				"hash", shardHeaderHash,
 				"error", err.Error())

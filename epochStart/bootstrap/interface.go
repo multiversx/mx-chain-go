@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -38,5 +39,18 @@ type NodesConfigProviderHandler interface {
 
 // EpochStartDataProviderHandler defines what a component which fetches the data needed for starting in an epoch should do
 type EpochStartDataProviderHandler interface {
-	Bootstrap() (*ComponentsNeededForBootstrap, error)
+	Bootstrap() (*structs.ComponentsNeededForBootstrap, error)
+}
+
+// PathManagerHandler defines which actions should be done for generating paths for databases directories
+type PathManagerHandler interface {
+	PathForEpoch(shardId string, epoch uint32, identifier string) string
+	PathForStatic(shardId string, identifier string) string
+	IsInterfaceNil() bool
+}
+
+// StorageHandler defines which actions should be done by a component which handles the storage of bootstrap data
+type StorageHandler interface {
+	SaveDataToStorage(components structs.ComponentsNeededForBootstrap) error
+	IsInterfaceNil() bool
 }

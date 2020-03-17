@@ -55,6 +55,17 @@ func TestNewEpochStartDataProvider_NilHasherShouldErr(t *testing.T) {
 	require.Equal(t, bootstrap.ErrNilHasher, err)
 }
 
+func TestNewEpochStartDataProvider_NilPathManagerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.PathManager = nil
+	epStart, err := bootstrap.NewEpochStartDataProvider(args)
+
+	require.Nil(t, epStart)
+	require.Equal(t, bootstrap.ErrNilPathManager, err)
+}
+
 func TestNewEpochStartDataProvider_NilNodesConfigProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -146,6 +157,7 @@ func getArguments() bootstrap.ArgsEpochStartDataProvider {
 		Hasher:                         mock2.HasherMock{},
 		NodesConfigProvider:            &mock.NodesConfigProviderStub{},
 		EpochStartMetaBlockInterceptor: &mock.EpochStartMetaBlockInterceptorStub{},
+		PathManager:                    &mock.PathManagerStub{},
 		MetaBlockInterceptor:           &mock.MetaBlockInterceptorStub{},
 		ShardHeaderInterceptor:         &mock.ShardHeaderInterceptorStub{},
 		MiniBlockInterceptor:           &mock.MiniBlockInterceptorStub{},

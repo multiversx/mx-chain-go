@@ -15,7 +15,7 @@ type shardStorageBootstrapper struct {
 	miniBlocksResolver dataRetriever.MiniBlocksResolver
 }
 
-// NewShardStorageBootstrapper is method used to create a nes storage bootstrapper
+// NewShardStorageBootstrapper is method used to create a new storage bootstrapper
 func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shardStorageBootstrapper, error) {
 	err := checkShardStorageBootstrapperArgs(arguments)
 	if err != nil {
@@ -137,7 +137,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 		}
 
 		log.Debug("removing meta block from storage",
-			"shradId", metaBlock.GetShardID(),
+			"shardId", metaBlock.GetShardID(),
 			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
 
@@ -145,7 +145,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if err != nil {
 			log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
-				"shradId", metaBlock.GetShardID(),
+				"shardId", metaBlock.GetShardID(),
 				"nonce", metaBlock.GetNonce(),
 				"hash", metaBlockHash,
 				"error", err.Error())
@@ -154,7 +154,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {
 			log.Debug("meta block was not removed from MetaBlockUnit storage",
-				"shradId", metaBlock.GetShardID(),
+				"shardId", metaBlock.GetShardID(),
 				"nonce", metaBlock.GetNonce(),
 				"hash", metaBlockHash,
 				"error", err.Error())
