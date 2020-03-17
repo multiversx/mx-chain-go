@@ -31,16 +31,9 @@ func (bms *BlsMultiSigner) VerifySigShare(pubKey crypto.PublicKey, message []byt
 
 // VerifySigBytes provides an "cheap" integrity check of a signature given as a byte array
 // It does not validate the signature over a message, only verifies that it is a signature
-func (bms *BlsMultiSigner) VerifySigBytes(suite crypto.Suite, sig []byte) error {
-	if check.IfNil(suite) {
-		return crypto.ErrNilSuite
-	}
+func (bms *BlsMultiSigner) VerifySigBytes(_ crypto.Suite, sig []byte) error {
 	if len(sig) == 0 {
 		return crypto.ErrNilSignature
-	}
-	_, ok := suite.GetUnderlyingSuite().(*mcl.SuiteBLS12)
-	if !ok {
-		return crypto.ErrInvalidSuite
 	}
 
 	_, err := bms.sigBytesToPoint(sig)
@@ -197,10 +190,19 @@ func (bms *BlsMultiSigner) prepareSignatures(
 			return nil, err
 		}
 
+		if !singlesig.IsSigValidPoint(sigBLS) {
+			return nil, crypto.ErrBLSInvalidSignature
+		}
+
+		pubKeyPoint := pubKeysSigners[i].Point()
+		mclPointG2, isPoint := pubKeyPoint.(*mcl.PointG2)
+		if !isPoint || !singlesig.IsPubKeyPointValid(mclPointG2) {
+			return nil, crypto.ErrInvalidPublicKey
+		}
+
 		sigPoint := mcl.NewPointG1()
 		sigPoint.G1 = bls.CastG1FromSign(sigBLS)
 
-		pubKeyPoint := pubKeysSigners[i].Point()
 		hPk, err = hashPublicKeyPoints(bms.Hasher, pubKeyPoint, concatPKs)
 		if err != nil {
 			return nil, err
@@ -271,6 +273,9 @@ func (bms *BlsMultiSigner) sigBytesToPoint(sig []byte) (crypto.Point, error) {
 	err := sigBLS.Deserialize(sig)
 	if err != nil {
 		return nil, err
+	}
+	if !singlesig.IsSigValidPoint(sigBLS) {
+		return nil, crypto.ErrBLSInvalidSignature
 	}
 
 	pG1 := mcl.NewPointG1()
