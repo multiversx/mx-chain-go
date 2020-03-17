@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -69,8 +68,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
-
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(100000000)
@@ -213,8 +210,6 @@ func runWASMVMBenchmark(
 }
 
 func TestGasModel(t *testing.T) {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:TRACE")
-
 	gasSchedule, _ := core.LoadGasScheduleConfig("./gasSchedule.toml")
 
 	totalOp := uint64(0)

@@ -438,11 +438,12 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, process.ErrTimeIsOut
 		}
 
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
 			return processedTxHashes, err
 		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	txShardData := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

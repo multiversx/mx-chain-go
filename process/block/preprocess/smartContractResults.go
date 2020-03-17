@@ -291,6 +291,10 @@ func (scr *smartContractResults) CreateBlockStarted() {
 
 // RequestBlockTransactions request for smartContractResults if missing from a block.Body
 func (scr *smartContractResults) RequestBlockTransactions(body *block.Body) int {
+	if check.IfNil(body) {
+		return 0
+	}
+
 	requestedSCResults := 0
 	missingSCResultsForShards := scr.computeMissingAndExistingSCResultsForShards(body)
 
@@ -321,10 +325,6 @@ func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint3
 
 // computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
-	if check.IfNil(body) {
-		return map[uint32][]*txsHashesInfo{}
-	}
-
 	scrTxs := block.Body{}
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.SmartContractResultBlock {

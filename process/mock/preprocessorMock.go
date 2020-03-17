@@ -19,7 +19,7 @@ type PreProcessorMock struct {
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) error
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
@@ -101,7 +101,7 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTi
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, nil
 	}
-	return nil, ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

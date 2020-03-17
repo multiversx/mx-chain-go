@@ -782,7 +782,9 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
-		tc.revertProcessedTxsResults(processedTxs)
+		if len(processedTxs) > 0 {
+			tc.revertProcessedTxsResults(processedTxs)
+		}
 
 		return err
 	}
