@@ -190,7 +190,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return err
 		}
 
-		log.Debug("scr added", "txHash", addScr.TxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value)
+		log.Trace("scr added", "txHash", addScr.TxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value)
 
 		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 		if err != nil {
