@@ -88,6 +88,7 @@ func (s *DB) batchTimeoutHandle() {
 			s.sizeBatch = 0
 			s.mutBatch.Unlock()
 		case <-s.dbClosed:
+			log.Debug("closing the timed batch handler", "path", s.path)
 			return
 		}
 	}

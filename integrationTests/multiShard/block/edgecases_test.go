@@ -111,7 +111,6 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	nbMetaNodes := 2
 	nbShards := 1
 	consensusGroupSize := 1
-	maxGasLimitPerBlock := uint64(100000)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -128,9 +127,6 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 		seedAddress,
 	)
 
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
@@ -142,7 +138,6 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 
 	roundsPerEpoch := uint64(7)
 	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 		for _, node := range nodes {
 			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
