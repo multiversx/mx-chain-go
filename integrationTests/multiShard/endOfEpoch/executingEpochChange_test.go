@@ -218,9 +218,9 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
-
-		time.Sleep(5 * time.Second)
 	}
+
+	time.Sleep(time.Second)
 
 	for _, nodes := range nodesMap {
 		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
@@ -228,14 +228,11 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 }
 
 func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
-	// TODO: fix test
-	t.Skip()
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
-	_ = logger.SetLogLevel("*:DEBUG,sharding:TRACE,process/peer:TRACE")
 
 	nodesPerShard := 1
 	nbMetaNodes := 1
@@ -307,9 +304,9 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
-
-		time.Sleep(5 * time.Second)
 	}
+
+	time.Sleep(time.Second)
 
 	for _, nodes := range nodesMap {
 		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
