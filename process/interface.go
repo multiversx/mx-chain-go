@@ -119,7 +119,12 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksHashes map[string]struct{},
+
+		haveTime func() bool,
+	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -216,10 +221,11 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
+	Process(validatorInfo data.ValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -637,11 +643,20 @@ type EpochStartDataCreator interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+type EpochStartValidatorInfoCreator interface {
+	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
 }
 
@@ -679,5 +694,29 @@ type RoundTimeDurationHandler interface {
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
+	IsInterfaceNil() bool
+}
+
+// SelectionChance defines the actions which should be handled by a round implementation
+type SelectionChance interface {
+	GetMaxThreshold() uint32
+	GetChancePercent() uint32
+}
+
+// RatingsInfo defines the information needed for the rating computation
+type RatingsInfo interface {
+	StartRating() uint32
+	MaxRating() uint32
+	MinRating() uint32
+	ProposerIncreaseRatingStep() uint32
+	ProposerDecreaseRatingStep() uint32
+	ValidatorIncreaseRatingStep() uint32
+	ValidatorDecreaseRatingStep() uint32
+	SelectionChances() []SelectionChance
+}
+
+// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
+type ValidatorInfoProcessorHandler interface {
+	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
 	IsInterfaceNil() bool
 }

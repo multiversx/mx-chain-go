@@ -79,23 +79,22 @@ func NewShardProcessorEmptyWith3shards(
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			AccountsDB:                   accountsDb,
-			ForkDetector:                 &mock.ForkDetectorMock{},
-			Hasher:                       &mock.HasherMock{},
-			Marshalizer:                  &mock.MarshalizerMock{},
-			Store:                        &mock.ChainStorerMock{},
-			ShardCoordinator:             shardCoordinator,
-			NodesCoordinator:             nodesCoordinator,
-			FeeHandler:                   &mock.FeeAccumulatorStub{},
-			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-			RequestHandler:               &mock.RequestHandlerStub{},
-			Core:                         &mock.ServiceContainerMock{},
-			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:                &mock.TransactionCoordinatorMock{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-			HeaderValidator:              hdrValidator,
-			Rounder:                      &mock.RounderMock{},
+			AccountsDB:        accountsDb,
+			ForkDetector:      &mock.ForkDetectorMock{},
+			Hasher:            &mock.HasherMock{},
+			Marshalizer:       &mock.MarshalizerMock{},
+			Store:             &mock.ChainStorerMock{},
+			ShardCoordinator:  shardCoordinator,
+			NodesCoordinator:  nodesCoordinator,
+			FeeHandler:        &mock.FeeAccumulatorStub{},
+			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
+			RequestHandler:    &mock.RequestHandlerStub{},
+			Core:              &mock.ServiceContainerMock{},
+			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:     &mock.TransactionCoordinatorMock{},
+			EpochStartTrigger: &mock.EpochStartTriggerStub{},
+			HeaderValidator:   hdrValidator,
+			Rounder:           &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -217,6 +216,10 @@ func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map
 
 func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
 	return mp.checkShardHeadersFinality(highestNonceHdrs)
+}
+
+func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
+	return mp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
