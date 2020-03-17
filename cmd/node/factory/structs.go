@@ -637,7 +637,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler, validatorStatisticsProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -645,11 +650,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
 	}
@@ -848,7 +848,8 @@ func newRequestHandler(
 
 func newEpochStartTrigger(
 	args *processComponentsFactoryArgs,
-	requestHandler epochStart.RequestHandler,
+	requestHandler process.RequestHandler,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
@@ -860,18 +861,32 @@ func newEpochStartTrigger(
 			return nil, err
 		}
 
+		argsValidatorInfoProcessor := shardchain.ArgValidatorInfoProcessor{
+			MiniBlocksPool:               args.data.Datapool.MiniBlocks(),
+			Marshalizer:                  args.coreData.InternalMarshalizer,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			Requesthandler:               requestHandler,
+			Hasher:                       args.coreData.Hasher,
+		}
+
+		validatorInfoProcessor, err := shardchain.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
+		if err != nil {
+			return nil, err
+		}
+
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        args.coreData.InternalMarshalizer,
-			Hasher:             args.coreData.Hasher,
-			HeaderValidator:    headerValidator,
-			Uint64Converter:    args.coreData.Uint64ByteSliceConverter,
-			DataPool:           args.data.Datapool,
-			Storage:            args.data.Store,
-			RequestHandler:     requestHandler,
-			Epoch:              args.startEpochNum,
-			EpochStartNotifier: args.epochStartNotifier,
-			Validity:           process.MetaBlockValidity,
-			Finality:           process.BlockFinality,
+			Marshalizer:            args.coreData.InternalMarshalizer,
+			Hasher:                 args.coreData.Hasher,
+			HeaderValidator:        headerValidator,
+			Uint64Converter:        args.coreData.Uint64ByteSliceConverter,
+			DataPool:               args.data.Datapool,
+			Storage:                args.data.Store,
+			RequestHandler:         requestHandler,
+			Epoch:                  args.startEpochNum,
+			EpochStartNotifier:     args.epochStartNotifier,
+			Validity:               process.MetaBlockValidity,
+			Finality:               process.BlockFinality,
+			ValidatorInfoProcessor: validatorInfoProcessor,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -2219,42 +2234,54 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
+		ShardCoordinator: shardCoordinator,
+		MiniBlockStorage: miniBlockStorage,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+	}
+	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		AccountsDB:                   accountsDb,
-		ForkDetector:                 forkDetector,
-		Hasher:                       core.Hasher,
-		Marshalizer:                  core.InternalMarshalizer,
-		Store:                        data.Store,
-		ShardCoordinator:             shardCoordinator,
-		NodesCoordinator:             nodesCoordinator,
-		Uint64Converter:              core.Uint64ByteSliceConverter,
-		RequestHandler:               requestHandler,
-		Core:                         coreServiceContainer,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		EpochStartTrigger:            epochStartTrigger,
-		Rounder:                      rounder,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,
-		FeeHandler:                   txFeeHandler,
-		BlockChain:                   data.Blkc,
-		StateCheckpointModulus:       stateCheckpointModulus,
+		AccountsDB:             accountsDb,
+		ForkDetector:           forkDetector,
+		Hasher:                 core.Hasher,
+		Marshalizer:            core.InternalMarshalizer,
+		Store:                  data.Store,
+		ShardCoordinator:       shardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Uint64Converter:        core.Uint64ByteSliceConverter,
+		RequestHandler:         requestHandler,
+		Core:                   coreServiceContainer,
+		BlockChainHook:         vmFactory.BlockChainHookImpl(),
+		TxCoordinator:          txCoordinator,
+		EpochStartTrigger:      epochStartTrigger,
+		Rounder:                rounder,
+		HeaderValidator:        headerValidator,
+		BootStorer:             bootStorer,
+		BlockTracker:           blockTracker,
+		DataPool:               data.Datapool,
+		FeeHandler:             txFeeHandler,
+		BlockChain:             data.Blkc,
+		StateCheckpointModulus: stateCheckpointModulus,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor:         argumentsBaseProcessor,
-		SCDataGetter:             scDataGetter,
-		SCToProtocol:             smartContractToProtocol,
-		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
-		EpochStartDataCreator:    epochStartDataCreator,
-		EpochEconomics:           epochEconomics,
-		EpochRewardsCreator:      epochRewards,
+		ArgBaseProcessor:             argumentsBaseProcessor,
+		SCDataGetter:                 scDataGetter,
+		SCToProtocol:                 smartContractToProtocol,
+		PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
+		EpochStartDataCreator:        epochStartDataCreator,
+		EpochEconomics:               epochEconomics,
+		EpochRewardsCreator:          epochRewards,
+		EpochValidatorInfoCreator:    validatorInfoCreator,
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

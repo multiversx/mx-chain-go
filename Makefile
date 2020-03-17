@@ -14,6 +14,9 @@ clean: clean-test
 test: clean-test
 	go test ./...
 
+test-serial: clean-test
+	go test -p 1 ./...
+
 test-short:
 	go test -short -count=1 ./...
 
