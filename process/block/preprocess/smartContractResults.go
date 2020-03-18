@@ -456,7 +456,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
-	log.Debug("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
