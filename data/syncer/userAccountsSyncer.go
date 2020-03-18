@@ -52,7 +52,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	err := u.syncMainTrie(rootHash)
+	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic)
 	if err != nil {
 		return nil
 	}

@@ -154,3 +154,6 @@ var ErrNilStorageManager = errors.New("nil trie storage manager")
 
 // ErrNilAccountsDBSyncContainer signals that nil accounts sync container was provided
 var ErrNilAccountsDBSyncContainer = errors.New("nil accounts db sync container")
+
+// ErrNilValidatorInfoProcessor signals that nil validator info was provided
+var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")

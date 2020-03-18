@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -64,7 +63,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	return nil
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte) error {
+func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) error {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher)
@@ -73,7 +72,7 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte) error {
 	}
 
 	b.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.waitTime, b.shardId, factory.ValidatorTrieNodesTopic)
+	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.waitTime, b.shardId, trieTopic)
 	if err != nil {
 		return err
 	}

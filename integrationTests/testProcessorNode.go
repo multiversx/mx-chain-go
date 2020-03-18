@@ -196,8 +196,9 @@ type TestProcessorNode struct {
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 	WhiteListHandler      process.InterceptedDataWhiteList
 
-	EpochStartTrigger  TestEpochStartTrigger
-	EpochStartNotifier notifier.EpochStartNotifier
+	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
+	EpochStartTrigger      TestEpochStartTrigger
+	EpochStartNotifier     notifier.EpochStartNotifier
 
 	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
@@ -899,7 +900,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 
 func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
-
+	tpn.ValidatorInfoProcessor = &mock.ValidatorInfoProcessorStub{}
 	tpn.ForkDetector = &mock.ForkDetectorMock{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
@@ -1044,17 +1045,18 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:        TestMarshalizer,
-				Hasher:             TestHasher,
-				HeaderValidator:    tpn.HeaderValidator,
-				Uint64Converter:    TestUint64Converter,
-				DataPool:           tpn.DataPool,
-				Storage:            tpn.Storage,
-				RequestHandler:     tpn.RequestHandler,
-				Epoch:              0,
-				Validity:           1,
-				Finality:           1,
-				EpochStartNotifier: tpn.EpochStartNotifier,
+				Marshalizer:            TestMarshalizer,
+				Hasher:                 TestHasher,
+				HeaderValidator:        tpn.HeaderValidator,
+				Uint64Converter:        TestUint64Converter,
+				DataPool:               tpn.DataPool,
+				Storage:                tpn.Storage,
+				RequestHandler:         tpn.RequestHandler,
+				Epoch:                  0,
+				Validity:               1,
+				Finality:               1,
+				EpochStartNotifier:     tpn.EpochStartNotifier,
+				ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}

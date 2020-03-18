@@ -86,7 +86,8 @@ func NewEmptyAccount(accType state.Type) (state.AccountHandler, error) {
 		return &state.Account{}, nil
 	case state.ValidatorAccount:
 		return &state.PeerAccount{}, nil
-
+	case state.DataTrie:
+		return nil, nil
 	}
 	return nil, update.ErrUnknownType
 }

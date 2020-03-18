@@ -142,6 +142,8 @@ func ShardIdToString(shardId uint32) string {
 	if shardId == MetachainShardId {
 		return "_META"
 	}
-
+	if shardId == AllShardId {
+		return "_ALL"
+	}
 	return fmt.Sprintf("_%d", shardId)
 }
