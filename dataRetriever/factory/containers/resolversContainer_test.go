@@ -222,3 +222,20 @@ func TestResolversContainer_LenShouldWork(t *testing.T) {
 	c.Remove("key1")
 	assert.Equal(t, 1, c.Len())
 }
+
+//------- ResolverKeys
+
+func TestResolversContainer_ResolverKeys(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key0", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+	_ = c.Add("a", &mock.ResolverStub{})
+
+	expectedString := "a, key0, key1, key2"
+
+	assert.Equal(t, expectedString, c.ResolverKeys())
+}
