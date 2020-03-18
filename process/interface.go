@@ -456,16 +456,6 @@ type TemporaryAccountsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
-// block to its peers which should be received in a limited time frame
-type BlockSizeThrottler interface {
-	MaxItemsToAdd() uint32
-	Add(round uint64, items uint32)
-	Succeed(round uint64)
-	ComputeMaxItems()
-	IsInterfaceNil() bool
-}
-
 // PoolsCleaner define the functionality that is needed for a pools cleaner
 type PoolsCleaner interface {
 	Clean(duration time.Duration) (bool, error)

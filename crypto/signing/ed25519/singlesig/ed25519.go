@@ -8,7 +8,7 @@ import (
 )
 
 // Ed25519Signer exposes the signing and verification functionalities from the ed25519 signature scheme
-type Ed25519Signer struct {}
+type Ed25519Signer struct{}
 
 // Sign will sign a message using ed25519 signature scheme
 func (e *Ed25519Signer) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
