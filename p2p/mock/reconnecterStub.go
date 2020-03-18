@@ -16,9 +16,3 @@ func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
 func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	return rs == nil
 }
-
-// Pause -
-func (rs *ReconnecterStub) Pause() { rs.PauseCall() }
-
-// Resume -
-func (rs *ReconnecterStub) Resume() { rs.ResumeCall() }

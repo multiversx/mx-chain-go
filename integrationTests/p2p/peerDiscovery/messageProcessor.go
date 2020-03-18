@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// MessageProcesssor -
 type MessageProcesssor struct {
 	RequiredValue   []byte
 	chanDone        chan struct{}
@@ -14,6 +15,7 @@ type MessageProcesssor struct {
 	wasDataReceived bool
 }
 
+// NewMessageProcessor -
 func NewMessageProcessor(chanDone chan struct{}, requiredVal []byte) *MessageProcesssor {
 	return &MessageProcesssor{
 		RequiredValue: requiredVal,
@@ -21,6 +23,7 @@ func NewMessageProcessor(chanDone chan struct{}, requiredVal []byte) *MessagePro
 	}
 }
 
+// ProcessReceivedMessage -
 func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if bytes.Equal(mp.RequiredValue, message.Data()) {
 		mp.mutDataReceived.Lock()
@@ -33,6 +36,7 @@ func (mp *MessageProcesssor) ProcessReceivedMessage(message p2p.MessageP2P, _ fu
 	return nil
 }
 
+// WasDataReceived -
 func (mp *MessageProcesssor) WasDataReceived() bool {
 	mp.mutDataReceived.Lock()
 	defer mp.mutDataReceived.Unlock()
