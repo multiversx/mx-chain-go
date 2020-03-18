@@ -538,7 +538,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
 		wrk.consensusService.IsSubroundSignature(subroundId)
 	if shouldBroadcastLastCommittedHeader {
-		wrk.broadcastLastCommittedHeader()
+		//TODO: Should be analyzed if call of wrk.broadcastLastCommittedHeader() is still necessary
 	}
 }
 
