@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -54,14 +53,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -685,7 +678,7 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	for _, miniBlock := range finalBody.MiniBlocks {
-		log.Debug("CreateBlock: miniblock",
+		log.Trace("CreateBlock: miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
@@ -698,8 +691,6 @@ func (sp *shardProcessor) CreateBlock(
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
-	sp.blockSizeThrottler.ComputeMaxItems()
-
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),
 		"round", shardHdr.GetRound(),
@@ -904,8 +895,6 @@ func (sp *shardProcessor) CommitBlock(
 		sp.appStatusHandler,
 		sp.blockTracker,
 	)
-
-	sp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers", sp.dataPool.Headers().Len(),
@@ -1692,10 +1681,6 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
-
-	sp.blockSizeThrottler.Add(
-		shardHeader.GetRound(),
-		core.MaxUint32(shardHeader.ItemsInBody(), shardHeader.ItemsInHeader()))
 
 	return newBody, nil
 }
