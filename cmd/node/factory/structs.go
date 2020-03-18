@@ -514,7 +514,7 @@ func NetworkComponentsFactory(
 
 	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
 	}
 
 	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
@@ -524,7 +524,7 @@ func NetworkComponentsFactory(
 
 	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
 	}
 
 	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
