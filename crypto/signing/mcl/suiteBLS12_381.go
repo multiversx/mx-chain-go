@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/herumi/bls-go-binary/bls"
@@ -93,7 +94,21 @@ func (s *SuiteBLS12) CreateScalar() crypto.Scalar {
 
 // CreatePointForScalar creates a new point corresponding to the given scalar
 func (s *SuiteBLS12) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
-	return s.G2.CreatePointForScalar(scalar), nil
+	if check.IfNil(scalar) {
+		return nil, crypto.ErrNilPrivateKeyScalar
+	}
+	sc, ok := scalar.GetUnderlyingObj().(*bls.Fr)
+	if !ok {
+		return nil, crypto.ErrInvalidScalar
+	}
+
+	if sc.IsZero() || !sc.IsValid() {
+		return nil, crypto.ErrInvalidPrivateKey
+	}
+
+	point := s.G2.CreatePointForScalar(scalar)
+
+	return point, nil
 }
 
 // PointLen returns the max length of point in nb of bytes

@@ -227,6 +227,22 @@
     Size = 75000
     Type = "LRU"
 
+#PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
+[PublicKeyPeerId]
+    Size = 30000
+    Type = "LRU"
+
+#PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
+[PublicKeyShardId]
+    Size = 100
+    Type = "LRU"
+
+#PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
+# Used for observers, size should be kept low.
+[PeerIdShardId]
+    Size = 5
+    Type = "LRU"
+
 [Address]
     Length = 32
     Prefix = "0x"
@@ -260,7 +276,7 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 30
+    MinRoundsBetweenEpochs = 50
     RoundsPerEpoch         = 50
 
 # ResourceStats, if enabled, will output in a folder called "stats"

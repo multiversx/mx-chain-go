@@ -28,6 +28,9 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 
+// ErrNilChanceComputer signals that the chanceComputer is nil
+var ErrNilChanceComputer = errors.New("nil chance computer")
+
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -100,5 +103,8 @@ var ErrValidatorNotFound = errors.New("validator not found")
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
-// ErrNilCacher signals that the cacher is nil
+// ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that a nil epoch handler has been provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")

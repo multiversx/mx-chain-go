@@ -3007,8 +3007,9 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := sp.DecodeBlockBody(nil)
-	assert.Equal(t, &block.Body{}, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = sp.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
@@ -3653,6 +3654,20 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	body.MiniBlocks[0] = nil
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrNilMiniBlock, err)
 }
 
 func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {

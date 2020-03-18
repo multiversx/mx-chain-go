@@ -267,9 +267,7 @@ func (boot *baseBootstrap) computeNodeState() {
 	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		currentBlockNonce := currentHeader.GetNonce()
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= currentBlockNonce &&
-			!boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentBlockNonce+1)
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -330,6 +328,10 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 	toNonce := fromNonce + numHeadersToRequest - 1
 
+	if fromNonce > toNonce {
+		return
+	}
+
 	log.Debug("requestHeadersIfSyncIsStuck",
 		"from nonce", fromNonce,
 		"to nonce", toNonce,
@@ -355,6 +357,14 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 	boot.headers.RemoveHeaderByHash(hash)
 
 	return hash
+}
+
+func (boot *baseBootstrap) removeHeadersWithNonceFromPool(nonce uint64) {
+	log.Debug("removeHeadersWithNonceFromPool",
+		"shard", boot.shardCoordinator.SelfId(),
+		"nonce", nonce)
+
+	boot.headers.RemoveHeaderByNonceAndShardId(nonce, boot.shardCoordinator.SelfId())
 }
 
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
@@ -414,6 +424,10 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+
+	if fromNonce > toNonce {
+		return
+	}
 
 	log.Debug("requestHeadersFromNonceIfMissing",
 		"from nonce", fromNonce,
@@ -475,6 +489,7 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
+		boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
 	}
 }
 
@@ -486,8 +501,8 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
-
-	if !boot.ShouldSync() {
+	nodeState := boot.GetNodeState()
+	if nodeState != core.NsNotSynchronized {
 		return nil
 	}
 
@@ -745,6 +760,7 @@ func (boot *baseBootstrap) rollBackOneBlockForced() {
 	}
 
 	boot.forkDetector.ResetFork()
+	boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
 }
 
 func (boot *baseBootstrap) rollBackToNonceForced() {
@@ -754,6 +770,7 @@ func (boot *baseBootstrap) rollBackToNonceForced() {
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
+	boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
 }
 
 func (boot *baseBootstrap) restoreState(
@@ -900,7 +917,6 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	boot.mutRequestHeaders.Lock()
 	defer boot.mutRequestHeaders.Unlock()
 
-	numRequestedHeaders := 0
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
 		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
 		if haveHeader {
@@ -908,32 +924,27 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 		}
 
 		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
-		numRequestedHeaders++
-	}
-
-	if numRequestedHeaders > 0 {
-		log.Trace("requestHeaders",
-			"num requested headers", numRequestedHeaders,
-			"from nonce", fromNonce,
-			"to nonce", toNonce,
-			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-		)
 	}
 }
 
-// ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
-// is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synced and it can participate to the consensus. Note that when the node is not connected to the network,
-// ShouldSync returns true but the SyncBlock is not automatically called
-func (boot *baseBootstrap) ShouldSync() bool {
+// GetNodeState method returns the sync state of the node. If it returns 'NsNotSynchronized', this means that the node
+// is not synchronized yet and it has to continue the bootstrapping mechanism. If it returns 'NsSynchronized', this means
+// that the node is already synced and it can participate to the consensus. This method could also returns 'NsNotCalculated'
+// which means that the state of the node in the current round is not calculated yet. Note that when the node is not
+// connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
+func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	boot.mutNodeState.RLock()
 	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated
 	isNodeSynchronized := boot.isNodeSynchronized
 	boot.mutNodeState.RUnlock()
 
-	if isNodeStateCalculatedInCurrentRound {
-		return !isNodeSynchronized
+	if !isNodeStateCalculatedInCurrentRound {
+		return core.NsNotCalculated
 	}
 
-	return true
+	if isNodeSynchronized {
+		return core.NsSynchronized
+	}
+
+	return core.NsNotSynchronized
 }
