@@ -2189,6 +2189,7 @@ func newMetaBlockProcessor(
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:      core.InternalMarshalizer,
+		Hasher:           core.Hasher,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
