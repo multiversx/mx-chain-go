@@ -161,5 +161,6 @@ func getArguments() bootstrap.ArgsEpochStartDataProvider {
 		MetaBlockInterceptor:           &mock.MetaBlockInterceptorStub{},
 		ShardHeaderInterceptor:         &mock.ShardHeaderInterceptorStub{},
 		MiniBlockInterceptor:           &mock.MiniBlockInterceptorStub{},
+		WhiteListHandler:               &mock.WhiteListHandlerStub{},
 	}
 }

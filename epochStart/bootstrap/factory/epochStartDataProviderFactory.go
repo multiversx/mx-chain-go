@@ -10,8 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 type epochStartDataProviderFactory struct {
@@ -104,6 +106,16 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		return nil, err
 	}
 
+	whiteListCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(esdpf.generalConfig.WhiteListPool.Type),
+		esdpf.generalConfig.WhiteListPool.Size,
+		esdpf.generalConfig.WhiteListPool.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+
 	argsEpochStart := bootstrap.ArgsEpochStartDataProvider{
 		PublicKey:                      esdpf.pubKey,
 		Messenger:                      esdpf.messenger,
@@ -116,6 +128,7 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		MetaBlockInterceptor:           metaBlockInterceptor,
 		ShardHeaderInterceptor:         shardHdrInterceptor,
 		MiniBlockInterceptor:           miniBlockInterceptor,
+		WhiteListHandler:               whiteListHandler,
 	}
 	epochStartDataProvider, err := bootstrap.NewEpochStartDataProvider(argsEpochStart)
 
