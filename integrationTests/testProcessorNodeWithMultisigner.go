@@ -155,7 +155,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -168,7 +168,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 				nodesCoordinatorFactory,
 			)
 		}
