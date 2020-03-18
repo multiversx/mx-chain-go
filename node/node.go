@@ -706,12 +706,11 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	for _, tx := range txs {
-		senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+		senderShardId, err := n.getSenderShardId(tx)
 		if err != nil {
 			continue
 		}
 
-		senderShardId := n.shardCoordinator.ComputeId(senderBytes)
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
 			continue
@@ -736,6 +735,27 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	return numOfSentTxs, nil
+}
+
+func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
+	senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	senderShardId := n.shardCoordinator.ComputeId(senderBytes)
+	if senderShardId != n.shardCoordinator.SelfId() {
+		return senderShardId, nil
+	}
+
+	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
+	//traverse the network only once
+	recvBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	return n.shardCoordinator.ComputeId(recvBytes), nil
 }
 
 func (n *Node) validateTx(tx *transaction.Transaction) error {
@@ -769,7 +789,13 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 		return err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAddressNotInThisShard) {
+		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
+		return nil
+	}
+
+	return err
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {

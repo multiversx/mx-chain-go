@@ -58,6 +58,7 @@ type TxValidator interface {
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
+	ReceiverShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
 	Fee() *big.Int
