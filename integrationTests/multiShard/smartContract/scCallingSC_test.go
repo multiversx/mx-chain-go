@@ -486,7 +486,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	txData := "sendToStaking"
 	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.GenesisNodePrice(), delegateSCAddress, txData)
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)

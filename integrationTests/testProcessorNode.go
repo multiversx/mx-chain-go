@@ -1362,7 +1362,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 5
+			return 2 * time.Second
 		},
 	)
 	if err != nil {
@@ -1392,7 +1392,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return 2 * time.Second
 		},
 	)
 	if err != nil {
