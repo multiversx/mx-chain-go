@@ -1611,3 +1611,23 @@ func createCustomArgumentsForSaveInitialState() (peer.ArgValidatorStatisticsProc
 	arguments.AdrConv = addressConverter
 	return arguments, waitingMap, eligibleMap, actualMap
 }
+
+func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
+
+}
+
+func TestValidatorStatistics_RootHashShouldWork(t *testing.T) {
+
+}
+
+func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
+
+}
+
+func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
+
+}
+
+func TestValidatorStatistics_GetPeerAccount(t *testing.T) {
+
+}
