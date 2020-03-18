@@ -44,22 +44,22 @@ type EpochStartEventNotifier interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	hasher                  hashing.Hasher
-	shuffler                NodesShuffler
+	hasher                        hashing.Hasher
+	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
 	listIndexUpdater              ListIndexUpdaterHandler
-	bootStorer              storage.Storer
-	selfPubKey              []byte
-	nodesConfig             map[uint32]*epochNodesConfig
-	mutNodesConfig          sync.RWMutex
-	currentEpoch            uint32
-	savedStateKey           []byte
-	mutSavedStateKey        sync.RWMutex
-	numTotalEligible        uint64
-	shardConsensusGroupSize int
-	metaConsensusGroupSize  int
-	nodesPerShardSetter     NodesPerShardSetter
-	consensusGroupCacher    Cacher
+	bootStorer                    storage.Storer
+	selfPubKey                    []byte
+	nodesConfig                   map[uint32]*epochNodesConfig
+	mutNodesConfig                sync.RWMutex
+	currentEpoch                  uint32
+	savedStateKey                 []byte
+	mutSavedStateKey              sync.RWMutex
+	numTotalEligible              uint64
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	nodesPerShardSetter           NodesPerShardSetter
+	consensusGroupCacher          Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -97,8 +97,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
-	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
-	ihgs.doExpandEligibleList = ihgs.expandEligibleList
+	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch, false)
 
 	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch, false)
 	if err != nil {
@@ -520,7 +519,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 
 	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch, true)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}

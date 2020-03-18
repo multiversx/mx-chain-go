@@ -76,6 +76,7 @@ type NodesPerShardSetter interface {
 		eligible map[uint32][]Validator,
 		waiting map[uint32][]Validator,
 		epoch uint32,
+		updateList bool,
 	) error
 	ComputeLeaving(allValidators []Validator) []Validator
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// ArgIndexHashedNodesCoordinatorFactory -
 type ArgIndexHashedNodesCoordinatorFactory struct {
 	nodesPerShard           int
 	nbMetaNodes             int
@@ -18,15 +19,18 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	waitingMap              map[uint32][]sharding.Validator
 	keyIndex                int
 	cp                      *CryptoParams
-	epochStartSubscriber    sharding.EpochStartSubscriber
+	epochStartSubscriber    sharding.EpochStartEventNotifier
 	hasher                  hashing.Hasher
 	consensusGroupCache     sharding.Cacher
 	bootStorer              storage.Storer
+	listIndexUpdater        sharding.ListIndexUpdaterHandler
 }
 
+// IndexHashedNodesCoordinatorFactory -
 type IndexHashedNodesCoordinatorFactory struct {
 }
 
+// CreateNodesCoordinator -
 func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator {
 
 	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
@@ -38,7 +42,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    arg.epochStartSubscriber,
+		EpochStartNotifier:      arg.epochStartSubscriber,
 		ShardId:                 arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
@@ -46,6 +50,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     arg.consensusGroupCache,
 		BootStorer:              arg.bootStorer,
+		ListIndexUpdater:        arg.listIndexUpdater,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -55,8 +60,9 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	return nodesCoordinator
 }
 
+// IndexHashedNodesCoordinatorWithRaterFactory -
 type IndexHashedNodesCoordinatorWithRaterFactory struct {
-	sharding.RaterHandler
+	sharding.PeerAccountListAndRatingHandler
 }
 
 // CreateNodesCoordinator is used for creating a nodes coordinator in the integration tests
@@ -73,7 +79,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    arg.epochStartSubscriber,
+		EpochStartNotifier:      arg.epochStartSubscriber,
 		ShardId:                 arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
@@ -88,22 +94,24 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		log.Debug("Error creating node coordinator")
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.RaterHandler)
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.PeerAccountListAndRatingHandler)
 	if err != nil {
 		log.Debug("Error creating node coordinator")
 	}
 
 	return &NodesWithRater{
-		NodesCoordinator: nodesCoordinator,
-		RaterHandler:     ihncrf.RaterHandler,
+		NodesCoordinator:                nodesCoordinator,
+		PeerAccountListAndRatingHandler: ihncrf.PeerAccountListAndRatingHandler,
 	}
 }
 
+// NodesWithRater -
 type NodesWithRater struct {
 	sharding.NodesCoordinator
-	sharding.RaterHandler
+	sharding.PeerAccountListAndRatingHandler
 }
 
+// IsInterfaceNil -
 func (nwr *NodesWithRater) IsInterfaceNil() bool {
 	return nwr == nil
 }

@@ -204,7 +204,7 @@ type TestProcessorNode struct {
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	Rater                        sharding.RaterHandler
+	Rater                        sharding.PeerAccountListAndRatingHandler
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -324,27 +324,6 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 	var peerTrie data.Trie
 	tpn.PeerState, peerTrie, _ = CreateAccountsDB(state.ValidatorAccount)
 	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
-}
-
-func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-
-	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         tpn.PeerState,
-		AdrConv:             TestAddressConverterBLS,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		DataPool:            tpn.DataPool,
-		StorageService:      tpn.Storage,
-		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
-		Rater:               rater,
-		MaxComputableRounds: 1000,
-		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
-	}
-
-	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (tpn *TestProcessorNode) initTestNode() {

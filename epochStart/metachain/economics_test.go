@@ -1,27 +1,37 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/stretchr/testify/require"
+	"encoding/json"
+	"math/big"
 	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
+		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		Store:            createMetaStore(),
 		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
-		RewardsHandler:   &mock.RewardsHandlerMock{},
-		RoundTime:        &mock.RounderMock{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
+		RewardsHandler:   &mock.RewardsHandlerStub{},
+		RoundTime:        &mock.RoundTimeDurationHandler{},
 	}
 	return argsNewEpochEconomics
 }
 
-//TODO - see why the EpochEconomics returns process.Err
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
@@ -30,7 +40,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilMarshalizer(t *testi
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilMarshalizer, err)
+	require.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) {
@@ -41,7 +51,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) 
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilStore, err)
+	require.Equal(t, epochStart.ErrNilStorage, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *testing.T) {
@@ -52,7 +62,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilShardCoordinator, err)
+	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilNodesdCoordinator(t *testing.T) {
@@ -63,7 +73,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilNodesdCoordinator(t 
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilNodesCoordinator, err)
+	require.Equal(t, epochStart.ErrNilNodesCoordinator, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *testing.T) {
@@ -74,7 +84,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *te
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilRewardsHandler, err)
+	require.Equal(t, epochStart.ErrNilRewardsHandler, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRounder(t *testing.T) {
@@ -85,7 +95,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRounder(t *testing.T
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, process.ErrNilRounder, err)
+	require.Equal(t, epochStart.ErrNilRounder, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorShouldWork(t *testing.T) {
@@ -97,7 +107,6 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorShouldWork(t *testing.T
 	require.NotNil(t, esd)
 	require.Nil(t, err)
 }
-
 
 func TestNewEndOfEpochEconomicsDataCreator_NilMarshalizer(t *testing.T) {
 	t.Parallel()

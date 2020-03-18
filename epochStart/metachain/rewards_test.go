@@ -114,8 +114,8 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 			},
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
@@ -163,8 +163,8 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 			mbh,
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
@@ -219,8 +219,8 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 			mbh,
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
@@ -274,8 +274,8 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 			mbh,
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
@@ -304,8 +304,8 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 			},
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
@@ -368,8 +368,8 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			},
 		},
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfoData)
-	valInfo[0] = []*state.ValidatorInfoData{
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
 		{
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,

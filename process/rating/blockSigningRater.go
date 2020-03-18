@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -72,7 +73,7 @@ func NewBlockSigningRaterAndListIndexer(ratingsData *economics.RatingsData) (*Bl
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                NewNilRatingReader(ratingsData.StartRating()),
+		RatingReader:                NewDisabledRatingReader(ratingsData.StartRating()),
 		ratingChances:               ratingChances,
 		ListIndexUpdaterHandler:     &DisabledListIndexUpdater{},
 	}, nil
@@ -95,11 +96,6 @@ func (bsr *BlockSigningRaterAndListIndexer) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
-// GetRatings gets all the ratings that the current rater has
-func (bsr *BlockSigningRaterAndListIndexer) GetRatings(addresses []string) map[string]uint32 {
-	return bsr.RatingReader.GetRatings(addresses)
-}
-
 // SetRatingReader sets the Reader that can read ratings
 func (bsr *BlockSigningRaterAndListIndexer) SetRatingReader(reader sharding.RatingReader) {
 	if !check.IfNil(reader) {
@@ -108,7 +104,7 @@ func (bsr *BlockSigningRaterAndListIndexer) SetRatingReader(reader sharding.Rati
 }
 
 // UpdateRatingFromTempRating returns the TempRating for the specified public keys
-func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) error {
+func (bsr *BlockSigningRaterAndListIndexer) UpdateRatingFromTempRating(pks []string) error {
 	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
 }
 

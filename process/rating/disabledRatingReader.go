@@ -1,25 +1,26 @@
 package rating
 
 // DisabledRatingReader represents a nil implementation for the RatingReader interface
-type DisabledRatingReader struct {
+type disabledRatingReader struct {
+	startRating uint32
 }
 
-// GetRating gets the rating for the public key
-func (*DisabledRatingReader) GetRating(string) uint32 {
-	return 1
+// NewDisabledRatingReader create a new ratingReader that returns fixed values
+func NewDisabledRatingReader(startRating uint32) *disabledRatingReader {
+	return &disabledRatingReader{startRating: startRating}
 }
 
-// GetRatings gets all the ratings as a map[pk] ratingValue
-func (*DisabledRatingReader) GetRatings(pks []string) map[string]uint32 {
-	ratingsMap := make(map[string]uint32)
-
-	for _, val := range pks {
-		ratingsMap[val] = 1
-	}
-	return ratingsMap
+//GetRating gets the rating for the public key
+func (rr *disabledRatingReader) GetRating(string) uint32 {
+	return rr.startRating
 }
 
-// IsInterfaceNil verifies if the interface is nil
-func (rr *DisabledRatingReader) IsInterfaceNil() bool {
+//UpdateRatingFromTempRating sets the new rating to the value of the tempRating
+func (rr *disabledRatingReader) UpdateRatingFromTempRating([]string) error {
+	return nil
+}
+
+//IsInterfaceNil verifies if the interface is nil
+func (rr *disabledRatingReader) IsInterfaceNil() bool {
 	return rr == nil
 }
