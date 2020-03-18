@@ -83,6 +83,9 @@ var ErrNilSignature = errors.New("nil signature")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
+// ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
+var ErrNilMiniBlock = errors.New("nil mini block")
+
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
@@ -377,6 +380,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
+// ErrNilPreProcessor signals that preprocessors is nil
+var ErrNilPreProcessor = errors.New("preprocessor is nil")
+
 // ErrNilGasHandler signals that gas handler is nil
 var ErrNilGasHandler = errors.New("nil gas handler")
 
@@ -624,6 +630,9 @@ var ErrNilBuiltInFunction = errors.New("built in function is nil")
 // ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
 var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")
 
+// ErrValidatorInfoMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks should come only from meta")
+
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
@@ -648,6 +657,9 @@ var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 // ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
 var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
 
+// ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
+var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
+
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 
@@ -659,6 +671,18 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
+
+// ErrDuplicateThreshold signals that two thresholds are the same
+var ErrDuplicateThreshold = errors.New("two thresholds are the same")
+
+// ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
+var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")
+
+// ErrNoChancesProvided signals that there were no chances provided
+var ErrNoChancesProvided = errors.New("no chances are provided")
+
+// ErrNilMinChanceIfZero signals that there was no min chance provided if a chance is still needed
+var ErrNilMinChanceIfZero = errors.New("no min chance ")
 
 // ErrInvalidShardCacherIdentifier signals an invalid identifier
 var ErrInvalidShardCacherIdentifier = errors.New("invalid identifier for shard cacher")
@@ -677,3 +701,6 @@ var ErrInvalidBody = errors.New("invalid body")
 
 // ErrNilBlockSizeComputationHandler signals that a nil block size computation handler has been provided
 var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation handler")
+
+// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
+var ErrNilValidatorStatistics = errors.New("nil validator statistics")

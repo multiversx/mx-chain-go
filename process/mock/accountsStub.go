@@ -31,6 +31,8 @@ type AccountsStub struct {
 	GetAllLeavesCalled          func(rootHash []byte) (map[string][]byte, error)
 }
 
+var errNotImplemented = errors.New("not implemented")
+
 // GetAllLeaves -
 func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
 	if as.GetAllLeavesCalled != nil {
@@ -38,8 +40,6 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	}
 	return nil, nil
 }
-
-var errNotImplemented = errors.New("not implemented")
 
 // AddJournalEntry -
 func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {

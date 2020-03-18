@@ -1770,8 +1770,8 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	wrk := *initWorker()
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		ShouldSyncCalled: func() bool {
-			return true
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1785,13 +1785,13 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	assert.False(t, executed)
 }
 
-func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
+func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		ShouldSyncCalled: func() bool {
-			return true
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
