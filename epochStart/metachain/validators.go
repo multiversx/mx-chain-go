@@ -63,45 +63,56 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[u
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	shardIds := make([]uint32, 0)
-	for k := range validatorInfo {
-		shardIds = append(shardIds, k)
-	}
-
-	sort.Slice(shardIds, func(a, b int) bool {
-		return shardIds[a] < shardIds[b]
-	})
-
-	for _, shardId := range shardIds {
+	for shardId := uint32(0); shardId < r.shardCoordinator.NumberOfShards(); shardId++ {
 		validators := validatorInfo[shardId]
 		if len(validators) == 0 {
 			continue
 		}
 
-		miniBlock := &block.MiniBlock{}
-		miniBlock.SenderShardID = r.shardCoordinator.SelfId()
-		miniBlock.ReceiverShardID = core.AllShardId
-		miniBlock.TxHashes = make([][]byte, len(validators))
-		miniBlock.Type = block.PeerBlock
-
-		validatorCopy := make([]*state.ValidatorInfo, len(validators))
-		copy(validatorCopy, validators)
-		sort.Slice(validatorCopy, func(a, b int) bool {
-			return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
-		})
-
-		for index, validator := range validatorCopy {
-			marshalizedValidator, err := r.marshalizer.Marshal(validator)
-			if err != nil {
-				return nil, err
-			}
-			miniBlock.TxHashes[index] = marshalizedValidator
+		miniBlock, err := r.createMiniBlock(validators)
+		if err != nil {
+			return nil, err
 		}
 
 		miniblocks = append(miniblocks, miniBlock)
 	}
 
+	validators := validatorInfo[core.MetachainShardId]
+	if len(validators) == 0 {
+		return miniblocks, nil
+	}
+
+	miniBlock, err := r.createMiniBlock(validators)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblocks = append(miniblocks, miniBlock)
+
 	return miniblocks, nil
+}
+
+func (r *validatorInfoCreator) createMiniBlock(validators []*state.ValidatorInfo) (*block.MiniBlock, error) {
+	miniBlock := &block.MiniBlock{}
+	miniBlock.SenderShardID = r.shardCoordinator.SelfId()
+	miniBlock.ReceiverShardID = core.AllShardId
+	miniBlock.TxHashes = make([][]byte, len(validators))
+	miniBlock.Type = block.PeerBlock
+
+	validatorCopy := make([]*state.ValidatorInfo, len(validators))
+	copy(validatorCopy, validators)
+	sort.Slice(validatorCopy, func(a, b int) bool {
+		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
+	})
+
+	for index, validator := range validatorCopy {
+		marshalizedValidator, err := r.marshalizer.Marshal(validator)
+		if err != nil {
+			return nil, err
+		}
+		miniBlock.TxHashes[index] = marshalizedValidator
+	}
+	return miniBlock, nil
 }
 
 // VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct

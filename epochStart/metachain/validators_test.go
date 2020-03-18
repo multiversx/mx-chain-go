@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"reflect"
 	"sort"
@@ -106,7 +105,6 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		bl.ReceiverShardID != core.AllShardId ||
 		len(bl.TxHashes) == 0 ||
 		bl.Type != block.PeerBlock {
-		log.Warn("verifyMiniBlocks existed on first if")
 		return false
 	}
 
@@ -121,9 +119,6 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		unmarshaledVi := &state.ValidatorInfo{}
 		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
-			log.Warn("verifyMiniBlocks existed on second if",
-				"unmarshaledVi", fmt.Sprintf("%v", unmarshaledVi),
-				"vi", fmt.Sprintf("%v", vi))
 			return false
 		}
 	}
