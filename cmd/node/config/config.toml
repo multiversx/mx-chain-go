@@ -318,5 +318,5 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
-    AccountsStatePruningEnabled = true
-    PeerStatePruningEnabled = true
+    AccountsStatePruningEnabled = false
+    PeerStatePruningEnabled = false
