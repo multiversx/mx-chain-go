@@ -232,7 +232,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrBitmapMismatch
 	}
 
-	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
+	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pk_i, {pk1,..., pk_n})*sig_i
 	signatures := make([][]byte, 0, len(bms.data.sigShares))
 	pubKeysSigners := make([]crypto.PublicKey, 0, len(bms.data.sigShares))
 

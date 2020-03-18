@@ -57,6 +57,7 @@ func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, er
 	if err != nil {
 		return nil, err
 	}
+
 	return &privateKey{
 		suite: kg.suite,
 		sk:    sc,
