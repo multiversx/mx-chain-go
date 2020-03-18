@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
 )
@@ -36,12 +37,11 @@ func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 
 	ok := ic.objects.Insert(key, interceptor)
-
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -57,6 +57,10 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 	}
 
 	for idx, key := range keys {
+		if len(key) == 0 {
+			continue
+		}
+
 		err := ic.Add(key, interceptors[idx])
 		if err != nil {
 			return err
@@ -68,7 +72,7 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ic *interceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 
@@ -84,6 +88,32 @@ func (ic *interceptorsContainer) Remove(key string) {
 // Len returns the length of the added objects
 func (ic *interceptorsContainer) Len() int {
 	return ic.objects.Len()
+}
+
+// Iterate will call the provided handler for each and every key-value pair
+func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
+	if handler == nil {
+		return
+	}
+
+	for keyVal := range ic.objects.Iter() {
+		key, ok := keyVal.Key.(string)
+		if !ok {
+			ic.objects.Del(keyVal.Key)
+			continue
+		}
+
+		val, ok := keyVal.Value.(process.Interceptor)
+		if !ok {
+			ic.objects.Del(keyVal.Key)
+			continue
+		}
+
+		shouldContinue := handler(key, val)
+		if !shouldContinue {
+			return
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

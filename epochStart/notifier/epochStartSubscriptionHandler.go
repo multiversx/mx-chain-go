@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -54,21 +55,31 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
-	essh.mutEpochStartHandler.RLock()
-	for _, handler := range essh.epochStartHandlers {
-		handler.EpochStartAction(hdr)
+	essh.mutEpochStartHandler.Lock()
+
+	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
+		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
+	})
+
+	for i := 0; i < len(essh.epochStartHandlers); i++ {
+		essh.epochStartHandlers[i].EpochStartAction(hdr)
 	}
-	essh.mutEpochStartHandler.RUnlock()
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // NotifyAllPrepare will call all the subscribed clients to notify them that an epoch change block has been
 // observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
 func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.HeaderHandler) {
-	essh.mutEpochStartHandler.RLock()
-	for _, handler := range essh.epochStartHandlers {
-		handler.EpochStartPrepare(metaHeader)
+	essh.mutEpochStartHandler.Lock()
+
+	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
+		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
+	})
+
+	for i := 0; i < len(essh.epochStartHandlers); i++ {
+		essh.epochStartHandlers[i].EpochStartPrepare(metaHeader)
 	}
-	essh.mutEpochStartHandler.RUnlock()
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // IsInterfaceNil -

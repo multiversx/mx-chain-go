@@ -126,6 +126,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	return nil
 }
 
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
+	return make([]sharding.Validator, 0)
+}
+
 // LoadState -
 func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil

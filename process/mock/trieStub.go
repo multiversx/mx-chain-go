@@ -24,6 +24,14 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
+// EnterSnapshotMode -
+func (ts *TrieStub) EnterSnapshotMode() {
+}
+
+// ExitSnapshotMode -
+func (ts *TrieStub) ExitSnapshotMode() {
+}
+
 // TakeSnapshot -
 func (ts *TrieStub) TakeSnapshot(_ []byte) {
 }

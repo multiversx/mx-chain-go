@@ -95,6 +95,7 @@ type ResolversFinder interface {
 	IntraShardResolver(baseTopic string) (Resolver, error)
 	MetaChainResolver(baseTopic string) (Resolver, error)
 	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
@@ -278,5 +279,12 @@ type RequestedItemsHandler interface {
 	Add(key string) error
 	Has(key string) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
 	IsInterfaceNil() bool
 }

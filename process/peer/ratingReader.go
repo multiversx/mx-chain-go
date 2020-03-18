@@ -2,8 +2,8 @@ package peer
 
 // RatingReader will handle the fetching of the ratings
 type RatingReader struct {
-	getRating  func(string) uint32
-	getRatings func([]string) map[string]uint32
+	getRating                  func(string) uint32
+	updateRatingFromTempRating func([]string) error
 }
 
 //GetRating returns the Rating for the specified public key
@@ -12,10 +12,9 @@ func (bsr *RatingReader) GetRating(pk string) uint32 {
 	return rating
 }
 
-//GetRatings gets all the ratings that the current rater has
-func (bsr *RatingReader) GetRatings(addresses []string) map[string]uint32 {
-	ratings := bsr.getRatings(addresses)
-	return ratings
+//UpdateRatingFromTempRating returns the TempRating for the specified public key
+func (bsr *RatingReader) UpdateRatingFromTempRating(pks []string) error {
+	return bsr.updateRatingFromTempRating(pks)
 }
 
 //IsInterfaceNil checks if the underlying object is nil

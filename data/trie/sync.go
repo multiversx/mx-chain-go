@@ -7,16 +7,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type trieSyncer struct {
 	trie             *patriciaMerkleTrie
-	resolver         dataRetriever.Resolver
+	requestHandler   RequestHandler
 	interceptedNodes storage.Cacher
 	chRcvTrieNodes   chan bool
 	waitTime         time.Duration
+	shardId          uint32
+	topic            string
 
 	requestedHashes      [][]byte
 	requestedHashesMutex sync.Mutex
@@ -24,19 +25,24 @@ type trieSyncer struct {
 
 // NewTrieSyncer creates a new instance of trieSyncer
 func NewTrieSyncer(
-	resolver dataRetriever.Resolver,
+	requestHandler RequestHandler,
 	interceptedNodes storage.Cacher,
 	trie data.Trie,
 	waitTime time.Duration,
+	shardId uint32,
+	topic string,
 ) (*trieSyncer, error) {
-	if check.IfNil(resolver) {
-		return nil, ErrNilResolver
+	if check.IfNil(requestHandler) {
+		return nil, ErrNilRequestHandler
 	}
 	if check.IfNil(interceptedNodes) {
 		return nil, data.ErrNilCacher
 	}
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
+	}
+	if len(topic) == 0 {
+		return nil, ErrInvalidTrieTopic
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
@@ -45,17 +51,21 @@ func NewTrieSyncer(
 	}
 
 	return &trieSyncer{
-		resolver:         resolver,
+		requestHandler:   requestHandler,
 		interceptedNodes: interceptedNodes,
 		trie:             pmt,
 		chRcvTrieNodes:   make(chan bool),
 		requestedHashes:  make([][]byte, 0),
 		waitTime:         waitTime,
+		topic:            topic,
+		shardId:          shardId,
 	}, nil
 }
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
+	// TODO: add implementation to try to request for trie nodes for several times before returning with error
+
 	if len(rootHash) == 0 {
 		return ErrInvalidHash
 	}
@@ -106,6 +116,11 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 	return nil
 }
 
+// Trie returns the synced trie
+func (ts *trieSyncer) Trie() data.Trie {
+	return ts.trie
+}
+
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	n, ok := ts.interceptedNodes.Get(hash)
 	if ok {
@@ -136,11 +151,7 @@ func (ts *trieSyncer) requestNode(hash []byte) error {
 	ts.requestedHashes = append(ts.requestedHashes, receivedRequestedHashTrigger)
 	ts.requestedHashesMutex.Unlock()
 
-	// epoch doesn't matter because that parameter is not used in trie's resolver
-	err := ts.resolver.RequestDataFromHash(hash, 0)
-	if err != nil {
-		return err
-	}
+	ts.requestHandler.RequestTrieNodes(ts.shardId, hash, ts.topic)
 
 	return ts.waitForTrieNode()
 }

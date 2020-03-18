@@ -56,7 +56,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
@@ -1048,16 +1048,15 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 
-	resolver := &mock.TrieNodesResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+	resolver := &mock.RequestHandlerStub{
+		RequestTrieNodesCalled: func(shardId uint32, hash []byte, topic string) {
 			for i := range nodes {
 				node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 				nodesCacher.Put(node.hash, node)
 			}
-			return nil
 		},
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
+	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second, 0, "trie")
 	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
 		syncer.chRcvTrieNodes <- true
 	})

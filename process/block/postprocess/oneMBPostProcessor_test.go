@@ -146,7 +146,7 @@ func TestOneMBPostProcessor_VerifyNilBody(t *testing.T) {
 		dataRetriever.TransactionUnit,
 	)
 
-	err := irp.VerifyInterMiniBlocks(nil)
+	err := irp.VerifyInterMiniBlocks(&block.Body{})
 	assert.Nil(t, err)
 }
 

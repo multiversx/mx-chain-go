@@ -51,7 +51,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
@@ -246,7 +246,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      40000,
 		MaxOpenFiles:      10,
@@ -268,6 +268,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	rootHash := tr.root.getHash()
 	tr.CancelPrune(rootHash, data.NewRoot)
 	rootHashes = append(rootHashes, rootHash)
+	tr.EnterSnapshotMode()
 	tr.TakeSnapshot(rootHash)
 
 	nrRounds := 10
@@ -293,6 +294,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(snapshotDelay)
 	}
+	tr.ExitSnapshotMode()
 	time.Sleep(snapshotDelay)
 
 	for i := range rootHashes {
@@ -490,7 +492,10 @@ func TestCheckpointWithErrWillNotGeneratePruningDeadlock(t *testing.T) {
 	_ = tr.Prune(rootHash2, data.NewRoot)
 	_ = tr.Prune(rootHash1, data.OldRoot)
 
+	tr.EnterSnapshotMode()
 	trieStorage.snapshot(tr.marshalizer, tr.hasher)
+	tr.ExitSnapshotMode()
+	time.Sleep(snapshotDelay)
 
 	trieStorage.snapshots = make([]storage.Persister, 0)
 	newTr, err := tr.Recreate(rootHash1)

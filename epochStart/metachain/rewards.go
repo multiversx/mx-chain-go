@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -96,7 +95,7 @@ func (r *rewardsCreator) clean() {
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
-func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error) {
+func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	r.clean()
 
 	miniBlocks := make(block.MiniBlockSlice, r.shardCoordinator.NumberOfShards())
@@ -141,11 +140,11 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		}
 	}
 
-	return &block.Body{MiniBlocks: finalMiniBlocks}, nil
+	return finalMiniBlocks, nil
 }
 
 func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
-	validatorInfos map[uint32][]*state.ValidatorInfoData,
+	validatorInfos map[uint32][]*state.ValidatorInfo,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
@@ -198,13 +197,12 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error {
-	createdBody, err := r.CreateRewardsMiniBlocks(metaBlock, validatorInfos)
+func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	createdMiniBlocks, err := r.CreateRewardsMiniBlocks(metaBlock, validatorInfos)
 	if err != nil {
 		return err
 	}
 
-	createdMiniBlocks := createdBody.(*block.Body).MiniBlocks
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
 		if miniBlockHdr.Type != block.RewardsBlock {

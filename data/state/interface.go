@@ -38,6 +38,7 @@ type AddressContainer interface {
 // AccountFactory creates an account of different types
 type AccountFactory interface {
 	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
+	GetType() Type
 	IsInterfaceNil() bool
 }
 
@@ -147,6 +148,7 @@ type AccountsAdapter interface {
 	IsPruningEnabled() bool
 	ClosePersister() error
 	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -163,14 +165,4 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
-}
-
-type ValidatorInfo interface {
-	GetPublicKey() []byte
-	GetShardId() uint32
-	GetList() string
-	GetIndex() uint32
-	GetTempRating() uint32
-	GetRating() uint32
-	String() string
 }

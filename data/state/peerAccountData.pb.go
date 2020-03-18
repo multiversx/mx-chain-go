@@ -5,6 +5,7 @@ package state
 
 import (
 	bytes "bytes"
+	encoding_binary "encoding/binary"
 	fmt "fmt"
 	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
 	_ "github.com/gogo/protobuf/gogoproto"
@@ -174,10 +175,12 @@ func (m *SignRate) GetNrFailure() uint32 {
 
 // ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
 type ValidatorApiResponse struct {
-	NrLeaderSuccess    uint32 `protobuf:"varint,1,opt,name=NrLeaderSuccess,proto3" json:"nrLeaderSuccess"`
-	NrLeaderFailure    uint32 `protobuf:"varint,2,opt,name=NrLeaderFailure,proto3" json:"nrLeaderFailure"`
-	NrValidatorSuccess uint32 `protobuf:"varint,3,opt,name=NrValidatorSuccess,proto3" json:"nrValidatorSuccess"`
-	NrValidatorFailure uint32 `protobuf:"varint,4,opt,name=NrValidatorFailure,proto3" json:"nrValidatorFailure"`
+	NrLeaderSuccess    uint32  `protobuf:"varint,1,opt,name=NrLeaderSuccess,proto3" json:"nrLeaderSuccess"`
+	NrLeaderFailure    uint32  `protobuf:"varint,2,opt,name=NrLeaderFailure,proto3" json:"nrLeaderFailure"`
+	NrValidatorSuccess uint32  `protobuf:"varint,3,opt,name=NrValidatorSuccess,proto3" json:"nrValidatorSuccess"`
+	NrValidatorFailure uint32  `protobuf:"varint,4,opt,name=NrValidatorFailure,proto3" json:"nrValidatorFailure"`
+	Rating             float32 `protobuf:"fixed32,5,opt,name=Rating,proto3" json:"rating"`
+	TempRating         float32 `protobuf:"fixed32,6,opt,name=TempRating,proto3" json:"tempRating"`
 }
 
 func (m *ValidatorApiResponse) Reset()      { *m = ValidatorApiResponse{} }
@@ -232,6 +235,20 @@ func (m *ValidatorApiResponse) GetNrValidatorSuccess() uint32 {
 func (m *ValidatorApiResponse) GetNrValidatorFailure() uint32 {
 	if m != nil {
 		return m.NrValidatorFailure
+	}
+	return 0
+}
+
+func (m *ValidatorApiResponse) GetRating() float32 {
+	if m != nil {
+		return m.Rating
+	}
+	return 0
+}
+
+func (m *ValidatorApiResponse) GetTempRating() float32 {
+	if m != nil {
+		return m.TempRating
 	}
 	return 0
 }
@@ -611,6 +628,12 @@ func (this *ValidatorApiResponse) Equal(that interface{}) bool {
 	if this.NrValidatorFailure != that1.NrValidatorFailure {
 		return false
 	}
+	if this.Rating != that1.Rating {
+		return false
+	}
+	if this.TempRating != that1.TempRating {
+		return false
+	}
 	return true
 }
 func (this *PeerAccountData) Equal(that interface{}) bool {
@@ -745,12 +768,14 @@ func (this *ValidatorApiResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 8)
+	s := make([]string, 0, 10)
 	s = append(s, "&state.ValidatorApiResponse{")
 	s = append(s, "NrLeaderSuccess: "+fmt.Sprintf("%#v", this.NrLeaderSuccess)+",\n")
 	s = append(s, "NrLeaderFailure: "+fmt.Sprintf("%#v", this.NrLeaderFailure)+",\n")
 	s = append(s, "NrValidatorSuccess: "+fmt.Sprintf("%#v", this.NrValidatorSuccess)+",\n")
 	s = append(s, "NrValidatorFailure: "+fmt.Sprintf("%#v", this.NrValidatorFailure)+",\n")
+	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
+	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -927,6 +952,18 @@ func (m *ValidatorApiResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.TempRating != 0 {
+		i -= 4
+		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.TempRating))))
+		i--
+		dAtA[i] = 0x35
+	}
+	if m.Rating != 0 {
+		i -= 4
+		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.Rating))))
+		i--
+		dAtA[i] = 0x2d
+	}
 	if m.NrValidatorFailure != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NrValidatorFailure))
 		i--
@@ -1215,6 +1252,12 @@ func (m *ValidatorApiResponse) Size() (n int) {
 	if m.NrValidatorFailure != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.NrValidatorFailure))
 	}
+	if m.Rating != 0 {
+		n += 5
+	}
+	if m.TempRating != 0 {
+		n += 5
+	}
 	return n
 }
 
@@ -1348,6 +1391,8 @@ func (this *ValidatorApiResponse) String() string {
 		`NrLeaderFailure:` + fmt.Sprintf("%v", this.NrLeaderFailure) + `,`,
 		`NrValidatorSuccess:` + fmt.Sprintf("%v", this.NrValidatorSuccess) + `,`,
 		`NrValidatorFailure:` + fmt.Sprintf("%v", this.NrValidatorFailure) + `,`,
+		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
+		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1801,6 +1846,28 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 5:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+			m.Rating = float32(math.Float32frombits(v))
+		case 6:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+			m.TempRating = float32(math.Float32frombits(v))
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPeerAccountData(dAtA[iNdEx:])

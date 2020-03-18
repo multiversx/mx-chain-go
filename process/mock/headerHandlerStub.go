@@ -232,3 +232,8 @@ func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
 func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
 	return hhs.CheckChainIDCalled(reference)
 }
+
+// GetEpochStartMetaHash -
+func (hhs *HeaderHandlerStub) GetEpochStartMetaHash() []byte {
+	panic("implement me")
+}
