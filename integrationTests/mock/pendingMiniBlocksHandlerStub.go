@@ -2,24 +2,14 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // PendingMiniBlocksHandlerStub -
 type PendingMiniBlocksHandlerStub struct {
-	PendingMiniBlockHeadersCalled func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
 	RevertHeaderCalled            func(handler data.HeaderHandler) error
 	GetNumPendingMiniBlocksCalled func(shardID uint32) uint32
 	SetNumPendingMiniBlocksCalled func(shardID uint32, numPendingMiniBlocks uint32)
-}
-
-// PendingMiniBlockHeaders -
-func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
-	if p.PendingMiniBlockHeadersCalled != nil {
-		return p.PendingMiniBlockHeadersCalled(lastNotarizedHeaders)
-	}
-	return nil, nil
 }
 
 // AddProcessedHeader -

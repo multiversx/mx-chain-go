@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -31,10 +32,11 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool           dataRetriever.PoolsHolder
-	Storage            dataRetriever.StorageService
-	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.EpochStartNotifier
+	DataPool               dataRetriever.PoolsHolder
+	Storage                dataRetriever.StorageService
+	RequestHandler         epochStart.RequestHandler
+	EpochStartNotifier     epochStart.EpochStartNotifier
+	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -62,7 +64,8 @@ type trigger struct {
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
-	uint64Converter     typeConverters.Uint64ByteSliceConverter
+
+	uint64Converter typeConverters.Uint64ByteSliceConverter
 
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
@@ -75,6 +78,8 @@ type trigger struct {
 
 	newEpochHdrReceived bool
 	isEpochStart        bool
+
+	validatorInfoProcessor process.ValidatorInfoProcessorHandler
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -102,6 +107,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	}
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
+	}
+	if check.IfNil(args.ValidatorInfoProcessor) {
+		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
@@ -160,6 +168,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartNotifier:          args.EpochStartNotifier,
 		epochStartMeta:              &block.MetaBlock{},
 		epochStartShardHeader:       &block.Header{},
+		validatorInfoProcessor:      args.ValidatorInfoProcessor,
 	}
 
 	err := newTrigger.saveState(newTrigger.triggerStateKey)
@@ -295,7 +304,6 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(hdrHash)] = metaHdr
 
-		t.epochStartNotifier.NotifyAllPrepare(metaHdr)
 	} else {
 		t.mapHashHdr[string(hdrHash)] = metaHdr
 		t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
@@ -394,6 +402,16 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
 		return false, 0
+	}
+
+	if metaHdr.IsStartOfEpochBlock() {
+		err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
+		if err != nil {
+			log.Warn("processMetablock failed", "error", err)
+			return false, 0
+		}
+
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr)
 	}
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
@@ -625,12 +643,14 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
+	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
+
 	if t.epochStartShardHeader.Epoch <= 1 {
 		t.epochStartShardHeader = &block.Header{}
+		t.isEpochStart = true
+		t.newEpochHdrReceived = true
 		return nil
 	}
-
-	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
 
 	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
 	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
@@ -655,7 +675,6 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.epochStartShardHeader = shardHdr
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
-	t.epoch = header.GetEpoch()
 
 	return nil
 }

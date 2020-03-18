@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	"github.com/herumi/bls-go-binary/bls"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,7 +77,7 @@ func sigBytesToPointG1(sig []byte) (*mcl.PointG1, error) {
 	}
 
 	sigPointG1 := mcl.NewPointG1()
-	bls.BlsSignatureToG1(sigBLS, sigPointG1.G1)
+	sigPointG1.G1 = bls.CastG1FromSign(sigBLS)
 
 	return sigPointG1, nil
 }

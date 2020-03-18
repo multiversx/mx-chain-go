@@ -16,11 +16,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
 const roundTimeDuration = 100 * time.Millisecond
+
+func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
+	return &mock.NetworkShardingCollectorStub{
+		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
+		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
+		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
+	}
+}
 
 func initWorker() *spos.Worker {
 	blockchainMock := &mock.BlockChainMock{}
@@ -70,6 +79,7 @@ func initWorker() *spos.Worker {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	return sposWorker
@@ -119,6 +129,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -157,6 +168,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -195,6 +207,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -233,6 +246,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -271,6 +285,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -308,6 +323,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -345,6 +361,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -382,6 +399,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -419,6 +437,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -456,6 +475,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -493,6 +513,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -530,6 +551,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -567,6 +589,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		nil,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -605,10 +628,50 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrInvalidChainID, err)
+}
+
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
+	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bls.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -643,6 +706,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, err)
@@ -1532,8 +1596,8 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	wrk := *initWorker()
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		ShouldSyncCalled: func() bool {
-			return true
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1547,13 +1611,13 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	assert.False(t, executed)
 }
 
-func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
+func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		ShouldSyncCalled: func() bool {
-			return true
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1737,6 +1801,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		syncTimerMock,
 		headerSigVerifier,
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	hdr := &block.Header{}
