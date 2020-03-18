@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 const timeToWaitBeforeCheckingReceivedHeaders = 1 * time.Second
@@ -40,6 +41,11 @@ func NewSimpleEpochStartMetaBlockInterceptor(marshalizer marshal.Marshalizer, ha
 		mapReceivedMetaBlocks:  make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers: make(map[string][]p2p.PeerID),
 	}, nil
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (s *simpleEpochStartMetaBlockInterceptor) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps

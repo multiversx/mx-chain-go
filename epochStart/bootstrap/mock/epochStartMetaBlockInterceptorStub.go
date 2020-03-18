@@ -3,12 +3,18 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // EpochStartMetaBlockInterceptorStub -
 type EpochStartMetaBlockInterceptorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	GetMetaBlockCalled           func(target int, epoch uint32) (*block.MetaBlock, error)
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (m *EpochStartMetaBlockInterceptorStub) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // ProcessReceivedMessage -

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type simpleMiniBlockInterceptor struct {
@@ -37,6 +38,11 @@ func NewSimpleMiniBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashi
 		mapReceivedMiniBlocks:  make(map[string]*block.MiniBlock),
 		mapMiniBlocksFromPeers: make(map[string][]p2p.PeerID),
 	}, nil
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (s *simpleMiniBlockInterceptor) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps

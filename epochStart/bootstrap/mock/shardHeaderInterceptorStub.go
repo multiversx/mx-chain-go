@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ShardHeaderInterceptorStub -
@@ -10,6 +11,11 @@ type ShardHeaderInterceptorStub struct {
 	ProcessReceivedMessageCalled     func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	GetAllReceivedShardHeadersCalled func() []block.ShardData
 	GetShardHeaderCalled             func(hash []byte, target int) (*block.Header, error)
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (s *ShardHeaderInterceptorStub) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // GetShardHeader -

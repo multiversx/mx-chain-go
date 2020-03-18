@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type simpleMetaBlockInterceptor struct {
@@ -19,6 +20,11 @@ type simpleMetaBlockInterceptor struct {
 	mutReceivedMetaBlocks  sync.RWMutex
 	mapReceivedMetaBlocks  map[string]*block.MetaBlock
 	mapMetaBlocksFromPeers map[string][]p2p.PeerID
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (s *simpleMetaBlockInterceptor) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // NewSimpleMetaBlockInterceptor will return a new instance of simpleMetaBlockInterceptor

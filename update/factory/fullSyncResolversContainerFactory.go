@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+const numPeersToQuery = 2
+
 type resolversContainerFactory struct {
 	shardCoordinator  sharding.Coordinator
 	messenger         dataRetriever.TopicMessageHandler
@@ -139,6 +141,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		numPeersToQuery,
 		rcf.shardCoordinator.SelfId(),
 	)
 	if err != nil {

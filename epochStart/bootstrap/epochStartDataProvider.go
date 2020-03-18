@@ -57,6 +57,7 @@ type epochStartDataProvider struct {
 	shardHeaderInterceptor         ShardHeaderInterceptorHandler
 	miniBlockInterceptor           MiniBlockInterceptorHandler
 	requestHandler                 process.RequestHandler
+	whiteListHandler               dataRetriever.WhiteListHandler
 }
 
 // ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
@@ -72,6 +73,7 @@ type ArgsEpochStartDataProvider struct {
 	MetaBlockInterceptor           MetaBlockInterceptorHandler
 	ShardHeaderInterceptor         ShardHeaderInterceptorHandler
 	MiniBlockInterceptor           MiniBlockInterceptorHandler
+	WhiteListHandler               dataRetriever.WhiteListHandler
 }
 
 // NewEpochStartDataProvider will return a new instance of epochStartDataProvider
@@ -107,6 +109,9 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	if check.IfNil(args.MiniBlockInterceptor) {
 		return nil, ErrNilMiniBlockInterceptor
 	}
+	if check.IfNil(args.WhiteListHandler) {
+		return nil, ErrNilWhiteListHandler
+	}
 	return &epochStartDataProvider{
 		publicKey:                      args.PublicKey,
 		marshalizer:                    args.Marshalizer,
@@ -119,6 +124,7 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		metaBlockInterceptor:           args.MetaBlockInterceptor,
 		shardHeaderInterceptor:         args.ShardHeaderInterceptor,
 		miniBlockInterceptor:           args.MiniBlockInterceptor,
+		whiteListHandler:               args.WhiteListHandler,
 	}, nil
 }
 
@@ -335,7 +341,7 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 
 	maxToRequest := 100
 
-	return requestHandlers.NewMetaResolverRequestHandler(finder, requestedItemsHandler, maxToRequest)
+	return requestHandlers.NewResolverRequestHandler(finder, requestedItemsHandler, esdp.whiteListHandler, maxToRequest, core.MetachainShardId)
 }
 
 func (esdp *epochStartDataProvider) getMiniBlock(miniBlockHeader *block.ShardMiniBlockHeader) (*block.MiniBlock, error) {

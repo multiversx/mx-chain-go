@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type simpleShardHeaderInterceptor struct {
@@ -37,6 +38,11 @@ func NewSimpleShardHeaderInterceptor(marshalizer marshal.Marshalizer, hasher has
 		mapReceivedShardHeaders:  make(map[string]*block.Header),
 		mapShardHeadersFromPeers: make(map[string][]p2p.PeerID),
 	}, nil
+}
+
+// SetIsDataForCurrentShardVerifier -
+func (s *simpleShardHeaderInterceptor) SetIsDataForCurrentShardVerifier(_ process.InterceptedDataVerifier) error {
+	return nil
 }
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps

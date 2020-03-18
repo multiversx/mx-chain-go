@@ -37,3 +37,6 @@ var ErrNumTriesExceeded = errors.New("num of tries exceeded. try re-request")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrNilWhiteListHandler
+var ErrNilWhiteListHandler = errors.New("nil white list handler")
