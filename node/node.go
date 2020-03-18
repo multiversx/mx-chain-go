@@ -859,7 +859,7 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-// GetAccount will return acount details for a given address
+// GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
@@ -1029,26 +1029,21 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	for _, pubKeyInShards := range n.initialNodesPubkeys {
-		for _, pubKey := range pubKeyInShards {
-			acc, err := n.validatorStatistics.GetPeerAccount([]byte(pubKey))
-			if err != nil {
-				log.Debug("validator api: get peer account", "error", err.Error())
-				continue
-			}
+	validators, m, err := n.getLatestValidators()
+	if err != nil {
+		return m, err
+	}
 
-			peerAcc, ok := acc.(*state.PeerAccount)
-			if !ok {
-				log.Debug("validator api: convert to peer account", "error", ErrCannotConvertToPeerAccount)
-				continue
-			}
-
-			strKey := hex.EncodeToString([]byte(pubKey))
+	for _, validatorInfosInShard := range validators {
+		for _, validatorInfo := range validatorInfosInShard {
+			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
-				NrLeaderSuccess:    peerAcc.LeaderSuccessRate.NrSuccess,
-				NrLeaderFailure:    peerAcc.LeaderSuccessRate.NrFailure,
-				NrValidatorSuccess: peerAcc.ValidatorSuccessRate.NrSuccess,
-				NrValidatorFailure: peerAcc.ValidatorSuccessRate.NrFailure,
+				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
+				NrLeaderFailure:    validatorInfo.LeaderFailure,
+				NrValidatorSuccess: validatorInfo.ValidatorSuccess,
+				NrValidatorFailure: validatorInfo.ValidatorFailure,
+				Rating:             float32(validatorInfo.Rating) * 100 / 1000000,
+				TempRating:         float32(validatorInfo.TempRating) * 100 / 1000000,
 			}
 		}
 	}
@@ -1056,10 +1051,21 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 	return mapToReturn, nil
 }
 
+func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
+	latestHash, err := n.validatorStatistics.RootHash()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	validators, err := n.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return validators, nil, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (n *Node) IsInterfaceNil() bool {
-	if n == nil {
-		return true
-	}
-	return false
+	return n == nil
 }

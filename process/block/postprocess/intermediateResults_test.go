@@ -369,7 +369,13 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	assert.Equal(t, 5, len(mbs[shardCoordinator.SelfId()+1].TxHashes))
+	miniBlockTest := &block.MiniBlock{}
+	for _, mb := range mbs {
+		if mb.ReceiverShardID == shardCoordinator.SelfId()+1 {
+			miniBlockTest = mb
+		}
+	}
+	assert.Equal(t, 5, len(miniBlockTest.TxHashes))
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T) {
@@ -391,7 +397,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	err = irp.VerifyInterMiniBlocks(nil)
+	body := &block.Body{}
+	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 }
 
@@ -633,9 +640,6 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mrsTxs))
 
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, []byte("bad1"), []byte("bad2"), []byte("bad3"))
-
 	// nothing saved in local cacher to marshal
 	mrsTxs, err = irp.CreateMarshalizedData(nil)
 	assert.Nil(t, err)
@@ -740,24 +744,11 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	txHashes := make([][]byte, 0)
 	txs := make([]data.TransactionHandler, 0)
-
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	currHash, _ := core.CalculateHash(marshalizer, hasher, txs[0])
-	txHashes = append(txHashes, currHash)
-
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[1])
-	txHashes = append(txHashes, currHash)
-
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 1})
-	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[2])
-	txHashes = append(txHashes, currHash)
-
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 2})
-	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[3])
-	txHashes = append(txHashes, currHash)
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)

@@ -114,7 +114,10 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	}
 
 	for _, val := range m.MiniBlockHeaders {
-		if val.ReceiverShardID == destId && val.SenderShardID != destId {
+		isDestinationShard := (val.ReceiverShardID == destId ||
+			val.ReceiverShardID == core.AllShardId) &&
+			val.SenderShardID != destId
+		if isDestinationShard {
 			hashDst[string(val.Hash)] = val.SenderShardID
 		}
 	}
@@ -124,10 +127,7 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MetaBlock) IsInterfaceNil() bool {
-	if m == nil {
-		return true
-	}
-	return false
+	return m == nil
 }
 
 // ItemsInHeader gets the number of items(hashes) added in block header
@@ -170,5 +170,10 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 		)
 	}
 
+	return nil
+}
+
+// GetEpochStartMetaHash returns the hash of the epoch start meta block
+func (m *MetaBlock) GetEpochStartMetaHash() []byte {
 	return nil
 }

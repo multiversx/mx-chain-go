@@ -19,9 +19,8 @@ type PreProcessorMock struct {
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) error
-	CreateAndProcessMiniBlocksCalled      func(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
-	CreateAndProcessMiniBlockCalled       func(senderShardId, receiverShardId uint32, spaceRemained int, haveTime func() bool) (*block.MiniBlock, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
+	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
 
@@ -98,25 +97,20 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
-		return nil
+		return nil, nil
 	}
 	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
-	haveTime func() bool,
-) (block.MiniBlockSlice, error) {
-
+func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
 	if ppm.CreateAndProcessMiniBlocksCalled == nil {
 		return nil, nil
 	}
-	return ppm.CreateAndProcessMiniBlocksCalled(maxTxSpaceRemained, maxMbSpaceRemained, haveTime)
+	return ppm.CreateAndProcessMiniBlocksCalled(haveTime)
 }
 
 // GetAllCurrentUsedTxs -
@@ -129,8 +123,5 @@ func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionH
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppm *PreProcessorMock) IsInterfaceNil() bool {
-	if ppm == nil {
-		return true
-	}
-	return false
+	return ppm == nil
 }

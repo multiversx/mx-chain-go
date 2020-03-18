@@ -272,23 +272,22 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			AccountsDB:                   accountsDb,
-			ForkDetector:                 &mock.ForkDetectorMock{},
-			Hasher:                       &mock.HasherStub{},
-			Marshalizer:                  &mock.MarshalizerMock{},
-			Store:                        initStore(),
-			ShardCoordinator:             shardCoordinator,
-			NodesCoordinator:             nodesCoordinator,
-			FeeHandler:                   &mock.FeeAccumulatorStub{},
-			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-			RequestHandler:               &mock.RequestHandlerStub{},
-			Core:                         &mock.ServiceContainerMock{},
-			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:                &mock.TransactionCoordinatorMock{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-			HeaderValidator:              headerValidator,
-			Rounder:                      &mock.RounderMock{},
+			AccountsDB:        accountsDb,
+			ForkDetector:      &mock.ForkDetectorMock{},
+			Hasher:            &mock.HasherStub{},
+			Marshalizer:       &mock.MarshalizerMock{},
+			Store:             initStore(),
+			ShardCoordinator:  shardCoordinator,
+			NodesCoordinator:  nodesCoordinator,
+			FeeHandler:        &mock.FeeAccumulatorStub{},
+			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
+			RequestHandler:    &mock.RequestHandlerStub{},
+			Core:              &mock.ServiceContainerMock{},
+			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:     &mock.TransactionCoordinatorMock{},
+			EpochStartTrigger: &mock.EpochStartTriggerStub{},
+			HeaderValidator:   headerValidator,
+			Rounder:           &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -759,7 +758,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	arguments.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch:    3,
+				Epoch:    2,
 				RandSeed: randSeed,
 			}
 		},

@@ -238,7 +238,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
-
+	assert.Nil(t, err)
 	//states are now prepared, committing
 
 	h, err := adb.Commit()
@@ -322,6 +322,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
+	assert.Nil(t, err)
 
 	//states are now prepared, committing
 
@@ -774,7 +775,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, hrRoot1, hrRoot2)
 
 	//Step 3. Commit
-	rootCommit, err := adb.Commit()
+	rootCommit, _ := adb.Commit()
 	hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
 	fmt.Printf("State root - committed: %v\n", hrCommit)
 
@@ -1553,6 +1554,9 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
+		if err == nil {
+			fmt.Println(fmt.Sprintf("Should have been pruned: %s", core.ToHex(prunedRootHashes[i])))
+		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}

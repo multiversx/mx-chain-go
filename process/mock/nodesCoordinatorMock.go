@@ -10,19 +10,20 @@ import (
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	Validators                          map[uint32][]sharding.Validator
-	ShardConsensusSize                  uint32
-	MetaConsensusSize                   uint32
-	ShardId                             uint32
-	NbShards                            uint32
-	GetSelectedPublicKeysCalled         func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
-	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	SetNodesPerShardsCalled             func(nodes map[uint32][]sharding.Validator, epoch uint32) error
-	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error)
-	GetValidatorWithPublicKeyCalled     func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
-	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
-	ConsensusGroupSizeCalled            func(uint32) int
+	Validators                               map[uint32][]sharding.Validator
+	ShardConsensusSize                       uint32
+	MetaConsensusSize                        uint32
+	ShardId                                  uint32
+	NbShards                                 uint32
+	GetSelectedPublicKeysCalled              func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
+	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	SetNodesPerShardsCalled                  func(nodes map[uint32][]sharding.Validator, epoch uint32) error
+	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error)
+	GetValidatorWithPublicKeyCalled          func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
+	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
+	ConsensusGroupSizeCalled                 func(uint32) int
 }
 
 // NewNodesCoordinatorMock -
@@ -66,12 +67,19 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 	return 1
 }
 
-// GetAllValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
-	if ncm.GetAllValidatorsPublicKeysCalled != nil {
-		return ncm.GetAllValidatorsPublicKeysCalled()
+// GetAllEligibleValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllEligibleValidatorsPublicKeysCalled()
 	}
+	return nil, nil
+}
 
+// GetAllWaitingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllWaitingValidatorsPublicKeysCalled()
+	}
 	return nil, nil
 }
 
@@ -99,7 +107,7 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId
 	return pubKeys, nil
 }
 
-// GetValidatorsPublicKeys -
+// GetConsensusValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
 	round uint64,
@@ -165,6 +173,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	ncm.Validators = eligible
 
 	return nil
+}
+
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
+	return make([]sharding.Validator, 0)
 }
 
 // ComputeConsensusGroup -

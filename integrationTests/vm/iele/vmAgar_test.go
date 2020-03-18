@@ -282,8 +282,6 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
-	defaultUserNonce++
-
 	balanceOfSC, _ := testContext.BlockchainHook.GetBalance(scAddressBytes)
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
 	computedBalance := big.NewInt(0).Set(transfer)

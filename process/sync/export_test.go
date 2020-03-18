@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -95,11 +96,13 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
@@ -186,9 +189,11 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 }
 
 func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
-	if state {
-		boot.isNodeStateCalculated.Set()
-	} else {
-		boot.isNodeStateCalculated.Unset()
-	}
+	boot.mutNodeState.Lock()
+	boot.isNodeStateCalculated = state
+	boot.mutNodeState.Unlock()
+}
+
+func (boot *baseBootstrap) ComputeNodeState() {
+	boot.computeNodeState()
 }

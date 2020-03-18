@@ -1,8 +1,12 @@
 package signing
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
+
+var log = logger.GetOrCreate("crypto/signing")
 
 // privateKey holds the private key and the chosen curve
 type privateKey struct {
@@ -86,13 +90,11 @@ func (kg *keyGenerator) IsInterfaceNil() bool {
 }
 
 func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point, err error) {
-	if suite == nil || suite.IsInterfaceNil() {
+	if check.IfNil(suite) {
 		return nil, nil, crypto.ErrNilSuite
 	}
 
-	random := suite.RandomStream()
-
-	private, public = suite.CreateKeyPair(random)
+	private, public = suite.CreateKeyPair(suite.RandomStream())
 
 	return private, public, nil
 }
@@ -104,8 +106,12 @@ func (spk *privateKey) ToByteArray() ([]byte, error) {
 
 // GeneratePublic builds a public key for the current private key
 func (spk *privateKey) GeneratePublic() crypto.PublicKey {
-	point := spk.suite.CreatePoint().Base()
-	pubKeyPoint, _ := point.Mul(spk.sk)
+	pubKeyPoint, err := spk.suite.CreatePointForScalar(spk.sk)
+	if err != nil {
+		log.Warn("problem generating public key",
+			"message", err.Error())
+	}
+
 	return &publicKey{
 		suite: spk.suite,
 		pk:    pubKeyPoint,

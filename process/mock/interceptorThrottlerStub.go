@@ -36,8 +36,5 @@ func (its *InterceptorThrottlerStub) EndProcessingCount() int32 {
 
 // IsInterfaceNil -
 func (its *InterceptorThrottlerStub) IsInterfaceNil() bool {
-	if its == nil {
-		return true
-	}
-	return false
+	return its == nil
 }
