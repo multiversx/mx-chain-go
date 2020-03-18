@@ -7,15 +7,16 @@ import (
 	bytes "bytes"
 	encoding_binary "encoding/binary"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_big "math/big"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

@@ -1129,17 +1129,16 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-		return nil
-	}
+	if scr.Value != nil {
+		err = dstAcc.AddToBalance(scr.Value)
+		if err != nil {
+			return err
+		}
 
-	err = dstAcc.AddToBalance(scr.Value)
-	if err != nil {
-		return err
-	}
-
-	err = sc.accounts.SaveAccount(dstAcc)
-	if err != nil {
-		return err
+		err = sc.accounts.SaveAccount(dstAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
