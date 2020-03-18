@@ -274,10 +274,6 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	return sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 }
 
-func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
-	bp.blockSizeThrottler = blockSizeThrottler
-}
-
 func (sp *shardProcessor) DisplayLogInfo(
 	header *block.Header,
 	body *block.Body,

@@ -385,7 +385,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	for _, miniBlock := range body.MiniBlocks {
-		log.Debug("ProcessBlockTransaction: miniblock",
+		log.Trace("ProcessBlockTransaction: miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
