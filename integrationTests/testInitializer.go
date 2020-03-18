@@ -289,15 +289,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -713,7 +713,7 @@ func SyncBlock(
 		}
 	}
 
-	time.Sleep(StepDelay)
+	time.Sleep(SyncDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 

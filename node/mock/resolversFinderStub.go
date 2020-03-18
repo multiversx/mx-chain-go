@@ -14,6 +14,7 @@ type ResolversFinderStub struct {
 	IntraShardResolverCalled func(baseTopic string) (dataRetriever.Resolver, error)
 	MetaChainResolverCalled  func(baseTopic string) (dataRetriever.Resolver, error)
 	CrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	ResolverKeysCalled       func() string
 }
 
 // Get -
@@ -44,6 +45,15 @@ func (rfs *ResolversFinderStub) Remove(key string) {
 // Len -
 func (rfs *ResolversFinderStub) Len() int {
 	return rfs.LenCalled()
+}
+
+// ResolverKeys -
+func (rcs *ResolversFinderStub) ResolverKeys() string {
+	if rcs.ResolverKeysCalled != nil {
+		return rcs.ResolverKeysCalled()
+	}
+
+	return ""
 }
 
 // IntraShardResolver -

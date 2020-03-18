@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -23,9 +24,9 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
-	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -57,7 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
-	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
+	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -206,10 +207,11 @@ type TestProcessorNode struct {
 	Node           *node.Node
 	SCQueryService external.SCQueryService
 
-	CounterHdrRecv int32
-	CounterMbRecv  int32
-	CounterTxRecv  int32
-	CounterMetaRcv int32
+	CounterHdrRecv       int32
+	CounterMbRecv        int32
+	CounterTxRecv        int32
+	CounterMetaRcv       int32
+	ReceivedTransactions sync.Map
 
 	InitialNodes []*sharding.InitialNode
 
@@ -311,12 +313,12 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(factory2.UserAccount)
-	tpn.TrieContainer.Put([]byte(factory3.UserAccountTrie), stateTrie)
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(stateFactory.UserAccount)
+	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(factory2.ValidatorAccount)
-	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(stateFactory.ValidatorAccount)
+	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
@@ -964,7 +966,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			128,
 			"0x",
 		)
-		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
+		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
 			AdrConv:          blsKeyedAddressConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
@@ -975,7 +977,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			CurrTxs:          tpn.DataPool.CurrentBlockTxs(),
 			ScQuery:          tpn.SCQueryService,
 		}
-		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
+		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
 		argsEpochStartData := metachain.ArgsNewEpochStartData{
 			Marshalizer:       TestMarshalizer,
@@ -1022,7 +1024,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
 			SCDataGetter:                 tpn.SCQueryService,
-			SCToProtocol:                 scToProtocol,
+			SCToProtocol:                 scToProtocolInstance,
 			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:               epochEconomics,
 			EpochStartDataCreator:        epochStartDataCreator,
@@ -1137,6 +1139,8 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
 		txHandler := func(key []byte) {
+			tx, _ := tpn.DataPool.Transactions().SearchFirstData(key)
+			tpn.ReceivedTransactions.Store(string(key), tx)
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
 		mbHandlers := func(key []byte) {
@@ -1362,7 +1366,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 5
+			return 2 * time.Second
 		},
 	)
 	if err != nil {
@@ -1392,7 +1396,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return 2 * time.Second
 		},
 	)
 	if err != nil {
