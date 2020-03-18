@@ -597,7 +597,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
-func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -615,10 +615,10 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 	assert.Nil(t, err)
 
 	bs.ComputeNodeState()
-	assert.False(t, bs.ShouldSync())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
-func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -636,10 +636,10 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.True(t, bs.ShouldSync())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
-func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -664,10 +664,10 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.False(t, bs.ShouldSync())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
-func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -692,10 +692,10 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.True(t, bs.ShouldSync())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
-func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -742,21 +742,21 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.True(t, bs.ShouldSync())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.ShouldSync() && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
 	bs.ComputeNodeState()
-	assert.True(t, bs.ShouldSync())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 }
 
-func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
+func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
@@ -803,10 +803,10 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.True(t, bs.ShouldSync())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.ShouldSync() && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
@@ -816,7 +816,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	time.Sleep(500 * time.Millisecond)
 
 	bs.ComputeNodeState()
-	assert.False(t, bs.ShouldSync())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 	assert.False(t, bs.IsForkDetected())
 }
 

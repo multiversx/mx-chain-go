@@ -216,6 +216,9 @@ const MetricChainId = "erd_chain_id"
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
+// AllShardId will be used to identify that a message is for all shards
+const AllShardId = uint32(0xFFFFFFF0)
+
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
 
@@ -227,3 +230,24 @@ const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
+
+const (
+	// StorerOrder defines the order of storers to be notified of a start of epoch event
+	StorerOrder = iota
+	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
+	NodesCoordinatorOrder
+	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
+	ConsensusOrder
+)
+
+// NodeState specifies what type of state a node could have
+type NodeState int
+
+const (
+	// NsSynchronized defines ID of a state of synchronized
+	NsSynchronized NodeState = iota
+	// NsNotSynchronized defines ID of a state of not synchronized
+	NsNotSynchronized
+	// NsNotCalculated defines ID of a state which is not calculated
+	NsNotCalculated
+)

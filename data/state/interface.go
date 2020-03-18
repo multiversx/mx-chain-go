@@ -165,13 +165,3 @@ type TriesHolder interface {
 	Reset()
 	IsInterfaceNil() bool
 }
-
-type ValidatorInfo interface {
-	GetPublicKey() []byte
-	GetShardId() uint32
-	GetList() string
-	GetIndex() uint32
-	GetTempRating() uint32
-	GetRating() uint32
-	String() string
-}

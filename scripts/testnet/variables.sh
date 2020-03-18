@@ -46,7 +46,7 @@ export NODE_DELAY=10
 
 # Shard structure
 export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=4
+export SHARD_VALIDATORCOUNT=3
 export SHARD_OBSERVERCOUNT=0
 export SHARD_CONSENSUS_SIZE=3
 
@@ -64,7 +64,6 @@ let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOU
 export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
-export CONSENSUS_TYPE="bls"
 export MINT_VALUE="1000000000000000000000000000"
 export ALWAYS_NEW_CHAINID=1
 

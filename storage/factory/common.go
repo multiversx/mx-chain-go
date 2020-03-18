@@ -90,17 +90,30 @@ func FindLastEpochFromStorage(
 		epochDirs = append(epochDirs, file.Name())
 	}
 
+	return getLastEpochFromDirNames(epochDirs)
+}
+
+func getLastEpochFromDirNames(epochDirs []string) (uint32, error) {
 	if len(epochDirs) == 0 {
 		return 0, nil
 	}
 
-	sort.Slice(epochDirs, func(i, j int) bool {
-		return epochDirs[i] > epochDirs[j]
+	re := regexp.MustCompile("[0-9]+")
+	epochsInDirName := make([]uint32, 0, len(epochDirs))
+
+	for _, dirname := range epochDirs {
+		epochStr := re.FindString(dirname)
+		epoch, err := strconv.ParseInt(epochStr, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		epochsInDirName = append(epochsInDirName, uint32(epoch))
+	}
+
+	sort.Slice(epochsInDirName, func(i, j int) bool {
+		return epochsInDirName[i] > epochsInDirName[j]
 	})
 
-	re := regexp.MustCompile("[0-9]+")
-	epochStr := re.FindString(epochDirs[0])
-	epoch, err := strconv.ParseInt(epochStr, 10, 64)
-
-	return uint32(epoch), err
+	return epochsInDirName[0], nil
 }

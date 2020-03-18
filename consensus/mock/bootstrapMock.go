@@ -10,7 +10,7 @@ import (
 type BootstrapperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
-	ShouldSyncCalled                func() bool
+	GetNodeStateCalled              func() core.NodeState
 	StartSyncCalled                 func()
 	StopSyncCalled                  func()
 	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
@@ -32,13 +32,13 @@ func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSync
 	}
 }
 
-// ShouldSync -
-func (boot *BootstrapperMock) ShouldSync() bool {
-	if boot.ShouldSyncCalled != nil {
-		return boot.ShouldSyncCalled()
+// GetNodeState -
+func (boot *BootstrapperMock) GetNodeState() core.NodeState {
+	if boot.GetNodeStateCalled != nil {
+		return boot.GetNodeStateCalled()
 	}
 
-	return false
+	return core.NsSynchronized
 }
 
 // StartSync -
