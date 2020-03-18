@@ -692,3 +692,6 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+
+// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
+var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
