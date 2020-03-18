@@ -127,6 +127,10 @@ func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.Transacti
 	txs.txsForCurrBlock.mutTxsForBlock.RLock()
 	defer txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-	txInfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+	txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+	if !ok {
+		return nil, 0, 0
+	}
+
 	return txInfo.tx, txInfo.senderShardID, txInfo.receiverShardID
 }
