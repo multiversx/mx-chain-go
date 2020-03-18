@@ -6,14 +6,20 @@ import (
 
 // ResolversFinderStub -
 type ResolversFinderStub struct {
-	GetCalled                func(key string) (dataRetriever.Resolver, error)
-	AddCalled                func(key string, val dataRetriever.Resolver) error
-	ReplaceCalled            func(key string, val dataRetriever.Resolver) error
-	RemoveCalled             func(key string)
-	LenCalled                func() int
-	IntraShardResolverCalled func(baseTopic string) (dataRetriever.Resolver, error)
-	MetaChainResolverCalled  func(baseTopic string) (dataRetriever.Resolver, error)
-	CrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	GetCalled                    func(key string) (dataRetriever.Resolver, error)
+	AddCalled                    func(key string, val dataRetriever.Resolver) error
+	ReplaceCalled                func(key string, val dataRetriever.Resolver) error
+	RemoveCalled                 func(key string)
+	LenCalled                    func() int
+	IntraShardResolverCalled     func(baseTopic string) (dataRetriever.Resolver, error)
+	MetaChainResolverCalled      func(baseTopic string) (dataRetriever.Resolver, error)
+	CrossShardResolverCalled     func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	MetaCrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+}
+
+// MetaCrossShardResolver -
+func (rfs *ResolversFinderStub) MetaCrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+	return rfs.MetaCrossShardResolverCalled(baseTopic, crossShard)
 }
 
 // Get -

@@ -14,7 +14,8 @@ type EpochStartTriggerStub struct {
 }
 
 // RevertStateToBlock -
-func (e *EpochStartTriggerStub) RevertStateToBlock(_ data.HeaderHandler) {
+func (e *EpochStartTriggerStub) RevertStateToBlock(_ data.HeaderHandler) error {
+	return nil
 }
 
 // RequestEpochStartIfNeeded -

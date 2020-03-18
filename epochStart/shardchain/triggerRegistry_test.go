@@ -35,6 +35,10 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.requestHandler = t.requestHandler
 	rt.epochStartNotifier = t.epochStartNotifier
 	rt.headersPool = t.headersPool
+	rt.epochStartShardHeader = t.epochStartShardHeader
+	rt.epochStartMeta = t.epochStartMeta
+	rt.shardHdrStorage = t.shardHdrStorage
+	rt.validatorInfoProcessor = t.validatorInfoProcessor
 	return rt
 }
 

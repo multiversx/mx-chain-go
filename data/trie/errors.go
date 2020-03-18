@@ -43,8 +43,8 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilTrie is raised when the trie is nil
 var ErrNilTrie = errors.New("the trie is nil")
 
-// ErrNilResolver is raised when the given resolver is nil
-var ErrNilResolver = errors.New("the resolver is nil")
+// ErrNilRequestHandler is raised when the given request handler is nil
+var ErrNilRequestHandler = errors.New("the request handler is nil")
 
 // ErrInvalidHash is raised when the given hash is invalid
 var ErrInvalidHash = errors.New("the received hash is invalid")
@@ -61,8 +61,8 @@ var ErrNilTrieStorage = errors.New("nil trie storage provided")
 // ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
 var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
 
-// ErrNilSnapshotDbConfig is raised when a nil snapshot db config is provided
-var ErrNilSnapshotDbConfig = errors.New("nil snapshot db config provided")
-
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
+
+// ErrInvalidTrieTopic signals that invalid trie topic has been provided
+var ErrInvalidTrieTopic = errors.New("invalid trie topic")

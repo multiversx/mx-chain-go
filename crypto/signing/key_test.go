@@ -81,10 +81,10 @@ func createMockSuite() crypto.Suite {
 	return suite
 }
 
-func createPointForScalar(scalar crypto.Scalar) crypto.Point {
+func createPointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 	point, _ := createPoint().Mul(scalar)
 
-	return point
+	return point, nil
 }
 
 func TestNewKeyGenerator(t *testing.T) {

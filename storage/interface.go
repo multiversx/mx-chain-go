@@ -91,13 +91,13 @@ type BloomFilter interface {
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	Has(key []byte) error
-	HasInEpoch(key []byte, epoch uint32) error
 	SearchFirst(key []byte) ([]byte, error)
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
 }

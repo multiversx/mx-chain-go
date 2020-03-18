@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -16,17 +17,20 @@ type resolverRequestHandler struct {
 	resolversFinder       dataRetriever.ResolversFinder
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epoch                 uint32
+	whiteList             dataRetriever.WhiteListHandler
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
+	mutSweepTime          sync.Mutex
 }
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-// NewShardResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewShardResolverRequestHandler(
+// NewResolverRequestHandler creates a requestHandler interface implementation with request functions
+func NewResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteList dataRetriever.WhiteListHandler,
 	maxTxsToRequest int,
 	shardID uint32,
 ) (*resolverRequestHandler, error) {
@@ -40,6 +44,9 @@ func NewShardResolverRequestHandler(
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
+	if check.IfNil(whiteList) {
+		return nil, dataRetriever.ErrNilWhiteListHandler
+	}
 
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
@@ -47,37 +54,10 @@ func NewShardResolverRequestHandler(
 		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
+		whiteList:             whiteList,
 	}
 
 	rrh.sweepTime = time.Now()
-
-	return rrh, nil
-}
-
-// NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewMetaResolverRequestHandler(
-	finder dataRetriever.ResolversFinder,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	maxTxsToRequest int,
-) (*resolverRequestHandler, error) {
-
-	if check.IfNil(finder) {
-		return nil, dataRetriever.ErrNilResolverFinder
-	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
-	if maxTxsToRequest < 1 {
-		return nil, dataRetriever.ErrInvalidMaxTxRequest
-	}
-
-	rrh := &resolverRequestHandler{
-		resolversFinder:       finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               core.MetachainShardId,
-		maxTxsToRequest:       maxTxsToRequest,
-	}
 
 	return rrh, nil
 }
@@ -143,6 +123,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		}
 	}()
 
+	rrh.whiteList.Add(hashes)
 	for _, hash := range unrequestedHashes {
 		rrh.addRequestedItem(hash)
 	}
@@ -337,33 +318,21 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	rrh.requestByHash(destShardID, hash, topic)
-}
-
-func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	if !rrh.testIfRequestIsNeeded(hash) {
 		return
 	}
 
 	log.Trace("requesting trie from network",
-		"topic", baseTopic,
+		"topic", topic,
 		"shard", destShardID,
 		"hash", hash,
 	)
 
-	var resolver dataRetriever.Resolver
-	var err error
-
-	if destShardID == core.MetachainShardId {
-		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
-	} else {
-		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
-	}
-
+	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),
-			"topic", baseTopic,
+			"topic", topic,
 			"shard", destShardID,
 		)
 		return
@@ -433,7 +402,9 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 		log.Trace("addRequestedItem",
 			"error", err.Error(),
 			"key", key)
+		return
 	}
+	rrh.whiteList.Add([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
@@ -548,6 +519,9 @@ func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byt
 }
 
 func (rrh *resolverRequestHandler) sweepIfNeeded() {
+	rrh.mutSweepTime.Lock()
+	defer rrh.mutSweepTime.Unlock()
+
 	if time.Since(rrh.sweepTime) <= time.Second {
 		return
 	}

@@ -3,6 +3,7 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -87,7 +88,7 @@ func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
 // StartStatusPolling will start save information in status handler about network
 func StartStatusPolling(
 	ash core.AppStatusHandler,
-	pollingInterval int,
+	pollingInterval time.Duration,
 	networkComponents *factory.Network,
 	processComponents *factory.Process,
 ) error {

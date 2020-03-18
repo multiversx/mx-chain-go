@@ -14,6 +14,9 @@ clean: clean-test
 test: clean-test
 	go test ./...
 
+test-serial: clean-test
+	go test -p 1 ./...
+
 test-short:
 	go test -short -count=1 ./...
 
@@ -60,6 +63,3 @@ benchmark-arwen:
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithFibbonacciAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
-
-cross:
-	./cross_build.sh

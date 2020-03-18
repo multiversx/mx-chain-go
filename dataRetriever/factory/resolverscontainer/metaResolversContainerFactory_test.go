@@ -235,11 +235,11 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	container, _ := rcf.Create()
 	numResolversShardHeadersForMetachain := noOfShards
 	numResolverMetablocks := 1
-	numResolversMiniBlocks := noOfShards + 1
+	numResolversMiniBlocks := noOfShards + 2
 	numResolversUnsigned := noOfShards + 1
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := (noOfShards + 1) * 2
+	numResolversTrieNodes := noOfShards + 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 

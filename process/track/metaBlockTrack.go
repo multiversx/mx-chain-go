@@ -25,12 +25,14 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	maxNumHeadersToKeepPerShard := int(float64(arguments.PoolsHolder.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
+
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator, maxNumHeadersToKeepPerShard)
 	if err != nil {
 		return nil, err
 	}
 
-	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator, maxNumHeadersToKeepPerShard)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +66,8 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 		blockBalancer:                 blockBalancerInstance,
 	}
+
+	bbt.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
