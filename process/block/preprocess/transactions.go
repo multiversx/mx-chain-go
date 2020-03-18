@@ -301,7 +301,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 }
 
 func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]*txcache.WrappedTransaction, error) {
-	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
+	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
 		txHash := miniBlock.TxHashes[i]
@@ -380,23 +380,16 @@ func (txs *transactions) processTxsToMe(
 			return process.ErrTimeIsOut
 		}
 
-		txHandler := txsToMe[index].Tx
-		tx := txHandler.(*transaction.Transaction)
-		txHash := txsToMe[index].TxHash
-
-		txs.txsForCurrBlock.mutTxsForBlock.RLock()
-		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
-		if !ok || check.IfNil(txInfoFromMap.tx) {
-			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			log.Warn("missing transaction in processTxsToMe", "txHash", txHash)
-			return process.ErrMissingTransaction
+		tx, ok := txsToMe[index].Tx.(*transaction.Transaction)
+		if !ok {
+			return process.ErrWrongTypeAssertion
 		}
 
-		senderShardID := txInfoFromMap.senderShardID
-		receiverShardID := txInfoFromMap.receiverShardID
-		txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+		txHash := txsToMe[index].TxHash
+		senderShardID := txsToMe[index].SenderShardID
+		receiverShardID := txsToMe[index].ReceiverShardID
 
-		err = txs.processAndRemoveBadTransaction(
+		err := txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
 			senderShardID,
@@ -536,6 +529,10 @@ func (txs *transactions) CreateBlockStarted() {
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
+	if check.IfNil(body) {
+		return 0
+	}
+
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
@@ -566,10 +563,6 @@ func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes 
 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
-	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo)
-	}
-
 	missingTxsForShard := txs.computeExistingAndMissing(
 		body,
 		&txs.txsForCurrBlock,
@@ -804,8 +797,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 			break
 		}
 
-		txHandler := sortedTxs[index].Tx
-		tx, ok := txHandler.(*transaction.Transaction)
+		tx, ok := sortedTxs[index].Tx.(*transaction.Transaction)
 		if !ok {
 			log.Debug("wrong type assertion",
 				"hash", sortedTxs[index].TxHash,
