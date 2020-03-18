@@ -1101,7 +1101,16 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
 	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
-	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{TxHashes: [][]byte{txHash}, SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock}}}
+	body := block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				TxHashes:        [][]byte{txHash},
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+				Type:            block.TxBlock,
+			},
+		},
+	}
 	haveTime := func() bool {
 		return true
 	}
@@ -1112,7 +1121,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	preprocessor.ProcessTxsToMe(body, haveTime)
+	preprocessor.ProcessTxsToMe(&body, haveTime)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
