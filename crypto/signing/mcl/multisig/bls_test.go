@@ -192,25 +192,6 @@ func TestMultiSignerBLS_VerifySigShareOK(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestMultiSignerBLS_VerifySigBytesNilSigShouldErr(t *testing.T) {
-	_, pubKey, _, lls := genSigParamsBLS()
-	err := lls.VerifySigBytes(pubKey.Suite(), nil)
-
-	require.Equal(t, crypto.ErrNilSignature, err)
-}
-
-func TestMultiSignerBLS_VerifySigBytesInvalidSuiteShouldErr(t *testing.T) {
-	msg := []byte("message")
-	privKey, _, _, lls := genSigParamsBLS()
-	sig, _ := lls.SignShare(privKey, msg)
-
-	suite := createMockSuite("invalid suite")
-	err := lls.VerifySigBytes(suite, sig)
-
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "suite is invalid")
-}
-
 func TestMultiSignerBLS_AggregateSignaturesNilSuiteShouldErr(t *testing.T) {
 	msg := []byte("message")
 	hasher := &mock.HasherSpongeMock{}

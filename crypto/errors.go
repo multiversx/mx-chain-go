@@ -79,23 +79,8 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
 
-// ErrBitmapNotSet is raised when a cleared bitmap is used
-var ErrBitmapNotSet = errors.New("bitmap is not set")
-
-// ErrNilCommitment is raised when a nil commitment is used
-var ErrNilCommitment = errors.New("commitment is nil")
-
 // ErrNilBitmap is raised when a nil bitmap is used
 var ErrNilBitmap = errors.New("bitmap is nil")
-
-// ErrNilCommitmentSecret is raised when a nil commitment secret is used
-var ErrNilCommitmentSecret = errors.New("commitment secret is nil")
-
-// ErrNilAggregatedCommitment is raised when nil aggregated commitment is used
-var ErrNilAggregatedCommitment = errors.New("aggregated commitment is nil")
-
-// ErrNilCommitmentHash is raised when a nil commitment hash is used
-var ErrNilCommitmentHash = errors.New("commitment hash is nil")
 
 // ErrSigNotValid is raised when a signature verification fails due to invalid signature
 var ErrSigNotValid = errors.New("signature is invalid")
@@ -111,6 +96,9 @@ var ErrInvalidSigner = errors.New("signer is invalid")
 
 // ErrEd25519InvalidSignature will be returned when ed25519 signature verification fails
 var ErrEd25519InvalidSignature = errors.New("ed25519: invalid signature")
+
+// ErrBLSInvalidSignature will be returned when the provided BLS signature is invalid
+var ErrBLSInvalidSignature = errors.New("bls12-381: invalid signature")
 
 // ErrGeneratingPubFromPriv signals that there was an error generating a public key corresponding to a provided private key
 var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from provided private key")
