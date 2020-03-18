@@ -5,7 +5,7 @@ go 1.13
 replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.8-0.20200317152459-7c1b064f8cc5
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200318112013-ea29ee15a9c6
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.12
