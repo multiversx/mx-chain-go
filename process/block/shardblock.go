@@ -1565,6 +1565,10 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 			"txs added", len(miniBlock.TxHashes))
 	}
 
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+		"num txs added", txsAdded,
+		"num hdrs added", hdrsAdded)
+
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
 
