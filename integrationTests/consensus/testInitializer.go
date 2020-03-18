@@ -2,11 +2,9 @@ package consensus
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -42,8 +40,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -52,18 +48,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 const blsConsensusType = "bls"
 
-var r *rand.Rand
 var consensusChainID = []byte("consensus chain ID")
-
-func init() {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 type testNode struct {
 	node         *node.Node
@@ -115,24 +104,6 @@ func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string
 	}
 
 	return keysMap
-}
-
-func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		integrationTests.CreateKadPeerDiscoverer(time.Second, []string{initialAddr}),
-	)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
 }
 
 func getConnectableAddress(mes p2p.Messenger) string {
@@ -323,7 +294,7 @@ func createConsensusOnlyNode(
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
+	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -465,6 +436,7 @@ func createConsensusOnlyNode(
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
 		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),

@@ -168,17 +168,6 @@ type TriesHolder interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorInfo is used to access information about the validator
-type ValidatorInfo interface {
-	GetPublicKey() []byte
-	GetShardId() uint32
-	GetList() string
-	GetIndex() uint32
-	GetTempRating() uint32
-	GetRating() uint32
-	String() string
-}
-
 type baseAccountHandler interface {
 	AddressContainer() AddressContainer
 	IncreaseNonce(nonce uint64)

@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -231,13 +231,15 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	vmInput, err := sc.createVMCallInput(tx)
+	var vmInput *vmcommon.ContractCallInput
+	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
-	executed, err := sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
+	var executed bool
+	executed, err = sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return nil
@@ -246,13 +248,15 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	vm, err := sc.getVMFromRecvAddress(tx)
+	var vm vmcommon.VMExecutionHandler
+	vm, err = sc.getVMFromRecvAddress(tx)
 	if err != nil {
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
 
-	vmOutput, err := vm.RunSmartContractCall(vmInput)
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
@@ -263,9 +267,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
+	var consumedFee *big.Int
+	var results []data.TransactionHandler
+	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Trace("process vm output error", "error", err.Error())
+		log.Debug("process vm output error", "error", err.Error())
 		return nil
 	}
 
@@ -516,7 +522,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
-	log.Trace("SmartContract deployed")
+	log.Debug("SmartContract deployed")
 	return nil
 }
 
@@ -672,9 +678,10 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Trace("smart contract processing returned with error",
+		log.Debug("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
+			"return message", vmOutput.ReturnMessage,
 		)
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
@@ -860,7 +867,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddr()
@@ -1117,27 +1124,10 @@ func (sc *scProcessor) processSimpleSCR(
 	scr *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	if len(scr.Data) > 0 {
-		storageUpdates, err := sc.argsParser.GetStorageUpdates(string(scr.Data))
-		if err != nil {
-			log.Debug("storage updates could not be parsed")
-		}
-
-		for i := 0; i < len(storageUpdates); i++ {
-			dstAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
-		}
-	}
-
 	err := sc.updateSmartContractCode(dstAcc, &vmcommon.OutputAccount{Code: scr.Code, Address: scr.RcvAddr}, scr)
 	if err != nil {
 		return err
 	}
-
-	if scr.Value == nil {
-		err = sc.accounts.SaveAccount(dstAcc)
-		if err != nil {
-			return err
-		}
 
 		return nil
 	}

@@ -522,3 +522,14 @@ func WithRequestHandler(requestHandler process.RequestHandler) Option {
 		return nil
 	}
 }
+
+// WithNetworkShardingCollector sets up a network sharding updater for the Node
+func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
+	return func(n *Node) error {
+		if check.IfNil(networkShardingCollector) {
+			return ErrNilNetworkShardingCollector
+		}
+		n.networkShardingCollector = networkShardingCollector
+		return nil
+	}
+}

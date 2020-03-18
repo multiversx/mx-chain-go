@@ -9,6 +9,7 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
+	AddJournalEntryCalled    func(je state.JournalEntry)
 	GetExistingAccountCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
 	LoadAccountCalled        func(container state.AddressContainer) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
@@ -51,6 +52,13 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 }
 
 var errNotImplemented = errors.New("not implemented")
+
+// AddJournalEntry -
+func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
+	if as.AddJournalEntryCalled != nil {
+		as.AddJournalEntryCalled(je)
+	}
+}
 
 // Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {

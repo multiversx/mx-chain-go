@@ -1112,6 +1112,37 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	initialPubKeys[1] = keys[1]
 	initialPubKeys[2] = keys[2]
 
+	vsp := &mock.ValidatorStatisticsProcessorStub{
+		RootHashCalled: func() (i []byte, err error) {
+			return []byte("hash"), nil
+		},
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
+			validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+
+			for shardId, pubkeysPerShard := range initialPubKeys {
+				validatorInfos[shardId] = make([]*state.ValidatorInfo, 0)
+				for _, pubKey := range pubkeysPerShard {
+					validatorInfos[shardId] = append(validatorInfos[shardId], &state.ValidatorInfo{
+						PublicKey:                  []byte(pubKey),
+						ShardId:                    shardId,
+						List:                       "",
+						Index:                      0,
+						TempRating:                 0,
+						Rating:                     0,
+						RewardAddress:              nil,
+						LeaderSuccess:              0,
+						LeaderFailure:              0,
+						ValidatorSuccess:           0,
+						ValidatorFailure:           0,
+						NumSelectedInSuccessBlocks: 0,
+						AccumulatedFees:            nil,
+					})
+				}
+			}
+			return validatorInfos, nil
+		},
+	}
+
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
@@ -1126,6 +1157,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 				}
 			},
 		}),
+		node.WithValidatorStatistics(vsp),
 	)
 
 	expectedData := &state.ValidatorApiResponse{}
@@ -1323,6 +1355,10 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1386,6 +1422,10 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1444,6 +1484,10 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1504,6 +1548,10 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1569,6 +1617,10 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2163,6 +2215,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 	)
 
 	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well

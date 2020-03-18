@@ -2,7 +2,9 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // TestBootstrapper extends the Bootstrapper interface with some functions intended to be used only in tests
@@ -22,7 +24,16 @@ type TestEpochStartTrigger interface {
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
 
-// BlockProcessorInitializer offers initialization for block processor
-type BlockProcessorInitializer interface {
-	InitBlockProcessor()
+// NodesCoordinatorFactory is used for creating a nodesCoordinator in the integration tests
+type NodesCoordinatorFactory interface {
+	CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator
+}
+
+// NetworkShardingUpdater defines the updating methods used by the network sharding component
+type NetworkShardingUpdater interface {
+	GetShardID(pid p2p.PeerID) (shardId uint32)
+	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
 }

@@ -20,8 +20,7 @@ import (
 
 var log = logger.GetOrCreate("process/track")
 
-const maxNumHeadersToKeepPerShard = 1200
-const numHeadersToRemovePerShard = 200
+const percentToKeep = 0.8
 
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
@@ -45,8 +44,9 @@ type baseBlockTrack struct {
 	selfNotarizedHeadersNotifier  blockNotifierHandler
 	blockBalancer                 blockBalancerHandler
 
-	mutHeaders sync.RWMutex
-	headers    map[uint32]map[uint64][]*HeaderInfo
+	mutHeaders                  sync.RWMutex
+	headers                     map[uint32]map[uint64][]*HeaderInfo
+	maxNumHeadersToKeepPerShard int
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -73,7 +73,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		"hash", shardHeaderHash,
 	)
 
-	if !bbt.shouldAddHeader(headerHandler) {
+	if !bbt.ShouldAddHeader(headerHandler) {
 		log.Trace("received shard header is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -97,7 +97,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		"hash", metaBlockHash,
 	)
 
-	if !bbt.shouldAddHeader(headerHandler) {
+	if !bbt.ShouldAddHeader(headerHandler) {
 		log.Trace("received meta block is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -106,7 +106,8 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
 }
 
-func (bbt *baseBlockTrack) shouldAddHeader(headerHandler data.HeaderHandler) bool {
+// ShouldAddHeader returns if the given header should be added or not in the tracker list (is out of the interest range)
+func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
 	shardID := headerHandler.GetShardID()
 	if shardID == bbt.shardCoordinator.SelfId() {
 		return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
@@ -141,7 +142,7 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	lastNotarizedHeaderNonce := lastNotarizedHeader.GetNonce()
 
 	isHeaderOutOfRange := headerHandler.GetNonce() < firstNotarizedHeaderNonce ||
-		headerHandler.GetNonce() > lastNotarizedHeaderNonce+maxNumHeadersToKeepPerShard
+		headerHandler.GetNonce() > lastNotarizedHeaderNonce+uint64(bbt.maxNumHeadersToKeepPerShard)
 
 	return !isHeaderOutOfRange
 }
@@ -172,7 +173,7 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	numHeadersForShard := len(headersForShard)
 	bbt.mutHeaders.Unlock()
 
-	if numHeadersForShard > maxNumHeadersToKeepPerShard {
+	if numHeadersForShard > bbt.maxNumHeadersToKeepPerShard {
 		bbt.cleanupWhenMaxCapacityIsReached(shardID)
 	}
 }
@@ -180,18 +181,18 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 func (bbt *baseBlockTrack) cleanupWhenMaxCapacityIsReached(shardID uint32) {
 	headers, _ := bbt.GetTrackedHeaders(shardID)
 	trackedHeadersCount := len(headers)
-	if trackedHeadersCount <= maxNumHeadersToKeepPerShard {
+	if trackedHeadersCount <= bbt.maxNumHeadersToKeepPerShard {
 		return
 	}
 
 	bbt.mutHeaders.Lock()
 	if shardID == bbt.shardCoordinator.SelfId() {
-		index := trackedHeadersCount - (maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard)
+		index := trackedHeadersCount - int(float64(bbt.maxNumHeadersToKeepPerShard)*percentToKeep)
 		for i := 0; i < index; i++ {
 			delete(bbt.headers[shardID], headers[i].GetNonce())
 		}
 	} else {
-		index := maxNumHeadersToKeepPerShard - numHeadersToRemovePerShard
+		index := int(float64(bbt.maxNumHeadersToKeepPerShard) * percentToKeep)
 		for i := trackedHeadersCount - 1; i >= index; i-- {
 			delete(bbt.headers[shardID], headers[i].GetNonce())
 		}
