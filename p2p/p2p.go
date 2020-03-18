@@ -1,14 +1,27 @@
 package p2p
 
 import (
-	"context"
 	"encoding/hex"
 	"io"
+	"time"
 
 	"github.com/mr-tron/base58/base58"
 )
 
 const displayLastPidChars = 12
+
+const (
+	// PrioBitsSharder is the variant that uses priority bits
+	PrioBitsSharder = "PrioBitsSharder"
+	// SimplePrioBitsSharder is the variant that computes the distance without prio bits
+	SimplePrioBitsSharder = "SimplePrioBitsSharder"
+	// ListsSharder is the variant that uses lists
+	ListsSharder = "ListsSharder"
+	// OneListSharder is the variant that is shard agnostic and uses one list
+	OneListSharder = "OneListSharder"
+	// NilListSharder is the variant that will not do connection trimming
+	NilListSharder = "NilListSharder"
+)
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
@@ -20,6 +33,7 @@ type MessageProcessor interface {
 
 // BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
 // a subset of received message (after filtering occurs)
+//TODO remove this after merging feat/antiflood branch
 type BroadcastCallbackHandler interface {
 	SetBroadcastCallback(callback func(buffToSend []byte))
 	IsInterfaceNil() bool
@@ -44,27 +58,28 @@ func (pid PeerID) Pretty() string {
 	return base58.Encode(pid.Bytes())
 }
 
-// ContextProvider defines an interface for providing context to various messenger components
-type ContextProvider interface {
-	Context() context.Context
-	IsInterfaceNil() bool
-}
-
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
 type PeerDiscoverer interface {
 	Bootstrap() error
 	Name() string
-
-	ApplyContext(ctxProvider ContextProvider) error
 	IsInterfaceNil() bool
 }
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
-	Pause()  // pause the peer discovery
-	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
+}
+
+// ReconnecterWithPauseResumeAndWatchdog defines a Reconnecter that supports pausing, resuming and watchdog
+type ReconnecterWithPauseResumeAndWatchdog interface {
+	Reconnecter
+	Pause()  // Pause the peer discovery
+	Resume() // Resume the peer discovery
+
+	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
+	StopWatchdog() error               // StopWatchdog stops the watchdog
+	KickWatchdog() error               // KickWatchdog kicks the watchdog
 }
 
 // Messenger is the main struct used for communication with other peers
@@ -106,10 +121,6 @@ type Messenger interface {
 	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []PeerID
-
-	// TrimConnections tries to optimize the number of open connections, closing
-	// those that are considered expendable.
-	TrimConnections()
 
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
@@ -163,6 +174,8 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -217,4 +230,52 @@ func MessageOriginatorPid(msg MessageP2P) string {
 // MessageOriginatorSeq will output the sequence number as hex
 func MessageOriginatorSeq(msg MessageP2P) string {
 	return hex.EncodeToString(msg.SeqNo())
+}
+
+// PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
+type PeerShardResolver interface {
+	GetShardID(pid PeerID) uint32 //GetShardID get the shard id of the given peer.ID
+	IsInterfaceNil() bool         //IsInterfaceNil returns true if there is no value under the interface
+}
+
+// ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
+type ConnectedPeersInfo struct {
+	UnknownPeers    []string
+	IntraShardPeers []string
+	CrossShardPeers []string
+}
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid PeerID, pk []byte)
+	IsInterfaceNil() bool
+}
+
+// SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
+type SignerVerifier interface {
+	Sign(message []byte) ([]byte, error)
+	Verify(message []byte, sig []byte, pk []byte) error
+	PublicKey() []byte
+	IsInterfaceNil() bool
+}
+
+// Marshalizer defines the 2 basic operations: serialize (marshal) and deserialize (unmarshal)
+type Marshalizer interface {
+	Marshal(obj interface{}) ([]byte, error)
+	Unmarshal(obj interface{}, buff []byte) error
+	IsInterfaceNil() bool
+}
+
+// PeerCounts represents the DTO structure used to output the count metrics for connected peers
+type PeerCounts struct {
+	UnknownPeers    int
+	IntraShardPeers int
+	CrossShardPeers int
+}
+
+// CommonSharder represents the common interface implemented by all sharder implementations
+type CommonSharder interface {
+	SetPeerShardResolver(psp PeerShardResolver) error
+	IsInterfaceNil() bool
 }

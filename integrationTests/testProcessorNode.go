@@ -183,14 +183,15 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
 
-	ForkDetector          process.ForkDetector
-	BlockProcessor        process.BlockProcessor
-	BroadcastMessenger    consensus.BroadcastMessenger
-	Bootstrapper          TestBootstrapper
-	Rounder               *mock.RounderMock
-	BootstrapStorer       *mock.BoostrapStorerMock
-	StorageBootstrapper   *mock.StorageBootstrapperMock
-	RequestedItemsHandler dataRetriever.RequestedItemsHandler
+	ForkDetector             process.ForkDetector
+	BlockProcessor           process.BlockProcessor
+	BroadcastMessenger       consensus.BroadcastMessenger
+	Bootstrapper             TestBootstrapper
+	Rounder                  *mock.RounderMock
+	BootstrapStorer          *mock.BoostrapStorerMock
+	StorageBootstrapper      *mock.StorageBootstrapperMock
+	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
+	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
@@ -343,6 +344,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initEconomicsData()
@@ -1109,6 +1111,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
 		node.WithDataPool(tpn.DataPool),
+		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
