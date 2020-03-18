@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
@@ -230,91 +231,8 @@ func TestGasModel(t *testing.T) {
 	runWASMVMBenchmark(t, "misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
 	runWASMVMBenchmark(t, "misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
-	fmt.Println("ERC20 ")
-	deployWithTransferAndExecuteERC20(t, 2, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
 	deployAndExecuteERC20WithBigInt(t, 2, gasSchedule)
-}
-
-func TestMultipleTimesERC20InBatches(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	for i := 0; i < 10; i++ {
-		deployWithTransferAndExecuteERC20(t, 1000, nil)
-	}
-}
-
-func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
-	ownerAddressBytes := []byte("12345678901234567890123456789011")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(10000000000000)
-	gasPrice := uint64(1)
-	gasLimit := uint64(10000000000)
-	transferOnCalls := big.NewInt(5)
-
-	scCode, err := getBytecode("erc20/wrc20_arwen_03.wasm")
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
-	defer testContext.Close()
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	initialSupply := hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	tx := vm.CreateDeployTx(
-		ownerAddressBytes,
-		ownerNonce,
-		transferOnCalls,
-		gasPrice,
-		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+initialSupply),
-	)
-
-	err = testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
-
-	ownerNonce++
-
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(1000000))
-
-	bob := []byte("12345678901234567890123456789222")
-	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(1000000))
-
-	initAlice := big.NewInt(100000)
-	tx = vm.CreateTransferTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
-
-	err = testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
-
-	start := time.Now()
-
-	for i := 0; i < numRun; i++ {
-		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
-
-		err = testContext.TxProcessor.ProcessTransaction(tx)
-		if err != nil {
-			assert.Nil(t, err)
-		}
-		assert.Nil(t, err)
-
-		aliceNonce++
-	}
-
-	elapsedTime := time.Since(start)
-	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
-
-	_, err = testContext.Accounts.Commit()
-	assert.Nil(t, err)
-
-	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
-	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func TestWASMNamespacing(t *testing.T) {
@@ -475,7 +393,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := getBytecode("erc20/wrc20_arwen_03.wasm")
+	scCode, err := getBytecode("erc20-c-03/wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -484,17 +402,18 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
+	initialSupply := hex.EncodeToString(big.NewInt(100000000000).Bytes())
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
 		ownerNonce,
-		transferOnCalls,
+		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes())),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+initialSupply),
 	)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ownerNonce++
 
 	alice := []byte("12345678901234567890123456789111")
@@ -508,7 +427,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	start := time.Now()
 
@@ -516,11 +435,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
 
 		err = testContext.TxProcessor.ProcessTransaction(tx)
-		if err != nil {
-			assert.Nil(t, err)
-		}
-		assert.Nil(t, err)
-
+		require.Nil(t, err)
 		aliceNonce++
 	}
 
@@ -528,12 +443,12 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
 
 	_, err = testContext.Accounts.Commit()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
+	require.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
 	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
+	require.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func generateRandomByteArray(size int) []byte {

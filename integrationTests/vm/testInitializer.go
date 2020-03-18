@@ -527,25 +527,6 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
-// CreateTransferTx -
-func CreateTransferTx(
-	nonce uint64,
-	value *big.Int,
-	scAddrress []byte,
-	sndAddress []byte,
-	rcvAddress []byte,
-) *dataTransaction.Transaction {
-	return &dataTransaction.Transaction{
-		Nonce:    nonce,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddrress,
-		SndAddr:  sndAddress,
-		GasPrice: 0,
-		GasLimit: 5000000,
-		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
-	}
-}
-
 // CreateTransferTokenTx -
 func CreateTransferTokenTx(
 	nonce uint64,
@@ -561,7 +542,7 @@ func CreateTransferTokenTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
+		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
 	}
 }
 

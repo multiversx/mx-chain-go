@@ -17,7 +17,7 @@ var ownerAddressBytes = []byte("12345678901234567890123456789012")
 
 func TestAllowNonFloatingPointSC(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "floating_point/non_fp.wasm")
-	defer wasmvm.(process.Closer).Close()
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -33,7 +33,7 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 
 func TestDisallowFloatingPointSC(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "floating_point/fp.wasm")
-	defer wasmvm.(process.Closer).Close()
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -49,7 +49,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
-	defer wasmvm.(process.Closer).Close()
+	defer closeVM(wasmvm)
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
 	// call to int64finish(100).
@@ -70,7 +70,7 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 
 func TestSCAbortExecution_Abort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
-	defer wasmvm.(process.Closer).Close()
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	arguments = append(arguments, []byte{0x01})
@@ -87,14 +87,14 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 	assert.Equal(t, "abort here", vmOutput.ReturnMessage)
 }
 
-func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []byte) {
+func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []byte) {
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
-	scCode, err := getBytecode(wasm_filename)
+	scCode, err := getBytecode(wasmFilename)
 	assert.Nil(t, err)
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
@@ -150,5 +150,11 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		GasProvided: uint64(0xffffffffffffffff),
 		Arguments:   arguments,
 		CallType:    vmcommon.DirectCall,
+	}
+}
+
+func closeVM(wasmvm vmcommon.VMExecutionHandler) {
+	if asCloser, ok := wasmvm.(process.Closer); ok {
+		asCloser.Close()
 	}
 }
