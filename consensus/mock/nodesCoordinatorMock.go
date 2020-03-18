@@ -135,6 +135,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Valid
 	return nil
 }
 
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
+	return make([]sharding.Validator, 0)
+}
+
 // SetConsensusGroupSize -
 func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
 	panic("implement me")
