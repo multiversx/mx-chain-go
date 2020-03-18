@@ -2,13 +2,19 @@ package mock
 
 // StatusMetricsStub -
 type StatusMetricsStub struct {
-	StatusMetricsMapCalled func() (map[string]interface{}, error)
-	IsInterfaceNilCalled   func() bool
+	StatusMetricsMapWithoutP2PCalled func() map[string]interface{}
+	StatusP2pMetricsMapCalled        func() map[string]interface{}
+	IsInterfaceNilCalled             func() bool
 }
 
 // StatusMetricsMap -
-func (nds *StatusMetricsStub) StatusMetricsMap() (map[string]interface{}, error) {
-	return nds.StatusMetricsMapCalled()
+func (nds *StatusMetricsStub) StatusMetricsMapWithoutP2P() map[string]interface{} {
+	return nds.StatusMetricsMapWithoutP2PCalled()
+}
+
+// StatusP2pMetricsMap -
+func (nds *StatusMetricsStub) StatusP2pMetricsMap() map[string]interface{} {
+	return nds.StatusP2pMetricsMapCalled()
 }
 
 // IsInterfaceNil -

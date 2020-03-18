@@ -1345,6 +1345,10 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1408,6 +1412,10 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1466,6 +1474,10 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1526,6 +1538,10 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1591,6 +1607,10 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2185,6 +2205,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 	)
 
 	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
