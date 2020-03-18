@@ -135,7 +135,7 @@ func (ptp *PeerTypeProvider) epochStartEventHandler() epochStart.ActionHandler {
 		if err != nil {
 			log.Warn("change epoch in peer type provider", "error", err.Error())
 		}
-	}, func(_ data.HeaderHandler) {})
+	}, func(_ data.HeaderHandler) {}, core.NodesCoordinatorOrder)
 
 	return subscribeHandler
 }

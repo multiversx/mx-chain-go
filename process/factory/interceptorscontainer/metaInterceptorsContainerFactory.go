@@ -126,7 +126,7 @@ func NewMetaInterceptorsContainerFactory(
 
 // Create returns an interceptor container that will hold all interceptors in the system
 func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
-	err := micf.generateMetablockInterceptors()
+	err := micf.generateMetachainHeaderInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -162,51 +162,6 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 	}
 
 	return micf.container, nil
-}
-
-//------- Metablock interceptor
-
-func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() error {
-	identifierHdr := factory.MetachainBlocksTopic
-
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return err
-	}
-
-	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(micf.argInterceptorFactory)
-	if err != nil {
-		return err
-	}
-
-	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      micf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    micf.blackList,
-	}
-	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
-	if err != nil {
-		return err
-	}
-
-	//only one metachain header topic
-	interceptor, err := processInterceptors.NewSingleDataInterceptor(
-		hdrFactory,
-		hdrProcessor,
-		micf.globalThrottler,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = micf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
-	if err != nil {
-		return err
-	}
-
-	return micf.container.Add(identifierHdr, interceptor)
 }
 
 //------- Shard header interceptors
@@ -274,17 +229,8 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	trieInterceptors := make([]process.Interceptor, 0)
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
-		if err != nil {
-			return err
-		}
-
-		keys = append(keys, identifierTrieNodes)
-		trieInterceptors = append(trieInterceptors, interceptor)
-
-		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
 		}
@@ -293,7 +239,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err
@@ -302,7 +248,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err

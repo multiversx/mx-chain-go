@@ -3002,8 +3002,9 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := sp.DecodeBlockBody(nil)
-	assert.Equal(t, &block.Body{}, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = sp.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
@@ -3650,6 +3651,20 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	body.MiniBlocks[0] = nil
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrNilMiniBlock, err)
+}
+
 func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
@@ -4105,7 +4120,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	hdr1 := &block.Header{Nonce: 0, Round: 0}
 	hdr2 := &block.Header{Nonce: 1, Round: 1}
 	finalHeaders = append(finalHeaders, hdr1, hdr2)
-	sp.UpdateStateStorage(finalHeaders)
+	sp.UpdateStateStorage(finalHeaders, &block.Header{})
 
 	assert.True(t, pruneTrieWasCalled)
 	assert.True(t, cancelPruneWasCalled)

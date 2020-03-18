@@ -1,6 +1,8 @@
 package rating
 
 import (
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -18,15 +20,49 @@ type BlockSigningRaterAndListIndexer struct {
 	proposerDecreaseRatingStep  int32
 	validatorIncreaseRatingStep int32
 	validatorDecreaseRatingStep int32
+	ratingChances               []sharding.RatingChance
 }
 
 // NewBlockSigningRaterAndListIndexer creates a new PeerAccountListAndRatingHandler of Type BlockSigningRaterAndListIndexer
 func NewBlockSigningRaterAndListIndexer(ratingsData *economics.RatingsData) (*BlockSigningRaterAndListIndexer, error) {
+	if ratingsData.MinRating() < 1 {
+		return nil, process.ErrMinRatingSmallerThanOne
+	}
 	if ratingsData.MinRating() > ratingsData.MaxRating() {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
 	}
 	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
+	}
+	if len(ratingsData.SelectionChances()) == 0 {
+		return nil, process.ErrNoChancesProvided
+	}
+
+	ratingChances := make([]sharding.RatingChance, len(ratingsData.SelectionChances()))
+
+	for i, chance := range ratingsData.SelectionChances() {
+		ratingChances[i] = &selectionChance{
+			maxThreshold:     chance.GetMaxThreshold(),
+			chancePercentage: chance.GetChancePercent(),
+		}
+	}
+
+	sort.Slice(ratingChances, func(i, j int) bool {
+		return ratingChances[i].GetMaxThreshold() < ratingChances[j].GetMaxThreshold()
+	})
+
+	if ratingChances[0].GetMaxThreshold() > 0 {
+		return nil, process.ErrNilMinChanceIfZero
+	}
+
+	for i := 1; i < len(ratingChances); i++ {
+		if ratingChances[i-1].GetMaxThreshold() == ratingChances[i].GetMaxThreshold() {
+			return nil, process.ErrDuplicateThreshold
+		}
+	}
+
+	if ratingChances[len(ratingChances)-1].GetMaxThreshold() != ratingsData.MaxRating() {
+		return nil, process.ErrNoChancesForMaxThreshold
 	}
 
 	return &BlockSigningRaterAndListIndexer{
@@ -37,7 +73,8 @@ func NewBlockSigningRaterAndListIndexer(ratingsData *economics.RatingsData) (*Bl
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                &DisabledRatingReader{},
+		RatingReader:                NewDisabledRatingReader(ratingsData.StartRating()),
+		ratingChances:               ratingChances,
 		ListIndexUpdaterHandler:     &DisabledListIndexUpdater{},
 	}, nil
 }
@@ -59,16 +96,16 @@ func (bsr *BlockSigningRaterAndListIndexer) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
-// GetRatings gets all the ratings that the current rater has
-func (bsr *BlockSigningRaterAndListIndexer) GetRatings(addresses []string) map[string]uint32 {
-	return bsr.RatingReader.GetRatings(addresses)
-}
-
 // SetRatingReader sets the Reader that can read ratings
 func (bsr *BlockSigningRaterAndListIndexer) SetRatingReader(reader sharding.RatingReader) {
 	if !check.IfNil(reader) {
 		bsr.RatingReader = reader
 	}
+}
+
+// UpdateRatingFromTempRating returns the TempRating for the specified public keys
+func (bsr *BlockSigningRaterAndListIndexer) UpdateRatingFromTempRating(pks []string) error {
+	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
 }
 
 // SetListIndexUpdater sets the list index update
@@ -111,4 +148,18 @@ func (bsr *BlockSigningRaterAndListIndexer) ComputeDecreaseValidator(val uint32)
 // UpdateListAndIndex will update the list and the index for a peer
 func (bsr *BlockSigningRaterAndListIndexer) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
 	return bsr.ListIndexUpdaterHandler.UpdateListAndIndex(pubKey, shardID, list, index)
+}
+
+// GetChance returns the RatingChance for the pk
+func (bsr *BlockSigningRaterAndListIndexer) GetChance(currentRating uint32) uint32 {
+	chance := bsr.ratingChances[0].GetChancePercentage()
+	for i := 0; i < len(bsr.ratingChances); i++ {
+		currentChance := bsr.ratingChances[i]
+		if currentRating > currentChance.GetMaxThreshold() {
+			continue
+		}
+		chance = currentChance.GetChancePercentage()
+		break
+	}
+	return chance
 }

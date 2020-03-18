@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -50,6 +51,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -59,6 +61,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
@@ -500,7 +503,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
 	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
@@ -812,6 +815,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
 
+	whiteListCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
+		generalConfig.WhiteListPool.Size,
+		generalConfig.WhiteListPool.Shards,
+	)
+	if err != nil {
+		return err
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
@@ -829,6 +845,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
+		whiteListHandler,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		0,
@@ -887,7 +904,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -909,9 +926,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("starting status pooling components")
+	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
-		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		statusPollingInterval,
 		networkComponents,
 		processComponents,
 	)
@@ -919,8 +937,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	updateMachineStatisticsDurationSec := 1
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	updateMachineStatisticsDuration := time.Second
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}
@@ -1057,14 +1075,17 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
-	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator, log logger.Logger) {
+	if check.IfNil(elasticIndexer) {
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
 
-	if validatorsPubKeys != nil {
+	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
 }
@@ -1247,14 +1268,12 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
-	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	//if err != nil {
-	//	return nil, err
-	//}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
+	if err != nil {
+		return nil, err
+	}
 
-	return baseNodesCoordinator, nil
+	return nodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
@@ -1303,15 +1322,18 @@ func createElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (indexer.Indexer, error) {
+	arguments := indexer.ElasticIndexerArgs{
+		Url:              url,
+		UserName:         elasticSearchConfig.Username,
+		Password:         elasticSearchConfig.Password,
+		ShardCoordinator: coordinator,
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+	}
+
 	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(
-		url,
-		elasticSearchConfig.Username,
-		elasticSearchConfig.Password,
-		coordinator,
-		marshalizer,
-		hasher,
-		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
+	dbIndexer, err = indexer.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
 	}

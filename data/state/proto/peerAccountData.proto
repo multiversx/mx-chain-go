@@ -29,10 +29,12 @@ message SignRate {
 
 // ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
 message ValidatorApiResponse {
-	uint32 NrLeaderSuccess    = 1 [(gogoproto.jsontag) = "nrLeaderSuccess"];
-	uint32 NrLeaderFailure    = 2 [(gogoproto.jsontag) = "nrLeaderFailure"];
+	uint32 NrLeaderSuccess = 1 [(gogoproto.jsontag) = "nrLeaderSuccess"];
+	uint32 NrLeaderFailure = 2 [(gogoproto.jsontag) = "nrLeaderFailure"];
 	uint32 NrValidatorSuccess = 3 [(gogoproto.jsontag) = "nrValidatorSuccess"];
 	uint32 NrValidatorFailure = 4 [(gogoproto.jsontag) = "nrValidatorFailure"];
+	float Rating = 5 [(gogoproto.jsontag) = "rating"];
+	float TempRating = 6 [(gogoproto.jsontag) = "tempRating"];
 }
 
 

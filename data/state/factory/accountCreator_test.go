@@ -13,7 +13,7 @@ import (
 func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(state.UserAccount)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)
@@ -28,7 +28,7 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(state.UserAccount)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)
@@ -43,7 +43,7 @@ func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 func TestAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(state.UserAccount)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)

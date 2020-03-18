@@ -369,7 +369,13 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	assert.Equal(t, 5, len(mbs[shardCoordinator.SelfId()+1].TxHashes))
+	miniBlockTest := &block.MiniBlock{}
+	for _, mb := range mbs {
+		if mb.ReceiverShardID == shardCoordinator.SelfId()+1 {
+			miniBlockTest = mb
+		}
+	}
+	assert.Equal(t, 5, len(miniBlockTest.TxHashes))
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T) {
@@ -391,7 +397,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	err = irp.VerifyInterMiniBlocks(nil)
+	body := &block.Body{}
+	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 }
 

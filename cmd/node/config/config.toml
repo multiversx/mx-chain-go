@@ -219,6 +219,10 @@
     Size = 50000
     Type = "LRU"
 
+[WhiteListPool]
+    Size = 100000
+    Type = "LRU"
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
@@ -260,7 +264,7 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 30
+    MinRoundsBetweenEpochs = 50
     RoundsPerEpoch         = 50
 
 # ResourceStats, if enabled, will output in a folder called "stats"

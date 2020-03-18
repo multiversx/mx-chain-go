@@ -14,7 +14,99 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+
+	argsNewEpochEconomics := ArgsNewEpochEconomics{
+		Hasher:           &mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		Store:            createMetaStore(),
+		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
+		RewardsHandler:   &mock.RewardsHandlerStub{},
+		RoundTime:        &mock.RoundTimeDurationHandler{},
+	}
+	return argsNewEpochEconomics
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Marshalizer = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilMarshalizer, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Store = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilStorage, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.ShardCoordinator = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilNodesdCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.NodesCoordinator = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilNodesCoordinator, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.RewardsHandler = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilRewardsHandler, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRounder(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.RoundTime = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilRounder, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.NotNil(t, esd)
+	require.Nil(t, err)
+}
 
 func TestNewEndOfEpochEconomicsDataCreator_NilMarshalizer(t *testing.T) {
 	t.Parallel()

@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrMissingMetachainNodes signals that metachain nodes were not configured
-var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
-
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -30,6 +27,9 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
+
+// ErrNilChanceComputer signals that the chanceComputer is nil
+var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")

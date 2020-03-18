@@ -29,7 +29,18 @@ type AccountsStub struct {
 	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
 	IsPruningEnabledCalled      func() bool
 	GetAllLeavesCalled          func(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTriesCalled      func(rootHash []byte) (map[string]data.Trie, error)
 }
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	if as.RecreateAllTriesCalled != nil {
+		return as.RecreateAllTriesCalled(rootHash)
+	}
+	return nil, nil
+}
+
+var errNotImplemented = errors.New("not implemented")
 
 // GetAllLeaves -
 func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
@@ -38,8 +49,6 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	}
 	return nil, nil
 }
-
-var errNotImplemented = errors.New("not implemented")
 
 // AddJournalEntry -
 func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {

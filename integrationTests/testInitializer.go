@@ -20,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -165,8 +165,8 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
-// CreateShardStore creates a storage service for shard nodes
-func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
+// CreateStore creates a storage service for shard nodes
+func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
@@ -178,6 +178,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -187,28 +188,8 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	return store
 }
 
-// CreateMetaStore creates a storage service for meta nodes
-func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
-
-	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
-	}
-
-	return store
-}
-
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+func CreateAccountsDB(accountType state.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
@@ -216,7 +197,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
@@ -276,15 +257,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -397,7 +378,7 @@ func CreateGenesisMetaBlock(
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
-		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
+		newAccounts, _, _ := CreateAccountsDB(state.UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -494,7 +475,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(factory.UserAccount)
+	adb, _, _ := CreateAccountsDB(state.UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -636,18 +617,6 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
-	for i := 0; i < nrOfRounds; i++ {
-		UpdateRound(nodes, round)
-		ProposeBlock(nodes, idxProposers, round, nonce)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	return nonce, round
-}
-
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
 func IncrementAndPrintRound(round uint64) uint64 {
 	round++
@@ -691,6 +660,7 @@ func SyncBlock(
 
 		err := n.SyncNode(round)
 		if err != nil {
+			log.Warn(fmt.Sprintf("SyncNode on round %v could not be synced. Error: %s", round, err.Error()))
 			assert.Fail(t, err.Error())
 			return
 		}
@@ -1030,7 +1000,7 @@ func GenerateTransferTx(
 		GasPrice: gasPrice,
 	}
 	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
-	signer := &singlesig.SchnorrSigner{}
+	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
 	return &tx
@@ -1140,7 +1110,7 @@ func GenerateSkAndPkInShard(
 	coordinator sharding.Coordinator,
 	shardId uint32,
 ) (crypto.PrivateKey, crypto.PublicKey, crypto.KeyGenerator) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+	suite := ed25519.NewEd25519()
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
@@ -1386,7 +1356,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(factory.UserAccount)
+	accnts, _, _ := CreateAccountsDB(state.UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
@@ -1397,8 +1367,8 @@ func generateValidTx(
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
-		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
-		node.WithTxSingleSigner(&singlesig.SchnorrSigner{}),
+		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
+		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
 		node.WithAccountsAdapter(accnts),
 	)
 
@@ -1556,7 +1526,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
 	suite := mcl.NewSuiteBLS12()
-	singleSigner := &singlesig.SchnorrSigner{}
+	singleSigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
@@ -1773,4 +1743,13 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 			SelfShardID:    selfShardID,
 		},
 	)
+}
+
+// WaitOperationToBeDone -
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	return nonce, round
 }
