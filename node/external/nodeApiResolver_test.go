@@ -67,19 +67,78 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestNodeApiResolver_StatusMetricsMapShouldBeCalled(t *testing.T) {
+func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},
 		&mock.StatusMetricsStub{
-			StatusMetricsMapCalled: func() (map[string]interface{}, error) {
+			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 				wasCalled = true
-				return nil, nil
+				return nil
 			},
-		}, &mock.TransactionCostEstimatorMock{})
-	_, _ = nar.StatusMetrics().StatusMetricsMap()
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
+	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
+
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nar, _ := external.NewNodeApiResolver(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{
+			StatusP2pMetricsMapCalled: func() map[string]interface{} {
+				wasCalled = true
+				return nil
+			},
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
+	_ = nar.StatusMetrics().StatusP2pMetricsMap()
+
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nar, _ := external.NewNodeApiResolver(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{
+			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
+				wasCalled = true
+				return nil
+			},
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
+	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
+
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nar, _ := external.NewNodeApiResolver(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{
+			StatusP2pMetricsMapCalled: func() map[string]interface{} {
+				wasCalled = true
+				return nil
+			},
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
+	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
 }
