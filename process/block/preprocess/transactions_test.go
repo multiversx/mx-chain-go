@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
@@ -1055,4 +1056,65 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 	)
 
 	return preprocessor
+}
+
+func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiverShards(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	shardCoordinatorMock := mock.NewMultiShardsCoordinatorMock(3)
+	shardCoordinatorMock.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		if bytes.Equal(address.Bytes(), []byte("0")) {
+			return 0
+		}
+		if bytes.Equal(address.Bytes(), []byte("1")) {
+			return 1
+		}
+		if bytes.Equal(address.Bytes(), []byte("2")) {
+			return 2
+		}
+
+		return shardCoordinatorMock.SelfId()
+	}
+
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+				return nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		&mock.AddressConverterMock{},
+		&mock.BlockSizeComputationStub{},
+	)
+
+	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
+	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{&block.MiniBlock{TxHashes: [][]byte{txHash}, SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock}}}
+	haveTime := func() bool {
+		return true
+	}
+
+	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
+
+	_, senderShardID, receiverShardID := preprocessor.GetTxInfoForCurrentBlock(txHash)
+	assert.Equal(t, uint32(1), senderShardID)
+	assert.Equal(t, uint32(0), receiverShardID)
+
+	preprocessor.ProcessTxsToMe(body, haveTime)
+
+	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
+	assert.Equal(t, uint32(2), senderShardID)
+	assert.Equal(t, uint32(0), receiverShardID)
 }

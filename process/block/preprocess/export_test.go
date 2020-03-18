@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte) {
@@ -91,4 +92,41 @@ func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
 
 func (bsc *blockSizeComputation) NumTxs() uint32 {
 	return atomic.LoadUint32(&bsc.numTxs)
+}
+
+func (txs *transactions) ProcessTxsToMe(
+	body *block.Body,
+	haveTime func() bool,
+) error {
+	return txs.processTxsToMe(body, haveTime)
+}
+
+func (txs *transactions) AddTxForCurrentBlock(
+	txHash []byte,
+	txHandler data.TransactionHandler,
+	senderShardID uint32,
+	receiverShardID uint32,
+	) {
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+
+	if txs.txsForCurrBlock.txHashAndInfo == nil {
+		txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
+	}
+
+	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{
+		tx: txHandler,
+		txShardInfo: &txShardInfo{
+			senderShardID:   senderShardID,
+			receiverShardID: receiverShardID,
+		},
+	}
+}
+
+func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.TransactionHandler, uint32, uint32) {
+	txs.txsForCurrBlock.mutTxsForBlock.RLock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+
+	txInfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+	return txInfo.tx, txInfo.senderShardID, txInfo.receiverShardID
 }
