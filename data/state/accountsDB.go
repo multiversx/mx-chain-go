@@ -21,16 +21,14 @@ type Type uint8
 const (
 	// UserAccount identifies an account holding balance, storage updates, code
 	UserAccount Type = 0
-	// ShardStatistics identifies a shard, keeps the statistics
-	ShardStatistics Type = 1
 	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
-	ValidatorAccount Type = 2
+	ValidatorAccount Type = 1
 	// DataTrie identifies the data trie kept under a specific account
-	DataTrie Type = 3
+	DataTrie Type = 2
 )
 
 // SupportedAccountTypes is the list to describe the possible account types in the accounts DB
-var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount, DataTrie}
+var SupportedAccountTypes = []Type{UserAccount, ValidatorAccount, DataTrie}
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {

@@ -191,3 +191,15 @@ type TrieFactory interface {
 	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
 }
+
+// ValidatorInfoHandler is used to store multiple validatorInfo properties
+type ValidatorInfoHandler interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
+	IsInterfaceNil() bool
+}

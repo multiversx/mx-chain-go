@@ -32,6 +32,7 @@ import (
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
+	TxSignMarshalizer        marshal.Marshalizer
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	HeaderValidator          epochStart.HeaderValidator
@@ -58,9 +59,11 @@ type ArgsExporter struct {
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
 	ChainID                  []byte
 	ValidityAttester         process.ValidityAttester
+	ValidatorInfoProcessor   process.ValidatorInfoProcessorHandler
 }
 
 type exportHandlerFactory struct {
+	txSignMarshalizer        marshal.Marshalizer
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	headerValidator          epochStart.HeaderValidator
@@ -90,6 +93,7 @@ type exportHandlerFactory struct {
 	chainID                  []byte
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
+	validatorInfoProcessor   process.ValidatorInfoProcessorHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -160,8 +164,15 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ValidityAttester) {
 		return nil, update.ErrNilValidityAttester
 	}
+	if check.IfNil(args.ValidatorInfoProcessor) {
+		return nil, update.ErrNilValidatorInfoProcessor
+	}
+	if check.IfNil(args.TxSignMarshalizer) {
+		return nil, update.ErrNilMarshalizer
+	}
 
 	e := &exportHandlerFactory{
+		txSignMarshalizer:        args.TxSignMarshalizer,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
 		headerValidator:          args.HeaderValidator,
@@ -189,6 +200,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		headerSigVerifier:        args.HeaderSigVerifier,
 		validityAttester:         args.ValidityAttester,
 		chainID:                  args.ChainID,
+		validatorInfoProcessor:   args.ValidatorInfoProcessor,
 	}
 
 	return e, nil
@@ -197,17 +209,18 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 // Create makes a new export handler
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
-		Marshalizer:        e.marshalizer,
-		Hasher:             e.hasher,
-		HeaderValidator:    e.headerValidator,
-		Uint64Converter:    e.uint64Converter,
-		DataPool:           e.dataPool,
-		Storage:            e.storageService,
-		RequestHandler:     e.requestHandler,
-		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-		Epoch:              0,
-		Validity:           process.MetaBlockValidity,
-		Finality:           process.BlockFinality,
+		Marshalizer:            e.marshalizer,
+		Hasher:                 e.hasher,
+		HeaderValidator:        e.headerValidator,
+		Uint64Converter:        e.uint64Converter,
+		DataPool:               e.dataPool,
+		Storage:                e.storageService,
+		RequestHandler:         e.requestHandler,
+		EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+		Epoch:                  0,
+		Validity:               process.MetaBlockValidity,
+		Finality:               process.BlockFinality,
+		ValidatorInfoProcessor: e.validatorInfoProcessor,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -362,6 +375,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		Messenger:              e.messenger,
 		Store:                  e.storageService,
 		Marshalizer:            e.marshalizer,
+		TxSignMarshalizer:      e.txSignMarshalizer,
 		Hasher:                 e.hasher,
 		KeyGen:                 e.keyGen,
 		BlockSignKeyGen:        e.blockKeyGen,

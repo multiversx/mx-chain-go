@@ -54,6 +54,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	Messenger              process.TopicHandler
 	Store                  dataRetriever.StorageService
 	Marshalizer            marshal.Marshalizer
+	TxSignMarshalizer      marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	KeyGen                 crypto.KeyGenerator
 	BlockSignKeyGen        crypto.KeyGenerator
@@ -136,6 +137,8 @@ func NewFullSyncInterceptorsContainerFactory(
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Hasher:            args.Hasher,
+		ProtoMarshalizer:  args.Marshalizer,
+		TxSignMarshalizer: args.TxSignMarshalizer,
 		ShardCoordinator:  args.ShardCoordinator,
 		MultiSigVerifier:  args.MultiSigner,
 		NodesCoordinator:  args.NodesCoordinator,

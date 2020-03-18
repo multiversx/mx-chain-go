@@ -3,6 +3,7 @@ package syncer
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 type validatorAccountsSyncer struct {
@@ -46,5 +47,5 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	return v.syncMainTrie(rootHash)
+	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic)
 }

@@ -25,6 +25,9 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 
+// ErrNilChanceComputer signals that the chanceComputer is nil
+var ErrNilChanceComputer = errors.New("nil chance computer")
+
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 

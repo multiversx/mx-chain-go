@@ -23,20 +23,6 @@ func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 	assert.NotNil(t, accF)
 }
 
-func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
-	t.Parallel()
-
-	accF, err := factory.NewAccountFactoryCreator(state.ShardStatistics)
-	assert.Nil(t, err)
-
-	accWrp, err := accF.CreateAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	_, ok := accWrp.(*state.MetaAccount)
-	assert.Equal(t, true, ok)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, accF)
-}
-
 func TestNewAccountFactoryCreator_PeerAccount(t *testing.T) {
 	t.Parallel()
 

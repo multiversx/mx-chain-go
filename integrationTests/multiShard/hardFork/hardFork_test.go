@@ -201,6 +201,7 @@ func createHardForkExporter(
 
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 		argsExportHandler := factory.ArgsExporter{
+			TxSignMarshalizer: integrationTests.TestTxSignMarshalizer,
 			Marshalizer:       integrationTests.TestMarshalizer,
 			Hasher:            integrationTests.TestHasher,
 			HeaderValidator:   node.HeaderValidator,
@@ -236,19 +237,20 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			WhiteListHandler:      node.WhiteListHandler,
-			InterceptorsContainer: node.InterceptorsContainer,
-			ExistingResolvers:     node.ResolversContainer,
-			MultiSigner:           node.MultiSigner,
-			NodesCoordinator:      node.NodesCoordinator,
-			SingleSigner:          node.OwnAccount.SingleSigner,
-			AddrConverter:         integrationTests.TestAddressConverter,
-			BlockKeyGen:           node.OwnAccount.KeygenBlockSign,
-			KeyGen:                node.OwnAccount.KeygenTxSign,
-			BlockSigner:           node.OwnAccount.BlockSingleSigner,
-			HeaderSigVerifier:     node.HeaderSigVerifier,
-			ChainID:               node.ChainID,
-			ValidityAttester:      node.BlockTracker,
+			WhiteListHandler:       node.WhiteListHandler,
+			InterceptorsContainer:  node.InterceptorsContainer,
+			ExistingResolvers:      node.ResolversContainer,
+			MultiSigner:            node.MultiSigner,
+			NodesCoordinator:       node.NodesCoordinator,
+			SingleSigner:           node.OwnAccount.SingleSigner,
+			AddrConverter:          integrationTests.TestAddressConverter,
+			BlockKeyGen:            node.OwnAccount.KeygenBlockSign,
+			KeyGen:                 node.OwnAccount.KeygenTxSign,
+			BlockSigner:            node.OwnAccount.BlockSingleSigner,
+			HeaderSigVerifier:      node.HeaderSigVerifier,
+			ChainID:                node.ChainID,
+			ValidityAttester:       node.BlockTracker,
+			ValidatorInfoProcessor: node.ValidatorInfoProcessor,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

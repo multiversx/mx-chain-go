@@ -9,8 +9,6 @@ func NewAccountFactoryCreator(accountType state.Type) (state.AccountFactory, err
 	switch accountType {
 	case state.UserAccount:
 		return NewAccountCreator(), nil
-	case state.ShardStatistics:
-		return NewMetaAccountCreator(), nil
 	case state.ValidatorAccount:
 		return NewPeerAccountCreator(), nil
 	default:
