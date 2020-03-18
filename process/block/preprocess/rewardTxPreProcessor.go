@@ -414,36 +414,36 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
-	miniBlock *block.MiniBlock,
-	haveTime func() bool,
-) error {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return nil, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
-		return process.ErrRewardMiniBlockNotFromMeta
+		return nil, process.ErrRewardMiniBlockNotFromMeta
 	}
 
 	miniBlockRewardTxs, miniBlockTxHashes, err := rtp.getAllRewardTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if rtp.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockRewardTxs)) {
-		return process.ErrMaxBlockSizeReached
+		return nil, process.ErrMaxBlockSizeReached
 	}
 
+	processedTxHashes := make([][]byte, 0)
 	for index := range miniBlockRewardTxs {
 		if !haveTime() {
-			return process.ErrTimeIsOut
+			return processedTxHashes, process.ErrTimeIsOut
 		}
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
-			return err
+			return processedTxHashes, err
 		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	txShardData := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -457,7 +457,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	rtp.blockSizeComputation.AddNumMiniBlocks(1)
 	rtp.blockSizeComputation.AddNumTxs(len(miniBlockRewardTxs))
 
-	return nil
+	return nil, nil
 }
 
 // CreateMarshalizedData marshalizes reward transaction hashes and and saves them into a new structure

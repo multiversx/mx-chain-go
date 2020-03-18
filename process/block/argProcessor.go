@@ -17,28 +17,27 @@ import (
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector                 process.ForkDetector
-	Hasher                       hashing.Hasher
-	Marshalizer                  marshal.Marshalizer
-	Store                        dataRetriever.StorageService
-	ShardCoordinator             sharding.Coordinator
-	NodesCoordinator             sharding.NodesCoordinator
-	FeeHandler                   process.TransactionFeeHandler
-	Uint64Converter              typeConverters.Uint64ByteSliceConverter
-	RequestHandler               process.RequestHandler
-	Core                         serviceContainer.Core
-	BlockChainHook               process.BlockChainHookHandler
-	TxCoordinator                process.TransactionCoordinator
-	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	EpochStartTrigger            process.EpochStartTriggerHandler
-	HeaderValidator              process.HeaderConstructionValidator
-	Rounder                      consensus.Rounder
-	BootStorer                   process.BootStorer
-	BlockTracker                 process.BlockTracker
-	DataPool                     dataRetriever.PoolsHolder
-	BlockChain                   data.ChainHandler
-	StateCheckpointModulus       uint
+	AccountsDB             map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector           process.ForkDetector
+	Hasher                 hashing.Hasher
+	Marshalizer            marshal.Marshalizer
+	Store                  dataRetriever.StorageService
+	ShardCoordinator       sharding.Coordinator
+	NodesCoordinator       sharding.NodesCoordinator
+	FeeHandler             process.TransactionFeeHandler
+	Uint64Converter        typeConverters.Uint64ByteSliceConverter
+	RequestHandler         process.RequestHandler
+	Core                   serviceContainer.Core
+	BlockChainHook         process.BlockChainHookHandler
+	TxCoordinator          process.TransactionCoordinator
+	EpochStartTrigger      process.EpochStartTriggerHandler
+	HeaderValidator        process.HeaderConstructionValidator
+	Rounder                consensus.Rounder
+	BootStorer             process.BootStorer
+	BlockTracker           process.BlockTracker
+	DataPool               dataRetriever.PoolsHolder
+	BlockChain             data.ChainHandler
+	StateCheckpointModulus uint
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -52,11 +51,12 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
-	SCDataGetter             external.SCQueryService
-	PeerChangesHandler       process.PeerChangesHandler
-	SCToProtocol             process.SmartContractToProtocolHandler
-	EpochStartDataCreator    process.EpochStartDataCreator
-	EpochEconomics           process.EndOfEpochEconomics
-	EpochRewardsCreator      process.EpochStartRewardsCreator
+	PendingMiniBlocksHandler     process.PendingMiniBlocksHandler
+	SCDataGetter                 external.SCQueryService
+	SCToProtocol                 process.SmartContractToProtocolHandler
+	EpochStartDataCreator        process.EpochStartDataCreator
+	EpochEconomics               process.EndOfEpochEconomics
+	EpochRewardsCreator          process.EpochStartRewardsCreator
+	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }

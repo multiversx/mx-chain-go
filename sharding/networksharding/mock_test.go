@@ -8,6 +8,11 @@ type nodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 }
 
+// ComputeLeaving -
+func (ncs *nodesCoordinatorStub) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
+	panic("implement me")
+}
+
 // GetAllEligibleValidatorsPublicKeys -
 func (ncs *nodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	panic("implement me")
