@@ -520,7 +520,8 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 	})
 
 	if err != nil {
-		panic(fmt.Errorf("GetIntValueFromSC: %v", err))
+		fmt.Println("ERROR at GetIntValueFromSC()", err)
+		return big.NewInt(-1)
 	}
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
