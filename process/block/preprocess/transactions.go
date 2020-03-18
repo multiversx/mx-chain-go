@@ -433,7 +433,7 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocks(haveTime, isShardStuckFalse, txsFromMe)
+	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTime, isShardStuckFalse, txsFromMe)
 	if err != nil {
 		return err
 	}
@@ -718,48 +718,48 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
-	timeBefore := time.Now()
+	startTime := time.Now()
 	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
-	timeAfter := time.Now()
+	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
 	if !haveTime() {
-		log.Debug("time is up ordering txs",
+		log.Debug("time is up after computeSortedTxs",
 			"num txs", len(sortedTxs),
-			"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+			"time [s]", elapsedTime,
 		)
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("time elapsed to ordered txs",
+	log.Debug("elapsed time to computeSortedTxs",
 		"num txs", len(sortedTxs),
-		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+		"time [s]", elapsedTime,
 	)
 
-	startTime := time.Now()
-	miniBlocks, err := txs.createAndProcessMiniBlocks(haveTime, txs.blockTracker.IsShardStuck, sortedTxs)
-	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to createAndProcessMiniBlocks",
+	startTime = time.Now()
+	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTime, txs.blockTracker.IsShardStuck, sortedTxs)
+	elapsedTime = time.Since(startTime)
+	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
 		"time [s]", elapsedTime,
 	)
 
 	if err != nil {
-		log.Debug("createAndProcessMiniBlocks", "error", err.Error())
+		log.Debug("createAndProcessMiniBlocksFromMe", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
 	return miniBlocks, nil
 }
 
-func (txs *transactions) createAndProcessMiniBlocks(
+func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
 	sortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, error) {
-	log.Debug("createAndProcessMiniBlock has been started")
+	log.Debug("createAndProcessMiniBlocksFromMe has been started")
 
 	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
 
@@ -777,7 +777,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
-	log.Debug("createAndProcessMiniBlocks", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	senderAddressToSkip := []byte("")
 
@@ -793,7 +793,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 	for index := range sortedTxs {
 		if !haveTime() {
-			log.Debug("time is out in createAndProcessMiniBlock")
+			log.Debug("time is out in createAndProcessMiniBlocksFromMe")
 			break
 		}
 
@@ -857,7 +857,7 @@ func (txs *transactions) createAndProcessMiniBlocks(
 		elapsedTime := time.Since(startTime)
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
-			log.Trace("createAndProcessMiniBlock.computeGasConsumed", "error", err)
+			log.Trace("createAndProcessMiniBlocksFromMe.computeGasConsumed", "error", err)
 			continue
 		}
 
@@ -934,20 +934,21 @@ func (txs *transactions) createAndProcessMiniBlocks(
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
-	log.Debug("mini block info",
+	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),
 		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,
 		"total gas consumed in self shard", totalGasConsumedInSelfShard)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
+			"type", miniBlock.Type,
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"gas consumed in receiver shard", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID],
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("createAndProcessMiniBlock has been finished",
+	log.Debug("createAndProcessMiniBlocksFromMe has been finished",
 		"total txs", len(sortedTxs),
 		"num txs added", numTxsAdded,
 		"num txs bad", numTxsBad,
