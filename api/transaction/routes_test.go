@@ -166,38 +166,6 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	assert.Empty(t, transactionResponse.TxResp)
 }
 
-func TestSendTransaction_InvalidHexSignatureShouldError(t *testing.T) {
-	t.Parallel()
-	sender := "sender"
-	receiver := "receiver"
-	value := big.NewInt(10)
-	data := "data"
-	signature := "not#only$hex%characters^"
-
-	facade := mock.Facade{}
-	ws := startNodeServer(&facade)
-
-	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "data":"%s"}`,
-		sender,
-		receiver,
-		value,
-		signature,
-		data,
-	)
-
-	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errors2.ErrInvalidSignatureHex.Error())
-	assert.Empty(t, transactionResponse.TxResp)
-}
-
 func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	t.Parallel()
 	sender := "sender"
@@ -208,9 +176,11 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value string,
-			gasPrice uint64, gasLimit uint64, data []byte, signature []byte) (string, error) {
-			return "", errors.New(errorString)
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+			return nil, nil, nil
+		},
+		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
+			return 0, errors.New(errorString)
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -231,7 +201,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Contains(t, transactionResponse.Error, errorString)
 	assert.Empty(t, transactionResponse.TxResp)
 }
@@ -244,12 +214,16 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	value := big.NewInt(10)
 	data := "data"
 	signature := "aabbccdd"
-	txHash := "tx hash"
+	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value string,
-			gasPrice uint64, gasLimit uint64, data []byte, signature []byte) (string, error) {
-			return txHash, nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+			gasLimit uint64, data []byte, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+			txHash, _ := hex.DecodeString(hexTxHash)
+			return nil, txHash, nil
+		},
+		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
+			return 1, nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -274,7 +248,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txHashResponse.Error)
-	assert.Equal(t, txHashResponse.TxHash, txHash)
+	assert.Equal(t, hexTxHash, txHashResponse.TxHash)
 }
 
 func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
@@ -319,9 +293,10 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (i *tr.Transaction, e error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+			gasLimit uint64, data []byte, signatureHex string) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
-			return &tr.Transaction{}, nil
+			return &tr.Transaction{}, make([]byte, 0), nil
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, e error) {
 			sendBulkTxsWasCalled = true

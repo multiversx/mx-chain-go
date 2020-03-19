@@ -62,6 +62,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initDataPools()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initChainHandler()

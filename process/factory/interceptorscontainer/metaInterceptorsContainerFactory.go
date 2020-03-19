@@ -41,6 +41,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -110,13 +111,14 @@ func NewMetaInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
+		antifloodHandler:       args.AntifloodHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
 		baseInterceptorsContainerFactory: base,
 	}
 
-	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
+	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +164,54 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 	}
 
 	return micf.container, nil
+}
+
+//------- Metablock interceptor
+//TODO MOVE FROM HERE?
+
+func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() error {
+	identifierHdr := factory.MetachainBlocksTopic
+
+	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
+	// against blockchain's latest nonce - k finality
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
+	if err != nil {
+		return err
+	}
+
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(micf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+
+	argProcessor := &processor.ArgHdrInterceptorProcessor{
+		Headers:      micf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    micf.blackList,
+	}
+	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	if err != nil {
+		return err
+	}
+
+	//only one metachain header topic
+	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		identifierHdr,
+		hdrFactory,
+		hdrProcessor,
+		micf.globalThrottler,
+		micf.antifloodHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = micf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
+	if err != nil {
+		return err
+	}
+
+	return micf.container.Add(identifierHdr, interceptor)
 }
 
 //------- Shard header interceptors
@@ -211,9 +261,11 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		topic,
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
+		micf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

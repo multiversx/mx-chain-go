@@ -13,11 +13,9 @@ func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message p2
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}
-
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
