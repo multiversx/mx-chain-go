@@ -12,24 +12,36 @@ type TopicResolverSenderStub struct {
 	TargetShardIDCalled      func() uint32
 }
 
-// TopicRequestSuffix -
-func (trss *TopicResolverSenderStub) TopicRequestSuffix() string {
-	return "_REQUEST"
+// RequestTopic -
+func (trss *TopicResolverSenderStub) RequestTopic() string {
+	return "topic_REQUEST"
 }
 
 // SendOnRequestTopic -
 func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData) error {
-	return trss.SendOnRequestTopicCalled(rd)
+	if trss.SendOnRequestTopicCalled != nil {
+		return trss.SendOnRequestTopicCalled(rd)
+	}
+
+	return nil
 }
 
 // Send -
 func (trss *TopicResolverSenderStub) Send(buff []byte, peer p2p.PeerID) error {
-	return trss.SendCalled(buff, peer)
+	if trss.SendCalled != nil {
+		return trss.SendCalled(buff, peer)
+	}
+
+	return nil
 }
 
 // TargetShardID -
 func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
-	return trss.TargetShardIDCalled()
+	if trss.TargetShardIDCalled != nil {
+		return trss.TargetShardIDCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

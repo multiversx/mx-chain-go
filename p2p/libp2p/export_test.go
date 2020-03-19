@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
@@ -23,8 +24,8 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 	netMes.peerDiscoverer = discoverer
 }
 
-func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {
-	return ds.processReceivedDirectMessage(message)
+func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
+	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
 
 func (ds *directSender) SeenMessages() *timecache.TimeCache {
