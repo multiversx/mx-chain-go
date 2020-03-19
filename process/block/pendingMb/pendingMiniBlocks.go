@@ -106,7 +106,7 @@ func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) erro
 	}
 
 	for shardID, mbHash := range p.mapPendingMbShard {
-		log.Trace("pending miniblocks", "shard", shardID, "hash", mbHash)
+		log.Debug("pending miniblocks", "shard", shardID, "hash", mbHash)
 	}
 
 	return nil
