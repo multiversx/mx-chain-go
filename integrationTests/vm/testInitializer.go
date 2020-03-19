@@ -247,7 +247,12 @@ func CreateVMAndBlockchainHook(
 		FillGasMapInternal(actualGasSchedule, 1)
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
+	vmFactory, err := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{OutOfProcessEnabled: true},
+		maxGasLimitPerBlock,
+		actualGasSchedule,
+		args,
+	)
 	if err != nil {
 		log.LogIfError(err)
 	}

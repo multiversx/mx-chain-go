@@ -1728,7 +1728,7 @@ func newShardBlockProcessor(
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+	vmFactory, err := shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 	if err != nil {
 		return nil, err
 	}

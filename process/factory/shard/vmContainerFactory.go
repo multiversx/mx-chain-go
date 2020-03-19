@@ -6,6 +6,7 @@ import (
 	ipcLogger "github.com/ElrondNetwork/arwen-wasm-vm/ipc/logger"
 	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
 	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -14,9 +15,10 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var logVmContainerFactory = logger.GetOrCreate("vmContainerFactory")
+var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
+	config             config.VirtualMachineConfig
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
@@ -25,6 +27,7 @@ type vmContainerFactory struct {
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
+	config config.VirtualMachineConfig,
 	blockGasLimit uint64,
 	gasSchedule map[string]map[string]uint64,
 	argBlockChainHook hooks.ArgBlockChainHook,
@@ -40,6 +43,7 @@ func NewVMContainerFactory(
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
+		config:             config,
 		blockChainHookImpl: blockChainHookImpl,
 		cryptoHook:         cryptoHook,
 		blockGasLimit:      blockGasLimit,
@@ -65,10 +69,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	// TODO: move this to TOML config
-	const OutOfProcess = true
-
-	if OutOfProcess {
+	if vmf.config.OutOfProcessEnabled {
 		return vmf.createOutOfProcessArwenVM()
 	}
 
@@ -76,10 +77,11 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVmContainerFactory.Info("createOutOfProcessArwenVM")
+	logVMContainerFactory.Info("createOutOfProcessArwenVM")
+	outOfProcessConfig := vmf.config.OutOfProcessConfig
 
 	arwenVM, err := ipcNodePart.NewArwenDriver(
-		logVmContainerFactory,
+		logVMContainerFactory,
 		vmf.blockChainHookImpl,
 		ipcCommon.ArwenArguments{
 			VMHostArguments: ipcCommon.VMHostArguments{
@@ -87,21 +89,17 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				BlockGasLimit: vmf.blockGasLimit,
 				GasSchedule:   vmf.gasSchedule,
 			},
-			// TODO: get this from TOML config
-			LogLevel: ipcLogger.LogDebug,
-			// TODO: get this from TOML config
-			LogsMarshalizer: ipcMarshaling.JSON,
-			// TODO: get this from TOML config
-			MessagesMarshalizer: ipcMarshaling.JSON,
+			LogLevel:            ipcLogger.LogLevel(outOfProcessConfig.LogLevel),
+			LogsMarshalizer:     ipcMarshaling.MarshalizerKind(outOfProcessConfig.LogsMarshalizer),
+			MessagesMarshalizer: ipcMarshaling.MarshalizerKind(outOfProcessConfig.MessagesMarshalizer),
 		},
-		// TODO: get this from TOML config
-		ipcNodePart.Config{MaxLoopTime: 1000},
+		ipcNodePart.Config{MaxLoopTime: outOfProcessConfig.MaxLoopTime},
 	)
 	return arwenVM, err
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVmContainerFactory.Info("createInProcessArwenVM")
+	logVMContainerFactory.Info("createInProcessArwenVM")
 	return arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
 }
 

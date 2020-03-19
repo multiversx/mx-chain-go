@@ -180,5 +180,5 @@ type VirtualMachineOutOfProcessConfig struct {
 	LogLevel            uint32
 	LogsMarshalizer     uint32
 	MessagesMarshalizer uint32
-	MaxLoopTime         uint32
+	MaxLoopTime         int
 }

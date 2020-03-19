@@ -1492,7 +1492,7 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 		if err != nil {
 			return nil, err
 		}

@@ -707,7 +707,12 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
+	vmFactory, _ := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{OutOfProcessEnabled: true},
+		maxGasLimitPerBlock,
+		gasSchedule,
+		argsHook,
+	)
 
 	var err error
 	tpn.VMContainer, err = vmFactory.Create()
