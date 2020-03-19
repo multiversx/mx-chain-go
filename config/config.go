@@ -122,8 +122,9 @@ type Config struct {
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig         NTPConfig
-	HeadersPoolConfig HeadersPoolConfig
+	NTPConfig            NTPConfig
+	HeadersPoolConfig    HeadersPoolConfig
+	VirtualMachineConfig VirtualMachineConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -166,4 +167,18 @@ type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
+}
+
+// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+type VirtualMachineConfig struct {
+	OutOfProcessEnabled bool
+	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+}
+
+// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
+type VirtualMachineOutOfProcessConfig struct {
+	LogLevel            uint32
+	LogsMarshalizer     uint32
+	MessagesMarshalizer uint32
+	MaxLoopTime         uint32
 }

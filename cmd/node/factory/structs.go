@@ -1652,6 +1652,7 @@ func newBlockProcessor(
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
+			processArgs.coreComponents.config,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1698,6 +1699,7 @@ func newBlockProcessor(
 }
 
 func newShardBlockProcessor(
+	config *config.Config,
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,

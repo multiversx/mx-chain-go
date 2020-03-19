@@ -320,3 +320,11 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+
+[VirtualMachineConfig]
+    OutOfProcessEnabled = true
+    [VirtualMachineConfig.OutOfProcessConfig]
+        LogLevel = 1
+        LogsMarshalizer = 0
+        MessagesMarshalizer = 0
+        MaxLoopTime = 1000
