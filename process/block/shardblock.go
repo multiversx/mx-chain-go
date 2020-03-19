@@ -1464,9 +1464,10 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
+	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txsAdded := uint32(0)
@@ -1556,6 +1557,18 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
 
+	for _, miniBlock := range miniBlocks {
+		log.Debug("mini block info",
+			"type", miniBlock.Type,
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"txs added", len(miniBlock.TxHashes))
+	}
+
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+		"num txs added", txsAdded,
+		"num hdrs added", hdrsAdded)
+
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
 
@@ -1587,7 +1600,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime := time.Now()
-	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
