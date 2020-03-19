@@ -101,17 +101,26 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 	return keys
 }
 
+// Close closes the items in the container (meaningful for Arwen out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
+	var withError bool
+
 	for item := range vmc.objects.Iter() {
-		asCloser, ok := item.Value.(process.Closer)
-		if ok {
-			err := asCloser.Close()
-			if err != nil {
-				return err
-			}
+		asCloser, ok := item.Value.(interface{ Close() error })
+		if !ok {
+			continue
+		}
+
+		err := asCloser.Close()
+		if err != nil {
+			log.Error("Cannot close item in container", "err", err)
+			withError = true
 		}
 	}
 
+	if withError {
+		return ErrCloseVMContainer
+	}
 	return nil
 }
 

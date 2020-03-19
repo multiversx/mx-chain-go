@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -154,7 +153,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 }
 
 func closeVM(wasmvm vmcommon.VMExecutionHandler) {
-	if asCloser, ok := wasmvm.(process.Closer); ok {
+	if asCloser, ok := wasmvm.(interface{ Close() error }); ok {
 		asCloser.Close()
 	}
 }

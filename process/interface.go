@@ -340,7 +340,7 @@ type IntermediateProcessorsContainerFactory interface {
 
 // VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
 type VirtualMachinesContainer interface {
-	Closer
+	Close() error
 	Get(key []byte) (vmcommon.VMExecutionHandler, error)
 	Add(key []byte, val vmcommon.VMExecutionHandler) error
 	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
@@ -349,11 +349,6 @@ type VirtualMachinesContainer interface {
 	Len() int
 	Keys() [][]byte
 	IsInterfaceNil() bool
-}
-
-// Closer is the interface that wraps the basic Close method.
-type Closer interface {
-	Close() error
 }
 
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
