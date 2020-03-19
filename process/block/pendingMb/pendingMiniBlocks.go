@@ -105,7 +105,7 @@ func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) erro
 		delete(p.mapPendingMbShard, mbHash)
 	}
 
-	for shardID, mbHash := range p.mapPendingMbShard {
+	for mbHash, shardID := range p.mapPendingMbShard {
 		log.Debug("pending miniblocks", "shard", shardID, "hash", mbHash)
 	}
 
