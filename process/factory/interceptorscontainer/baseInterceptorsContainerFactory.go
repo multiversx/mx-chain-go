@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 const numGoRoutines = 2000
@@ -441,4 +442,20 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	}
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
+}
+
+// SetWhiteListHandlerToInterceptors will set the white list handler to all given interceptors
+func SetWhiteListHandlerToInterceptors(containter process.InterceptorsContainer, handler update.WhiteListHandler) error {
+	var err error
+
+	containter.Iterate(func(key string, interceptor process.Interceptor) bool {
+		errFound := interceptor.SetIsDataForCurrentShardVerifier(handler)
+		if errFound != nil {
+			err = errFound
+			return false
+		}
+		return true
+	})
+
+	return err
 }

@@ -38,11 +38,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	factoryMarshal "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -565,6 +563,35 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	epochFoundInStorage := errNotCritical == nil
 
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
+	if err != nil {
+		return err
+	}
+
+	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+
+	log.Trace("creating crypto components")
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
+		ctx,
+		generalConfig,
+		nodesConfig,
+		shardCoordinator,
+		keyGen,
+		privKey,
+		log,
+	)
+	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("creating core components")
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
+	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
+	if err != nil {
+		return err
+	}
+
 	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
 	if err != nil {
 		return err
@@ -575,25 +602,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
-	marshalizer, err := factoryMarshal.NewMarshalizer(generalConfig.Marshalizer.Type)
-	if err != nil {
-		return err
-	}
-	hasher, err := factoryHasher.NewHasher(generalConfig.Hasher.Type)
-	if err != nil {
-		return err
-	}
 	epochStartComponentArgs := factoryEpochBootstrap.EpochStartDataProviderFactoryArgs{
-		PubKey:                pubKey,
-		Messenger:             networkComponents.NetMessenger,
-		Marshalizer:           marshalizer,
-		Hasher:                hasher,
-		NodesConfigProvider:   nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
-		PathManager:           pathManager,
-		StartTime:             startTime,
-		OriginalNodesConfig:   nodesConfig,
-		GeneralConfig:         generalConfig,
-		IsEpochFoundInStorage: epochFoundInStorage,
+		PubKey:                  pubKey,
+		Messenger:               networkComponents.NetMessenger,
+		Marshalizer:             coreComponents.InternalMarshalizer,
+		Hasher:                  coreComponents.Hasher,
+		NodesConfigProvider:     nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
+		DefaultShardCoordinator: shardCoordinator,
+		PathManager:             pathManager,
+		StartTime:               startTime,
+		OriginalNodesConfig:     nodesConfig,
+		EconomicsConfig:         economicsConfig,
+		GeneralConfig:           generalConfig,
+		KeyGen:                  cryptoComponents.TxSignKeyGen,
+		BlockKeyGen:             cryptoComponents.BlockSignKeyGen,
+		SingleSigner:            cryptoComponents.TxSingleSigner,
+		BlockSingleSigner:       cryptoComponents.SingleSigner,
+		IsEpochFoundInStorage:   epochFoundInStorage,
 	}
 
 	epochStartComponentFactory, err := factoryEpochBootstrap.NewEpochStartDataProviderFactory(epochStartComponentArgs)
@@ -619,13 +644,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Error("error bootstrapping", "error", err)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
-	if err != nil {
-		return err
-	}
-
-	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
-
 	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
@@ -636,13 +654,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
-	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
-	if err != nil {
-		return err
 	}
 
 	log.Trace("creating economics data components")
@@ -724,21 +735,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
-	if err != nil {
-		return err
-	}
-
-	log.Trace("creating crypto components")
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
-		ctx,
-		generalConfig,
-		nodesConfig,
-		shardCoordinator,
-		keyGen,
-		privKey,
-		log,
-	)
-	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
 	}

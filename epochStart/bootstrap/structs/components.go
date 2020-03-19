@@ -15,5 +15,5 @@ type ComponentsNeededForBootstrap struct {
 	ShardHeaders                map[uint32]*block.Header
 	ShardCoordinator            sharding.Coordinator
 	Tries                       state.TriesHolder
-	PendingMiniBlocks           []*block.MiniBlock
+	PendingMiniBlocks           map[string]*block.MiniBlock
 }

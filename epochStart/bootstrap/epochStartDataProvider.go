@@ -14,13 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	factory2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory/interceptors"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/storagehandler"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -28,10 +30,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 var log = logger.GetOrCreate("registration")
@@ -50,14 +56,20 @@ type epochStartDataProvider struct {
 	hasher                         hashing.Hasher
 	messenger                      p2p.Messenger
 	generalConfig                  config.Config
+	economicsConfig                config.EconomicsConfig
+	defaultShardCoordinator        sharding.Coordinator
 	pathManager                    PathManagerHandler
 	nodesConfigProvider            NodesConfigProviderHandler
 	epochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	metaBlockInterceptor           MetaBlockInterceptorHandler
 	shardHeaderInterceptor         ShardHeaderInterceptorHandler
 	miniBlockInterceptor           MiniBlockInterceptorHandler
+	singleSigner                   crypto.SingleSigner
+	blockSingleSigner              crypto.SingleSigner
+	keyGen                         crypto.KeyGenerator
+	blockKeyGen                    crypto.KeyGenerator
 	requestHandler                 process.RequestHandler
-	whiteListHandler               dataRetriever.WhiteListHandler
+	whiteListHandler               update.WhiteListHandler
 }
 
 // ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
@@ -67,13 +79,19 @@ type ArgsEpochStartDataProvider struct {
 	Marshalizer                    marshal.Marshalizer
 	Hasher                         hashing.Hasher
 	GeneralConfig                  config.Config
+	EconomicsConfig                config.EconomicsConfig
+	DefaultShardCoordinator        sharding.Coordinator
 	PathManager                    PathManagerHandler
 	NodesConfigProvider            NodesConfigProviderHandler
 	EpochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	MetaBlockInterceptor           MetaBlockInterceptorHandler
 	ShardHeaderInterceptor         ShardHeaderInterceptorHandler
 	MiniBlockInterceptor           MiniBlockInterceptorHandler
-	WhiteListHandler               dataRetriever.WhiteListHandler
+	SingleSigner                   crypto.SingleSigner
+	BlockSingleSigner              crypto.SingleSigner
+	KeyGen                         crypto.KeyGenerator
+	BlockKeyGen                    crypto.KeyGenerator
+	WhiteListHandler               update.WhiteListHandler
 }
 
 // NewEpochStartDataProvider will return a new instance of epochStartDataProvider
@@ -112,12 +130,29 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, ErrNilWhiteListHandler
 	}
+	if check.IfNil(args.DefaultShardCoordinator) {
+		return nil, ErrNilDefaultShardCoordinator
+	}
+	if check.IfNil(args.BlockKeyGen) {
+		return nil, ErrNilBlockKeyGen
+	}
+	if check.IfNil(args.KeyGen) {
+		return nil, ErrNilKeyGen
+	}
+	if check.IfNil(args.SingleSigner) {
+		return nil, ErrNilSingleSigner
+	}
+	if check.IfNil(args.BlockSingleSigner) {
+		return nil, ErrNilBlockSingleSigner
+	}
+
 	return &epochStartDataProvider{
 		publicKey:                      args.PublicKey,
 		marshalizer:                    args.Marshalizer,
 		hasher:                         args.Hasher,
 		messenger:                      args.Messenger,
 		generalConfig:                  args.GeneralConfig,
+		economicsConfig:                args.EconomicsConfig,
 		pathManager:                    args.PathManager,
 		nodesConfigProvider:            args.NodesConfigProvider,
 		epochStartMetaBlockInterceptor: args.EpochStartMetaBlockInterceptor,
@@ -125,21 +160,36 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		shardHeaderInterceptor:         args.ShardHeaderInterceptor,
 		miniBlockInterceptor:           args.MiniBlockInterceptor,
 		whiteListHandler:               args.WhiteListHandler,
+		defaultShardCoordinator:        args.DefaultShardCoordinator,
+		keyGen:                         args.KeyGen,
+		blockKeyGen:                    args.BlockKeyGen,
+		singleSigner:                   args.SingleSigner,
+		blockSingleSigner:              args.BlockSingleSigner,
 	}, nil
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
-	err := esdp.initTopicsAndInterceptors()
+	economicsData, err := economics.NewEconomicsData(&esdp.economicsConfig)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		esdp.resetTopicsAndInterceptors()
-	}()
+
+	commonDataPool, err := factory2.NewDataPoolFromConfig(
+		factory2.ArgsDataPool{
+			Config:           &esdp.generalConfig,
+			EconomicsData:    economicsData,
+			ShardCoordinator: esdp.defaultShardCoordinator,
+		},
+	)
 
 	requestHandlerMeta, err := esdp.createRequestHandler()
 	if err != nil {
+		return nil, err
+	}
+
+	interceptorsContainer, err := esdp.createInterceptors(commonDataPool)
+	if err != nil || interceptorsContainer == nil {
 		return nil, err
 	}
 
@@ -184,15 +234,19 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	pendingMiniBlocks := make([]*block.MiniBlock, 0)
-	for _, mb := range epochStartData.PendingMiniBlockHeaders {
-		receivedMb, errGetMb := esdp.getMiniBlock(&mb)
-		if errGetMb != nil {
-			return nil, errGetMb
-		}
-		pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
-		log.Info("received miniblock", "type", receivedMb.Type)
+	pendingMiniBlocks, err := esdp.getMiniBlocks(epochStartData.PendingMiniBlockHeaders, shardCoordinator.SelfId())
+	if err != nil {
+		return nil, err
 	}
+	//pendingMiniBlocks := make([]*block.MiniBlock, 0)
+	//for _, mb := range epochStartData.PendingMiniBlockHeaders {
+	//	receivedMb, errGetMb := esdp.getMiniBlock(&mb)
+	//	if errGetMb != nil {
+	//		return nil, errGetMb
+	//	}
+	//	pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
+	//	log.Info("received miniblock", "type", receivedMb.Type)
+	//}
 
 	lastFinalizedMetaBlock, err := esdp.getMetaBlock(epochStartData.LastFinishedMetaBlock)
 	if err != nil {
@@ -257,6 +311,49 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	return components, nil
 }
 
+func (esdp *epochStartDataProvider) getMiniBlocks(pendingMiniBlocks []block.ShardMiniBlockHeader, shardID uint32) (map[string]*block.MiniBlock, error) {
+	cacher, err := lrucache.NewCache(100)
+	if err != nil {
+		return nil, err
+	}
+	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          cacher,
+		Marshalizer:    esdp.marshalizer,
+		RequestHandler: esdp.requestHandler,
+	}
+	pendingMiniBlocksSyncer, err := sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	waitTime := 1 * time.Minute
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksForEpochStart(pendingMiniBlocks, waitTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return pendingMiniBlocksSyncer.GetMiniBlocks()
+}
+
+func (esdp *epochStartDataProvider) createInterceptors(dataPool dataRetriever.PoolsHolder) (process.InterceptorsContainer, error) {
+	args := interceptors.ArgsEpochStartInterceptorContainer{
+		Config:            esdp.generalConfig,
+		ShardCoordinator:  esdp.defaultShardCoordinator,
+		Marshalizer:       esdp.marshalizer,
+		Hasher:            esdp.hasher,
+		Messenger:         esdp.messenger,
+		DataPool:          dataPool,
+		SingleSigner:      esdp.singleSigner,
+		BlockSingleSigner: esdp.blockSingleSigner,
+		KeyGen:            esdp.keyGen,
+		BlockKeyGen:       esdp.blockKeyGen,
+		WhiteListHandler:  esdp.whiteListHandler,
+	}
+
+	return interceptors.NewEpochStartInterceptorsContainer(args)
+}
+
 func (esdp *epochStartDataProvider) changeMessageProcessorsForMetaBlocks() {
 	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
@@ -297,7 +394,7 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 	if err != nil {
 		return nil, err
 	}
-	triesHolder.Put([]byte(factory3.UserAccountTrie), stateTrie)
+	triesHolder.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	peerTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
 	if err != nil {
@@ -308,7 +405,7 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 	if err != nil {
 		return nil, err
 	}
-	triesHolder.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         shardC,
@@ -379,25 +476,20 @@ func (esdp *epochStartDataProvider) getCurrentEpochStartData(
 	return nil, errors.New("not found")
 }
 
-func (esdp *epochStartDataProvider) initTopicsAndInterceptors() error {
-	err := esdp.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+func (esdp *epochStartDataProvider) initTopicForEpochStartMetaBlockInterceptor() error {
+	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
 		log.Info("error unregistering message processor", "error", err)
+		return err
+	}
+
+	err = esdp.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+	if err != nil {
+		log.Info("error registering message processor", "error", err)
 		return err
 	}
 
 	err = esdp.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, esdp.epochStartMetaBlockInterceptor)
-	if err != nil {
-		return err
-	}
-
-	err = esdp.messenger.CreateTopic(factory.ShardBlocksTopic+"_1_META", true)
-	if err != nil {
-		log.Info("error unregistering message processor", "error", err)
-		return err
-	}
-
-	err = esdp.messenger.RegisterMessageProcessor(factory.ShardBlocksTopic+"_1_META", esdp.shardHeaderInterceptor)
 	if err != nil {
 		return err
 	}
@@ -428,7 +520,7 @@ func (esdp *epochStartDataProvider) getTrieFromRootHash(_ []byte) (state.TriesHo
 }
 
 func (esdp *epochStartDataProvider) resetTopicsAndInterceptors() {
-	err := esdp.messenger.UnregisterAllMessageProcessors()
+	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
 		log.Info("error unregistering message processors", "error", err)
 	}
@@ -452,6 +544,14 @@ func (esdp *epochStartDataProvider) getMetaBlock(hash []byte) (*block.MetaBlock,
 }
 
 func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block.MetaBlock, error) {
+	err := esdp.initTopicForEpochStartMetaBlockInterceptor()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		esdp.resetTopicsAndInterceptors()
+	}()
+
 	esdp.requestEpochStartMetaBlock(epoch)
 
 	time.Sleep(delayAfterRequesting)

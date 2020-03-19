@@ -93,6 +93,18 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(
 		listPendingMiniBlocks = append(listPendingMiniBlocks, computedPending...)
 	}
 
+	return p.syncMiniBlocks(listPendingMiniBlocks, waitTime)
+}
+
+// SyncPendingMiniBlocksForEpochStart will sync the miniblocks for the given epoch start meta block
+func (p *pendingMiniBlocks) SyncPendingMiniBlocksForEpochStart(
+	miniBlockHeaders []block.ShardMiniBlockHeader,
+	waitTime time.Duration,
+) error {
+	return p.syncMiniBlocks(miniBlockHeaders, waitTime)
+}
+
+func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.ShardMiniBlockHeader, waitTime time.Duration) error {
 	_ = process.EmptyChannel(p.chReceivedAll)
 
 	requestedMBs := 0

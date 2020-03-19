@@ -30,7 +30,7 @@ type baseStorageHandler struct {
 	currentEpoch     uint32
 }
 
-func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks []*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlockInfo, error) {
+func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlockInfo, error) {
 	countersMap := make(map[uint32]int)
 	for _, miniBlock := range miniBlocks {
 		countersMap[miniBlock.SenderShardID]++
