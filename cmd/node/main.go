@@ -548,23 +548,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var errNotCritical error
-	// TODO: add a component which opens headers storer and gets the last epoch start metablock
-	// in order to provide the last known epoch in storage. Right now, it won't work as expected
-	// if storage pruning is disabled
-	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
-		workingDir,
-		nodesConfig.ChainID,
-		defaultDBPath,
-		defaultEpochString,
-	)
-	if errNotCritical != nil {
-		currentEpoch = 0
-		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
-	}
-
-	epochFoundInStorage := errNotCritical == nil
-
 	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
 	if err != nil {
 		return err
@@ -584,16 +567,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	epochStartComponentArgs := factoryEpochBootstrap.EpochStartDataProviderFactoryArgs{
-		PubKey:                pubKey,
-		Messenger:             networkComponents.NetMessenger,
-		Marshalizer:           marshalizer,
-		Hasher:                hasher,
-		NodesConfigProvider:   nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
-		PathManager:           pathManager,
-		StartTime:             startTime,
-		OriginalNodesConfig:   nodesConfig,
-		GeneralConfig:         generalConfig,
-		IsEpochFoundInStorage: epochFoundInStorage,
+		PubKey:              pubKey,
+		Messenger:           networkComponents.NetMessenger,
+		Marshalizer:         marshalizer,
+		Hasher:              hasher,
+		NodesConfigProvider: nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
+		PathManager:         pathManager,
+		StartTime:           startTime,
+		OriginalNodesConfig: nodesConfig,
+		GeneralConfig:       generalConfig,
+		WorkingDir:          workingDir,
+		DefaultDBPath:       defaultDBPath,
+		DefaultEpochString:  defaultEpochString,
 	}
 
 	epochStartComponentFactory, err := factoryEpochBootstrap.NewEpochStartDataProviderFactory(epochStartComponentArgs)

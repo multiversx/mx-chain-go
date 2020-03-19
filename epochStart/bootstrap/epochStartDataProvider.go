@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
@@ -58,6 +59,11 @@ type epochStartDataProvider struct {
 	miniBlockInterceptor           MiniBlockInterceptorHandler
 	requestHandler                 process.RequestHandler
 	whiteListHandler               dataRetriever.WhiteListHandler
+	shardCoordinator               sharding.Coordinator
+	genesisNodesConfig             *sharding.NodesSetup
+	workingDir                     string
+	defaultDBPath                  string
+	defaultEpochString             string
 }
 
 // ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
@@ -74,11 +80,14 @@ type ArgsEpochStartDataProvider struct {
 	ShardHeaderInterceptor         ShardHeaderInterceptorHandler
 	MiniBlockInterceptor           MiniBlockInterceptorHandler
 	WhiteListHandler               dataRetriever.WhiteListHandler
+	GenesisNodesConfig             *sharding.NodesSetup
+	WorkingDir                     string
+	DefaultDBPath                  string
+	DefaultEpochString             string
 }
 
 // NewEpochStartDataProvider will return a new instance of epochStartDataProvider
 func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartDataProvider, error) {
-	// TODO: maybe remove these nil checks as all of them have been done in the factory
 	if check.IfNil(args.PublicKey) {
 		return nil, ErrNilPublicKey
 	}
@@ -112,7 +121,8 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, ErrNilWhiteListHandler
 	}
-	return &epochStartDataProvider{
+
+	epochStartProvider := &epochStartDataProvider{
 		publicKey:                      args.PublicKey,
 		marshalizer:                    args.Marshalizer,
 		hasher:                         args.Hasher,
@@ -125,25 +135,64 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		shardHeaderInterceptor:         args.ShardHeaderInterceptor,
 		miniBlockInterceptor:           args.MiniBlockInterceptor,
 		whiteListHandler:               args.WhiteListHandler,
-	}, nil
-}
+		genesisNodesConfig:             args.GenesisNodesConfig,
+		workingDir:                     args.WorkingDir,
+		defaultEpochString:             args.DefaultEpochString,
+		defaultDBPath:                  args.DefaultEpochString,
+	}
 
-// Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
-func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
-	err := esdp.initTopicsAndInterceptors()
+	err := epochStartProvider.initInternalComponents()
 	if err != nil {
 		return nil, err
+	}
+
+	return epochStartProvider, nil
+}
+
+func (esdp *epochStartDataProvider) initInternalComponents() error {
+	var err error
+	esdp.shardCoordinator, err = sharding.NewMultiShardCoordinator(esdp.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = esdp.initTopicsAndInterceptors()
+	if err != nil {
+		return err
 	}
 	defer func() {
 		esdp.resetTopicsAndInterceptors()
 	}()
 
-	requestHandlerMeta, err := esdp.createRequestHandler()
+	err = esdp.createRequestHandler()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	esdp.requestHandler = requestHandlerMeta
+	return nil
+}
+
+func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
+	var errNotCritical error
+	// TODO: add a component which opens headers storer and gets the last epoch start metablock
+	// in order to provide the last known epoch in storage. Right now, it won't work as expected
+	// if storage pruning is disabled
+	currentEpoch, errNotCritical := storageFactory.FindLastEpochFromStorage(
+		esdp.workingDir,
+		esdp.genesisNodesConfig.ChainID,
+		esdp.defaultDBPath,
+		esdp.defaultEpochString,
+	)
+	if errNotCritical != nil {
+		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
+	}
+
+	log.Debug("current epoch from the storage : ", "epoch", currentEpoch)
+}
+
+// Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
+func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
+	// TODO: add searching for epoch start metablock and other data inside this component
 
 	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
 	metaBlock, err := esdp.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
@@ -164,22 +213,22 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	shardCoordinator, err := esdp.getShardCoordinator(metaBlock, nodesConfig)
+	esdp.shardCoordinator, err = esdp.getShardCoordinator(metaBlock, nodesConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	shardHeaders, err := esdp.getShardHeaders(metaBlock, nodesConfig, shardCoordinator)
+	shardHeaders, err := esdp.getShardHeaders(metaBlock, esdp.shardCoordinator)
 	if err != nil {
 		log.Debug("shard headers not found", "error", err)
 	}
 
 	var shardHeaderForShard *block.Header
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		shardHeaderForShard = shardHeaders[shardCoordinator.SelfId()]
+	if esdp.shardCoordinator.SelfId() < esdp.shardCoordinator.NumberOfShards() {
+		shardHeaderForShard = shardHeaders[esdp.shardCoordinator.SelfId()]
 	}
 
-	epochStartData, err := esdp.getCurrentEpochStartData(shardCoordinator, metaBlock)
+	epochStartData, err := esdp.getCurrentEpochStartData(esdp.shardCoordinator, metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -217,16 +266,16 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		ShardHeader:                 shardHeaderForShard,
 		NodesConfig:                 nodesConfig,
 		ShardHeaders:                shardHeaders,
-		ShardCoordinator:            shardCoordinator,
+		ShardCoordinator:            esdp.shardCoordinator,
 		Tries:                       trieToReturn,
 		PendingMiniBlocks:           pendingMiniBlocks,
 	}
 
 	var storageHandlerComponent StorageHandler
-	if shardCoordinator.SelfId() > shardCoordinator.NumberOfShards() {
+	if esdp.shardCoordinator.SelfId() > esdp.shardCoordinator.NumberOfShards() {
 		storageHandlerComponent, err = storagehandler.NewMetaStorageHandler(
 			esdp.generalConfig,
-			shardCoordinator,
+			esdp.shardCoordinator,
 			esdp.pathManager,
 			esdp.marshalizer,
 			esdp.hasher,
@@ -238,7 +287,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	} else {
 		storageHandlerComponent, err = storagehandler.NewShardStorageHandler(
 			esdp.generalConfig,
-			shardCoordinator,
+			esdp.shardCoordinator,
 			esdp.pathManager,
 			esdp.marshalizer,
 			esdp.hasher,
@@ -269,15 +318,10 @@ func (esdp *epochStartDataProvider) changeMessageProcessorsForMetaBlocks() {
 	}
 }
 
-func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandler, error) {
+func (esdp *epochStartDataProvider) createRequestHandler() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(esdp.marshalizer)
 	if err != nil {
-		return nil, err
-	}
-
-	shardC, err := sharding.NewMultiShardCoordinator(2, core.MetachainShardId)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
 	storageService := &disabled.ChainStorer{
@@ -291,27 +335,27 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 
 	stateTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	stateTrie, err := trie.NewTrie(stateTrieStorageManager, esdp.marshalizer, esdp.hasher)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	triesHolder.Put([]byte(factory3.UserAccountTrie), stateTrie)
 
 	peerTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	peerTrie, err := trie.NewTrie(peerTrieStorageManager, esdp.marshalizer, esdp.hasher)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	triesHolder.Put([]byte(factory3.PeerAccountTrie), peerTrie)
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         shardC,
+		ShardCoordinator:         esdp.shardCoordinator,
 		Messenger:                esdp.messenger,
 		Store:                    storageService,
 		Marshalizer:              esdp.marshalizer,
@@ -324,24 +368,25 @@ func (esdp *epochStartDataProvider) createRequestHandler() (process.RequestHandl
 
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	container, err := resolverFactory.Create()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	finder, err := containers.NewResolversFinder(container, shardC)
+	finder, err := containers.NewResolversFinder(container, esdp.shardCoordinator)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	requestedItemsHandler := timecache.NewTimeCache(100)
 
 	maxToRequest := 100
 
-	return requestHandlers.NewResolverRequestHandler(finder, requestedItemsHandler, esdp.whiteListHandler, maxToRequest, core.MetachainShardId)
+	esdp.requestHandler, err = requestHandlers.NewResolverRequestHandler(finder, requestedItemsHandler, esdp.whiteListHandler, maxToRequest, core.MetachainShardId)
+	return err
 }
 
 func (esdp *epochStartDataProvider) getMiniBlock(miniBlockHeader *block.ShardMiniBlockHeader) (*block.MiniBlock, error) {
@@ -485,7 +530,6 @@ func (esdp *epochStartDataProvider) getShardCoordinator(metaBlock *block.MetaBlo
 
 func (esdp *epochStartDataProvider) getShardHeaders(
 	metaBlock *block.MetaBlock,
-	nodesConfig *sharding.NodesSetup,
 	shardCoordinator sharding.Coordinator,
 ) (map[uint32]*block.Header, error) {
 	headersMap := make(map[uint32]*block.Header)

@@ -25,6 +25,9 @@ type epochStartDataProviderFactory struct {
 	nodesConfigProvider bootstrap.NodesConfigProviderHandler
 	generalConfig       config.Config
 	shouldSync          bool
+	workingDir          string
+	defaultDBPath       string
+	defaultEpochString  string
 }
 
 // EpochStartDataProviderFactoryArgs holds the arguments needed for creating aa factory for the epoch start data
@@ -40,6 +43,9 @@ type EpochStartDataProviderFactoryArgs struct {
 	OriginalNodesConfig   *sharding.NodesSetup
 	GeneralConfig         *config.Config
 	IsEpochFoundInStorage bool
+	WorkingDir            string
+	DefaultDBPath         string
+	DefaultEpochString    string
 }
 
 // NewEpochStartDataProviderFactory returns a new instance of epochStartDataProviderFactory
@@ -80,6 +86,9 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 		generalConfig:       *args.GeneralConfig,
 		nodesConfigProvider: args.NodesConfigProvider,
 		shouldSync:          shouldSync,
+		workingDir:          args.WorkingDir,
+		defaultEpochString:  args.DefaultEpochString,
+		defaultDBPath:       args.DefaultEpochString,
 	}, nil
 }
 
@@ -129,6 +138,9 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		ShardHeaderInterceptor:         shardHdrInterceptor,
 		MiniBlockInterceptor:           miniBlockInterceptor,
 		WhiteListHandler:               whiteListHandler,
+		WorkingDir:                     esdpf.workingDir,
+		DefaultEpochString:             esdpf.defaultEpochString,
+		DefaultDBPath:                  esdpf.defaultDBPath,
 	}
 	epochStartDataProvider, err := bootstrap.NewEpochStartDataProvider(argsEpochStart)
 
