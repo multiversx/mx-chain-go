@@ -25,7 +25,7 @@ func (hrm *MiniBlocksResolverStub) RequestDataFromHashArray(hashes [][]byte, epo
 }
 
 // ProcessReceivedMessage -
-func (hrm *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hrm *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 

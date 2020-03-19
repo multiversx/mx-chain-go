@@ -91,6 +91,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mon)
+	assert.False(t, mon.IsInterfaceNil())
 }
 
 func TestNewMessageProcessor_VerifyMessageAllSmallerShouldWork(t *testing.T) {
@@ -217,7 +218,7 @@ func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	t.Parallel()
 
 	hb := heartbeat.Heartbeat{
@@ -270,13 +271,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 		FromField:      nil,
 		DataField:      make([]byte, 5),
 		SeqNoField:     nil,
-		TopicIDsField:  nil,
+		TopicsField:    nil,
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
 	}
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
@@ -291,7 +292,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		FromField:      nil,
 		DataField:      nil,
 		SeqNoField:     nil,
-		TopicIDsField:  nil,
+		TopicsField:    nil,
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -306,7 +307,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		},
 	)
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
@@ -319,7 +320,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 		FromField:      nil,
 		DataField:      []byte("hello"),
 		SeqNoField:     nil,
-		TopicIDsField:  nil,
+		TopicsField:    nil,
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -340,13 +341,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 		},
 	)
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShouldErr(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	length := 129
@@ -401,13 +402,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 		FromField:      nil,
 		DataField:      make([]byte, 5),
 		SeqNoField:     nil,
-		TopicIDsField:  nil,
+		TopicsField:    nil,
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
 	}
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
@@ -425,7 +426,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 		},
 	)
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(nil)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(nil)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilMessage, err)

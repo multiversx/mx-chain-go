@@ -29,6 +29,11 @@ type ConsensusCoreMock struct {
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector sharding.NodesCoordinator
 	epochStartSubscriber   epochStart.EpochStartSubscriber
+	antifloodHandler       consensus.P2PAntifloodHandler
+}
+
+func (ccm *ConsensusCoreMock) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
+	return ccm.antifloodHandler
 }
 
 // Blockchain -

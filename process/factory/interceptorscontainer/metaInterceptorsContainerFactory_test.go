@@ -460,5 +460,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		SizeCheckDelta:         0,
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
+		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 	}
 }

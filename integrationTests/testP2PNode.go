@@ -128,6 +128,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithDataStore(tP2pNode.Storage),
 		node.WithInitialNodesPubKeys(pubkeys),
+		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

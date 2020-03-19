@@ -46,10 +46,18 @@ const (
 	//creation
 )
 
+// ResolverThrottler can monitor the number of the currently running resolver go routines
+type ResolverThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -73,7 +81,7 @@ type MiniBlocksResolver interface {
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData) error
 	Send(buff []byte, peer p2p.PeerID) error
-	TopicRequestSuffix() string
+	RequestTopic() string
 	TargetShardID() uint32
 	IsInterfaceNil() bool
 }
@@ -86,6 +94,7 @@ type ResolversContainer interface {
 	Replace(key string, val Resolver) error
 	Remove(key string)
 	Len() int
+	ResolverKeys() string
 	IsInterfaceNil() bool
 }
 
@@ -278,5 +287,13 @@ type RequestedItemsHandler interface {
 	Add(key string) error
 	Has(key string) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
 	IsInterfaceNil() bool
 }
