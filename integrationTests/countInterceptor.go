@@ -20,9 +20,9 @@ func NewCountInterceptor() *CountInterceptor {
 }
 
 // ProcessReceivedMessage is called each time a new message is received
-func (ci *CountInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (ci *CountInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	ci.mutMessagesCount.Lock()
-	ci.messagesCount[message.TopicIDs()[0]]++
+	ci.messagesCount[message.Topics()[0]]++
 	ci.mutMessagesCount.Unlock()
 
 	return nil

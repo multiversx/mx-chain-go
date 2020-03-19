@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -530,6 +531,31 @@ func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollec
 			return ErrNilNetworkShardingCollector
 		}
 		n.networkShardingCollector = networkShardingCollector
+		return nil
+	}
+}
+
+// WithInputAntifloodHandler sets up an antiflood handler for the Node on the input side
+func WithInputAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(antifloodHandler) {
+			return fmt.Errorf("%w on input", ErrNilAntifloodHandler)
+		}
+		n.inputAntifloodHandler = antifloodHandler
+		return nil
+	}
+}
+
+// WithTxAccumulator sets up a transaction accumulator handler for the Node
+func WithTxAccumulator(accumulator Accumulator) Option {
+	return func(n *Node) error {
+		if check.IfNil(accumulator) {
+			return ErrNilTxAccumulator
+		}
+		n.txAcumulator = accumulator
+
+		go n.sendFromTxAccumulator()
+
 		return nil
 	}
 }

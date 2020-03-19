@@ -14,7 +14,7 @@ type PeerMessenger interface {
 
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
-	CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error)
+	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error)
 	IsInterfaceNil() bool
 }
 
@@ -41,5 +41,13 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
 	IsInterfaceNil() bool
 }
