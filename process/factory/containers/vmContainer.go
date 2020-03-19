@@ -1,10 +1,13 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/cornelk/hashmap"
 )
+
+var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
 
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
@@ -113,7 +116,7 @@ func (vmc *virtualMachinesContainer) Close() error {
 
 		err := asCloser.Close()
 		if err != nil {
-			log.Error("Cannot close item in container", "err", err)
+			logVMContainer.Error("Cannot close item in container", "err", err)
 			withError = true
 		}
 	}
