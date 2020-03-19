@@ -126,10 +126,22 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		NodesConfigProvider: nodesconfigprovider.NewSimpleNodesConfigProvider(&nodesConfig),
 		StartTime:           time.Time{},
 		OriginalNodesConfig: &nodesConfig,
+		PathManager:         &mock.PathManagerStub{},
 		GeneralConfig: &config.Config{
 			EpochStartConfig: config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 5,
 				RoundsPerEpoch:         10,
+			},
+			WhiteListPool: config.CacheConfig{
+				Size:   10000,
+				Type:   "LRU",
+				Shards: 1,
+			},
+			StoragePruning: config.StoragePruningConfig{
+				Enabled:             false,
+				FullArchive:         true,
+				NumEpochsToKeep:     3,
+				NumActivePersisters: 3,
 			},
 		},
 		IsEpochFoundInStorage: false,
