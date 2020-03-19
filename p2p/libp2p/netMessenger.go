@@ -29,8 +29,6 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-const durationBetweenSends = time.Microsecond * 10
-
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
@@ -40,6 +38,8 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
+const durationBetweenSends = time.Microsecond * 10
+const durationCheckConnections = time.Second
 const refreshPeersOnTopic = time.Second * 3
 const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
@@ -56,11 +56,13 @@ var log = logger.GetOrCreate("p2p/libp2p")
 
 //TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	ctx                 context.Context
-	p2pHost             ConnectableHost
-	pb                  *pubsub.PubSub
-	ds                  p2p.DirectSender
+	ctx     context.Context
+	p2pHost ConnectableHost
+	pb      *pubsub.PubSub
+	ds      p2p.DirectSender
+	//TODO refactor this (connMonitor & connMonitorWrapper)
 	connMonitor         ConnectionMonitor
+	connMonitorWrapper  p2p.ConnectionMonitorWrapper
 	peerDiscoverer      p2p.PeerDiscoverer
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
@@ -68,7 +70,7 @@ type networkMessenger struct {
 	topics              map[string]p2p.MessageProcessor
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
-	goRoutinesThrottler *throttler.NumGoRoutineThrottler
+	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
 	ip                  *identityProvider
 	connectionsMetric   *metrics.Connections
 }
@@ -178,7 +180,7 @@ func createMessenger(
 		return nil, err
 	}
 
-	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +276,21 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	if err != nil {
 		return err
 	}
-	netMes.p2pHost.Network().Notify(netMes.connMonitor)
+
+	cmw := newConnectionMonitorWrapper(
+		netMes.p2pHost.Network(),
+		netMes.connMonitor,
+		&nilBlacklistHandler{},
+	)
+	netMes.p2pHost.Network().Notify(cmw)
+	netMes.connMonitorWrapper = cmw
+
+	go func() {
+		for {
+			cmw.CheckConnectionsBlocking()
+			time.Sleep(durationCheckConnections)
+		}
+	}()
 
 	return nil
 }
@@ -549,11 +565,10 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	defer netMes.mutTopics.Unlock()
 	validator := netMes.topics[topic]
 	if !check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
-	}
-
-	broadcastHandler := func(buffToSend []byte) {
-		netMes.Broadcast(topic, buffToSend)
+		return fmt.Errorf("%w, operation RegisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -562,7 +577,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
 			return false
 		}
-		err = handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
+		err = handler.ProcessReceivedMessage(wrappedMsg, p2p.PeerID(pid))
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
@@ -593,7 +608,10 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 		return p2p.ErrNilTopic
 	}
 	if check.IfNil(validator) {
-		return p2p.ErrTopicValidatorOperationNotSupported
+		return fmt.Errorf("%w, operation UnregisterMessageProcessor, topic %s",
+			p2p.ErrTopicValidatorOperationNotSupported,
+			topic,
+		)
 	}
 
 	err := netMes.pb.UnregisterTopicValidator(topic)
@@ -610,11 +628,11 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 	return netMes.ds.Send(topic, buff, peerID)
 }
 
-func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {
+func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	processor = netMes.topics[message.TopicIDs()[0]]
+	processor = netMes.topics[message.Topics()[0]]
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {
@@ -622,11 +640,11 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg, nil)
+		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
-				"topics", msg.TopicIDs(),
+				"topics", msg.Topics(),
 				"pid", p2p.MessageOriginatorPid(msg),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
@@ -674,6 +692,12 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	netMes.peerShardResolver = peerShardResolver
 
 	return nil
+}
+
+// SetPeerBlackListHandler sets the peer black list handler
+//TODO decide if we continue on using setters or switch to options. Refactor if necessary
+func (netMes *networkMessenger) SetPeerBlackListHandler(handler p2p.BlacklistHandler) error {
+	return netMes.connMonitorWrapper.SetBlackListHandler(handler)
 }
 
 // GetConnectedPeersInfo gets the current connected peers information
