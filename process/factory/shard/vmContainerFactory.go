@@ -77,8 +77,13 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createOutOfProcessArwenVM")
+	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
+
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
+	logLevel := ipcLogger.ParseLogLevel(outOfProcessConfig.LogLevel)
+	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
+	messagesMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.MessagesMarshalizer)
+	maxLoopTime := outOfProcessConfig.MaxLoopTime
 
 	arwenVM, err := ipcNodePart.NewArwenDriver(
 		logVMContainerFactory,
@@ -89,11 +94,11 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				BlockGasLimit: vmf.blockGasLimit,
 				GasSchedule:   vmf.gasSchedule,
 			},
-			LogLevel:            ipcLogger.LogLevel(outOfProcessConfig.LogLevel),
-			LogsMarshalizer:     ipcMarshaling.MarshalizerKind(outOfProcessConfig.LogsMarshalizer),
-			MessagesMarshalizer: ipcMarshaling.MarshalizerKind(outOfProcessConfig.MessagesMarshalizer),
+			LogLevel:            logLevel,
+			LogsMarshalizer:     logsMarshalizer,
+			MessagesMarshalizer: messagesMarshalizer,
 		},
-		ipcNodePart.Config{MaxLoopTime: outOfProcessConfig.MaxLoopTime},
+		ipcNodePart.Config{MaxLoopTime: maxLoopTime},
 	)
 	return arwenVM, err
 }

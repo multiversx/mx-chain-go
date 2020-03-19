@@ -177,8 +177,8 @@ type VirtualMachineConfig struct {
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
 type VirtualMachineOutOfProcessConfig struct {
-	LogLevel            uint32
-	LogsMarshalizer     uint32
-	MessagesMarshalizer uint32
+	LogLevel            string
+	LogsMarshalizer     string
+	MessagesMarshalizer string
 	MaxLoopTime         int
 }
