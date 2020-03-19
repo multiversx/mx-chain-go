@@ -37,7 +37,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
-	mapTxToResult           map[string]string
+	mapTxToResult           map[string][]string
 	intraShardMiniBlock     *block.MiniBlock
 }
 
@@ -70,7 +70,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapTxToResult = make(map[string]string)
+	bpp.mapTxToResult = make(map[string][]string)
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -163,12 +163,14 @@ func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
 	}
 
 	for _, txHash := range txHashes {
-		resultHash, ok := bpp.mapTxToResult[string(txHash)]
+		resultHashes, ok := bpp.mapTxToResult[string(txHash)]
 		if !ok {
 			continue
 		}
 
-		delete(bpp.interResultsForBlock, resultHash)
+		for _, resultHash := range resultHashes {
+			delete(bpp.interResultsForBlock, resultHash)
+		}
 		delete(bpp.mapTxToResult, string(txHash))
 	}
 }
