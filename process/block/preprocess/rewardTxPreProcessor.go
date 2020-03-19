@@ -270,6 +270,10 @@ func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
 
 // RequestBlockTransactions request for reward transactions if missing from a block.Body
 func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body *block.Body) int {
+	if check.IfNil(body) {
+		return 0
+	}
+
 	requestedRewardTxs := 0
 	missingRewardTxsForShards := rtp.computeMissingAndExistingRewardTxsForShards(body)
 
@@ -301,10 +305,6 @@ func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbT
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
 func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
-	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo)
-	}
-
 	rewardTxs := block.Body{}
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.RewardsBlock {

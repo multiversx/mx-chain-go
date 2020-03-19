@@ -266,7 +266,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Debug("process vm output error", "error", err.Error())
+		log.Trace("process vm output error", "error", err.Error())
 		return nil
 	}
 
