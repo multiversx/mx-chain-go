@@ -626,11 +626,6 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 }
 
 func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	if ok {
-		return scr.TxHash, nil
-	}
-
 	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
 }
 
