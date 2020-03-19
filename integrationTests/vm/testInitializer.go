@@ -248,7 +248,10 @@ func CreateVMAndBlockchainHook(
 	}
 
 	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{OutOfProcessEnabled: true},
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
 		maxGasLimitPerBlock,
 		actualGasSchedule,
 		args,

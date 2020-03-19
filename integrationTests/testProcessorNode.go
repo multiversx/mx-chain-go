@@ -708,7 +708,10 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{OutOfProcessEnabled: true},
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
