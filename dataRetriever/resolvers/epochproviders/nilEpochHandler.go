@@ -1,6 +1,11 @@
-package resolvers
+package epochproviders
 
 type nilEpochHandler struct {
+}
+
+// NewNilEpochHandler returns a nil implementation of epoch provider that knows only the epoch 0
+func NewNilEpochHandler() *nilEpochHandler {
+	return &nilEpochHandler{}
 }
 
 // Epoch returns the current epoch

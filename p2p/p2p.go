@@ -27,15 +27,7 @@ const (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, broadcastHandler func(buffToSend []byte)) error
-	IsInterfaceNil() bool
-}
-
-// BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
-// a subset of received message (after filtering occurs)
-//TODO remove this after merging feat/antiflood branch
-type BroadcastCallbackHandler interface {
-	SetBroadcastCallback(callback func(buffToSend []byte))
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -175,6 +167,7 @@ type Messenger interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	SetPeerBlackListHandler(handler BlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -186,7 +179,7 @@ type MessageP2P interface {
 	From() []byte
 	Data() []byte
 	SeqNo() []byte
-	TopicIDs() []string
+	Topics() []string
 	Signature() []byte
 	Key() []byte
 	Peer() PeerID
@@ -218,8 +211,15 @@ type PeerDiscoveryFactory interface {
 // MessageOriginatorPid will output the message peer id in a pretty format
 // If it can, it will display the last displayLastPidChars (12) characters from the pid
 func MessageOriginatorPid(msg MessageP2P) string {
-	prettyPid := msg.Peer().Pretty()
+	return PeerIdToShortString(msg.Peer())
+}
+
+// PeerIdToShortString trims the first displayLastPidChars characters of the provided peer ID after
+// converting the peer ID to string using the Pretty functionality
+func PeerIdToShortString(pid PeerID) string {
+	prettyPid := pid.Pretty()
 	lenPrettyPid := len(prettyPid)
+
 	if lenPrettyPid > displayLastPidChars {
 		return "..." + prettyPid[lenPrettyPid-displayLastPidChars:]
 	}
@@ -277,5 +277,21 @@ type PeerCounts struct {
 // CommonSharder represents the common interface implemented by all sharder implementations
 type CommonSharder interface {
 	SetPeerShardResolver(psp PeerShardResolver) error
+	IsInterfaceNil() bool
+}
+
+// BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+//TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
+//TODO move antiflooding inside network messenger
+type BlacklistHandler interface {
+	Has(key string) bool
+	IsInterfaceNil() bool
+}
+
+// ConnectionMonitorWrapper uses a connection monitor but checks if the peer is blacklisted or not
+//TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
+type ConnectionMonitorWrapper interface {
+	CheckConnectionsBlocking()
+	SetBlackListHandler(handler BlacklistHandler) error
 	IsInterfaceNil() bool
 }

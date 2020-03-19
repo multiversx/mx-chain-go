@@ -41,6 +41,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -110,13 +111,14 @@ func NewMetaInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
+		antifloodHandler:       args.AntifloodHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
 		baseInterceptorsContainerFactory: base,
 	}
 
-	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
+	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -193,9 +195,11 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() er
 
 	//only one metachain header topic
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		identifierHdr,
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
+		micf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -256,9 +260,11 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
+		topic,
 		hdrFactory,
 		hdrProcessor,
 		micf.globalThrottler,
+		micf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
