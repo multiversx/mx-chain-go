@@ -66,7 +66,7 @@ func (ip *identityProvider) Listen(network.Network, multiaddr.Multiaddr) {}
 func (ip *identityProvider) ListenClose(network.Network, multiaddr.Multiaddr) {}
 
 // Connected is called when a connection opened
-func (ip *identityProvider) Connected(net network.Network, conn network.Conn) {
+func (ip *identityProvider) Connected(_ network.Network, conn network.Conn) {
 	go func() {
 		ctx := context.Background()
 		s, err := ip.host.NewStream(ctx, conn.RemotePeer(), authProtocolID)
@@ -95,7 +95,7 @@ func (ip *identityProvider) Connected(net network.Network, conn network.Conn) {
 func (ip *identityProvider) Disconnected(network.Network, network.Conn) {}
 
 // OpenedStream is called when a stream opened
-func (ip *identityProvider) OpenedStream(net network.Network, s network.Stream) {}
+func (ip *identityProvider) OpenedStream(network.Network, network.Stream) {}
 
 // ClosedStream is called when a stream closed
 func (ip *identityProvider) ClosedStream(network.Network, network.Stream) {}
