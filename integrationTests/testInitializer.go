@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -48,8 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -58,8 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -86,37 +82,173 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
-func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
-	arg := discovery.ArgKadDht{
-		PeersRefreshInterval: peerRefreshInterval,
-		RandezVous:           "test",
-		InitialPeersList:     initialPeersList,
-		BucketSize:           100,
-		RoutingTableRefresh:  time.Minute,
+func createP2PConfig(initialPeerList []string) config.P2PConfig {
+	return config.P2PConfig{
+		Node: config.NodeConfig{},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             2,
+			RandezVous:                       "",
+			InitialPeerList:                  initialPeerList,
+			BucketSize:                       100,
+			RoutingTableRefreshIntervalInSec: 2,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
 	}
-	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
-
-	return peerDiscovery
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
 func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     createP2PConfig([]string{initialAddr}),
+	}
 
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
-	)
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
 	return libP2PMes
+}
+
+// CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
+func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: 0,
+			Seed: "",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
+
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateFixedNetworkOf8Peers assembles a network as following:
+//
+//                             0------------------- 1
+//                             |                    |
+//        2 ------------------ 3 ------------------ 4
+//        |                    |                    |
+//        5                    6                    7
+func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(8)
+
+	connections := map[int][]int{
+		0: {1, 3},
+		1: {4},
+		2: {5, 3},
+		3: {4, 6},
+		4: {7},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+// CreateFixedNetworkOf14Peers assembles a network as following:
+//
+//                 0
+//                 |
+//                 1
+//                 |
+//  +--+--+--+--+--2--+--+--+--+--+
+//  |  |  |  |  |  |  |  |  |  |  |
+//  3  4  5  6  7  8  9  10 11 12 13
+func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(14)
+
+	connections := map[int][]int{
+		0: {1},
+		1: {2},
+		2: {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
+	peers := make([]p2p.Messenger, numPeers)
+
+	for i := 0; i < numPeers; i++ {
+		peers[i] = CreateMessengerWithNoDiscovery()
+	}
+
+	return peers
+}
+
+func createConnections(peers []p2p.Messenger, connections map[int][]int) error {
+	for pid, connectTo := range connections {
+		err := connectPeerToOthers(peers, pid, connectTo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) error {
+	for _, connectToIdx := range connectToIdxes {
+		err := peers[idx].ConnectToPeer(peers[connectToIdx].Addresses()[0])
+		if err != nil {
+			return fmt.Errorf("%w connecting %s to %s", err, peers[idx].ID(), peers[connectToIdx].ID())
+		}
+	}
+
+	return nil
+}
+
+// ClosePeers calls Messenger.Close on the provided peers
+func ClosePeers(peers []p2p.Messenger) {
+	for _, p := range peers {
+		_ = p.Close()
+	}
 }
 
 // CreateTestDataPool creates a test data pool for shard nodes
@@ -176,6 +308,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -197,6 +330,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
@@ -276,15 +410,15 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       shardId,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         shardId,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
 	}
 }
@@ -639,6 +773,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
+// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		UpdateRound(nodes, round)
@@ -953,6 +1088,8 @@ func CreateSendersWithInitialBalances(
 	return sendersPrivateKeys
 }
 
+// CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
+// node's tx sign private key and send it on the transaction topic
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -979,6 +1116,7 @@ func CreateAndSendTransaction(
 	node.OwnAccount.Nonce++
 }
 
+// CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price
 func CreateAndSendTransactionWithGasLimit(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -1395,6 +1533,7 @@ func generateValidTx(
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
 
+	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	mockNode, _ := node.NewNode(
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
@@ -1404,6 +1543,7 @@ func generateValidTx(
 		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
 		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
 		node.WithAccountsAdapter(accnts),
+		node.WithTxAccumulator(txAccumulator),
 	)
 
 	tx, err := mockNode.GenerateTransaction(
@@ -1599,8 +1739,8 @@ func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
 	}
 }
 
-// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
-func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+// StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
 		_ = n.Messenger.Bootstrap()
 	}

@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -78,14 +77,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -739,7 +732,6 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
-	mp.blockSizeThrottler.ComputeMaxItems()
 
 	log.Debug("started creating meta block body",
 		"epoch", metaBlock.GetEpoch(),
@@ -1143,8 +1135,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.prepareDataForBootStorer(args)
-
-	mp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers pool", mp.dataPool.Headers().Len(),
@@ -1694,12 +1684,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	var err error
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(metaHdr.GetRound())
-
-		if err == nil {
-			mp.blockSizeThrottler.Add(
-				metaHdr.GetRound(),
-				core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
-		}
 	}()
 
 	sw.Start("createShardInfo")
@@ -1747,10 +1731,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	if err != nil {
 		return nil, err
 	}
-
-	mp.blockSizeThrottler.Add(
-		metaHdr.GetRound(),
-		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
 	return body, nil
 }

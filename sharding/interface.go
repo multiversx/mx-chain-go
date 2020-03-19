@@ -137,3 +137,9 @@ type RatingChance interface {
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
+
+// EpochHandler defines a struct able to output current epoch
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
+}
