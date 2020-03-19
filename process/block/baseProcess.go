@@ -48,6 +48,7 @@ type baseProcessor struct {
 	marshalizer             marshal.Marshalizer
 	store                   dataRetriever.StorageService
 	uint64Converter         typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler      process.BlockSizeThrottler
 	epochStartTrigger       process.EpochStartTriggerHandler
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
