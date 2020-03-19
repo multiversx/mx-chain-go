@@ -58,6 +58,7 @@ type TxValidator interface {
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
+	ReceiverShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
 	Fee() *big.Int
@@ -452,16 +453,6 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
-	IsInterfaceNil() bool
-}
-
-// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
-// block to its peers which should be received in a limited time frame
-type BlockSizeThrottler interface {
-	MaxItemsToAdd() uint32
-	Add(round uint64, items uint32)
-	Succeed(round uint64)
-	ComputeMaxItems()
 	IsInterfaceNil() bool
 }
 
