@@ -78,7 +78,7 @@ func NewPeerShardMapper(
 
 // GetShardID returns the corresponding shard ID of a given peer ID.
 // If the pid is unknown, it will return sharding.UnknownShardId
-func (psm *PeerShardMapper) GetShardID(pid p2p.PeerID) (shardId uint32) {
+func (psm *PeerShardMapper) GetShardID(pid p2p.PeerID) uint32 {
 	shardId, pk, ok := psm.getShardIDWithNodesCoordinator(pid)
 	if ok {
 		return shardId
@@ -95,6 +95,10 @@ func (psm *PeerShardMapper) GetShardID(pid p2p.PeerID) (shardId uint32) {
 func (psm *PeerShardMapper) getShardIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
+		log.Trace("unknown peer",
+			"pid", p2p.PeerIdToShortString(pid),
+			"pk", pk,
+		)
 		return core.UnknownShardId, nil, false
 	}
 
@@ -106,19 +110,33 @@ func (psm *PeerShardMapper) getShardIDWithNodesCoordinator(pid p2p.PeerID) (shar
 
 	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, psm.epochHandler.Epoch())
 	if err != nil {
+		log.Trace("unknown peer",
+			"pid", p2p.PeerIdToShortString(pid),
+			"pk", pk,
+			"error", err,
+		)
 		return core.UnknownShardId, pkBuff, false
 	}
 
+	log.Trace("peer",
+		"pid", p2p.PeerIdToShortString(pid),
+		"pk", pk,
+		"shard ID", shardId,
+	)
 	return shardId, pkBuff, true
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
 	if len(pkBuff) == 0 {
+		log.Trace("unknown peer pk is nil")
 		return core.UnknownShardId, false
 	}
 
 	shardObj, ok := psm.fallbackPkShard.Get(pkBuff)
 	if !ok {
+		log.Trace("unknown peer",
+			"pk", pkBuff,
+		)
 		return core.UnknownShardId, false
 	}
 
@@ -128,12 +146,19 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 		return core.UnknownShardId, false
 	}
 
+	log.Trace("peer",
+		"pk", pkBuff,
+		"shard ID", shardId,
+	)
 	return shard, true
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
+		log.Trace("unknown peer",
+			"pid", pid,
+		)
 		return core.UnknownShardId
 	}
 
@@ -143,6 +168,10 @@ func (psm *PeerShardMapper) getShardIDSearchingPidInFallbackCache(pid p2p.PeerID
 		return core.UnknownShardId
 	}
 
+	log.Trace("peer",
+		"pid", pid,
+		"shard ID", shardId,
+	)
 	return shard
 }
 
