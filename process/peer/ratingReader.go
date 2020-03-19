@@ -2,8 +2,7 @@ package peer
 
 // RatingReader will handle the fetching of the ratings
 type RatingReader struct {
-	getRating                  func(string) uint32
-	updateRatingFromTempRating func([]string) error
+	getRating func(string) uint32
 }
 
 //GetRating returns the Rating for the specified public key
