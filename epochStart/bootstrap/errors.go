@@ -40,3 +40,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilWhiteListHandler
 var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrShardDataNotFound signals that no shard header has been found for the calculated shard
+var ErrShardDataNotFound = errors.New("shard data not found")

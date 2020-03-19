@@ -171,7 +171,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 
 	shardHeaders, err := esdp.getShardHeaders(metaBlock, nodesConfig, shardCoordinator)
 	if err != nil {
-		return nil, err
+		log.Debug("shard headers not found", "error", err)
 	}
 
 	var shardHeaderForShard *block.Header
@@ -512,7 +512,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	}
 
 	if entryForShard == nil {
-		return nil, errors.New("shard data not found")
+		return nil, ErrShardDataNotFound
 	}
 
 	hdr, err := esdp.getShardHeader(
