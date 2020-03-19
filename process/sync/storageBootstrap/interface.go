@@ -10,7 +10,7 @@ type storageBootstrapperHandler interface {
 	getHeader(hash []byte) (data.HeaderHandler, error)
 	getBlockBody(header data.HeaderHandler) (data.BodyHandler, error)
 	applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error
-	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo)
+	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo)
 	applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error)
 	cleanupNotarizedStorage(hash []byte)
 	IsInterfaceNil() bool
