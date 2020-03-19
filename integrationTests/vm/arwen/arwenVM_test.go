@@ -394,7 +394,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	transferOnCalls := big.NewInt(5)
 
 	scCode, err := getBytecode("erc20-c-03/wrc20_arwen.wasm")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
@@ -480,7 +480,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := getBytecode("erc20/wrc20_arwen_03.wasm")
+	scCode, err := getBytecode("erc20-c-03/wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -492,10 +492,10 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
 		ownerNonce,
-		transferOnCalls,
+		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes())),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+hex.EncodeToString(ownerBalance.Bytes())),
 	)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -516,7 +516,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	for j := 0; j < 2000; j++ {
 		start := time.Now()
@@ -525,11 +525,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 			tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
 
 			err = testContext.TxProcessor.ProcessTransaction(tx)
-			if err != nil {
-				assert.Nil(t, err)
-			}
-			assert.Nil(t, err)
-
+			require.Nil(t, err)
 			aliceNonce++
 		}
 
@@ -537,11 +533,11 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		fmt.Printf("time elapsed to process 1000 ERC20 transfers %s \n", elapsedTime.String())
 
 		_, err = testContext.Accounts.Commit()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	_, err = testContext.Accounts.Commit()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	start := time.Now()
 
@@ -549,10 +545,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])
 
 		err = testContext.TxProcessor.ProcessTransaction(tx)
-		if err != nil {
-			assert.Nil(t, err)
-		}
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		aliceNonce++
 	}
@@ -561,7 +554,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
 
 	_, err = testContext.Accounts.Commit()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 }
 
 func getBytecode(relativePath string) ([]byte, error) {
