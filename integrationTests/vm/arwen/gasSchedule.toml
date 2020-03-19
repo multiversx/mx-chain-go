@@ -125,9 +125,7 @@
     BigIntFinish             = 100
     BigIntFinishUnsigned     = 100
     BigIntFinishSigned       = 100
-    BigIntStorageLoad        = 100000
     BigIntStorageLoadUnsigned   = 100000
-    BigIntStorageStore          = 250000
     BigIntStorageStoreUnsigned  = 250000
     BigIntGetArgument           = 100
     BigIntGetUnsignedArgument   = 100
