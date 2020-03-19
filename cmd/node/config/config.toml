@@ -234,13 +234,13 @@
 
 #PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
-    Size = 100
+    Size = 30000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
-# Used for observers, size should be kept low.
+# Used mainly for observers.
 [PeerIdShardId]
-    Size = 5
+    Size = 30000
     Type = "LRU"
 
 [Antiflood]

@@ -13,13 +13,14 @@ var log = logger.GetOrCreate("p2p/networksharding/factory")
 
 // ArgsSharderFactory represents the argument for the sharder factory
 type ArgsSharderFactory struct {
-	PeerShardResolver  p2p.PeerShardResolver
-	PrioBits           uint32
-	Pid                peer.ID
-	MaxConnectionCount int
-	MaxIntraShard      int
-	MaxCrossShard      int
-	Type               string
+	PeerShardResolver   p2p.PeerShardResolver
+	PrioBits            uint32
+	Pid                 peer.ID
+	MaxConnectionCount  int
+	MaxIntraShard       int
+	MaxCrossShard       int
+	PercentageObservers int
+	Type                string
 }
 
 // NewSharder creates new Sharder instances
@@ -39,6 +40,7 @@ func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
 			arg.MaxConnectionCount,
 			arg.MaxIntraShard,
 			arg.MaxCrossShard,
+			arg.PercentageObservers,
 		)
 	case p2p.OneListSharder:
 		log.Debug("using one list sharder")

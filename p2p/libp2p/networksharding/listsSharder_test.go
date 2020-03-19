@@ -15,23 +15,51 @@ import (
 )
 
 const crtShardId = uint32(0)
+const crossShardId = uint32(1)
+
+const validatorMarker = "validator"
+const observerMarker = "observer"
+const unknownMarker = "unknown"
 
 var crtPid = peer.ID(fmt.Sprintf("%d pid", crtShardId))
 
 func createStringPeersShardResolver() *mock.PeerShardResolverStub {
 	return &mock.PeerShardResolverStub{
-		GetShardIDCalled: func(pid p2p.PeerID) uint32 {
+		GetPeerInfoCalled: func(pid p2p.PeerID) core.P2PPeerInfo {
 			strPid := string(pid)
+			pInfo := core.P2PPeerInfo{}
+
 			if strings.Contains(strPid, fmt.Sprintf("%d", crtShardId)) {
-				return crtShardId
-			}
-			if strings.Contains(strPid, "u") {
-				return core.UnknownShardId
+				pInfo.ShardID = crtShardId
+			} else {
+				pInfo.ShardID = crossShardId
 			}
 
-			return crtShardId + 1
+			if strings.Contains(strPid, unknownMarker) {
+				pInfo.PeerType = core.UnknownPeer
+			}
+			if strings.Contains(strPid, validatorMarker) {
+				pInfo.PeerType = core.ValidatorPeer
+			}
+			if strings.Contains(strPid, observerMarker) {
+				pInfo.PeerType = core.ObserverdPeer
+			}
+
+			return pInfo
 		},
 	}
+}
+
+func countPeers(peers []peer.ID, shardID uint32, marker string) int {
+	counter := 0
+	for _, pid := range peers {
+		if strings.Contains(string(pid), marker) &&
+			strings.Contains(string(pid), fmt.Sprintf("%d", shardID)) {
+			counter++
+		}
+	}
+
+	return counter
 }
 
 func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
@@ -43,6 +71,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -58,6 +87,7 @@ func TestNewListsSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 		minAllowedConnectedPeers-1,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -73,6 +103,7 @@ func TestNewListsSharder_InvalidMaxIntraShardShouldErr(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList-1,
 		minAllowedPeersOnList,
+		0,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -88,6 +119,55 @@ func TestNewListsSharder_InvalidMaxCrossShardShouldErr(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList-1,
+		0,
+	)
+
+	assert.True(t, check.IfNil(ls))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ls, err := NewListsSharder(
+		&mock.PeerShardResolverStub{},
+		"",
+		minAllowedConnectedPeers,
+		minAllowedPeersOnList+1,
+		minAllowedPeersOnList,
+		0,
+	)
+
+	assert.True(t, check.IfNil(ls))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewListsSharder_NegativePercentageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ls, err := NewListsSharder(
+		&mock.PeerShardResolverStub{},
+		"",
+		minAllowedConnectedPeers,
+		minAllowedPeersOnList,
+		minAllowedPeersOnList,
+		-1,
+	)
+
+	assert.True(t, check.IfNil(ls))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewListsSharder_Over100PercentageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ls, err := NewListsSharder(
+		&mock.PeerShardResolverStub{},
+		"",
+		minAllowedConnectedPeers,
+		minAllowedPeersOnList,
+		minAllowedPeersOnList,
+		101,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -103,6 +183,7 @@ func TestNewListsSharder_ShouldWork(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 
 	assert.False(t, check.IfNil(ls))
@@ -111,7 +192,7 @@ func TestNewListsSharder_ShouldWork(t *testing.T) {
 
 //------- ComputeEvictionList
 
-func TestListsSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *testing.T) {
+func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	ls, _ := NewListsSharder(
@@ -120,9 +201,10 @@ func TestListsSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *t
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
-	pidCrtShard := peer.ID(fmt.Sprintf("%d new pid", crtShardId))
-	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
+	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker))
+	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker))
 	pids := []peer.ID{pidCrtShard, pidCrossShard}
 
 	evictList := ls.ComputeEvictionList(pids)
@@ -130,7 +212,27 @@ func TestListsSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *t
 	assert.Equal(t, 0, len(evictList))
 }
 
-func TestListsSharder_ComputeEvictionListNotReachedCrossShardShouldRetEmpty(t *testing.T) {
+func TestListsSharder_ComputeEvictionListNotReachedObserversShouldRetEmpty(t *testing.T) {
+	t.Parallel()
+
+	ls, _ := NewListsSharder(
+		createStringPeersShardResolver(),
+		crtPid,
+		minAllowedConnectedPeers*2,
+		minAllowedPeersOnList*2,
+		minAllowedPeersOnList*2,
+		50,
+	)
+	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker))
+	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker))
+	pids := []peer.ID{pidCrtShard, pidCrossShard}
+
+	evictList := ls.ComputeEvictionList(pids)
+
+	assert.Equal(t, 0, len(evictList))
+}
+
+func TestListsSharder_ComputeEvictionListNotReachedUnknownShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	ls, _ := NewListsSharder(
@@ -139,10 +241,10 @@ func TestListsSharder_ComputeEvictionListNotReachedCrossShardShouldRetEmpty(t *t
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
-	pidCrtShard := peer.ID(fmt.Sprintf("%d new pid", crtShardId))
-	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
-	pids := []peer.ID{pidCrtShard, pidCrossShard}
+	pidUnknown := peer.ID(fmt.Sprintf("0 %s", unknownMarker))
+	pids := []peer.ID{pidUnknown}
 
 	evictList := ls.ComputeEvictionList(pids)
 
@@ -158,9 +260,10 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
-	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - new pid", crtShardId))
-	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - new pid", crtShardId))
+	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - %s", crtShardId, validatorMarker))
+	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - %s", crtShardId, validatorMarker))
 	pids := []peer.ID{pidCrtShard2, pidCrtShard1}
 
 	evictList := ls.ComputeEvictionList(pids)
@@ -179,19 +282,94 @@ func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing
 		maxPeerCount,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 
-	unknownPids := make([]peer.ID, maxPeerCount+1)
-	for i := 0; i < maxPeerCount+1; i++ {
-		unknownPids[i] = "u b pid"
+	unknownPids := make([]peer.ID, maxPeerCount)
+	for i := 0; i < maxPeerCount; i++ {
+		unknownPids[i] = unknownMarker
 	}
-	newUnknownPid := peer.ID("u a pid")
+	newUnknownPid := peer.ID(unknownMarker)
 	unknownPids = append(unknownPids, newUnknownPid)
 
 	evictList := ls.ComputeEvictionList(unknownPids)
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, unknownPids[0], evictList[0])
+}
+
+func TestListsSharder_ComputeEvictionListCrossShouldFillTheGap(t *testing.T) {
+	t.Parallel()
+
+	ls, _ := NewListsSharder(
+		createStringPeersShardResolver(),
+		crtPid,
+		5,
+		2,
+		2,
+		50,
+	)
+
+	pids := []peer.ID{
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+	}
+
+	evictList := ls.ComputeEvictionList(pids)
+
+	assert.Equal(t, 0, len(evictList))
+}
+
+func TestListsSharder_ComputeEvictionListEvictFromAllShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ls, _ := NewListsSharder(
+		createStringPeersShardResolver(),
+		crtPid,
+		5,
+		2,
+		2,
+		50,
+	)
+
+	pids := []peer.ID{
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker)),
+
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker)),
+
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker)),
+
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker)),
+
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+		peer.ID(fmt.Sprintf("%d %s", crossShardId, unknownMarker)),
+	}
+
+	evictList := ls.ComputeEvictionList(pids)
+
+	assert.Equal(t, 15, len(evictList))
+	assert.Equal(t, 1, countPeers(evictList, crtShardId, validatorMarker))
+	assert.Equal(t, 2, countPeers(evictList, crossShardId, validatorMarker))
+	assert.Equal(t, 3, countPeers(evictList, crtShardId, observerMarker))
+	assert.Equal(t, 4, countPeers(evictList, crossShardId, observerMarker))
+	assert.Equal(t, 5, countPeers(evictList, crossShardId, unknownMarker))
 }
 
 //------- Has
@@ -256,6 +434,7 @@ func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 
 	err := lks.SetPeerShardResolver(nil)
@@ -272,6 +451,7 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 		minAllowedConnectedPeers,
 		minAllowedPeersOnList,
 		minAllowedPeersOnList,
+		0,
 	)
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
 	err := lks.SetPeerShardResolver(newPeerShardResolver)

@@ -34,7 +34,7 @@ func NewOneListSharder(
 // ComputeEvictionList returns the eviction list
 func (ols *oneListSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	list := ols.convertList(pidList)
-	_, evictionProposed := evict(list, ols.maxPeerCount)
+	evictionProposed := evict(list, ols.maxPeerCount)
 
 	return evictionProposed
 }

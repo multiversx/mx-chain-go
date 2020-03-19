@@ -62,7 +62,8 @@ func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t
 	pid1 := peer.ID("pid1")
 	pid2 := peer.ID("pid2")
 	pid3 := peer.ID("pid3")
-	pids := []peer.ID{pid1, pid2, pid3}
+	pid4 := peer.ID("pid4")
+	pids := []peer.ID{pid1, pid2, pid3, pid4}
 
 	evictList := ols.ComputeEvictionList(pids)
 

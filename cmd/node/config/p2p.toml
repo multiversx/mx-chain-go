@@ -57,11 +57,12 @@
 
 [Sharding]
     # The targeted number of peer connections
-    TargetPeerCount = 16
+    TargetPeerCount = 17
     # Number of priority bits used
     PrioBits = 4
     MaxIntraShard = 12
     MaxCrossShard = 4
+    PercentageObservers = 20
     #available options:
     #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
     #  `PrioBitsSharder` will split the peers based on the shard membership (intra, other) using kademlia distance

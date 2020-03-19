@@ -25,9 +25,10 @@ type KadDhtPeerDiscoveryConfig struct {
 
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig struct {
-	TargetPeerCount int
-	PrioBits        uint32
-	MaxIntraShard   uint32
-	MaxCrossShard   uint32
-	Type            string
+	TargetPeerCount     int
+	PrioBits            uint32
+	MaxIntraShard       uint32
+	MaxCrossShard       uint32
+	PercentageObservers uint32
+	Type                string
 }

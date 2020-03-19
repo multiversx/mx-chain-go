@@ -41,10 +41,11 @@ func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount: 9,
-		MaxIntraShard:   7,
-		MaxCrossShard:   2,
-		Type:            p2p.ListsSharder,
+		TargetPeerCount:     10,
+		MaxIntraShard:       7,
+		MaxCrossShard:       2,
+		PercentageObservers: 20,
+		Type:                p2p.ListsSharder,
 	}
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
@@ -55,8 +56,9 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 		t.Skip("this is not a short test")
 	}
 
-	nodesPerShard := 10
-	numMetaNodes := 10
+	nodesPerShard := 8
+	numMetaNodes := 8
+	numObserversOnShard := 2
 	numShards := 2
 	consensusGroupSize := 2
 
@@ -73,6 +75,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 		numShards,
 		consensusGroupSize,
 		numMetaNodes,
+		numObserversOnShard,
 		p2pConfig,
 	)
 
