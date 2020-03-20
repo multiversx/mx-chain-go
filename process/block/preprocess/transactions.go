@@ -1066,8 +1066,6 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 		if err != nil {
 			return processedTxHashes, err
 		}
-
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	for index := range miniBlockTxs {
@@ -1076,6 +1074,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			return processedTxHashes, err
 		}
 
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
 			return processedTxHashes, err
