@@ -1614,7 +1614,7 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
-		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
+		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {
@@ -1883,19 +1883,19 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlockInfo {
-	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlockInfo, mp.shardCoordinator.NumberOfShards())
+func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlocksInfo {
+	pendingMiniBlocksInfo := make([]bootstrapStorage.PendingMiniBlocksInfo, mp.shardCoordinator.NumberOfShards())
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
-			NumPendingMiniBlocks: mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardID),
-			ShardID:              shardID,
+		pendingMiniBlocksInfo[shardID] = bootstrapStorage.PendingMiniBlocksInfo{
+			MiniBlocksHashes: mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID),
+			ShardID:          shardID,
 		}
 	}
 
-	if len(pendingMiniBlocks) == 0 {
+	if len(pendingMiniBlocksInfo) == 0 {
 		return nil
 	}
 
-	return pendingMiniBlocks
+	return pendingMiniBlocksInfo
 }

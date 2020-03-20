@@ -266,7 +266,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Debug("process vm output error", "error", err.Error())
+		log.Trace("process vm output error", "error", err.Error())
 		return nil
 	}
 
@@ -481,7 +481,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Debug("Processing error", "error", err.Error())
+		log.Trace("Processing error", "error", err.Error())
 		return nil
 	}
 
@@ -626,11 +626,6 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 }
 
 func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	if ok {
-		return scr.TxHash, nil
-	}
-
 	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
 }
 
@@ -653,7 +648,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Debug("smart contract processing returned with error",
+		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 			"return message", vmOutput.ReturnMessage,

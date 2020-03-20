@@ -72,7 +72,7 @@ type bootStorerDataArgs struct {
 	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
 	round                      uint64
 	highestFinalBlockNonce     uint64
-	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlocksInfo
 	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
 	nodesCoordinatorConfigKey  []byte
 	epochStartTriggerConfigKey []byte
