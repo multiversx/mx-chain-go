@@ -65,8 +65,11 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 }
 
 func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
-	for epoch := range config {
-		log.Debug("restored config for", "epoch", epoch)
+	for epoch, cfg := range config {
+		log.Debug("restored config for",
+			"epoch", epoch,
+			"computed shard ID", cfg.shardId,
+		)
 	}
 }
 
@@ -121,13 +124,13 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		}
 
 		nbShards := uint32(len(nodesConfig.eligibleMap))
-		if nbShards <= 1 {
+		if nbShards < 2 {
 			return nil, ErrInvalidNumberOfShards
 		}
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
+		nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 	}

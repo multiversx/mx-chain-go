@@ -6,13 +6,13 @@ import (
 
 // MessageProcessorStub -
 type MessageProcessorStub struct {
-	ProcessMessageCalled func(message p2p.MessageP2P) error
+	ProcessMessageCalled func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 }
 
 // ProcessReceivedMessage -
-func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	if mps.ProcessMessageCalled != nil {
-		return mps.ProcessMessageCalled(message)
+		return mps.ProcessMessageCalled(message, fromConnectedPeer)
 	}
 
 	return nil

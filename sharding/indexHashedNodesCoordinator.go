@@ -199,7 +199,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		}
 	}
 
-	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
+	nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
@@ -612,7 +612,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
+func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := uint32(0)
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]

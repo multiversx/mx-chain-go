@@ -19,6 +19,7 @@ import (
 const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
 const minAllowedObservers = 1
+const minUnknownPeers = 1
 
 const intraShardValidators = 0
 const intraShardObservers = 1
@@ -117,7 +118,7 @@ func NewListsSharder(
 	}
 
 	providedPeers := maxIntraShardValidators + maxCrossShardValidators + maxIntraShardObservers + maxCrossShardObservers
-	if providedPeers+1 > maxPeerCount {
+	if providedPeers+minUnknownPeers > maxPeerCount {
 		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, maxPeerCount)
 	}
 

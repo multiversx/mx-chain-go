@@ -77,7 +77,7 @@ func NewPeerShardMapper(
 }
 
 // GetPeerInfo returns the corresponding shard ID of a given peer ID.
-// It also return the type of provided peer
+// It also returns the type of provided peer
 func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
 	pInfo, pk, ok := psm.getPeerInfoWithNodesCoordinator(pid)
 	if ok {
