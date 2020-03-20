@@ -71,7 +71,7 @@ func TestSuiteBLS12_CreatePointForScalar(t *testing.T) {
 	require.NotNil(t, pG2)
 
 	pubKey := secretKey.GetPublicKey()
-	point2G2 := bls.CastG2FromPublicKey(pubKey)
+	point2G2 := bls.CastFromPublicKey(pubKey)
 
 	require.True(t, pG2.IsEqual(point2G2))
 }
@@ -89,7 +89,7 @@ func TestSuiteBLS12_CreateKeyPair(t *testing.T) {
 	require.NotNil(t, pG2)
 
 	pubKey := secretKey.GetPublicKey()
-	point2G2 := bls.CastG2FromPublicKey(pubKey)
+	point2G2 := bls.CastFromPublicKey(pubKey)
 
 	require.True(t, pG2.IsEqual(point2G2))
 }
