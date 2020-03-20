@@ -228,14 +228,11 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 }
 
 func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
-	// TODO: fix test
-	t.Skip()
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
-	_ = logger.SetLogLevel("*:DEBUG,sharding:TRACE,process/peer:TRACE")
 
 	nodesPerShard := 1
 	nbMetaNodes := 1

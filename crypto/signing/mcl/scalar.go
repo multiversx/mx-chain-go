@@ -214,6 +214,10 @@ func (sc *Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
 
 	s1.Scalar.SetByCSPRNG()
 
+	for s1.Scalar.IsOne() || s1.Scalar.IsZero() {
+		s1.Scalar.SetByCSPRNG()
+	}
+
 	return &s1, nil
 }
 

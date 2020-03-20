@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -11,46 +12,61 @@ import (
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
 var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 
+// ArgTxResolver is the argument structure used to create new TxResolver instance
+type ArgTxResolver struct {
+	SenderResolver   dataRetriever.TopicResolverSender
+	TxPool           dataRetriever.ShardedDataCacherNotifier
+	TxStorage        storage.Storer
+	Marshalizer      marshal.Marshalizer
+	DataPacker       dataRetriever.DataPacker
+	AntifloodHandler dataRetriever.P2PAntifloodHandler
+	Throttler        dataRetriever.ResolverThrottler
+}
+
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool      dataRetriever.ShardedDataCacherNotifier
-	txStorage   storage.Storer
-	marshalizer marshal.Marshalizer
-	dataPacker  dataRetriever.DataPacker
+	messageProcessor
+	txPool     dataRetriever.ShardedDataCacherNotifier
+	txStorage  storage.Storer
+	dataPacker dataRetriever.DataPacker
 }
 
 // NewTxResolver creates a new transaction resolver
-func NewTxResolver(
-	senderResolver dataRetriever.TopicResolverSender,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	txStorage storage.Storer,
-	marshalizer marshal.Marshalizer,
-	dataPacker dataRetriever.DataPacker,
-) (*TxResolver, error) {
-
-	if senderResolver == nil || senderResolver.IsInterfaceNil() {
+func NewTxResolver(arg ArgTxResolver) (*TxResolver, error) {
+	if check.IfNil(arg.SenderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if txPool == nil || txPool.IsInterfaceNil() {
+	if check.IfNil(arg.TxPool) {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if txStorage == nil || txStorage.IsInterfaceNil() {
+	if check.IfNil(arg.TxStorage) {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+	if check.IfNil(arg.DataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
+	}
+	if check.IfNil(arg.AntifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.Throttler) {
+		return nil, dataRetriever.ErrNilThrottler
 	}
 
 	txResolver := &TxResolver{
-		TopicResolverSender: senderResolver,
-		txPool:              txPool,
-		txStorage:           txStorage,
-		marshalizer:         marshalizer,
-		dataPacker:          dataPacker,
+		TopicResolverSender: arg.SenderResolver,
+		txPool:              arg.TxPool,
+		txStorage:           arg.TxStorage,
+		dataPacker:          arg.DataPacker,
+		messageProcessor: messageProcessor{
+			marshalizer:      arg.Marshalizer,
+			antifloodHandler: arg.AntifloodHandler,
+			topic:            arg.SenderResolver.RequestTopic(),
+			throttler:        arg.Throttler,
+		},
 	}
 
 	return txResolver, nil
@@ -58,15 +74,18 @@ func NewTxResolver(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	rd := &dataRetriever.RequestData{}
-	err := rd.UnmarshalWith(txRes.marshalizer, message)
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := txRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
 
-	if rd.Value == nil {
-		return dataRetriever.ErrNilValue
+	txRes.throttler.StartProcessing()
+	defer txRes.throttler.EndProcessing()
+
+	rd, err := txRes.parseReceivedMessage(message)
+	if err != nil {
+		return err
 	}
 
 	switch rd.Type {

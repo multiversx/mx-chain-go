@@ -80,7 +80,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		}
 	}
 
-	if views == nil {
+	if len(views) == 0 {
 		log.Warn("No views for current node")
 	}
 

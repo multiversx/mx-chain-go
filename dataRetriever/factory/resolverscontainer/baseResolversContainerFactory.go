@@ -1,6 +1,8 @@
 package resolverscontainer
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,6 +16,7 @@ import (
 )
 
 const emptyExcludePeersOnTopic = ""
+const defaultTargetShardID = uint32(0)
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -26,6 +29,9 @@ type baseResolversContainerFactory struct {
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
 	triesContainer           state.TriesHolder
+	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
+	throttler                dataRetriever.ResolverThrottler
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -52,6 +58,15 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.triesContainer) {
 		return dataRetriever.ErrNilTrieDataGetter
+	}
+	if check.IfNil(brcf.inputAntifloodHandler) {
+		return fmt.Errorf("%w for input", dataRetriever.ErrNilAntifloodHandler)
+	}
+	if check.IfNil(brcf.outputAntifloodHandler) {
+		return fmt.Errorf("%w for output", dataRetriever.ErrNilAntifloodHandler)
+	}
+	if check.IfNil(brcf.throttler) {
+		return dataRetriever.ErrNilThrottler
 	}
 
 	return nil
@@ -105,24 +120,26 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 
 	txStorer := brcf.store.GetStorer(unit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic)
+	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
 
-	resolver, err := resolvers.NewTxResolver(
-		resolverSender,
-		dataPool,
-		txStorer,
-		brcf.marshalizer,
-		brcf.dataPacker,
-	)
+	arg := resolvers.ArgTxResolver{
+		SenderResolver:   resolverSender,
+		TxPool:           dataPool,
+		TxStorage:        txStorer,
+		Marshalizer:      brcf.marshalizer,
+		DataPacker:       brcf.dataPacker,
+		AntifloodHandler: brcf.inputAntifloodHandler,
+		Throttler:        brcf.throttler,
+	}
+	resolver, err := resolvers.NewTxResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	topicIdentifier := topic + resolverSender.TopicRequestSuffix()
-	err = brcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -175,23 +192,25 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic)
+	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
 
-	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
-		resolverSender,
-		brcf.dataPools.MiniBlocks(),
-		miniBlocksStorer,
-		brcf.marshalizer,
-	)
+	arg := resolvers.ArgGenericBlockBodyResolver{
+		SenderResolver:   resolverSender,
+		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
+		MiniBlockStorage: miniBlocksStorer,
+		Marshalizer:      brcf.marshalizer,
+		AntifloodHandler: brcf.inputAntifloodHandler,
+		Throttler:        brcf.throttler,
+	}
+	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	topicIdentifier := topic + resolverSender.TopicRequestSuffix()
-	err = brcf.messenger.RegisterMessageProcessor(topicIdentifier, txBlkResolver)
+	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +221,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	topic string,
 	excludedTopic string,
+	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, excludedTopic)
@@ -209,16 +229,18 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 		return nil, err
 	}
 
+	arg := topicResolverSender.ArgTopicResolverSender{
+		Messenger:         brcf.messenger,
+		TopicName:         topic,
+		PeerListCreator:   peerListCreator,
+		Marshalizer:       brcf.marshalizer,
+		Randomizer:        brcf.intRandomizer,
+		TargetShardId:     targetShardId,
+		OutputAntiflooder: brcf.outputAntifloodHandler,
+	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		brcf.messenger,
-		topic,
-		peerListCreator,
-		brcf.marshalizer,
-		brcf.intRandomizer,
-		uint32(0),
-	)
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -227,35 +249,25 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 }
 
 func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, emptyExcludePeersOnTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		brcf.messenger,
-		topic,
-		peerListCreator,
-		brcf.marshalizer,
-		brcf.intRandomizer,
-		brcf.shardCoordinator.SelfId(),
-	)
+	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
 
 	trie := brcf.triesContainer.Get([]byte(trieId))
-	resolver, err := resolvers.NewTrieNodeResolver(
-		resolverSender,
-		trie,
-		brcf.marshalizer,
-	)
+	arg := resolvers.ArgTrieNodeResolver{
+		SenderResolver:   resolverSender,
+		TrieDataGetter:   trie,
+		Marshalizer:      brcf.marshalizer,
+		AntifloodHandler: brcf.inputAntifloodHandler,
+		Throttler:        brcf.throttler,
+	}
+	resolver, err := resolvers.NewTrieNodeResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	topicIdentifier := topic + resolverSender.TopicRequestSuffix()
-	err = brcf.messenger.RegisterMessageProcessor(topicIdentifier, resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return nil, err
 	}

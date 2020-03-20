@@ -22,6 +22,7 @@ import (
 
 var agarioFile = "../../agar_v1_min.hex"
 var stepDelay = time.Second
+var p2pBootstrapDelay = time.Second * 12
 
 func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	if testing.Short() {

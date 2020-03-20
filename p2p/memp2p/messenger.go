@@ -314,7 +314,7 @@ func (messenger *Messenger) processFromQueue() {
 			continue
 		}
 
-		topic := messageObject.TopicIDs()[0]
+		topic := messageObject.Topics()[0]
 		if topic == "" {
 			continue
 		}
@@ -335,7 +335,7 @@ func (messenger *Messenger) processFromQueue() {
 		}
 		messenger.topicsMutex.Unlock()
 
-		_ = validator.ProcessReceivedMessage(messageObject, nil)
+		_ = validator.ProcessReceivedMessage(messageObject, messenger.p2pID)
 	}
 }
 
@@ -349,6 +349,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 		if !peerFound {
 			return ErrReceivingPeerNotConnected
 		}
+
 		receivingPeer.receiveMessage(messageObject)
 
 		return nil
@@ -384,6 +385,21 @@ func (messenger *Messenger) ThresholdMinConnectedPeers() int {
 // NumMessagesReceived returns the number of messages received
 func (messenger *Messenger) NumMessagesReceived() uint64 {
 	return atomic.LoadUint64(&messenger.numReceived)
+}
+
+// SetPeerShardResolver is a dummy function, not setting anything
+func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
+	return nil
+}
+
+// SetPeerBlackListHandler does nothing
+func (messenger *Messenger) SetPeerBlackListHandler(_ p2p.BlacklistHandler) error {
+	return nil
+}
+
+// GetConnectedPeersInfo returns a nil object. Not implemented.
+func (messenger *Messenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
+	return nil
 }
 
 // Close disconnects this Messenger from the network it was connected to.
