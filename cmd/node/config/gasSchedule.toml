@@ -122,7 +122,6 @@
     BigIntXor                = 100
     BigIntShr                = 100
     BigIntShl                = 100
-    BigIntFinish             = 100
     BigIntFinishUnsigned     = 100
     BigIntFinishSigned       = 100
     BigIntStorageLoadUnsigned   = 100000
