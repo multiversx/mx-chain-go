@@ -14,6 +14,14 @@ type UnsignedTxHandlerMock struct {
 	VerifyCreatedUTxsCalled     func() error
 	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
 	GetAccumulatedFeesCalled    func() *big.Int
+	RevertFeesCalled            func(txHashes [][]byte)
+}
+
+// RevertFees -
+func (ut *UnsignedTxHandlerMock) RevertFees(txHashes [][]byte) {
+	if ut.RevertFeesCalled != nil {
+		ut.RevertFeesCalled(txHashes)
+	}
 }
 
 // CreateBlockStarted -
@@ -47,7 +55,7 @@ func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
 }
 
 // ProcessTransactionFee -
-func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int) {
+func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int, txHash []byte) {
 	if ut.ProcessTransactionFeeCalled == nil {
 		return
 	}

@@ -184,7 +184,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, nil)
 
 	return process.ErrFailedTransaction
 }
@@ -290,7 +290,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, nil)
 
 	return nil
 }
