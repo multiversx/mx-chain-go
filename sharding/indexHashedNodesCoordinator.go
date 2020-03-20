@@ -617,12 +617,14 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	selfShard := uint32(0)
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
+		log.Debug("NODES_COORDINATOR found existing config", "shard ID", epNodesConfig.shardId)
 		selfShard = epNodesConfig.shardId
 	}
 
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
+				log.Debug("NODES_COORDINATOR found validator in eligible", "shard", shard, "v", v)
 				return shard
 			}
 		}
@@ -631,11 +633,13 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	for shard, validators := range nodesConfig.waitingMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
+				log.Debug("NODES_COORDINATOR found validator in waiting", "shard", shard, "v", v)
 				return shard
 			}
 		}
 	}
 
+	log.Debug("NODES_COORDINATOR return default", "shard", selfShard)
 	return selfShard
 }
 
@@ -667,26 +671,26 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
 	for shardId, validators := range eligible {
-		for _, validator := range validators {
-			pk := validator.PubKey()
+		for _, v := range validators {
+			pk := v.PubKey()
 			log.Debug("eligible", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for shardId, validators := range waiting {
-		for _, validator := range validators {
-			pk := validator.PubKey()
+		for _, v := range validators {
+			pk := v.PubKey()
 			log.Debug("waiting", "pk", pk, "shardId", shardId)
 		}
 	}
 
-	for _, validator := range leaving {
-		pk := validator.PubKey()
+	for _, v := range leaving {
+		pk := v.PubKey()
 		log.Debug("computed leaving", "pk", pk)
 	}
 
-	for _, validator := range actualLeaving {
-		pk := validator.PubKey()
+	for _, v := range actualLeaving {
+		pk := v.PubKey()
 		log.Debug("actually remaining", "pk", pk)
 	}
 }
