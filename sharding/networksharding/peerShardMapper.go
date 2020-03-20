@@ -95,12 +95,11 @@ func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
 	return psm.getPeerInfoSearchingPidInFallbackCache(pid)
 }
 
-func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (peerInfo core.P2PPeerInfo, pk []byte, ok bool) {
+func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (core.P2PPeerInfo, []byte, bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
 		log.Trace("unknown peer",
 			"pid", p2p.PeerIdToShortString(pid),
-			"pk", pk,
 		)
 
 		return core.P2PPeerInfo{
@@ -123,7 +122,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (pee
 	if err != nil {
 		log.Trace("unknown peer",
 			"pid", p2p.PeerIdToShortString(pid),
-			"pk", pk,
+			"pk", pkBuff,
 			"error", err,
 		)
 
@@ -135,7 +134,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (pee
 
 	log.Trace("peer",
 		"pid", p2p.PeerIdToShortString(pid),
-		"pk", pk,
+		"pk", pkBuff,
 		"shard ID", shardId,
 	)
 
