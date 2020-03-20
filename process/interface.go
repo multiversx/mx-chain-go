@@ -386,8 +386,8 @@ type EpochBootstrapper interface {
 type PendingMiniBlocksHandler interface {
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocks(shardID uint32) uint32
-	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	GetPendingMiniBlocks(shardID uint32) [][]byte
+	SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
