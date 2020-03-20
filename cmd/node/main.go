@@ -829,7 +829,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListHandler,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
-		0,
+		currentEpoch,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,

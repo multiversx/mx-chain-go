@@ -67,7 +67,7 @@ type epochStartDataProvider struct {
 	messenger                      p2p.Messenger
 	generalConfig                  config.Config
 	economicsConfig                config.EconomicsConfig
-	defaultShardCoordinator        sharding.Coordinator
+	genesisShardCoordinator        sharding.Coordinator
 	pathManager                    PathManagerHandler
 	nodesConfigProvider            NodesConfigProviderHandler
 	epochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
@@ -85,6 +85,8 @@ type epochStartDataProvider struct {
 	workingDir                     string
 	defaultDBPath                  string
 	defaultEpochString             string
+
+	dataPool dataRetriever.PoolsHolder
 }
 
 // ArgsEpochStartDataProvider holds the arguments needed for creating an epoch start data provider component
@@ -99,9 +101,6 @@ type ArgsEpochStartDataProvider struct {
 	PathManager                    PathManagerHandler
 	NodesConfigProvider            NodesConfigProviderHandler
 	EpochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
-	MetaBlockInterceptor           MetaBlockInterceptorHandler
-	ShardHeaderInterceptor         ShardHeaderInterceptorHandler
-	MiniBlockInterceptor           MiniBlockInterceptorHandler
 	SingleSigner                   crypto.SingleSigner
 	BlockSingleSigner              crypto.SingleSigner
 	KeyGen                         crypto.KeyGenerator
@@ -135,15 +134,6 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	}
 	if check.IfNil(args.EpochStartMetaBlockInterceptor) {
 		return nil, ErrNilEpochStartMetaBlockInterceptor
-	}
-	if check.IfNil(args.MetaBlockInterceptor) {
-		return nil, ErrNilMetaBlockInterceptor
-	}
-	if check.IfNil(args.ShardHeaderInterceptor) {
-		return nil, ErrNilShardHeaderInterceptor
-	}
-	if check.IfNil(args.MiniBlockInterceptor) {
-		return nil, ErrNilMiniBlockInterceptor
 	}
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, ErrNilWhiteListHandler
@@ -182,16 +172,10 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		workingDir:                     args.WorkingDir,
 		defaultEpochString:             args.DefaultEpochString,
 		defaultDBPath:                  args.DefaultEpochString,
-		defaultShardCoordinator:        args.DefaultShardCoordinator,
 		keyGen:                         args.KeyGen,
 		blockKeyGen:                    args.BlockKeyGen,
 		singleSigner:                   args.SingleSigner,
 		blockSingleSigner:              args.BlockSingleSigner,
-	}
-
-	err := epochStartProvider.initInternalComponents()
-	if err != nil {
-		return nil, err
 	}
 
 	return epochStartProvider, nil
@@ -222,11 +206,11 @@ func (esdp *epochStartDataProvider) initInternalComponents() error {
 		return nil, err
 	}
 
-	commonDataPool, err := factory2.NewDataPoolFromConfig(
+	esdp.dataPool, err = factory2.NewDataPoolFromConfig(
 		factory2.ArgsDataPool{
 			Config:           &esdp.generalConfig,
 			EconomicsData:    economicsData,
-			ShardCoordinator: esdp.defaultShardCoordinator,
+			ShardCoordinator: esdp.shardCoordinator,
 		},
 	)
 
@@ -265,6 +249,11 @@ func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (esdp *epochStartDataProvider) Bootstrap() (uint32, uint32, uint32, error) {
 	// TODO: add searching for epoch start metablock and other data inside this component
+
+	err := esdp.initInternalComponents()
+	if err != nil {
+		return nil, err
+	}
 
 	interceptorsContainer, err := esdp.createInterceptors(commonDataPool)
 	if err != nil || interceptorsContainer == nil {
