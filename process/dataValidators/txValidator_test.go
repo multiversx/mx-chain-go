@@ -181,27 +181,6 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	assert.True(t, errors.Is(result, process.ErrInsufficientFunds))
 }
 
-func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	accountNonce := uint64(0)
-	txNonce := uint64(1)
-	fee := big.NewInt(1000)
-	accountBalance := big.NewInt(10)
-
-	adb := getAccAdapter(accountNonce, accountBalance)
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
-	assert.Nil(t, err)
-
-	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, fee)
-
-	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
-}
-
 func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 

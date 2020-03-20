@@ -25,7 +25,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
