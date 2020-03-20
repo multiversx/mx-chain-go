@@ -19,7 +19,7 @@ func (pf *PlainFormatter) Output(line LogLineHandler) []byte {
 		level,
 		displayTime(line.GetTimestamp()),
 		formatLoggerName(line.GetLoggerName()),
-		formatMessage(line.GetLoggerName()+line.GetMessage()),
+		formatMessage(line.GetMessage()),
 		formatArgsNoAnsi(line.GetArgs()...),
 	),
 	)
