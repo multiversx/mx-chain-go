@@ -69,4 +69,3 @@ services:
 #      name: "elrond"
   test:
     build: ./
-

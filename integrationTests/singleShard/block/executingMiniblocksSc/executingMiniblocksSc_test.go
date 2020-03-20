@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agar_v1_min.hex"
+var agarioFile = "../../../agar_v1_min.hex"
 
 func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	if testing.Short() {
