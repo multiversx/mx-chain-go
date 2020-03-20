@@ -118,7 +118,6 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		vi := validatorCopy[i]
 		unmarshaledVi := &state.ValidatorInfo{}
 		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
-
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
 		}
