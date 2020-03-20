@@ -32,7 +32,7 @@ func createMockArgGenericBlockBodyResolver() resolvers.ArgGenericBlockBodyResolv
 //------- NewBlockBodyResolver
 
 func TestNewGenericBlockBodyResolver_NilSenderResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.SenderResolver = nil
@@ -43,7 +43,7 @@ func TestNewGenericBlockBodyResolver_NilSenderResolverShouldErr(t *testing.T) {
 }
 
 func TestNewGenericBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.MiniBlockPool = nil
@@ -54,7 +54,7 @@ func TestNewGenericBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
 }
 
 func TestNewGenericBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.MiniBlockStorage = nil
@@ -65,7 +65,7 @@ func TestNewGenericBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) 
 }
 
 func TestNewGenericBlockBodyResolver_NilBlockMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.Marshalizer = nil
@@ -76,7 +76,7 @@ func TestNewGenericBlockBodyResolver_NilBlockMarshalizerShouldErr(t *testing.T) 
 }
 
 func TestNewGenericBlockBodyResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.AntifloodHandler = nil
@@ -87,7 +87,7 @@ func TestNewGenericBlockBodyResolver_NilAntifloodHandlerShouldErr(t *testing.T) 
 }
 
 func TestNewGenericBlockBodyResolver_NilThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.Throttler = nil
@@ -98,7 +98,7 @@ func TestNewGenericBlockBodyResolver_NilThrottlerShouldErr(t *testing.T) {
 }
 
 func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	gbbRes, err := resolvers.NewGenericBlockBodyResolver(arg)
@@ -108,7 +108,7 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 }
 
 func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.Marshalizer.(*mock.MarshalizerMock).Fail = true
@@ -120,7 +120,7 @@ func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
 }
 
 func TestRequestDataFromHashArray(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	arg := createMockArgGenericBlockBodyResolver()
@@ -141,7 +141,7 @@ func TestRequestDataFromHashArray(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestNewGenericBlockBodyResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgGenericBlockBodyResolver()
@@ -159,7 +159,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedAntifloodErrorsShouldErr(t *
 }
 
 func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
@@ -171,7 +171,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgGenericBlockBodyResolver()
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
@@ -183,7 +183,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	mbHash := []byte("aaa")
@@ -234,7 +234,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	goodMarshalizer := &mock.MarshalizerMock{}
@@ -286,7 +286,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mbHash := []byte("aaa")
 	marshalizer := &mock.MarshalizerMock{}
@@ -333,7 +333,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mbHash := []byte("aaa")
 	marshalizer := &mock.MarshalizerMock{}
@@ -377,7 +377,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 //------- Requests
 
 func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 

@@ -14,7 +14,7 @@ import (
 //------- canProcessMessage
 
 func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
@@ -31,7 +31,7 @@ func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 }
 
 func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
@@ -51,7 +51,7 @@ func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 }
 
 func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	canProcessWasCalled := false
 	mp := &messageProcessor{
@@ -78,7 +78,7 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 }
 
 func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	canProcessWasCalled := false
 	mp := &messageProcessor{
@@ -107,7 +107,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 //------- parseReceivedMessage
 
 func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
@@ -128,7 +128,7 @@ func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testi
 }
 
 func TestMessageProcessor_ParseReceivedMessageNilValueFieldShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mp := &messageProcessor{
 		marshalizer: &mock.MarshalizerStub{
@@ -148,7 +148,7 @@ func TestMessageProcessor_ParseReceivedMessageNilValueFieldShouldErr(t *testing.
 }
 
 func TestMessageProcessor_ParseReceivedMessageShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedValue := []byte("expected value")
 	mp := &messageProcessor{

@@ -29,7 +29,7 @@ func initRoundConsensus() *spos.RoundConsensus {
 }
 
 func TestRoundConsensus_NewRoundConsensusShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -40,7 +40,7 @@ func TestRoundConsensus_NewRoundConsensusShouldWork(t *testing.T) {
 }
 
 func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
 	eligibleNodes := make(map[string]struct{})
@@ -58,7 +58,7 @@ func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 }
 
 func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
 	eligibleNodes := make(map[string]struct{})
@@ -76,7 +76,7 @@ func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 }
 
 func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
 	eligibleNodes := make(map[string]struct{})
@@ -94,7 +94,7 @@ func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 }
 
 func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
 	eligibleNodes := make(map[string]struct{})
@@ -112,7 +112,7 @@ func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 }
 
 func TestRoundConsensus_SetEligibleListShouldChangeTheEligibleList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 	eligibleList := []string{"4", "5", "6"}
@@ -133,7 +133,7 @@ func TestRoundConsensus_SetEligibleListShouldChangeTheEligibleList(t *testing.T)
 }
 
 func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -145,7 +145,7 @@ func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testin
 }
 
 func TestRoundConsensus_SetConsensusGroupSizeShouldChangeTheConsensusGroupSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -155,7 +155,7 @@ func TestRoundConsensus_SetConsensusGroupSizeShouldChangeTheConsensusGroupSize(t
 }
 
 func TestRoundConsensus_SetSelfPubKeyShouldChangeTheSelfPubKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -164,7 +164,7 @@ func TestRoundConsensus_SetSelfPubKeyShouldChangeTheSelfPubKey(t *testing.T) {
 }
 
 func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -175,7 +175,7 @@ func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConse
 }
 
 func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -185,7 +185,7 @@ func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensus
 }
 
 func TestRoundConsensus_GetSelfJobDoneShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -202,7 +202,7 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnFalse(t *testing.T) {
 }
 
 func TestRoundConsensus_GetSelfJobDoneShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -213,7 +213,7 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnTrue(t *testing.T) {
 }
 
 func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -224,7 +224,7 @@ func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
 }
 
 func TestRoundConsensus_IsNodeInConsensusGroup(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -233,7 +233,7 @@ func TestRoundConsensus_IsNodeInConsensusGroup(t *testing.T) {
 }
 
 func TestRoundConsensus_IsNodeInEligibleList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -242,7 +242,7 @@ func TestRoundConsensus_IsNodeInEligibleList(t *testing.T) {
 }
 
 func TestRoundConsensus_ComputeSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 
@@ -251,7 +251,7 @@ func TestRoundConsensus_ComputeSize(t *testing.T) {
 }
 
 func TestRoundConsensus_ResetValidationMap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rcns := *initRoundConsensus()
 

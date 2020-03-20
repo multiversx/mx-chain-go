@@ -74,7 +74,7 @@ func prepareAccountsAndBalancesMap() (*mock.AccountsStub, map[string]*big.Int, *
 //------- CreateGenesisBlockFromInitialBalances
 
 func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		nil,
@@ -90,7 +90,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T
 }
 
 func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
@@ -106,7 +106,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 }
 
 func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
@@ -122,7 +122,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *t
 }
 
 func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
@@ -138,7 +138,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing
 }
 
 func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := &mock.AccountsStub{
 		JournalLenCalled: func() int {
@@ -160,7 +160,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *tes
 }
 
 func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	revertCalled := false
 	errCommit := errors.New("should err")
@@ -189,7 +189,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 }
 
 func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts, balances, _, _ := prepareAccountsAndBalancesMap()
 	errAccounts := errors.New("accounts error")
@@ -213,7 +213,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 }
 
 func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts, balances, accnt1, accnt2 := prepareAccountsAndBalancesMap()
 

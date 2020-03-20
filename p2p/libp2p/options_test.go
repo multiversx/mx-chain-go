@@ -59,7 +59,7 @@ func createStubMessengerFailingIfTriggered(t *testing.T) *networkMessenger {
 //------- WithAuthentication
 
 func TestWithAuthentication_NilNetworkShardingCollectorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mes := createStubMessengerFailingIfTriggered(t)
 	opt := WithAuthentication(
@@ -74,7 +74,7 @@ func TestWithAuthentication_NilNetworkShardingCollectorShouldErr(t *testing.T) {
 }
 
 func TestWithAuthentication_NilSignerVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mes := createStubMessengerFailingIfTriggered(t)
 	opt := WithAuthentication(
@@ -89,7 +89,7 @@ func TestWithAuthentication_NilSignerVerifierShouldErr(t *testing.T) {
 }
 
 func TestWithAuthentication_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mes := createStubMessengerFailingIfTriggered(t)
 	opt := WithAuthentication(
@@ -104,7 +104,7 @@ func TestWithAuthentication_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestWithAuthentication_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	notifeeCalled := false
 	setStreamHandlerCalled := false

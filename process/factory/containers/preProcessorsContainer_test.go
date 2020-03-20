@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewPreProcessorsContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -22,7 +22,7 @@ func TestNewPreProcessorsContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestPreProcessorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -33,7 +33,7 @@ func TestPreProcessorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestPreProcessorsContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -43,7 +43,7 @@ func TestPreProcessorsContainer_AddNilShouldErr(t *testing.T) {
 }
 
 func TestPreProcessorsContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -56,7 +56,7 @@ func TestPreProcessorsContainer_AddShouldWork(t *testing.T) {
 //------- AddMultiple
 
 func TestPreProcessorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -69,7 +69,7 @@ func TestPreProcessorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T
 }
 
 func TestPreProcessorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -82,7 +82,7 @@ func TestPreProcessorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 }
 
 func TestPreProcessorsContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -98,7 +98,7 @@ func TestPreProcessorsContainer_AddMultipleShouldWork(t *testing.T) {
 //------- Get
 
 func TestPreProcessorsContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -114,7 +114,7 @@ func TestPreProcessorsContainer_GetNotFoundShouldErr(t *testing.T) {
 }
 
 func TestPreProcessorsContainer_GetWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -128,7 +128,7 @@ func TestPreProcessorsContainer_GetWrongTypeShouldErr(t *testing.T) {
 }
 
 func TestPreProcessorsContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -145,7 +145,7 @@ func TestPreProcessorsContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestPreProcessorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -162,7 +162,7 @@ func TestPreProcessorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.
 }
 
 func TestPreProcessorsContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -182,7 +182,7 @@ func TestPreProcessorsContainer_ReplaceShouldWork(t *testing.T) {
 //------- Remove
 
 func TestPreProcessorsContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 
@@ -201,7 +201,7 @@ func TestPreProcessorsContainer_RemoveShouldWork(t *testing.T) {
 //------- Len
 
 func TestPreProcessorsContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewPreProcessorsContainer()
 

@@ -42,7 +42,7 @@ func getEncodedTrieNodesAndHashes(tr data.Trie) ([][]byte, [][]byte) {
 }
 
 func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, marsh, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode([]byte{}, marsh, hasher)
@@ -51,7 +51,7 @@ func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
 }
 
 func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buff, _, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, nil, hasher)
@@ -60,7 +60,7 @@ func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
 }
 
 func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buff, marsh, _ := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, marsh, nil)
@@ -69,7 +69,7 @@ func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
 }
 
 func TestNewInterceptedTrieNode_OkParametersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interceptedNode, err := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.NotNil(t, interceptedNode)
@@ -77,7 +77,7 @@ func TestNewInterceptedTrieNode_OkParametersShouldWork(t *testing.T) {
 }
 
 func TestInterceptedTrieNode_CheckValidity(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 
@@ -86,7 +86,7 @@ func TestInterceptedTrieNode_CheckValidity(t *testing.T) {
 }
 
 func TestInterceptedTrieNode_Hash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	tr := initTrie()
@@ -97,7 +97,7 @@ func TestInterceptedTrieNode_Hash(t *testing.T) {
 }
 
 func TestInterceptedTrieNode_EncodedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	tr := initTrie()

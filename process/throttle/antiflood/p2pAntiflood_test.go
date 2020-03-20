@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewP2PAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, err := antiflood.NewP2PAntiflood(nil, &mock.TopicAntiFloodStub{})
 	assert.True(t, check.IfNil(afm))
@@ -20,7 +20,7 @@ func TestNewP2PAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
 }
 
 func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, err := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, nil)
 	assert.True(t, check.IfNil(afm))
@@ -28,7 +28,7 @@ func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
 }
 
 func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, err := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
@@ -37,7 +37,7 @@ func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 }
 
 func TestP2PAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
@@ -48,7 +48,7 @@ func TestP2PAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 //------- CanProcessMessage
 
 func TestP2PAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 	afm.FloodPreventer = nil
@@ -58,7 +58,7 @@ func TestP2PAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T
 }
 
 func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{}, &mock.TopicAntiFloodStub{})
 
@@ -67,7 +67,7 @@ func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 }
 
 func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := p2p.PeerID("from connected peer")
@@ -92,7 +92,7 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 }
 
 func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := p2p.PeerID("from connected peer")
@@ -117,7 +117,7 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 }
 
 func TestP2PAntiflood_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := p2p.PeerID("from connected peer")

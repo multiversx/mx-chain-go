@@ -42,7 +42,7 @@ func initConsensusDataContainer() *ConsensusCore {
 }
 
 func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.blockChain = nil
@@ -53,7 +53,7 @@ func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.
 }
 
 func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.blockProcessor = nil
@@ -64,7 +64,7 @@ func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T
 }
 
 func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.bootstrapper = nil
@@ -75,7 +75,7 @@ func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testin
 }
 
 func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.chronologyHandler = nil
@@ -86,7 +86,7 @@ func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.
 }
 
 func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.hasher = nil
@@ -97,7 +97,7 @@ func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
 }
 
 func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.marshalizer = nil
@@ -108,7 +108,7 @@ func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing
 }
 
 func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.multiSigner = nil
@@ -119,7 +119,7 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 }
 
 func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.rounder = nil
@@ -130,7 +130,7 @@ func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) 
 }
 
 func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.shardCoordinator = nil
@@ -141,7 +141,7 @@ func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *te
 }
 
 func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.syncTimer = nil
@@ -152,7 +152,7 @@ func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T
 }
 
 func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.nodesCoordinator = nil

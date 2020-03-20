@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ols, err := NewOneListSharder(
 		"",
@@ -23,7 +23,7 @@ func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 }
 
 func TestNewOneListSharder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ols, err := NewOneListSharder(
 		"",
@@ -37,7 +37,7 @@ func TestNewOneListSharder_ShouldWork(t *testing.T) {
 //------- ComputeEvictionList
 
 func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ols, _ := NewOneListSharder(
 		crtPid,
@@ -53,7 +53,7 @@ func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T
 }
 
 func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ols, _ := NewOneListSharder(
 		crtPid,
@@ -73,7 +73,7 @@ func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t
 //------- Has
 
 func TestOneListSharder_HasNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
 	lnks := &oneListSharder{}
@@ -82,7 +82,7 @@ func TestOneListSharder_HasNotFound(t *testing.T) {
 }
 
 func TestOneListSharder_HasEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := make([]peer.ID, 0)
 	lnks := &oneListSharder{}
@@ -91,7 +91,7 @@ func TestOneListSharder_HasEmpty(t *testing.T) {
 }
 
 func TestOneListSharder_HasFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
 	lnks := &oneListSharder{}
@@ -100,7 +100,7 @@ func TestOneListSharder_HasFound(t *testing.T) {
 }
 
 func TestOneListSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()

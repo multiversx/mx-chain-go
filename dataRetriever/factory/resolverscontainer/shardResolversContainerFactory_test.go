@@ -91,7 +91,7 @@ func createTriesHolderForShard() state.TriesHolder {
 //------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ShardCoordinator = nil
@@ -102,7 +102,7 @@ func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testi
 }
 
 func TestNewShardResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = nil
@@ -113,7 +113,7 @@ func TestNewShardResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewShardResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Store = nil
@@ -124,7 +124,7 @@ func TestNewShardResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewShardResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Marshalizer = nil
@@ -135,7 +135,7 @@ func TestNewShardResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T)
 }
 
 func TestNewShardResolversContainerFactory_NilMarshalizerAndSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Marshalizer = nil
@@ -147,7 +147,7 @@ func TestNewShardResolversContainerFactory_NilMarshalizerAndSizeShouldErr(t *tes
 }
 
 func TestNewShardResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.DataPools = nil
@@ -158,7 +158,7 @@ func TestNewShardResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewShardResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Uint64ByteSliceConverter = nil
@@ -169,7 +169,7 @@ func TestNewShardResolversContainerFactory_NilUint64SliceConverterShouldErr(t *t
 }
 
 func TestNewShardResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.DataPacker = nil
@@ -180,7 +180,7 @@ func TestNewShardResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) 
 }
 
 func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.TriesContainer = nil
@@ -191,7 +191,7 @@ func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing
 }
 
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
@@ -204,7 +204,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 //------- Create
 
 func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createStubTopicMessageHandlerForShard("", factory.TransactionTopic)
@@ -217,7 +217,7 @@ func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testin
 }
 
 func TestShardResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createStubTopicMessageHandlerForShard("", factory.ShardBlocksTopic)
@@ -230,7 +230,7 @@ func TestShardResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testi
 }
 
 func TestShardResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createStubTopicMessageHandlerForShard("", factory.MiniBlocksTopic)
@@ -243,7 +243,7 @@ func TestShardResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t
 }
 
 func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createStubTopicMessageHandlerForShard("", factory.AccountTrieNodesTopic)
@@ -256,7 +256,7 @@ func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t 
 }
 
 func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
@@ -268,7 +268,7 @@ func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 }
 
 func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	noOfShards := 4
 

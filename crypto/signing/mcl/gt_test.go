@@ -9,7 +9,7 @@ import (
 )
 
 func TestGroupGT_String(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grGT := &groupGT{}
 
@@ -18,7 +18,7 @@ func TestGroupGT_String(t *testing.T) {
 }
 
 func TestGroupGT_ScalarLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grGT := &groupGT{}
 
@@ -27,7 +27,7 @@ func TestGroupGT_ScalarLen(t *testing.T) {
 }
 
 func TestGroupGT_PointLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grGT := &groupGT{}
 
@@ -36,7 +36,7 @@ func TestGroupGT_PointLen(t *testing.T) {
 }
 
 func TestGroupGT_CreatePoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grGT := &groupGT{}
 
@@ -50,7 +50,7 @@ func TestGroupGT_CreatePoint(t *testing.T) {
 }
 
 func TestGroupGT_CreateScalar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grGT := &groupGT{}
 
@@ -65,7 +65,7 @@ func TestGroupGT_CreateScalar(t *testing.T) {
 }
 
 func TestGroupGT_CreatePointForScalar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -87,7 +87,7 @@ func TestGroupGT_CreatePointForScalar(t *testing.T) {
 }
 
 func TestGroupGT_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var grGT *groupGT
 

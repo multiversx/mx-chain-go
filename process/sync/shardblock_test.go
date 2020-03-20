@@ -197,7 +197,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 //------- NewShardBootstrap
 
 func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.PoolsHolder = nil
@@ -209,7 +209,7 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	pools := createMockPools()
@@ -225,7 +225,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	pools := createMockPools()
@@ -241,7 +241,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 }
 
 func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.Store = nil
@@ -253,7 +253,7 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.ChainHandler = nil
@@ -265,7 +265,7 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.Rounder = nil
@@ -277,7 +277,7 @@ func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.BlockProcessor = nil
@@ -289,7 +289,7 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.Hasher = nil
@@ -301,7 +301,7 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.Marshalizer = nil
@@ -313,7 +313,7 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.ForkDetector = nil
@@ -325,7 +325,7 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.RequestHandler = nil
@@ -337,7 +337,7 @@ func TestNewShardBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.ShardCoordinator = nil
@@ -349,7 +349,7 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.Accounts = nil
@@ -361,7 +361,7 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.BlackListHandler = nil
@@ -373,7 +373,7 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -412,7 +412,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 //------- processing
 
 func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -464,7 +464,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 }
 
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -501,7 +501,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 }
 
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -557,7 +557,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 }
 
 func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -593,7 +593,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 }
 
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -691,7 +691,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 }
 
 func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -764,7 +764,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 }
 
 func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -845,7 +845,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 }
 
 func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -867,7 +867,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndR
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -893,7 +893,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 }
 
 func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -921,7 +921,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testi
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -954,7 +954,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1024,7 +1024,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 }
 
 func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1096,7 +1096,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1115,7 +1115,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1149,7 +1149,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1172,7 +1172,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 //------- testing received headers
 
 func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1230,7 +1230,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 //------- RollBack
 
 func TestBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1241,7 +1241,7 @@ func TestBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 }
 
 func TestBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1258,7 +1258,7 @@ func TestBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 }
 
 func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1297,7 +1297,7 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 }
 
 func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1442,7 +1442,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 }
 
 func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1594,7 +1594,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 //------- GetTxBodyHavingHash
 
 func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1629,7 +1629,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 }
 
 func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySlice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1660,7 +1660,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 }
 
 func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1696,7 +1696,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 }
 
 func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
@@ -1713,7 +1713,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 }
 
 func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
@@ -1761,7 +1761,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 }
 
 func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 
@@ -1793,7 +1793,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 }
 
 func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 

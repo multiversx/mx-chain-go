@@ -35,7 +35,7 @@ func createStringPeersShardResolver() *mock.PeerShardResolverStub {
 }
 
 func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := NewListsSharder(
 		nil,
@@ -50,7 +50,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 }
 
 func TestNewListsSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
@@ -65,7 +65,7 @@ func TestNewListsSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 }
 
 func TestNewListsSharder_InvalidMaxIntraShardShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
@@ -80,7 +80,7 @@ func TestNewListsSharder_InvalidMaxIntraShardShouldErr(t *testing.T) {
 }
 
 func TestNewListsSharder_InvalidMaxCrossShardShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
@@ -95,7 +95,7 @@ func TestNewListsSharder_InvalidMaxCrossShardShouldErr(t *testing.T) {
 }
 
 func TestNewListsSharder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
@@ -112,7 +112,7 @@ func TestNewListsSharder_ShouldWork(t *testing.T) {
 //------- ComputeEvictionList
 
 func TestListsSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
@@ -131,7 +131,7 @@ func TestListsSharder_ComputeEvictionListNotReachedIntraShardShouldRetEmpty(t *t
 }
 
 func TestListsSharder_ComputeEvictionListNotReachedCrossShardShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
@@ -150,7 +150,7 @@ func TestListsSharder_ComputeEvictionListNotReachedCrossShardShouldRetEmpty(t *t
 }
 
 func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
@@ -170,7 +170,7 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 }
 
 func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxPeerCount := 4
 	ls, _ := NewListsSharder(
@@ -197,7 +197,7 @@ func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing
 //------- Has
 
 func TestListsSharder_HasNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
 	ls := &listsSharder{}
@@ -206,7 +206,7 @@ func TestListsSharder_HasNotFound(t *testing.T) {
 }
 
 func TestListsSharder_HasEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := make([]peer.ID, 0)
 	lks := &listsSharder{}
@@ -215,7 +215,7 @@ func TestListsSharder_HasEmpty(t *testing.T) {
 }
 
 func TestListsSharder_HasFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []peer.ID{"pid1", "pid2", "pid3"}
 	lks := &listsSharder{}
@@ -226,7 +226,7 @@ func TestListsSharder_HasFound(t *testing.T) {
 //------- computeDistance
 
 func TestComputeDistanceByCountingBits(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
@@ -237,7 +237,7 @@ func TestComputeDistanceByCountingBits(t *testing.T) {
 }
 
 func TestComputeDistanceLog2Based(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
@@ -248,7 +248,7 @@ func TestComputeDistanceLog2Based(t *testing.T) {
 }
 
 func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lks, _ := NewListsSharder(
 		createStringPeersShardResolver(),
@@ -264,7 +264,7 @@ func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 }
 
 func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lks, _ := NewListsSharder(
 		createStringPeersShardResolver(),

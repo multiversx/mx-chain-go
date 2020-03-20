@@ -8,7 +8,7 @@ import (
 )
 
 func TestAddress_isSmartContractAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	address, _ := hex.DecodeString("12345")
 	assert.False(t, IsSmartContractAddress(address))
@@ -24,7 +24,7 @@ func TestAddress_isSmartContractAddress(t *testing.T) {
 }
 
 func TestAddress_IsMetachainIdentifier(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := make([]byte, 0)
 	assert.False(t, IsMetachainIdentifier(identifier))
@@ -37,7 +37,7 @@ func TestAddress_IsMetachainIdentifier(t *testing.T) {
 }
 
 func TestIsSmartContractOnMetachain_ScAddressTooShortShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier, _ := hex.DecodeString("ff")
 	scAddress, _ := hex.DecodeString("000000000000eb3a1")
@@ -45,7 +45,7 @@ func TestIsSmartContractOnMetachain_ScAddressTooShortShouldReturnFalse(t *testin
 }
 
 func TestIsSmartContractOnMetachain_IdentifierNotMetaShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier, _ := hex.DecodeString("aa")
 	scAddress, _ := hex.DecodeString("00000000000000000000000000000022cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -53,7 +53,7 @@ func TestIsSmartContractOnMetachain_IdentifierNotMetaShouldReturnFalse(t *testin
 }
 
 func TestIsSmartContractOnMetachain_AddressIsNotSCShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier, _ := hex.DecodeString("ff")
 	scAddress, _ := hex.DecodeString("000000000001000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -61,7 +61,7 @@ func TestIsSmartContractOnMetachain_AddressIsNotSCShouldReturnFalse(t *testing.T
 }
 
 func TestIsSmartContractOnMetachain_ShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier, _ := hex.DecodeString("ff")
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -69,7 +69,7 @@ func TestIsSmartContractOnMetachain_ShouldReturnFalse(t *testing.T) {
 }
 
 func TestIsSmartContractOnMetachain_ShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier, _ := hex.DecodeString("ff")
 	scAddress, _ := hex.DecodeString("00000000000000000000000000000022cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -77,7 +77,7 @@ func TestIsSmartContractOnMetachain_ShouldReturnTrue(t *testing.T) {
 }
 
 func TestGetVMType_AddressTooShort(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	scAddress, _ := hex.DecodeString("0003a1")
 	res := GetVMType(scAddress)
@@ -86,7 +86,7 @@ func TestGetVMType_AddressTooShort(t *testing.T) {
 }
 
 func TestGetVMTypeShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expRes, _ := hex.DecodeString("beaf")
 	scAddress, _ := hex.DecodeString("0000000000000000beaf00000000000022cd8429ce92f8973bba2a9fb51e0eb3a1")

@@ -606,7 +606,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 }
 
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -633,7 +633,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 }
 
 func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -663,7 +663,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 }
 
 func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -695,7 +695,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 }
 
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedHash := []byte("expected hash")
 	n, _ := node.NewNode(
@@ -737,7 +737,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 }
 
 func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mes := &mock.MessengerStub{}
 	marshalizer := &mock.MarshalizerFake{}
@@ -904,7 +904,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 //------- StartHeartbeat
 
 func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -923,7 +923,7 @@ func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -939,7 +939,7 @@ func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -955,7 +955,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -971,7 +971,7 @@ func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -987,7 +987,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode()
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1003,7 +1003,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 }
 
 func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	messageProc := &mock.HeaderResolverStub{}
 	n, _ := node.NewNode()
@@ -1013,7 +1013,7 @@ func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
 }
 
 func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	messageProc := &mock.HeaderResolverStub{}
 	n, _ := node.NewNode(
@@ -1030,7 +1030,7 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 }
 
 func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localError := errors.New("error")
 	messageProc := &mock.HeaderResolverStub{}
@@ -1054,7 +1054,7 @@ func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
 }
 
 func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(node.WithShardCoordinator(&mock.ShardCoordinatorMock{}))
 
@@ -1063,7 +1063,7 @@ func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
 }
 
 func TestNode_ValidatorStatisticsApi(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	initialPubKeys := make(map[uint32][]string)
 	keys := [][]string{{"key0"}, {"key1"}, {"key2"}}
@@ -1114,7 +1114,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithSingleSigner(&mock.SinglesignMock{}),
@@ -1156,7 +1156,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -1199,7 +1199,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
@@ -1232,7 +1232,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
@@ -1272,7 +1272,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
@@ -1321,7 +1321,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 }
 
 func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasBroadcast := atomic.Value{}
 	wasBroadcast.Store(false)
@@ -1395,7 +1395,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{
@@ -1459,7 +1459,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 }
 
 func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{
@@ -1526,7 +1526,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 }
 
 func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var registeredHandler p2p.MessageProcessor
 
@@ -1603,7 +1603,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 }
 
 func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithBlockChain(&mock.ChainHandlerStub{
@@ -1623,7 +1623,7 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 }
 
 func TestStartConsensus_NilSyncTimer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1645,7 +1645,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1725,7 +1725,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1769,7 +1769,7 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1818,7 +1818,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 }
 
 func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1864,7 +1864,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 }
 
 func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1895,7 +1895,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -1984,7 +1984,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -2072,7 +2072,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 }
 
 func TestStartConsensus_ShardBootstrapper(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainHandler := &mock.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
@@ -2190,7 +2190,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 //------- GetAccount
 
 func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, _ := node.NewNode(
 		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
@@ -2203,7 +2203,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 }
 
 func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -2222,7 +2222,7 @@ func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
 }
 
 func TestNode_GetAccountAddressConverterFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -2247,7 +2247,7 @@ func TestNode_GetAccountAddressConverterFailsShouldErr(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -2270,7 +2270,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	accDB := &mock.AccountsStub{
@@ -2292,7 +2292,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accnt := &state.Account{
 		AccountData: state.AccountData{
@@ -2321,7 +2321,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 }
 
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
@@ -2346,7 +2346,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 }
 
 func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
@@ -2371,7 +2371,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 }
 
 func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
@@ -2396,7 +2396,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 }
 
 func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
@@ -2421,7 +2421,7 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 }
 
 func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerFake{}
 

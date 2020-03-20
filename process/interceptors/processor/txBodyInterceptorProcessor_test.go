@@ -39,7 +39,7 @@ func createInteceptedTxBlockBody(txBlockBody *block.Body) *interceptedBlocks.Int
 }
 
 func TestNewTxBodyInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tbip, err := processor.NewTxBodyInterceptorProcessor(nil)
 
@@ -48,7 +48,7 @@ func TestNewTxBodyInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewTxBodyInterceptorProcessor_NilMiniblocksShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxBodyArgument()
 	arg.MiniblockCache = nil
@@ -59,7 +59,7 @@ func TestNewTxBodyInterceptorProcessor_NilMiniblocksShouldErr(t *testing.T) {
 }
 
 func TestNewTxBodyInterceptorProcessor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxBodyArgument()
 	arg.Marshalizer = nil
@@ -70,7 +70,7 @@ func TestNewTxBodyInterceptorProcessor_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewTxBodyInterceptorProcessor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxBodyArgument()
 	arg.Hasher = nil
@@ -81,7 +81,7 @@ func TestNewTxBodyInterceptorProcessor_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewTxBodyInterceptorProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxBodyArgument()
 	arg.ShardCoordinator = nil
@@ -92,7 +92,7 @@ func TestNewTxBodyInterceptorProcessor_NilShardCoordinatorShouldErr(t *testing.T
 }
 
 func TestNewTxBodyInterceptorProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tbip, err := processor.NewTxBodyInterceptorProcessor(createMockTxBodyArgument())
 
@@ -103,7 +103,7 @@ func TestNewTxBodyInterceptorProcessor_ShouldWork(t *testing.T) {
 //------- Validate
 
 func TestTxBodyInterceptorProcessor_ValidateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(createMockTxBodyArgument())
 
@@ -113,7 +113,7 @@ func TestTxBodyInterceptorProcessor_ValidateShouldWork(t *testing.T) {
 //------- Save
 
 func TestTxBodyInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(createMockTxBodyArgument())
 
@@ -123,7 +123,7 @@ func TestTxBodyInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 }
 
 func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxBodyArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
@@ -140,7 +140,7 @@ func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
 }
 
 func TestTxBodyInterceptorProcessor_SaveMiniblocksNotForCurrentShardShouldNotAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBlockBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -174,7 +174,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksNotForCurrentShardShouldNotAdd
 }
 
 func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentShard := uint32(0)
 	txBlockBody := &block.Body{
@@ -217,7 +217,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing
 }
 
 func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentShard := uint32(0)
 	txBlockBody := &block.Body{
@@ -260,7 +260,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testi
 }
 
 func TestTxBodyInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentShard := uint32(0)
 	txBlockBody := &block.Body{
@@ -303,7 +303,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t 
 //------- IsInterfaceNil
 
 func TestTxBodyInterceptorProcessor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var tbip *processor.TxBodyInterceptorProcessor
 

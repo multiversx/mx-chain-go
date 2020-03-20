@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewLogOutputSubject(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 	assert.NotNil(t, los)
@@ -22,7 +22,7 @@ func TestNewLogOutputSubject(t *testing.T) {
 //------- AddObserver
 
 func TestLogOutputSubject_AddObserverNilWriterShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -32,7 +32,7 @@ func TestLogOutputSubject_AddObserverNilWriterShouldError(t *testing.T) {
 }
 
 func TestLogOutputSubject_AddObserverNilFormatterShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -42,7 +42,7 @@ func TestLogOutputSubject_AddObserverNilFormatterShouldError(t *testing.T) {
 }
 
 func TestLogOutputSubject_AddObserverShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -57,7 +57,7 @@ func TestLogOutputSubject_AddObserverShouldWork(t *testing.T) {
 //------- Output
 
 func TestLogOutputSubject_OutputNoObserversShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -65,7 +65,7 @@ func TestLogOutputSubject_OutputNoObserversShouldDoNothing(t *testing.T) {
 }
 
 func TestLogOutputSubject_OutputShouldCallFormatterAndWriter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var formatterCalled = int32(0)
 	var writerCalled = int32(0)
@@ -92,7 +92,7 @@ func TestLogOutputSubject_OutputShouldCallFormatterAndWriter(t *testing.T) {
 }
 
 func TestLogOutputSubject_OutputCalledConcurrentShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var formatterCalled = int32(0)
 	var writerCalled = int32(0)
@@ -132,7 +132,7 @@ func TestLogOutputSubject_OutputCalledConcurrentShouldWork(t *testing.T) {
 //------- RemoveObserver
 
 func TestLogOutputSubject_RemoveObserverNilWriterShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -142,7 +142,7 @@ func TestLogOutputSubject_RemoveObserverNilWriterShouldError(t *testing.T) {
 }
 
 func TestLogOutputSubject_RemoveObserverEmptyListShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 
@@ -152,7 +152,7 @@ func TestLogOutputSubject_RemoveObserverEmptyListShouldError(t *testing.T) {
 }
 
 func TestLogOutputSubject_RemoveObserverWriterNotFoundShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
@@ -164,7 +164,7 @@ func TestLogOutputSubject_RemoveObserverWriterNotFoundShouldError(t *testing.T) 
 }
 
 func TestLogOutputSubject_RemoveObserverOneElementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 	w := &mock.WriterStub{}
@@ -179,7 +179,7 @@ func TestLogOutputSubject_RemoveObserverOneElementShouldWork(t *testing.T) {
 }
 
 func TestLogOutputSubject_RemoveObserverLastElementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
@@ -195,7 +195,7 @@ func TestLogOutputSubject_RemoveObserverLastElementShouldWork(t *testing.T) {
 }
 
 func TestLogOutputSubject_RemoveObserverMiddleElementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
@@ -212,7 +212,7 @@ func TestLogOutputSubject_RemoveObserverMiddleElementShouldWork(t *testing.T) {
 }
 
 func TestLogOutputSubject_ClearObservers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los := logger.NewLogOutputSubject()
 

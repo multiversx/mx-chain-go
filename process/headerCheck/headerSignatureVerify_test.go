@@ -25,7 +25,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 }
 
 func TestNewHeaderSigVerifier_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdrSigVerifier, err := NewHeaderSigVerifier(nil)
 
@@ -34,7 +34,7 @@ func TestNewHeaderSigVerifier_NilArgumentsShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.Hasher = nil
@@ -45,7 +45,7 @@ func TestNewHeaderSigVerifier_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.KeyGen = nil
@@ -56,7 +56,7 @@ func TestNewHeaderSigVerifier_NilKeyGenShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.Marshalizer = nil
@@ -67,7 +67,7 @@ func TestNewHeaderSigVerifier_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilMultiSigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.MultiSigVerifier = nil
@@ -78,7 +78,7 @@ func TestNewHeaderSigVerifier_NilMultiSigShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.NodesCoordinator = nil
@@ -89,7 +89,7 @@ func TestNewHeaderSigVerifier_NilNodesCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_NilSingleSigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	args.SingleSigVerifier = nil
@@ -100,7 +100,7 @@ func TestNewHeaderSigVerifier_NilSingleSigShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderSigVerifier_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, err := NewHeaderSigVerifier(args)
@@ -111,7 +111,7 @@ func TestNewHeaderSigVerifier_OkValsShouldWork(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -122,7 +122,7 @@ func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	wasCalled := false
@@ -156,7 +156,7 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	wasCalled := false
@@ -191,7 +191,7 @@ func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testi
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -202,7 +202,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldEr
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	count := 0
@@ -237,7 +237,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenVa
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	count := 0
@@ -278,7 +278,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	count := 0
@@ -312,7 +312,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -323,7 +323,7 @@ func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifySignatureBlockProposerSigMissingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -336,7 +336,7 @@ func TestHeaderSigVerifier_VerifySignatureBlockProposerSigMissingShouldErr(t *te
 }
 
 func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -349,7 +349,7 @@ func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
@@ -371,7 +371,7 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
@@ -393,7 +393,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 }
 
 func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	args := createHeaderSigVerifierArgs()

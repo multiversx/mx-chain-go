@@ -17,14 +17,14 @@ import (
 //------- NewPlainAddressConverter
 
 func TestNewPlainAddressConverter_NegativeSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := addressConverters.NewPlainAddressConverter(-1, "")
 	assert.Equal(t, state.ErrNegativeValue, err)
 }
 
 func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -34,7 +34,7 @@ func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
 //------- CreateAddressFromPublicKeyBytes
 
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesNilBytesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -43,7 +43,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesNilBytesShouldErr(
 }
 
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesLenLowerAddrlenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -56,7 +56,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesLenLowerAddrlenSho
 }
 
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -73,7 +73,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsShouldWork(t
 }
 
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -92,7 +92,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsTrimShouldWo
 //------- ConvertToHex
 
 func TestPlainAddressConverter_ConvertToHexNilAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -102,7 +102,7 @@ func TestPlainAddressConverter_ConvertToHexNilAddressShouldErr(t *testing.T) {
 }
 
 func TestPlainAddressConverter_ConvertToHexOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -117,7 +117,7 @@ func TestPlainAddressConverter_ConvertToHexOkValsShouldWork(t *testing.T) {
 //------- CreateAddressFromHex
 
 func TestPlainAddressConverter_CreateAddressFromHexEmptyHexAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -127,7 +127,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyHexAddressShouldErr(t *t
 }
 
 func TestPlainAddressConverter_CreateAddressFromHexEmptyBadLengthShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -137,7 +137,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyBadLengthShouldErr(t *te
 }
 
 func TestPlainAddressConverter_CreateAddressFromHexEmptyBadStringShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
@@ -152,7 +152,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyBadStringShouldErr(t *te
 }
 
 func TestPlainAddressConverter_FromHexAddressValidDataWithPrefixShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -172,7 +172,7 @@ func TestPlainAddressConverter_FromHexAddressValidDataWithPrefixShouldWork(t *te
 //------- PrepareAddressBytes
 
 func TestPlainAddressConverter_PrepareAddressBytesNilAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -182,7 +182,7 @@ func TestPlainAddressConverter_PrepareAddressBytesNilAddrShouldErr(t *testing.T)
 }
 
 func TestPlainAddressConverter_PrepareAddressBytesEmptyAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -192,7 +192,7 @@ func TestPlainAddressConverter_PrepareAddressBytesEmptyAddrShouldErr(t *testing.
 }
 
 func TestPlainAddressConverter_PrepareAddressBytesWrongSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -202,7 +202,7 @@ func TestPlainAddressConverter_PrepareAddressBytesWrongSizeShouldErr(t *testing.
 }
 
 func TestPlainAddressConverter_PrepareAddressBytesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -218,7 +218,7 @@ func TestPlainAddressConverter_PrepareAddressBytesOkValsShouldWork(t *testing.T)
 }
 
 func TestPlainAddressConverter_FromBech32AddressValidDataWithPrefixShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
@@ -243,7 +243,7 @@ func TestPlainAddressConverter_FromBech32AddressValidDataWithPrefixShouldWork(t 
 }
 
 func TestPlainAddressConverter_AddressLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressLen := 128
 	ac, _ := addressConverters.NewPlainAddressConverter(addressLen, "0x")

@@ -327,7 +327,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	netw := &mock.NetworkStub{}
 

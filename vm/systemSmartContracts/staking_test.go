@@ -45,7 +45,7 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 }
 
 func TestNewStakingSmartContract_NilStakeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	args.MinStakeValue = nil
@@ -56,7 +56,7 @@ func TestNewStakingSmartContract_NilStakeValueShouldErr(t *testing.T) {
 }
 
 func TestNewStakingSmartContract_NilSystemEIShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	args.Eei = nil
@@ -67,7 +67,7 @@ func TestNewStakingSmartContract_NilSystemEIShouldErr(t *testing.T) {
 }
 
 func TestNewStakingSmartContract_NilStakingAccessAddrEIShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = nil
@@ -78,7 +78,7 @@ func TestNewStakingSmartContract_NilStakingAccessAddrEIShouldErr(t *testing.T) {
 }
 
 func TestNewStakingSmartContract_NilJailAccessAddrEIShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	args.JailAccessAddr = nil
@@ -89,7 +89,7 @@ func TestNewStakingSmartContract_NilJailAccessAddrEIShouldErr(t *testing.T) {
 }
 
 func TestNewStakingSmartContract_NegativeStakeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	args.MinStakeValue = big.NewInt(-100)
@@ -100,7 +100,7 @@ func TestNewStakingSmartContract_NegativeStakeValueShouldErr(t *testing.T) {
 }
 
 func TestNewStakingSmartContract(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockStakingScArguments()
 	stakingSmartContract, err := NewStakingSmartContract(args)
@@ -110,7 +110,7 @@ func TestNewStakingSmartContract(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteInit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
@@ -154,7 +154,7 @@ func TestStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
@@ -176,7 +176,7 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -196,7 +196,7 @@ func TestStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteStakeRegistrationDataStakedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -217,7 +217,7 @@ func TestStakingSC_ExecuteStakeRegistrationDataStakedShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -238,7 +238,7 @@ func TestStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	stakerAddress := big.NewInt(100)
@@ -282,7 +282,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -299,7 +299,7 @@ func TestStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -319,7 +319,7 @@ func TestStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakedRegistrationData := StakedData{
 		RegisterNonce: 0,
@@ -349,7 +349,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedCallerAddress := []byte("caller")
 	wrongCallerAddress := []byte("wrongCaller")
@@ -382,7 +382,7 @@ func TestStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	callerAddress := []byte("caller")
 
@@ -431,7 +431,7 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -453,7 +453,7 @@ func TestStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -486,7 +486,7 @@ func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	unstakedNonce := uint64(10)
 	registrationData := StakedData{
@@ -522,7 +522,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnBound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	unBondPeriod := uint64(100)
 	unstakedNonce := uint64(10)
@@ -566,7 +566,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -583,7 +583,7 @@ func TestStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteSlashArgumentsNotOkShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -604,7 +604,7 @@ func TestStakingSC_ExecuteSlashArgumentsNotOkShouldErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteSlashUnmarhsalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -626,7 +626,7 @@ func TestStakingSC_ExecuteSlashUnmarhsalErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -655,7 +655,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei := &mock.SystemEIStub{}
@@ -684,7 +684,7 @@ func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	// Preparation
 	unBondPeriod := uint64(100)
@@ -755,7 +755,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
@@ -772,7 +772,7 @@ func TestStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 }
 
 func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
@@ -790,7 +790,7 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 }
 
 func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
@@ -842,7 +842,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 }
 
 func TestStakingSc_ExecuteNilArgs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
@@ -862,7 +862,7 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 // 2 - will execute function stake and after that will call function isStaked and will return Ok
 // 3 - will execute function unStake and after that will cal function isStaked and will return UserError
 func TestStakingSc_ExecuteIsStaked(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
@@ -955,7 +955,7 @@ func TestStakingSc_SetStakeValueForCurrentEpoch(t *testing.T) {
 // 6 -- will try to do unJail with wrong access address should not work
 // 7 -- will do unJail with correct parameters and should work and after that stakeValue should be 999
 func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}

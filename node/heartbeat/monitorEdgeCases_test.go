@@ -53,7 +53,7 @@ const twoHundredSeconds = 200
 // o: |___________|.........|___________
 //    0           20        100   150   200
 func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 	timer := mock.NewMockTimer()
@@ -86,7 +86,7 @@ func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorOnline(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -129,7 +129,7 @@ func TestMonitor_ObserverGapValidatorOnline(t *testing.T) {
 // o: |_____________________
 //    0    10    60  61   70
 func TestMonitor_ObserverGapValidatorActiveUnitlMaxPeriodEnds(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -164,7 +164,7 @@ func TestMonitor_ObserverGapValidatorActiveUnitlMaxPeriodEnds(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorPartlyOnline1(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -209,7 +209,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline1(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   120   200
 func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -255,7 +255,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   160   200
 func TestMonitor_ObserverGapValidatorPartlyOnline3(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -301,7 +301,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline3(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorPartlyOnline4(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -344,7 +344,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline4(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorPartlyOnline5(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -389,7 +389,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline5(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorPartlyOnline6(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 
@@ -429,7 +429,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline6(t *testing.T) {
 // o: |___________|.........|___________
 //    0    10    20        100   150   200
 func TestMonitor_ObserverGapValidatorPartlyOnline7(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
 

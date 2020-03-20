@@ -18,7 +18,7 @@ func createPeerDistance(distance int) *PeerDistance {
 }
 
 func TestPeerDistances_Sort(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pid4 := createPeerDistance(4)
 	pid0 := createPeerDistance(0)

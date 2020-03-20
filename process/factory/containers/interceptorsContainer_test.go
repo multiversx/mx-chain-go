@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -21,7 +21,7 @@ func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestInterceptorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -32,7 +32,7 @@ func TestInterceptorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestInterceptorsContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -42,7 +42,7 @@ func TestInterceptorsContainer_AddNilShouldErr(t *testing.T) {
 }
 
 func TestInterceptorsContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -55,7 +55,7 @@ func TestInterceptorsContainer_AddShouldWork(t *testing.T) {
 //------- AddMultiple
 
 func TestInterceptorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -68,7 +68,7 @@ func TestInterceptorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T)
 }
 
 func TestInterceptorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -81,7 +81,7 @@ func TestInterceptorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 }
 
 func TestInterceptorsContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -97,7 +97,7 @@ func TestInterceptorsContainer_AddMultipleShouldWork(t *testing.T) {
 //------- Get
 
 func TestInterceptorsContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -113,7 +113,7 @@ func TestInterceptorsContainer_GetNotFoundShouldErr(t *testing.T) {
 }
 
 func TestInterceptorsContainer_GetWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -127,7 +127,7 @@ func TestInterceptorsContainer_GetWrongTypeShouldErr(t *testing.T) {
 }
 
 func TestInterceptorsContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -144,7 +144,7 @@ func TestInterceptorsContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestInterceptorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -161,7 +161,7 @@ func TestInterceptorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T
 }
 
 func TestInterceptorsContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -181,7 +181,7 @@ func TestInterceptorsContainer_ReplaceShouldWork(t *testing.T) {
 //------- Remove
 
 func TestInterceptorsContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 
@@ -200,7 +200,7 @@ func TestInterceptorsContainer_RemoveShouldWork(t *testing.T) {
 //------- Len
 
 func TestInterceptorsContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewInterceptorsContainer()
 

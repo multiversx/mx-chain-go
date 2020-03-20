@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetUint64_NotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := GetUint64(float32(100))
 
@@ -15,7 +15,7 @@ func TestGetUint64_NotWork(t *testing.T) {
 }
 
 func TestGetUint64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedValue := uint64(100)
 	value := GetUint64(float64(100))

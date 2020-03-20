@@ -96,7 +96,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 //------- NewInterceptedTransaction
 
 func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		nil,
@@ -115,7 +115,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -134,7 +134,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -153,7 +153,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -172,7 +172,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -191,7 +191,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -210,7 +210,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -229,7 +229,7 @@ func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -248,7 +248,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
@@ -267,7 +267,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 
@@ -292,7 +292,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
 		[]byte("{\"value\": \"0\"}"),
@@ -315,7 +315,7 @@ func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -338,7 +338,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 //------- CheckValidity
 
 func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -358,7 +358,7 @@ func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T)
 }
 
 func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -378,7 +378,7 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 }
 
 func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -398,7 +398,7 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 }
 
 func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -419,7 +419,7 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 }
 
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -439,7 +439,7 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 }
 
 func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasLimit := uint64(3)
 	gasPrice := uint64(4)
@@ -467,7 +467,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 }
 
 func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -487,7 +487,7 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 }
 
 func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -507,7 +507,7 @@ func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) 
 }
 
 func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -527,7 +527,7 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 }
 
 func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -549,7 +549,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 }
 
 func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	senderAddressInShard1 := make([]byte, 32)
 	senderAddressInShard1[31] = 1
@@ -604,7 +604,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 }
 
 func TestInterceptedTransaction_GetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 
@@ -626,7 +626,7 @@ func TestInterceptedTransaction_GetNonce(t *testing.T) {
 }
 
 func TestInterceptedTransaction_SenderShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
@@ -646,7 +646,7 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 }
 
 func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
@@ -674,7 +674,7 @@ func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 }
 
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
@@ -696,7 +696,7 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var txi *transaction.InterceptedTransaction
 

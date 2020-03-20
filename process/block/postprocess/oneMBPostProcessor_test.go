@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewOneMBPostProcessor_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
 		nil,
@@ -32,7 +32,7 @@ func TestNewOneMBPostProcessor_NilHasher(t *testing.T) {
 }
 
 func TestNewOneMBPostProcessor_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -48,7 +48,7 @@ func TestNewOneMBPostProcessor_NilMarshalizer(t *testing.T) {
 }
 
 func TestNewOneMBPostProcessor_NilShardCoord(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -64,7 +64,7 @@ func TestNewOneMBPostProcessor_NilShardCoord(t *testing.T) {
 }
 
 func TestNewOneMBPostProcessor_NilStorer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -80,7 +80,7 @@ func TestNewOneMBPostProcessor_NilStorer(t *testing.T) {
 }
 
 func TestNewOneMBPostProcessor_OK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -96,7 +96,7 @@ func TestNewOneMBPostProcessor_OK(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_CreateAllInterMiniBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -112,7 +112,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocks(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_CreateAllInterMiniBlocksOneMinBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -135,7 +135,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocksOneMinBlock(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_VerifyNilBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -151,7 +151,7 @@ func TestOneMBPostProcessor_VerifyNilBody(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -195,7 +195,7 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_VerifyNilMiniBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},
@@ -218,7 +218,7 @@ func TestOneMBPostProcessor_VerifyNilMiniBlocks(t *testing.T) {
 }
 
 func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
 		&mock.HasherMock{},

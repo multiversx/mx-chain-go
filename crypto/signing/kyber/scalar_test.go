@@ -11,7 +11,7 @@ import (
 )
 
 func TestKyberScalar_EqualNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().Zero()
@@ -23,7 +23,7 @@ func TestKyberScalar_EqualNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_EqualInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().Zero()
@@ -35,7 +35,7 @@ func TestKyberScalar_EqualInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_EqualTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -47,7 +47,7 @@ func TestKyberScalar_EqualTrue(t *testing.T) {
 }
 
 func TestKyberScalar_EqualFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -59,7 +59,7 @@ func TestKyberScalar_EqualFalse(t *testing.T) {
 }
 
 func TestKyberScalar_SetNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().One()
@@ -69,7 +69,7 @@ func TestKyberScalar_SetNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_SetInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -80,7 +80,7 @@ func TestKyberScalar_SetInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_SetOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -93,7 +93,7 @@ func TestKyberScalar_SetOK(t *testing.T) {
 }
 
 func TestKyberScalar_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -105,7 +105,7 @@ func TestKyberScalar_Clone(t *testing.T) {
 }
 
 func TestKyberScalar_SetInt64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -124,7 +124,7 @@ func TestKyberScalar_SetInt64(t *testing.T) {
 }
 
 func TestKyberScalar_Zero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().Zero()
@@ -138,7 +138,7 @@ func TestKyberScalar_Zero(t *testing.T) {
 }
 
 func TestKyberScalar_AddNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().Zero()
@@ -149,7 +149,7 @@ func TestKyberScalar_AddNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_AddInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().Zero()
@@ -161,7 +161,7 @@ func TestKyberScalar_AddInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_AddOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -177,7 +177,7 @@ func TestKyberScalar_AddOK(t *testing.T) {
 }
 
 func TestKyberScalar_SubNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().Zero()
@@ -188,7 +188,7 @@ func TestKyberScalar_SubNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_SubInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().Zero()
@@ -200,7 +200,7 @@ func TestKyberScalar_SubInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_SubOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -217,7 +217,7 @@ func TestKyberScalar_SubOK(t *testing.T) {
 }
 
 func TestKyberScalar_Neg(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -232,7 +232,7 @@ func TestKyberScalar_Neg(t *testing.T) {
 }
 
 func TestKyberScalar_One(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -246,7 +246,7 @@ func TestKyberScalar_One(t *testing.T) {
 }
 
 func TestKyberScalar_MulNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().One()
@@ -257,7 +257,7 @@ func TestKyberScalar_MulNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_MulInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -269,7 +269,7 @@ func TestKyberScalar_MulInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_MulOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -285,7 +285,7 @@ func TestKyberScalar_MulOK(t *testing.T) {
 }
 
 func TestKyberScalar_DivNilParamShouldEr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar := suite.CreateScalar().One()
@@ -296,7 +296,7 @@ func TestKyberScalar_DivNilParamShouldEr(t *testing.T) {
 }
 
 func TestKyberScalar_DivInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -308,7 +308,7 @@ func TestKyberScalar_DivInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_DivOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -324,7 +324,7 @@ func TestKyberScalar_DivOK(t *testing.T) {
 }
 
 func TestKyberScalar_InvNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -335,7 +335,7 @@ func TestKyberScalar_InvNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_InvInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -347,7 +347,7 @@ func TestKyberScalar_InvInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_InvOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -367,7 +367,7 @@ func TestKyberScalar_InvOK(t *testing.T) {
 }
 
 func TestKyberScalar_PickNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -379,7 +379,7 @@ func TestKyberScalar_PickNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_PickOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 
@@ -395,7 +395,7 @@ func TestKyberScalar_PickOK(t *testing.T) {
 }
 
 func TestKyberScalar_SetBytesNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar()
@@ -406,7 +406,7 @@ func TestKyberScalar_SetBytesNilParamShouldErr(t *testing.T) {
 }
 
 func TestKyberScalar_SetBytesOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -425,7 +425,7 @@ func TestKyberScalar_SetBytesOK(t *testing.T) {
 }
 
 func TestKyberScalar_GetUnderlyingObj(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()
@@ -435,7 +435,7 @@ func TestKyberScalar_GetUnderlyingObj(t *testing.T) {
 }
 
 func TestKyberScalar_MarshalBinary(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	scalar1 := suite.CreateScalar().One()

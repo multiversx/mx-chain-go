@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewSoftwareVersionFactory_NilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	softwareVersionFactory, err := NewSoftwareVersionFactory(nil)
 
@@ -18,7 +18,7 @@ func TestNewSoftwareVersionFactory_NilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestSoftwareVersionFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	statusHandler := &mock.AppStatusHandlerStub{}
 	softwareVersionFactory, _ := NewSoftwareVersionFactory(statusHandler)

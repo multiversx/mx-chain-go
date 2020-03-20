@@ -15,7 +15,7 @@ import (
 )
 
 func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0, &ns.SimplePrioBitsSharder{})
 
@@ -24,7 +24,7 @@ func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T)
 }
 
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
@@ -33,7 +33,7 @@ func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 }
 
 func TestNewLibp2pConnectionMonitor_WithNilSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0, nil)
 
@@ -42,7 +42,7 @@ func TestNewLibp2pConnectionMonitor_WithNilSharderShouldWork(t *testing.T) {
 }
 
 func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconnect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chReconnectCalled := make(chan struct{}, 1)
 
@@ -78,7 +78,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 }
 
 func TestNewLibp2pConnectionMonitor_DefaultTriming(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0, &ns.SimplePrioBitsSharder{})
 
@@ -89,7 +89,7 @@ func TestNewLibp2pConnectionMonitor_DefaultTriming(t *testing.T) {
 }
 
 func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pauseCallCount := 0
 	resumeCallCount := 0
@@ -165,7 +165,7 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 }
 
 func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -190,7 +190,7 @@ func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
 }
 
 func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcm, _ := NewLibp2pConnectionMonitor(nil, 3, 10, &ns.SimplePrioBitsSharder{})
 
@@ -202,7 +202,7 @@ func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
 }
 
 func TestLibp2pConnectionMonitor_SetThresholdMinConnectedPeersNilNetwShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minConnPeers := 3
 	lcm, _ := NewLibp2pConnectionMonitor(nil, minConnPeers, 10, &ns.SimplePrioBitsSharder{})

@@ -19,7 +19,7 @@ import (
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	target, err := NewSCQueryService(nil, &mock.FeeHandlerStub{})
 
@@ -28,7 +28,7 @@ func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 }
 
 func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil)
 
@@ -37,7 +37,7 @@ func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
@@ -47,7 +47,7 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 }
 
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
@@ -64,7 +64,7 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 }
 
 func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
 
@@ -81,7 +81,7 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 }
 
 func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	funcName := "function"
 	scAddress := []byte(DummyScAddress)
@@ -130,7 +130,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 }
 
 func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	d := [][]byte{[]byte("90"), []byte("91")}
 
@@ -170,7 +170,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
@@ -206,7 +206,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 }
 
 func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	running := int32(0)
 
@@ -259,7 +259,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 }
 
 func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consumedGas := uint64(10000)
 	mockVM := &mock.VMExecutionHandlerStub{

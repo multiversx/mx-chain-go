@@ -10,7 +10,7 @@ import (
 )
 
 func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var numCalls uint32
 	boot := &baseBootstrap{
@@ -36,7 +36,7 @@ func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *
 }
 
 func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var numCalls uint32
 	boot := &baseBootstrap{

@@ -8,7 +8,7 @@ import (
 )
 
 func TestNilEpochHandler_Epoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nilEpoch := &nilEpochHandler{}
 

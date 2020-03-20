@@ -86,7 +86,7 @@ func TestPointGT_Set(t *testing.T) {
 }
 
 func TestPointGT_AddNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point := NewPointGT()
 	point2, err := point.Add(nil)
@@ -96,7 +96,7 @@ func TestPointGT_AddNilParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_AddInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point := NewPointGT()
 	point2 := &mock.PointMock{}
@@ -107,7 +107,7 @@ func TestPointGT_AddInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_AddOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 
@@ -134,7 +134,7 @@ func TestPointGT_AddOK(t *testing.T) {
 }
 
 func TestPointGT_SubNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pointGT := NewPointGT()
 	point2, err := pointGT.Sub(nil)
@@ -144,7 +144,7 @@ func TestPointGT_SubNilParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_SubInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pointGT := NewPointGT()
 	point2 := &mock.PointMock{}
@@ -155,7 +155,7 @@ func TestPointGT_SubInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_SubOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 
@@ -190,7 +190,7 @@ func TestPointGT_Neg(t *testing.T) {
 }
 
 func TestPointGT_MulNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point := NewPointGT()
 	res, err := point.Mul(nil)
@@ -200,7 +200,7 @@ func TestPointGT_MulNilParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_MulInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point := NewPointGT()
 	scalar := &mock.ScalarMock{}
@@ -211,7 +211,7 @@ func TestPointGT_MulInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestPointGT_MulOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 
@@ -229,7 +229,7 @@ func TestPointGT_MulOK(t *testing.T) {
 }
 
 func TestPointGT_PickOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 
@@ -243,7 +243,7 @@ func TestPointGT_PickOK(t *testing.T) {
 }
 
 func TestPointGT_GetUnderlyingObj(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point1 := NewPointGT()
 	p := point1.GetUnderlyingObj()
@@ -252,7 +252,7 @@ func TestPointGT_GetUnderlyingObj(t *testing.T) {
 }
 
 func TestPointGT_MarshalBinary(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	point1 := NewPointGT()
 	pointBytes, err := point1.MarshalBinary()
@@ -262,7 +262,7 @@ func TestPointGT_MarshalBinary(t *testing.T) {
 }
 
 func TestPointGT_UnmarshalBinary(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 	point1, _ := NewPointGT().Pick(stream)
@@ -277,7 +277,7 @@ func TestPointGT_UnmarshalBinary(t *testing.T) {
 }
 
 func TestPointGT_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var point *PointGT
 

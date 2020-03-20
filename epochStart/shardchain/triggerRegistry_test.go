@@ -43,7 +43,7 @@ func cloneTrigger(t *trigger) *trigger {
 }
 
 func TestTrigger_LoadStateAfterSave(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(5)
 	arguments := createMockShardEpochStartTriggerArguments()

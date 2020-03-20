@@ -9,7 +9,7 @@ import (
 )
 
 func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb := processedMb.NewProcessedMiniBlocks()
 
@@ -38,7 +38,7 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 }
 
 func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb := processedMb.NewProcessedMiniBlocks()
 
@@ -60,7 +60,7 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 }
 
 func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb := processedMb.NewProcessedMiniBlocks()
 

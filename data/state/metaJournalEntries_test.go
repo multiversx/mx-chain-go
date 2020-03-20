@@ -13,7 +13,7 @@ import (
 //------- MetaJournalEntryRound
 
 func TestNewetaJournalEntryRound_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewMetaJournalEntryRound(nil, 0)
 
@@ -22,7 +22,7 @@ func TestNewetaJournalEntryRound_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewetaJournalEntryRound_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryRound(accnt, 0)
 
@@ -31,7 +31,7 @@ func TestNewetaJournalEntryRound_ShouldWork(t *testing.T) {
 }
 
 func TestNewMetaJournalEntryRound_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	round := uint64(52)
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -45,7 +45,7 @@ func TestNewMetaJournalEntryRound_RevertOkValsShouldWork(t *testing.T) {
 //------- MetaJournalEntryMiniBlocksData
 
 func TestNewetaJournalEntryMiniBlocksData_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewMetaJournalEntryMiniBlocksData(nil, nil)
 
@@ -54,7 +54,7 @@ func TestNewetaJournalEntryMiniBlocksData_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewetaJournalEntryMiniBlocksData_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryMiniBlocksData(accnt, nil)
@@ -64,7 +64,7 @@ func TestNewetaJournalEntryMiniBlocksData_ShouldWork(t *testing.T) {
 }
 
 func TestNewMetaJournalEntryMiniBlocksData_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	miniBlocksData := make([]*state.MiniBlockData, 2)
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -78,7 +78,7 @@ func TestNewMetaJournalEntryMiniBlocksData_RevertOkValsShouldWork(t *testing.T) 
 //------- MetaJournalEntryTxCount
 
 func TestNewetaJournalEntryTxCount_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewMetaJournalEntryTxCount(nil, nil)
 
@@ -87,7 +87,7 @@ func TestNewetaJournalEntryTxCount_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewetaJournalEntryTxCount_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryTxCount(accnt, big.NewInt(0))
 
@@ -96,7 +96,7 @@ func TestNewetaJournalEntryTxCount_ShouldWork(t *testing.T) {
 }
 
 func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCount := big.NewInt(34)
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -110,7 +110,7 @@ func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
 //------- MetaJournalEntryShardRootHash
 
 func TestNewetaJournalEntryShardRootHash_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewMetaJournalEntryShardRootHash(nil, nil)
 
@@ -119,7 +119,7 @@ func TestNewetaJournalEntryShardRootHash_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryShardRootHash(accnt, []byte("shardroothash"))
 
@@ -128,7 +128,7 @@ func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
 }
 
 func TestNewMetaJournalEntryShardRootHash_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardRootHash := []byte("shardroothash")
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})

@@ -128,7 +128,7 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Marshalizer = nil
@@ -139,7 +139,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilMarshalizer(t *test
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Hasher = nil
@@ -150,7 +150,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilHasher(t *testing.T
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilStore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = nil
@@ -161,7 +161,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilStore(t *testing.T)
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.ShardCoordinator = nil
@@ -172,7 +172,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilShardCoordinator(t 
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, err := NewValidatorInfoCreator(arguments)
@@ -182,7 +182,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.
 }
 
 func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksNilValidatorInfo(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, _ := NewValidatorInfoCreator(arguments)
@@ -193,7 +193,7 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksNilValidatorInfo
 }
 
 func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksErrMarshal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -207,7 +207,7 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksErrMarshal(t *te
 }
 
 func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -220,7 +220,7 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldWork(t *te
 }
 
 func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldBeCorrect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -234,7 +234,7 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldBeCorrect(
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksShouldBeCorrect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -246,7 +246,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksShouldBeCorrect(
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilValidatorInfo(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, _ := NewValidatorInfoCreator(arguments)
@@ -255,7 +255,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilValidatorInfo
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNumberNoMatch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -269,7 +269,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNumberNoMatch(t 
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashNoMatchT(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -284,7 +284,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashNoMatchT(t
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilMiniblocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -295,7 +295,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilMiniblocks(t 
 }
 
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilOneMiniblock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -533,7 +533,7 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 }
 
 func TestEpochValidatorInfoCreator_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, _ := NewValidatorInfoCreator(arguments)

@@ -25,7 +25,7 @@ func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 //------- NewHdrInterceptorProcessor
 
 func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hip, err := processor.NewHdrInterceptorProcessor(nil)
 
@@ -34,7 +34,7 @@ func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockHdrArgument()
 	arg.Headers = nil
@@ -45,7 +45,7 @@ func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {
 }
 
 func TestNewHdrInterceptorProcessor_NilValidatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockHdrArgument()
 	arg.HdrValidator = nil
@@ -56,7 +56,7 @@ func TestNewHdrInterceptorProcessor_NilValidatorShouldErr(t *testing.T) {
 }
 
 func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockHdrArgument()
 	arg.BlackList = nil
@@ -67,7 +67,7 @@ func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockHdrArgument()
 	hip, err := processor.NewHdrInterceptorProcessor(arg)
@@ -80,7 +80,7 @@ func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 //------- Validate
 
 func TestHdrInterceptorProcessor_ValidateNilHdrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
@@ -90,7 +90,7 @@ func TestHdrInterceptorProcessor_ValidateNilHdrShouldErr(t *testing.T) {
 }
 
 func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockHdrArgument()
 	arg.HdrValidator = &mock.HeaderValidatorStub{
@@ -121,7 +121,7 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 }
 
 func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockHdrArgument()
@@ -151,7 +151,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 //------- Save
 
 func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
@@ -161,7 +161,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 }
 
 func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdrInterceptedData := &struct {
 		mock.InterceptedDataStub
@@ -199,7 +199,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestHdrInterceptorProcessor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var hip *processor.HdrInterceptorProcessor
 

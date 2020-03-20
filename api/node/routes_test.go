@@ -53,7 +53,7 @@ func init() {
 }
 
 func TestStartNode_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
 		r := recover()
@@ -67,7 +67,7 @@ func TestStartNode_FailsWithoutFacade(t *testing.T) {
 //------- Heartbeatstatus
 
 func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServer(nil)
 	defer func() {
@@ -81,7 +81,7 @@ func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 }
 
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{}
 	facade.Running = true
@@ -98,7 +98,7 @@ func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 }
 
 func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errs.New("expected error")
 	facade := mock.Facade{
@@ -119,7 +119,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 }
 
 func TestHeartbeatstatus(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
@@ -148,7 +148,7 @@ func TestHeartbeatstatus(t *testing.T) {
 }
 
 func TestStatistics_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
 		r := recover()
@@ -160,7 +160,7 @@ func TestStatistics_FailsWithoutFacade(t *testing.T) {
 }
 
 func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/node/statistics", nil)
 	resp := httptest.NewRecorder()

@@ -14,7 +14,7 @@ import (
 )
 
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	csf, err := sposFactory.GetConsensusCoreFactory("invalid")
 
@@ -23,7 +23,7 @@ func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 }
 
 func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	csf, err := sposFactory.GetConsensusCoreFactory(factory.BlsConsensusType)
 
@@ -32,7 +32,7 @@ func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
 }
 
 func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	worker := &mock.SposWorkerMock{}
 	consensusType := factory.BlsConsensusType
@@ -54,7 +54,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 }
 
 func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusCore := mock.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
@@ -76,7 +76,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusCore := mock.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
@@ -98,7 +98,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 }
 
 func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusType := "invalid"
 	sf, err := sposFactory.GetSubroundsFactory(
@@ -116,7 +116,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 }
 
 func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	messenger := &mock.MessengerStub{}
@@ -139,7 +139,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 }
 
 func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	messenger := &mock.MessengerStub{}
@@ -162,7 +162,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 }
 
 func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {

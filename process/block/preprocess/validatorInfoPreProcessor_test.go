@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
 		nil,
@@ -23,7 +23,7 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
@@ -35,7 +35,7 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
@@ -46,7 +46,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_OkValsShouldWork(t *testing.T)
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
@@ -61,7 +61,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_CreateMarshalizedDataShouldWor
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
@@ -81,7 +81,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockInvalidMiniBlo
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
@@ -101,7 +101,7 @@ func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockShouldWork(t *
 }
 
 func TestNewValidatorInfoPreprocessorPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},

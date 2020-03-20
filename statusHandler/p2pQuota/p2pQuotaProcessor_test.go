@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewP2PQuotaProcessor_NilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pqp, err := p2pQuota.NewP2PQuotaProcessor(nil)
 	assert.True(t, check.IfNil(pqp))
@@ -20,7 +20,7 @@ func TestNewP2PQuotaProcessor_NilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewP2PQuotaProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pqp, err := p2pQuota.NewP2PQuotaProcessor(&mock.AppStatusHandlerStub{})
 	assert.False(t, check.IfNil(pqp))
@@ -30,7 +30,7 @@ func TestNewP2PQuotaProcessor_ShouldWork(t *testing.T) {
 //------- AddQuota
 
 func TestP2PQuotaProcessor_AddQuotaShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pqp, _ := p2pQuota.NewP2PQuotaProcessor(&mock.AppStatusHandlerStub{})
 	nonExistingIdentifier := "non existing identifier"
@@ -55,7 +55,7 @@ func TestP2PQuotaProcessor_AddQuotaShouldWork(t *testing.T) {
 //------- ResetStatistics
 
 func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := "identifier"
 	numReceived := uint64(1)
@@ -86,7 +86,7 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics
 }
 
 func TestP2PQuotaProcessor_ResetStatisticsShouldSetPeerStatisticsTops(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier1 := "identifier"
 	numReceived1 := uint64(10)
@@ -115,7 +115,7 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldSetPeerStatisticsTops(t *testing
 }
 
 func TestP2PQuotaProcessor_ResetStatisticsShouldSetNetworkStatisticsTops(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numReceivedNetwork1 := uint64(10)
 	sizeReceivedNetwork1 := uint64(20)

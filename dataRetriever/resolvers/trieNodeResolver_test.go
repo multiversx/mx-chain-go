@@ -26,7 +26,7 @@ func createMockArgTrieNodeResolver() resolvers.ArgTrieNodeResolver {
 }
 
 func TestNewTrieNodeResolver_NilResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = nil
@@ -37,7 +37,7 @@ func TestNewTrieNodeResolver_NilResolverShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodeResolver_NilTrieShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	arg.TrieDataGetter = nil
@@ -48,7 +48,7 @@ func TestNewTrieNodeResolver_NilTrieShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodeResolver_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	arg.Marshalizer = nil
@@ -59,7 +59,7 @@ func TestNewTrieNodeResolver_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodeResolver_NilAntiflooderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	arg.AntifloodHandler = nil
@@ -70,7 +70,7 @@ func TestNewTrieNodeResolver_NilAntiflooderShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodeResolver_NilThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	arg.Throttler = nil
@@ -81,7 +81,7 @@ func TestNewTrieNodeResolver_NilThrottlerShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	tnRes, err := resolvers.NewTrieNodeResolver(arg)
@@ -93,7 +93,7 @@ func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgTrieNodeResolver()
@@ -114,7 +114,7 @@ func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldEr
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
@@ -126,7 +126,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -143,7 +143,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -160,7 +160,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	getSerializedNodesWasCalled := false
@@ -201,7 +201,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerFailShouldRetNilAndErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("MarshalizerMock generic error")
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -228,7 +228,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerF
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected err")
 	arg := createMockArgTrieNodeResolver()
@@ -251,7 +251,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 //------- RequestTransactionFromHash
 
 func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requested := &dataRetriever.RequestData{}
 

@@ -8,7 +8,7 @@ import (
 )
 
 func TestDisabledBlacklistHandler_ShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()

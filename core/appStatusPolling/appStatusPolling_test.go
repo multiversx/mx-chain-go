@@ -12,35 +12,35 @@ import (
 )
 
 func TestNewAppStatusPooling_NilAppStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := appStatusPolling.NewAppStatusPolling(nil, time.Second)
 	assert.Equal(t, err, appStatusPolling.ErrNilAppStatusHandler)
 }
 
 func TestNewAppStatusPooling_NegativePollingDurationShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Duration(-1))
 	assert.Equal(t, err, appStatusPolling.ErrPollingDurationToSmall)
 }
 
 func TestNewAppStatusPooling_ZeroPollingDurationShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, 0)
 	assert.Equal(t, err, appStatusPolling.ErrPollingDurationToSmall)
 }
 
 func TestNewAppStatusPooling_OkValsShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Second)
 	assert.Nil(t, err)
 }
 
 func TestNewAppStatusPolling_RegisterHandlerFuncShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	asp, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Second)
 	assert.Nil(t, err)
@@ -50,7 +50,7 @@ func TestNewAppStatusPolling_RegisterHandlerFuncShouldErr(t *testing.T) {
 }
 
 func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pollingDuration := time.Second
 	chDone := make(chan struct{})

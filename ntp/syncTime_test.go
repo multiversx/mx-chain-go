@@ -147,7 +147,7 @@ func TestCallQuery(t *testing.T) {
 }
 
 func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 3600}, nil)
 	query := st.Query()
@@ -158,7 +158,7 @@ func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
 }
 
 func TestCallQueryShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ntpConfig := ntp2.NewNTPGoogleConfig()
 	ntpOptions := ntp2.NewNTPOptions(ntpConfig)
@@ -171,7 +171,7 @@ func TestCallQueryShouldWork(t *testing.T) {
 }
 
 func TestNtpHostIsChange(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1}
 	st := ntp2.NewSyncTime(ntpConfig, queryMock5)
@@ -182,7 +182,7 @@ func TestNtpHostIsChange(t *testing.T) {
 }
 
 func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1}
 	st := ntp2.NewSyncTime(ntpConfig, queryMock6)
@@ -193,7 +193,7 @@ func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
 }
 
 func TestGetClockOffsetsWithoutEdges(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
@@ -237,7 +237,7 @@ func TestGetClockOffsetsWithoutEdges(t *testing.T) {
 }
 
 func TestGetHarmonicMean(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
@@ -256,7 +256,7 @@ func TestGetHarmonicMean(t *testing.T) {
 }
 
 func TestGetSleepTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	syncPeriodSeconds := 3600
 	givenTime := time.Duration(syncPeriodSeconds) * time.Second

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRewardTx_GettersAndSetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rwdTx := rewardTx.RewardTx{}
 

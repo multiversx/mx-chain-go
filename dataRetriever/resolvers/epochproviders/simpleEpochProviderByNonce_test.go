@@ -9,7 +9,7 @@ import (
 )
 
 func TestSimpleEpochProviderByNonce_EpochForNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(1)
 	sep := NewSimpleEpochProviderByNonce(&mock.EpochHandlerStub{

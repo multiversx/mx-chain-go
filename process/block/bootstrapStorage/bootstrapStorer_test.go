@@ -14,7 +14,7 @@ var (
 )
 
 func TestNewBootstrapStorer_NilStorerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, nil)
 
@@ -23,7 +23,7 @@ func TestNewBootstrapStorer_NilStorerShouldErr(t *testing.T) {
 }
 
 func TestNewBootstrapStorer_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := &mock.StorerStub{}
 	bt, err := bootstrapStorage.NewBootstrapStorer(nil, storer)
@@ -33,7 +33,7 @@ func TestNewBootstrapStorer_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := &mock.StorerMock{}
 	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
@@ -44,7 +44,7 @@ func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 }
 
 func TestBootstrapStorer_PutAndGet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numRounds := int64(10)
 	round := int64(0)
@@ -81,7 +81,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 }
 
 func TestBootstrapStorer_SaveLastRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	putWasCalled := false
 	roundInStorage := int64(5)
@@ -112,7 +112,7 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 }
 
 func TestTrimHeaderInfoSlice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := make([]bootstrapStorage.BootstrapHeaderInfo, 0, 5)
 	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})

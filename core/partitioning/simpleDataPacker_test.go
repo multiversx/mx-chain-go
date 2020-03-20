@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewSimpleDataPacker_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdp, err := partitioning.NewSimpleDataPacker(nil)
 
@@ -20,7 +20,7 @@ func TestNewSimpleDataPacker_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewSimpleDataPacker_ValuesOkShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdp, err := partitioning.NewSimpleDataPacker(&mock.MarshalizerMock{})
 
@@ -31,7 +31,7 @@ func TestNewSimpleDataPacker_ValuesOkShouldWork(t *testing.T) {
 //------- PackDataInChunks
 
 func TestSimpleDataPacker_PackDataInChunksInvalidLimitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdp, _ := partitioning.NewSimpleDataPacker(&mock.MarshalizerMock{})
 
@@ -42,7 +42,7 @@ func TestSimpleDataPacker_PackDataInChunksInvalidLimitShouldErr(t *testing.T) {
 }
 
 func TestSimpleDataPacker_PackDataInChunksNilInputDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdp, _ := partitioning.NewSimpleDataPacker(&mock.MarshalizerMock{})
 	buff, err := sdp.PackDataInChunks(nil, 1)
@@ -52,7 +52,7 @@ func TestSimpleDataPacker_PackDataInChunksNilInputDataShouldErr(t *testing.T) {
 }
 
 func TestSimpleDataPacker_PackDataInChunksEmptyDataShouldReturnEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdp, _ := partitioning.NewSimpleDataPacker(&mock.MarshalizerMock{})
 	buff, err := sdp.PackDataInChunks(make([][]byte, 0), 1)
@@ -62,7 +62,7 @@ func TestSimpleDataPacker_PackDataInChunksEmptyDataShouldReturnEmpty(t *testing.
 }
 
 func TestSimpleDataPacker_PackDataInChunksSmallElementsShouldPackTogether(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxPacketSize := 1000
 	marshalizer := &mock.MarshalizerMock{}
@@ -80,7 +80,7 @@ func TestSimpleDataPacker_PackDataInChunksSmallElementsShouldPackTogether(t *tes
 }
 
 func TestSimpleSplitter_SendDataInChunksWithALargeElementShouldSplit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxPacketSize := 1000
 	marshalizer := &mock.MarshalizerMock{}
@@ -102,7 +102,7 @@ func TestSimpleSplitter_SendDataInChunksWithALargeElementShouldSplit(t *testing.
 }
 
 func TestSimpleSplitter_SendDataInChunksWithOnlyOneLargeElementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxPacketSize := 1000
 	marshalizer := &mock.MarshalizerMock{}

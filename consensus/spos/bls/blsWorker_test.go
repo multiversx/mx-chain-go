@@ -57,7 +57,7 @@ func initConsensusState() *spos.ConsensusState {
 }
 
 func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, err := bls.NewConsensusService()
 	assert.Nil(t, err)
@@ -65,7 +65,7 @@ func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
 }
 
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bnService, _ := bls.NewConsensusService()
 	messages := bnService.InitReceivedMessages()
@@ -86,7 +86,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	v := make([]consensus.MessageType, 0)
 	blsService, _ := bls.NewConsensusService()
@@ -105,7 +105,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -117,7 +117,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldW
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -129,7 +129,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShou
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -141,7 +141,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -153,7 +153,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -165,7 +165,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -177,7 +177,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 }
 
 func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -189,7 +189,7 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testi
 }
 
 func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -201,7 +201,7 @@ func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWo
 }
 
 func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -213,7 +213,7 @@ func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShould
 }
 
 func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalInfoShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -225,7 +225,7 @@ func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalIn
 }
 
 func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 	consensusState := initConsensusState()
@@ -235,7 +235,7 @@ func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
 }
 
 func TestWorker_GetSubroundName(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -252,7 +252,7 @@ func TestWorker_GetSubroundName(t *testing.T) {
 }
 
 func TestWorker_GetStringValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -273,7 +273,7 @@ func TestWorker_GetStringValue(t *testing.T) {
 }
 
 func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -288,7 +288,7 @@ func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
 }
 
 func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -300,7 +300,7 @@ func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 }
 
 func TestWorker_IsMessageWithSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -312,7 +312,7 @@ func TestWorker_IsMessageWithSignature(t *testing.T) {
 }
 
 func TestWorker_IsSubroundSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 
@@ -324,7 +324,7 @@ func TestWorker_IsSubroundSignature(t *testing.T) {
 }
 
 func TestWorker_IsSubroundStartRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	service, _ := bls.NewConsensusService()
 

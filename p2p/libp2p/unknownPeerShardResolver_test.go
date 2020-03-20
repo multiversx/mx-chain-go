@@ -9,7 +9,7 @@ import (
 )
 
 func TestUnknownPeerShardResolver_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var upsr *unknownPeerShardResolver
 	assert.True(t, check.IfNil(upsr))
@@ -19,7 +19,7 @@ func TestUnknownPeerShardResolver_IsInterfaceNil(t *testing.T) {
 }
 
 func TestUnknownPeerShardResolver_GetShardIDShouldReturnUnknownId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	upsr := &unknownPeerShardResolver{}
 

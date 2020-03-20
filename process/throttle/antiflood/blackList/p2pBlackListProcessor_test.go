@@ -14,7 +14,7 @@ import (
 //-------- NewP2PQuotaBlacklistProcessor
 
 func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		nil,
@@ -29,7 +29,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
 }
 
 func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
@@ -44,7 +44,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 }
 
 func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
@@ -59,7 +59,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr
 }
 
 func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
@@ -74,7 +74,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 }
 
 func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
@@ -89,7 +89,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *test
 }
 
 func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
@@ -106,7 +106,7 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 //------- AddQuota
 
 func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -132,7 +132,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 }
 
 func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShouldPutOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -164,7 +164,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 }
 
 func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShouldPutOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -196,7 +196,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 }
 
 func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -231,7 +231,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 //------- ResetStatistics
 
 func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -264,7 +264,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 }
 
 func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -297,7 +297,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 }
 
 func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldNotBlackList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)
@@ -337,7 +337,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 }
 
 func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBlackList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	thresholdNum := uint32(10)
 	thresholdSize := uint64(20)

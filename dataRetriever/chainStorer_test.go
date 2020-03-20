@@ -163,7 +163,7 @@ func TestDestroy_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestBlockChain_GetStorer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
@@ -186,7 +186,7 @@ func TestBlockChain_GetStorer(t *testing.T) {
 }
 
 func TestCloseAll_Error(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	closeErr := errors.New("error")
 	s := &mock.StorerStub{
@@ -203,7 +203,7 @@ func TestCloseAll_Error(t *testing.T) {
 }
 
 func TestCloseAll_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	s := &mock.StorerStub{}
 

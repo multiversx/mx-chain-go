@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewBlockNotarizer_ShouldErrNilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := track.NewBlockNotarizer(nil, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -25,7 +25,7 @@ func TestNewBlockNotarizer_ShouldErrNilHasher(t *testing.T) {
 }
 
 func TestNewBlockNotarizer_ShouldErrNilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, nil, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -34,7 +34,7 @@ func TestNewBlockNotarizer_ShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestNewBlockNotarizer_ShouldErrNilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, nil, 1000)
 
@@ -43,7 +43,7 @@ func TestNewBlockNotarizer_ShouldErrNilShardCoordinator(t *testing.T) {
 }
 
 func TestNewBlockNotarizer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -52,7 +52,7 @@ func TestNewBlockNotarizer_ShouldWork(t *testing.T) {
 }
 
 func TestAddNotarizedHeader_ShouldNotAddNilHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -62,7 +62,7 @@ func TestAddNotarizedHeader_ShouldNotAddNilHeader(t *testing.T) {
 }
 
 func TestAddNotarizedHeader_ShouldCleanupWhenMaxCapacityIsReached(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -78,7 +78,7 @@ func TestAddNotarizedHeader_ShouldCleanupWhenMaxCapacityIsReached(t *testing.T) 
 }
 
 func TestAddNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -93,7 +93,7 @@ func TestAddNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestCleanupWhenMaxCapacityIsReached_ShouldNotCleanNotarizedHeadersWhenMaxCapacityIsNotReached(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -108,7 +108,7 @@ func TestCleanupWhenMaxCapacityIsReached_ShouldNotCleanNotarizedHeadersWhenMaxCa
 }
 
 func TestCleanupWhenMaxCapacityIsReached_ShouldCleanOldestNotarizedHeaders(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -131,7 +131,7 @@ func TestCleanupWhenMaxCapacityIsReached_ShouldCleanOldestNotarizedHeaders(t *te
 }
 
 func TestCleanupWhenMaxCapacityIsReached_ShouldCleanNewestNotarizedHeaders(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -154,7 +154,7 @@ func TestCleanupWhenMaxCapacityIsReached_ShouldCleanNewestNotarizedHeaders(t *te
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenNonceIsZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -165,7 +165,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenNonceIsZero(t
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenShardIsInvalid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -176,7 +176,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenShardIsInvali
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldKeepAtLeastOneHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -187,7 +187,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldKeepAtLeastOneHeader(t *testin
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -206,7 +206,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
 }
 
 func TestNotarizedHeaders_ShouldNotPanicWhenGivenShardIsInvalid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -223,7 +223,7 @@ func TestNotarizedHeaders_ShouldNotPanicWhenGivenShardIsInvalid(t *testing.T) {
 }
 
 func TestNotarizedHeaders_ShouldNotPanicWhenTheOnlyNotarizedHeaderHasNonceZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -240,7 +240,7 @@ func TestNotarizedHeaders_ShouldNotPanicWhenTheOnlyNotarizedHeaderHasNonceZero(t
 }
 
 func TestNotarizedHeaders_ShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -260,7 +260,7 @@ func TestNotarizedHeaders_ShouldNotPanic(t *testing.T) {
 }
 
 func TestGetLastNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -270,7 +270,7 @@ func TestGetLastNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *t
 }
 
 func TestGetLastNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -284,7 +284,7 @@ func TestGetLastNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestGetFirstNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -294,7 +294,7 @@ func TestGetFirstNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *
 }
 
 func TestGetFirstNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -312,7 +312,7 @@ func TestGetFirstNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestGetLastNotarizedHeaderNonce_ShouldReturnZeroWhenNotarizedHeadersForGivenShardDoesNotExist(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -322,7 +322,7 @@ func TestGetLastNotarizedHeaderNonce_ShouldReturnZeroWhenNotarizedHeadersForGive
 }
 
 func TestGetLastNotarizedHeaderNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -334,7 +334,7 @@ func TestGetLastNotarizedHeaderNonce_ShouldWork(t *testing.T) {
 }
 
 func TestLastNotarizedHeaderInfo_ShouldReturnNilWhenNotarizedHeadersForGivenShardDoesNotExist(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -342,7 +342,7 @@ func TestLastNotarizedHeaderInfo_ShouldReturnNilWhenNotarizedHeadersForGivenShar
 }
 
 func TestLastNotarizedHeaderInfo_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -352,7 +352,7 @@ func TestLastNotarizedHeaderInfo_ShouldWork(t *testing.T) {
 }
 
 func TestGetNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -362,7 +362,7 @@ func TestGetNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testi
 }
 
 func TestGetNotarizedHeader_ShouldErrNotarizedHeaderOffsetIsOutOfBound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -373,7 +373,7 @@ func TestGetNotarizedHeader_ShouldErrNotarizedHeaderOffsetIsOutOfBound(t *testin
 }
 
 func TestGetNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -395,7 +395,7 @@ func TestGetNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestInitNotarizedHeaders_ShouldErrWhenStartHeadersSliceIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -405,7 +405,7 @@ func TestInitNotarizedHeaders_ShouldErrWhenStartHeadersSliceIsNil(t *testing.T) 
 }
 
 func TestInitNotarizedHeaders_ShouldErrWhenCalculateHashFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{Fail: true}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -417,7 +417,7 @@ func TestInitNotarizedHeaders_ShouldErrWhenCalculateHashFail(t *testing.T) {
 }
 
 func TestInitNotarizedHeaders_ShouldInitNotarizedHeaders(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -433,7 +433,7 @@ func TestInitNotarizedHeaders_ShouldInitNotarizedHeaders(t *testing.T) {
 }
 
 func TestRemoveLastNotarizedHeader_ShouldNotRemoveIfExistOnlyOneNotarizedHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -444,7 +444,7 @@ func TestRemoveLastNotarizedHeader_ShouldNotRemoveIfExistOnlyOneNotarizedHeader(
 }
 
 func TestRemoveLastNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -465,7 +465,7 @@ func TestRemoveLastNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestRestoreNotarizedHeadersToGenesis_ShouldNotRestoreIfExistOnlyOneNotarizedHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 
@@ -476,7 +476,7 @@ func TestRestoreNotarizedHeadersToGenesis_ShouldNotRestoreIfExistOnlyOneNotarize
 }
 
 func TestRestoreNotarizedHeadersToGenesis_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{}, mock.NewMultipleShardsCoordinatorMock(), 1000)
 

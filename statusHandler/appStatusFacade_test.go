@@ -12,21 +12,21 @@ import (
 )
 
 func TestNewAppStatusFacadeWithHandlers_NilHandlersShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := statusHandler.NewAppStatusFacadeWithHandlers()
 	assert.Equal(t, statusHandler.ErrHandlersSliceIsNil, err)
 }
 
 func TestNewAppStatusFacadeWithHandlers_OneOfTheHandlerIsNilShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNilStatusHandler(), nil)
 	assert.Equal(t, statusHandler.ErrNilHandlerInSlice, err)
 }
 
 func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	statusFacade, err := statusHandler.NewAppStatusFacadeWithHandlers(
 		statusHandler.NewNilStatusHandler(),
@@ -38,7 +38,7 @@ func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
@@ -63,7 +63,7 @@ func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
@@ -88,7 +88,7 @@ func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
@@ -113,7 +113,7 @@ func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
@@ -138,7 +138,7 @@ func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_AddUint64ShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
@@ -163,7 +163,7 @@ func TestAppStatusFacade_AddUint64ShouldPass(t *testing.T) {
 }
 
 func TestAppStatusFacade_SetStringValueShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricNodeDisplayName

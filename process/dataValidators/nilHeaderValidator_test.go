@@ -9,7 +9,7 @@ import (
 )
 
 func TestNilHeaderValidator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nhhv, err := dataValidators.NewNilHeaderValidator()
 
@@ -18,7 +18,7 @@ func TestNilHeaderValidator(t *testing.T) {
 }
 
 func TestNilHeaderValidator_IsHeaderValidForProcessing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nhv, _ := dataValidators.NewNilHeaderValidator()
 
@@ -28,7 +28,7 @@ func TestNilHeaderValidator_IsHeaderValidForProcessing(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestNilHeaderValidator_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdrValidator, _ := dataValidators.NewNilHeaderValidator()
 	_ = hdrValidator

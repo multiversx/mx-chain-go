@@ -12,14 +12,14 @@ import (
 )
 
 func TestNewDataTriesHolder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dth := state.NewDataTriesHolder()
 	assert.False(t, check.IfNil(dth))
 }
 
 func TestDataTriesHolder_PutAndGet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := &mock.TrieStub{}
 
@@ -31,7 +31,7 @@ func TestDataTriesHolder_PutAndGet(t *testing.T) {
 }
 
 func TestDataTriesHolder_GetAll(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := &mock.TrieStub{}
 	tr2 := &mock.TrieStub{}
@@ -47,7 +47,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 }
 
 func TestDataTriesHolder_Reset(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := &mock.TrieStub{}
 
@@ -60,7 +60,7 @@ func TestDataTriesHolder_Reset(t *testing.T) {
 }
 
 func TestDataTriesHolder_Concurrency(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dth := state.NewDataTriesHolder()
 	numTries := 50

@@ -16,7 +16,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
@@ -51,7 +51,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
@@ -90,7 +90,7 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Parallel()
+	//t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 
@@ -179,7 +179,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 

@@ -9,7 +9,7 @@ import (
 )
 
 func TestCurrentBlockPool_AddGetCleanTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("hash")
 	tx := &transaction.Transaction{}

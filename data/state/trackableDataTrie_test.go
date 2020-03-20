@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewTrackableDataTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := []byte("identifier")
 	trie := &mock.TrieStub{}
@@ -22,7 +22,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 }
 
 func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	as := state.NewTrackableDataTrie([]byte("identifier"), nil)
 	assert.NotNil(t, as)
@@ -32,7 +32,7 @@ func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 }
 
 func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stringKey := "ABC"
 	identifier := []byte("identifier")
@@ -55,7 +55,7 @@ func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 }
 
 func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	originalKeyString := "ABD"
 	identifier := []byte("identifier")
@@ -80,7 +80,7 @@ func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T
 }
 
 func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := []byte("identifier")
 	expectedKey := []byte("key")
@@ -110,7 +110,7 @@ func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 }
 
 func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected err")
 	keyExpected := []byte("key")
@@ -131,7 +131,7 @@ func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T)
 }
 
 func TestTrackableDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := []byte("identifier")
 	keyExpected := []byte("key")
@@ -161,7 +161,7 @@ func TestTrackableDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 }
 
 func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
@@ -181,7 +181,7 @@ func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
 }
 
 func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)

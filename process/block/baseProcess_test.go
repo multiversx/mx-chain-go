@@ -304,7 +304,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArguments()
 	arguments.Hasher = &mock.HasherMock{}
@@ -362,7 +362,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 }
 
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
@@ -379,7 +379,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 
 //------- SetAppStatusHandler
 func TestBaseProcessor_SetAppStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArguments()
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -389,7 +389,7 @@ func TestBaseProcessor_SetAppStatusHandlerNilHandlerShouldErr(t *testing.T) {
 }
 
 func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArguments()
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -401,7 +401,7 @@ func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
 
 //------- RevertState
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments()
@@ -420,7 +420,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 
 // removeHeadersBehindNonceFromPools
 func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	removeFromDataPoolWasCalled := false
 	arguments := CreateMockArguments()
@@ -450,7 +450,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 //------- ComputeNewNoncePrevHash
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	marshalizer := &mock.MarshalizerStub{}
 
 	arguments := CreateMockArguments()
@@ -473,7 +473,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 }
 
 func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 
@@ -567,7 +567,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 }
 
 func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArguments()
 	arguments.Hasher = &mock.HasherMock{}
@@ -581,7 +581,7 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 }
 
 func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := CreateMockArguments()
@@ -598,7 +598,7 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 }
 
 func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := CreateMockArguments()
@@ -626,7 +626,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 }
 
 func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := CreateMockArguments()
@@ -654,7 +654,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
 	blockChain := &mock.BlockChainMock{
@@ -675,7 +675,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -704,7 +704,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -735,7 +735,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 }
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMatch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
 	hasher := &mock.HasherStub{ComputeCalled: func(s string) []byte {

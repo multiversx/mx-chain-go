@@ -8,7 +8,7 @@ import (
 )
 
 func TestConnections_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -26,7 +26,7 @@ func TestConnections_EmptyFunctionsDoNotPanicWhenCalled(t *testing.T) {
 }
 
 func TestConnections_ResetNumConnectionsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cdm := metrics.NewConnections()
 
@@ -41,7 +41,7 @@ func TestConnections_ResetNumConnectionsShouldWork(t *testing.T) {
 }
 
 func TestConnsDisconnsMetric_ResetNumDisconnectionsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cdm := metrics.NewConnections()
 

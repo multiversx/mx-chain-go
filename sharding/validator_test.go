@@ -7,7 +7,7 @@ import (
 )
 
 func TestValidator_NewValidatorShouldFailOnNilPublickKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validator, err := NewValidator(nil, []byte("addr1"))
 
@@ -16,7 +16,7 @@ func TestValidator_NewValidatorShouldFailOnNilPublickKey(t *testing.T) {
 }
 
 func TestValidator_NewValidatorShouldFailOnNilAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validator, err := NewValidator([]byte("pk1"), nil)
 
@@ -25,7 +25,7 @@ func TestValidator_NewValidatorShouldFailOnNilAddress(t *testing.T) {
 }
 
 func TestValidator_NewValidatorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validator, err := NewValidator([]byte("pk1"), []byte("addr1"))
 
@@ -34,7 +34,7 @@ func TestValidator_NewValidatorShouldWork(t *testing.T) {
 }
 
 func TestValidator_PubKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validator, _ := NewValidator([]byte("pk1"), []byte("addr1"))
 
@@ -42,7 +42,7 @@ func TestValidator_PubKeyShouldWork(t *testing.T) {
 }
 
 func TestValidator_AddressShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	validator, _ := NewValidator([]byte("pk1"), []byte("addr1"))
 

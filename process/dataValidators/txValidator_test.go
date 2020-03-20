@@ -68,7 +68,7 @@ func getTxValidatorHandler(
 }
 
 func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
@@ -79,7 +79,7 @@ func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
 }
 
 func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := getAccAdapter(0, big.NewInt(0))
 	maxNonceDeltaAllowed := 100
@@ -90,7 +90,7 @@ func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -105,7 +105,7 @@ func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
 }
 
 func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := getAccAdapter(1, big.NewInt(0))
 	currentShard := uint32(0)
@@ -122,7 +122,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 }
 
 func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accountNonce := uint64(100)
 	txNonce := uint64(0)
@@ -142,7 +142,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 }
 
 func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accountNonce := uint64(100)
 	maxNonceDeltaAllowed := 100
@@ -162,7 +162,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 }
 
 func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accountNonce := uint64(0)
 	txNonce := uint64(1)
@@ -184,7 +184,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 }
 
 func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -203,7 +203,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 }
 
 func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -222,7 +222,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 }
 
 func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accountNonce := uint64(0)
 	accountBalance := big.NewInt(10)
@@ -242,7 +242,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestTxValidator_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)

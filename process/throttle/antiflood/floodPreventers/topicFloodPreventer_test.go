@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewTopicFloodPreventer_InvalidMaxNumOfMessagesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tfp, err := floodPreventers.NewTopicFloodPreventer(0)
 
@@ -19,7 +19,7 @@ func TestNewTopicFloodPreventer_InvalidMaxNumOfMessagesShouldErr(t *testing.T) {
 }
 
 func TestNewTopicFloodPreventer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tfp, err := floodPreventers.NewTopicFloodPreventer(10)
 
@@ -29,7 +29,7 @@ func TestNewTopicFloodPreventer_OkValsShouldWork(t *testing.T) {
 }
 
 func TestTopicFloodPreventer_AccumulateOnceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(10)
 
@@ -38,7 +38,7 @@ func TestTopicFloodPreventer_AccumulateOnceShouldWork(t *testing.T) {
 }
 
 func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceeded(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defaultMaxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
@@ -60,7 +60,7 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceeded(t *te
 }
 
 func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceededUsingCustomLimitForTopic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defaultMaxMessages := uint32(2)
 	customMaxMessages := uint32(3)
@@ -88,7 +88,7 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceededUsingC
 }
 
 func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
@@ -113,7 +113,7 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 }
 
 func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
@@ -148,7 +148,7 @@ func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *
 }
 
 func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
@@ -176,7 +176,7 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 }
 
 func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicWorks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defaultMaxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
@@ -200,7 +200,7 @@ func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicWorks(t *testing.T) {
 }
 
 func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defaultMaxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)

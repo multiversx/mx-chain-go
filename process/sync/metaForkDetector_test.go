@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewMetaForkDetector_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewMetaForkDetector(
 		nil,
@@ -24,7 +24,7 @@ func TestNewMetaForkDetector_NilRounderShouldErr(t *testing.T) {
 }
 
 func TestNewMetaForkDetector_NilBlackListShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewMetaForkDetector(
 		&mock.RounderMock{},
@@ -37,7 +37,7 @@ func TestNewMetaForkDetector_NilBlackListShouldErr(t *testing.T) {
 }
 
 func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewMetaForkDetector(
 		&mock.RounderMock{},
@@ -50,7 +50,7 @@ func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaForkDetector_OkParamsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewMetaForkDetector(
 		&mock.RounderMock{},
@@ -68,7 +68,7 @@ func TestNewMetaForkDetector_OkParamsShouldWork(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -77,7 +77,7 @@ func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -86,7 +86,7 @@ func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := make([]byte, 0)
@@ -102,7 +102,7 @@ func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -122,7 +122,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 69, Round: 72, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -133,7 +133,7 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 }
 
 func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
@@ -153,7 +153,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 }
 
 func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)

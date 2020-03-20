@@ -7,7 +7,7 @@ import (
 )
 
 func TestPresenterFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterFactory := NewPresenterFactory()
 	presenterStatusHandler := presenterFactory.Create()

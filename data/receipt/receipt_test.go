@@ -9,7 +9,7 @@ import (
 )
 
 func TestReceipt_SettersAndGetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	r := receipt.Receipt{}
 

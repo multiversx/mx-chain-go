@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewBlockNotifier_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := track.NewBlockNotifier()
 
@@ -20,7 +20,7 @@ func TestNewBlockNotifier_ShouldWork(t *testing.T) {
 }
 
 func TestRegisterHandler_ShouldNotRegisterNilHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotifier()
 
@@ -30,7 +30,7 @@ func TestRegisterHandler_ShouldNotRegisterNilHandler(t *testing.T) {
 }
 
 func TestRegisterHandler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotifier()
 
@@ -43,7 +43,7 @@ func TestRegisterHandler_ShouldWork(t *testing.T) {
 }
 
 func TestCallHandler_ShouldNotCallHandlersWhenHeadersSliceIsEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotifier()
 
@@ -64,7 +64,7 @@ func TestCallHandler_ShouldNotCallHandlersWhenHeadersSliceIsEmpty(t *testing.T) 
 }
 
 func TestCallHandler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := track.NewBlockNotifier()
 

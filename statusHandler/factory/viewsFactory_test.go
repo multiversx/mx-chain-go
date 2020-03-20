@@ -8,7 +8,7 @@ import (
 )
 
 func TestViewsFactory_NewViewFactoryShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	viewsFactory, err := NewViewsFactory(nil)
 
@@ -17,7 +17,7 @@ func TestViewsFactory_NewViewFactoryShouldError(t *testing.T) {
 }
 
 func TestViewsFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterFactory := NewPresenterFactory()
 	presenterStatusHandler := presenterFactory.Create()

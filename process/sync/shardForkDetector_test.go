@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewShardForkDetector_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewShardForkDetector(
 		nil,
@@ -24,7 +24,7 @@ func TestNewShardForkDetector_NilRounderShouldErr(t *testing.T) {
 }
 
 func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RounderMock{},
@@ -37,7 +37,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 }
 
 func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RounderMock{},
@@ -50,7 +50,7 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 }
 
 func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RounderMock{},
@@ -68,7 +68,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
@@ -82,7 +82,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
@@ -96,7 +96,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := make([]byte, 0)
@@ -116,7 +116,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -140,7 +140,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 69, Round: 72, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -156,7 +156,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 }
 
 func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
@@ -180,7 +180,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 }
 
 func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(

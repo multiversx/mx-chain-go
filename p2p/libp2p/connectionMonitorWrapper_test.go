@@ -21,7 +21,7 @@ func createStubConn() *mock.ConnStub {
 }
 
 func TestNewConnectionMonitorWrapper_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
@@ -35,7 +35,7 @@ func TestNewConnectionMonitorWrapper_ShouldWork(t *testing.T) {
 //------- Connected
 
 func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	peerCloseCalled := false
 	conn := createStubConn()
@@ -60,7 +60,7 @@ func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testin
 }
 
 func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	peerConnectedCalled := false
 	conn := createStubConn()
@@ -86,7 +86,7 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 //------- Functions
 
 func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	listenCalled := false
 	listenCloseCalled := false
@@ -131,7 +131,7 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 //------- SetBlackListHandler
 
 func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
@@ -145,7 +145,7 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *test
 }
 
 func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
@@ -164,7 +164,7 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 //------- CheckConnectionsBlocking
 
 func TestConnectionMonitorWrapper_CheckConnectionsBlockingShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	whiteListPeer := peer.ID("whitelisted")
 	blackListPeer := peer.ID("blacklisted")

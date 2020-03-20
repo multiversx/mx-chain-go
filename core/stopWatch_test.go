@@ -8,7 +8,7 @@ import (
 )
 
 func TestStopWatch_Start(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier := "identifier"
@@ -22,7 +22,7 @@ func TestStopWatch_Start(t *testing.T) {
 }
 
 func TestStopWatch_DoubleStartShouldNotReAddInIdentifiers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier1 := "identifier1"
@@ -38,7 +38,7 @@ func TestStopWatch_DoubleStartShouldNotReAddInIdentifiers(t *testing.T) {
 }
 
 func TestStopWatch_StopNoStartShouldNotAddDuration(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier := "identifier"
@@ -51,7 +51,7 @@ func TestStopWatch_StopNoStartShouldNotAddDuration(t *testing.T) {
 }
 
 func TestStopWatch_StopWithStartShouldAddDuration(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier := "identifier"
@@ -65,7 +65,7 @@ func TestStopWatch_StopWithStartShouldAddDuration(t *testing.T) {
 }
 
 func TestStopWatch_GetMeasurementsNotFinishedShouldOmit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier := "identifier"
@@ -79,7 +79,7 @@ func TestStopWatch_GetMeasurementsNotFinishedShouldOmit(t *testing.T) {
 }
 
 func TestStopWatch_GetMeasurementsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sw := NewStopWatch()
 	identifier := "identifier"
@@ -95,7 +95,7 @@ func TestStopWatch_GetMeasurementsShouldWork(t *testing.T) {
 }
 
 func TestStopWatch_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier1 := "identifier1"
 	duration1 := time.Duration(5)

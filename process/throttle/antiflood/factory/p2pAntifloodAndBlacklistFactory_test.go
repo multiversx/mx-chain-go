@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{}
 	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, nil)
@@ -20,7 +20,7 @@ func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -40,7 +40,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 }
 
 func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{

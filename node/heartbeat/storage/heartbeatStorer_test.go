@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewHeartbeatStorer_NilStorerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, err := storage.NewHeartbeatDbStorer(
 		nil,
@@ -27,7 +27,7 @@ func TestNewHeartbeatStorer_NilStorerShouldErr(t *testing.T) {
 }
 
 func TestNewHeartbeatStorer_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, err := storage.NewHeartbeatDbStorer(
 		&mock.StorerStub{},
@@ -38,7 +38,7 @@ func TestNewHeartbeatStorer_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, err := storage.NewHeartbeatDbStorer(
 		&mock.StorerStub{},
@@ -49,7 +49,7 @@ func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
@@ -63,7 +63,7 @@ func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := mock.NewStorerMock()
 	keysBytes := []byte("invalid keys slice")
@@ -80,7 +80,7 @@ func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := mock.NewStorerMock()
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
@@ -99,7 +99,7 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_SaveKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -115,7 +115,7 @@ func TestHeartbeatDbStorer_SaveKeys(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadGenesisTimeNotFoundInDbShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
@@ -127,7 +127,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeNotFoundInDbShouldErr(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := mock.NewStorerMock()
 	_ = storer.Put([]byte("genesisTime"), []byte("wrong genesis time"))
@@ -142,7 +142,7 @@ func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := mock.NewStorerMock()
 	msr := &mock.MarshalizerFake{}
@@ -166,7 +166,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	storer := mock.NewStorerMock()
 	msr := &mock.MarshalizerFake{}
@@ -192,7 +192,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_UpdateGenesisTimeShouldAddNewEntry(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
@@ -208,7 +208,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldAddNewEntry(t *testing.T) {
 }
 
 func TestHeartbeatDbSnorer_SavePubkeyDataDataMarshalNotSucceededShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("error marshal")
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -228,7 +228,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataDataMarshalNotSucceededShouldErr(t *tes
 }
 
 func TestHeartbeatDbSnorer_SavePubkeyDataPutNotSucceededShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("error putting")
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -248,7 +248,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutNotSucceededShouldErr(t *testing.T) 
 }
 
 func TestHeartbeatDbSnorer_SavePubkeyDataPutShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
@@ -263,7 +263,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutShouldWork(t *testing.T) {
 }
 
 func TestHeartbeatDbStorer_LoadHbmiDTOShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),

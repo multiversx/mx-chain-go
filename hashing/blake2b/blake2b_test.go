@@ -8,7 +8,7 @@ import (
 )
 
 func TestBlake2b_ComputeWithDifferentHashSizes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := "dummy string"
 	sizes := []int{2, 5, 8, 16, 32, 37, 64}

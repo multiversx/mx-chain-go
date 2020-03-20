@@ -30,7 +30,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	genesisFile := "genesisEdgeCase.json"
 
@@ -58,7 +58,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 }
 
 func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := integrationTests.CreateNewDefaultTrie()
 	tr2 := integrationTests.CreateNewDefaultTrie()
@@ -93,7 +93,7 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 }
 
 func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := integrationTests.CreateNewDefaultTrie()
 	tr2 := integrationTests.CreateNewDefaultTrie()
@@ -141,7 +141,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCyclesWith32byteSlices(
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
 		1000,
@@ -196,7 +196,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCyclesWith32HexByteSlic
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
 		1000,

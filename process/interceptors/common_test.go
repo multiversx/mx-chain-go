@@ -17,7 +17,7 @@ const fromConnectedPeer = "from connected peer"
 //------- preProcessMessage
 
 func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, nil, fromConnectedPeer, "")
 
@@ -25,7 +25,7 @@ func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
 }
 
 func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := &mock.P2PMessageMock{}
 	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, msg, fromConnectedPeer, "")
@@ -34,7 +34,7 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 }
 
 func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to process"),
@@ -57,7 +57,7 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 }
 
 func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to process"),
@@ -80,7 +80,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 }
 
 func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to process"),
@@ -98,7 +98,7 @@ func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
 }
 
 func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to process"),
@@ -118,7 +118,7 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 //------- processInterceptedData
 
 func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{
@@ -150,7 +150,7 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 }
 
 func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{
@@ -182,7 +182,7 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 }
 
 func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{

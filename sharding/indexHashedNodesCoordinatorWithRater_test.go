@@ -32,7 +32,7 @@ func TestNewIndexHashedNodesCoordinatorWithRater_NilNodesCoordinatorShouldErr(t 
 }
 
 func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -43,7 +43,7 @@ func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
 //------- LoadEligibleList
 
 func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -51,7 +51,7 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eligibleMap := createDummyNodesMap(3, 1, "waiting")
 	waitingMap := make(map[uint32][]Validator)
@@ -84,7 +84,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 //------- functionality tests
 
 func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldNotCallGetRating(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []Validator{
 		mock.NewValidatorMock([]byte("pk0"), []byte("addr0")),
@@ -118,7 +118,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 }
 
 func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []Validator{
 		mock.NewValidatorMock([]byte("pk0"), []byte("addr0")),
@@ -230,7 +230,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 }
 
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []Validator{
 		mock.NewValidatorMock([]byte("pk0"), []byte("addr0")),
@@ -264,7 +264,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 }
 
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturnErrValidatorNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []Validator{
 		mock.NewValidatorMock([]byte("pk0"), []byte("addr0")),
@@ -299,7 +299,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 }
 
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	listMeta := []Validator{
 		mock.NewValidatorMock([]byte("pk0_meta"), []byte("addr0_meta")),
@@ -360,7 +360,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 }
 
 func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardZeroId := uint32(0)
 	shardOneId := uint32(1)
@@ -512,7 +512,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 }
 
 func TestIndexHashedGroupSelectorWithRater_ComputeLeavingShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	pkLeaving := "leavingPK"
 	pkNotLeaving := "notLeavingPK"
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
@@ -541,7 +541,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeLeavingShouldWork(t *testing.T
 }
 
 func TestIndexHashedGroupSelectorWithRater_ComputeLeavingWithAllChancesBigShouldNotRemove(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	pkLeaving := "leavingPK"
 	pkNotLeaving := "notLeavingPK"
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())

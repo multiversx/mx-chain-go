@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewLogWriter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 
@@ -16,7 +16,7 @@ func TestNewLogWriter(t *testing.T) {
 }
 
 func TestLogWriter_WriteNilShouldReturnNilAndZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 
@@ -27,7 +27,7 @@ func TestLogWriter_WriteNilShouldReturnNilAndZero(t *testing.T) {
 }
 
 func TestLogWriter_WriteNilMultipleTimeNoReadShouldReturnNilAndZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 
@@ -41,7 +41,7 @@ func TestLogWriter_WriteNilMultipleTimeNoReadShouldReturnNilAndZero(t *testing.T
 }
 
 func TestLogWriter_FirstWriteShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 	data := []byte("data")
@@ -53,7 +53,7 @@ func TestLogWriter_FirstWriteShouldWork(t *testing.T) {
 }
 
 func TestLogWriter_SecondWriteNoReadShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 	data := []byte("data")
@@ -68,7 +68,7 @@ func TestLogWriter_SecondWriteNoReadShouldErr(t *testing.T) {
 }
 
 func TestLogWriter_ReadShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 	data := []byte("data")
@@ -81,7 +81,7 @@ func TestLogWriter_ReadShouldWork(t *testing.T) {
 }
 
 func TestLogWriter_SecondWriteWithReadShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 	data := []byte("data")
@@ -97,7 +97,7 @@ func TestLogWriter_SecondWriteWithReadShouldWork(t *testing.T) {
 //-------- Close
 
 func TestLogWriter_CloseShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 
@@ -107,7 +107,7 @@ func TestLogWriter_CloseShouldWork(t *testing.T) {
 }
 
 func TestLogWriter_DoubleClosingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 
@@ -118,7 +118,7 @@ func TestLogWriter_DoubleClosingShouldErr(t *testing.T) {
 }
 
 func TestLogWriter_ClosedWriterShouldNotWriteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lw := logs.NewLogWriter()
 	_ = lw.Close()

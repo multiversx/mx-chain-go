@@ -12,7 +12,7 @@ import (
 )
 
 func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	coa := changeOwnerAddress{}
 

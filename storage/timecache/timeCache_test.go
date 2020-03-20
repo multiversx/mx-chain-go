@@ -13,7 +13,7 @@ import (
 //------- Add
 
 func TestTimeCache_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
@@ -28,7 +28,7 @@ func TestTimeCache_AddShouldWork(t *testing.T) {
 }
 
 func TestTimeCache_DoubleAddShouldErrAndRetainTheKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
@@ -44,7 +44,7 @@ func TestTimeCache_DoubleAddShouldErrAndRetainTheKey(t *testing.T) {
 }
 
 func TestTimeCache_DoubleAddAfterExpirationAndSweepShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Millisecond)
 	key := "key1"
@@ -64,7 +64,7 @@ func TestTimeCache_DoubleAddAfterExpirationAndSweepShouldWork(t *testing.T) {
 //------- Has
 
 func TestTimeCache_HasNotExistingShouldRetFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
@@ -75,7 +75,7 @@ func TestTimeCache_HasNotExistingShouldRetFalse(t *testing.T) {
 }
 
 func TestTimeCache_HasExistsShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
@@ -87,7 +87,7 @@ func TestTimeCache_HasExistsShouldRetTrue(t *testing.T) {
 }
 
 func TestTimeCache_HasCheckEvictionIsDoneProperly(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Millisecond)
 	key1 := "key1"
@@ -106,7 +106,7 @@ func TestTimeCache_HasCheckEvictionIsDoneProperly(t *testing.T) {
 }
 
 func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
@@ -123,7 +123,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestTimeCache_IsInterfaceNilNotNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 
@@ -131,7 +131,7 @@ func TestTimeCache_IsInterfaceNilNotNil(t *testing.T) {
 }
 
 func TestTimeCache_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var tc *timecache.TimeCache
 

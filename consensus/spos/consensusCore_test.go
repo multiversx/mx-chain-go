@@ -33,7 +33,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 }
 
 func TestConsensusCore_WithNilBlockchainShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.BlockChain = nil
@@ -47,7 +47,7 @@ func TestConsensusCore_WithNilBlockchainShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilBlockProcessorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.BlockProcessor = nil
@@ -61,7 +61,7 @@ func TestConsensusCore_WithNilBlockProcessorShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.Bootstrapper = nil
@@ -74,7 +74,7 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.BroadcastMessenger = nil
@@ -88,7 +88,7 @@ func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilChronologyShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.ChronologyHandler = nil
@@ -101,7 +101,7 @@ func TestConsensusCore_WithNilChronologyShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilHasherShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.Hasher = nil
@@ -115,7 +115,7 @@ func TestConsensusCore_WithNilHasherShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.Marshalizer = nil
@@ -129,7 +129,7 @@ func TestConsensusCore_WithNilMarshalizerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilBlsPrivateKeyShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.BlsPrivateKey = nil
@@ -143,7 +143,7 @@ func TestConsensusCore_WithNilBlsPrivateKeyShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilBlsSingleSignerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.BlsSingleSigner = nil
@@ -157,7 +157,7 @@ func TestConsensusCore_WithNilBlsSingleSignerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.MultiSigner = nil
@@ -171,7 +171,7 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.Rounder = nil
@@ -185,7 +185,7 @@ func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.ShardCoordinator = nil
@@ -199,7 +199,7 @@ func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilNodesCoordinatorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.NodesCoordinator = nil
@@ -213,7 +213,7 @@ func TestConsensusCore_WithNilNodesCoordinatorShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.SyncTimer = nil
@@ -227,7 +227,7 @@ func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	args.AntifloodHandler = nil
@@ -241,7 +241,7 @@ func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
 	consensusCore, err := spos.NewConsensusCore(

@@ -14,7 +14,7 @@ import (
 )
 
 func TestBLSSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -25,7 +25,7 @@ func TestBLSSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
@@ -49,7 +49,7 @@ func TestBLSSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
@@ -73,7 +73,7 @@ func TestBLSSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignInvalidScalarShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
@@ -97,7 +97,7 @@ func TestBLSSigner_SignInvalidScalarShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignInvalidSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
@@ -146,7 +146,7 @@ func signBLS(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 }
 
 func TestBLSSigner_SignOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -157,7 +157,7 @@ func TestBLSSigner_SignOK(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -176,7 +176,7 @@ func TestBLSSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -187,7 +187,7 @@ func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -198,7 +198,7 @@ func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -209,7 +209,7 @@ func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -234,7 +234,7 @@ func TestBLSSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -253,7 +253,7 @@ func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -272,7 +272,7 @@ func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -283,7 +283,7 @@ func TestBLSSigner_VerifyOK(t *testing.T) {
 }
 
 func TestBLSSigner_SignVerifyWithReconstructedPubKeyOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
@@ -307,7 +307,7 @@ func TestBLSSigner_SignVerifyWithReconstructedPubKeyOK(t *testing.T) {
 }
 
 func TestBLSMarshalUnmarshal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := pairing.NewSuiteBn256()
 	randStream := suite.RandomStream()

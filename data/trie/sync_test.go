@@ -32,7 +32,7 @@ func getInterceptedNodes(tr data.Trie, marshalizer marshal.Marshalizer, hasher h
 }
 
 func TestTrieSyncer_StartSyncing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}

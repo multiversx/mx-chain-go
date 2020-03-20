@@ -10,7 +10,7 @@ import (
 )
 
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB, _, _ := integrationTests.CreateAccountsDB(0)
 
@@ -29,7 +29,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accDB, _, _ := integrationTests.CreateAccountsDB(0)
 

@@ -18,7 +18,7 @@ import (
 )
 
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
 		config.HeadersPoolConfig{
@@ -52,7 +52,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 }
 
 func Test_RemoveHeaderByHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
 		config.HeadersPoolConfig{
@@ -83,7 +83,7 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 }
 
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
 		config.HeadersPoolConfig{
@@ -113,7 +113,7 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T)
 }
 
 func TestHeadersCacher_Eviction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numHeadersToGenerate := 1001
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
@@ -138,7 +138,7 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 }
 
 func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numHeadersToGenerate := 50
 
@@ -206,7 +206,7 @@ func TestHeadersCacher_ConcurrentRequests_WithEviction(t *testing.T) {
 }
 
 func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(0)
 	cacheSize := 2
@@ -231,7 +231,7 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 }
 
 func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheSize := 100
 	numHeaders := 200
@@ -258,7 +258,7 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 }
 
 func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheSize := 100000
 	numHeadersToGenerate := cacheSize
@@ -310,7 +310,7 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 }
 
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheSize := 51
 	numHdrsToGenerate := 50
@@ -373,7 +373,7 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 }
 
 func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(0)
 	cacheSize := 2
@@ -411,7 +411,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 }
 
 func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(0)
 	cacheSize := 99
@@ -451,7 +451,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 }
 
 func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), core.MetachainShardId
 	cacheSize := 50
@@ -531,7 +531,7 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 }
 
 func TestHeadersPool_Nonces(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(0)
 	numHeadersToGenerate := 1000
@@ -564,7 +564,7 @@ func TestHeadersPool_Nonces(t *testing.T) {
 }
 
 func TestHeadersPool_RegisterHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	headersCacher, _ := headersCache.NewHeadersPool(
@@ -588,7 +588,7 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 }
 
 func TestHeadersPool_Clear(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
 		config.HeadersPoolConfig{

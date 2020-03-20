@@ -30,7 +30,7 @@ func createPeerShardMapper() *networksharding.PeerShardMapper {
 }
 
 func TestNewPeerShardMapper_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
@@ -45,7 +45,7 @@ func TestNewPeerShardMapper_NilNodesCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewPeerShardMapper_NilCacherForPeerIdPkShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		nil,
@@ -60,7 +60,7 @@ func TestNewPeerShardMapper_NilCacherForPeerIdPkShouldErr(t *testing.T) {
 }
 
 func TestNewPeerShardMapper_NilCacherForPkShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
@@ -75,7 +75,7 @@ func TestNewPeerShardMapper_NilCacherForPkShardIdShouldErr(t *testing.T) {
 }
 
 func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
@@ -90,7 +90,7 @@ func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
 }
 
 func TestNewPeerShardMapper_NilEpochHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
@@ -105,7 +105,7 @@ func TestNewPeerShardMapper_NilEpochHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
@@ -122,7 +122,7 @@ func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 //------- UpdatePeerIdPublicKey
 
 func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
@@ -135,7 +135,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldWork(t *testing.T) {
 }
 
 func TestPeerShardMapper_UpdatePeerIdPublicKeyMorePidsThanAllowedShouldTrim(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pk := []byte("dummy pk")
@@ -158,7 +158,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyMorePidsThanAllowedShouldTrim(t *t
 }
 
 func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldUpdatePkForExistentPid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pk1 := []byte("dummy pk1")
@@ -186,7 +186,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldUpdatePkForExistentPid(t *te
 }
 
 func TestPeerShardMapper_UpdatePeerIdPublicKeyWrongTypePkInPeerIdPkShouldRemove(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pk1 := []byte("dummy pk1")
@@ -202,7 +202,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyWrongTypePkInPeerIdPkShouldRemove(
 }
 
 func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldWorkConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
@@ -226,7 +226,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldWorkConcurrently(t *testing.
 //------- UpdatePublicKeyShardId
 
 func TestPeerShardMapper_UpdatePublicKeyShardIdShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pk := []byte("dummy pk")
@@ -239,7 +239,7 @@ func TestPeerShardMapper_UpdatePublicKeyShardIdShouldWork(t *testing.T) {
 }
 
 func TestPeerShardMapper_UpdatePublicKeyShardIdShouldWorkConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pk := []byte("dummy pk")
@@ -263,7 +263,7 @@ func TestPeerShardMapper_UpdatePublicKeyShardIdShouldWorkConcurrently(t *testing
 //------- UpdatePeerIdShardId
 
 func TestPeerShardMapper_UpdatePeerIdShardIdShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
@@ -276,7 +276,7 @@ func TestPeerShardMapper_UpdatePeerIdShardIdShouldWork(t *testing.T) {
 }
 
 func TestPeerShardMapper_UpdatePeerIdShardIdShouldWorkConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
@@ -300,7 +300,7 @@ func TestPeerShardMapper_UpdatePeerIdShardIdShouldWorkConcurrently(t *testing.T)
 //------- GetShardID
 
 func TestPeerShardMapper_GetShardIDPkNotFoundShouldReturnUnknown(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm := createPeerShardMapper()
 	pid := p2p.PeerID("dummy peer ID")
@@ -311,7 +311,7 @@ func TestPeerShardMapper_GetShardIDPkNotFoundShouldReturnUnknown(t *testing.T) {
 }
 
 func TestPeerShardMapper_GetShardIDNodesCoordinatorHasTheShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
@@ -339,7 +339,7 @@ func TestPeerShardMapper_GetShardIDNodesCoordinatorHasTheShardId(t *testing.T) {
 }
 
 func TestPeerShardMapper_GetShardIDNodesCoordinatorWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wrongTypePk := uint64(6)
 	psm, _ := networksharding.NewPeerShardMapper(
@@ -358,7 +358,7 @@ func TestPeerShardMapper_GetShardIDNodesCoordinatorWrongTypeInCacheShouldReturnU
 }
 
 func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromTheFallbackMap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
@@ -383,7 +383,7 @@ func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromT
 }
 
 func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pk := []byte("dummy pk")
 	psm, _ := networksharding.NewPeerShardMapper(
@@ -408,7 +408,7 @@ func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItWrongTypeInCacheS
 }
 
 func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromTheSecondFallbackMap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
@@ -433,7 +433,7 @@ func TestPeerShardMapper_GetShardIDNodesCoordinatorDoesntHaveItShouldReturnFromT
 }
 
 func TestPeerShardMapper_GetShardIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
@@ -459,7 +459,7 @@ func TestPeerShardMapper_GetShardIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
 }
 
 func TestPeerShardMapper_GetShardIDShouldRetUnknownShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pk := []byte("dummy pk")
 	psm, _ := networksharding.NewPeerShardMapper(
@@ -482,7 +482,7 @@ func TestPeerShardMapper_GetShardIDShouldRetUnknownShardId(t *testing.T) {
 }
 
 func TestPeerShardMapper_GetShardIDShouldWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	psm, _ := networksharding.NewPeerShardMapper(
 		mock.NewCacherMock(),
@@ -505,7 +505,7 @@ func TestPeerShardMapper_GetShardIDShouldWrongTypeInCacheShouldReturnUnknown(t *
 }
 
 func TestPeerShardMapper_GetShardIDShouldWorkConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")

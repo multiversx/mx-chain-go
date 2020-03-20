@@ -15,7 +15,7 @@ import (
 //------- JournalEntryBalance
 
 func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewJournalEntryBalance(nil, nil)
 
@@ -24,7 +24,7 @@ func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewJournalEntryBalance(accnt, big.NewInt(0))
@@ -34,7 +34,7 @@ func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
 }
 
 func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	balance := big.NewInt(34)
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -48,7 +48,7 @@ func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
 // ---- JournalEntryDataTrieUpdates
 
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
@@ -59,7 +59,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -70,7 +70,7 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 }
 
 func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
@@ -82,7 +82,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 }
 
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("error")
 
@@ -106,7 +106,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 }
 
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("error")
 
@@ -132,7 +132,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 }
 
 func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	updateWasCalled := false
 	rootWasCalled := false
@@ -163,7 +163,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 }
 
 func TestNewJournalEntryDeveloperReward(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	jed, err := state.NewJournalEntryDeveloperReward(nil, big.NewInt(1000))
 	require.Nil(t, jed)

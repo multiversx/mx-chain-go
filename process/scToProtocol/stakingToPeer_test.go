@@ -48,7 +48,7 @@ func createBlockBody() *block.Body {
 }
 
 func TestNewStakingToPeerNilAddrConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.AdrConv = nil
@@ -59,7 +59,7 @@ func TestNewStakingToPeerNilAddrConverterShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.Hasher = nil
@@ -70,7 +70,7 @@ func TestNewStakingToPeerNilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.ProtoMarshalizer = nil
@@ -81,7 +81,7 @@ func TestNewStakingToPeerNilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilPeerAccountAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.PeerState = nil
@@ -92,7 +92,7 @@ func TestNewStakingToPeerNilPeerAccountAdapterShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilBaseAccountAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.BaseState = nil
@@ -103,7 +103,7 @@ func TestNewStakingToPeerNilBaseAccountAdapterShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilArgumentParserShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.ArgParser = nil
@@ -114,7 +114,7 @@ func TestNewStakingToPeerNilArgumentParserShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilCurrentBlockHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.CurrTxs = nil
@@ -125,7 +125,7 @@ func TestNewStakingToPeerNilCurrentBlockHeaderShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeerNilScDataGetterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.ScQuery = nil
@@ -136,7 +136,7 @@ func TestNewStakingToPeerNilScDataGetterShouldErr(t *testing.T) {
 }
 
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
 
@@ -146,7 +146,7 @@ func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 }
 
 func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	testError := errors.New("error")
@@ -167,7 +167,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 }
 
 func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
@@ -186,7 +186,7 @@ func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T)
 }
 
 func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testError := errors.New("error")
 	currTx := &mock.TxForCurrentBlockStub{}
@@ -212,7 +212,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 }
 
 func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
@@ -245,7 +245,7 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 }
 
 func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
@@ -293,7 +293,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 }
 
 func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
@@ -343,7 +343,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 }
 
 func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testError := errors.New("error")
 	address := "address"
@@ -402,7 +402,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 }
 
 func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testError := errors.New("error")
 	address := "address"
@@ -462,7 +462,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 }
 
 func TestStakingToPeer_UpdateProtocol(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	address := "address"
 	currTx := &mock.TxForCurrentBlockStub{}
@@ -522,7 +522,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 }
 
 func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testError := errors.New("error")
 	address := "address"

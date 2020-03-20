@@ -268,7 +268,7 @@ func TestFIFOShardedCache_Clear(t *testing.T) {
 }
 
 func TestFIFOShardedCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
@@ -278,7 +278,7 @@ func TestFIFOShardedCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t
 }
 
 func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -313,7 +313,7 @@ func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing
 }
 
 func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -348,7 +348,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *te
 }
 
 func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

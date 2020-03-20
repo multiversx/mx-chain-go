@@ -11,7 +11,7 @@ import (
 )
 
 func TestMetaAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	addrTr := &mock.AccountTrackerStub{}
@@ -27,7 +27,7 @@ func TestMetaAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 }
 
 func TestMetaAccount_NewAccountNilAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(nil, &mock.AccountTrackerStub{})
 
@@ -36,7 +36,7 @@ func TestMetaAccount_NewAccountNilAddress(t *testing.T) {
 }
 
 func TestMetaAccount_NewMetaAccountNilAaccountTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, nil)
 
@@ -45,7 +45,7 @@ func TestMetaAccount_NewMetaAccountNilAaccountTracker(t *testing.T) {
 }
 
 func TestMetaAccount_NewMetaAccountOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
@@ -54,7 +54,7 @@ func TestMetaAccount_NewMetaAccountOk(t *testing.T) {
 }
 
 func TestMetaAccount_AddressContainer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	acc, err := state.NewMetaAccount(addr, &mock.AccountTrackerStub{})
@@ -65,7 +65,7 @@ func TestMetaAccount_AddressContainer(t *testing.T) {
 }
 
 func TestMetaAccount_GetCode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -78,7 +78,7 @@ func TestMetaAccount_GetCode(t *testing.T) {
 }
 
 func TestMetaAccount_GetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -91,7 +91,7 @@ func TestMetaAccount_GetCodeHash(t *testing.T) {
 }
 
 func TestMetaAccount_SetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -104,7 +104,7 @@ func TestMetaAccount_SetCodeHash(t *testing.T) {
 }
 
 func TestMetaAccount_GetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -117,7 +117,7 @@ func TestMetaAccount_GetRootHash(t *testing.T) {
 }
 
 func TestMetaAccount_SetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -130,7 +130,7 @@ func TestMetaAccount_SetRootHash(t *testing.T) {
 }
 
 func TestMetaAccount_DataTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -143,7 +143,7 @@ func TestMetaAccount_DataTrie(t *testing.T) {
 }
 
 func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -171,7 +171,7 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 }
 
 func TestMetaAccount_SetGetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, _ := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
@@ -181,7 +181,7 @@ func TestMetaAccount_SetGetNonce(t *testing.T) {
 }
 
 func TestMetaAccount_SetNonceWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(5)
 	journalizeWasCalled := false
@@ -207,7 +207,7 @@ func TestMetaAccount_SetNonceWithJournal(t *testing.T) {
 }
 
 func TestMetaAccount_DataTrieTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, _ := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
@@ -216,7 +216,7 @@ func TestMetaAccount_DataTrieTracker(t *testing.T) {
 }
 
 func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -244,7 +244,7 @@ func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
 }
 
 func TestMetaAccount_SetCodeHashWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -272,7 +272,7 @@ func TestMetaAccount_SetCodeHashWithJournal(t *testing.T) {
 }
 
 func TestMetaAccount_SetMiniBlocksDataWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -300,7 +300,7 @@ func TestMetaAccount_SetMiniBlocksDataWithJournal(t *testing.T) {
 }
 
 func TestMetaAccount_SetShardRootHashWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0

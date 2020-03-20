@@ -31,7 +31,7 @@ func createMetaTxProcessor() process.TransactionProcessor {
 //------- NewMetaTxProcessor
 
 func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		nil,
@@ -47,7 +47,7 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -63,7 +63,7 @@ func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -79,7 +79,7 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -95,7 +95,7 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -111,7 +111,7 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -127,7 +127,7 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
 		&mock.AccountsStub{},
@@ -145,7 +145,7 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 //------- ProcessTransaction
 
 func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	execTx := createMetaTxProcessor()
 
@@ -154,7 +154,7 @@ func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 }
 
 func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressConv := &mock.AddressConverterMock{}
 
@@ -174,7 +174,7 @@ func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T)
 }
 
 func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := createAccountStub(nil, nil, nil, nil)
 
@@ -198,7 +198,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 }
 
 func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
@@ -228,7 +228,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 }
 
 func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -269,7 +269,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 }
 
 func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -332,7 +332,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 }
 
 func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -390,7 +390,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 }
 
 func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 

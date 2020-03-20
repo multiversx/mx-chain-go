@@ -42,7 +42,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 }
 
 func TestNewSingleDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, err := interceptors.NewSingleDataInterceptor(
 		"",
@@ -57,7 +57,7 @@ func TestNewSingleDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 }
 
 func TestNewSingleDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, err := interceptors.NewSingleDataInterceptor(
 		testTopic,
@@ -72,7 +72,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.
 }
 
 func TestNewSingleDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, err := interceptors.NewSingleDataInterceptor(
 		testTopic,
@@ -87,7 +87,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testin
 }
 
 func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, err := interceptors.NewSingleDataInterceptor(
 		testTopic,
@@ -102,7 +102,7 @@ func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T)
 }
 
 func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, err := interceptors.NewSingleDataInterceptor(
 		testTopic,
@@ -117,7 +117,7 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 }
 
 func TestNewSingleDataInterceptor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	factory := &mock.InterceptedDataFactoryStub{}
 	sdi, err := interceptors.NewSingleDataInterceptor(
@@ -136,7 +136,7 @@ func TestNewSingleDataInterceptor(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sdi, _ := interceptors.NewSingleDataInterceptor(
 		testTopic,
@@ -152,7 +152,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	sdi, _ := interceptors.NewSingleDataInterceptor(
@@ -180,7 +180,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
@@ -222,7 +222,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
@@ -263,7 +263,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
@@ -306,7 +306,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestSingleDataInterceptor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var sdi *interceptors.SingleDataInterceptor
 

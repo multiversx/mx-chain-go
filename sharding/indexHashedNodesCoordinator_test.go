@@ -104,7 +104,7 @@ func validatorsPubKeys(validators []Validator) []string {
 //------- NewIndexHashedNodesCoordinator
 
 func TestNewIndexHashedNodesCoordinator_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.Hasher = nil
@@ -115,7 +115,7 @@ func TestNewIndexHashedNodesCoordinator_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedNodesCoordinator_InvalidConsensusGroupSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.ShardConsensusGroupSize = 0
@@ -126,7 +126,7 @@ func TestNewIndexHashedNodesCoordinator_InvalidConsensusGroupSizeShouldErr(t *te
 }
 
 func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.NbShards = 0
@@ -137,7 +137,7 @@ func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.ShardId = 10
@@ -148,7 +148,7 @@ func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.SelfPublicKey = nil
@@ -168,7 +168,7 @@ func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -180,7 +180,7 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 //------- LoadEligibleList
 
 func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
 	arguments := createArguments()
@@ -190,7 +190,7 @@ func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	arguments := createArguments()
@@ -200,7 +200,7 @@ func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
@@ -232,7 +232,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 //------- ComputeValidatorsGroup
 
 func TestIndexHashedNodesCoordinator_NewCoordinatorGroup0SizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	arguments.MetaConsensusGroupSize = 0
@@ -243,7 +243,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorGroup0SizeShouldErr(t *testin
 }
 
 func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eligibleMap := createDummyNodesMap(5, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
@@ -271,7 +271,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupNilRandomnessShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -282,7 +282,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupNilRandomnessShouldEr
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -295,7 +295,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldE
 //------- functionality tests
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldReturnSame(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	list := []Validator{
 		mock.NewValidatorMock([]byte("pk0"), []byte("addr0")),
@@ -329,7 +329,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2Validators(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := &mock.HasherStub{}
 
@@ -378,7 +378,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2Validators(t *te
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsRevertOrder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := &mock.HasherStub{}
 
@@ -440,7 +440,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsRevert
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsSameIndex(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := &mock.HasherStub{}
 
@@ -489,7 +489,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsSameIn
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest6From10ValidatorsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := &mock.HasherStub{}
 	selfPubKey := []byte("key")
@@ -869,7 +869,7 @@ func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400Memoizat
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -879,7 +879,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrNil
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrValidatorNotFound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -889,7 +889,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrVal
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	listMeta := []Validator{
 		mock.NewValidatorMock([]byte("pk0_meta"), []byte("addr0_meta")),
@@ -947,7 +947,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 }
 
 func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -957,7 +957,7 @@ func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoc
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardZeroId := uint32(0)
 	shardOneId := uint32(1)
@@ -1014,7 +1014,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 }
 
 func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardZeroId := uint32(0)
 	shardOneId := uint32(1)
@@ -1075,7 +1075,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 }
 
 func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 
@@ -1107,7 +1107,7 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1121,7 +1121,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1138,7 +1138,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpo
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesInvalidRandomness(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1151,7 +1151,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesInval
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1165,7 +1165,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesOK(t 
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1183,7 +1183,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexesInvalidPubKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1202,7 +1202,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorsIndexesInvalidPubKey(t *testin
 }
 
 func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1229,7 +1229,7 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetSavedStateKeyEpoch0(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1241,7 +1241,7 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKeyEpoch0(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1253,7 +1253,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_ShardIdForEpochValidEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1265,7 +1265,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochValidEpoch(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch0(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
@@ -1291,7 +1291,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch0(t *testi
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 
@@ -1338,7 +1338,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1384,7 +1384,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 }
 
 func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1398,7 +1398,7 @@ func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetNumTotalEligible(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1414,7 +1414,7 @@ func TestIndexHashedNodesCoordinator_GetNumTotalEligible(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_GetOwnPublicKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createArguments()
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1425,7 +1425,7 @@ func TestIndexHashedNodesCoordinator_GetOwnPublicKey(t *testing.T) {
 }
 
 func TestIndexHashedNodesCoordinator_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ihgs NodesCoordinator
 	require.True(t, check.IfNil(ihgs))

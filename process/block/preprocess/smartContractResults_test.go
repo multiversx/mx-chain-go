@@ -29,7 +29,7 @@ func isShardStuckFalse(_ uint32) bool {
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewSmartContractResultPreprocessor(
@@ -51,7 +51,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -74,7 +74,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -97,7 +97,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -120,7 +120,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -143,7 +143,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -166,7 +166,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -189,7 +189,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	txs, err := NewSmartContractResultPreprocessor(
@@ -211,7 +211,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -234,7 +234,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -257,7 +257,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testin
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputationHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -280,7 +280,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 }
 
 func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -306,7 +306,7 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 }
 
 func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcessing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -341,7 +341,7 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 }
 
 func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -376,7 +376,7 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 }
 
 func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -408,7 +408,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 }
 
 func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dataPool := mock.NewPoolsHolderMock()
 
@@ -461,7 +461,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 }
 
 func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -532,7 +532,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 }
 
 func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -557,7 +557,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) 
 }
 
 func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -594,7 +594,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 }
 
 func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -619,7 +619,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 }
 
 func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -649,7 +649,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 }
 
 func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -687,7 +687,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
 }
 
 func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -726,7 +726,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 }
 
 func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -778,7 +778,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 }
 
 func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 
@@ -835,7 +835,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 }
 
 func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -866,7 +866,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 }
 
 func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("txHash")
 	scrstorage := mock.ChainStorerMock{}
@@ -935,7 +935,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 }
 
 func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -965,7 +965,7 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 }
 
 func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -989,7 +989,7 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 }
 
 func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}

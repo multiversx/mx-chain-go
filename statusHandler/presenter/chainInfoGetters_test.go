@@ -9,7 +9,7 @@ import (
 )
 
 func TestPresenterStatusHandler_GetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -20,7 +20,7 @@ func TestPresenterStatusHandler_GetNonce(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetIsSyncing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	isSyncing := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -31,7 +31,7 @@ func TestPresenterStatusHandler_GetIsSyncing(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetTxPoolLoad(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txPoolLoad := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -42,7 +42,7 @@ func TestPresenterStatusHandler_GetTxPoolLoad(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetProbableHighestNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	probableHighestNonce := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -53,7 +53,7 @@ func TestPresenterStatusHandler_GetProbableHighestNonce(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetSynchronizedRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	synchronizedRound := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -64,7 +64,7 @@ func TestPresenterStatusHandler_GetSynchronizedRound(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetRoundTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	roundTime := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -75,7 +75,7 @@ func TestPresenterStatusHandler_GetRoundTime(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetLiveValidatorNodes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numLiveValidatorNodes := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -86,7 +86,7 @@ func TestPresenterStatusHandler_GetLiveValidatorNodes(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetConnectedNodes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numConnectedNodes := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -97,7 +97,7 @@ func TestPresenterStatusHandler_GetConnectedNodes(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumConnectedPeers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numConnectedPeers := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -108,7 +108,7 @@ func TestPresenterStatusHandler_GetNumConnectedPeers(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCurrentRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentRound := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -119,7 +119,7 @@ func TestPresenterStatusHandler_GetCurrentRound(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentBlockNonce := uint64(10)
 	probableHighestNonce := uint64(200)
@@ -141,7 +141,7 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	initialNonce := uint64(10)
 	currentNonce := uint64(20)
@@ -156,7 +156,7 @@ func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumTxProcessed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numTxProcessed := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -167,7 +167,7 @@ func TestPresenterStatusHandler_GetNumTxProcessed(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumShardHeadersInPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numShardHeadersInPool := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -178,7 +178,7 @@ func TestPresenterStatusHandler_GetNumShardHeadersInPool(t *testing.T) {
 }
 
 func TestNewPresenterStatusHandler_GetNumShardHeadersProcessed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numShardHeadersProcessed := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()

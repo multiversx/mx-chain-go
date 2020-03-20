@@ -9,7 +9,7 @@ import (
 )
 
 func TestNilDiscoverer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nd := discovery.NewNilDiscoverer()
 

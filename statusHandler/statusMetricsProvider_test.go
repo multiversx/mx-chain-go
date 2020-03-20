@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewStatusMetricsProvider(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	assert.NotNil(t, sm)
@@ -16,7 +16,7 @@ func TestNewStatusMetricsProvider(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key1"
@@ -28,7 +28,7 @@ func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key2"
@@ -42,7 +42,7 @@ func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T
 }
 
 func TestStatusMetricsProvider_IncrementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key3"
@@ -55,7 +55,7 @@ func TestStatusMetricsProvider_IncrementShouldWork(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_Decrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key := "test-key4"
@@ -68,7 +68,7 @@ func TestStatusMetricsProvider_Decrement(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_SetInt64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key := "test-key5"
@@ -82,7 +82,7 @@ func TestStatusMetricsProvider_SetInt64Value(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key := "test-key6"
@@ -96,7 +96,7 @@ func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
 }
 
 func TestStatusMetricsProvider_AddUint64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
 	key := "test-key6"

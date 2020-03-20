@@ -21,7 +21,7 @@ var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 var testTopic = "test topic"
 
 func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		"",
@@ -37,7 +37,7 @@ func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 }
 
 func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -53,7 +53,7 @@ func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -69,7 +69,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 }
 
 func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -85,7 +85,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing
 }
 
 func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -101,7 +101,7 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 }
 
 func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -117,7 +117,7 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMultiDataInterceptor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	factory := &mock.InterceptedDataFactoryStub{}
 	mdi, err := interceptors.NewMultiDataInterceptor(
@@ -137,7 +137,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -154,7 +154,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpeced := errors.New("expected error")
 	mdi, _ := interceptors.NewMultiDataInterceptor(
@@ -179,7 +179,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(
 		testTopic,
@@ -203,7 +203,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 }
 
 func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
@@ -241,7 +241,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 }
 
 func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	correctData := []byte("buff1")
 	incorrectData := []byte("buff2")
@@ -293,7 +293,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProcess(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
@@ -339,7 +339,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
@@ -384,7 +384,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
@@ -431,7 +431,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 //------- IsInterfaceNil
 
 func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var mdi *interceptors.MultiDataInterceptor
 

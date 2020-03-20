@@ -8,7 +8,7 @@ import (
 )
 
 func TestCpuStatisticsUsagePercent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cs, err := NewCpuStatistics()
 	assert.Nil(t, err)

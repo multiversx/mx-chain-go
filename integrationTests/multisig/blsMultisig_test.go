@@ -143,7 +143,7 @@ func TestMultiSig_Bls(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Parallel()
+	//t.Parallel()
 
 	consensusGroupSize := uint16(6)
 	numOfSigners := uint16(6)

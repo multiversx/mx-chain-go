@@ -9,7 +9,7 @@ import (
 )
 
 func TestNetStatistics(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	net := &NetStatistics{}
 
@@ -27,7 +27,7 @@ func TestNetStatistics(t *testing.T) {
 }
 
 func TestNetStatistics_ResetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	net := &NetStatistics{}
 

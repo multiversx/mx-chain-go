@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewBlockBalancer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bb, err := track.NewBlockBalancer()
 
@@ -17,7 +17,7 @@ func TestNewBlockBalancer_ShouldWork(t *testing.T) {
 }
 
 func TestSetAndGetNumPendingMiniBlocks_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bb, _ := track.NewBlockBalancer()
 

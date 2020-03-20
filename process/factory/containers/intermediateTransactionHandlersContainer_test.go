@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewIntermediateTransactionHandlersContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -22,7 +22,7 @@ func TestNewIntermediateTransactionHandlersContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestIntermediateTransactionHandlersContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -33,7 +33,7 @@ func TestIntermediateTransactionHandlersContainer_AddAlreadyExistingShouldErr(t 
 }
 
 func TestIntermediateTransactionHandlersContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -43,7 +43,7 @@ func TestIntermediateTransactionHandlersContainer_AddNilShouldErr(t *testing.T) 
 }
 
 func TestIntermediateTransactionHandlersContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -56,7 +56,7 @@ func TestIntermediateTransactionHandlersContainer_AddShouldWork(t *testing.T) {
 //------- AddMultiple
 
 func TestIntermediateTransactionHandlersContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -69,7 +69,7 @@ func TestIntermediateTransactionHandlersContainer_AddMultipleAlreadyExistingShou
 }
 
 func TestIntermediateTransactionHandlersContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -82,7 +82,7 @@ func TestIntermediateTransactionHandlersContainer_AddMultipleLenMismatchShouldEr
 }
 
 func TestIntermediateTransactionHandlersContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -98,7 +98,7 @@ func TestIntermediateTransactionHandlersContainer_AddMultipleShouldWork(t *testi
 //------- Get
 
 func TestIntermediateTransactionHandlersContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -114,7 +114,7 @@ func TestIntermediateTransactionHandlersContainer_GetNotFoundShouldErr(t *testin
 }
 
 func TestIntermediateTransactionHandlersContainer_GetWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -128,7 +128,7 @@ func TestIntermediateTransactionHandlersContainer_GetWrongTypeShouldErr(t *testi
 }
 
 func TestIntermediateTransactionHandlersContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -145,7 +145,7 @@ func TestIntermediateTransactionHandlersContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestIntermediateTransactionHandlersContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -162,7 +162,7 @@ func TestIntermediateTransactionHandlersContainer_ReplaceNilValueShouldErrAndNot
 }
 
 func TestIntermediateTransactionHandlersContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -182,7 +182,7 @@ func TestIntermediateTransactionHandlersContainer_ReplaceShouldWork(t *testing.T
 //------- Remove
 
 func TestIntermediateTransactionHandlersContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
@@ -201,7 +201,7 @@ func TestIntermediateTransactionHandlersContainer_RemoveShouldWork(t *testing.T)
 //------- Len
 
 func TestIntermediateTransactionHandlersContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewIntermediateTransactionHandlersContainer()
 

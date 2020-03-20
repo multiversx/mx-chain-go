@@ -10,14 +10,14 @@ import (
 )
 
 func TestNewStableTagProvider(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stp := NewStableTagProvider("location")
 	assert.False(t, check.IfNil(stp))
 }
 
 func TestStableTagProvider_FetchTagVersion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	handlerWasCalled := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

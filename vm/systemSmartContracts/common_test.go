@@ -10,7 +10,7 @@ import (
 )
 
 func TestCheckIfNil_NilArgs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(nil)
 
@@ -18,7 +18,7 @@ func TestCheckIfNil_NilArgs(t *testing.T) {
 }
 
 func TestCheckIfNil_NilCallerAddr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -37,7 +37,7 @@ func TestCheckIfNil_NilCallerAddr(t *testing.T) {
 }
 
 func TestCheckIfNil_NilCallValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -56,7 +56,7 @@ func TestCheckIfNil_NilCallValue(t *testing.T) {
 }
 
 func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -75,7 +75,7 @@ func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
 }
 
 func TestCheckIfNil_NilFunction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -94,7 +94,7 @@ func TestCheckIfNil_NilFunction(t *testing.T) {
 }
 
 func TestCheckIfNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

@@ -22,7 +22,7 @@ func createStubNetwork() network.Network {
 }
 
 func TestNewHostWithConnectionManagement_NilHostShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hwcm, err := discovery.NewHostWithConnectionManagement(nil, &mock.SharderStub{})
 
@@ -31,7 +31,7 @@ func TestNewHostWithConnectionManagement_NilHostShouldErr(t *testing.T) {
 }
 
 func TestNewHostWithConnectionManagement_NilSharderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, nil)
 
@@ -40,7 +40,7 @@ func TestNewHostWithConnectionManagement_NilSharderShouldErr(t *testing.T) {
 }
 
 func TestNewHostWithConnectionManagement_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, &mock.SharderStub{})
 
@@ -51,7 +51,7 @@ func TestNewHostWithConnectionManagement_ShouldWork(t *testing.T) {
 //------- Connect
 
 func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConnect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	connectCalled := false
 	hwcm, _ := discovery.NewHostWithConnectionManagement(
@@ -80,7 +80,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConn
 }
 
 func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConnect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	connectCalled := false
 	hwcm, _ := discovery.NewHostWithConnectionManagement(

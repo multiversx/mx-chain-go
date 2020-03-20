@@ -10,7 +10,7 @@ import (
 )
 
 func TestMclScalar_EqualNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().Zero()
@@ -22,7 +22,7 @@ func TestMclScalar_EqualNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_EqualInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().Zero()
@@ -34,7 +34,7 @@ func TestMclScalar_EqualInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_EqualTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -46,7 +46,7 @@ func TestMclScalar_EqualTrue(t *testing.T) {
 }
 
 func TestMclScalar_EqualFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -58,7 +58,7 @@ func TestMclScalar_EqualFalse(t *testing.T) {
 }
 
 func TestMclScalar_SetNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().One()
@@ -68,7 +68,7 @@ func TestMclScalar_SetNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_SetInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -79,7 +79,7 @@ func TestMclScalar_SetInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_SetOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -92,7 +92,7 @@ func TestMclScalar_SetOK(t *testing.T) {
 }
 
 func TestMclScalar_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -104,7 +104,7 @@ func TestMclScalar_Clone(t *testing.T) {
 }
 
 func TestMclScalar_SetInt64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -123,7 +123,7 @@ func TestMclScalar_SetInt64(t *testing.T) {
 }
 
 func TestMclScalar_Zero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().Zero()
@@ -137,7 +137,7 @@ func TestMclScalar_Zero(t *testing.T) {
 }
 
 func TestMclScalar_AddNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().Zero()
@@ -148,7 +148,7 @@ func TestMclScalar_AddNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_AddInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().Zero()
@@ -160,7 +160,7 @@ func TestMclScalar_AddInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_AddOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -176,7 +176,7 @@ func TestMclScalar_AddOK(t *testing.T) {
 }
 
 func TestMclScalar_SubNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().Zero()
@@ -187,7 +187,7 @@ func TestMclScalar_SubNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_SubInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().Zero()
@@ -199,7 +199,7 @@ func TestMclScalar_SubInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_SubOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -216,7 +216,7 @@ func TestMclScalar_SubOK(t *testing.T) {
 }
 
 func TestMclScalar_Neg(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -231,7 +231,7 @@ func TestMclScalar_Neg(t *testing.T) {
 }
 
 func TestMclScalar_One(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -245,7 +245,7 @@ func TestMclScalar_One(t *testing.T) {
 }
 
 func TestMclScalar_MulNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().One()
@@ -256,7 +256,7 @@ func TestMclScalar_MulNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_MulInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -268,7 +268,7 @@ func TestMclScalar_MulInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_MulOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -284,7 +284,7 @@ func TestMclScalar_MulOK(t *testing.T) {
 }
 
 func TestMclScalar_DivNilParamShouldEr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar := suite.CreateScalar().One()
@@ -295,7 +295,7 @@ func TestMclScalar_DivNilParamShouldEr(t *testing.T) {
 }
 
 func TestMclScalar_DivInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -307,7 +307,7 @@ func TestMclScalar_DivInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_DivOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -323,7 +323,7 @@ func TestMclScalar_DivOK(t *testing.T) {
 }
 
 func TestMclScalar_InvNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -334,7 +334,7 @@ func TestMclScalar_InvNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_InvInvalidParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -346,7 +346,7 @@ func TestMclScalar_InvInvalidParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_InvOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -367,7 +367,7 @@ func TestMclScalar_InvOK(t *testing.T) {
 }
 
 func TestMclScalar_PickOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stream cipher.Stream
 	suite := NewSuiteBLS12()
@@ -383,7 +383,7 @@ func TestMclScalar_PickOK(t *testing.T) {
 }
 
 func TestMclScalar_SetBytesNilParamShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar()
@@ -394,7 +394,7 @@ func TestMclScalar_SetBytesNilParamShouldErr(t *testing.T) {
 }
 
 func TestMclScalar_SetBytesOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	val := int64(555555555)
 	suite := NewSuiteBLS12()
@@ -416,7 +416,7 @@ func TestMclScalar_SetBytesOK(t *testing.T) {
 }
 
 func TestMclScalar_GetUnderlyingObj(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()
@@ -426,7 +426,7 @@ func TestMclScalar_GetUnderlyingObj(t *testing.T) {
 }
 
 func TestMclScalar_MarshalBinary(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := NewSuiteBLS12()
 	scalar1 := suite.CreateScalar().One()

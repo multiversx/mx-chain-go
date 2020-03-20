@@ -61,7 +61,7 @@ func createDefaultHeaderHandler() *mock.HeaderHandlerStub {
 //-------- checkBlockHeaderArgument
 
 func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := checkBlockHeaderArgument(nil)
 
@@ -69,7 +69,7 @@ func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilHdrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.HdrBuff = nil
@@ -80,7 +80,7 @@ func TestCheckBlockHeaderArgument_NilHdrShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.Marshalizer = nil
@@ -91,7 +91,7 @@ func TestCheckBlockHeaderArgument_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilHeaderSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.HeaderSigVerifier = nil
@@ -102,7 +102,7 @@ func TestCheckBlockHeaderArgument_NilHeaderSigVerifierShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.Hasher = nil
@@ -113,7 +113,7 @@ func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.ShardCoordinator = nil
@@ -124,7 +124,7 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.ChainID = nil
@@ -135,7 +135,7 @@ func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 	arg.ValidityAttester = nil
@@ -146,7 +146,7 @@ func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
 
@@ -158,7 +158,7 @@ func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 //-------- checkTxBlockBodyArgument
 
 func TestCheckTxBlockBodyArgument_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := checkTxBlockBodyArgument(nil)
 
@@ -166,7 +166,7 @@ func TestCheckTxBlockBodyArgument_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestCheckTxBlockBodyArgument_NilHdrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBlockBodyArgument()
 	arg.TxBlockBodyBuff = nil
@@ -177,7 +177,7 @@ func TestCheckTxBlockBodyArgument_NilHdrShouldErr(t *testing.T) {
 }
 
 func TestCheckTxBlockBodyArgument_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBlockBodyArgument()
 	arg.Marshalizer = nil
@@ -188,7 +188,7 @@ func TestCheckTxBlockBodyArgument_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestCheckTxBlockBodyArgument_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBlockBodyArgument()
 	arg.Hasher = nil
@@ -199,7 +199,7 @@ func TestCheckTxBlockBodyArgument_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestCheckTxBlockBodyArgument_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBlockBodyArgument()
 	arg.ShardCoordinator = nil
@@ -210,7 +210,7 @@ func TestCheckTxBlockBodyArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestCheckTxBlockBodyArgument_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBlockBodyArgument()
 
@@ -222,7 +222,7 @@ func TestCheckTxBlockBodyArgument_ShouldWork(t *testing.T) {
 //-------- checkHeaderHandler
 
 func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetPubKeysBitmapCalled = func() []byte {
@@ -235,7 +235,7 @@ func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_NilPrevHashShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetPrevHashCalled = func() []byte {
@@ -248,7 +248,7 @@ func TestCheckHeaderHandler_NilPrevHashShouldErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_NilSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetSignatureCalled = func() []byte {
@@ -261,7 +261,7 @@ func TestCheckHeaderHandler_NilSignatureShouldErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_NilRootHashErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetRootHashCalled = func() []byte {
@@ -274,7 +274,7 @@ func TestCheckHeaderHandler_NilRootHashErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_NilRandSeedErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetRandSeedCalled = func() []byte {
@@ -287,7 +287,7 @@ func TestCheckHeaderHandler_NilRandSeedErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 	hdr.GetPrevRandSeedCalled = func() []byte {
@@ -300,7 +300,7 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 }
 
 func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createDefaultHeaderHandler()
 
@@ -312,7 +312,7 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 //------- checkMetaShardInfo
 
 func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
@@ -324,7 +324,7 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 }
 
 func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
@@ -341,7 +341,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 }
 
 func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
@@ -365,7 +365,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 }
 
 func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
@@ -389,7 +389,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 }
 
 func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	miniBlock := block.ShardMiniBlockHeader{
@@ -414,7 +414,7 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 //------- checkMiniblocks
 
 func TestCheckMiniblocks_WithNilOrEmptyShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
@@ -426,7 +426,7 @@ func TestCheckMiniblocks_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 }
 
 func TestCheckMiniblocks_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
@@ -444,7 +444,7 @@ func TestCheckMiniblocks_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 }
 
 func TestCheckMiniblocks_WrongMiniblockReceiverShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
@@ -462,7 +462,7 @@ func TestCheckMiniblocks_WrongMiniblockReceiverShardIdShouldErr(t *testing.T) {
 }
 
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	miniblockHeader := block.MiniBlockHeader{

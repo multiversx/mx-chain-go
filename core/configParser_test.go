@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadP2PConfig_InvalidFileShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	conf, err := core.LoadP2PConfig("testFile01")
 
@@ -18,7 +18,7 @@ func TestLoadP2PConfig_InvalidFileShouldErr(t *testing.T) {
 }
 
 func TestLoadP2PConfig_ShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := os.Create("testFile02")
 	assert.Nil(t, err)

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewNilTopicFloodPreventer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ntfp := NewNilTopicFloodPreventer()
 
@@ -17,7 +17,7 @@ func TestNewNilTopicFloodPreventer(t *testing.T) {
 }
 
 func TestNilTopicFloodPreventer_FunctionsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()

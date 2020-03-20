@@ -76,7 +76,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(nil)
 
@@ -85,7 +85,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilArgumentShouldErr(t *testing.T) 
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -96,7 +96,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.TxSignMarshalizer = nil
@@ -107,7 +107,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilSignMarshalizerShouldErr(t *test
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -118,7 +118,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.HeaderSigVerifier = nil
@@ -129,7 +129,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *te
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
@@ -140,7 +140,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ChainID = nil
@@ -151,7 +151,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ValidityAttester = nil
@@ -162,7 +162,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *tes
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 

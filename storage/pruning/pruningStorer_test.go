@@ -61,7 +61,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 }
 
 func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.NumOfActivePersisters = 0
@@ -73,7 +73,7 @@ func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T)
 }
 
 func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.Notifier = nil
@@ -84,7 +84,7 @@ func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewPruningStorer_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.ShardCoordinator = nil
@@ -95,7 +95,7 @@ func TestNewPruningStorer_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.PathManager = nil
@@ -106,7 +106,7 @@ func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
 }
 
 func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.PersisterFactory = nil
@@ -117,7 +117,7 @@ func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
 }
 
 func TestNewPruningStorer_CacheSizeLowerThanBatchSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.MaxBatchSize = 11
@@ -128,7 +128,7 @@ func TestNewPruningStorer_CacheSizeLowerThanBatchSizeShouldErr(t *testing.T) {
 }
 
 func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	ps, err := pruning.NewPruningStorer(args)
@@ -139,7 +139,7 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 }
 
 func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(7)
 	shardIdStr := fmt.Sprintf("%d", shardId)
@@ -161,7 +161,7 @@ func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
 }
 
 func TestPruningStorer_PutAndGetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewPruningStorer(args)
@@ -176,7 +176,7 @@ func TestPruningStorer_PutAndGetShouldWork(t *testing.T) {
 }
 
 func TestPruningStorer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewPruningStorer(args)
@@ -201,7 +201,7 @@ func TestPruningStorer_RemoveShouldWork(t *testing.T) {
 }
 
 func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	args.NumOfEpochsToKeep = 3
@@ -217,7 +217,7 @@ func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
 }
 
 func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewPruningStorer(args)
@@ -235,7 +235,7 @@ func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
 }
 
 func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
 	persistersByPath["Epoch_0"] = memorydb.New()
@@ -285,7 +285,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 }
 
 func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewPruningStorer(args)
@@ -328,7 +328,7 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 }
 
 func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
 	persistersByPath["Epoch_0"] = memorydb.New()
@@ -375,7 +375,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 }
 
 func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
 	args := getDefaultArgs()
@@ -405,7 +405,7 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 }
 
 func TestPruningStorer_SearchFirst(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
 	persistersByPath["Epoch_0"] = memorydb.New()
@@ -461,7 +461,7 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 }
 
 func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
 	persistersByPath["Epoch_0/Shard_0/id"] = memorydb.New()
@@ -527,7 +527,7 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 }
 
 func TestRegex(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedRes := "db/Epoch_7/Shard_2"
 	replacementEpoch := "Epoch_7"

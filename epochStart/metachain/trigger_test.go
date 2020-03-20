@@ -49,7 +49,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 }
 
 func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epochStartTrigger, err := NewEpochStartTrigger(nil)
 
@@ -58,7 +58,7 @@ func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings = nil
@@ -69,7 +69,7 @@ func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 0
@@ -80,7 +80,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.EpochStartNotifier = nil
@@ -91,7 +91,7 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 1
@@ -103,7 +103,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 4
@@ -115,7 +115,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 
@@ -125,7 +125,7 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 }
 
 func TestTrigger_Update(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	notifierWasCalled := false
 	epoch := uint32(0)
@@ -162,7 +162,7 @@ func TestTrigger_Update(t *testing.T) {
 }
 
 func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	round := uint64(1)
 	arguments := createMockEpochStartTriggerArguments()
@@ -175,7 +175,7 @@ func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
 }
 
 func TestTrigger_ForceEpochStartRoundEqualWithSavedRoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
@@ -185,7 +185,7 @@ func TestTrigger_ForceEpochStartRoundEqualWithSavedRoundShouldErr(t *testing.T) 
 }
 
 func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.MinRoundsBetweenEpochs = 2
@@ -196,7 +196,7 @@ func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
 }
 
 func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(0)
 	arguments := createMockEpochStartTriggerArguments()
@@ -214,7 +214,7 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 }
 
 func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(0)
 	round := uint64(0)
@@ -275,7 +275,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 }
 
 func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(0)
 	round := uint64(0)

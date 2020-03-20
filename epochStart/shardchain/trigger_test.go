@@ -52,7 +52,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 }
 
 func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epochStartTrigger, err := NewEpochStartTrigger(nil)
 
@@ -61,7 +61,7 @@ func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Hasher = nil
@@ -72,7 +72,7 @@ func TestNewEpochStartTrigger_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Marshalizer = nil
@@ -83,7 +83,7 @@ func TestNewEpochStartTrigger_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.HeaderValidator = nil
@@ -94,7 +94,7 @@ func TestNewEpochStartTrigger_NilHeaderShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.DataPool = nil
@@ -105,7 +105,7 @@ func TestNewEpochStartTrigger_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = nil
@@ -116,7 +116,7 @@ func TestNewEpochStartTrigger_NilStorageShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilRequestHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.RequestHandler = nil
@@ -127,7 +127,7 @@ func TestNewEpochStartTrigger_NilRequestHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilUint64ConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Uint64Converter = nil
@@ -138,7 +138,7 @@ func TestNewEpochStartTrigger_NilUint64ConverterShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.EpochStartNotifier = nil
@@ -149,7 +149,7 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
@@ -164,7 +164,7 @@ func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
@@ -184,7 +184,7 @@ func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.DataPool = &mock.PoolsHolderStub{
@@ -202,7 +202,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	epochStartTrigger, err := NewEpochStartTrigger(args)
@@ -212,7 +212,7 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 }
 
 func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 2
@@ -228,7 +228,7 @@ func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 }
 
 func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 1
@@ -256,7 +256,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 }
 
 func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 
@@ -359,7 +359,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 }
 
 func TestTrigger_Epoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(1)
 	args := createMockShardEpochStartTriggerArguments()
@@ -371,7 +371,7 @@ func TestTrigger_Epoch(t *testing.T) {
 }
 
 func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 	called := false
@@ -401,7 +401,7 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 }
 
 func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
 

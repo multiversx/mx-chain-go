@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewMarshalizer_UnknownTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mrs, err := NewMarshalizer("unknown")
 
@@ -19,7 +19,7 @@ func TestNewMarshalizer_UnknownTypeShouldErr(t *testing.T) {
 }
 
 func TestNewMarshalizer_JsonShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mrs, err := NewMarshalizer(JsonMarshalizer)
 
@@ -29,7 +29,7 @@ func TestNewMarshalizer_JsonShouldWork(t *testing.T) {
 }
 
 func TestNewMarshalizer_GogoPotobufShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mrs, err := NewMarshalizer(GogoProtobuf)
 

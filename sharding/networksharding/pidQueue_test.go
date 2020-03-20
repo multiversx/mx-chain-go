@@ -9,7 +9,7 @@ import (
 )
 
 func TestPidQueue_PushPopShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")
@@ -30,7 +30,7 @@ func TestPidQueue_PushPopShouldWork(t *testing.T) {
 }
 
 func TestPidQueue_IndexOfShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")
@@ -46,7 +46,7 @@ func TestPidQueue_IndexOfShouldWork(t *testing.T) {
 }
 
 func TestPidQueue_PromoteNoElementsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -63,7 +63,7 @@ func TestPidQueue_PromoteNoElementsShouldNotPanic(t *testing.T) {
 }
 
 func TestPidQueue_PromoteOneElementShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")
@@ -75,7 +75,7 @@ func TestPidQueue_PromoteOneElementShouldWork(t *testing.T) {
 }
 
 func TestPidQueue_PromoteTwoElementsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")
@@ -90,7 +90,7 @@ func TestPidQueue_PromoteTwoElementsShouldWork(t *testing.T) {
 }
 
 func TestPidQueue_PromoteThreeElementsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")
@@ -120,7 +120,7 @@ func TestPidQueue_PromoteThreeElementsShouldWork(t *testing.T) {
 }
 
 func TestPidQueue_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pq := newPidQueue()
 	pid0 := p2p.PeerID("pid 0")

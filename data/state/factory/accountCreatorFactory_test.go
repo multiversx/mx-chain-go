@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
 	assert.Nil(t, err)
@@ -24,7 +24,7 @@ func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 }
 
 func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
 	assert.Nil(t, err)
@@ -38,7 +38,7 @@ func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 }
 
 func TestNewAccountFactoryCreator_PeerAccount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
@@ -52,7 +52,7 @@ func TestNewAccountFactoryCreator_PeerAccount(t *testing.T) {
 }
 
 func TestNewAccountFactoryCreator_UnknownType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(10)
 	assert.Nil(t, accF)

@@ -59,7 +59,7 @@ func TestMetaChain_PutBadBlock(t *testing.T) {
 }
 
 func TestMetaChain_GetCurrentBlockBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	m := blockchain.MetaChain{}
 
@@ -67,7 +67,7 @@ func TestMetaChain_GetCurrentBlockBody(t *testing.T) {
 }
 
 func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{CurrentBlock: bl}
@@ -76,7 +76,7 @@ func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
 }
 
 func TestMetaChain_GetGenesisBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{GenesisBlock: bl}
@@ -85,7 +85,7 @@ func TestMetaChain_GetGenesisBlock(t *testing.T) {
 }
 
 func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	m := blockchain.MetaChain{}
 	err := m.SetCurrentBlockBody(&block.Body{})
@@ -95,7 +95,7 @@ func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
 }
 
 func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{}
@@ -107,7 +107,7 @@ func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
 }
 
 func TestMetaChain_SetCurrentBlockHeaderWrongType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.Header{}
 	m := blockchain.MetaChain{}
@@ -118,7 +118,7 @@ func TestMetaChain_SetCurrentBlockHeaderWrongType(t *testing.T) {
 }
 
 func TestMetaChain_SetCurrentBlockHeaderHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	h := []byte{10, 11, 12, 13}
 	m := blockchain.MetaChain{}
@@ -128,7 +128,7 @@ func TestMetaChain_SetCurrentBlockHeaderHash(t *testing.T) {
 }
 
 func TestMetaChain_SetGenesisBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{}
@@ -139,7 +139,7 @@ func TestMetaChain_SetGenesisBlock(t *testing.T) {
 }
 
 func TestMetaChain_SetGenesisBlockWrongType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bl := &block.Header{}
 	m := blockchain.MetaChain{}
@@ -149,7 +149,7 @@ func TestMetaChain_SetGenesisBlockWrongType(t *testing.T) {
 }
 
 func TestMetaChain_SetGenesisHeaderHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	h := []byte{10, 11, 12, 13}
 	m := blockchain.MetaChain{}
@@ -159,7 +159,7 @@ func TestMetaChain_SetGenesisHeaderHash(t *testing.T) {
 }
 
 func TestMetaChain_SetLocalHeight(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	height := int64(3)
 	m := blockchain.MetaChain{}
@@ -169,7 +169,7 @@ func TestMetaChain_SetLocalHeight(t *testing.T) {
 }
 
 func TestMetaChain_SetNetworkHeight(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	height := int64(3)
 	m := blockchain.MetaChain{}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestGroupG2_String(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -18,7 +18,7 @@ func TestGroupG2_String(t *testing.T) {
 }
 
 func TestGroupG2_ScalarLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -27,7 +27,7 @@ func TestGroupG2_ScalarLen(t *testing.T) {
 }
 
 func TestGroupG2_PointLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -36,7 +36,7 @@ func TestGroupG2_PointLen(t *testing.T) {
 }
 
 func TestGroupG2_CreatePoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 	point := &PointG2{
@@ -61,7 +61,7 @@ func TestGroupG2_CreatePoint(t *testing.T) {
 }
 
 func TestGroupG2_CreateScalar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -76,7 +76,7 @@ func TestGroupG2_CreateScalar(t *testing.T) {
 }
 
 func TestGroupG2_CreatePointForScalar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -104,7 +104,7 @@ func TestGroupG2_CreatePointForScalar(t *testing.T) {
 }
 
 func TestGroupG2_CreatePointForScalarZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -132,7 +132,7 @@ func TestGroupG2_CreatePointForScalarZero(t *testing.T) {
 }
 
 func TestGroupG2_CreatePointForScalarOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	grG2 := &groupG2{}
 
@@ -155,7 +155,7 @@ func TestGroupG2_CreatePointForScalarOne(t *testing.T) {
 }
 
 func TestGroupG2_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var grG2 *groupG2
 

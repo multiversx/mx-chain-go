@@ -11,7 +11,7 @@ import (
 )
 
 func TestPeerAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	addrTr := &mock.AccountTrackerStub{}
@@ -27,7 +27,7 @@ func TestPeerAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 }
 
 func TestPeerAccount_NewAccountNilAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(nil, &mock.AccountTrackerStub{})
 
@@ -36,7 +36,7 @@ func TestPeerAccount_NewAccountNilAddress(t *testing.T) {
 }
 
 func TestPeerAccount_NewPeerAccountNilAaccountTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, nil)
 
@@ -45,7 +45,7 @@ func TestPeerAccount_NewPeerAccountNilAaccountTracker(t *testing.T) {
 }
 
 func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
@@ -54,7 +54,7 @@ func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
 }
 
 func TestPeerAccount_AddressContainer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	acc, err := state.NewPeerAccount(addr, &mock.AccountTrackerStub{})
@@ -65,7 +65,7 @@ func TestPeerAccount_AddressContainer(t *testing.T) {
 }
 
 func TestPeerAccount_GetCode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -78,7 +78,7 @@ func TestPeerAccount_GetCode(t *testing.T) {
 }
 
 func TestPeerAccount_GetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -91,7 +91,7 @@ func TestPeerAccount_GetCodeHash(t *testing.T) {
 }
 
 func TestPeerAccount_SetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -104,7 +104,7 @@ func TestPeerAccount_SetCodeHash(t *testing.T) {
 }
 
 func TestPeerAccount_GetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -117,7 +117,7 @@ func TestPeerAccount_GetRootHash(t *testing.T) {
 }
 
 func TestPeerAccount_SetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -130,7 +130,7 @@ func TestPeerAccount_SetRootHash(t *testing.T) {
 }
 
 func TestPeerAccount_DataTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -143,7 +143,7 @@ func TestPeerAccount_DataTrie(t *testing.T) {
 }
 
 func TestPeerAccount_SetNonceWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -171,7 +171,7 @@ func TestPeerAccount_SetNonceWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetCodeHashWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -199,7 +199,7 @@ func TestPeerAccount_SetCodeHashWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetAddressWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -227,7 +227,7 @@ func TestPeerAccount_SetAddressWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetSchnorrPublicKeyWithJournalWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -255,7 +255,7 @@ func TestPeerAccount_SetSchnorrPublicKeyWithJournalWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetBLSPublicKeyWithJournalWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -283,7 +283,7 @@ func TestPeerAccount_SetBLSPublicKeyWithJournalWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetStakeWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -311,7 +311,7 @@ func TestPeerAccount_SetStakeWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetCurrentShardIdWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -339,7 +339,7 @@ func TestPeerAccount_SetCurrentShardIdWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetNextShardIdWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -367,7 +367,7 @@ func TestPeerAccount_SetNextShardIdWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetNodeInWaitingListWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -394,7 +394,7 @@ func TestPeerAccount_SetNodeInWaitingListWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetRatingWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -422,7 +422,7 @@ func TestPeerAccount_SetRatingWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_SetJailTimeWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -453,7 +453,7 @@ func TestPeerAccount_SetJailTimeWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -481,7 +481,7 @@ func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -509,7 +509,7 @@ func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -537,7 +537,7 @@ func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
 }
 
 func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0

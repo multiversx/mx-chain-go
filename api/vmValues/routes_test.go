@@ -38,7 +38,7 @@ func init() {
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestGetHex_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
@@ -65,7 +65,7 @@ func TestGetHex_ShouldWork(t *testing.T) {
 }
 
 func TestGetString_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	valueBuff := "DEADBEEF"
 
@@ -92,7 +92,7 @@ func TestGetString_ShouldWork(t *testing.T) {
 }
 
 func TestGetInt_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := "1234567"
 
@@ -121,7 +121,7 @@ func TestGetInt_ShouldWork(t *testing.T) {
 }
 
 func TestQuery_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
@@ -159,7 +159,7 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("some random error")
 	facade := mock.Facade{
@@ -178,7 +178,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("not a valid hex string")
 	facade := mock.Facade{
@@ -197,7 +197,7 @@ func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("not a valid hex string")
 	facade := mock.Facade{
@@ -216,7 +216,7 @@ func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("no return data")
 	facade := mock.Facade{
@@ -235,7 +235,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
@@ -247,7 +247,7 @@ func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 }
 
 func TestAllRoutes_WhenBadFacadeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var facade interface{}
 

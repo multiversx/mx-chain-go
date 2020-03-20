@@ -9,7 +9,7 @@ import (
 )
 
 func TestPresenterStatusHandler_GetNumTxInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numTxInBlock := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -20,7 +20,7 @@ func TestPresenterStatusHandler_GetNumTxInBlock(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumTxInBlockShouldBeZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numTxInBlock := "1000"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -31,7 +31,7 @@ func TestPresenterStatusHandler_GetNumTxInBlockShouldBeZero(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumTxShouldZeroIfIsNotSet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	result := presenterStatusHandler.GetNumTxInBlock()
@@ -40,7 +40,7 @@ func TestPresenterStatusHandler_GetNumTxShouldZeroIfIsNotSet(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNumMiniBLocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numMiniBlocks := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -51,7 +51,7 @@ func TestPresenterStatusHandler_GetNumMiniBLocks(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCrossCheckBlockHeight(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	crossCheckBlockHeight := "meta:1000"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -62,7 +62,7 @@ func TestPresenterStatusHandler_GetCrossCheckBlockHeight(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetConsensusState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := "not in consensus group"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -73,7 +73,7 @@ func TestPresenterStatusHandler_GetConsensusState(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalidType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -84,7 +84,7 @@ func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalid
 }
 
 func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalidKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	result := presenterStatusHandler.GetConsensusState()
@@ -93,7 +93,7 @@ func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalid
 }
 
 func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusRoundState := "participant"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -104,7 +104,7 @@ func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCurrentBlockHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentBlockHash := "hash"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -115,7 +115,7 @@ func TestPresenterStatusHandler_GetCurrentBlockHash(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentRoundTimestamp := uint64(time.Now().Unix())
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -126,7 +126,7 @@ func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	miniBlocksSize := uint64(100)
 	headerSize := uint64(50)
@@ -140,7 +140,7 @@ func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetHighestFinalBlockInShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	highestFinalBlockNonce := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()

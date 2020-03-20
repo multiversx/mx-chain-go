@@ -77,7 +77,7 @@ func createTxProcessor() txproc.TxProcessor {
 //------- NewTxProcessor
 
 func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		nil,
@@ -98,7 +98,7 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -119,7 +119,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -140,7 +140,7 @@ func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -161,7 +161,7 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -182,7 +182,7 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -203,7 +203,7 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -224,7 +224,7 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -247,7 +247,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 //------- getAddresses
 
 func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressConv := &mock.AddressConverterMock{}
 
@@ -274,7 +274,7 @@ func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_GetAddressOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	execTx := *createTxProcessor()
 
@@ -291,7 +291,7 @@ func TestTxProcessor_GetAddressOkValsShouldWork(t *testing.T) {
 //------- getAccounts
 
 func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := createAccountStub(nil, nil, nil, nil)
 
@@ -320,7 +320,7 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := createAccountStub(nil, nil, nil, nil)
 
@@ -346,7 +346,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := mock.AccountsStub{}
 
@@ -401,7 +401,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := mock.AccountsStub{}
 
@@ -455,7 +455,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
@@ -486,7 +486,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{65})
@@ -518,7 +518,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 //------- checkTxValues
 
 func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
@@ -533,7 +533,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
@@ -548,7 +548,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
@@ -563,7 +563,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
@@ -579,7 +579,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 //------- moveBalances
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adrDst := mock.NewAddressMock([]byte{67})
 	journalizeCalled := false
@@ -602,7 +602,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 }
 
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adrSrc := mock.NewAddressMock([]byte{65})
 	journalizeCalled := false
@@ -625,7 +625,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 }
 
 func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -661,7 +661,7 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -696,7 +696,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 //------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -728,7 +728,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 //------- ProcessTransaction
 
 func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	execTx := *createTxProcessor()
 
@@ -737,7 +737,7 @@ func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressConv := &mock.AddressConverterMock{}
 
@@ -762,7 +762,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accounts := createAccountStub(nil, nil, nil, nil)
 
@@ -791,7 +791,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 }
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
@@ -826,7 +826,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -884,7 +884,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -932,7 +932,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -990,7 +990,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 }
 
 func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -1048,7 +1048,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -1168,7 +1168,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -1236,7 +1236,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -1299,7 +1299,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
@@ -1374,7 +1374,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 }
 
 func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	moveBalanceFee := big.NewInt(50)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
@@ -1414,7 +1414,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	moveBalanceFee := big.NewInt(50)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
@@ -1477,7 +1477,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	moveBalanceFee := big.NewInt(50)
 	execTx, _ := txproc.NewTxProcessor(

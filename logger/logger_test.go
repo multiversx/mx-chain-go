@@ -33,7 +33,7 @@ func generateTestLogOutputSubject() (logger.LogOutputHandler, *int32) {
 //------- Trace
 
 func TestLogger_TraceShouldNotCallIfLogLevelIsHigher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogDebug, los)
@@ -44,7 +44,7 @@ func TestLogger_TraceShouldNotCallIfLogLevelIsHigher(t *testing.T) {
 }
 
 func TestLogger_TraceShouldCallIfLogLevelIsEqual(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogTrace, los)
@@ -57,7 +57,7 @@ func TestLogger_TraceShouldCallIfLogLevelIsEqual(t *testing.T) {
 //------- Debug
 
 func TestLogger_DebugShouldNotCallIfLogLevelIsHigher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogInfo, los)
@@ -68,7 +68,7 @@ func TestLogger_DebugShouldNotCallIfLogLevelIsHigher(t *testing.T) {
 }
 
 func TestLogger_DebugShouldCallIfLogLevelIsEqual(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogDebug, los)
@@ -79,7 +79,7 @@ func TestLogger_DebugShouldCallIfLogLevelIsEqual(t *testing.T) {
 }
 
 func TestLogger_DebugShouldCallIfLogLevelIsLower(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogTrace, los)
@@ -92,7 +92,7 @@ func TestLogger_DebugShouldCallIfLogLevelIsLower(t *testing.T) {
 //------- Info
 
 func TestLogger_InfoShouldNotCallIfLogLevelIsHigher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogWarning, los)
@@ -103,7 +103,7 @@ func TestLogger_InfoShouldNotCallIfLogLevelIsHigher(t *testing.T) {
 }
 
 func TestLogger_InfoShouldCallIfLogLevelIsEqual(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogInfo, los)
@@ -114,7 +114,7 @@ func TestLogger_InfoShouldCallIfLogLevelIsEqual(t *testing.T) {
 }
 
 func TestLogger_InfoShouldCallIfLogLevelIsLower(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogDebug, los)
@@ -127,7 +127,7 @@ func TestLogger_InfoShouldCallIfLogLevelIsLower(t *testing.T) {
 //------- Warn
 
 func TestLogger_WarnShouldNotCallIfLogLevelIsHigher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)
@@ -138,7 +138,7 @@ func TestLogger_WarnShouldNotCallIfLogLevelIsHigher(t *testing.T) {
 }
 
 func TestLogger_WarnShouldCallIfLogLevelIsEqual(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogWarning, los)
@@ -149,7 +149,7 @@ func TestLogger_WarnShouldCallIfLogLevelIsEqual(t *testing.T) {
 }
 
 func TestLogger_WarnShouldCallIfLogLevelIsLower(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogInfo, los)
@@ -162,7 +162,7 @@ func TestLogger_WarnShouldCallIfLogLevelIsLower(t *testing.T) {
 //------- Error
 
 func TestLogger_ErrorShouldNotCallIfLogLevelIsHigher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogNone, los)
@@ -173,7 +173,7 @@ func TestLogger_ErrorShouldNotCallIfLogLevelIsHigher(t *testing.T) {
 }
 
 func TestLogger_ErrorShouldCallIfLogLevelIsEqual(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)
@@ -184,7 +184,7 @@ func TestLogger_ErrorShouldCallIfLogLevelIsEqual(t *testing.T) {
 }
 
 func TestLogger_ErrorShouldCallIfLogLevelIsLower(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogWarning, los)
@@ -197,7 +197,7 @@ func TestLogger_ErrorShouldCallIfLogLevelIsLower(t *testing.T) {
 //------- LogIfError
 
 func TestLogger_LogIfErrorShouldNotCallIfErrorIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)
@@ -208,7 +208,7 @@ func TestLogger_LogIfErrorShouldNotCallIfErrorIsNil(t *testing.T) {
 }
 
 func TestLogger_LogIfErrorShouldCallIfErrorIsNotNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)
@@ -221,7 +221,7 @@ func TestLogger_LogIfErrorShouldCallIfErrorIsNotNil(t *testing.T) {
 //------- SetLevel
 
 func TestLogger_SetLevelShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogInfo, los)
@@ -238,7 +238,7 @@ func TestLogger_SetLevelShouldWork(t *testing.T) {
 //------- Log
 
 func TestLogger_LogNilShouldNotCallWrite(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)
@@ -249,7 +249,7 @@ func TestLogger_LogNilShouldNotCallWrite(t *testing.T) {
 }
 
 func TestLogger_LogShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	los, numCalls := generateTestLogOutputSubject()
 	log := logger.NewLogger("test", logger.LogError, los)

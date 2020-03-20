@@ -17,21 +17,21 @@ import (
 //------- NewAddressConverter
 
 func TestNewAddressConverterNilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := addressConverters.NewHashAddressConverter(nil, 1, "")
 	assert.Equal(t, state.ErrNilHasher, err)
 }
 
 func TestNewAddressConverterNegativeSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, -1, "")
 	assert.Equal(t, state.ErrNegativeValue, err)
 }
 
 func TestNewAddressConverterOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -41,7 +41,7 @@ func TestNewAddressConverterOkValsShouldWork(t *testing.T) {
 //------- CreateAddressFromPublicKeyBytes
 
 func TestAddressConverterCreateAddressFromPublicKeyBytesNilBytesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -50,7 +50,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesNilBytesShouldErr(t *tes
 }
 
 func TestAddressConverterCreateAddressFromPublicKeyBytesLenLowerAddrlenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -63,7 +63,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesLenLowerAddrlenShouldErr
 }
 
 func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -84,7 +84,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsShouldWork(t *test
 }
 
 func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock127{}, 32, "")
 	assert.Nil(t, err)
@@ -109,7 +109,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *
 //------- ConvertToHex
 
 func TestAddressConverterConvertToHexNilAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock127{}, 32, "")
 	assert.Nil(t, err)
@@ -119,7 +119,7 @@ func TestAddressConverterConvertToHexNilAddressShouldErr(t *testing.T) {
 }
 
 func TestAddressConverterConvertToHexOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -134,7 +134,7 @@ func TestAddressConverterConvertToHexOkValsShouldWork(t *testing.T) {
 //------- CreateAddressFromHex
 
 func TestAddressConverterCreateAddressFromHexEmptyHexAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -144,7 +144,7 @@ func TestAddressConverterCreateAddressFromHexEmptyHexAddressShouldErr(t *testing
 }
 
 func TestAddressConverterCreateAddressFromHexEmptyBadLengthShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -154,7 +154,7 @@ func TestAddressConverterCreateAddressFromHexEmptyBadLengthShouldErr(t *testing.
 }
 
 func TestAddressConverterCreateAddressFromHexEmptyBadStringShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
@@ -169,7 +169,7 @@ func TestAddressConverterCreateAddressFromHexEmptyBadStringShouldErr(t *testing.
 }
 
 func TestAddressConverterFromHexAddressValidDataWithPrefixShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -189,7 +189,7 @@ func TestAddressConverterFromHexAddressValidDataWithPrefixShouldWork(t *testing.
 //------- PrepareAddressBytes
 
 func TestAddressConverterPrepareAddressBytesNilAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -199,7 +199,7 @@ func TestAddressConverterPrepareAddressBytesNilAddrShouldErr(t *testing.T) {
 }
 
 func TestAddressConverterPrepareAddressBytesEmptyAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -209,7 +209,7 @@ func TestAddressConverterPrepareAddressBytesEmptyAddrShouldErr(t *testing.T) {
 }
 
 func TestAddressConverterPrepareAddressBytesWrongSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -219,7 +219,7 @@ func TestAddressConverterPrepareAddressBytesWrongSizeShouldErr(t *testing.T) {
 }
 
 func TestAddressConverterPrepareAddressBytesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "0x")
 	assert.Nil(t, err)
@@ -235,7 +235,7 @@ func TestAddressConverterPrepareAddressBytesOkValsShouldWork(t *testing.T) {
 }
 
 func TestHashAddressConverter_AddressLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressLen := 128
 	ac, _ := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, addressLen, "0x")

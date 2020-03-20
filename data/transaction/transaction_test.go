@@ -12,7 +12,7 @@ import (
 )
 
 func TestTransaction_SettersAndGetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(37)
 	txData := []byte("data")
@@ -44,7 +44,7 @@ func TestTransaction_SettersAndGetters(t *testing.T) {
 }
 
 func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := big.NewInt(445566)
 	tx := &transaction.Transaction{
@@ -70,7 +70,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 }
 
 func TestTransaction_TrimsSlicePtr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx1 := transaction.Transaction{
 		Nonce:     1,
@@ -100,7 +100,7 @@ func TestTransaction_TrimsSlicePtr(t *testing.T) {
 }
 
 func TestTransaction_TrimsSliceHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx1 := transaction.Transaction{
 		Nonce:     1,

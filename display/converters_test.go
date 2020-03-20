@@ -11,14 +11,14 @@ import (
 )
 
 func TestSetDisplayByteSlice_NilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	err := display.SetDisplayByteSlice(nil)
 	assert.Equal(t, display.ErrNilDisplayByteSliceHandler, err)
 }
 
 func TestDisplayByteSlice_WithSetCanBeCalledConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numCalls := 100
 	wg := &sync.WaitGroup{}
@@ -45,7 +45,7 @@ func TestDisplayByteSlice_WithSetCanBeCalledConcurrently(t *testing.T) {
 }
 
 func TestToHexShort_EmptySliceShouldReturnEmptyString(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hash := []byte("")
 	res := display.ToHexShort(hash)
@@ -54,7 +54,7 @@ func TestToHexShort_EmptySliceShouldReturnEmptyString(t *testing.T) {
 }
 
 func TestToHexShort_SliceLengthSmallShouldNotChange(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := []byte("short")
 	hexHash := hex.EncodeToString(input)
@@ -65,7 +65,7 @@ func TestToHexShort_SliceLengthSmallShouldNotChange(t *testing.T) {
 }
 
 func TestToHexShort_SliceLengthBigShouldTrim(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := []byte("long enough input so it should be trimmed")
 	hexHash := hex.EncodeToString(input)

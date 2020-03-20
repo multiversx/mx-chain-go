@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	itn, err := NewInterceptedTrieNodeDataFactory(nil)
 
@@ -17,7 +17,7 @@ func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -28,7 +28,7 @@ func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T)
 }
 
 func TestNewInterceptedTrieNodeDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -39,7 +39,7 @@ func TestNewInterceptedTrieNodeDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTrieNodeDataFactory_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	itn, err := NewInterceptedTrieNodeDataFactory(createMockArgument())
 	assert.NotNil(t, itn)

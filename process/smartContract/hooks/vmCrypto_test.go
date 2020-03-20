@@ -11,7 +11,7 @@ import (
 )
 
 func TestVMCrypto_Sha256(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -24,7 +24,7 @@ func TestVMCrypto_Sha256(t *testing.T) {
 }
 
 func TestVMCrypto_Keccak256(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -37,7 +37,7 @@ func TestVMCrypto_Keccak256(t *testing.T) {
 }
 
 func TestVMCrypto_Ripemd160(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -51,7 +51,7 @@ func TestVMCrypto_Ripemd160(t *testing.T) {
 }
 
 func TestVMCrypto_Ecrecover_ReturnsNotImplemented(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cryptoHook := hooks.NewVMCryptoHook()
 

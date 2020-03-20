@@ -10,7 +10,7 @@ import (
 )
 
 func TestHeadline_MessageTooLongItShouldBeReturnedAsItIs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	message := "message way too long to be displayed in a single line with the timestamp and delimiter included."
 	message += "in the moment of writing this test, the line was limited to 100 characters"
@@ -23,7 +23,7 @@ func TestHeadline_MessageTooLongItShouldBeReturnedAsItIs(t *testing.T) {
 }
 
 func TestHeadline_DelimiterTooLongShouldBeTrimmed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	message := "message to display"
 	timestamp := "2000-01-01 00:00:00"
@@ -38,7 +38,7 @@ func TestHeadline_DelimiterTooLongShouldBeTrimmed(t *testing.T) {
 }
 
 func TestHeadline_ResultedStringContainsAllData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	message := "message to display"
 	timestamp := "2000-01-01 00:00:00"

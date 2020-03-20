@@ -35,7 +35,7 @@ func createResolversFinderStubThatShouldNotBeCalled(tb testing.TB) *mock.Resolve
 //------- NewMetaResolver
 
 func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewMetaResolverRequestHandler(
 		nil,
@@ -48,7 +48,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 }
 
 func TestNewMetaResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -62,7 +62,7 @@ func TestNewMetaResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 }
 
 func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -76,7 +76,7 @@ func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 }
 
 func TestNewMetaResolverRequestHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -91,7 +91,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 //------- NewShardResolver
 
 func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		nil,
@@ -106,7 +106,7 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 }
 
 func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -121,7 +121,7 @@ func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 }
 
 func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -136,7 +136,7 @@ func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 }
 
 func TestNewShardResolverRequestHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
@@ -153,7 +153,7 @@ func TestNewShardResolverRequestHandler(t *testing.T) {
 //------- RequestTransaction
 
 func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -179,7 +179,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 }
 
 func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -206,7 +206,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 }
 
 func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
@@ -240,7 +240,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 }
 
 func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -284,7 +284,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 //------- RequestMiniBlock
 
 func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -310,7 +310,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 }
 
 func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -342,7 +342,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 }
 
 func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	mbResolver := &mock.ResolverStub{
@@ -370,7 +370,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 }
 
 func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedEpoch := uint32(7)
 	mbResolver := &mock.ResolverStub{
@@ -399,7 +399,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 //------- RequestShardHeader
 
 func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
@@ -416,7 +416,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 }
 
 func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
@@ -430,7 +430,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 }
 
 func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	mbResolver := &mock.HeaderResolverStub{
@@ -460,7 +460,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 //------- RequestMetaHeader
 
 func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
@@ -478,7 +478,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotR
 }
 
 func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNotRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	mbResolver := &mock.ResolverStub{
@@ -506,7 +506,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 }
 
 func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	mbResolver := &mock.HeaderResolverStub{
@@ -536,7 +536,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 //------- RequestShardHeaderByNonce
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	rrh, _ := NewShardResolverRequestHandler(
@@ -557,7 +557,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localErr := errors.New("err")
 	called := false
@@ -579,7 +579,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -606,7 +606,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -638,7 +638,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -670,7 +670,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	hdrResolver := &mock.HeaderResolverStub{
@@ -700,7 +700,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 //------- RequestMetaHeaderByNonce
 
 func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
@@ -718,7 +718,7 @@ func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRe
 }
 
 func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	hdrResolver := &mock.HeaderResolverStub{
@@ -748,7 +748,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 //------- RequestSmartContractResult
 
 func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -774,7 +774,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 }
 
 func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -801,7 +801,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 }
 
 func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
@@ -835,7 +835,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 }
 
 func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -879,7 +879,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 //------- RequestRewardTransaction
 
 func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
@@ -913,7 +913,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 }
 
 func TestRequestTrieNodes_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	resolverMock := &mock.HashSliceResolverStub{
@@ -939,7 +939,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 }
 
 func TestRequestTrieNodes_NilResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localError := errors.New("test error")
 	called := false
@@ -961,7 +961,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 }
 
 func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	localError := errors.New("test error")
@@ -988,7 +988,7 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 }
 
 func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	localError := errors.New("test error")
@@ -1009,7 +1009,7 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 }
 
 func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	resolverMock := &mock.HashSliceResolverStub{}
@@ -1031,7 +1031,7 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 }
 
 func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	localError := errors.New("test error")
@@ -1058,7 +1058,7 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 }
 
 func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	localError := errors.New("test error")

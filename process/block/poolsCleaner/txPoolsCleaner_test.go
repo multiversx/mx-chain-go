@@ -121,7 +121,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 }
 
 func TestNewTxsPoolsCleaner_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
@@ -139,7 +139,7 @@ func TestNewTxsPoolsCleaner_NilAccountsShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -159,7 +159,7 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -179,7 +179,7 @@ func TestNewTxsPoolsCleaner_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -204,7 +204,7 @@ func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -224,7 +224,7 @@ func TestNewTxsPoolsCleaner_NilAddressConverterShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -245,7 +245,7 @@ func TestNewTxsPoolsCleaner_NilFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
@@ -266,7 +266,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	maxCleanTime := time.Second
 	nonce := uint64(1)
@@ -292,7 +292,7 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numRemovedTxsExpected := uint64(3)
 	cleanDuration := 2 * time.Second
@@ -321,7 +321,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numRemovedTxsExpected := uint64(3)
 	cleanDuration := 2 * time.Second
@@ -348,7 +348,7 @@ func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanNotEnoughBalanceShouldRemoveTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numRemovedTxsExpected := uint64(3)
 	cleanDuration := 2 * time.Second
@@ -379,7 +379,7 @@ func TestTxPoolsCleaner_CleanNotEnoughBalanceShouldRemoveTx(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanShouldNotRemoveOkTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numRemovedTxsExpected := uint64(2)
 	cleanDuration := 2 * time.Second
@@ -406,7 +406,7 @@ func TestTxPoolsCleaner_CleanShouldNotRemoveOkTransactions(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(11)
 	balance := big.NewInt(1)
@@ -428,7 +428,7 @@ func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
 }
 
 func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)

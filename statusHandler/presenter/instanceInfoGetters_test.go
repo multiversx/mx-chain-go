@@ -9,7 +9,7 @@ import (
 )
 
 func TestPresenterStatusHandler_GetAppVersion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	appVersion := "version001"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -20,7 +20,7 @@ func TestPresenterStatusHandler_GetAppVersion(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNodeType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nodeType := "validator"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -31,7 +31,7 @@ func TestPresenterStatusHandler_GetNodeType(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetPublicKeyBlockSign(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	publicKeyBlock := "publicKeyBlockSign"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -42,7 +42,7 @@ func TestPresenterStatusHandler_GetPublicKeyBlockSign(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -53,7 +53,7 @@ func TestPresenterStatusHandler_GetShardId(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCountConsensus(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countConsensus := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -64,7 +64,7 @@ func TestPresenterStatusHandler_GetCountConsensus(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCountLeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countLeader := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -75,7 +75,7 @@ func TestPresenterStatusHandler_GetCountLeader(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countAcceptedBlocks := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -86,7 +86,7 @@ func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CheckSoftwareVersionNeedUpdate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	appVersion := "v20/go123/adsds"
 	softwareVersion := "v21"
@@ -101,7 +101,7 @@ func TestPresenterStatusHandler_CheckSoftwareVersionNeedUpdate(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CheckSoftwareVersion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	appVersion := "v21/go123/adsds"
 	softwareVersion := "v21"
@@ -116,7 +116,7 @@ func TestPresenterStatusHandler_CheckSoftwareVersion(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetCountConsensusAcceptedBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countConsensusAcceptedBlocks := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -128,7 +128,7 @@ func TestPresenterStatusHandler_GetCountConsensusAcceptedBlocks(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNodeNameShouldReturnDefaultName(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nodeName := ""
 	expectedName := "noname"
@@ -140,7 +140,7 @@ func TestPresenterStatusHandler_GetNodeNameShouldReturnDefaultName(t *testing.T)
 }
 
 func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nodeName := "node"
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -151,7 +151,7 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewardsValue := "1000"
 
@@ -169,7 +169,7 @@ func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewardsValue := "1000"
 	numSignedBlocks := uint64(50000)
@@ -188,7 +188,7 @@ func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	result := presenterStatusHandler.CalculateRewardsPerHour()
@@ -197,7 +197,7 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) 
 }
 
 func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusGroupSize := uint64(50)
 	numValidators := uint64(100)

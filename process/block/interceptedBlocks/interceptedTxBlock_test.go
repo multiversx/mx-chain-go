@@ -47,7 +47,7 @@ func createMockTxBlockBody() *block.Body {
 //------- NewInterceptedTxBlockBody
 
 func TestNewInterceptedTxBlockBody_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	inTxBody, err := interceptedBlocks.NewInterceptedTxBlockBody(nil)
 
@@ -56,7 +56,7 @@ func TestNewInterceptedTxBlockBody_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxBlockBody_MarshalizerFailShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = []byte("invalid buffer")
@@ -69,7 +69,7 @@ func TestNewInterceptedTxBlockBody_MarshalizerFailShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxBlockBody_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBodyArgument()
 
@@ -82,7 +82,7 @@ func TestNewInterceptedTxBlockBody_ShouldWork(t *testing.T) {
 //------- CheckValidity
 
 func TestInterceptedTxBlockBody_InvalidReceiverShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wrongShardId := uint32(4)
 	txBody := createMockTxBlockBody()
@@ -99,7 +99,7 @@ func TestInterceptedTxBlockBody_InvalidReceiverShardIdShouldErr(t *testing.T) {
 }
 
 func TestInterceptedTxBlockBody_InvalidSenderShardIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wrongShardId := uint32(4)
 	txBody := createMockTxBlockBody()
@@ -116,7 +116,7 @@ func TestInterceptedTxBlockBody_InvalidSenderShardIdShouldErr(t *testing.T) {
 }
 
 func TestInterceptedTxBlockBody_ContainsNilHashShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBody := createMockTxBlockBody()
 	txBody.MiniBlocks[0].TxHashes[1] = nil
@@ -132,7 +132,7 @@ func TestInterceptedTxBlockBody_ContainsNilHashShouldErr(t *testing.T) {
 }
 
 func TestInterceptedTxBlockBody_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBodyArgument()
 	inTxBody, _ := interceptedBlocks.NewInterceptedTxBlockBody(arg)
@@ -145,7 +145,7 @@ func TestInterceptedTxBlockBody_ShouldWork(t *testing.T) {
 //------- getters
 
 func TestInterceptedTxBlockBody_Getters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultTxBodyArgument()
 	inTxBody, err := interceptedBlocks.NewInterceptedTxBlockBody(arg)
@@ -160,7 +160,7 @@ func TestInterceptedTxBlockBody_Getters(t *testing.T) {
 //------- IsForCurrentShard
 
 func TestInterceptedTxBlockBody_IsForCurrentShardNoMiniblocksShouldRetFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBody := &block.Body{}
 	buff, _ := testMarshalizer.Marshal(txBody)
@@ -174,7 +174,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardNoMiniblocksShouldRetFalse(t *t
 }
 
 func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockForOtherShardsShouldRetFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -207,7 +207,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockForOtherShardsShouldRe
 }
 
 func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithSenderShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentShard := uint32(0)
 	txBody := &block.Body{
@@ -241,7 +241,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithSender
 }
 
 func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithReceiverShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentShard := uint32(0)
 	txBody := &block.Body{
@@ -277,7 +277,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithReceiv
 //------- IsInterfaceNil
 
 func TestInterceptedTxBlockBody_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var inTxBody *interceptedBlocks.InterceptedTxBlockBody
 

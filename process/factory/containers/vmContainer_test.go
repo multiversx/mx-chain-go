@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewVirtualMachinesContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -22,7 +22,7 @@ func TestNewVirtualMachinesContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestVirtualMachinesContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -33,7 +33,7 @@ func TestVirtualMachinesContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestVirtualMachinesContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -43,7 +43,7 @@ func TestVirtualMachinesContainer_AddNilShouldErr(t *testing.T) {
 }
 
 func TestVirtualMachinesContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -56,7 +56,7 @@ func TestVirtualMachinesContainer_AddShouldWork(t *testing.T) {
 //------- AddMultiple
 
 func TestVirtualMachinesContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -69,7 +69,7 @@ func TestVirtualMachinesContainer_AddMultipleAlreadyExistingShouldErr(t *testing
 }
 
 func TestVirtualMachinesContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -82,7 +82,7 @@ func TestVirtualMachinesContainer_AddMultipleLenMismatchShouldErr(t *testing.T) 
 }
 
 func TestVirtualMachinesContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -98,7 +98,7 @@ func TestVirtualMachinesContainer_AddMultipleShouldWork(t *testing.T) {
 //------- Get
 
 func TestVirtualMachinesContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -114,7 +114,7 @@ func TestVirtualMachinesContainer_GetNotFoundShouldErr(t *testing.T) {
 }
 
 func TestVirtualMachinesContainer_GetWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -128,7 +128,7 @@ func TestVirtualMachinesContainer_GetWrongTypeShouldErr(t *testing.T) {
 }
 
 func TestVirtualMachinesContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -145,7 +145,7 @@ func TestVirtualMachinesContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestVirtualMachinesContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -162,7 +162,7 @@ func TestVirtualMachinesContainer_ReplaceNilValueShouldErrAndNotModify(t *testin
 }
 
 func TestVirtualMachinesContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -182,7 +182,7 @@ func TestVirtualMachinesContainer_ReplaceShouldWork(t *testing.T) {
 //------- Remove
 
 func TestVirtualMachinesContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 
@@ -201,7 +201,7 @@ func TestVirtualMachinesContainer_RemoveShouldWork(t *testing.T) {
 //------- Len
 
 func TestVirtualMachinesContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
 

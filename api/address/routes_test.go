@@ -55,7 +55,7 @@ type AccountResponse struct {
 }
 
 func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
 
@@ -66,7 +66,7 @@ func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
 }
 
 func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	amount := big.NewInt(10)
 	addr := "testAddress"
 	facade := mock.Facade{
@@ -92,7 +92,7 @@ func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 }
 
 func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	otherAddress := "otherAddress"
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -117,7 +117,7 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 }
 
 func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	addr := "addr"
 	balanceError := errors.New("error")
 	facade := mock.Facade{
@@ -139,7 +139,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 }
 
 func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
 			return big.NewInt(0), errors.New("address was empty")
@@ -167,7 +167,7 @@ func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 }
 
 func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/address/empty/balance", nil)
@@ -181,7 +181,7 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 }
 
 func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/address/empty", nil)
@@ -195,7 +195,7 @@ func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 }
 
 func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	returnedError := "i am an error"
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (*state.Account, error) {
@@ -217,7 +217,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 }
 
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (*state.Account, error) {
 			return &state.Account{

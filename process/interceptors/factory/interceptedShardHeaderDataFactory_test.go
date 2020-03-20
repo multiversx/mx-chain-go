@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewInterceptedShardHeaderDataFactory_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	imh, err := NewInterceptedShardHeaderDataFactory(nil)
 
@@ -21,7 +21,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilArgumentsShouldErr(t *testing.T
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -32,7 +32,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.TxSignMarshalizer = nil
@@ -43,7 +43,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *tes
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.HeaderSigVerifier = nil
@@ -54,7 +54,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *t
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -65,7 +65,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
@@ -76,7 +76,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ChainID = nil
@@ -87,7 +87,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilChainIdShouldErr(t *testing.T) 
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ValidityAttester = nil
@@ -98,7 +98,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *te
 }
 
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 

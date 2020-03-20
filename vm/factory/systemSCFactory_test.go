@@ -23,7 +23,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 }
 
 func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
 	arguments.SystemEI = nil
@@ -34,7 +34,7 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
 	arguments.ValidatorSettings = nil
@@ -45,7 +45,7 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, err := NewSystemSCFactory(arguments)
@@ -55,7 +55,7 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 }
 
 func TestSystemSCFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)
@@ -66,7 +66,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)

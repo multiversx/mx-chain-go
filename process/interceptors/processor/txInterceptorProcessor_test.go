@@ -21,7 +21,7 @@ func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 }
 
 func TestNewTxInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txip, err := processor.NewTxInterceptorProcessor(nil)
 
@@ -30,7 +30,7 @@ func TestNewTxInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxArgument()
 	arg.ShardedDataCache = nil
@@ -41,7 +41,7 @@ func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxArgument()
 	arg.TxValidator = nil
@@ -52,7 +52,7 @@ func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 }
 
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txip, err := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
@@ -63,7 +63,7 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 //------- Validate
 
 func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
@@ -73,7 +73,7 @@ func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 }
 
 func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("tx validation error")
 	arg := createMockTxArgument()
@@ -95,7 +95,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 }
 
 func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
@@ -117,7 +117,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 //------- Save
 
 func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
@@ -127,7 +127,7 @@ func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 }
 
 func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addedWasCalled := false
 	txInterceptedData := &struct {
@@ -168,7 +168,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestTxInterceptorProcessor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var txip *processor.TxInterceptorProcessor
 

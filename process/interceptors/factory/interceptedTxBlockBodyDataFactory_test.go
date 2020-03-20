@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	imh, err := NewInterceptedTxBlockBodyDataFactory(nil)
 
@@ -20,7 +20,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilArgumentsShouldErr(t *testing.T
 }
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -31,7 +31,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilMarshalizerShouldErr(t *testing
 }
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.TxSignMarshalizer = nil
@@ -42,7 +42,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilSignMarshalizerShouldErr(t *tes
 }
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -53,7 +53,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
@@ -64,7 +64,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilShardCoordinatorShouldErr(t *te
 }
 
 func TestInterceptedTxBlockBodyDataFactory_ShouldWorkAndCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 

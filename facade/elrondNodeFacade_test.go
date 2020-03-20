@@ -48,7 +48,7 @@ func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFaca
 }
 
 func TestNewElrondFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	assert.NotNil(t, ef)
@@ -56,7 +56,7 @@ func TestNewElrondFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
 }
 
 func TestNewElrondFacade_WithNilNodeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ef, err := NewElrondNodeFacade(
 		nil,
@@ -70,7 +70,7 @@ func TestNewElrondFacade_WithNilNodeShouldErr(t *testing.T) {
 }
 
 func TestNewElrondFacade_WithNilApiResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ef, err := NewElrondNodeFacade(
 		&mock.NodeMock{},
@@ -84,7 +84,7 @@ func TestNewElrondFacade_WithNilApiResolverShouldErr(t *testing.T) {
 }
 
 func TestNewElrondFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := createWsAntifloodingConfig()
 	cfg.SimultaneousRequests = 0
@@ -100,7 +100,7 @@ func TestNewElrondFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) 
 }
 
 func TestNewElrondFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := createWsAntifloodingConfig()
 	cfg.SameSourceResetIntervalInSec = 0
@@ -116,7 +116,7 @@ func TestNewElrondFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *tes
 }
 
 func TestNewElrondFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := createWsAntifloodingConfig()
 	cfg.SameSourceRequests = 0
@@ -379,7 +379,7 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 }
 
 func TestElrondNodeFacade_GetDataValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	ef, _ := NewElrondNodeFacade(
@@ -425,7 +425,7 @@ func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
 }
 
 func TestElrondNodeFacade_ValidatorStatisticsApi(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mapToRet := make(map[string]*state.ValidatorApiResponse)
 	mapToRet["test"] = &state.ValidatorApiResponse{NrLeaderFailure: 5}
@@ -442,7 +442,7 @@ func TestElrondNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 }
 
 func TestElrondNodeFacade_SendBulkTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedNumOfSuccessfulTxs := uint64(1)
 	sendBulkTxsWasCalled := false
@@ -465,7 +465,7 @@ func TestElrondNodeFacade_SendBulkTransactions(t *testing.T) {
 }
 
 func TestElrondNodeFacade_StatusMetrics(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	apiResolverMetricsRequested := false
 
@@ -494,7 +494,7 @@ func TestElrondNodeFacade_StatusMetrics(t *testing.T) {
 }
 
 func TestElrondNodeFacade_PprofEnabled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 
@@ -505,7 +505,7 @@ func TestElrondNodeFacade_PprofEnabled(t *testing.T) {
 }
 
 func TestElrondNodeFacade_RestAPIServerDebugMode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nodeMock := &mock.NodeMock{}
 	apiResStub := &mock.ApiResolverStub{}
@@ -524,7 +524,7 @@ func TestElrondNodeFacade_RestAPIServerDebugMode(t *testing.T) {
 }
 
 func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nodeCreateTxWasCalled := false
 	nodeMock := &mock.NodeMock{

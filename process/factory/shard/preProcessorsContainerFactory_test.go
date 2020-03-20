@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		nil,
@@ -36,7 +36,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -62,7 +62,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -88,7 +88,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -114,7 +114,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -140,7 +140,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -166,7 +166,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -192,7 +192,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -218,7 +218,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -244,7 +244,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -270,7 +270,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -296,7 +296,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -322,7 +322,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -348,7 +348,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -374,7 +374,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -400,7 +400,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 }
 
 func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -426,7 +426,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 }
 
 func TestNewPreProcessorsContainerFactory(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -453,7 +453,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 }
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
@@ -487,7 +487,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 }
 
 func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
@@ -527,7 +527,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 }
 
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{

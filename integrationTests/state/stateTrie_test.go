@@ -37,7 +37,7 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
 	//adding a (key, value) pair in that data trie, committing changes
 	//and then reloading the data trie based on the root hash generated before
-	t.Parallel()
+	//t.Parallel()
 
 	key1 := []byte("ABC")
 	val1 := []byte("123")
@@ -68,7 +68,7 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -87,7 +87,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -97,7 +97,7 @@ func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -108,7 +108,7 @@ func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
 }
 
 func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 	_, err := adb.GetAccountWithJournal(adr)
@@ -121,7 +121,7 @@ func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
 }
 
 func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -130,7 +130,7 @@ func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	balance := big.NewInt(40)
 	adr, accountHandler, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
@@ -150,7 +150,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
 	//test when the account does not exists
-	t.Parallel()
+	//t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -163,7 +163,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 }
 
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
@@ -215,7 +215,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	//test creates 2 accounts (one with a data root)
 	//verifies that commit saves the new tries and that can be loaded back
-	t.Parallel()
+	//t.Parallel()
 
 	adr1, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -298,7 +298,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *testing.T) {
 	//test creates 2 accounts (one with a data root)
 	//verifies that commit saves the new tries and that can be loaded back
-	t.Parallel()
+	//t.Parallel()
 
 	adb, _, mu := integrationTests.CreateAccountsDB(0)
 	adr1 := integrationTests.CreateRandomAddress()
@@ -359,7 +359,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 }
 
 func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -377,7 +377,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
@@ -432,7 +432,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 //------- Revert
 
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -503,7 +503,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -572,7 +572,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
@@ -639,7 +639,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
@@ -716,7 +716,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
@@ -816,7 +816,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 }
 
 func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adrSrc := integrationTests.CreateRandomAddress()
 	adrDest := integrationTests.CreateRandomAddress()
@@ -869,7 +869,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 }
 
 func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adrSrc := integrationTests.CreateRandomAddress()
 	adrDest := integrationTests.CreateRandomAddress()
@@ -902,7 +902,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 }
 
 func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adrSrc := integrationTests.CreateRandomAddress()
 	adrDest := integrationTests.CreateRandomAddress()
@@ -1096,7 +1096,7 @@ func BenchmarkTxExecution(b *testing.B) {
 }
 
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
@@ -1133,7 +1133,7 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 }
 
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)

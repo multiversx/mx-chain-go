@@ -41,7 +41,7 @@ func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
 }
 
 func TestTpsBenchmark_NewTPSBenchmarkReturnsErrorOnInvalidDuration(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(10)
 	roundDuration := uint64(0)
@@ -51,7 +51,7 @@ func TestTpsBenchmark_NewTPSBenchmarkReturnsErrorOnInvalidDuration(t *testing.T)
 }
 
 func TestTpsBenchmark_NewTPSBenchmark(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(10)
 	roundDuration := uint64(4)
@@ -65,7 +65,7 @@ func TestTpsBenchmark_NewTPSBenchmark(t *testing.T) {
 }
 
 func TestTpsBenchmark_BlockNumber(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 	blockNumber := uint64(1)
@@ -93,7 +93,7 @@ func TestTpsBenchmark_BlockNumber(t *testing.T) {
 }
 
 func TestTpsBenchmark_UpdateIrrelevantBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 
@@ -102,7 +102,7 @@ func TestTpsBenchmark_UpdateIrrelevantBlock(t *testing.T) {
 }
 
 func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 
@@ -156,7 +156,7 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 }
 
 func TestTpsBenchmark_UpdateEmptyShardInfoInMiniblock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 	blockNumber := uint64(1)
@@ -171,7 +171,7 @@ func TestTpsBenchmark_UpdateEmptyShardInfoInMiniblock(t *testing.T) {
 }
 
 func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 	round := uint64(1)
@@ -225,7 +225,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 }
 
 func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(1)
 	roundDuration := uint64(1)
@@ -281,7 +281,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 }
 
 func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(1)
 	roundDuration := uint64(1)
@@ -318,7 +318,7 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 }
 
 func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(2)
 	roundDuration := uint64(1)
@@ -363,7 +363,7 @@ func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
 }
 
 func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(2)
 	roundDuration := uint64(6)
@@ -403,7 +403,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 }
 
 func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrOfShards := uint32(2)
 	roundDuration := uint64(6)
@@ -438,7 +438,7 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	numOfTests := 25
 	for i := 0; i < numOfTests; i++ {
@@ -470,7 +470,7 @@ func testTpsBenchmarkConcurrent(t *testing.T) {
 }
 
 func TestTpsBenchmark_ZeroTxMetaBlockAndShardHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
 
@@ -494,7 +494,7 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndShardHeader(t *testing.T) {
 }
 
 func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
 

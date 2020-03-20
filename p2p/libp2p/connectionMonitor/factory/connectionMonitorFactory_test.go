@@ -21,7 +21,7 @@ func createMockArg() ArgsConnectionMonitorFactory {
 }
 
 func TestNewConnectionMonitor_NilReconnecterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Reconnecter = nil
@@ -32,7 +32,7 @@ func TestNewConnectionMonitor_NilReconnecterShouldErr(t *testing.T) {
 }
 
 func TestNewConnectionMonitor_PrioSharderWithInvalidReconnecterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Reconnecter = &mock.ReconnecterStub{}
@@ -43,7 +43,7 @@ func TestNewConnectionMonitor_PrioSharderWithInvalidReconnecterShouldErr(t *test
 }
 
 func TestNewConnectionMonitor_PrioSharderWithReconnecterShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	cm, err := NewConnectionMonitor(arg)
@@ -56,7 +56,7 @@ func TestNewConnectionMonitor_PrioSharderWithReconnecterShouldWork(t *testing.T)
 }
 
 func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Sharder = &mock.SharderStub{}
@@ -70,7 +70,7 @@ func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T)
 }
 
 func TestNewConnectionMonitor_InvalidSharderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Sharder = &mock.CommonSharder{}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("", "shard_[S]/[I]")
 	assert.Nil(t, pm)
@@ -17,7 +17,7 @@ func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
 }
 
 func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "")
 	assert.Nil(t, pm)
@@ -25,7 +25,7 @@ func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 }
 
 func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard/[I]", "shard_[S]/[I]")
 	assert.Nil(t, pm)
@@ -33,7 +33,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(
 }
 
 func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch/shard_[S]/[I]", "shard_[S]/[I]")
 	assert.Nil(t, pm)
@@ -41,7 +41,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(
 }
 
 func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]", "shard_[S]/[I]")
 	assert.Nil(t, pm)
@@ -49,7 +49,7 @@ func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_Shoul
 }
 
 func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard/[I]")
 	assert.Nil(t, pm)
@@ -57,7 +57,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t
 }
 
 func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]")
 	assert.Nil(t, pm)
@@ -65,7 +65,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_Should
 }
 
 func TestNewPathManager_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]")
 	assert.NotNil(t, pm)
@@ -73,7 +73,7 @@ func TestNewPathManager_OkValsShouldWork(t *testing.T) {
 }
 
 func TestPathManager_PathForEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	type args struct {
 		shardId    string
@@ -116,7 +116,7 @@ func TestPathManager_PathForEpoch(t *testing.T) {
 }
 
 func TestPathManager_PathForStatic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	type args struct {
 		shardId    string

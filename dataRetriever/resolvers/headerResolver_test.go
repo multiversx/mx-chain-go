@@ -35,7 +35,7 @@ var errKeyNotFound = errors.New("key not found")
 //------- NewHeaderResolver
 
 func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = nil
@@ -46,7 +46,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.Headers = nil
@@ -57,7 +57,7 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.HdrStorage = nil
@@ -68,7 +68,7 @@ func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.HeadersNoncesStorage = nil
@@ -79,7 +79,7 @@ func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.Marshalizer = nil
@@ -90,7 +90,7 @@ func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.NonceConverter = nil
@@ -101,7 +101,7 @@ func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.ShardCoordinator = nil
@@ -112,7 +112,7 @@ func TestNewHeaderResolver_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.AntifloodHandler = nil
@@ -123,7 +123,7 @@ func TestNewHeaderResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_NilThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.Throttler = nil
@@ -134,7 +134,7 @@ func TestNewHeaderResolver_NilThrottlerShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, err := resolvers.NewHeaderResolver(arg)
@@ -145,7 +145,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgHeaderResolver()
@@ -166,7 +166,7 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 }
 
 func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -178,7 +178,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -191,7 +191,7 @@ func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *test
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.HdrStorage = &mock.StorerStub{
@@ -209,7 +209,7 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 }
 
 func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	arg := createMockArgHeaderResolver()
@@ -233,7 +233,7 @@ func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -245,7 +245,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 }
 
 func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedData := []byte("aaaa")
 
@@ -281,7 +281,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarshalizerFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedData := []byte("aaaa")
 
@@ -322,7 +322,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedData := []byte("aaaa")
 
@@ -364,7 +364,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	arg.HdrStorage = &mock.StorerStub{
@@ -381,7 +381,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorrectEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedEpoch := uint32(7)
 	arg := createMockArgHeaderResolver()
@@ -407,7 +407,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedNonce := uint64(67)
 
@@ -455,7 +455,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolShouldRetFromPoolAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedNonce := uint64(67)
 	targetShardId := uint32(9)
@@ -502,7 +502,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolShouldRetFromStorageAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedNonce := uint64(67)
 	targetShardId := uint32(9)
@@ -564,7 +564,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolCheckRetErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestedNonce := uint64(67)
 	targetShardId := uint32(9)
@@ -621,7 +621,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 //------- Requests
 
 func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonceRequested := uint64(67)
 	wasRequested := false
@@ -645,7 +645,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 }
 
 func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buffRequested := []byte("aaaa")
 	wasRequested := false
@@ -668,7 +668,7 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 //------- SetEpochHandler
 
 func TestHeaderResolver_SetEpochHandlerNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -679,7 +679,7 @@ func TestHeaderResolver_SetEpochHandlerNilShouldErr(t *testing.T) {
 }
 
 func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgHeaderResolver()
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)

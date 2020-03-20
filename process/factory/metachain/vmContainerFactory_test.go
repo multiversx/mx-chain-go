@@ -31,7 +31,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := make(map[string]map[string]uint64)
 	vmf, err := NewVMContainerFactory(
@@ -47,7 +47,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{

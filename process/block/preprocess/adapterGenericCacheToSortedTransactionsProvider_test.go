@@ -26,7 +26,7 @@ func init() {
 }
 
 func TestNewAdapterGenericCacheToSortedTransactionsProvider(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacher := &mock.CacherMock{}
 	cacheKey := "key"
@@ -36,7 +36,7 @@ func TestNewAdapterGenericCacheToSortedTransactionsProvider(t *testing.T) {
 }
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacher, _ := storageUnit.NewCache(storageUnit.LRUCache, 100, 1)
 	txs, txHashes := sortTxByNonce(cacher)
@@ -46,7 +46,7 @@ func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 }
 
 func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacher, _ := storageUnit.NewCache(storageUnit.LRUCache, 100, 1)
 	hash, tx := createRandTx(randomizer)
@@ -94,7 +94,7 @@ func txInSlice(tx *transaction.Transaction, transactions []data.TransactionHandl
 }
 
 func TestSortTxByNonce_MoreTransactionsShouldRetSameSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cache, genTransactions, _ := genCacherTransactionsHashes(100)
 	txs, txHashes := sortTxByNonce(cache)
@@ -104,7 +104,7 @@ func TestSortTxByNonce_MoreTransactionsShouldRetSameSize(t *testing.T) {
 }
 
 func TestSortTxByNonce_MoreTransactionsShouldContainSameElements(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cache, genTransactions, genHashes := genCacherTransactionsHashes(100)
 	txs, txHashes := sortTxByNonce(cache)
@@ -116,7 +116,7 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSameElements(t *testing.T) {
 }
 
 func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cache, _, _ := genCacherTransactionsHashes(100)
 	txs, _ := sortTxByNonce(cache)
@@ -131,7 +131,7 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T)
 }
 
 func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txs := []*transaction.Transaction{
 		{Nonce: 1, Signature: []byte("sig1")},

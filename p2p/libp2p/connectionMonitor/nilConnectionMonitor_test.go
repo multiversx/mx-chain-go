@@ -10,7 +10,7 @@ import (
 )
 
 func TestNilConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -31,7 +31,7 @@ func TestNilConnectionMonitor_MethodsShouldNotPanic(t *testing.T) {
 }
 
 func TestNilConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ncm := &NilConnectionMonitor{}
 	threshold := 10
@@ -41,7 +41,7 @@ func TestNilConnectionMonitor_SetThresholdMinConnectedPeers(t *testing.T) {
 }
 
 func TestNilConnectionMonitor_IsConnectedToTheNetwork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ncm := &NilConnectionMonitor{}
 	threshold := 10

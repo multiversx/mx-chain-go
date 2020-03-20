@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewPersistentStatusHandler_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	persistentHandler, err := NewPersistentStatusHandler(nil, uit64Converter)
@@ -24,7 +24,7 @@ func TestNewPersistentStatusHandler_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewPersistentStatusHandler_NilConverter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, err := NewPersistentStatusHandler(marshalizer, nil)
@@ -34,7 +34,7 @@ func TestNewPersistentStatusHandler_NilConverter(t *testing.T) {
 }
 
 func TestNewPersistentStatusHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
@@ -45,7 +45,7 @@ func TestNewPersistentStatusHandler(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_SetStorageNilStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
@@ -56,7 +56,7 @@ func TestPersistentStatusHandler_SetStorageNilStorageShouldErr(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_SetStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
@@ -68,7 +68,7 @@ func TestPersistentStatusHandler_SetStorage(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_SetUInt64ValueIncorrectMetricShouldNotSet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
@@ -84,7 +84,7 @@ func TestPersistentStatusHandler_SetUInt64ValueIncorrectMetricShouldNotSet(t *te
 }
 
 func TestPersistentStatusHandler_SetUInt64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
@@ -100,7 +100,7 @@ func TestPersistentStatusHandler_SetUInt64Value(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_IncrementNoMetricShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key := "key"
 	marshalizer := &mock.MarshalizerStub{}
@@ -114,7 +114,7 @@ func TestPersistentStatusHandler_IncrementNoMetricShouldReturn(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_Increment(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key := core.MetricCountAcceptedBlocks
 	value := uint64(100)
@@ -130,7 +130,7 @@ func TestPersistentStatusHandler_Increment(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_AddUInt64ValueIncorrectMetricShouldNotSet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -146,7 +146,7 @@ func TestPersistentStatusHandler_AddUInt64ValueIncorrectMetricShouldNotSet(t *te
 }
 
 func TestPersistentStatusHandler_AddSetUInt64Value(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -163,7 +163,7 @@ func TestPersistentStatusHandler_AddSetUInt64Value(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_saveMetricsInDbMarshalError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	flag := 0
 	marshalizer := &mock.MarshalizerStub{}
@@ -181,7 +181,7 @@ func TestPersistentStatusHandler_saveMetricsInDbMarshalError(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_saveMetricsInDbPutError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	flag := 0
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -203,7 +203,7 @@ func TestPersistentStatusHandler_saveMetricsInDbPutError(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_DecrementNoMetricShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key := "key"
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -217,7 +217,7 @@ func TestPersistentStatusHandler_DecrementNoMetricShouldReturn(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_Decrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key := core.MetricCountAcceptedBlocks
 	value := uint64(100)
@@ -233,7 +233,7 @@ func TestPersistentStatusHandler_Decrement(t *testing.T) {
 }
 
 func TestPersistentStatusHandler_DecrementKeyValueZeroShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key := core.MetricCountAcceptedBlocks
 	value := uint64(0)
@@ -249,7 +249,7 @@ func TestPersistentStatusHandler_DecrementKeyValueZeroShouldReturn(t *testing.T)
 }
 
 func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	called := false
 	storer := &mock.StorerStub{}

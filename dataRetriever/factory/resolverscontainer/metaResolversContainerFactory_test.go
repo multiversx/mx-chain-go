@@ -84,7 +84,7 @@ func createTriesHolderForMeta() state.TriesHolder {
 //------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ShardCoordinator = nil
@@ -95,7 +95,7 @@ func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testin
 }
 
 func TestNewMetaResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = nil
@@ -106,7 +106,7 @@ func TestNewMetaResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Store = nil
@@ -117,7 +117,7 @@ func TestNewMetaResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewMetaResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Marshalizer = nil
@@ -128,7 +128,7 @@ func TestNewMetaResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) 
 }
 
 func TestNewMetaResolversContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Marshalizer = nil
@@ -140,7 +140,7 @@ func TestNewMetaResolversContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t 
 }
 
 func TestNewMetaResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.DataPools = nil
@@ -151,7 +151,7 @@ func TestNewMetaResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Uint64ByteSliceConverter = nil
@@ -162,7 +162,7 @@ func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *te
 }
 
 func TestNewMetaResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.DataPacker = nil
@@ -173,7 +173,7 @@ func TestNewMetaResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.TriesContainer = nil
@@ -184,7 +184,7 @@ func TestNewMetaResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.
 }
 
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
@@ -196,7 +196,7 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 //------- Create
 
 func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
@@ -209,7 +209,7 @@ func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFai
 }
 
 func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
@@ -221,7 +221,7 @@ func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
 }
 
 func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	noOfShards := 4
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()

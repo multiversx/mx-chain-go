@@ -7,7 +7,7 @@ import (
 )
 
 func TestMetrics_CalculateRoundDuration(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lastBlockTimestamp := uint64(80)
 	currentBlockTimestamp := uint64(100)

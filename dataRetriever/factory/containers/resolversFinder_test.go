@@ -35,7 +35,7 @@ func createMockContainer(expectedKey string) *mock.ResolversContainerStub {
 //------- NewResolversFinder
 
 func TestNewResolversFinder_NilContainerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rf, err := NewResolversFinder(nil, &mock.CoordinatorStub{})
 
@@ -44,7 +44,7 @@ func TestNewResolversFinder_NilContainerShouldErr(t *testing.T) {
 }
 
 func TestNewResolversFinder_NilCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rf, err := NewResolversFinder(&mock.ResolversContainerStub{}, nil)
 
@@ -53,7 +53,7 @@ func TestNewResolversFinder_NilCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewResolversFinder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rf, err := NewResolversFinder(&mock.ResolversContainerStub{}, &mock.CoordinatorStub{})
 

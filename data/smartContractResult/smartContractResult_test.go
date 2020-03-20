@@ -9,7 +9,7 @@ import (
 )
 
 func TestSmartContractResult_SettersAndGetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(5)
 	gasPrice := uint64(1)
@@ -40,7 +40,7 @@ func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 }
 
 func TestTrimSlicePtr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	scrSlice := make([]*smartContractResult.SmartContractResult, 0, 5)
 	scr1 := &smartContractResult.SmartContractResult{Nonce: 3}

@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewSystemVM_NilSystemEI(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, err := NewSystemVM(nil, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
@@ -21,7 +21,7 @@ func TestNewSystemVM_NilSystemEI(t *testing.T) {
 }
 
 func TestNewSystemVM_NilContainer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, nil, factory.SystemVirtualMachine)
 
@@ -30,7 +30,7 @@ func TestNewSystemVM_NilContainer(t *testing.T) {
 }
 
 func TestNewSystemVM_NilVMType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, nil)
 
@@ -39,7 +39,7 @@ func TestNewSystemVM_NilVMType(t *testing.T) {
 }
 
 func TestNewSystemVM_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
@@ -48,7 +48,7 @@ func TestNewSystemVM_Ok(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
@@ -62,7 +62,7 @@ func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
@@ -72,7 +72,7 @@ func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sc := &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.Ok

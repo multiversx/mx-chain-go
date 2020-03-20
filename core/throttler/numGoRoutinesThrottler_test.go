@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewNumGoRoutinesThrottler_WithNegativeShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nt, err := throttler.NewNumGoRoutinesThrottler(-1)
 
@@ -19,7 +19,7 @@ func TestNewNumGoRoutinesThrottler_WithNegativeShouldError(t *testing.T) {
 }
 
 func TestNewNumGoRoutinesThrottler_WithZeroShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nt, err := throttler.NewNumGoRoutinesThrottler(0)
 
@@ -28,7 +28,7 @@ func TestNewNumGoRoutinesThrottler_WithZeroShouldError(t *testing.T) {
 }
 
 func TestNewNumGoRoutinesThrottler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nt, err := throttler.NewNumGoRoutinesThrottler(1)
 
@@ -37,7 +37,7 @@ func TestNewNumGoRoutinesThrottler_ShouldWork(t *testing.T) {
 }
 
 func TestNumGoRoutinesThrottler_CanProcessMessageWithZeroCounter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nt, _ := throttler.NewNumGoRoutinesThrottler(1)
 
@@ -45,7 +45,7 @@ func TestNumGoRoutinesThrottler_CanProcessMessageWithZeroCounter(t *testing.T) {
 }
 
 func TestNumGoRoutinesThrottler_CanProcessMessageCounterEqualsMax(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nt, _ := throttler.NewNumGoRoutinesThrottler(1)
 	nt.StartProcessing()
@@ -54,7 +54,7 @@ func TestNumGoRoutinesThrottler_CanProcessMessageCounterEqualsMax(t *testing.T) 
 }
 
 func TestNumGoRoutinesThrottler_CanProcessMessageCounterIsMaxLessThanOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	max := int32(45)
 	nt, _ := throttler.NewNumGoRoutinesThrottler(max)
@@ -67,7 +67,7 @@ func TestNumGoRoutinesThrottler_CanProcessMessageCounterIsMaxLessThanOne(t *test
 }
 
 func TestNumGoRoutinesThrottler_CanProcessMessageCounterIsMax(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	max := int32(45)
 	nt, _ := throttler.NewNumGoRoutinesThrottler(max)
@@ -80,7 +80,7 @@ func TestNumGoRoutinesThrottler_CanProcessMessageCounterIsMax(t *testing.T) {
 }
 
 func TestNumGoRoutinesThrottler_CanProcessMessageCounterIsMaxLessOneFromEndProcessMessage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	max := int32(45)
 	nt, _ := throttler.NewNumGoRoutinesThrottler(max)

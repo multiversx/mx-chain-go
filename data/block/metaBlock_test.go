@@ -11,7 +11,7 @@ import (
 )
 
 func TestMetaBlock_GetEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(1)
 	m := block.MetaBlock{
@@ -22,7 +22,7 @@ func TestMetaBlock_GetEpoch(t *testing.T) {
 }
 
 func TestMetaBlock_GetShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	m := block.MetaBlock{}
 
@@ -30,7 +30,7 @@ func TestMetaBlock_GetShard(t *testing.T) {
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(2)
 	m := block.MetaBlock{
@@ -41,7 +41,7 @@ func TestMetaBlock_GetNonce(t *testing.T) {
 }
 
 func TestMetaBlock_GetPrevHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{
@@ -52,7 +52,7 @@ func TestMetaBlock_GetPrevHash(t *testing.T) {
 }
 
 func TestMetaBlock_GetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeysBitmap := []byte{10, 11, 12, 13}
 	m := block.MetaBlock{
@@ -63,7 +63,7 @@ func TestMetaBlock_GetPubKeysBitmap(t *testing.T) {
 }
 
 func TestMetaBlock_GetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevRandSeed := []byte("previous random seed")
 	m := block.MetaBlock{
@@ -74,7 +74,7 @@ func TestMetaBlock_GetPrevRandSeed(t *testing.T) {
 }
 
 func TestMetaBlock_GetRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	randSeed := []byte("random seed")
 	m := block.MetaBlock{
@@ -85,7 +85,7 @@ func TestMetaBlock_GetRandSeed(t *testing.T) {
 }
 
 func TestMetaBlock_GetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{
@@ -96,7 +96,7 @@ func TestMetaBlock_GetRootHash(t *testing.T) {
 }
 
 func TestMetaBlock_GetRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	round := uint64(1234)
 	m := block.MetaBlock{
@@ -107,7 +107,7 @@ func TestMetaBlock_GetRound(t *testing.T) {
 }
 
 func TestMetaBlock_GetTimestamp(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	timestamp := uint64(1000000)
 	m := block.MetaBlock{
@@ -118,7 +118,7 @@ func TestMetaBlock_GetTimestamp(t *testing.T) {
 }
 
 func TestMetaBlock_GetSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	signature := []byte("signature")
 	m := block.MetaBlock{
@@ -129,7 +129,7 @@ func TestMetaBlock_GetSignature(t *testing.T) {
 }
 
 func TestMetaBlock_GetTxCount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCount := uint32(100)
 	m := block.MetaBlock{
@@ -140,7 +140,7 @@ func TestMetaBlock_GetTxCount(t *testing.T) {
 }
 
 func TestMetaBlock_SetEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(10)
 	m := block.MetaBlock{}
@@ -150,7 +150,7 @@ func TestMetaBlock_SetEpoch(t *testing.T) {
 }
 
 func TestMetaBlock_SetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(11)
 	m := block.MetaBlock{}
@@ -160,7 +160,7 @@ func TestMetaBlock_SetNonce(t *testing.T) {
 }
 
 func TestMetaBlock_SetPrevHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{}
@@ -170,7 +170,7 @@ func TestMetaBlock_SetPrevHash(t *testing.T) {
 }
 
 func TestMetaBlock_SetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeysBitmap := []byte{12, 13, 14, 15}
 	m := block.MetaBlock{}
@@ -180,7 +180,7 @@ func TestMetaBlock_SetPubKeysBitmap(t *testing.T) {
 }
 
 func TestMetaBlock_SetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevRandSeed := []byte("previous random seed")
 	m := block.MetaBlock{}
@@ -190,7 +190,7 @@ func TestMetaBlock_SetPrevRandSeed(t *testing.T) {
 }
 
 func TestMetaBlock_SetRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	randSeed := []byte("random seed")
 	m := block.MetaBlock{}
@@ -200,7 +200,7 @@ func TestMetaBlock_SetRandSeed(t *testing.T) {
 }
 
 func TestMetaBlock_SetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{}
@@ -210,7 +210,7 @@ func TestMetaBlock_SetRootHash(t *testing.T) {
 }
 
 func TestMetaBlock_SetRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{}
@@ -220,7 +220,7 @@ func TestMetaBlock_SetRound(t *testing.T) {
 }
 
 func TestMetaBlock_SetSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	signature := []byte("signature")
 	m := block.MetaBlock{}
@@ -230,7 +230,7 @@ func TestMetaBlock_SetSignature(t *testing.T) {
 }
 
 func TestMetaBlock_SetTimeStamp(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	timestamp := uint64(100000)
 	m := block.MetaBlock{}
@@ -240,7 +240,7 @@ func TestMetaBlock_SetTimeStamp(t *testing.T) {
 }
 
 func TestMetaBlock_SetTxCount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCount := uint32(100)
 	m := block.MetaBlock{}
@@ -250,7 +250,7 @@ func TestMetaBlock_SetTxCount(t *testing.T) {
 }
 
 func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	metaHdr := &block.MetaBlock{Round: 15}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
@@ -273,7 +273,7 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 }
 
 func TestMetaBlock_IsChainIDValid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainID := []byte("chainID")
 	okChainID := []byte("chainID")

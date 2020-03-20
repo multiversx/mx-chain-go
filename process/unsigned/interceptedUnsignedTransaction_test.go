@@ -54,7 +54,7 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 //------- NewInterceptedUnsignedTransaction
 
 func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		nil,
@@ -69,7 +69,7 @@ func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedUnsignedTransaction_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
@@ -84,7 +84,7 @@ func TestNewInterceptedUnsignedTransaction_NilMarshalizerShouldErr(t *testing.T)
 }
 
 func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
@@ -99,7 +99,7 @@ func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
@@ -114,7 +114,7 @@ func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testi
 }
 
 func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
@@ -129,7 +129,7 @@ func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T)
 }
 
 func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 
@@ -150,7 +150,7 @@ func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testi
 }
 
 func TestNewInterceptedUnsignedTransaction_AddrConvFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		[]byte("{}"),
@@ -169,7 +169,7 @@ func TestNewInterceptedUnsignedTransaction_AddrConvFailsShouldErr(t *testing.T) 
 }
 
 func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -188,7 +188,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 //------- CheckValidity
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -206,7 +206,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testi
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilSenderAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -224,7 +224,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilSenderAddressShouldErr(t
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -242,7 +242,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilRecvAddressShouldErr(t *
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -260,7 +260,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilValueShouldErr(t *testin
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -278,7 +278,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilNegativeValueShouldErr(t
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -296,7 +296,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityInvalidSenderShouldErr(t *t
 }
 
 func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
@@ -316,7 +316,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 //------- getters
 
 func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(45)
 	tx := &smartContractResult.SmartContractResult{
@@ -346,7 +346,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var utxi *unsigned.InterceptedUnsignedTransaction
 

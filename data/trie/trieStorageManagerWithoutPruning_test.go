@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewTrieStorageManagerWithoutPruningWithNilDb(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, err := NewTrieStorageManagerWithoutPruning(nil)
 	assert.Nil(t, ts)
@@ -16,7 +16,7 @@ func TestNewTrieStorageManagerWithoutPruningWithNilDb(t *testing.T) {
 }
 
 func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, err := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	assert.Nil(t, err)
@@ -24,21 +24,21 @@ func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
 }
 
 func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	ts.TakeSnapshot([]byte{}, &mock.MarshalizerMock{}, mock.HasherMock{})
 }
 
 func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	ts.SetCheckpoint([]byte{}, &mock.MarshalizerMock{}, mock.HasherMock{})
 }
 
 func TestTrieStorageManagerWithoutPruning_PruneShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	err := ts.Prune([]byte{})
@@ -46,14 +46,14 @@ func TestTrieStorageManagerWithoutPruning_PruneShouldNotPanic(t *testing.T) {
 }
 
 func TestTrieStorageManagerWithoutPruning_CancelPruneShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	ts.CancelPrune([]byte{})
 }
 
 func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	err := ts.MarkForEviction([]byte{}, map[string]struct{}{})
@@ -61,7 +61,7 @@ func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testi
 }
 
 func TestTrieStorageManagerWithoutPruning_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 
@@ -72,7 +72,7 @@ func TestTrieStorageManagerWithoutPruning_Clone(t *testing.T) {
 }
 
 func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	assert.False(t, ts.IsPruningEnabled())

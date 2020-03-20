@@ -24,7 +24,7 @@ func CreateHeartbeat() *heartbeat.Heartbeat {
 }
 
 func TestNewMessageProcessor_SingleSignerNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
 		nil,
@@ -38,7 +38,7 @@ func TestNewMessageProcessor_SingleSignerNilShouldErr(t *testing.T) {
 }
 
 func TestNewMessageProcessor_KeyGeneratorNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
 		&mock.SinglesignMock{},
@@ -52,7 +52,7 @@ func TestNewMessageProcessor_KeyGeneratorNilShouldErr(t *testing.T) {
 }
 
 func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
 		&mock.SinglesignMock{},
@@ -66,7 +66,7 @@ func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
 }
 
 func TestNewMessageProcessor_NetworkShardingCollectorNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
 		&mock.SinglesignMock{},
@@ -80,7 +80,7 @@ func TestNewMessageProcessor_NetworkShardingCollectorNilShouldErr(t *testing.T) 
 }
 
 func TestNewMessageProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
 		&mock.SinglesignMock{},
@@ -95,7 +95,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 }
 
 func TestNewMessageProcessor_VerifyMessageAllSmallerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	err := heartbeat.VerifyLengths(hbmi)
@@ -104,7 +104,7 @@ func TestNewMessageProcessor_VerifyMessageAllSmallerShouldWork(t *testing.T) {
 }
 
 func TestNewMessageProcessor_VerifyMessageAllNilShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Signature = nil
@@ -119,7 +119,7 @@ func TestNewMessageProcessor_VerifyMessageAllNilShouldWork(t *testing.T) {
 }
 
 func TestNewMessageProcessor_VerifyMessageBiggerPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Pubkey = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
@@ -129,7 +129,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerPublicKeyShouldErr(t *testing.T)
 }
 
 func TestNewMessageProcessor_VerifyMessageAllSmallerPublicKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Pubkey = make([]byte, heartbeat.GetMaxSizeInBytes())
@@ -139,7 +139,7 @@ func TestNewMessageProcessor_VerifyMessageAllSmallerPublicKeyShouldWork(t *testi
 }
 
 func TestNewMessageProcessor_VerifyMessageBiggerPayloadShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Payload = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
@@ -149,7 +149,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerPayloadShouldErr(t *testing.T) {
 }
 
 func TestNewMessageProcessor_VerifyMessageSmallerPayloadShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Payload = make([]byte, heartbeat.GetMaxSizeInBytes())
@@ -159,7 +159,7 @@ func TestNewMessageProcessor_VerifyMessageSmallerPayloadShouldWork(t *testing.T)
 }
 
 func TestNewMessageProcessor_VerifyMessageBiggerSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Signature = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
@@ -169,7 +169,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerSignatureShouldErr(t *testing.T)
 }
 
 func TestNewMessageProcessor_VerifyMessageSignatureShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.Signature = make([]byte, heartbeat.GetMaxSizeInBytes()-1)
@@ -179,7 +179,7 @@ func TestNewMessageProcessor_VerifyMessageSignatureShouldWork(t *testing.T) {
 }
 
 func TestNewMessageProcessor_VerifyMessageBiggerNodeDisplayNameShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.NodeDisplayName = string(make([]byte, heartbeat.GetMaxSizeInBytes()+1))
@@ -189,7 +189,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerNodeDisplayNameShouldErr(t *test
 }
 
 func TestNewMessageProcessor_VerifyMessageNodeDisplayNameShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.NodeDisplayName = string(make([]byte, heartbeat.GetMaxSizeInBytes()))
@@ -199,7 +199,7 @@ func TestNewMessageProcessor_VerifyMessageNodeDisplayNameShouldWork(t *testing.T
 }
 
 func TestNewMessageProcessor_VerifyMessageBiggerVersionNumberShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.VersionNumber = string(make([]byte, heartbeat.GetMaxSizeInBytes()+1))
@@ -209,7 +209,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerVersionNumberShouldErr(t *testin
 }
 
 func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hbmi := CreateHeartbeat()
 	hbmi.VersionNumber = string(make([]byte, heartbeat.GetMaxSizeInBytes()))
@@ -219,7 +219,7 @@ func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) 
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hb := heartbeat.Heartbeat{
 		Payload:         []byte("Payload"),
@@ -286,7 +286,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -314,7 +314,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -348,7 +348,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	length := 129
 	buff := make([]byte, length)
@@ -415,7 +415,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, _ := heartbeat.NewMessageProcessor(
 		&mock.SinglesignMock{},

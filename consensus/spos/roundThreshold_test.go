@@ -9,7 +9,7 @@ import (
 )
 
 func TestRoundThreshold_NewThresholdShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rthr := spos.NewRoundThreshold()
 
@@ -17,7 +17,7 @@ func TestRoundThreshold_NewThresholdShouldWork(t *testing.T) {
 }
 
 func TestRoundThreshold_SetThresholdShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rthr := spos.NewRoundThreshold()
 

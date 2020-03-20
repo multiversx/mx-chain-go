@@ -63,7 +63,7 @@ func createMockShardHeader() *dataBlock.Header {
 //------- TestNewInterceptedHeader
 
 func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(nil)
 
@@ -72,7 +72,7 @@ func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	arg.HdrBuff = []byte("invalid buffer")
@@ -85,7 +85,7 @@ func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
@@ -105,7 +105,7 @@ func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
 }
 
 func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
@@ -125,7 +125,7 @@ func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
 }
 
 func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
@@ -147,7 +147,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 //------- CheckValidity
 
 func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createMockShardHeader()
 	hdr.PubKeysBitmap = nil
@@ -163,7 +163,7 @@ func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 }
 
 func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createMockShardHeader()
 	expectedErr := errors.New("expected err")
@@ -184,7 +184,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 }
 
 func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createMockShardHeader()
 	expectedSignature := []byte("ran")
@@ -200,7 +200,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T
 }
 
 func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr := createMockShardHeader()
 	badShardId := uint32(2)
@@ -225,7 +225,7 @@ func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 }
 
 func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
@@ -236,7 +236,7 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 }
 
 func TestInterceptedHeader_CheckAgainstRounderErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	expectedErr := errors.New("expected error")
@@ -253,7 +253,7 @@ func TestInterceptedHeader_CheckAgainstRounderErrorsShouldErr(t *testing.T) {
 }
 
 func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	expectedErr := errors.New("expected error")
@@ -272,7 +272,7 @@ func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) 
 //------- getters
 
 func TestInterceptedHeader_Getters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createDefaultShardArgument()
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
@@ -285,7 +285,7 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 //------- IsInterfaceNil
 
 func TestInterceptedHeader_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var inHdr *interceptedBlocks.InterceptedHeader
 

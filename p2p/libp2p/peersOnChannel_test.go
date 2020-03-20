@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewPeersOnChannel_NilFetchPeersHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	poc, err := newPeersOnChannel(nil, 1, 1)
 
@@ -20,7 +20,7 @@ func TestNewPeersOnChannel_NilFetchPeersHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewPeersOnChannel_InvalidRefreshIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	poc, err := newPeersOnChannel(
 		func(topic string) []peer.ID {
@@ -34,7 +34,7 @@ func TestNewPeersOnChannel_InvalidRefreshIntervalShouldErr(t *testing.T) {
 }
 
 func TestNewPeersOnChannel_InvalidTTLIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	poc, err := newPeersOnChannel(
 		func(topic string) []peer.ID {
@@ -48,7 +48,7 @@ func TestNewPeersOnChannel_InvalidTTLIntervalShouldErr(t *testing.T) {
 }
 
 func TestNewPeersOnChannel_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	poc, err := newPeersOnChannel(
 		func(topic string) []peer.ID {
@@ -62,7 +62,7 @@ func TestNewPeersOnChannel_OkValsShouldWork(t *testing.T) {
 }
 
 func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAndReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	retPeerIDs := []peer.ID{"peer1", "peer2"}
 	testTopic := "test_topic"
@@ -90,7 +90,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAnd
 }
 
 func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	retPeerIDs := []p2p.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"
@@ -119,7 +119,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.
 }
 
 func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	retPeerIDs := []p2p.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"

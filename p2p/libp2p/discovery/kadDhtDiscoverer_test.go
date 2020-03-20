@@ -21,7 +21,7 @@ import (
 )
 
 func TestNewKadDhtPeerDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	arg.PeersRefreshInterval = time.Second - time.Microsecond
@@ -33,7 +33,7 @@ func TestNewKadDhtPeerDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *testing
 }
 
 func TestNewKadDhtPeerDiscoverer_InvalidRoutingTableRefreshIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	arg.RoutingTableRefresh = time.Second - time.Microsecond
@@ -45,7 +45,7 @@ func TestNewKadDhtPeerDiscoverer_InvalidRoutingTableRefreshIntervalShouldErr(t *
 }
 
 func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	kdd, err := discovery.NewKadDhtPeerDiscoverer(arg)
@@ -67,7 +67,7 @@ func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
 //------- Bootstrap
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interval := time.Second
 
@@ -83,7 +83,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
@@ -97,7 +97,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 //------- connectToOnePeerFromInitialPeersList
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
@@ -108,7 +108,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldR
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShouldRetWithChanFull(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
@@ -118,7 +118,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShoul
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	peerID := "peer"
@@ -145,7 +145,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnectContinously(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	peerID := "peer"
@@ -180,7 +180,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlternate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createTestArgument()
 	peerID1 := "peer1"
@@ -228,7 +228,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 //----------- Watchdog
 
 func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interval := time.Second
 	arg := createTestArgument()
@@ -267,7 +267,7 @@ func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 
 //---------- Protocols
 func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	streams := make(map[protocol.ID]network.StreamHandler)
 	notifeesCnt := 0

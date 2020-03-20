@@ -26,7 +26,7 @@ func TestToHexShouldWork(t *testing.T) {
 }
 
 func TestCalculateHash_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	obj := []byte("object")
 	hash, err := core.CalculateHash(nil, &mock.HasherMock{}, obj)
@@ -35,7 +35,7 @@ func TestCalculateHash_NilMarshalizer(t *testing.T) {
 }
 
 func TestCalculateHash_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	obj := []byte("object")
 	hash, err := core.CalculateHash(&mock.MarshalizerMock{}, nil, obj)
@@ -44,7 +44,7 @@ func TestCalculateHash_NilHasher(t *testing.T) {
 }
 
 func TestCalculateHash_ErrMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	obj := &batch.Batch{Data: [][]byte{[]byte("object")}}
 	marshalizer := &mock.MarshalizerMock{
@@ -56,7 +56,7 @@ func TestCalculateHash_ErrMarshalizer(t *testing.T) {
 }
 
 func TestCalculateHash_NilObject(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	hash, err := core.CalculateHash(marshalizer, &mock.HasherMock{}, nil)
@@ -65,7 +65,7 @@ func TestCalculateHash_NilObject(t *testing.T) {
 }
 
 func TestGetShardIdString(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardIdMeta := uint32(math.MaxUint32)
 	assert.Equal(t, "metachain", core.GetShardIdString(shardIdMeta))
@@ -75,7 +75,7 @@ func TestGetShardIdString(t *testing.T) {
 }
 
 func TestEpochStartIdentifier(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(5)
 	res := core.EpochStartIdentifier(epoch)
@@ -83,7 +83,7 @@ func TestEpochStartIdentifier(t *testing.T) {
 }
 
 func TestIsUnknownEpochIdentifier_InvalidIdentifierShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := "epoch5"
 	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
@@ -92,7 +92,7 @@ func TestIsUnknownEpochIdentifier_InvalidIdentifierShouldReturnTrue(t *testing.T
 }
 
 func TestIsUnknownEpochIdentifier_IdentifierNotNumericShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := "epochStartBlock_xx"
 	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
@@ -101,7 +101,7 @@ func TestIsUnknownEpochIdentifier_IdentifierNotNumericShouldReturnFalse(t *testi
 }
 
 func TestIsUnknownEpochIdentifier_OkIdentifierShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	identifier := "epochStartBlock_5"
 	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
@@ -110,7 +110,7 @@ func TestIsUnknownEpochIdentifier_OkIdentifierShouldReturnFalse(t *testing.T) {
 }
 
 func TestCalculateHash_Good(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	obj := &batch.Batch{Data: [][]byte{[]byte("object")}}
 	results := []byte{0x90, 0xe2, 0x17, 0x2c, 0xaa, 0xa5, 0x4c, 0xb2, 0xad, 0x55, 0xd4, 0xd1, 0x26, 0x91, 0x87, 0xa4, 0xe6, 0x6e, 0xcf, 0x12, 0xfd, 0xc2, 0x5b, 0xf8, 0x67, 0xb7, 0x7, 0x9, 0x6d, 0xe5, 0x43, 0xdd}
@@ -122,7 +122,7 @@ func TestCalculateHash_Good(t *testing.T) {
 }
 
 func TestSecondsToHourMinSec_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	second := 1
 	secondsInAMinute := 60

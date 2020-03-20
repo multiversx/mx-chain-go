@@ -13,7 +13,7 @@ import (
 )
 
 func TestNewBigEndianConverter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
 
@@ -21,7 +21,7 @@ func TestNewBigEndianConverter(t *testing.T) {
 }
 
 func TestBigEndianConverter_ToUint64NilBuffShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
 	val, err := bec.ToUint64(nil)
@@ -31,7 +31,7 @@ func TestBigEndianConverter_ToUint64NilBuffShouldErr(t *testing.T) {
 }
 
 func TestBigEndianConverter_ToUint64WrongBuffSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
 
@@ -49,7 +49,7 @@ func TestBigEndianConverter_ToUint64WrongBuffSizeShouldErr(t *testing.T) {
 }
 
 func TestBigEndianConverter_ToUint64ValsOkShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	buff := make([]byte, 8)
 
@@ -61,7 +61,7 @@ func TestBigEndianConverter_ToUint64ValsOkShouldWork(t *testing.T) {
 }
 
 func TestBigEndianConverter_ToUint64ToByteSlice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
 
@@ -70,7 +70,7 @@ func TestBigEndianConverter_ToUint64ToByteSlice(t *testing.T) {
 }
 
 func TestBigEndianConverter_ToByteSliceOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vals := make(map[uint64][]byte)
 

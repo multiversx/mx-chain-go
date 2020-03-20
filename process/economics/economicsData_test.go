@@ -63,7 +63,7 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 }
 
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	badGasLimitPerBlock := []string{
@@ -87,7 +87,7 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 }
 
 func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	badGasPrice := []string{
@@ -111,7 +111,7 @@ func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
 }
 
 func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	bagMinGasLimit := []string{
@@ -135,7 +135,7 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 }
 
 func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RewardsSettings.LeaderPercentage = -0.1
@@ -146,7 +146,7 @@ func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 }
 
 func TestNewEconomicsData_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
@@ -154,7 +154,7 @@ func TestNewEconomicsData_ShouldWork(t *testing.T) {
 }
 
 func TestEconomicsData_LeaderPercentage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	leaderPercentage := 0.40
 	economicsConfig := createDummyEconomicsConfig()
@@ -166,7 +166,7 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 }
 
 func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -186,7 +186,7 @@ func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
 }
 
 func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -210,7 +210,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 }
 
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -229,7 +229,7 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -248,7 +248,7 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -270,7 +270,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -291,7 +291,7 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 }
 
 func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
@@ -312,7 +312,7 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 }
 
 func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = 10
@@ -324,7 +324,7 @@ func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = 0
@@ -336,7 +336,7 @@ func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
 }
 
 func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = 10
@@ -349,7 +349,7 @@ func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = 10
@@ -362,7 +362,7 @@ func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 }
 
 func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minRating := uint32(10)
 	maxRating := uint32(100)

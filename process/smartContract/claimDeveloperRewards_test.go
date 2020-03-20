@@ -12,7 +12,7 @@ import (
 )
 
 func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cdr := claimDeveloperRewards{}
 

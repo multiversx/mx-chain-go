@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		nil,
@@ -26,7 +26,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -42,7 +42,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -58,7 +58,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -74,7 +74,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -90,7 +90,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -107,7 +107,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 }
 
 func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),

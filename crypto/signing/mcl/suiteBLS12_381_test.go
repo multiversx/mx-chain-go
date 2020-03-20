@@ -122,7 +122,7 @@ func TestSuiteBLS12_GetUnderlyingSuite(t *testing.T) {
 }
 
 func TestSuiteBLS12_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	var suite *SuiteBLS12
 
 	require.True(t, check.IfNil(suite))

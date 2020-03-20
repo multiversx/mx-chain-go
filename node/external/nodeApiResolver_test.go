@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
@@ -21,7 +21,7 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 }
 
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil, &mock.TransactionCostEstimatorMock{})
 
@@ -30,7 +30,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 }
 
 func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, nil)
 
@@ -39,7 +39,7 @@ func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
 }
 
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{})
 
@@ -48,7 +48,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(&mock.SCQueryServiceStub{
@@ -68,7 +68,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 }
 
 func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
@@ -87,7 +87,7 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 }
 
 func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
@@ -106,7 +106,7 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 }
 
 func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
@@ -125,7 +125,7 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 }
 
 func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(

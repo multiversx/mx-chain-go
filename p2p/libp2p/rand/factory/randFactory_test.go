@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewRandFactory_EmptySeedShouldReturnCryptoRand(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	r, err := factory.NewRandFactory("")
 
@@ -20,7 +20,7 @@ func TestNewRandFactory_EmptySeedShouldReturnCryptoRand(t *testing.T) {
 }
 
 func TestNewRandFactory_NotEmptySeedShouldSeedRandReader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	seed := "seed"
 	srrExpected, _ := rand2.NewSeedRandReader([]byte(seed))

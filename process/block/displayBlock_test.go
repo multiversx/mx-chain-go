@@ -25,7 +25,7 @@ func createGenesisBlock(shardId uint32) *block.Header {
 }
 
 func TestDisplayBlock_GetNumTxFromPool_NilDataPoolReturnZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCounter := NewTransactionCounter()
 	numTxs := txCounter.getNumTxsFromPool(0, nil, 1)
@@ -34,7 +34,7 @@ func TestDisplayBlock_GetNumTxFromPool_NilDataPoolReturnZero(t *testing.T) {
 }
 
 func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
 	header := createGenesisBlock(0)
@@ -49,7 +49,7 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 }
 
 func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
 	body := &block.Body{}

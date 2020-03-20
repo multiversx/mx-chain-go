@@ -8,7 +8,7 @@ import (
 )
 
 func TestPresenterStatusHandler_GetCpuLoadPercent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cpuPercentLoad := uint64(90)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -19,7 +19,7 @@ func TestPresenterStatusHandler_GetCpuLoadPercent(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetMemLoadPercent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	memPercentLoad := uint64(80)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -30,7 +30,7 @@ func TestPresenterStatusHandler_GetMemLoadPercent(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetTotalMem(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	totalMem := uint64(8000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -41,7 +41,7 @@ func TestPresenterStatusHandler_GetTotalMem(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetMemUsedByNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	memUsedByNode := uint64(500)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -52,7 +52,7 @@ func TestPresenterStatusHandler_GetMemUsedByNode(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkRecvPercent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkRecvPercent := uint64(10)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -63,7 +63,7 @@ func TestPresenterStatusHandler_GetNetworkRecvPercent(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkRecvBps(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkRecvBps := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -74,7 +74,7 @@ func TestPresenterStatusHandler_GetNetworkRecvBps(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkRecvBpsPeak(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkRecvBpsPeak := uint64(2000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -85,7 +85,7 @@ func TestPresenterStatusHandler_GetNetworkRecvBpsPeak(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkSentPercent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkSentPercent := uint64(10)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -96,7 +96,7 @@ func TestPresenterStatusHandler_GetNetworkSentPercent(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkSentBps(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkSentBps := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
@@ -107,7 +107,7 @@ func TestPresenterStatusHandler_GetNetworkSentBps(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetNetworkSentBpsPeak(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	networkSentBpsPeak := uint64(2000)
 	presenterStatusHandler := NewPresenterStatusHandler()

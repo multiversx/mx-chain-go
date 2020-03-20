@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		nil,
@@ -27,7 +27,7 @@ func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 }
 
 func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -40,7 +40,7 @@ func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
 }
 
 func TestNewTxTypeHandler_NilAccounts(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -53,7 +53,7 @@ func TestNewTxTypeHandler_NilAccounts(t *testing.T) {
 }
 
 func TestNewTxTypeHandler_ValsOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -98,7 +98,7 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -114,7 +114,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -137,7 +137,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tth, err := NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -159,7 +159,7 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressConverter := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
@@ -184,7 +184,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -214,7 +214,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
@@ -244,7 +244,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(

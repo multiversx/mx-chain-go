@@ -18,7 +18,7 @@ import (
 )
 
 func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		nil,
@@ -35,7 +35,7 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 }
 
 func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		&mock.HasherMock{},
@@ -52,7 +52,7 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 }
 
 func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		&mock.HasherMock{},
@@ -69,7 +69,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 }
 
 func TestNewIntermediateResultsProcessor_NilAddressConverter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		&mock.HasherMock{},
@@ -86,7 +86,7 @@ func TestNewIntermediateResultsProcessor_NilAddressConverter(t *testing.T) {
 }
 
 func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		&mock.HasherMock{},
@@ -103,7 +103,7 @@ func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(
 		&mock.HasherMock{},
@@ -120,7 +120,7 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 }
 
 func TestIntermediateResultsProcessor_getShardIdsFromAddressesErrAdrConv(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -148,7 +148,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesErrAdrConv(t *test
 }
 
 func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -174,7 +174,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -196,7 +196,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -221,7 +221,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrConvError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -248,7 +248,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrConvError(t
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -277,7 +277,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -316,7 +316,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -338,7 +338,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -370,7 +370,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -418,7 +418,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -442,7 +442,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCrossSrcFromThisShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -471,7 +471,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -498,7 +498,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -544,7 +544,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -603,7 +603,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 }
 
 func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSave(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -654,7 +654,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 }
 
 func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -686,7 +686,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 }
 
 func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}
@@ -754,7 +754,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 }
 
 func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := 5
 	adrConv := &mock.AddressConverterMock{}

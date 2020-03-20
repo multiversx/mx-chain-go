@@ -9,7 +9,7 @@ import (
 )
 
 func TestMemStatisticsUsage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mem := &MemStatistics{}
 
@@ -30,7 +30,7 @@ func TestMemStatisticsUsage(t *testing.T) {
 }
 
 func TestMemStatisticsUsage_ResetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mem := &MemStatistics{}
 

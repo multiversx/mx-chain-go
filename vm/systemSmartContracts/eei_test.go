@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, err := NewVMContext(nil, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 
@@ -23,7 +23,7 @@ func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 }
 
 func TestNewVMContext_NilCryptoHook(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, nil, &mock.ArgumentParserMock{})
 
@@ -32,7 +32,7 @@ func TestNewVMContext_NilCryptoHook(t *testing.T) {
 }
 
 func TestNewVMContext(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 
@@ -41,7 +41,7 @@ func TestNewVMContext(t *testing.T) {
 }
 
 func TestVmContext_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	assert.False(t, vmContext.IsInterfaceNil())
@@ -51,7 +51,7 @@ func TestVmContext_IsInterfaceNil(t *testing.T) {
 }
 
 func TestVmContext_CleanCache(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 
@@ -62,7 +62,7 @@ func TestVmContext_CleanCache(t *testing.T) {
 }
 
 func TestVmContext_GetBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
@@ -81,7 +81,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 }
 
 func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 
@@ -97,7 +97,7 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 }
 
 func TestVmContext_SetStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 
@@ -118,7 +118,7 @@ func TestVmContext_SetStorage(t *testing.T) {
 }
 
 func TestVmContext_Transfer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 

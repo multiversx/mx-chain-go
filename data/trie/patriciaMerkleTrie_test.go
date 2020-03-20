@@ -75,7 +75,7 @@ func initTrie() data.Trie {
 }
 
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, marshalizer, hasher := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(nil, marshalizer, hasher)
@@ -85,7 +85,7 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 }
 
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trieStorage, _, hasher := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(trieStorage, nil, hasher)
@@ -95,7 +95,7 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 }
 
 func TestNewTrieWithNilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	trieStorage, marshalizer, _ := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(trieStorage, marshalizer, nil)
@@ -105,7 +105,7 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, val := initTrieMultipleValues(10000)
 
@@ -116,7 +116,7 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -126,7 +126,7 @@ func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Update(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -138,7 +138,7 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	var empty []byte
@@ -150,7 +150,7 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -161,7 +161,7 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Delete(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	var empty []byte
@@ -173,7 +173,7 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -182,7 +182,7 @@ func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Root(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -192,7 +192,7 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -202,7 +202,7 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -214,7 +214,7 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -226,7 +226,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -236,7 +236,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, val := initTrieMultipleValues(50)
 
@@ -255,7 +255,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -265,7 +265,7 @@ func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -275,7 +275,7 @@ func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	root1, _ := tr.Root()
@@ -291,7 +291,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 	nrInserts := 100
@@ -329,7 +329,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Commit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -338,7 +338,7 @@ func TestPatriciaMerkleTree_Commit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -351,7 +351,7 @@ func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -361,7 +361,7 @@ func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -370,7 +370,7 @@ func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -383,7 +383,7 @@ func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := initTrie()
 	tr2 := initTrie()
@@ -401,7 +401,7 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := initTrie()
 	tr2 := initTrie()
@@ -419,7 +419,7 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	rootHash, _ := tr.Root()
@@ -434,7 +434,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -445,7 +445,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr1 := emptyTrie()
 	tr2 := emptyTrie()
@@ -464,7 +464,7 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 }
 
 func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -478,7 +478,7 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 }
 
 func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 
@@ -492,7 +492,7 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 }
 
 func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -511,7 +511,7 @@ func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -531,7 +531,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, _ := trie.NewTrie(getDefaultTrieParameters())
 
@@ -554,7 +554,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -568,7 +568,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -582,7 +582,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -600,7 +600,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	leaves, err := tr.GetAllLeaves()

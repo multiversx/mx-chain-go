@@ -48,7 +48,7 @@ func checkIntegrity(oclb *loadBalancer.OutgoingChannelLoadBalancer, name string)
 //------- NewOutgoingChannelLoadBalancer
 
 func TestNewOutgoingChannelLoadBalancer_ShouldNotProduceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -56,7 +56,7 @@ func TestNewOutgoingChannelLoadBalancer_ShouldNotProduceNil(t *testing.T) {
 }
 
 func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -67,7 +67,7 @@ func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
 //------- AddChannel
 
 func TestOutgoingChannelLoadBalancer_AddChannelNewChannelShouldNotErrAndAddNewChannel(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -80,7 +80,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelNewChannelShouldNotErrAndAddNewCh
 }
 
 func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -90,7 +90,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testin
 }
 
 func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -103,7 +103,7 @@ func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.
 //------- RemoveChannel
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -113,7 +113,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *test
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveNotFoundChannelShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -123,7 +123,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveNotFoundChannelShouldErr
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveLastChannelAddedShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -143,7 +143,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveLastChannelAddedShouldWo
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveFirstChannelAddedShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -163,7 +163,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveFirstChannelAddedShouldW
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -185,7 +185,7 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShould
 //------- GetChannelOrDefault
 
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultNotFoundShouldReturnDefault(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -197,7 +197,7 @@ func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultNotFoundShouldReturnDefa
 }
 
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -211,7 +211,7 @@ func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel
 //------- CollectOneElementFromChannels
 
 func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlocking(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
@@ -231,7 +231,7 @@ func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlock
 }
 
 func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 

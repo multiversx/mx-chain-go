@@ -35,7 +35,7 @@ func startNodeServerSourceThrottler(handler address.FacadeHandler, maxConnection
 }
 
 func TestNewSourceThrottler_InvalidValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st, err := middleware.NewSourceThrottler(0)
 
@@ -44,7 +44,7 @@ func TestNewSourceThrottler_InvalidValueShouldErr(t *testing.T) {
 }
 
 func TestNewSourceThrottler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st, err := middleware.NewSourceThrottler(1)
 
@@ -53,7 +53,7 @@ func TestNewSourceThrottler(t *testing.T) {
 }
 
 func TestSourceThrottler_LimitBadRequestShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	addr := "testAddress"
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -73,7 +73,7 @@ func TestSourceThrottler_LimitBadRequestShouldErr(t *testing.T) {
 }
 
 func TestSourceThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	addr := "testAddress"
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -93,7 +93,7 @@ func TestSourceThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
 }
 
 func TestSourceThrottler_LimitOverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -118,7 +118,7 @@ func TestSourceThrottler_LimitOverShouldErr(t *testing.T) {
 }
 
 func TestSourceThrottler_LimitResetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {

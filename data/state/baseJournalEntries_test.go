@@ -12,7 +12,7 @@ import (
 //------- BaseJournalEntryCreation
 
 func TestNewBaseJournalEntryCreation_NilUpdaterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryCreation([]byte("key"), nil)
 
@@ -21,7 +21,7 @@ func TestNewBaseJournalEntryCreation_NilUpdaterShouldErr(t *testing.T) {
 }
 
 func TestNewBaseJournalEntryCreation_NilKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryCreation(nil, &mock.UpdaterStub{})
 
@@ -30,7 +30,7 @@ func TestNewBaseJournalEntryCreation_NilKeyShouldErr(t *testing.T) {
 }
 
 func TestNewBaseJournalEntryCreation_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryCreation([]byte("key"), &mock.UpdaterStub{})
 
@@ -39,7 +39,7 @@ func TestNewBaseJournalEntryCreation_ShouldWork(t *testing.T) {
 }
 
 func TestBaseJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wasCalled := false
 
@@ -60,7 +60,7 @@ func TestBaseJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
 //------- BaseJournalEntryCodeHash
 
 func TestNewBaseJournalEntryCodeHash_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryCodeHash(nil, nil)
 
@@ -69,7 +69,7 @@ func TestNewBaseJournalEntryCodeHash_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryCodeHash(mock.NewAccountWrapMock(nil, nil), nil)
 
@@ -78,7 +78,7 @@ func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
 }
 
 func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCodeHash := []byte("code hash to revert")
 	accnt := mock.NewAccountWrapMock(nil, nil)
@@ -93,7 +93,7 @@ func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
 //------- BaseJournalEntryNonce
 
 func TestNewBaseJournalEntryNonce_NilAccountShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	entry, err := state.NewBaseJournalEntryNonce(nil, 0)
 
@@ -102,7 +102,7 @@ func TestNewBaseJournalEntryNonce_NilAccountShouldErr(t *testing.T) {
 }
 
 func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewBaseJournalEntryNonce(accnt, 0)
@@ -112,7 +112,7 @@ func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
 }
 
 func TestBaseJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(445)
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})

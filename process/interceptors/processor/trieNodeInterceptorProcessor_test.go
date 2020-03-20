@@ -13,7 +13,7 @@ import (
 )
 
 func TestNewTrieNodesInterceptorProcessor_NilCacherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tnip, err := processor.NewTrieNodesInterceptorProcessor(nil)
 	assert.Nil(t, tnip)
@@ -21,7 +21,7 @@ func TestNewTrieNodesInterceptorProcessor_NilCacherShouldErr(t *testing.T) {
 }
 
 func TestNewTrieNodesInterceptorProcessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tnip, err := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
 	assert.Nil(t, err)
@@ -31,7 +31,7 @@ func TestNewTrieNodesInterceptorProcessor_OkValsShouldWork(t *testing.T) {
 //------- Validate
 
 func TestTrieNodesInterceptorProcessor_ValidateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tnip, _ := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
 
@@ -41,7 +41,7 @@ func TestTrieNodesInterceptorProcessor_ValidateShouldWork(t *testing.T) {
 //------- Save
 
 func TestTrieNodesInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tnip, _ := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
 
@@ -50,7 +50,7 @@ func TestTrieNodesInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 }
 
 func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	putCalled := false
 	cacher := &mock.CacherStub{
@@ -67,7 +67,7 @@ func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
 }
 
 func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingWrongTypeShouldNotPutInCache(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheMock := &mock.CacherStub{
 		PutCalled: func(key []byte, value interface{}) bool {
@@ -84,7 +84,7 @@ func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingWrongTypeShouldNotPut
 }
 
 func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	putWasCalled := false
 	cacheMock := &mock.CacherStub{
@@ -106,7 +106,7 @@ func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingShouldWork(t *testing
 //------- IsInterfaceNil
 
 func TestTrieNodesInterceptorProcessor_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var tnip *processor.TrieNodeInterceptorProcessor
 	assert.True(t, check.IfNil(tnip))

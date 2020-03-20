@@ -13,7 +13,7 @@ var snapshotDelay = time.Second
 var batchDelay = 2 * time.Second
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedBn)
@@ -24,7 +24,7 @@ func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
 }
 
 func TestNode_hashChildrenAndNodeExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
 	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedEn)
@@ -35,7 +35,7 @@ func TestNode_hashChildrenAndNodeExtensionNode(t *testing.T) {
 }
 
 func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	expectedNodeHash, _ := encodeNodeAndGetHash(ln)
@@ -46,7 +46,7 @@ func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := newBranchNode(getTestMarshAndHasher())
 	encChildren := make([][]byte, nrOfChildren)
@@ -64,7 +64,7 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{
@@ -89,7 +89,7 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	ln, _ := newLeafNode([]byte("dog"), []byte("dog"), marsh, hasher)
@@ -104,7 +104,7 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
@@ -120,7 +120,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
@@ -136,7 +136,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 }
 
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -152,7 +152,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 }
 
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
@@ -171,7 +171,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 }
 
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -190,7 +190,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 }
 
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -209,7 +209,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 }
 
 func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
@@ -222,7 +222,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 }
 
 func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -234,7 +234,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 }
 
 func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -246,7 +246,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 }
 
 func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var node *extensionNode
 
@@ -255,7 +255,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 }
 
 func TestNode_concat(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	a := []byte{1, 2, 3}
 	b := byte(4)
@@ -264,7 +264,7 @@ func TestNode_concat(t *testing.T) {
 }
 
 func TestNode_hasValidHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
 	ok, err := hasValidHash(bn)
@@ -280,7 +280,7 @@ func TestNode_hasValidHash(t *testing.T) {
 }
 
 func TestNode_hasValidHashNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var node *branchNode
 	ok, err := hasValidHash(node)
@@ -289,7 +289,7 @@ func TestNode_hasValidHashNilNode(t *testing.T) {
 }
 
 func TestNode_decodeNodeBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
@@ -304,7 +304,7 @@ func TestNode_decodeNodeBranchNode(t *testing.T) {
 }
 
 func TestNode_decodeNodeExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
@@ -319,7 +319,7 @@ func TestNode_decodeNodeExtensionNode(t *testing.T) {
 }
 
 func TestNode_decodeNodeLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	encNode, _ := ln.marsh.Marshal(ln)
@@ -335,7 +335,7 @@ func TestNode_decodeNodeLeafNode(t *testing.T) {
 }
 
 func TestNode_decodeNodeInvalidNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	invalidNode := byte(6)
@@ -349,7 +349,7 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 }
 
 func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	var encNode []byte
@@ -360,7 +360,7 @@ func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
 }
 
 func TestNode_getEmptyNodeOfTypeBranchNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, err := getEmptyNodeOfType(branch)
 	assert.Nil(t, err)
@@ -368,7 +368,7 @@ func TestNode_getEmptyNodeOfTypeBranchNode(t *testing.T) {
 }
 
 func TestNode_getEmptyNodeOfTypeExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, err := getEmptyNodeOfType(extension)
 	assert.Nil(t, err)
@@ -376,7 +376,7 @@ func TestNode_getEmptyNodeOfTypeExtensionNode(t *testing.T) {
 }
 
 func TestNode_getEmptyNodeOfTypeLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln, err := getEmptyNodeOfType(leaf)
 	assert.Nil(t, err)
@@ -384,7 +384,7 @@ func TestNode_getEmptyNodeOfTypeLeafNode(t *testing.T) {
 }
 
 func TestNode_getEmptyNodeOfTypeWrongNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	n, err := getEmptyNodeOfType(6)
 	assert.Equal(t, ErrInvalidNode, err)
@@ -392,14 +392,14 @@ func TestNode_getEmptyNodeOfTypeWrongNode(t *testing.T) {
 }
 
 func TestNode_childPosOutOfRange(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	assert.True(t, childPosOutOfRange(17))
 	assert.False(t, childPosOutOfRange(5))
 }
 
 func TestKeyBytesToHex(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	reversedHexDoeKey := []byte{5, 6, 15, 6, 4, 6, 16}
 	reversedHexDogKey := []byte{7, 6, 15, 6, 4, 6, 16}
@@ -417,7 +417,7 @@ func TestKeyBytesToHex(t *testing.T) {
 }
 
 func TestHexToKeyBytes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	reversedHexDoeKey := []byte{5, 6, 15, 6, 4, 6, 16}
 	reversedHexDogKey := []byte{7, 6, 15, 6, 4, 6, 16}
@@ -437,7 +437,7 @@ func TestHexToKeyBytes(t *testing.T) {
 }
 
 func TestHexToKeyBytesInvalidLength(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	key, err := hexToKeyBytes([]byte{6, 4, 6, 15, 6, 5})
 	assert.Nil(t, key)
@@ -445,7 +445,7 @@ func TestHexToKeyBytesInvalidLength(t *testing.T) {
 }
 
 func TestPrefixLen(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var test = []struct {
 		a, b   []byte
@@ -466,7 +466,7 @@ func TestPrefixLen(t *testing.T) {
 }
 
 func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -483,7 +483,7 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 }
 
 func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -501,7 +501,7 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 }
 
 func TestTrieResetOldHashes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -519,7 +519,7 @@ func TestTrieResetOldHashes(t *testing.T) {
 }
 
 func TestTrieAddHashesToOldHashes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hashes := [][]byte{[]byte("one"), []byte("two"), []byte("three")}
 	tr := initTrie()
@@ -533,7 +533,7 @@ func TestTrieAddHashesToOldHashes(t *testing.T) {
 }
 
 func TestNode_getDirtyHashes(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -547,7 +547,7 @@ func TestNode_getDirtyHashes(t *testing.T) {
 }
 
 func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testVals := []struct {
 		key   []byte
@@ -601,7 +601,7 @@ func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byt
 }
 
 func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -650,7 +650,7 @@ func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, tsm, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))

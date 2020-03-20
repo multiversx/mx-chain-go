@@ -24,7 +24,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 }
 
 func TestExtensionNode_newExtensionNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
 	expectedEn := &extensionNode{
@@ -44,14 +44,14 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 }
 
 func TestExtensionNode_getHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{hash: []byte("test hash")}}
 	assert.Equal(t, en.hash, en.getHash())
 }
 
 func TestExtensionNode_isDirty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{dirty: true}}
 	assert.Equal(t, true, en.isDirty())
@@ -61,7 +61,7 @@ func TestExtensionNode_isDirty(t *testing.T) {
 }
 
 func TestExtensionNode_getCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
 	collapsedEn.dirty = true
@@ -72,7 +72,7 @@ func TestExtensionNode_getCollapsed(t *testing.T) {
 }
 
 func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -82,7 +82,7 @@ func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -92,7 +92,7 @@ func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedEn := getEnAndCollapsedEn()
 
@@ -102,7 +102,7 @@ func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_setHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
@@ -113,7 +113,7 @@ func TestExtensionNode_setHash(t *testing.T) {
 }
 
 func TestExtensionNode_setHashEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 
@@ -123,7 +123,7 @@ func TestExtensionNode_setHashEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_setHashNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -133,7 +133,7 @@ func TestExtensionNode_setHashNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
@@ -144,7 +144,7 @@ func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_setGivenHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	expectedHash := []byte("node hash")
@@ -154,7 +154,7 @@ func TestExtensionNode_setGivenHash(t *testing.T) {
 }
 
 func TestExtensionNode_hashChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	assert.Nil(t, en.child.getHash())
@@ -167,7 +167,7 @@ func TestExtensionNode_hashChildren(t *testing.T) {
 }
 
 func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -176,7 +176,7 @@ func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -185,7 +185,7 @@ func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedEn := getEnAndCollapsedEn()
 
@@ -197,7 +197,7 @@ func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_hashNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	expectedHash, _ := encodeNodeAndGetHash(collapsedEn)
@@ -208,7 +208,7 @@ func TestExtensionNode_hashNode(t *testing.T) {
 }
 
 func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -218,7 +218,7 @@ func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -228,7 +228,7 @@ func TestExtensionNode_hashNodeNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_commit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -247,7 +247,7 @@ func TestExtensionNode_commit(t *testing.T) {
 }
 
 func TestExtensionNode_commitEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -256,7 +256,7 @@ func TestExtensionNode_commitEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_commitNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -265,7 +265,7 @@ func TestExtensionNode_commitNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_commitCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
@@ -286,7 +286,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_getEncodedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	expectedEncodedNode, _ := en.marsh.Marshal(en)
@@ -298,7 +298,7 @@ func TestExtensionNode_getEncodedNode(t *testing.T) {
 }
 
 func TestExtensionNode_getEncodedNodeEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -308,7 +308,7 @@ func TestExtensionNode_getEncodedNodeEmpty(t *testing.T) {
 }
 
 func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -318,7 +318,7 @@ func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 }
 
 func TestExtensionNode_resolveCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -336,7 +336,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 }
 
 func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -345,7 +345,7 @@ func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -354,7 +354,7 @@ func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
 	assert.True(t, collapsedEn.isCollapsed())
@@ -365,7 +365,7 @@ func TestExtensionNode_isCollapsed(t *testing.T) {
 }
 
 func TestExtensionNode_tryGet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	dogBytes := []byte("dog")
@@ -382,7 +382,7 @@ func TestExtensionNode_tryGet(t *testing.T) {
 }
 
 func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	var key []byte
@@ -393,7 +393,7 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 }
 
 func TestExtensionNode_tryGetWrongKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	key := []byte("gdo")
@@ -404,7 +404,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 }
 
 func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -423,7 +423,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 	key := []byte("dog")
@@ -434,7 +434,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_tryGetNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 	key := []byte("dog")
@@ -445,7 +445,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_getNext(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	nextNode, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
@@ -463,7 +463,7 @@ func TestExtensionNode_getNext(t *testing.T) {
 }
 
 func TestExtensionNode_getNextWrongKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	bnKey := []byte{2}
@@ -477,7 +477,7 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 }
 
 func TestExtensionNode_insert(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
@@ -492,7 +492,7 @@ func TestExtensionNode_insert(t *testing.T) {
 }
 
 func TestExtensionNode_insertCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -511,7 +511,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
@@ -532,7 +532,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 }
 
 func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
@@ -551,7 +551,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 }
 
 func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	nodeKey := []byte{100, 11, 12}
@@ -564,7 +564,7 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 }
 
 func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
 	enKey := []byte{1}
@@ -579,7 +579,7 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 }
 
 func TestExtensionNode_insertInNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -590,7 +590,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_delete(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	dogBytes := []byte("dog")
@@ -612,7 +612,7 @@ func TestExtensionNode_delete(t *testing.T) {
 }
 
 func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
@@ -635,7 +635,7 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 }
 
 func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	lnKey := []byte{100, 2, 100, 111, 103}
@@ -647,7 +647,7 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 }
 
 func TestExtendedNode_deleteEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 
@@ -658,7 +658,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 }
 
 func TestExtensionNode_deleteNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var en *extensionNode
 
@@ -669,7 +669,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 }
 
 func TestExtensionNode_deleteEmptykey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 
@@ -680,7 +680,7 @@ func TestExtensionNode_deleteEmptykey(t *testing.T) {
 }
 
 func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -704,7 +704,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 }
 
 func TestExtensionNode_reduceNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	en, _ := newExtensionNode([]byte{100, 111, 103}, nil, marsh, hasher)
@@ -719,7 +719,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 }
 
 func TestExtensionNode_clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	clone := en.clone()
@@ -728,7 +728,7 @@ func TestExtensionNode_clone(t *testing.T) {
 }
 
 func TestExtensionNode_isEmptyOrNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{}
 	assert.Equal(t, ErrEmptyNode, en.isEmptyOrNil())
@@ -740,7 +740,7 @@ func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 //------- deepClone
 
 func TestExtensionNode_deepCloneNilHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
@@ -755,7 +755,7 @@ func TestExtensionNode_deepCloneNilHashShouldWork(t *testing.T) {
 }
 
 func TestExtensionNode_deepCloneNilEncodedChildShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
@@ -770,7 +770,7 @@ func TestExtensionNode_deepCloneNilEncodedChildShouldWork(t *testing.T) {
 }
 
 func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
@@ -785,7 +785,7 @@ func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
 }
 
 func TestExtensionNode_getChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 
@@ -795,7 +795,7 @@ func TestExtensionNode_getChildren(t *testing.T) {
 }
 
 func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
@@ -807,7 +807,7 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 }
 
 func TestExtensionNode_isValid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	assert.True(t, en.isValid())
@@ -817,7 +817,7 @@ func TestExtensionNode_isValid(t *testing.T) {
 }
 
 func TestExtensionNode_setDirty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.setDirty(true)
@@ -826,7 +826,7 @@ func TestExtensionNode_setDirty(t *testing.T) {
 }
 
 func TestExtensionNode_loadChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	tr, _, _ := newEmptyTrie()
@@ -867,7 +867,7 @@ func getCollapsedEn(t *testing.T, n node) *extensionNode {
 }
 
 func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
@@ -882,7 +882,7 @@ func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {
 }
 
 func TestExtensionNode_deepCloneShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true

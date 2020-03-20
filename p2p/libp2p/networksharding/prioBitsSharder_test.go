@@ -49,7 +49,7 @@ var (
 )
 
 func TestNewPrioBitsSharder_ZeroPrioBitsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbs, err := NewPrioBitsSharder(0, &mock.PeerShardResolverStub{})
 
@@ -58,7 +58,7 @@ func TestNewPrioBitsSharder_ZeroPrioBitsShouldErr(t *testing.T) {
 }
 
 func TestNewPrioBitsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbs, err := NewPrioBitsSharder(1, nil)
 
@@ -67,7 +67,7 @@ func TestNewPrioBitsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 }
 
 func TestNewPrioBitsSharder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbs, err := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 
@@ -163,7 +163,7 @@ func TestPrioBitsSharderOrdering2_list(t *testing.T) {
 }
 
 func TestPrioBitsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbs, _ := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 
@@ -173,7 +173,7 @@ func TestPrioBitsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 }
 
 func TestKadSharder_SetPeerShardResolverShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pbs, _ := NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
 	newPeerShardResolver := &mock.PeerShardResolverStub{}

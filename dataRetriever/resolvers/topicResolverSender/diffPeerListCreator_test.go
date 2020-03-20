@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(nil, "mainTopic", "excluded")
 
@@ -20,7 +20,7 @@ func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mainTopic := "mainTopic"
 	excludedTopic := "excludedTopic"
@@ -39,7 +39,7 @@ func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 // ------- MakeDiffList
 
 func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
 	excludedPeerList := make([]p2p.PeerID, 0)
@@ -49,7 +49,7 @@ func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
 }
 
 func TestMakeDiffList_AllFoundInExcludedShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
 	excluded := make([]p2p.PeerID, len(allPeers))
@@ -61,7 +61,7 @@ func TestMakeDiffList_AllFoundInExcludedShouldRetEmpty(t *testing.T) {
 }
 
 func TestMakeDiffList_SomeFoundInExcludedShouldRetTheDifference(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
 	excluded := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer3")}
@@ -73,7 +73,7 @@ func TestMakeDiffList_SomeFoundInExcludedShouldRetTheDifference(t *testing.T) {
 }
 
 func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
 	excluded := []p2p.PeerID{p2p.PeerID("peer3"), p2p.PeerID("peer4")}
@@ -86,7 +86,7 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 //------- PeersList
 
 func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mainTopic := "mainTopic"
 	excludedTopic := "excludedTopic"
@@ -104,7 +104,7 @@ func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) 
 }
 
 func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mainTopic := "mainTopic"
 	excludedTopic := ""
@@ -125,7 +125,7 @@ func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *
 }
 
 func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mainTopic := "mainTopic"
 	excludedTopic := "excludedTopic"
@@ -158,7 +158,7 @@ func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
 }
 
 func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mainTopic := "mainTopic"
 	excludedTopic := "excludedTopic"

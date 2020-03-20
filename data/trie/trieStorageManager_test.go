@@ -22,7 +22,7 @@ import (
 )
 
 func TestNewTrieStorageManagerNilDb(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, err := NewTrieStorageManager(nil, config.DBConfig{}, &mock.EvictionWaitingList{})
 	assert.Nil(t, ts)
@@ -30,7 +30,7 @@ func TestNewTrieStorageManagerNilDb(t *testing.T) {
 }
 
 func TestNewTrieStorageManagerNilEwlAndPruningEnabled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, nil)
 	assert.Nil(t, ts)
@@ -38,7 +38,7 @@ func TestNewTrieStorageManagerNilEwlAndPruningEnabled(t *testing.T) {
 }
 
 func TestNewTrieStorageManagerOkVals(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, &mock.EvictionWaitingList{})
 	assert.Nil(t, err)
@@ -46,7 +46,7 @@ func TestNewTrieStorageManagerOkVals(t *testing.T) {
 }
 
 func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
@@ -83,7 +83,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 }
 
 func TestTrieStorageManager_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ts, _ := NewTrieStorageManager(mock.NewMemDbMock(), config.DBConfig{}, &mock.EvictionWaitingList{})
 
@@ -93,7 +93,7 @@ func TestTrieStorageManager_Clone(t *testing.T) {
 }
 
 func TestTrieDatabasePruning(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	msh, hsh := getTestMarshAndHasher()
@@ -140,7 +140,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 }
 
 func TestRecreateTrieFromSnapshotDb(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -171,7 +171,7 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 }
 
 func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testVals := []struct {
 		key   []byte
@@ -202,7 +202,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 }
 
 func TestDeleteOldSnapshots(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testVals := []struct {
 		key   []byte
@@ -232,7 +232,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 }
 
 func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrVals := 100000
 	index := 0
@@ -315,7 +315,7 @@ func (tsm *trieStorageManager) pruningBufferLength() int {
 }
 
 func TestTrieCheckpoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -361,7 +361,7 @@ func TestTrieCheckpoint(t *testing.T) {
 }
 
 func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -381,7 +381,7 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 }
 
 func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -435,7 +435,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 }
 
 func TestRemoveFromPruningBufferWhenCancelingPrune(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -469,7 +469,7 @@ func TestRemoveFromPruningBufferWhenCancelingPrune(t *testing.T) {
 }
 
 func TestCheckpointWithErrWillNotGeneratePruningDeadlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, trieStorage, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))

@@ -12,7 +12,7 @@ import (
 )
 
 func TestRequestDataType_StringVals(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tcs := []struct {
 		r dataRetriever.RequestDataType
@@ -33,7 +33,7 @@ func TestRequestDataType_StringVals(t *testing.T) {
 }
 
 func TestRequestDataType_UnknownType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var requestData dataRetriever.RequestDataType = 6
 	rd := requestData.String()
@@ -42,7 +42,7 @@ func TestRequestDataType_UnknownType(t *testing.T) {
 }
 
 func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestData := dataRetriever.RequestData{}
 
@@ -51,7 +51,7 @@ func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
 }
 
 func TestRequestData_UnmarshalNilMessageP2P(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestData := dataRetriever.RequestData{}
 
@@ -60,7 +60,7 @@ func TestRequestData_UnmarshalNilMessageP2P(t *testing.T) {
 }
 
 func TestRequestData_UnmarshalNilMessageData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestData := dataRetriever.RequestData{}
 
@@ -69,7 +69,7 @@ func TestRequestData_UnmarshalNilMessageData(t *testing.T) {
 }
 
 func TestRequestData_CannotUnmarshal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localErr := errors.New("err")
 	requestData := dataRetriever.RequestData{}
@@ -85,7 +85,7 @@ func TestRequestData_CannotUnmarshal(t *testing.T) {
 }
 
 func TestRequestData_UnmarshalOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requestData := dataRetriever.RequestData{}
 

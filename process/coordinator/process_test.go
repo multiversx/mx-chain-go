@@ -194,7 +194,7 @@ func initAccountsMock() *mock.AccountsStub {
 }
 
 func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		nil,
@@ -213,7 +213,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -232,7 +232,7 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -251,7 +251,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -270,7 +270,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -289,7 +289,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -308,7 +308,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -327,7 +327,7 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -346,7 +346,7 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -365,7 +365,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -385,7 +385,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 }
 
 func TestTransactionCoordinator_SeparateBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -536,7 +536,7 @@ func createPreProcessorContainerWithDataPool(
 }
 
 func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	totalGasConsumed := uint64(0)
 	tc, err := NewTransactionCoordinator(
@@ -571,7 +571,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -612,7 +612,7 @@ func createTestBody() *block.Body {
 }
 
 func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -633,7 +633,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	interimContainer := createInterimProcessorContainer()
 	tc, err := NewTransactionCoordinator(
@@ -687,7 +687,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNilHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -737,7 +737,7 @@ func createTestMetablock() *block.MetaBlock {
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNoTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -765,7 +765,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothingInPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -792,7 +792,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
@@ -881,7 +881,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
@@ -968,7 +968,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardedCacheMock := &mock.ShardedDataStub{
 		RegisterHandlerCalled: func(i func(key []byte)) {},
@@ -1055,7 +1055,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -1080,7 +1080,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	totalGasConsumed := uint64(0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tc, err := NewTransactionCoordinator(
@@ -1110,7 +1110,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
@@ -1154,7 +1154,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nrShards := uint32(5)
 	txPool, _ := createTxPool()
@@ -1209,7 +1209,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocksShouldApplyGasLimit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allTxs := 100
 	numTxsToAdd := 20
@@ -1273,7 +1273,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numTxsPerBulk := 100
 	numTxsToAdd := 20
@@ -1341,7 +1341,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
@@ -1394,7 +1394,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 }
 
 func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool([]byte("tx_hash1"))
 	nrShards := uint32(5)
@@ -1422,7 +1422,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 }
 
 func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHashInPool := []byte("tx_hash1")
 	tdp := initDataPool(txHashInPool)
@@ -1459,7 +1459,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 }
 
 func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp := initDataPool([]byte("tx_hash1"))
 	nrShards := uint32(5)
@@ -1485,7 +1485,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 }
 
 func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
@@ -1524,7 +1524,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 }
 
 func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
@@ -1570,7 +1570,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 }
 
 func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
@@ -1601,7 +1601,7 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 }
 
 func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
@@ -1681,7 +1681,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 }
 
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
@@ -1727,7 +1727,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 }
 
 func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
@@ -1799,7 +1799,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 }
 
 func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNotRevertAccntState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1937,7 +1937,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 }
 
 func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallRevertAccntState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -2071,7 +2071,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 }
 
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
@@ -2134,7 +2134,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 }
 
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
@@ -2225,7 +2225,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 }
 
 func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
@@ -2269,7 +2269,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 }
 
 func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
@@ -2316,7 +2316,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 }
 
 func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)

@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewBasicForkDetector_ShouldErrNilRounder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bfd, err := sync.NewShardForkDetector(
 		nil,
@@ -27,7 +27,7 @@ func TestNewBasicForkDetector_ShouldErrNilRounder(t *testing.T) {
 }
 
 func TestNewBasicForkDetector_ShouldErrNilBlackListHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, err := sync.NewShardForkDetector(
@@ -41,7 +41,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlackListHandler(t *testing.T) {
 }
 
 func TestNewBasicForkDetector_ShouldErrNilBlockTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, err := sync.NewShardForkDetector(
@@ -55,7 +55,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlockTracker(t *testing.T) {
 }
 
 func TestNewBasicForkDetector_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, err := sync.NewShardForkDetector(
@@ -69,7 +69,7 @@ func TestNewBasicForkDetector_ShouldWork(t *testing.T) {
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now().Unix()
 	roundTimeDuration := 4 * time.Second
@@ -92,7 +92,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
@@ -107,7 +107,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
@@ -122,7 +122,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 0}
 	bfd, _ := sync.NewShardForkDetector(
@@ -136,7 +136,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
@@ -150,7 +150,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
@@ -164,7 +164,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 }
 
 func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -199,7 +199,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 }
 
 func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
@@ -227,7 +227,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 }
 
 func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
@@ -257,7 +257,7 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 }
 
 func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcessedShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
@@ -287,7 +287,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcess
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -315,7 +315,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *test
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowerRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -359,7 +359,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqualRoundWithLowerHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -402,7 +402,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 }
 
 func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqualRoundWithLowerHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(
@@ -466,7 +466,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqualRoundWithHigherHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -508,7 +508,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 }
 
 func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqualRoundWithHigherHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(
@@ -571,7 +571,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 }
 
 func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -615,7 +615,7 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 }
 
 func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -647,7 +647,7 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 }
 
 func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr0 := &block.Header{PubKeysBitmap: []byte("X"), Nonce: 8, Round: 10}
 	hash0 := []byte("hash0")
@@ -691,7 +691,7 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 }
 
 func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hdr1 := &block.Header{Nonce: 2, Round: 2, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -712,7 +712,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 }
 
 func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -748,7 +748,7 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 }
 
 func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -805,7 +805,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 }
 
 func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -823,7 +823,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 }
 
 func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -835,7 +835,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 }
 
 func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	mfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -853,7 +853,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 }
 
 func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	mfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -865,7 +865,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 }
 
 func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -911,7 +911,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 }
 
 func TestBaseForkDetector_IsConsensusStuckNotSyncingShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
@@ -922,7 +922,7 @@ func TestBaseForkDetector_IsConsensusStuckNotSyncingShouldReturnFalse(t *testing
 }
 
 func TestBaseForkDetector_IsConsensusStuckNoncesDifferencesNotEnoughShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -937,7 +937,7 @@ func TestBaseForkDetector_IsConsensusStuckNoncesDifferencesNotEnoughShouldReturn
 }
 
 func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -952,7 +952,7 @@ func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *t
 }
 
 func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(
@@ -971,7 +971,7 @@ func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 }
 
 func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	roundDuration := uint64(1)
 	rounderMock := &mock.RounderMock{

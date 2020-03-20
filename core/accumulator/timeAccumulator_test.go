@@ -15,7 +15,7 @@ import (
 var timeout = time.Second * 2
 
 func TestNewTimeAccumulator_InvalidMaxWaitTimeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime-1, 0)
 
@@ -24,7 +24,7 @@ func TestNewTimeAccumulator_InvalidMaxWaitTimeShouldErr(t *testing.T) {
 }
 
 func TestNewTimeAccumulator_InvalidMaxOffsetShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime, -1)
 
@@ -33,7 +33,7 @@ func TestNewTimeAccumulator_InvalidMaxOffsetShouldErr(t *testing.T) {
 }
 
 func TestNewTimeAccumulator_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime, 0)
 
@@ -44,7 +44,7 @@ func TestNewTimeAccumulator_ShouldWork(t *testing.T) {
 //------- AddData
 
 func TestTimeAccumulator_AddDataShouldWorkEvenIfTheChanIsBlocked(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chDone := make(chan struct{})
 	allowedTime := time.Millisecond * 100
@@ -72,7 +72,7 @@ func TestTimeAccumulator_AddDataShouldWorkEvenIfTheChanIsBlocked(t *testing.T) {
 //------- eviction
 
 func TestTimeAccumulator_EvictionShouldStopWhenCloseIsCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 100
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, 0)
@@ -91,7 +91,7 @@ func TestTimeAccumulator_EvictionShouldStopWhenCloseIsCalled(t *testing.T) {
 }
 
 func TestTimeAccumulator_EvictionDuringWaitShouldStopWhenCloseIsCalled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 100
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, 0)
@@ -108,7 +108,7 @@ func TestTimeAccumulator_EvictionDuringWaitShouldStopWhenCloseIsCalled(t *testin
 }
 
 func TestTimeAccumulator_EvictionShouldPreserveTheOrder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 100
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, 0)
@@ -127,7 +127,7 @@ func TestTimeAccumulator_EvictionShouldPreserveTheOrder(t *testing.T) {
 }
 
 func TestTimeAccumulator_EvictionWithOffsetShouldPreserveTheOrder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 100
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, time.Millisecond)
@@ -148,7 +148,7 @@ func TestTimeAccumulator_EvictionWithOffsetShouldPreserveTheOrder(t *testing.T) 
 //------- computeWaitTime
 
 func TestTimeAccumulator_ComputeWaitTimeWithMaxOffsetZeroShouldRetMaxWaitTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 56
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, 0)
@@ -157,7 +157,7 @@ func TestTimeAccumulator_ComputeWaitTimeWithMaxOffsetZeroShouldRetMaxWaitTime(t 
 }
 
 func TestTimeAccumulator_ComputeWaitTimeShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	allowedTime := time.Millisecond * 56
 	maxOffset := time.Millisecond * 12

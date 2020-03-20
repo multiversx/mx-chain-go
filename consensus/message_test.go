@@ -8,7 +8,7 @@ import (
 )
 
 func TestConsensusMessage_NewConsensusMessageShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,

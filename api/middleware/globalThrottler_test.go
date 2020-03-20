@@ -37,7 +37,7 @@ func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnection
 }
 
 func TestNewGlobalThrottler_InvalidMaxConnectionsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gt, err := middleware.NewGlobalThrottler(0)
 
@@ -46,7 +46,7 @@ func TestNewGlobalThrottler_InvalidMaxConnectionsShouldErr(t *testing.T) {
 }
 
 func TestNewGlobalThrottler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gt, err := middleware.NewGlobalThrottler(1)
 
@@ -55,7 +55,7 @@ func TestNewGlobalThrottler(t *testing.T) {
 }
 
 func TestGlobalThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := "testAddress"
 	facade := mock.Facade{
@@ -75,7 +75,7 @@ func TestGlobalThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
 }
 
 func TestGlobalThrottler_LimitOverShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numCalls := uint32(0)
 	responseDelay := time.Second

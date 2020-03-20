@@ -54,7 +54,7 @@ func createStubMarshalizerForIdentityProvider() p2p.Marshalizer {
 //------- NewIdentityProvider
 
 func TestNewIdentityProvider_NilHostShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ip, err := libp2p.NewIdentityProvider(
 		nil,
@@ -69,7 +69,7 @@ func TestNewIdentityProvider_NilHostShouldErr(t *testing.T) {
 }
 
 func TestNewIdentityProvider_NilShardingCollectorStubShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ip, err := libp2p.NewIdentityProvider(
 		&mock.ConnectableHostStub{},
@@ -84,7 +84,7 @@ func TestNewIdentityProvider_NilShardingCollectorStubShouldErr(t *testing.T) {
 }
 
 func TestNewIdentityProvider_NilSignerVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ip, err := libp2p.NewIdentityProvider(
 		&mock.ConnectableHostStub{},
@@ -99,7 +99,7 @@ func TestNewIdentityProvider_NilSignerVerifierShouldErr(t *testing.T) {
 }
 
 func TestNewIdentityProvider_NilMarshalizerErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ip, err := libp2p.NewIdentityProvider(
 		&mock.ConnectableHostStub{},
@@ -114,7 +114,7 @@ func TestNewIdentityProvider_NilMarshalizerErr(t *testing.T) {
 }
 
 func TestNewIdentityProvider_ShouldWorkAndSetStreamHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	setStreamHandlerCalled := false
 	ip, err := libp2p.NewIdentityProvider(
@@ -137,7 +137,7 @@ func TestNewIdentityProvider_ShouldWorkAndSetStreamHandler(t *testing.T) {
 //------- Connected
 
 func TestIdentityProvider_ConnectedMarshalizerFailShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -169,7 +169,7 @@ func TestIdentityProvider_ConnectedMarshalizerFailShouldNotPanic(t *testing.T) {
 }
 
 func TestIdentityProvider_ConnectedSignFailShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -200,7 +200,7 @@ func TestIdentityProvider_ConnectedSignFailShouldNotPanic(t *testing.T) {
 }
 
 func TestIdentityProvider_ConnectedShouldWrite(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -237,7 +237,7 @@ func TestIdentityProvider_ConnectedShouldWrite(t *testing.T) {
 //------- processReceivedData
 
 func TestIdentityProvider_ProcessReceivedDataUnmarshalFailsShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	host, _ := createStubHostForIdentityProvider()
@@ -259,7 +259,7 @@ func TestIdentityProvider_ProcessReceivedDataUnmarshalFailsShouldError(t *testin
 }
 
 func TestIdentityProvider_ProcessReceivedDataMarshalFailsShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	host, _ := createStubHostForIdentityProvider()
@@ -284,7 +284,7 @@ func TestIdentityProvider_ProcessReceivedDataMarshalFailsShouldError(t *testing.
 }
 
 func TestIdentityProvider_ProcessReceivedDataSignerErrorsShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	host, _ := createStubHostForIdentityProvider()
@@ -306,7 +306,7 @@ func TestIdentityProvider_ProcessReceivedDataSignerErrorsShouldError(t *testing.
 }
 
 func TestIdentityProvider_ProcessReceivedDataShouldUpdateCollector(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	updateWasCalled := false
 	host, _ := createStubHostForIdentityProvider()
@@ -335,7 +335,7 @@ func TestIdentityProvider_ProcessReceivedDataShouldUpdateCollector(t *testing.T)
 //------- handleStreams
 
 func TestIdentityProvider_HandleStreamsReceivedMessageShouldUpdateCollector(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	updateWasCalled := false
 	host, stream := createStubHostForIdentityProvider()
@@ -362,7 +362,7 @@ func TestIdentityProvider_HandleStreamsReceivedMessageShouldUpdateCollector(t *t
 }
 
 func TestIdentityProvider_HandleStreamsTimeoutShouldNotFailOrWrite(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -395,7 +395,7 @@ func TestIdentityProvider_HandleStreamsTimeoutShouldNotFailOrWrite(t *testing.T)
 }
 
 func TestIdentityProvider_HandleStreamsClosedStreamShouldNotFailOrWrite(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()

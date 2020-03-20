@@ -81,7 +81,7 @@ func createShardStore() *mock.ChainStorerMock {
 
 //------- NewInterceptorsContainerFactory
 func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Accounts = nil
@@ -92,7 +92,7 @@ func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 }
 
 func TestNewShardInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ShardCoordinator = nil
@@ -103,7 +103,7 @@ func TestNewShardInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *te
 }
 
 func TestNewShardInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.NodesCoordinator = nil
@@ -114,7 +114,7 @@ func TestNewShardInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *te
 }
 
 func TestNewShardInterceptorsContainerFactory_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = nil
@@ -125,7 +125,7 @@ func TestNewShardInterceptorsContainerFactory_NilMessengerShouldErr(t *testing.T
 }
 
 func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Store = nil
@@ -136,7 +136,7 @@ func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ProtoMarshalizer = nil
@@ -147,7 +147,7 @@ func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing
 }
 
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ProtoMarshalizer = nil
@@ -159,7 +159,7 @@ func TestNewShardInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldEr
 }
 
 func TestNewShardInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Hasher = nil
@@ -170,7 +170,7 @@ func TestNewShardInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewShardInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.KeyGen = nil
@@ -181,7 +181,7 @@ func TestNewShardInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 }
 
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.SingleSigner = nil
@@ -192,7 +192,7 @@ func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testin
 }
 
 func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.MultiSigner = nil
@@ -203,7 +203,7 @@ func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing
 }
 
 func TestNewShardInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.DataPool = nil
@@ -214,7 +214,7 @@ func TestNewShardInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.AddrConverter = nil
@@ -225,7 +225,7 @@ func TestNewShardInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testi
 }
 
 func TestNewShardInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.TxFeeHandler = nil
@@ -236,7 +236,7 @@ func TestNewShardInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testin
 }
 
 func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.BlackList = nil
@@ -247,7 +247,7 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 }
 
 func TestNewShardInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ChainID = nil
@@ -258,7 +258,7 @@ func TestNewShardInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T
 }
 
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.ValidityAttester = nil
@@ -269,7 +269,7 @@ func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *te
 }
 
 func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.EpochStartTrigger = nil
@@ -280,7 +280,7 @@ func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t 
 }
 
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
@@ -290,7 +290,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	assert.False(t, icf.IsInterfaceNil())
 }
 func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.SizeCheckDelta = 1
@@ -303,7 +303,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing
 //------- Create
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler(factory.TransactionTopic, "")
@@ -316,7 +316,7 @@ func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t
 }
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler(factory.ShardBlocksTopic, "")
@@ -329,7 +329,7 @@ func TestShardInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(
 }
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler(factory.MiniBlocksTopic, "")
@@ -342,7 +342,7 @@ func TestShardInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsSho
 }
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler(factory.MetachainBlocksTopic, "")
@@ -355,7 +355,7 @@ func TestShardInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFa
 }
 
 func TestShardInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler("", factory.TransactionTopic)
@@ -368,7 +368,7 @@ func TestShardInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *tes
 }
 
 func TestShardInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler("", factory.ShardBlocksTopic)
@@ -381,7 +381,7 @@ func TestShardInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *te
 }
 
 func TestShardInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler("", factory.MiniBlocksTopic)
@@ -394,7 +394,7 @@ func TestShardInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldEr
 }
 
 func TestShardInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler("", factory.MetachainBlocksTopic)
@@ -407,7 +407,7 @@ func TestShardInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldE
 }
 
 func TestShardInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = createShardStubTopicHandler("", factory.AccountTrieNodesTopic)
@@ -420,7 +420,7 @@ func TestShardInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *t
 }
 
 func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = &mock.TopicHandlerStub{
@@ -440,7 +440,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 }
 
 func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	noOfShards := 4
 

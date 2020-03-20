@@ -9,13 +9,13 @@ import (
 )
 
 func TestNewSnapshotsQueue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	assert.NotNil(t, newSnapshotsQueue())
 }
 
 func TestSnapshotsQueue_Add(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sq := newSnapshotsQueue()
 	sq.add([]byte("root hash"), true)
@@ -45,7 +45,7 @@ func TestSnapshotsQueue_AddConcurrently(t *testing.T) {
 }
 
 func TestSnapshotsQueue_Len(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sq := newSnapshotsQueue()
 	numSnapshots := 100
@@ -58,7 +58,7 @@ func TestSnapshotsQueue_Len(t *testing.T) {
 }
 
 func TestSnapshotsQueue_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sq := newSnapshotsQueue()
 	sq.add([]byte("root hash"), true)
@@ -77,7 +77,7 @@ func TestSnapshotsQueue_Clone(t *testing.T) {
 }
 
 func TestSnapshotsQueue_GetFirst(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sq := newSnapshotsQueue()
 	numSnapshots := 10
@@ -92,7 +92,7 @@ func TestSnapshotsQueue_GetFirst(t *testing.T) {
 }
 
 func TestSnapshotsQueue_RemoveFirst(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sq := newSnapshotsQueue()
 	numSnapshots := 2

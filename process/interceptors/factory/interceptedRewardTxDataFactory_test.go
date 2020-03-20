@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewInterceptedRewardTxDataFactory_NilArgumentsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	imh, err := NewInterceptedRewardTxDataFactory(nil)
 
@@ -20,7 +20,7 @@ func TestNewInterceptedRewardTxDataFactory_NilArgumentsShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -31,7 +31,7 @@ func TestNewInterceptedRewardTxDataFactory_NilMarshalizerShouldErr(t *testing.T)
 }
 
 func TestNewInterceptedRewardTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.TxSignMarshalizer = nil
@@ -42,7 +42,7 @@ func TestNewInterceptedRewardTxDataFactory_NilSignMarshalizerShouldErr(t *testin
 }
 
 func TestNewInterceptedRewardTxDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -53,7 +53,7 @@ func TestNewInterceptedRewardTxDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
@@ -64,7 +64,7 @@ func TestNewInterceptedRewardTxDataFactory_NilShardCoordinatorShouldErr(t *testi
 }
 
 func TestInterceptedRewardTxDataFactory_NilAdrConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.AddrConv = nil
@@ -75,7 +75,7 @@ func TestInterceptedRewardTxDataFactory_NilAdrConverterShouldErr(t *testing.T) {
 }
 
 func TestInterceptedRewardTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 

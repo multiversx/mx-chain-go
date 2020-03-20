@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -25,7 +25,7 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *tes
 }
 
 func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -46,7 +46,7 @@ func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 }
 
 func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -67,7 +67,7 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cfg := config.Config{
 		Antiflood: config.AntifloodConfig{

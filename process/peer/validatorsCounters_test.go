@@ -7,7 +7,7 @@ import (
 )
 
 func TestValidatorCounters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	nrOfIncrements := 10
 	testKey := []byte("testKey")
 	vc := make(validatorRoundCounters)
@@ -26,7 +26,7 @@ func TestValidatorCounters(t *testing.T) {
 }
 
 func TestValidatorCountersReset(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	nrOfIncrements := 10
 	testKey := []byte("testKey")
 	vc := make(validatorRoundCounters)

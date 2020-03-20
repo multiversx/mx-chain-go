@@ -11,7 +11,7 @@ import (
 )
 
 func TestPeerAccountCreator_CreateAccountNilAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
@@ -26,7 +26,7 @@ func TestPeerAccountCreator_CreateAccountNilAddress(t *testing.T) {
 }
 
 func TestPeerAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
@@ -41,7 +41,7 @@ func TestPeerAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 }
 
 func TestPeerAccountCreator_CreateAccountOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)

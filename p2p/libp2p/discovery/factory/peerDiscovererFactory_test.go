@@ -15,7 +15,7 @@ import (
 )
 
 func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
@@ -36,7 +36,7 @@ func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.
 }
 
 func TestNewPeerDiscoverer_InvalidIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
@@ -60,7 +60,7 @@ func TestNewPeerDiscoverer_InvalidIntervalShouldErr(t *testing.T) {
 }
 
 func TestNewPeerDiscoverer_PrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
@@ -86,7 +86,7 @@ func TestNewPeerDiscoverer_PrioBitsSharderShouldWork(t *testing.T) {
 }
 
 func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
@@ -112,7 +112,7 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 }
 
 func TestNewPeerDiscoverer_UnknownShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{

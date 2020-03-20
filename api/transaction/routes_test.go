@@ -109,7 +109,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 }
 
 func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/transaction/empty", nil)
@@ -123,7 +123,7 @@ func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 }
 
 func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("POST", "/transaction/send", nil)
@@ -137,7 +137,7 @@ func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
 }
 
 func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	sender := "sender"
 	receiver := "receiver"
 	value := "ishouldbeint"
@@ -167,7 +167,7 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 }
 
 func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
@@ -207,7 +207,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 }
 
 func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	nonce := uint64(1)
 	sender := "sender"
 	receiver := "receiver"
@@ -252,7 +252,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 }
 
 func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("POST", "/transaction/send-multiple", nil)
@@ -266,7 +266,7 @@ func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
 }
 
 func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
@@ -287,7 +287,7 @@ func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing
 }
 
 func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	createTxWasCalled := false
 	sendBulkTxsWasCalled := false

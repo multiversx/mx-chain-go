@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewBlockChain_NilBadBlockCacheShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	_, err := blockchain.NewBlockChain(
 		nil,
@@ -21,7 +21,7 @@ func TestNewBlockChain_NilBadBlockCacheShouldError(t *testing.T) {
 }
 
 func TestNewBlockChain_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	badBlocksStub := &mock.CacherStub{}
 	blck, err := blockchain.NewBlockChain(badBlocksStub)
@@ -31,7 +31,7 @@ func TestNewBlockChain_ShouldWork(t *testing.T) {
 }
 
 func TestBlockChain_IsBadBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	badBlocksStub := &mock.CacherStub{}
 	hasReturns := true
@@ -48,7 +48,7 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 }
 
 func TestBlockChain_PutBadBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	badBlocksStub := &mock.CacherStub{}
 	putCalled := false
@@ -66,7 +66,7 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 }
 
 func TestBlockChain_SetNilAppStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	b, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
@@ -78,7 +78,7 @@ func TestBlockChain_SetNilAppStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestBlockChain_SettersAndGetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	b, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},

@@ -28,7 +28,7 @@ func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSend
 //------- NewTopicResolverSender
 
 func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = nil
@@ -39,7 +39,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.PeerListCreator = nil
@@ -50,7 +50,7 @@ func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
 }
 
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.Marshalizer = nil
@@ -61,7 +61,7 @@ func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.Randomizer = nil
@@ -72,7 +72,7 @@ func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 }
 
 func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.OutputAntiflooder = nil
@@ -83,7 +83,7 @@ func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	trs, err := topicResolverSender.NewTopicResolverSender(arg)
@@ -96,7 +96,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 //------- SendOnRequestTopic
 
 func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 
@@ -114,7 +114,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 }
 
 func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
@@ -130,7 +130,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 }
 
 func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pID1 := p2p.PeerID("peer1")
 	sentToPid1 := false
@@ -159,7 +159,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 }
 
 func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pID1 := p2p.PeerID("peer1")
 	sentToPid1 := false
@@ -191,7 +191,7 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 //------- Send
 
 func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pID1 := p2p.PeerID("peer1")
 	buffToSend := []byte("buff")
@@ -223,7 +223,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 }
 
 func TestTopicResolverSender_SendShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pID1 := p2p.PeerID("peer1")
 	sentToPid1 := false
@@ -249,7 +249,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 }
 
 func TestTopicResolverSender_Topic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)

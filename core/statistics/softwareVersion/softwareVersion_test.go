@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewSoftwareVersionChecker_NilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	softwareChecker, err := NewSoftwareVersionChecker(nil, &mock.StableTagProviderStub{})
 
@@ -20,7 +20,7 @@ func TestNewSoftwareVersionChecker_NilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewSoftwareVersionChecker_NilStableTagProviderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	softwareChecker, err := NewSoftwareVersionChecker(&mock.AppStatusHandlerStub{}, nil)
 
@@ -29,7 +29,7 @@ func TestNewSoftwareVersionChecker_NilStableTagProviderShouldErr(t *testing.T) {
 }
 
 func TestNewSoftwareVersionChecker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	statusHandler := &mock.AppStatusHandlerStub{}
 	tagProvider := &mock.StableTagProviderStub{}
@@ -40,7 +40,7 @@ func TestNewSoftwareVersionChecker(t *testing.T) {
 }
 
 func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fetchChan := make(chan bool)
 	setStringChan := make(chan bool)
@@ -73,7 +73,7 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldWork(t *testing.T
 }
 
 func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldErrWhenFetchFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localErr := errors.New("error")
 	fetchChan := make(chan bool)

@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewLogLineWrapperFormatter_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	llwf, err := logger.NewLogLineWrapperFormatter(nil)
 
@@ -20,7 +20,7 @@ func TestNewLogLineWrapperFormatter_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewLogLineWrapperFormatter_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	llwf, err := logger.NewLogLineWrapperFormatter(&mock.MarshalizerStub{})
 
@@ -31,7 +31,7 @@ func TestNewLogLineWrapperFormatter_ShouldWork(t *testing.T) {
 //------- Output
 
 func TestLogLineWrapperFormatter_OutputNilLogLineWrapperShouldRetNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	llwf, _ := logger.NewLogLineWrapperFormatter(&mock.MarshalizerStub{})
 
@@ -41,7 +41,7 @@ func TestLogLineWrapperFormatter_OutputNilLogLineWrapperShouldRetNil(t *testing.
 }
 
 func TestLogLineWrapperFormatter_OutputMarshalizerErrorsShouldRetNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	llwf, _ := logger.NewLogLineWrapperFormatter(&mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
@@ -55,7 +55,7 @@ func TestLogLineWrapperFormatter_OutputMarshalizerErrorsShouldRetNil(t *testing.
 }
 
 func TestLogLineWrapperFormatter_OutputShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizedData := []byte("test data")
 	llwf, _ := logger.NewLogLineWrapperFormatter(&mock.MarshalizerStub{

@@ -8,7 +8,7 @@ import (
 )
 
 func TestFormatMessage_ShouldOutputFixedOrLargerStringThanMsgFixedLength(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testData := make(map[string]int)
 	testData[""] = 40

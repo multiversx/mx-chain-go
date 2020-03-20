@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewResolversContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -21,7 +21,7 @@ func TestNewResolversContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestResolversContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -32,7 +32,7 @@ func TestResolversContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -42,7 +42,7 @@ func TestResolversContainer_AddNilShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_AddEmptyKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -52,7 +52,7 @@ func TestResolversContainer_AddEmptyKeyShouldWork(t *testing.T) {
 }
 
 func TestResolversContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -64,7 +64,7 @@ func TestResolversContainer_AddShouldWork(t *testing.T) {
 //------- AddMultiple
 
 func TestResolversContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -77,7 +77,7 @@ func TestResolversContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -90,7 +90,7 @@ func TestResolversContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -106,7 +106,7 @@ func TestResolversContainer_AddMultipleShouldWork(t *testing.T) {
 //------- Get
 
 func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -122,7 +122,7 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -136,7 +136,7 @@ func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
 }
 
 func TestResolversContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -153,7 +153,7 @@ func TestResolversContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestResolversContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -170,7 +170,7 @@ func TestResolversContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 }
 
 func TestResolversContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -190,7 +190,7 @@ func TestResolversContainer_ReplaceShouldWork(t *testing.T) {
 //------- Remove
 
 func TestResolversContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -209,7 +209,7 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 //------- Len
 
 func TestResolversContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 
@@ -226,7 +226,7 @@ func TestResolversContainer_LenShouldWork(t *testing.T) {
 //------- ResolverKeys
 
 func TestResolversContainer_ResolverKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := containers.NewResolversContainer()
 

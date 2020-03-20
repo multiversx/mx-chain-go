@@ -78,7 +78,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 //------- NewMetaBootstrap
 
 func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.PoolsHolder = nil
@@ -90,7 +90,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	pools := createMockPools()
@@ -106,7 +106,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.Store = nil
@@ -118,7 +118,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.ChainHandler = nil
@@ -130,7 +130,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.Rounder = nil
@@ -142,7 +142,7 @@ func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.BlockProcessor = nil
@@ -154,7 +154,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.Hasher = nil
@@ -166,7 +166,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.Marshalizer = nil
@@ -178,7 +178,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.ForkDetector = nil
@@ -190,7 +190,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.RequestHandler = nil
@@ -202,7 +202,7 @@ func TestNewMetaBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.ShardCoordinator = nil
@@ -214,7 +214,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.Accounts = nil
@@ -226,7 +226,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.BlackListHandler = nil
@@ -238,7 +238,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -269,7 +269,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 //------- processing
 
 func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -311,7 +311,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 }
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -347,7 +347,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 }
 
 func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
@@ -379,7 +379,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 }
 
 func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
@@ -458,7 +458,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 }
 
 func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -531,7 +531,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 }
 
 func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
@@ -598,7 +598,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -619,7 +619,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNil
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -640,7 +640,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -668,7 +668,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *t
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -696,7 +696,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -757,7 +757,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -821,7 +821,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	pools := createMockPools()
@@ -846,7 +846,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -887,7 +887,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 //------- testing received headers
 
 func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -948,7 +948,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 }
 
 func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -1003,7 +1003,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 //------- RollBack
 
 func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1013,7 +1013,7 @@ func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 }
 
 func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -1030,7 +1030,7 @@ func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 }
 
 func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -1068,7 +1068,7 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 }
 
 func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -1214,7 +1214,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 }
 
 func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 
@@ -1351,7 +1351,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 }
 
 func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -1368,7 +1368,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 }
 
 func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -1417,7 +1417,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 }
 
 func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
 

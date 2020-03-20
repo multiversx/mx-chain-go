@@ -13,7 +13,7 @@ import (
 const roundTimeDuration = 10 * time.Millisecond
 
 func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -24,7 +24,7 @@ func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
 }
 
 func TestRound_NewRoundShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -37,7 +37,7 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 }
 
 func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -57,7 +57,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 }
 
 func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -72,7 +72,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 }
 
 func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -86,7 +86,7 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 }
 
 func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -100,7 +100,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 }
 
 func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Now()
 
@@ -113,7 +113,7 @@ func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 }
 
 func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Unix(0, 0)
 
@@ -134,7 +134,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 }
 
 func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	genesisTime := time.Unix(0, 0)
 

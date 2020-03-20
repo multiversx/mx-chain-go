@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewPendingMiniBlocks_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb, err := pendingMb.NewPendingMiniBlocks()
 
@@ -19,7 +19,7 @@ func TestNewPendingMiniBlocks_ShouldWork(t *testing.T) {
 }
 
 func TestPendingMiniBlockHeaders_AddCommittedHeaderNilHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb, _ := pendingMb.NewPendingMiniBlocks()
 	err := pmb.AddProcessedHeader(nil)
@@ -28,7 +28,7 @@ func TestPendingMiniBlockHeaders_AddCommittedHeaderNilHeaderShouldErr(t *testing
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb, _ := pendingMb.NewPendingMiniBlocks()
 	header := &block.Header{}
@@ -38,7 +38,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testi
 }
 
 func TestPendingMiniBlockHeaders_RevertHeaderNilHeaderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb, _ := pendingMb.NewPendingMiniBlocks()
 	err := pmb.RevertHeader(nil)
@@ -47,7 +47,7 @@ func TestPendingMiniBlockHeaders_RevertHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pmb, _ := pendingMb.NewPendingMiniBlocks()
 	header := &block.Header{}

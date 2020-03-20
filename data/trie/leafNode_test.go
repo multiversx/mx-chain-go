@@ -21,7 +21,7 @@ func getLn(marsh marshal.Marshalizer, hasher hashing.Hasher) *leafNode {
 }
 
 func TestLeafNode_newLeafNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	expectedLn := &leafNode{
@@ -40,14 +40,14 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 }
 
 func TestLeafNode_getHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{hash: []byte("test hash")}}
 	assert.Equal(t, ln.hash, ln.getHash())
 }
 
 func TestLeafNode_isDirty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{dirty: true}}
 	assert.Equal(t, true, ln.isDirty())
@@ -57,7 +57,7 @@ func TestLeafNode_isDirty(t *testing.T) {
 }
 
 func TestLeafNode_getCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -67,7 +67,7 @@ func TestLeafNode_getCollapsed(t *testing.T) {
 }
 
 func TestLeafNode_setHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	hash, _ := encodeNodeAndGetHash(ln)
@@ -78,7 +78,7 @@ func TestLeafNode_setHash(t *testing.T) {
 }
 
 func TestLeafNode_setHashEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 
@@ -88,7 +88,7 @@ func TestLeafNode_setHashEmptyNode(t *testing.T) {
 }
 
 func TestLeafNode_setHashNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 
@@ -98,7 +98,7 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 }
 
 func TestLeafNode_setGivenHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	expectedHash := []byte("node hash")
@@ -108,7 +108,7 @@ func TestLeafNode_setGivenHash(t *testing.T) {
 }
 
 func TestLeafNode_hashChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -116,7 +116,7 @@ func TestLeafNode_hashChildren(t *testing.T) {
 }
 
 func TestLeafNode_hashNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	expectedHash, _ := encodeNodeAndGetHash(ln)
@@ -127,7 +127,7 @@ func TestLeafNode_hashNode(t *testing.T) {
 }
 
 func TestLeafNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{}
 
@@ -137,7 +137,7 @@ func TestLeafNode_hashNodeEmptyNode(t *testing.T) {
 }
 
 func TestLeafNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 
@@ -147,7 +147,7 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 }
 
 func TestLeafNode_commit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -165,7 +165,7 @@ func TestLeafNode_commit(t *testing.T) {
 }
 
 func TestLeafNode_commitEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{}
 
@@ -174,7 +174,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 }
 
 func TestLeafNode_commitNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 
@@ -183,7 +183,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 }
 
 func TestLeafNode_getEncodedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	expectedEncodedNode, _ := ln.marsh.Marshal(ln)
@@ -195,7 +195,7 @@ func TestLeafNode_getEncodedNode(t *testing.T) {
 }
 
 func TestLeafNode_getEncodedNodeEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{}
 
@@ -205,7 +205,7 @@ func TestLeafNode_getEncodedNodeEmpty(t *testing.T) {
 }
 
 func TestLeafNode_getEncodedNodeNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 
@@ -215,7 +215,7 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 }
 
 func TestLeafNode_resolveCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -223,14 +223,14 @@ func TestLeafNode_resolveCollapsed(t *testing.T) {
 }
 
 func TestLeafNode_isCollapsed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	assert.False(t, ln.isCollapsed())
 }
 
 func TestLeafNode_tryGet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	key := []byte("dog")
@@ -241,7 +241,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 }
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	wrongKey := []byte{1, 2, 3}
@@ -252,7 +252,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{}
 
@@ -263,7 +263,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 }
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 	key := []byte("dog")
@@ -274,7 +274,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 }
 
 func TestLeafNode_getNext(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	key := []byte("dog")
@@ -286,7 +286,7 @@ func TestLeafNode_getNext(t *testing.T) {
 }
 
 func TestLeafNode_getNextWrongKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	wrongKey := append([]byte{2}, []byte("dog")...)
@@ -298,7 +298,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 }
 
 func TestLeafNode_getNextNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 	key := []byte("dog")
@@ -310,7 +310,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 }
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	key := []byte("dog")
@@ -326,7 +326,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 }
 
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -347,7 +347,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 }
 
 func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -362,7 +362,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 }
 
 func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
@@ -378,7 +378,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 }
 
 func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	node, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
@@ -390,7 +390,7 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 }
 
 func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
@@ -403,7 +403,7 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 }
 
 func TestLeafNode_insertInNilNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ln *leafNode
 
@@ -414,7 +414,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 }
 
 func TestLeafNode_deletePresent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -425,7 +425,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 }
 
 func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -439,7 +439,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 }
 
 func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshAndHasher())
@@ -453,7 +453,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 }
 
 func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -464,7 +464,7 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 }
 
 func TestLeafNode_deleteNotPresent(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	wrongKey := []byte{1, 2, 3}
@@ -476,7 +476,7 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 }
 
 func TestLeafNode_reduceNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	ln, _ := newLeafNode([]byte{100, 111, 103}, nil, marsh, hasher)
@@ -489,7 +489,7 @@ func TestLeafNode_reduceNode(t *testing.T) {
 }
 
 func TestLeafNode_isEmptyOrNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{}
 	assert.Equal(t, ErrEmptyNode, ln.isEmptyOrNil())
@@ -499,7 +499,7 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 }
 
 func TestLeafNode_getChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 
@@ -509,7 +509,7 @@ func TestLeafNode_getChildren(t *testing.T) {
 }
 
 func TestLeafNode_isValid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := getLn(getTestMarshAndHasher())
 	assert.True(t, ln.isValid())
@@ -519,7 +519,7 @@ func TestLeafNode_isValid(t *testing.T) {
 }
 
 func TestLeafNode_setDirty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	ln.setDirty(true)
@@ -528,7 +528,7 @@ func TestLeafNode_setDirty(t *testing.T) {
 }
 
 func TestLeafNode_loadChildren(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
 	tr := initTrie()
@@ -555,7 +555,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 //------- deepClone
 
 func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
@@ -569,7 +569,7 @@ func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
 }
 
 func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
@@ -583,7 +583,7 @@ func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
 }
 
 func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
@@ -597,7 +597,7 @@ func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
 }
 
 func TestLeafNode_deepCloneShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
@@ -646,7 +646,7 @@ func getLeafNodeContents(lf *leafNode) string {
 }
 
 func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()
@@ -659,7 +659,7 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 }
 
 func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -674,7 +674,7 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 }
 
 func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -688,7 +688,7 @@ func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 }
 
 func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	_ = tr.Commit()

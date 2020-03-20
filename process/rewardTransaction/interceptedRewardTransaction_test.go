@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		nil,
@@ -28,7 +28,7 @@ func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBuff := []byte("tx")
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
@@ -43,7 +43,7 @@ func TestNewInterceptedRewardTransaction_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBuff := []byte("tx")
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
@@ -58,7 +58,7 @@ func TestNewInterceptedRewardTransaction_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBuff := []byte("tx")
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
@@ -73,7 +73,7 @@ func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing
 }
 
 func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txBuff := []byte("tx")
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
@@ -88,7 +88,7 @@ func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing
 }
 
 func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
@@ -111,7 +111,7 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(0)
 	rewTx := rewardTx.RewardTx{
@@ -148,7 +148,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
@@ -171,7 +171,7 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
@@ -194,7 +194,7 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
@@ -216,7 +216,7 @@ func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
@@ -240,7 +240,7 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 }
 
 func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
@@ -264,7 +264,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *tes
 }
 
 func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
@@ -287,7 +287,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 }
 
 func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := big.NewInt(-100)
 	rewTx := rewardTx.RewardTx{
@@ -311,7 +311,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 }
 
 func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{

@@ -25,7 +25,7 @@ func createMockArg() ArgsSharderFactory {
 }
 
 func TestNewSharder_CreatePrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Type = p2p.PrioBitsSharder
@@ -37,7 +37,7 @@ func TestNewSharder_CreatePrioBitsSharderShouldWork(t *testing.T) {
 }
 
 func TestNewSharder_CreateSimplePrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Type = p2p.SimplePrioBitsSharder
@@ -49,7 +49,7 @@ func TestNewSharder_CreateSimplePrioBitsSharderShouldWork(t *testing.T) {
 }
 
 func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Type = p2p.ListsSharder
@@ -62,7 +62,7 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 }
 
 func TestNewSharder_CreateOneListSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Type = p2p.OneListSharder
@@ -75,7 +75,7 @@ func TestNewSharder_CreateOneListSharderShouldWork(t *testing.T) {
 }
 
 func TestNewSharder_CreateNilListSharderShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	arg.Type = p2p.NilListSharder
@@ -87,7 +87,7 @@ func TestNewSharder_CreateNilListSharderShouldWork(t *testing.T) {
 }
 
 func TestNewSharder_CreateWithUnknownVariantShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArg()
 	sharder, err := NewSharder(arg)

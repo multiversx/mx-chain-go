@@ -14,7 +14,7 @@ import (
 const testSizeCheckDelta = 100
 
 func TestWithMessenger_NilMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -26,7 +26,7 @@ func TestWithMessenger_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestWithMessenger_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -40,7 +40,7 @@ func TestWithMessenger_ShouldWork(t *testing.T) {
 }
 
 func TestWithInternalMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -52,7 +52,7 @@ func TestWithInternalMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestWithInternalMarshalizerr_NilVmMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -64,7 +64,7 @@ func TestWithInternalMarshalizerr_NilVmMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestWithMarshalizer_NilTxSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -76,7 +76,7 @@ func TestWithMarshalizer_NilTxSignMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -91,7 +91,7 @@ func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
 }
 
 func TestWithVmMarshalizer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -105,7 +105,7 @@ func TestWithVmMarshalizer_ShouldWork(t *testing.T) {
 }
 
 func TestWithTxSignMarshalizer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -119,7 +119,7 @@ func TestWithTxSignMarshalizer_ShouldWork(t *testing.T) {
 }
 
 func TestWithHasher_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -131,7 +131,7 @@ func TestWithHasher_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestWithHasher_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -145,7 +145,7 @@ func TestWithHasher_ShouldWork(t *testing.T) {
 }
 
 func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -157,7 +157,7 @@ func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
 }
 
 func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -171,7 +171,7 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 }
 
 func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -183,7 +183,7 @@ func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
 }
 
 func TestWithAddressConverter_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -197,7 +197,7 @@ func TestWithAddressConverter_ShouldWork(t *testing.T) {
 }
 
 func TestWithBlockChain_NilBlockchainrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -209,7 +209,7 @@ func TestWithBlockChain_NilBlockchainrShouldErr(t *testing.T) {
 }
 
 func TestWithBlockChain_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -225,7 +225,7 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 }
 
 func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -237,7 +237,7 @@ func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestWithDataStore_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -251,7 +251,7 @@ func TestWithDataStore_ShouldWork(t *testing.T) {
 }
 
 func TestWithPrivateKey_NilBlsPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -263,7 +263,7 @@ func TestWithPrivateKey_NilBlsPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestWithBlsPrivateKey_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -277,7 +277,7 @@ func TestWithBlsPrivateKey_ShouldWork(t *testing.T) {
 }
 
 func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -289,7 +289,7 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -303,7 +303,7 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 }
 
 func TestWithInitialNodesPubKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -318,7 +318,7 @@ func TestWithInitialNodesPubKeys(t *testing.T) {
 }
 
 func TestWithPublicKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -333,7 +333,7 @@ func TestWithPublicKey(t *testing.T) {
 }
 
 func TestWithRoundDuration_ZeroDurationShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -345,7 +345,7 @@ func TestWithRoundDuration_ZeroDurationShouldErr(t *testing.T) {
 }
 
 func TestWithRoundDuration_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -359,7 +359,7 @@ func TestWithRoundDuration_ShouldWork(t *testing.T) {
 }
 
 func TestWithConsensusGroupSize_NegativeGroupSizeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -371,7 +371,7 @@ func TestWithConsensusGroupSize_NegativeGroupSizeShouldErr(t *testing.T) {
 }
 
 func TestWithConsensusGroupSize_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -385,7 +385,7 @@ func TestWithConsensusGroupSize_ShouldWork(t *testing.T) {
 }
 
 func TestWithSyncer_NilSyncerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -397,7 +397,7 @@ func TestWithSyncer_NilSyncerShouldErr(t *testing.T) {
 }
 
 func TestWithSyncer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -411,7 +411,7 @@ func TestWithSyncer_ShouldWork(t *testing.T) {
 }
 
 func TestWithRounder_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	node, _ := NewNode()
 	opt := WithRounder(nil)
 	err := opt(node)
@@ -420,7 +420,7 @@ func TestWithRounder_NilRounderShouldErr(t *testing.T) {
 }
 
 func TestWithRounder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	node, _ := NewNode()
 	rnd := &mock.RounderMock{}
 	opt := WithRounder(rnd)
@@ -430,7 +430,7 @@ func TestWithRounder_ShouldWork(t *testing.T) {
 }
 
 func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -442,7 +442,7 @@ func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
 }
 
 func TestWithBlockProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -456,7 +456,7 @@ func TestWithBlockProcessor_ShouldWork(t *testing.T) {
 }
 
 func TestWithGenesisTime(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -470,7 +470,7 @@ func TestWithGenesisTime(t *testing.T) {
 }
 
 func TestWithDataPool_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -482,7 +482,7 @@ func TestWithDataPool_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestWithDataPool_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -496,7 +496,7 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 }
 
 func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -508,7 +508,7 @@ func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestWithShardCoordinator_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -522,7 +522,7 @@ func TestWithShardCoordinator_ShouldWork(t *testing.T) {
 }
 
 func TestWithBlockTracker_NilBlockTrackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -534,7 +534,7 @@ func TestWithBlockTracker_NilBlockTrackerShouldErr(t *testing.T) {
 }
 
 func TestWithBlockTracker_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -548,7 +548,7 @@ func TestWithBlockTracker_ShouldWork(t *testing.T) {
 }
 
 func TestWithPendingMiniBlocksHandler_NilPendingMiniBlocksHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -560,7 +560,7 @@ func TestWithPendingMiniBlocksHandler_NilPendingMiniBlocksHandlerShouldErr(t *te
 }
 
 func TestWithPendingMiniBlocksHandler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -574,7 +574,7 @@ func TestWithPendingMiniBlocksHandler_ShouldWork(t *testing.T) {
 }
 
 func TestWithRequestHandler_NilRequestHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -586,7 +586,7 @@ func TestWithRequestHandler_NilRequestHandlerShouldErr(t *testing.T) {
 }
 
 func TestWithRequestHandler_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -600,7 +600,7 @@ func TestWithRequestHandler_ShouldWork(t *testing.T) {
 }
 
 func TestWithNodesCoordinator_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -612,7 +612,7 @@ func TestWithNodesCoordinator_NilNodesCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestWithNodesCoordinator_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -626,7 +626,7 @@ func TestWithNodesCoordinator_ShouldWork(t *testing.T) {
 }
 
 func TestWithUint64ByteSliceConverter_NilConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -638,7 +638,7 @@ func TestWithUint64ByteSliceConverter_NilConverterShouldErr(t *testing.T) {
 }
 
 func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -652,7 +652,7 @@ func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
 }
 
 func TestWithSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -664,7 +664,7 @@ func TestWithSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
 }
 
 func TestWithSinglesig_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -678,7 +678,7 @@ func TestWithSinglesig_ShouldWork(t *testing.T) {
 }
 
 func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -690,7 +690,7 @@ func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
 }
 
 func TestWithMultisig_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -704,7 +704,7 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 }
 
 func TestWithForkDetector_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -717,7 +717,7 @@ func TestWithForkDetector_ShouldWork(t *testing.T) {
 }
 
 func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -729,7 +729,7 @@ func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
 }
 
 func TestWithInterceptorsContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -743,7 +743,7 @@ func TestWithInterceptorsContainer_ShouldWork(t *testing.T) {
 }
 
 func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -755,7 +755,7 @@ func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
 }
 
 func TestWithResolversFinder_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -769,7 +769,7 @@ func TestWithResolversFinder_ShouldWork(t *testing.T) {
 }
 
 func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -781,7 +781,7 @@ func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
 }
 
 func TestWithConsensusBls_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -794,7 +794,7 @@ func TestWithConsensusBls_ShouldWork(t *testing.T) {
 }
 
 func TestWithAppStatusHandler_NilAshShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -805,7 +805,7 @@ func TestWithAppStatusHandler_NilAshShouldErr(t *testing.T) {
 }
 
 func TestWithAppStatusHandler_OkAshShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -817,7 +817,7 @@ func TestWithAppStatusHandler_OkAshShouldPass(t *testing.T) {
 }
 
 func TestWithIndexer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -830,7 +830,7 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 }
 
 func TestWithKeyGenForAccounts_NilKeygenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -841,7 +841,7 @@ func TestWithKeyGenForAccounts_NilKeygenShouldErr(t *testing.T) {
 }
 
 func TestWithKeyGenForAccounts_OkKeygenShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -854,7 +854,7 @@ func TestWithKeyGenForAccounts_OkKeygenShouldPass(t *testing.T) {
 }
 
 func TestWithTxFeeHandler_NilTxFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -865,7 +865,7 @@ func TestWithTxFeeHandler_NilTxFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestWithTxFeeHandler_NilBootStorerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -876,7 +876,7 @@ func TestWithTxFeeHandler_NilBootStorerShouldErr(t *testing.T) {
 }
 
 func TestWithTxFeeHandler_OkStorerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -888,7 +888,7 @@ func TestWithTxFeeHandler_OkStorerShouldWork(t *testing.T) {
 }
 
 func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -901,7 +901,7 @@ func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 }
 
 func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -912,7 +912,7 @@ func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.
 }
 
 func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -923,7 +923,7 @@ func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
 }
 
 func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -934,7 +934,7 @@ func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
 }
 
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -947,7 +947,7 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 }
 
 func TestWithValidatorStatistics_NilValidatorStatisticsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -958,7 +958,7 @@ func TestWithValidatorStatistics_NilValidatorStatisticsShouldErr(t *testing.T) {
 }
 
 func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -969,7 +969,7 @@ func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
 }
 
 func TestWithChainID_InvalidShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	opt := WithChainID(nil)
@@ -979,7 +979,7 @@ func TestWithChainID_InvalidShouldErr(t *testing.T) {
 }
 
 func TestWithChainID_OkValueShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	chainId := []byte("chain ID")
@@ -991,7 +991,7 @@ func TestWithChainID_OkValueShouldWork(t *testing.T) {
 }
 
 func TestWithBootstrapRoundIndex(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	roundIndex := uint64(0)
@@ -1003,7 +1003,7 @@ func TestWithBootstrapRoundIndex(t *testing.T) {
 }
 
 func TestWithTxStorageSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	txStorageSize := uint32(100)
@@ -1015,7 +1015,7 @@ func TestWithTxStorageSize(t *testing.T) {
 }
 
 func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	opt := WithBlackListHandler(nil)
@@ -1025,7 +1025,7 @@ func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
 }
 
 func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	opt := WithEpochStartTrigger(nil)
@@ -1035,7 +1035,7 @@ func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
 }
 
 func TestWithTxSingleSigner_NilTxSingleSigner(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	opt := WithTxSingleSigner(nil)
@@ -1045,7 +1045,7 @@ func TestWithTxSingleSigner_NilTxSingleSigner(t *testing.T) {
 }
 
 func TestWithPubKey_NilPublicKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 	opt := WithPubKey(nil)
@@ -1055,7 +1055,7 @@ func TestWithPubKey_NilPublicKey(t *testing.T) {
 }
 
 func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1066,7 +1066,7 @@ func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
 }
 
 func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1079,7 +1079,7 @@ func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 }
 
 func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1090,7 +1090,7 @@ func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *te
 }
 
 func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1103,7 +1103,7 @@ func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
 }
 
 func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1114,7 +1114,7 @@ func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
 }
 
 func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 
@@ -1127,7 +1127,7 @@ func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
 }
 
 func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	node, _ := NewNode()
 

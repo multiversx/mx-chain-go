@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewIterator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -19,7 +19,7 @@ func TestNewIterator(t *testing.T) {
 }
 
 func TestNewIteratorNilTrieShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var tr data.Trie
 
@@ -29,7 +29,7 @@ func TestNewIteratorNilTrieShouldErr(t *testing.T) {
 }
 
 func TestIterator_HasNext(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := emptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
@@ -42,7 +42,7 @@ func TestIterator_HasNext(t *testing.T) {
 }
 
 func TestIterator_Next(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 
@@ -54,7 +54,7 @@ func TestIterator_Next(t *testing.T) {
 }
 
 func TestIterator_GetMarshalizedNode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	it, _ := trie.NewIterator(tr)
@@ -69,7 +69,7 @@ func TestIterator_GetMarshalizedNode(t *testing.T) {
 }
 
 func TestIterator_GetHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tr := initTrie()
 	rootHash, _ := tr.Root()

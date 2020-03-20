@@ -93,7 +93,7 @@ func createMetaStore() dataRetriever.StorageService {
 }
 
 func TestEpochStartData_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.Marshalizer = nil
@@ -104,7 +104,7 @@ func TestEpochStartData_NilMarshalizer(t *testing.T) {
 }
 
 func TestEpochStartData_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.Hasher = nil
@@ -115,7 +115,7 @@ func TestEpochStartData_NilHasher(t *testing.T) {
 }
 
 func TestEpochStartData_NilStore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.Store = nil
@@ -126,7 +126,7 @@ func TestEpochStartData_NilStore(t *testing.T) {
 }
 
 func TestEpochStartData_NilDataPool(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.DataPool = nil
@@ -137,7 +137,7 @@ func TestEpochStartData_NilDataPool(t *testing.T) {
 }
 
 func TestEpochStartData_NilBlockTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.BlockTracker = nil
@@ -148,7 +148,7 @@ func TestEpochStartData_NilBlockTracker(t *testing.T) {
 }
 
 func TestEpochStartData_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.ShardCoordinator = nil
@@ -159,7 +159,7 @@ func TestEpochStartData_NilShardCoordinator(t *testing.T) {
 }
 
 func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.Hasher = &mock.HasherStub{
@@ -185,7 +185,7 @@ func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
 }
 
 func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGenesis(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	epoch, err := NewEpochStartData(arguments)
@@ -203,7 +203,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGen
 }
 
 func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -253,7 +253,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 }
 
 func TestEpochStartCreator_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -272,7 +272,7 @@ func TestEpochStartCreator_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *tes
 }
 
 func TestEpochStartCreator_CreateEpochStartFromMetaBlockHashComputeIssueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("err computing hash")
 
@@ -297,7 +297,7 @@ func TestEpochStartCreator_CreateEpochStartFromMetaBlockHashComputeIssueShouldEr
 }
 
 func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{

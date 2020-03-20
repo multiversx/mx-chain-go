@@ -15,7 +15,7 @@ const durationTimeoutWaiting = time.Second * 2
 const durationStartGoRoutine = time.Second
 
 func TestNewLibp2pConnectionMonitorSimple_WithNegativeThresholdShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, -1, &mock.SharderStub{})
 
@@ -24,7 +24,7 @@ func TestNewLibp2pConnectionMonitorSimple_WithNegativeThresholdShouldErr(t *test
 }
 
 func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcms, err := NewLibp2pConnectionMonitorSimple(nil, 3, &mock.SharderStub{})
 
@@ -33,7 +33,7 @@ func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing
 }
 
 func TestNewLibp2pConnectionMonitorSimple_WithNilSharderShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, nil)
 
@@ -42,7 +42,7 @@ func TestNewLibp2pConnectionMonitorSimple_WithNilSharderShouldErr(t *testing.T) 
 }
 
 func TestNewLibp2pConnectionMonitorSimple_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.SharderStub{})
 
@@ -51,7 +51,7 @@ func TestNewLibp2pConnectionMonitorSimple_ShouldWork(t *testing.T) {
 }
 
 func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCallReconnect(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chReconnectCalled := make(chan struct{}, 1)
 
@@ -85,7 +85,7 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 }
 
 func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClosePeer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	evictedPid := []peer.ID{"evicted"}
 	numComputeWasCalled := 0
@@ -123,7 +123,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 }
 
 func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	defer func() {
 		r := recover()
@@ -148,7 +148,7 @@ func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 }
 
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.SharderStub{})
 
@@ -160,7 +160,7 @@ func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.
 }
 
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeersNilNetwShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	minConnPeers := 3
 	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, minConnPeers, &mock.SharderStub{})

@@ -28,7 +28,7 @@ func checkExpectedElementsNoUnmarshal(buffer [][]byte, expectedElements [][]byte
 //------- PackDataInChunks
 
 func TestNewNumDataPacker_PackDataInChunksInvalidLimitShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ds := &partitioning.DataSplit{}
 	buff, err := ds.SplitDataInChunks(make([][]byte, 0), 0)
@@ -38,7 +38,7 @@ func TestNewNumDataPacker_PackDataInChunksInvalidLimitShouldErr(t *testing.T) {
 }
 
 func TestNewNumDataPacker_PackDataInChunksNilInputDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ds := &partitioning.DataSplit{}
 	buff, err := ds.SplitDataInChunks(nil, 1)
@@ -48,7 +48,7 @@ func TestNewNumDataPacker_PackDataInChunksNilInputDataShouldErr(t *testing.T) {
 }
 
 func TestNumDataPacker_PackDataInChunksEmptyDataShouldReturnEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ds := &partitioning.DataSplit{}
 	buff, err := ds.SplitDataInChunks(make([][]byte, 0), 1)
@@ -58,7 +58,7 @@ func TestNumDataPacker_PackDataInChunksEmptyDataShouldReturnEmpty(t *testing.T) 
 }
 
 func TestNumDataPacker_PackDataInChunksSmallElementsCountShouldPackTogheter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numPackets := 1000
 	ds := &partitioning.DataSplit{}
@@ -75,7 +75,7 @@ func TestNumDataPacker_PackDataInChunksSmallElementsCountShouldPackTogheter(t *t
 }
 
 func TestNumDataPacker_PackDataInChunksEqualElementsShouldPackTogheter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numPackets := 3
 	ds := &partitioning.DataSplit{}
@@ -92,7 +92,7 @@ func TestNumDataPacker_PackDataInChunksEqualElementsShouldPackTogheter(t *testin
 }
 
 func TestNumDataPacker_PackDataInChunksLargeElementCountShouldPackTogheter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numPackets := 2
 	ds := &partitioning.DataSplit{}
@@ -110,7 +110,7 @@ func TestNumDataPacker_PackDataInChunksLargeElementCountShouldPackTogheter(t *te
 }
 
 func TestNumDataPacker_PackDataInChunksSingleElementsShouldPackTogheter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numPackets := 1
 	ds := &partitioning.DataSplit{}

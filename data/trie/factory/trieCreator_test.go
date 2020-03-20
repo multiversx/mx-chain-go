@@ -32,7 +32,7 @@ func createTrieStorageCfg() config.StorageConfig {
 }
 
 func TestNewTrieFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	args.Marshalizer = nil
@@ -43,7 +43,7 @@ func TestNewTrieFactory_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewTrieFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	args.Hasher = nil
@@ -54,7 +54,7 @@ func TestNewTrieFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewTrieFactory_NilPathManagerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	args.PathManager = nil
@@ -65,7 +65,7 @@ func TestNewTrieFactory_NilPathManagerShouldErr(t *testing.T) {
 }
 
 func TestNewTrieFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 
@@ -75,7 +75,7 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 }
 
 func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	tf, _ := NewTrieFactory(args)
@@ -87,7 +87,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	tf, _ := NewTrieFactory(args)
@@ -99,7 +99,7 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	tf, _ := NewTrieFactory(args)
@@ -111,7 +111,7 @@ func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
 }
 
 func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
@@ -126,7 +126,7 @@ func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgs()
 	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{

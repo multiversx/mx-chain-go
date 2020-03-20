@@ -24,7 +24,7 @@ type ValidatorStatisticsResponse struct {
 }
 
 func TestValidatorStatistics_ErrorWithWrongFacade(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/validator/statistics", nil)
@@ -35,7 +35,7 @@ func TestValidatorStatistics_ErrorWithWrongFacade(t *testing.T) {
 }
 
 func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errStr := "error in facade"
 
@@ -59,7 +59,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 }
 
 func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
 	mapToReturn["test"] = &state.ValidatorApiResponse{

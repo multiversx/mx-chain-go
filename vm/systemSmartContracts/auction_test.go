@@ -51,7 +51,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 }
 
 func TestNewStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.ValidatorSettings = nil
@@ -62,7 +62,7 @@ func TestNewStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
 }
 
 func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.ValidatorSettings = &mock.ValidatorSettingsStub{
@@ -77,7 +77,7 @@ func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
 }
 
 func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.ValidatorSettings = &mock.ValidatorSettingsStub{
@@ -92,7 +92,7 @@ func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) 
 }
 
 func TestNewStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.Eei = nil
@@ -103,7 +103,7 @@ func TestNewStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing
 }
 
 func TestNewStakingAuctionSmartContract_NilStakingSmartContractAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.StakingSCAddress = nil
@@ -114,7 +114,7 @@ func TestNewStakingAuctionSmartContract_NilStakingSmartContractAddress(t *testin
 }
 
 func TestNewStakingAuctionSmartContract_NilAuctionSmartContractAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
 	arguments.AuctionSCAddress = nil
@@ -125,7 +125,7 @@ func TestNewStakingAuctionSmartContract_NilAuctionSmartContractAddress(t *testin
 }
 
 func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedNodePrice := big.NewInt(20000000)
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
@@ -145,7 +145,7 @@ func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
 }
 
 func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedNodePrice := big.NewInt(20000000)
 	args := createMockArgumentsForAuction()
@@ -167,7 +167,7 @@ func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 }
 
 func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedNodePrice := big.NewInt(12500000)
 	args := createMockArgumentsForAuction()
@@ -189,7 +189,7 @@ func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 }
 
 func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
 
@@ -208,7 +208,7 @@ func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
 }
 
 func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockArgumentsForAuction()
 	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
@@ -233,7 +233,7 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 }
 
 func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockArgumentsForAuction()
 	args.ValidatorSettings = &mock.ValidatorSettingsStub{
@@ -279,7 +279,7 @@ func checkExpectedKeys(t *testing.T, expectedKeys [][]byte, data [][]byte, expec
 }
 
 func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
 
@@ -303,7 +303,7 @@ func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
 }
 
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
@@ -339,7 +339,7 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 }
 
 func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
@@ -384,7 +384,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 }
 
 func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
@@ -432,7 +432,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 }
 
 func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	totalStake := uint64(25000000)
@@ -474,7 +474,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
@@ -499,7 +499,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
@@ -519,7 +519,7 @@ func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) 
 }
 
 func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
@@ -540,7 +540,7 @@ func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -558,7 +558,7 @@ func TestAuctionStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T) 
 }
 
 func TestAuctionStakingSC_ExecuteStakeRegistrationDataStakedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -577,7 +577,7 @@ func TestAuctionStakingSC_ExecuteStakeRegistrationDataStakedShouldErr(t *testing
 }
 
 func TestAuctionStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -596,7 +596,7 @@ func TestAuctionStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakerAddress := big.NewInt(100)
 	stakerPubKey := big.NewInt(100)
@@ -645,7 +645,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	args := createMockArgumentsForAuction()
@@ -660,7 +660,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) 
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -678,7 +678,7 @@ func TestAuctionStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	stakedRegistrationData := StakedData{
 		RegisterNonce: 0,
@@ -705,7 +705,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedCallerAddress := []byte("caller")
 	wrongCallerAddress := []byte("wrongCaller")
@@ -735,7 +735,7 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := createMockArgumentsForAuction()
 
@@ -823,7 +823,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -843,7 +843,7 @@ func TestAuctionStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -874,7 +874,7 @@ func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.
 }
 
 func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
@@ -907,7 +907,7 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 }
 
 func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	unstakedNonce := uint64(10)
 	registrationData := StakedData{
@@ -944,7 +944,7 @@ func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	unBondPeriod := uint64(100)
 	unStakedNonce := uint64(10)
@@ -1031,7 +1031,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	eei := &mock.SystemEIStub{}
 	args := createMockArgumentsForAuction()
@@ -1046,7 +1046,7 @@ func TestAuctionStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	// Preparation
 	unBondPeriod := uint64(100)
@@ -1159,7 +1159,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
@@ -1174,7 +1174,7 @@ func TestAuctionStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ExecuteGetShouldOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
@@ -1194,7 +1194,7 @@ func TestAuctionStakingSC_ExecuteGetShouldOk(t *testing.T) {
 // 2 -- will do stake and lock all the stake value and claim should return error code because all the stake value is locked
 // 3 -- will do stake and stake value will not be locked and after that claim should work
 func TestAuctionStakingSC_Claim(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	receiverAddr := []byte("receiverAddress")
 	stakerAddress := []byte("stakerAddr")
@@ -1241,7 +1241,7 @@ func TestAuctionStakingSC_Claim(t *testing.T) {
 // 2 -- call auction smart contract init and after that call setConfig with wrong number of arguments should return error
 // 3 -- call setConfig after init was done successfully should work and config should be set correctly
 func TestAuctionStakingSC_SetConfig(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ownerAddr := []byte("ownerAddress")
 	minStakeValue := big.NewInt(1000)
@@ -1293,7 +1293,7 @@ func TestAuctionStakingSC_SetConfig(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	receiverAddr := []byte("receiverAddress")
 	stakerAddress := []byte("stakerA")
@@ -1324,7 +1324,7 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	receiverAddr := []byte("receiverAddress")
 	stakerAddress := []byte("stakerA")

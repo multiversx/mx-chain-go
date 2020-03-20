@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
 		nil,
@@ -25,7 +25,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewGasConsumption_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
@@ -36,7 +36,7 @@ func TestNewGasConsumption_ShouldWork(t *testing.T) {
 }
 
 func TestGasConsumed_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
@@ -58,7 +58,7 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 }
 
 func TestGasRefunded_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
@@ -80,7 +80,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 }
 
 func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
@@ -91,7 +91,7 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 }
 
 func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContract(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
@@ -109,7 +109,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 }
 
 func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
@@ -127,7 +127,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 }
 
 func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
@@ -145,7 +145,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
@@ -172,7 +172,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
@@ -202,7 +202,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{

@@ -73,7 +73,7 @@ func initFactory() bls.Factory {
 }
 
 func TestFactory_GetMessageTypeName(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	r := bls.GetStringValue(bls.MtBlockBodyAndHeader)
 	assert.Equal(t, "(BLOCK_BODY_AND_HEADER)", r)
@@ -98,7 +98,7 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	worker := initWorker()
@@ -115,7 +115,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	worker := initWorker()
@@ -132,7 +132,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -151,7 +151,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -170,7 +170,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -189,7 +189,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -208,7 +208,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -227,7 +227,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -246,7 +246,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -265,7 +265,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -284,7 +284,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -303,7 +303,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -322,7 +322,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -341,7 +341,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -358,7 +358,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fct := *initFactory()
 
@@ -366,7 +366,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 }
 
 func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
@@ -384,7 +384,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fct := *initFactory()
 	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
@@ -397,7 +397,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -409,7 +409,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 }
 
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fct := *initFactory()
 	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
@@ -422,7 +422,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 }
 
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -434,7 +434,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *test
 }
 
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fct := *initFactory()
 	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
@@ -447,7 +447,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 }
 
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -459,7 +459,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail
 }
 
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	fct := *initFactory()
 	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
@@ -472,7 +472,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 }
 
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -484,7 +484,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t
 }
 
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	subroundHandlers := 0
 
@@ -502,7 +502,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 }
 
 func TestFactory_SetAppStatusHandlerNilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -512,7 +512,7 @@ func TestFactory_SetAppStatusHandlerNilStatusHandlerShouldErr(t *testing.T) {
 }
 
 func TestFactory_SetAppStatusHandlerOkStatusHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
@@ -525,7 +525,7 @@ func TestFactory_SetAppStatusHandlerOkStatusHandlerShouldWork(t *testing.T) {
 }
 
 func TestFactory_SetIndexerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)

@@ -284,7 +284,7 @@ func TestLRUCache_Clear(t *testing.T) {
 }
 
 func TestLRUCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c, err := lrucache.NewCache(100)
 	assert.Nil(t, err)
@@ -294,7 +294,7 @@ func TestLRUCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testin
 }
 
 func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -329,7 +329,7 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 }
 
 func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -364,7 +364,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T)
 }
 
 func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

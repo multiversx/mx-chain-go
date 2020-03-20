@@ -29,7 +29,7 @@ func createGasMap(value uint64) map[string]map[string]uint64 {
 }
 
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
@@ -39,7 +39,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 }
 
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.ScQueryStub{}, gasSchedule)
@@ -49,7 +49,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 }
 
 func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, gasSchedule)
@@ -59,7 +59,7 @@ func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
 }
 
 func TestTransactionCostEstimator_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
@@ -69,7 +69,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_TxTypeHandlerErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	expectedErr := errors.New("error")
@@ -86,7 +86,7 @@ func TestComputeTransactionGasLimit_TxTypeHandlerErr(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	consumedGasUnits := uint64(1000)
@@ -107,7 +107,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(2)
 	gasLimitBaseTx := uint64(500)
@@ -130,7 +130,7 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	gasSchedule := createGasMap(1)
 	gasLimitBaseTx := uint64(500)

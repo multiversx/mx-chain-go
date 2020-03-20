@@ -11,7 +11,7 @@ import (
 )
 
 func TestResourceMonitor_NewResourceMonitorNilFileShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(nil)
 
@@ -20,7 +20,7 @@ func TestResourceMonitor_NewResourceMonitorNilFileShouldErr(t *testing.T) {
 }
 
 func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(&os.File{})
 
@@ -29,7 +29,7 @@ func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 }
 
 func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(&os.File{})
 	assert.Nil(t, err)
@@ -41,7 +41,7 @@ func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 }
 
 func TestResourceMonitor_SaveStatisticsShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	file, err := os.Create("test1")
 	assert.Nil(t, err)
@@ -58,7 +58,7 @@ func TestResourceMonitor_SaveStatisticsShouldPass(t *testing.T) {
 }
 
 func TestResourceMonitor_SaveStatisticsCloseFileBeforeSaveShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	file, err := os.Create("test2")
 	assert.Nil(t, err)
@@ -77,7 +77,7 @@ func TestResourceMonitor_SaveStatisticsCloseFileBeforeSaveShouldErr(t *testing.T
 }
 
 func TestResourceMonitor_CloseShouldPass(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	file, err := os.Create("test3")
 	assert.Nil(t, err)

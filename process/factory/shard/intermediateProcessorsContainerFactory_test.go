@@ -45,7 +45,7 @@ func createDataPools() dataRetriever.PoolsHolder {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -63,7 +63,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -81,7 +81,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -99,7 +99,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -117,7 +117,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -135,7 +135,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -154,7 +154,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 }
 
 func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	dPool := createDataPools()
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(

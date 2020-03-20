@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewSystemSCContainer_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -21,7 +21,7 @@ func TestNewSystemSCContainer_ShouldWork(t *testing.T) {
 //------- Add
 
 func TestSystemSCContainer_AddAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -32,7 +32,7 @@ func TestSystemSCContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 }
 
 func TestSystemSCContainer_AddNilShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -42,7 +42,7 @@ func TestSystemSCContainer_AddNilShouldErr(t *testing.T) {
 }
 
 func TestSystemSCContainer_AddEmptyKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -54,7 +54,7 @@ func TestSystemSCContainer_AddEmptyKeyShouldErr(t *testing.T) {
 }
 
 func TestSystemSCContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -67,7 +67,7 @@ func TestSystemSCContainer_AddShouldWork(t *testing.T) {
 //------- Get
 
 func TestSystemSCContainer_GetNotFoundShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -83,7 +83,7 @@ func TestSystemSCContainer_GetNotFoundShouldErr(t *testing.T) {
 }
 
 func TestSystemSCContainer_GetShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -100,7 +100,7 @@ func TestSystemSCContainer_GetShouldWork(t *testing.T) {
 //------- Replace
 
 func TestSystemSCContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -117,7 +117,7 @@ func TestSystemSCContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 }
 
 func TestSystemSCContainer_ReplaceKeyNilOrEmptyKeyErrAndNotModify(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -143,7 +143,7 @@ func TestSystemSCContainer_ReplaceKeyNilOrEmptyKeyErrAndNotModify(t *testing.T) 
 }
 
 func TestSystemSCContainer_ReplaceShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -163,7 +163,7 @@ func TestSystemSCContainer_ReplaceShouldWork(t *testing.T) {
 //------- Remove
 
 func TestSystemSCContainer_RemoveShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 
@@ -182,7 +182,7 @@ func TestSystemSCContainer_RemoveShouldWork(t *testing.T) {
 //------- Len
 
 func TestSystemSCContainer_LenShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	c := NewSystemSCContainer()
 

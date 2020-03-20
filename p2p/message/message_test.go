@@ -10,7 +10,7 @@ import (
 )
 
 func TestMessage_AllFieldsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	from := []byte("from")
 	data := []byte("data")

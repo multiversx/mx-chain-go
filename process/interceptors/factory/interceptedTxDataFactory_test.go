@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewInterceptedTxDataFactory_NilArgumentShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	imh, err := NewInterceptedTxDataFactory(nil)
 
@@ -21,7 +21,7 @@ func TestNewInterceptedTxDataFactory_NilArgumentShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ProtoMarshalizer = nil
@@ -32,7 +32,7 @@ func TestNewInterceptedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.TxSignMarshalizer = nil
@@ -43,7 +43,7 @@ func TestNewInterceptedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Hasher = nil
@@ -54,7 +54,7 @@ func TestNewInterceptedTxDataFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
@@ -65,7 +65,7 @@ func TestNewInterceptedTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) 
 }
 
 func TestNewInterceptedTxDataFactory_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.KeyGen = nil
@@ -76,7 +76,7 @@ func TestNewInterceptedTxDataFactory_NilKeyGenShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilAdrConvShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.AddrConv = nil
@@ -87,7 +87,7 @@ func TestNewInterceptedTxDataFactory_NilAdrConvShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.Signer = nil
@@ -98,7 +98,7 @@ func TestNewInterceptedTxDataFactory_NilSignerShouldErr(t *testing.T) {
 }
 
 func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 	arg.FeeHandler = nil
@@ -109,7 +109,7 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 }
 
 func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgument()
 

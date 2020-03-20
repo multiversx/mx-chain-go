@@ -88,7 +88,7 @@ func createPointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 }
 
 func TestNewKeyGenerator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := &mock.SuiteMock{}
 	kg := signing.NewKeyGenerator(suite)
@@ -99,7 +99,7 @@ func TestNewKeyGenerator(t *testing.T) {
 }
 
 func TestKeyGenerator_GeneratePairNilSuiteShouldPanic(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	kg := signing.NewKeyGenerator(nil)
 
@@ -107,7 +107,7 @@ func TestKeyGenerator_GeneratePairNilSuiteShouldPanic(t *testing.T) {
 }
 
 func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -122,7 +122,7 @@ func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
 }
 
 func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -137,7 +137,7 @@ func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
 }
 
 func TestKeyGenerator_PrivateKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -148,7 +148,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 }
 
 func TestKeyGenerator_PrivateKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -160,7 +160,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayInvalidArrayShouldErr(t *testing.T)
 }
 
 func TestKeyGenerator_PrivateKeyFromByteArrayOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -175,7 +175,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayOK(t *testing.T) {
 }
 
 func TestKeyGenerator_PublicKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -186,7 +186,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 }
 
 func TestKeyGenerator_PublicKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -198,7 +198,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) 
 }
 
 func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -214,7 +214,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
 }
 
 func TestKeyGenerator_SuiteOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -224,7 +224,7 @@ func TestKeyGenerator_SuiteOK(t *testing.T) {
 }
 
 func TestPrivateKey_ToByteArrayOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -236,7 +236,7 @@ func TestPrivateKey_ToByteArrayOK(t *testing.T) {
 }
 
 func TestPrivateKey_GeneratePublicOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -249,7 +249,7 @@ func TestPrivateKey_GeneratePublicOK(t *testing.T) {
 }
 
 func TestPrivateKey_SuiteOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -261,7 +261,7 @@ func TestPrivateKey_SuiteOK(t *testing.T) {
 }
 
 func TestPrivateKey_Scalar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -273,7 +273,7 @@ func TestPrivateKey_Scalar(t *testing.T) {
 }
 
 func TestPublicKey_ToByteArrayOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
@@ -285,7 +285,7 @@ func TestPublicKey_ToByteArrayOK(t *testing.T) {
 }
 
 func TestPublicKey_SuiteOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)

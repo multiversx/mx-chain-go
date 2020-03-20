@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewEpochStartSubscriptionHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
 	assert.NotNil(t, essh)
@@ -18,7 +18,7 @@ func TestNewEpochStartSubscriptionHandler(t *testing.T) {
 }
 
 func TestEpochStartSubscriptionHandler_RegisterHandlerNilHandlerShouldNotAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
 	essh.RegisterHandler(nil)
@@ -30,7 +30,7 @@ func TestEpochStartSubscriptionHandler_RegisterHandlerNilHandlerShouldNotAdd(t *
 }
 
 func TestEpochStartSubscriptionHandler_RegisterHandlerOkHandlerShouldAdd(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
 	handler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil, 0)
@@ -44,7 +44,7 @@ func TestEpochStartSubscriptionHandler_RegisterHandlerOkHandlerShouldAdd(t *test
 }
 
 func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
@@ -62,7 +62,7 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothin
 }
 
 func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
@@ -80,7 +80,7 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t
 }
 
 func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	firstHandlerWasCalled := false
 	secondHandlerWasCalled := false

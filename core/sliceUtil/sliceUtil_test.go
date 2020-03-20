@@ -8,7 +8,7 @@ import (
 )
 
 func TestTrimSliceSliceByte_EmptyInputShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := make([][]byte, 0)
 	res := sliceUtil.TrimSliceSliceByte(input)
@@ -17,7 +17,7 @@ func TestTrimSliceSliceByte_EmptyInputShouldDoNothing(t *testing.T) {
 }
 
 func TestTrimSliceSliceByte_ShouldDecreaseCapacity(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := make([][]byte, 0, 5)
 	input = append(input, []byte("el1"))
@@ -34,7 +34,7 @@ func TestTrimSliceSliceByte_ShouldDecreaseCapacity(t *testing.T) {
 }
 
 func TestTrimSliceSliceByte_SliceAlreadyOkShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	input := make([][]byte, 0, 2)
 	input = append(input, []byte("el1"))

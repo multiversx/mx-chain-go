@@ -24,7 +24,7 @@ var defaultTestConfig = storageUnit.CacheConfig{
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 0,
@@ -37,7 +37,7 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
@@ -50,7 +50,7 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 }
 
 func TestNewShardedData_CreateShardStore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
@@ -74,7 +74,7 @@ func TestNewShardedData_CreateShardStore(t *testing.T) {
 }
 
 func TestShardedData_AddData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -99,7 +99,7 @@ func TestShardedData_AddData(t *testing.T) {
 }
 
 func TestShardedData_StorageEvictsData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -113,7 +113,7 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 }
 
 func TestShardedData_NoDuplicates(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -124,7 +124,7 @@ func TestShardedData_NoDuplicates(t *testing.T) {
 }
 
 func TestShardedData_AddDataInParallel(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -151,7 +151,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 }
 
 func TestShardedData_RemoveData(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -178,7 +178,7 @@ func TestShardedData_RemoveData(t *testing.T) {
 }
 
 func TestShardedData_Clear(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -198,7 +198,7 @@ func TestShardedData_Clear(t *testing.T) {
 }
 
 func TestShardedData_MergeShardStores(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -213,7 +213,7 @@ func TestShardedData_MergeShardStores(t *testing.T) {
 }
 
 func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -223,7 +223,7 @@ func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T
 }
 
 func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -256,7 +256,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 }
 
 func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	f := func(key []byte) {
 	}
@@ -269,7 +269,7 @@ func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
 }
 
 func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -303,7 +303,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 }
 
 func TestShardedData_SearchFirstDataNotFoundShouldRetNilAndFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
@@ -313,7 +313,7 @@ func TestShardedData_SearchFirstDataNotFoundShouldRetNilAndFalse(t *testing.T) {
 }
 
 func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 

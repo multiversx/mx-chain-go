@@ -15,14 +15,14 @@ func (tino *testInterfaceNilObj) IsInterfaceNil() bool {
 }
 
 func TestCheckIfNil_NilInterfaceShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	assert.True(t, check.IfNil(nil))
 	assert.True(t, check.IfNilReflect(nil))
 }
 
 func TestCheckIfNil_NilUnderlyingLayerShouldRetTrue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var tino *testInterfaceNilObj
 
@@ -31,7 +31,7 @@ func TestCheckIfNil_NilUnderlyingLayerShouldRetTrue(t *testing.T) {
 }
 
 func TestCheckIfNil_WithInstanceShouldRetFalse(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tino := &testInterfaceNilObj{}
 

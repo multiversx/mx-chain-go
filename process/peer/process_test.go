@@ -97,7 +97,7 @@ func createMockCache() map[string]data.HeaderHandler {
 }
 
 func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = nil
@@ -108,7 +108,7 @@ func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) 
 }
 
 func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.AdrConv = nil
@@ -119,7 +119,7 @@ func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing
 }
 
 func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = nil
@@ -130,7 +130,7 @@ func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing
 }
 
 func TestNewValidatorStatisticsProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.ShardCoordinator = nil
@@ -141,7 +141,7 @@ func TestNewValidatorStatisticsProcessor_NilShardCoordinatorShouldErr(t *testing
 }
 
 func TestNewValidatorStatisticsProcessor_NilStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.StorageService = nil
@@ -152,7 +152,7 @@ func TestNewValidatorStatisticsProcessor_NilStorageShouldErr(t *testing.T) {
 }
 
 func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.MaxComputableRounds = 0
@@ -163,7 +163,7 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 }
 
 func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = nil
@@ -174,7 +174,7 @@ func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	arguments.DataPool = nil
@@ -185,7 +185,7 @@ func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
 }
 
 func TestNewValidatorStatisticsProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments := createMockArguments()
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -195,7 +195,7 @@ func TestNewValidatorStatisticsProcessor(t *testing.T) {
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addressErr := errors.New("hex address error")
 	addressConverter := &mock.AddressConverterStub{
@@ -226,7 +226,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adapterError := errors.New("account error")
 	peerAdapters := &mock.AccountsStub{
@@ -263,7 +263,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	peerAdapter := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -299,7 +299,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	saveAccountError := errors.New("save account error")
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
@@ -344,7 +344,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	commitError := errors.New("commit error")
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
@@ -379,7 +379,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
@@ -413,7 +413,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 }
 
 func TestValidatorStatisticsProcessor_SaveInitialStateCommitsEligibleAndWaiting(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arguments, waitingMap, eligibleMap, actualMap := createCustomArgumentsForSaveInitialState()
 
@@ -436,7 +436,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitsEligibleAndWaiting(
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsRootHashForGenesis(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedRootHash := []byte("root hash")
 	peerAdapter := getAccountsMock()
@@ -457,7 +457,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsRootHashForGenesis(t
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsErrForRootHashErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedError := errors.New("expected error")
 	peerAdapter := getAccountsMock()
@@ -477,7 +477,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateReturnsErrForRootHashErr(t 
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	computeValidatorsErr := errors.New("compute validators error")
 
@@ -505,7 +505,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyBytesErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	createAddressErr := errors.New("create address error")
 
@@ -539,7 +539,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	existingAccountErr := errors.New("existing account err")
 	adapter := getAccountsMock()
@@ -577,7 +577,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adapter := getAccountsMock()
 	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -614,7 +614,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	getHeaderError := errors.New("get header error")
 	adapter := getAccountsMock()
@@ -664,7 +664,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	getHeaderUnmarshalError := errors.New("get header unmarshal error")
 	adapter := getAccountsMock()
@@ -719,7 +719,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adapter := getAccountsMock()
 	increaseLeaderCalled := false
@@ -803,7 +803,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	adapter := getAccountsMock()
 	missedBlocksErr := errors.New("missed blocks error")
@@ -879,7 +879,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	computeValidatorGroupCalled := false
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -913,7 +913,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorList(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	computeErr := errors.New("compute err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -937,7 +937,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	peerAccErr := errors.New("peer acc err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -967,7 +967,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	decreaseErr := errors.New("peer acc err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -1003,7 +1003,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentHeaderRound := 10
 	previousHeaderRound := 4
@@ -1048,7 +1048,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGreaterThanMaxComputableCallsDecreaseOnlyOnce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentHeaderRound := 20
 	previousHeaderRound := 10
@@ -1112,7 +1112,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGreaterThanMaxComputableCallsOnlyOnce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentHeaderRound := 20
 	previousHeaderRound := 10
@@ -1179,7 +1179,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferences(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	currentHeaderRound := uint64(101)
 	previousHeaderRound := uint64(1)

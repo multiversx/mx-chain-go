@@ -14,7 +14,7 @@ import (
 //------- NewSender
 
 func TestNewSender_NilP2PMessengerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		nil,
@@ -32,7 +32,7 @@ func TestNewSender_NilP2PMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		&mock.MessengerStub{},
@@ -50,7 +50,7 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 }
 
 func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		&mock.MessengerStub{},
@@ -68,7 +68,7 @@ func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		&mock.MessengerStub{},
@@ -86,7 +86,7 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		&mock.MessengerStub{},
@@ -104,7 +104,7 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	sender, err := heartbeat.NewSender(
 		&mock.MessengerStub{},
@@ -124,7 +124,7 @@ func TestNewSender_ShouldWork(t *testing.T) {
 //------- SendHeartbeat
 
 func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	pubKey := &mock.PublicKeyMock{
@@ -165,7 +165,7 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 }
 
 func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	pubKey := &mock.PublicKeyMock{
@@ -206,7 +206,7 @@ func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 }
 
 func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("expected error")
 	pubKey := &mock.PublicKeyMock{
@@ -247,7 +247,7 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 }
 
 func TestSender_SendHeartbeatShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testTopic := "topic"
 	marshaledBuff := []byte("marshalBuff")

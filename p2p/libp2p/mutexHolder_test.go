@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewMutexHolder_InvalidCapacityShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mh, err := libp2p.NewMutexHolder(-1)
 
@@ -18,7 +18,7 @@ func TestNewMutexHolder_InvalidCapacityShouldErr(t *testing.T) {
 }
 
 func TestNewMutexHolder_InvalidCapacityShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mh, err := libp2p.NewMutexHolder(10)
 
@@ -27,7 +27,7 @@ func TestNewMutexHolder_InvalidCapacityShouldWork(t *testing.T) {
 }
 
 func TestMutexHolder_MutexNotFoundShouldCreate(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mh, _ := libp2p.NewMutexHolder(10)
 	key := "key"
@@ -41,7 +41,7 @@ func TestMutexHolder_MutexNotFoundShouldCreate(t *testing.T) {
 }
 
 func TestMutexHolder_OtherObjectInCacheShouldRewriteWithNewMutexAndReturn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mh, _ := libp2p.NewMutexHolder(10)
 	key := "key"
@@ -56,7 +56,7 @@ func TestMutexHolder_OtherObjectInCacheShouldRewriteWithNewMutexAndReturn(t *tes
 }
 
 func TestMutexHolder_MutexFoundShouldReturnIt(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mh, _ := libp2p.NewMutexHolder(10)
 	key := "key"

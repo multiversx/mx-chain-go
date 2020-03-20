@@ -33,7 +33,7 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 //------- NewTxResolver
 
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = nil
@@ -44,7 +44,7 @@ func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.TxPool = nil
@@ -55,7 +55,7 @@ func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.TxStorage = nil
@@ -66,7 +66,7 @@ func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.Marshalizer = nil
@@ -77,7 +77,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilDataPackerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.DataPacker = nil
@@ -88,7 +88,7 @@ func TestNewTxResolver_NilDataPackerShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.AntifloodHandler = nil
@@ -99,7 +99,7 @@ func TestNewTxResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_NilThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	arg.Throttler = nil
@@ -110,7 +110,7 @@ func TestNewTxResolver_NilThrottlerShouldErr(t *testing.T) {
 }
 
 func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	txRes, err := resolvers.NewTxResolver(arg)
@@ -122,7 +122,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgTxResolver()
@@ -144,7 +144,7 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 }
 
 func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	txRes, _ := resolvers.NewTxResolver(arg)
@@ -157,7 +157,7 @@ func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 }
 
 func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	txRes, _ := resolvers.NewTxResolver(arg)
@@ -174,7 +174,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 }
 
 func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	arg := createMockArgTxResolver()
 	txRes, _ := resolvers.NewTxResolver(arg)
@@ -191,7 +191,7 @@ func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	searchWasCalled := false
@@ -233,7 +233,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	errExpected := errors.New("MarshalizerMock generic error")
 
@@ -275,7 +275,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -325,7 +325,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -363,7 +363,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 }
 
 func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCallSliceSplitter(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash1 := []byte("txHash1")
 	txHash2 := []byte("txHash2")
@@ -425,7 +425,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 }
 
 func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnlyOneShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash1 := []byte("txHash1")
 	txHash2 := []byte("txHash2")
@@ -488,7 +488,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 //------- RequestTransactionFromHash
 
 func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requested := &dataRetriever.RequestData{}
 
@@ -514,7 +514,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 //------- RequestDataFromHashArray
 
 func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	requested := &dataRetriever.RequestData{}
 

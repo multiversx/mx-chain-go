@@ -31,7 +31,7 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 //------- NewMonitor
 
 func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -50,7 +50,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -69,7 +69,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -88,7 +88,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -107,7 +107,7 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
@@ -125,7 +125,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -144,7 +144,7 @@ func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	mon, err := heartbeat.NewMonitor(
@@ -179,7 +179,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 }
 
 func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	th := mock.NewMockTimer()
 	pksPerShards := map[uint32][]string{
@@ -223,7 +223,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 //------- ProcessReceivedMessage
 
 func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKey := "pk1"
 
@@ -282,7 +282,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 }
 
 func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKey := "pk1"
 
@@ -342,7 +342,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 }
 
 func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKey := []byte("pk1")
 
@@ -428,7 +428,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 }
 
 func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"

@@ -83,7 +83,7 @@ func createMetaStore() *mock.ChainStorerMock {
 //------- NewInterceptorsContainerFactory
 
 func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ShardCoordinator = nil
@@ -94,7 +94,7 @@ func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *tes
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.NodesCoordinator = nil
@@ -105,7 +105,7 @@ func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *tes
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = nil
@@ -116,7 +116,7 @@ func TestNewMetaInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Store = nil
@@ -127,7 +127,7 @@ func TestNewMetaInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ProtoMarshalizer = nil
@@ -138,7 +138,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ProtoMarshalizer = nil
@@ -150,7 +150,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Hasher = nil
@@ -161,7 +161,7 @@ func TestNewMetaInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.MultiSigner = nil
@@ -172,7 +172,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.DataPool = nil
@@ -183,7 +183,7 @@ func TestNewMetaInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) 
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Accounts = nil
@@ -194,7 +194,7 @@ func TestNewMetaInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) 
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.AddrConverter = nil
@@ -205,7 +205,7 @@ func TestNewMetaInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) 
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.SingleSigner = nil
@@ -216,7 +216,7 @@ func TestNewMetaInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.KeyGen = nil
@@ -227,7 +227,7 @@ func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.TxFeeHandler = nil
@@ -238,7 +238,7 @@ func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.BlackList = nil
@@ -249,7 +249,7 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 }
 
 func TestNewMetaInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ChainID = nil
@@ -260,7 +260,7 @@ func TestNewMetaInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T)
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ValidityAttester = nil
@@ -271,7 +271,7 @@ func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *tes
 }
 
 func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.EpochStartTrigger = nil
@@ -281,7 +281,7 @@ func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testi
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
@@ -291,7 +291,7 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 }
 
 func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.SizeCheckDelta = 1
@@ -305,7 +305,7 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.
 //------- Create
 
 func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createMetaStubTopicHandler(factory.MetachainBlocksTopic, "")
@@ -318,7 +318,7 @@ func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t 
 }
 
 func TestMetaInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createMetaStubTopicHandler(factory.ShardBlocksTopic, "")
@@ -331,7 +331,7 @@ func TestMetaInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFai
 }
 
 func TestMetaInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
@@ -344,7 +344,7 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShould
 }
 
 func TestMetaInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
@@ -357,7 +357,7 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachain
 }
 
 func TestMetaInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = createMetaStubTopicHandler("", factory.AccountTrieNodesTopic)
@@ -370,7 +370,7 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(
 }
 
 func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = &mock.TopicHandlerStub{
@@ -390,7 +390,7 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 }
 
 func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	noOfShards := 4
 

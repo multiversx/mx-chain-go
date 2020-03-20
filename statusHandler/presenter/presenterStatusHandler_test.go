@@ -11,7 +11,7 @@ import (
 )
 
 func TestPresenterStatusHandler_NewPresenterStatusHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
@@ -19,7 +19,7 @@ func TestPresenterStatusHandler_NewPresenterStatusHandler(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
@@ -31,7 +31,7 @@ func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_WrongKeyIncrementShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 0)
@@ -42,7 +42,7 @@ func TestPresenterStatusHandler_WrongKeyIncrementShouldDoNothing(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_WrongTypeIncrementShouldDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	presenterStatusHandler.SetStringValue(core.MetricNonce, "0")
@@ -53,7 +53,7 @@ func TestPresenterStatusHandler_WrongTypeIncrementShouldDoNothing(t *testing.T) 
 }
 
 func TestPresenterStatusHandler_TestSetInt64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var intValue = int64(100)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
@@ -66,7 +66,7 @@ func TestPresenterStatusHandler_TestSetInt64(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_TestSetUInt64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var intValue = uint64(200)
 
@@ -78,7 +78,7 @@ func TestPresenterStatusHandler_TestSetUInt64(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_TestSetString(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var stringValue = "KEY"
 
@@ -90,7 +90,7 @@ func TestPresenterStatusHandler_TestSetString(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_Write(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	logLine := "Hello"
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
@@ -102,7 +102,7 @@ func TestPresenterStatusHandler_Write(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	waitTimeBeforeRead := 500 * time.Millisecond
 	logLine := "Hello"
@@ -120,7 +120,7 @@ func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_Increment(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countConsensus := uint64(0)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
@@ -132,7 +132,7 @@ func TestPresenterStatusHandler_Increment(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_WrongTypeDecrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	presenterStatusHandler.SetStringValue(core.MetricNonce, "value")
@@ -143,7 +143,7 @@ func TestPresenterStatusHandler_WrongTypeDecrement(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_DecrementDoNothing(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
@@ -154,7 +154,7 @@ func TestPresenterStatusHandler_DecrementDoNothing(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_WrongKeyDecrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	presenterStatusHandler.Decrement("dummy")
@@ -164,7 +164,7 @@ func TestPresenterStatusHandler_WrongKeyDecrement(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_Decrement(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countConsensus := uint64(10)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
@@ -176,7 +176,7 @@ func TestPresenterStatusHandler_Decrement(t *testing.T) {
 }
 
 func TestPresenterStatusHandler_AddUint64(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	countConsensus := uint64(10)
 	value := uint64(5)

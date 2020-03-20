@@ -13,7 +13,7 @@ import (
 //------- NewDataPool
 
 func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		nil,
@@ -31,7 +31,7 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},
@@ -49,7 +49,7 @@ func TestNewDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},
@@ -67,7 +67,7 @@ func TestNewDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},
@@ -85,7 +85,7 @@ func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},
@@ -103,7 +103,7 @@ func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilTrieNodesShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},
@@ -121,7 +121,7 @@ func TestNewDataPool_NilTrieNodesShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
 		&mock.ShardedDataStub{},

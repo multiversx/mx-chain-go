@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewSeedRandReader_NilSeedShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	srr, err := rand.NewSeedRandReader(nil)
 
@@ -18,7 +18,7 @@ func TestNewSeedRandReader_NilSeedShouldErr(t *testing.T) {
 }
 
 func TestNewSeedRandReader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	seed := []byte("seed")
 	srr, err := rand.NewSeedRandReader(seed)
@@ -28,7 +28,7 @@ func TestNewSeedRandReader_ShouldWork(t *testing.T) {
 }
 
 func TestSeedRandReader_ReadNilBufferShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	seed := []byte("seed")
 	srr, _ := rand.NewSeedRandReader(seed)
@@ -40,7 +40,7 @@ func TestSeedRandReader_ReadNilBufferShouldErr(t *testing.T) {
 }
 
 func TestSeedRandReader_ReadShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	seed := []byte("seed")
 	srr, _ := rand.NewSeedRandReader(seed)

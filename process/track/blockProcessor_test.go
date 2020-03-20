@@ -41,7 +41,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 }
 
 func TestNewBlockProcessor_ShouldErrNilHeaderValidator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.HeaderValidator = nil
@@ -52,7 +52,7 @@ func TestNewBlockProcessor_ShouldErrNilHeaderValidator(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrNilRequestHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.RequestHandler = nil
@@ -63,7 +63,7 @@ func TestNewBlockProcessor_ShouldErrNilRequestHandler(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrNilShardCoordinator(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.ShardCoordinator = nil
@@ -74,7 +74,7 @@ func TestNewBlockProcessor_ShouldErrNilShardCoordinator(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrNilBlockTrackerHandler(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.BlockTracker = nil
@@ -85,7 +85,7 @@ func TestNewBlockProcessor_ShouldErrNilBlockTrackerHandler(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrNilCrossNotarizer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.CrossNotarizer = nil
@@ -96,7 +96,7 @@ func TestNewBlockProcessor_ShouldErrNilCrossNotarizer(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = nil
@@ -107,7 +107,7 @@ func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) 
 }
 
 func TestNewBlockProcessor_ShouldErrSelfNotarizedHeadersNotifier(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.SelfNotarizedHeadersNotifier = nil
@@ -118,7 +118,7 @@ func TestNewBlockProcessor_ShouldErrSelfNotarizedHeadersNotifier(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldErrNilRounder(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.Rounder = nil
@@ -129,7 +129,7 @@ func TestNewBlockProcessor_ShouldErrNilRounder(t *testing.T) {
 }
 
 func TestNewBlockProcessor_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
@@ -139,7 +139,7 @@ func TestNewBlockProcessor_ShouldWork(t *testing.T) {
 }
 
 func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromSelfShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -159,7 +159,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromSelfShard(t *testing.T)
 }
 
 func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromCrossShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -179,7 +179,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromCrossShard(t *testing.T
 }
 
 func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -210,7 +210,7 @@ func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -286,7 +286,7 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestComputeLongestChainFromLastCrossNotarized_ShouldReturnNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
@@ -307,7 +307,7 @@ func TestComputeLongestChainFromLastCrossNotarized_ShouldReturnNil(t *testing.T)
 }
 
 func TestComputeLongestChainFromLastCrossNotarized_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -361,7 +361,7 @@ func TestComputeLongestChainFromLastCrossNotarized_ShouldWork(t *testing.T) {
 }
 
 func TestComputeSelfNotarizedHeaders_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -390,7 +390,7 @@ func TestComputeSelfNotarizedHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenHeaderIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -401,7 +401,7 @@ func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenHeaderIsNil(t *te
 }
 
 func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenSortHeadersFromNonceReturnEmptySlice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -412,7 +412,7 @@ func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenSortHeadersFromNo
 }
 
 func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -458,7 +458,7 @@ func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 }
 
 func TestGetNextHeader_ShouldReturnEmptySliceWhenPrevHeaderIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -472,7 +472,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenPrevHeaderIsNil(t *testing.T) {
 }
 
 func TestGetNextHeader_ShouldReturnEmptySliceWhenSortedHeadersHaveHigherNonces(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -487,7 +487,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenSortedHeadersHaveHigherNonces(t
 }
 
 func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderConstructionIsNotValid(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -502,7 +502,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderConstructionIsNotValid(t 
 }
 
 func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -533,7 +533,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *t
 }
 
 func TestGetNextHeader_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -573,7 +573,7 @@ func TestGetNextHeader_ShouldWork(t *testing.T) {
 }
 
 func TestCheckHeaderFinality_ShouldErrNilBlockHeader(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -585,7 +585,7 @@ func TestCheckHeaderFinality_ShouldErrNilBlockHeader(t *testing.T) {
 }
 
 func TestCheckHeaderFinality_ShouldErrHeaderNotFinal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -598,7 +598,7 @@ func TestCheckHeaderFinality_ShouldErrHeaderNotFinal(t *testing.T) {
 }
 
 func TestCheckHeaderFinality_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	hasherMock := &mock.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -626,7 +626,7 @@ func TestCheckHeaderFinality_ShouldWork(t *testing.T) {
 }
 
 func TestRequestHeadersIfNeeded_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -651,7 +651,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
 }
 
 func TestRequestHeadersIfNeeded_ShouldNotRequestIfSortedHeadersAreEmpty(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -676,7 +676,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfSortedHeadersAreEmpty(t *testi
 }
 
 func TestRequestHeadersIfNeeded_ShouldNotRequestIfNodeIsSync(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -702,7 +702,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfNodeIsSync(t *testing.T) {
 }
 
 func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -728,7 +728,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *tes
 }
 
 func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -788,7 +788,7 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 }
 
 func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFromReceivedHeadersIsNearToChronologyRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -820,7 +820,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFrom
 }
 
 func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHeaderNonceIsFarFromLatestValidHeaderNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
@@ -852,7 +852,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHea
 }
 
 func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromReceivedHeadersIsFarFromChronologyRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 

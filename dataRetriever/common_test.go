@@ -10,7 +10,7 @@ import (
 )
 
 func TestSetEpochHandlerToHdrResolver_GetErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localErr := errors.New("err")
 	resolverContainer := &mock.ResolversContainerStub{
@@ -25,7 +25,7 @@ func TestSetEpochHandlerToHdrResolver_GetErr(t *testing.T) {
 }
 
 func TestSetEpochHandlerToHdrResolver_CannotSetEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	localErr := errors.New("err")
 	resolverContainer := &mock.ResolversContainerStub{
@@ -44,7 +44,7 @@ func TestSetEpochHandlerToHdrResolver_CannotSetEpoch(t *testing.T) {
 }
 
 func TestSetEpochHandlerToHdrResolver_WrongType(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	resolverContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
@@ -58,7 +58,7 @@ func TestSetEpochHandlerToHdrResolver_WrongType(t *testing.T) {
 }
 
 func TestSetEpochHandlerToHdrResolver_Ok(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	resolverContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {

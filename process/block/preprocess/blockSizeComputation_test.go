@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewBlockSizeComputation_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, err := preprocess.NewBlockSizeComputation(nil)
 
@@ -21,7 +21,7 @@ func TestNewBlockSizeComputation_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewBlockSizeComputation_WithMockMarshalizerShouldWorkAndComputeValues(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, err := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
@@ -32,7 +32,7 @@ func TestNewBlockSizeComputation_WithMockMarshalizerShouldWorkAndComputeValues(t
 }
 
 func TestNewBlockSizeComputation_MarshalizerFailsShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	numComputations := 4
 	for i := 0; i < numComputations; i++ {
@@ -58,7 +58,7 @@ func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 }
 
 func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
@@ -69,7 +69,7 @@ func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
 }
 
 func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
@@ -80,7 +80,7 @@ func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
 }
 
 func TestBlockSizeComputation_Init(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
@@ -96,7 +96,7 @@ func TestBlockSizeComputation_Init(t *testing.T) {
 }
 
 func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 
@@ -123,7 +123,7 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 }
 
 func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
 

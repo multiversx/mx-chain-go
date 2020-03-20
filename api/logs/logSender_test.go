@@ -42,7 +42,7 @@ func createMockLogSender() (*logs.LogSender, *mock.WsConnStub, io.Writer) {
 //------- NewLogSender
 
 func TestNewLogSender_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := logs.NewLogSender(nil, &mock.WsConnStub{}, &mock.LoggerStub{})
 
@@ -51,7 +51,7 @@ func TestNewLogSender_NilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNewLogSender_NilConnectionShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := logs.NewLogSender(&mock.MarshalizerStub{}, nil, &mock.LoggerStub{})
 
@@ -60,7 +60,7 @@ func TestNewLogSender_NilConnectionShouldErr(t *testing.T) {
 }
 
 func TestNewLogSender_NilLoggerShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := logs.NewLogSender(&mock.MarshalizerStub{}, &mock.WsConnStub{}, nil)
 
@@ -69,7 +69,7 @@ func TestNewLogSender_NilLoggerShouldErr(t *testing.T) {
 }
 
 func TestNewLogSender_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, err := logs.NewLogSender(&mock.MarshalizerStub{}, &mock.WsConnStub{}, &mock.LoggerStub{})
 
@@ -83,7 +83,7 @@ func TestNewLogSender_ShouldWork(t *testing.T) {
 //------- StartSendingBlocking
 
 func TestLogSender_StartSendingBlockingConnReadMessageErrShouldCloseConn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	closeCalled := false
 	conn := &mock.WsConnStub{}
@@ -107,7 +107,7 @@ func TestLogSender_StartSendingBlockingConnReadMessageErrShouldCloseConn(t *test
 }
 
 func TestLogSender_StartSendingBlockingWrongPatternShouldCloseConn(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	closeCalled := false
 	conn := &mock.WsConnStub{}
@@ -131,7 +131,7 @@ func TestLogSender_StartSendingBlockingWrongPatternShouldCloseConn(t *testing.T)
 }
 
 func TestLogSender_StartSendingBlockingSendsMessage(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")
@@ -156,7 +156,7 @@ func TestLogSender_StartSendingBlockingSendsMessage(t *testing.T) {
 }
 
 func TestLogSender_StartSendingBlockingSendsMessageAndStopsWhenReadClose(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")
@@ -183,7 +183,7 @@ func TestLogSender_StartSendingBlockingSendsMessageAndStopsWhenReadClose(t *test
 }
 
 func TestLogSender_StartSendingBlockingConnWriteFailsShouldStop(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")

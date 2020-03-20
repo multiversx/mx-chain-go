@@ -12,7 +12,7 @@ import (
 )
 
 func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -23,7 +23,7 @@ func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
@@ -47,7 +47,7 @@ func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
@@ -71,7 +71,7 @@ func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
@@ -95,7 +95,7 @@ func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
@@ -144,7 +144,7 @@ func signSchnorr(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 }
 
 func TestSchnorrSigner_SignOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -156,7 +156,7 @@ func TestSchnorrSigner_SignOK(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -176,7 +176,7 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -188,7 +188,7 @@ func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -200,7 +200,7 @@ func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -212,7 +212,7 @@ func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -238,7 +238,7 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -258,7 +258,7 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
@@ -278,7 +278,7 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}

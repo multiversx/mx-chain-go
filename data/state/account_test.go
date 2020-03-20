@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	addrTr := &mock.AccountTrackerStub{}
@@ -32,7 +32,7 @@ func TestAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 }
 
 func TestAccount_NewAccountNilAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(nil, &mock.AccountTrackerStub{})
 
@@ -41,7 +41,7 @@ func TestAccount_NewAccountNilAddress(t *testing.T) {
 }
 
 func TestAccount_NewAccountNilAaccountTracker(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, nil)
 
@@ -50,7 +50,7 @@ func TestAccount_NewAccountNilAaccountTracker(t *testing.T) {
 }
 
 func TestAccount_NewAccountOk(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
@@ -60,7 +60,7 @@ func TestAccount_NewAccountOk(t *testing.T) {
 }
 
 func TestAccount_AddressContainer(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	addr := &mock.AddressMock{}
 	acc, err := state.NewAccount(addr, &mock.AccountTrackerStub{})
@@ -71,7 +71,7 @@ func TestAccount_AddressContainer(t *testing.T) {
 }
 
 func TestAccount_GetCode(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -84,7 +84,7 @@ func TestAccount_GetCode(t *testing.T) {
 }
 
 func TestAccount_SetAndGetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -96,7 +96,7 @@ func TestAccount_SetAndGetNonce(t *testing.T) {
 }
 
 func TestAccount_GetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -109,7 +109,7 @@ func TestAccount_GetCodeHash(t *testing.T) {
 }
 
 func TestAccount_SetCodeHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -122,7 +122,7 @@ func TestAccount_SetCodeHash(t *testing.T) {
 }
 
 func TestAccount_GetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -135,7 +135,7 @@ func TestAccount_GetRootHash(t *testing.T) {
 }
 
 func TestAccount_SetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -148,7 +148,7 @@ func TestAccount_SetRootHash(t *testing.T) {
 }
 
 func TestAccount_DataTrie(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -161,7 +161,7 @@ func TestAccount_DataTrie(t *testing.T) {
 }
 
 func TestAccount_SetNonceWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -189,7 +189,7 @@ func TestAccount_SetNonceWithJournal(t *testing.T) {
 }
 
 func TestAccount_SetBalanceWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -217,7 +217,7 @@ func TestAccount_SetBalanceWithJournal(t *testing.T) {
 }
 
 func TestAccount_SetCodeHashWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -245,7 +245,7 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 }
 
 func TestAccount_SetOwnerAddressWithJournal(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	journalizeWasCalled, saveAccountWasCalled := false, false
 	tracker := &mock.AccountTrackerStub{
@@ -269,7 +269,7 @@ func TestAccount_SetOwnerAddressWithJournal(t *testing.T) {
 }
 
 func TestAccount_AddAndClaimDeveloperRewardsWrongAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tracker := &mock.AccountTrackerStub{}
 	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
@@ -287,7 +287,7 @@ func TestAccount_AddAndClaimDeveloperRewardsWrongAddress(t *testing.T) {
 }
 
 func TestAccount_AddAndClaimDeveloperRewardsShouldWork(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tracker := &mock.AccountTrackerStub{}
 	acc, _ := state.NewAccount(&mock.AddressMock{}, tracker)
@@ -305,7 +305,7 @@ func TestAccount_AddAndClaimDeveloperRewardsShouldWork(t *testing.T) {
 }
 
 func TestAccount_ChangeOwnerAddress(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tracker := &mock.AccountTrackerStub{}
 
@@ -327,7 +327,7 @@ func TestAccount_ChangeOwnerAddress(t *testing.T) {
 }
 
 func TestAccount_AddToBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tracker := &mock.AccountTrackerStub{}
 
@@ -352,7 +352,7 @@ func TestAccount_AddToBalance(t *testing.T) {
 }
 
 func TestAccount_SubFromBalance(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	tracker := &mock.AccountTrackerStub{}
 

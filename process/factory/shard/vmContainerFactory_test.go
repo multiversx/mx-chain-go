@@ -30,7 +30,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 }
 
 func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
 		10000,
@@ -43,7 +43,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
 		10000,
@@ -57,7 +57,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
 		10000,

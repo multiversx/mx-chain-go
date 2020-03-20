@@ -39,7 +39,7 @@ func TestCounter_IncrementAndDecrement(t *testing.T) {
 }
 
 func TestCounter_SetAndGet(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var counter Counter
 

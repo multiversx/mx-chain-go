@@ -11,7 +11,7 @@ import (
 )
 
 func TestHeader_GetEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(1)
 	h := block.Header{
@@ -22,7 +22,7 @@ func TestHeader_GetEpoch(t *testing.T) {
 }
 
 func TestHeader_GetShard(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	shardId := uint32(2)
 	h := block.Header{
@@ -33,7 +33,7 @@ func TestHeader_GetShard(t *testing.T) {
 }
 
 func TestHeader_GetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(2)
 	h := block.Header{
@@ -44,7 +44,7 @@ func TestHeader_GetNonce(t *testing.T) {
 }
 
 func TestHeader_GetPrevHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevHash := []byte("prev hash")
 	h := block.Header{
@@ -55,7 +55,7 @@ func TestHeader_GetPrevHash(t *testing.T) {
 }
 
 func TestHeader_GetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevRandSeed := []byte("prev random seed")
 	h := block.Header{
@@ -66,7 +66,7 @@ func TestHeader_GetPrevRandSeed(t *testing.T) {
 }
 
 func TestHeader_GetRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	randSeed := []byte("random seed")
 	h := block.Header{
@@ -77,7 +77,7 @@ func TestHeader_GetRandSeed(t *testing.T) {
 }
 
 func TestHeader_GetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeysBitmap := []byte{10, 11, 12, 13}
 	h := block.Header{
@@ -88,7 +88,7 @@ func TestHeader_GetPubKeysBitmap(t *testing.T) {
 }
 
 func TestHeader_GetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	h := block.Header{
@@ -99,7 +99,7 @@ func TestHeader_GetRootHash(t *testing.T) {
 }
 
 func TestHeader_GetRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	round := uint64(1234)
 	h := block.Header{
@@ -110,7 +110,7 @@ func TestHeader_GetRound(t *testing.T) {
 }
 
 func TestHeader_GetSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	signature := []byte("signature")
 	h := block.Header{
@@ -121,7 +121,7 @@ func TestHeader_GetSignature(t *testing.T) {
 }
 
 func TestHeader_GetTxCount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCount := uint32(10)
 	h := block.Header{
@@ -132,7 +132,7 @@ func TestHeader_GetTxCount(t *testing.T) {
 }
 
 func TestHeader_SetEpoch(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	epoch := uint32(10)
 	h := block.Header{}
@@ -142,7 +142,7 @@ func TestHeader_SetEpoch(t *testing.T) {
 }
 
 func TestHeader_SetNonce(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	nonce := uint64(11)
 	h := block.Header{}
@@ -152,7 +152,7 @@ func TestHeader_SetNonce(t *testing.T) {
 }
 
 func TestHeader_SetPrevHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevHash := []byte("prev hash")
 	h := block.Header{}
@@ -162,7 +162,7 @@ func TestHeader_SetPrevHash(t *testing.T) {
 }
 
 func TestHeader_SetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	prevRandSeed := []byte("prev random seed")
 	h := block.Header{}
@@ -172,7 +172,7 @@ func TestHeader_SetPrevRandSeed(t *testing.T) {
 }
 
 func TestHeader_SetRandSeed(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	randSeed := []byte("random seed")
 	h := block.Header{}
@@ -182,7 +182,7 @@ func TestHeader_SetRandSeed(t *testing.T) {
 }
 
 func TestHeader_SetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	pubKeysBitmap := []byte{12, 13, 14, 15}
 	h := block.Header{}
@@ -192,7 +192,7 @@ func TestHeader_SetPubKeysBitmap(t *testing.T) {
 }
 
 func TestHeader_SetRootHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	h := block.Header{}
@@ -202,7 +202,7 @@ func TestHeader_SetRootHash(t *testing.T) {
 }
 
 func TestHeader_SetRound(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	rootHash := []byte("root hash")
 	h := block.Header{}
@@ -212,7 +212,7 @@ func TestHeader_SetRound(t *testing.T) {
 }
 
 func TestHeader_SetSignature(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	signature := []byte("signature")
 	h := block.Header{}
@@ -222,7 +222,7 @@ func TestHeader_SetSignature(t *testing.T) {
 }
 
 func TestHeader_SetTimeStamp(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	timeStamp := uint64(100000)
 	h := block.Header{}
@@ -232,7 +232,7 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 }
 
 func TestHeader_SetTxCount(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txCount := uint32(10)
 	h := block.Header{}
@@ -242,14 +242,14 @@ func TestHeader_SetTxCount(t *testing.T) {
 }
 
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var body *block.Body = nil
 	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
@@ -268,7 +268,7 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 }
 
 func TestBody_IntegrityAndValidityOK(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
@@ -321,7 +321,7 @@ func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
 }
 
 func TestHeader_CheckChainID(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	chainID := []byte("chainID")
 	okChainID := []byte("chainID")
@@ -335,7 +335,7 @@ func TestHeader_CheckChainID(t *testing.T) {
 }
 
 func TestMiniBlock_Clone(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	miniBlock := &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
