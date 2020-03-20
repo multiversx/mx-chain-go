@@ -119,6 +119,12 @@ VERSION:
 		Usage: "The economics configuration file to load",
 		Value: "./config/economics.toml",
 	}
+	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	configurationRatingsFile = cli.StringFlag{
+		Name:  "config-ratings",
+		Usage: "The ratings configuration file to load",
+		Value: "./config/ratings.toml",
+	}
 	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
 	configurationPreferencesFile = cli.StringFlag{
 		Name:  "config-preferences",
@@ -312,6 +318,7 @@ func main() {
 		port,
 		configurationFile,
 		configurationEconomicsFile,
+		configurationRatingsFile,
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
@@ -423,6 +430,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
+	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationRatingsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
 	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
@@ -572,7 +586,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	log.Trace("creating ratings data components")
+	ratingsData, err := rating.NewRatingsData(ratingsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(ratingsData)
 	if err != nil {
 		return err
 	}
@@ -1039,6 +1059,16 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 	cfg := &config.EconomicsConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
+	cfg := &config.RatingsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err

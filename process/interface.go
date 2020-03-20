@@ -721,20 +721,36 @@ type SelectionChance interface {
 	GetChancePercent() uint32
 }
 
-// RatingsInfo defines the information needed for the rating computation
-type RatingsInfo interface {
+// RatingsInfoHandler defines the information needed for the rating computation
+type RatingsInfoHandler interface {
 	StartRating() uint32
 	MaxRating() uint32
 	MinRating() uint32
-	ProposerIncreaseRatingStep() uint32
-	ProposerDecreaseRatingStep() uint32
-	ValidatorIncreaseRatingStep() uint32
-	ValidatorDecreaseRatingStep() uint32
+	MetaChainRatingsStepHandler() RatingsStepHandler
+	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+}
+
+// RatingsStepHandler defines the information needed for the rating computation on shards or meta
+type RatingsStepHandler interface {
+	ProposerIncreaseRatingStep() int32
+	ProposerDecreaseRatingStep() int32
+	ValidatorIncreaseRatingStep() int32
+	ValidatorDecreaseRatingStep() int32
 }
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
 type ValidatorInfoProcessorHandler interface {
 	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	IsInterfaceNil() bool
+}
+
+//RatingChance provides the methods needed for the computation of chances from the Rating
+type RatingChance interface {
+	//GetMaxThreshold returns the threshold until this ChancePercentage holds
+	GetMaxThreshold() uint32
+	//GetChancePercentage returns the percentage for the RatingChance
+	GetChancePercentage() uint32
+	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

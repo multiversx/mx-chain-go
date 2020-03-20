@@ -3,63 +3,58 @@ package rating_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	validatorIncreaseRatingStep = uint32(1)
-	validatorDecreaseRatingStep = uint32(2)
-	proposerIncreaseRatingStep  = uint32(2)
-	proposerDecreaseRatingStep  = uint32(4)
-	minRating                   = uint32(1)
-	maxRating                   = uint32(100)
-	startRating                 = uint32(50)
+	validatorIncreaseRatingStep     = int32(1)
+	validatorDecreaseRatingStep     = int32(-2)
+	proposerIncreaseRatingStep      = int32(2)
+	proposerDecreaseRatingStep      = int32(-4)
+	metaValidatorIncreaseRatingStep = int32(3)
+	metaValidatorDecreaseRatingStep = int32(-4)
+	metaProposerIncreaseRatingStep  = int32(5)
+	metaProposerDecreaseRatingStep  = int32(-10)
+	minRating                       = uint32(1)
+	maxRating                       = uint32(100)
+	startRating                     = uint32(50)
 )
 
-func createDefaultChances() []config.SelectionChance {
-	chances := make([]config.SelectionChance, 0)
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  0,
-		ChancePercent: 50,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  10,
-		ChancePercent: 0,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  25,
-		ChancePercent: 90,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  75,
-		ChancePercent: 100,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  100,
-		ChancePercent: 110,
-	})
+func createDefaultChances() []process.SelectionChance {
+	chances := []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 0, ChancePercent: 50},
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 25, ChancePercent: 90},
+		&rating.SelectionChance{MaxThreshold: 75, ChancePercent: 100},
+		&rating.SelectionChance{MaxThreshold: 100, ChancePercent: 110},
+	}
 
 	return chances
 }
 
-func createDefaultRatingsData() *economics.RatingsData {
-	data := config.RatingSettings{
-		StartRating:                 startRating,
-		MaxRating:                   maxRating,
-		MinRating:                   minRating,
-		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-		SelectionChance:             createDefaultChances(),
+func createDefaultRatingsData() *mock.RatingsInfoMock {
+	ratingsData := &mock.RatingsInfoMock{
+		StartRatingProperty: startRating,
+		MaxRatingProperty:   maxRating,
+		MinRatingProperty:   minRating,
+		MetaRatingsStepDataProperty: &mock.RatingStepMock{
+			ProposerIncreaseRatingStepProperty:  metaProposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:  metaProposerDecreaseRatingStep,
+			ValidatorIncreaseRatingStepProperty: metaValidatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty: metaValidatorDecreaseRatingStep,
+		},
+		ShardRatingsStepDataProperty: &mock.RatingStepMock{
+			ProposerIncreaseRatingStepProperty:  proposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:  proposerDecreaseRatingStep,
+			ValidatorIncreaseRatingStepProperty: validatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty: validatorDecreaseRatingStep,
+		},
+		SelectionChancesProperty: createDefaultChances(),
 	}
 
-	ratingsData, _ := economics.NewRatingsData(data)
 	return ratingsData
 }
 
@@ -78,7 +73,7 @@ func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderM
 	return rrm
 }
 
-func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRater {
+func setupRater(rd process.RatingsInfoHandler, pk string, initialRating uint32) *rating.BlockSigningRater {
 	bsr, _ := rating.NewBlockSigningRater(rd)
 	ratingPk := pk
 	ratingsMap := make(map[string]uint32)
@@ -138,7 +133,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 	bsr := setupRater(rd, pk, initialRatingValue)
 	computedRating := bsr.ComputeIncreaseProposer(initialRatingValue)
 
-	expectedValue := initialRatingValue + proposerIncreaseRatingStep
+	expectedValue := uint32(int32(initialRatingValue) + proposerIncreaseRatingStep)
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -152,7 +147,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testi
 
 	computedRating := bsr.ComputeIncreaseValidator(initialRatingValue)
 
-	expectedValue := initialRatingValue + validatorIncreaseRatingStep
+	expectedValue := uint32(int32(initialRatingValue) + validatorIncreaseRatingStep)
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -166,7 +161,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAcc
 
 	computedRating := bsr.ComputeDecreaseValidator(initialRatingValue)
 
-	expectedValue := initialRatingValue - validatorDecreaseRatingStep
+	expectedValue := uint32(int32(initialRatingValue) + validatorDecreaseRatingStep)
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -180,7 +175,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAcce
 
 	computedRating := bsr.ComputeDecreaseProposer(initialRatingValue)
 
-	expectedValue := initialRatingValue - proposerDecreaseRatingStep
+	expectedValue := uint32(int32(initialRatingValue) + proposerDecreaseRatingStep)
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -239,10 +234,10 @@ func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *
 	pk3ComputedRating := bsr.ComputeIncreaseValidator(ratingsMap[pk3])
 	pk4ComputedRating := bsr.ComputeDecreaseValidator(ratingsMap[pk4])
 
-	expectedPk1 := ratingsMap[pk1] + proposerIncreaseRatingStep
-	expectedPk2 := ratingsMap[pk2] - proposerDecreaseRatingStep
-	expectedPk3 := ratingsMap[pk3] + validatorIncreaseRatingStep
-	expectedPk4 := ratingsMap[pk4] - validatorDecreaseRatingStep
+	expectedPk1 := uint32(int32(ratingsMap[pk1]) + proposerIncreaseRatingStep)
+	expectedPk2 := uint32(int32(ratingsMap[pk2]) + proposerDecreaseRatingStep)
+	expectedPk3 := uint32(int32(ratingsMap[pk3]) + validatorIncreaseRatingStep)
+	expectedPk4 := uint32(int32(ratingsMap[pk4]) + validatorDecreaseRatingStep)
 
 	assert.Equal(t, expectedPk1, pk1ComputedRating)
 	assert.Equal(t, expectedPk2, pk2ComputedRating)
@@ -251,18 +246,8 @@ func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithChancesNilShouldErr(t *testing.T) {
-	data := config.RatingSettings{
-		StartRating:                 startRating,
-		MaxRating:                   maxRating,
-		MinRating:                   minRating,
-		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-		SelectionChance:             nil,
-	}
-
-	ratingsData, _ := economics.NewRatingsData(data)
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SelectionChancesProperty = nil
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -271,40 +256,15 @@ func TestBlockSigningRater_NewBlockSigningRaterWithChancesNilShouldErr(t *testin
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldErr(t *testing.T) {
-	chances := make([]config.SelectionChance, 0)
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  0,
-		ChancePercent: 50,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  10,
-		ChancePercent: 0,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 90,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 100,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  100,
-		ChancePercent: 110,
-	})
-
-	data := config.RatingSettings{
-		StartRating:                 startRating,
-		MaxRating:                   maxRating,
-		MinRating:                   minRating,
-		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-		SelectionChance:             chances,
+	chances := []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 0, ChancePercent: 50},
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 20, ChancePercent: 90},
+		&rating.SelectionChance{MaxThreshold: 20, ChancePercent: 100},
+		&rating.SelectionChance{MaxThreshold: 100, ChancePercent: 110},
 	}
-
-	ratingsData, _ := economics.NewRatingsData(data)
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SelectionChancesProperty = chances
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -313,34 +273,8 @@ func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldE
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *testing.T) {
-	chances := make([]process.SelectionChance, 0)
-	chances = append(chances, &economics.SelectionChance{
-		MaxThreshold:  10,
-		ChancePercent: 0,
-	})
-	chances = append(chances, &economics.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 90,
-	})
-	chances = append(chances, &economics.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 100,
-	})
-	chances = append(chances, &economics.SelectionChance{
-		MaxThreshold:  100,
-		ChancePercent: 110,
-	})
-
-	ratingsData := &mock.RatingsInfoMock{
-		StartRatingVal:                 startRating,
-		MaxRatingVal:                   maxRating,
-		MinRatingVal:                   0,
-		ProposerIncreaseRatingStepVal:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStepVal:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStepVal: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStepVal: validatorDecreaseRatingStep,
-		SelectionChancesVal:            chances,
-	}
+	ratingsData := createDefaultRatingsData()
+	ratingsData.MinRatingProperty = 0
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -348,37 +282,16 @@ func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *tes
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
-func TestBlockSigningRater_NewBlockSigningRaterWithNoMaxThresholdZeroShouldErr(t *testing.T) {
-	chances := make([]config.SelectionChance, 0)
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  10,
-		ChancePercent: 0,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 90,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 100,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  100,
-		ChancePercent: 110,
-	})
-
-	data := config.RatingSettings{
-		StartRating:                 startRating,
-		MaxRating:                   maxRating,
-		MinRating:                   minRating,
-		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-		SelectionChance:             chances,
+func TestBlockSigningRater_NewBlockSigningRaterWithNonExistingMaxThresholdZeroShouldErr(t *testing.T) {
+	chances := []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 20, ChancePercent: 90},
+		&rating.SelectionChance{MaxThreshold: 20, ChancePercent: 100},
+		&rating.SelectionChance{MaxThreshold: 100, ChancePercent: 110},
 	}
 
-	ratingsData, _ := economics.NewRatingsData(data)
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SelectionChancesProperty = chances
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -387,32 +300,13 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoMaxThresholdZeroShouldErr(t
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithNoValueForMaxThresholdShouldErr(t *testing.T) {
-	chances := make([]config.SelectionChance, 0)
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  0,
-		ChancePercent: 5,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  10,
-		ChancePercent: 0,
-	})
-	chances = append(chances, config.SelectionChance{
-		MaxThreshold:  20,
-		ChancePercent: 90,
-	})
-
-	data := config.RatingSettings{
-		StartRating:                 startRating,
-		MaxRating:                   maxRating,
-		MinRating:                   minRating,
-		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-		SelectionChance:             chances,
+	chances := []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 0, ChancePercent: 5},
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 20, ChancePercent: 90},
 	}
-
-	ratingsData, _ := economics.NewRatingsData(data)
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SelectionChancesProperty = chances
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -427,6 +321,19 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 
 	assert.NotNil(t, bsr)
 	assert.Nil(t, err)
+
+	testValue := int32(50)
+	assert.Equal(t, ratingsData.StartRating(), bsr.GetStartRating())
+	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(uint32(testValue)))
+	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(uint32(testValue)))
+	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(uint32(testValue)))
+	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(uint32(testValue)))
+
+	assert.Equal(t, ratingsData.SelectionChances()[0].GetChancePercent(), bsr.GetChance(uint32(0)))
+	assert.Equal(t, ratingsData.SelectionChances()[1].GetChancePercent(), bsr.GetChance(uint32(9)))
+	assert.Equal(t, ratingsData.SelectionChances()[2].GetChancePercent(), bsr.GetChance(uint32(20)))
+	assert.Equal(t, ratingsData.SelectionChances()[3].GetChancePercent(), bsr.GetChance(uint32(50)))
+	assert.Equal(t, ratingsData.SelectionChances()[4].GetChancePercent(), bsr.GetChance(uint32(100)))
 }
 
 func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *testing.T) {

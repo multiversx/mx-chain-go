@@ -130,16 +130,6 @@ type Cacher interface {
 	Get(key []byte) (value interface{}, ok bool)
 }
 
-//RatingChance provides the methods needed for the computation of chances from the Rating
-type RatingChance interface {
-	//GetMaxThreshold returns the threshold until this ChancePercentage holds
-	GetMaxThreshold() uint32
-	//GetChancePercentage returns the percentage for the RatingChance
-	GetChancePercentage() uint32
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
-}
-
 // EpochHandler defines a struct able to output current epoch
 type EpochHandler interface {
 	Epoch() uint32

@@ -11,18 +11,16 @@ import (
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
 	sharding.RatingReader
-	startRating                 uint32
-	maxRating                   uint32
-	minRating                   uint32
-	proposerIncreaseRatingStep  int32
-	proposerDecreaseRatingStep  int32
-	validatorIncreaseRatingStep int32
-	validatorDecreaseRatingStep int32
-	ratingChances               []sharding.RatingChance
+	startRating             uint32
+	maxRating               uint32
+	minRating               uint32
+	shardRatingsStepHandler process.RatingsStepHandler
+	metaRatingsStepHandler  process.RatingsStepHandler
+	ratingChances           []process.RatingChance
 }
 
 // NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
-func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, error) {
+func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigningRater, error) {
 	if ratingsData.MinRating() < 1 {
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
@@ -36,7 +34,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 		return nil, process.ErrNoChancesProvided
 	}
 
-	ratingChances := make([]sharding.RatingChance, len(ratingsData.SelectionChances()))
+	ratingChances := make([]process.RatingChance, len(ratingsData.SelectionChances()))
 
 	for i, chance := range ratingsData.SelectionChances() {
 		ratingChances[i] = &selectionChance{
@@ -64,15 +62,13 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 	}
 
 	return &BlockSigningRater{
-		startRating:                 ratingsData.StartRating(),
-		minRating:                   ratingsData.MinRating(),
-		maxRating:                   ratingsData.MaxRating(),
-		proposerIncreaseRatingStep:  int32(ratingsData.ProposerIncreaseRatingStep()),
-		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
-		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
-		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                NewNilRatingReader(ratingsData.StartRating()),
-		ratingChances:               ratingChances,
+		startRating:             ratingsData.StartRating(),
+		minRating:               ratingsData.MinRating(),
+		maxRating:               ratingsData.MaxRating(),
+		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
+		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
+		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
+		ratingChances:           ratingChances,
 	}, nil
 }
 
@@ -116,23 +112,23 @@ func (bsr *BlockSigningRater) GetStartRating() uint32 {
 }
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
-func (bsr *BlockSigningRater) ComputeIncreaseProposer(val uint32) uint32 {
-	return bsr.computeRating(bsr.proposerIncreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeIncreaseProposer(previousRating uint32) uint32 {
+	return bsr.computeRating(bsr.shardRatingsStepHandler.ProposerIncreaseRatingStep(), previousRating)
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
-func (bsr *BlockSigningRater) ComputeDecreaseProposer(val uint32) uint32 {
-	return bsr.computeRating(bsr.proposerDecreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeDecreaseProposer(previousRating uint32) uint32 {
+	return bsr.computeRating(bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep(), previousRating)
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator
-func (bsr *BlockSigningRater) ComputeIncreaseValidator(val uint32) uint32 {
-	return bsr.computeRating(bsr.validatorIncreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeIncreaseValidator(previousRating uint32) uint32 {
+	return bsr.computeRating(bsr.shardRatingsStepHandler.ValidatorIncreaseRatingStep(), previousRating)
 }
 
 // ComputeDecreaseValidator computes the new rating for the decreaseValidator
-func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
-	return bsr.computeRating(bsr.validatorDecreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeDecreaseValidator(previousRating uint32) uint32 {
+	return bsr.computeRating(bsr.shardRatingsStepHandler.ValidatorDecreaseRatingStep(), previousRating)
 }
 
 // GetChance returns the RatingChance for the pk

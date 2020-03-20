@@ -490,8 +490,10 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
+	ihgs.mutNodesConfig.Lock()
+	defer ihgs.mutNodesConfig.Unlock()
 
-	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining)
+	ihgs.displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining, nodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
@@ -650,16 +652,29 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
-func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
-	for shardId, validators := range eligible {
-		for _, validator := range validators {
+func (ihgs *indexHashedNodesCoordinator) displayNodesConfiguration(
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	leaving []Validator,
+	actualLeaving []Validator,
+	nbShards uint32,
+) {
+
+	for _, validator := range eligible[core.MetachainShardId] {
+		pk := validator.PubKey()
+		log.Debug("eligible", "pk", pk, "shardId", core.MetachainShardId)
+	}
+	for _, validator := range waiting[core.MetachainShardId] {
+		pk := validator.PubKey()
+		log.Debug("waiting", "pk", pk, "shardId", core.MetachainShardId)
+	}
+
+	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		for _, validator := range eligible[shardId] {
 			pk := validator.PubKey()
 			log.Debug("eligible", "pk", pk, "shardId", shardId)
 		}
-	}
-
-	for shardId, validators := range waiting {
-		for _, validator := range validators {
+		for _, validator := range waiting[shardId] {
 			pk := validator.PubKey()
 			log.Debug("waiting", "pk", pk, "shardId", shardId)
 		}
