@@ -39,7 +39,7 @@ func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg
 
 	_ = mes.RegisterMessageProcessor("test",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
 				if bytes.Equal(matchData, message.Data()) {
 					fmt.Printf("%s got the message\n", mes.ID().Pretty())
 					wg.Done()
