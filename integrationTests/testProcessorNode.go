@@ -811,6 +811,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
+		tpn.FeeAccumulator,
 	)
 }
 
@@ -904,6 +905,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
+		tpn.FeeAccumulator,
 	)
 }
 
