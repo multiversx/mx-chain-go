@@ -4,22 +4,14 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 
 // RaterMock -
 type RaterMock struct {
-	StartRating                      uint32
-	MinRating                        uint32
-	MaxRating                        uint32
-	Chance                           uint32
-	IncreaseProposer                 uint32
-	DecreaseProposer                 uint32
-	IncreaseValidator                uint32
-	DecreaseValidator                uint32
 	GetRatingCalled                  func(string) uint32
 	UpdateRatingFromTempRatingCalled func([]string) error
 	GetStartRatingCalled             func() uint32
-	ComputeIncreaseProposerCalled    func(val uint32) uint32
-	ComputeDecreaseProposerCalled    func(val uint32) uint32
-	ComputeIncreaseValidatorCalled   func(val uint32) uint32
-	ComputeDecreaseValidatorCalled   func(val uint32) uint32
-	GetChanceCalled                  func(val uint32) uint32
+	ComputeIncreaseProposerCalled    func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseProposerCalled    func(shardId uint32, rating uint32) uint32
+	ComputeIncreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
+	GetChanceCalled                  func(rating uint32) uint32
 	RatingReader                     sharding.RatingReader
 }
 
@@ -39,23 +31,23 @@ func (rm *RaterMock) GetStartRating() uint32 {
 }
 
 // ComputeIncreaseProposer -
-func (rm *RaterMock) ComputeIncreaseProposer(rating uint32) uint32 {
-	return rm.ComputeIncreaseProposerCalled(rating)
+func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterMock) ComputeDecreaseProposer(rating uint32) uint32 {
-	return rm.ComputeDecreaseProposerCalled(rating)
+func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeDecreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeIncreaseValidator -
-func (rm *RaterMock) ComputeIncreaseValidator(rating uint32) uint32 {
-	return rm.ComputeIncreaseValidatorCalled(rating)
+func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeIncreaseValidatorCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseValidator -
-func (rm *RaterMock) ComputeDecreaseValidator(rating uint32) uint32 {
-	return rm.ComputeDecreaseValidatorCalled(rating)
+func (rm *RaterMock) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeDecreaseValidatorCalled(shardId, currentRating)
 }
 
 // GetChance -

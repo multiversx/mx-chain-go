@@ -3,6 +3,7 @@ package rating
 import (
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -11,18 +12,16 @@ import (
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
 	sharding.RatingReader
-	startRating                 uint32
-	maxRating                   uint32
-	minRating                   uint32
-	proposerIncreaseRatingStep  int32
-	proposerDecreaseRatingStep  int32
-	validatorIncreaseRatingStep int32
-	validatorDecreaseRatingStep int32
-	ratingChances               []sharding.RatingChance
+	startRating             uint32
+	maxRating               uint32
+	minRating               uint32
+	shardRatingsStepHandler process.RatingsStepHandler
+	metaRatingsStepHandler  process.RatingsStepHandler
+	ratingChances           []process.RatingChanceHandler
 }
 
 // NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
-func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, error) {
+func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigningRater, error) {
 	if ratingsData.MinRating() < 1 {
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
@@ -36,7 +35,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 		return nil, process.ErrNoChancesProvided
 	}
 
-	ratingChances := make([]sharding.RatingChance, len(ratingsData.SelectionChances()))
+	ratingChances := make([]process.RatingChanceHandler, len(ratingsData.SelectionChances()))
 
 	for i, chance := range ratingsData.SelectionChances() {
 		ratingChances[i] = &selectionChance{
@@ -64,15 +63,13 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 	}
 
 	return &BlockSigningRater{
-		startRating:                 ratingsData.StartRating(),
-		minRating:                   ratingsData.MinRating(),
-		maxRating:                   ratingsData.MaxRating(),
-		proposerIncreaseRatingStep:  int32(ratingsData.ProposerIncreaseRatingStep()),
-		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
-		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
-		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                NewNilRatingReader(ratingsData.StartRating()),
-		ratingChances:               ratingChances,
+		startRating:             ratingsData.StartRating(),
+		minRating:               ratingsData.MinRating(),
+		maxRating:               ratingsData.MaxRating(),
+		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
+		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
+		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
+		ratingChances:           ratingChances,
 	}, nil
 }
 
@@ -116,26 +113,51 @@ func (bsr *BlockSigningRater) GetStartRating() uint32 {
 }
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
-func (bsr *BlockSigningRater) ComputeIncreaseProposer(val uint32) uint32 {
-	return bsr.computeRating(bsr.proposerIncreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	var ratingStep int32
+	if shardId == core.MetachainShardId {
+		ratingStep = bsr.metaRatingsStepHandler.ProposerIncreaseRatingStep()
+	} else {
+		ratingStep = bsr.shardRatingsStepHandler.ProposerIncreaseRatingStep()
+	}
+
+	return bsr.computeRating(ratingStep, currentRating)
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
-func (bsr *BlockSigningRater) ComputeDecreaseProposer(val uint32) uint32 {
-	return bsr.computeRating(bsr.proposerDecreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	var ratingStep int32
+	if shardId == core.MetachainShardId {
+		ratingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
+	} else {
+		ratingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
+	}
+	return bsr.computeRating(ratingStep, currentRating)
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator
-func (bsr *BlockSigningRater) ComputeIncreaseValidator(val uint32) uint32 {
-	return bsr.computeRating(bsr.validatorIncreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	var ratingStep int32
+	if shardId == core.MetachainShardId {
+		ratingStep = bsr.metaRatingsStepHandler.ValidatorIncreaseRatingStep()
+	} else {
+		ratingStep = bsr.shardRatingsStepHandler.ValidatorIncreaseRatingStep()
+	}
+	return bsr.computeRating(ratingStep, currentRating)
 }
 
 // ComputeDecreaseValidator computes the new rating for the decreaseValidator
-func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
-	return bsr.computeRating(bsr.validatorDecreaseRatingStep, val)
+func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	var ratingStep int32
+	if shardId == core.MetachainShardId {
+		ratingStep = bsr.metaRatingsStepHandler.ValidatorDecreaseRatingStep()
+	} else {
+		ratingStep = bsr.shardRatingsStepHandler.ValidatorDecreaseRatingStep()
+	}
+	return bsr.computeRating(ratingStep, currentRating)
 }
 
-// GetChance returns the RatingChance for the pk
+// GetChance returns the RatingChanceHandler for the pk
 func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
 	chance := bsr.ratingChances[0].GetChancePercentage()
 	for i := 0; i < len(bsr.ratingChances); i++ {
