@@ -297,7 +297,7 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
-// CreateStore creates a storage service for shard nodes
+// CreateStore creates a storage service for all types of nodes
 func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
@@ -316,27 +316,6 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, CreateMemUnit())
-	}
-
-	return store
-}
-
-// CreateMetaStore creates a storage service for meta nodes
-func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
-
-	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
 
 	return store
@@ -769,19 +748,6 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
-}
-
-// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
-	for i := 0; i < nrOfRounds; i++ {
-		UpdateRound(nodes, round)
-		ProposeBlock(nodes, idxProposers, round, nonce)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	return nonce, round
 }
 
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round

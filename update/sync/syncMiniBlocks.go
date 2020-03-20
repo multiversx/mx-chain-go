@@ -41,7 +41,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
 	if check.IfNil(args.Cache) {
-		return nil, dataRetriever.ErrNilCacher
+		return nil, update.ErrNilCacher
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
@@ -156,14 +156,14 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 
 	firstUnFinishedNonce := firstPendingMeta.GetNonce()
 	for nonce := firstUnFinishedNonce + 1; nonce <= epochStartNonce; nonce++ {
-		metaHash, ok := nonceToHash[nonce]
-		if !ok {
+		metaHash, metaHashExists := nonceToHash[nonce]
+		if !metaHashExists {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 
 		log.Debug("unFinished access")
-		meta, ok := unFinished[metaHash]
-		if !ok {
+		meta, unFinishedExists := unFinished[metaHash]
+		if !unFinishedExists {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 

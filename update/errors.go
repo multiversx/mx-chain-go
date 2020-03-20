@@ -157,3 +157,6 @@ var ErrNilAccountsDBSyncContainer = errors.New("nil accounts db sync container")
 
 // ErrNilValidatorInfoProcessor signals that nil validator info was provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")

@@ -555,7 +555,7 @@ type processComponentsFactoryArgs struct {
 	network                   *Network
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
-	whiteListHandler       	  process.InterceptedDataWhiteList
+	whiteListHandler          process.InterceptedDataWhiteList
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.RaterHandler
@@ -851,50 +851,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	}
 
 	return nil
-}
-
-//TODO move from here?
-func newRequestHandler(
-	resolversFinder dataRetriever.ResolversFinder,
-	shardCoordinator sharding.Coordinator,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-) (process.RequestHandler, error) {
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-			shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debug("created resolvers",
-			"resolvers", resolversFinder.ResolverKeys(),
-		)
-
-		return requestHandler, nil
-	}
-
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debug("created resolvers",
-			"resolvers", resolversFinder.ResolverKeys(),
-		)
-
-		return requestHandler, nil
-	}
-
-	return nil, errors.New("could not create new request handler because of wrong shard id")
 }
 
 func newEpochStartTrigger(

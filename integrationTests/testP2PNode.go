@@ -97,11 +97,7 @@ func NewTestP2PNode(
 }
 
 func (tP2pNode *TestP2PNode) initStorage() {
-	if tP2pNode.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tP2pNode.Storage = CreateMetaStore(tP2pNode.ShardCoordinator)
-	} else {
-		tP2pNode.Storage = CreateShardStore(tP2pNode.ShardCoordinator.NumberOfShards())
-	}
+	tP2pNode.Storage = CreateStore(tP2pNode.ShardCoordinator.NumberOfShards())
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {

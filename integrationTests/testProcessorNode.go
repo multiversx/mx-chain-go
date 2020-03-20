@@ -25,7 +25,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -198,7 +197,7 @@ type TestProcessorNode struct {
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
-	WhiteListHandler      process.InterceptedDataWhiteList
+	WhiteListHandler         process.InterceptedDataWhiteList
 
 	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
 	EpochStartTrigger      TestEpochStartTrigger
@@ -323,11 +322,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(stateFactory.UserAccount)
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(state.UserAccount)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(stateFactory.ValidatorAccount)
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(state.ValidatorAccount)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 }
 
