@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -57,10 +58,9 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 	}
 }
 
-// FindLastEpochAndRoundFromStorage finds the last epoch by searching over the storage folders
-// TODO: something similar should be done for determining the correct shardId
-// when booting from storage with an epoch > 0 or add ShardId in boot storer
-func FindLastEpochAndRoundFromStorage(
+// FindLatestDataFromStorage finds the last data (such as last epoch, shard ID or round) by searching over the
+// storage folders and opening older databases
+func FindLatestDataFromStorage(
 	generalConfig config.Config,
 	marshalizer marshal.Marshalizer,
 	workingDir string,
@@ -68,7 +68,7 @@ func FindLastEpochAndRoundFromStorage(
 	defaultDBPath string,
 	defaultEpochString string,
 	defaultShardString string,
-) (uint32, int64, error) {
+) (uint32, uint32, int64, error) {
 	parentDir := filepath.Join(
 		workingDir,
 		defaultDBPath,
@@ -76,14 +76,14 @@ func FindLastEpochAndRoundFromStorage(
 
 	f, err := os.Open(parentDir)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
 	files, err := f.Readdir(negativeNumber)
 	_ = f.Close()
 
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
 	epochDirs := make([]string, 0, len(files))
@@ -102,7 +102,7 @@ func FindLastEpochAndRoundFromStorage(
 
 	lastEpoch, err := getLastEpochFromDirNames(epochDirs)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
 	return getLastEpochAndRoundFromStorage(generalConfig, marshalizer, parentDir, defaultEpochString, defaultShardString, lastEpoch)
@@ -140,7 +140,7 @@ func getLastEpochAndRoundFromStorage(
 	defaultEpochString string,
 	defaultShardString string,
 	epoch uint32,
-) (uint32, int64, error) {
+) (uint32, uint32, int64, error) {
 	persisterFactory := NewPersisterFactory(config.BootstrapStorage.DB)
 	pathWithoutShard := filepath.Join(
 		parentDir,
@@ -148,16 +148,17 @@ func getLastEpochAndRoundFromStorage(
 	)
 	shardIdsStr, err := getShardsFromDirectory(pathWithoutShard, defaultShardString)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
 	var mostRecentBootstrapData *bootstrapStorage.BootstrapData
+	var mostRecentShard string
 	highestRoundInStoredShards := int64(0)
 
 	for _, shardIdStr := range shardIdsStr {
 		persisterPath := filepath.Join(
 			pathWithoutShard,
-			defaultShardString+shardIdStr,
+			fmt.Sprintf("%s_%s", defaultShardString, shardIdStr),
 			config.BootstrapStorage.DB.FilePath,
 		)
 
@@ -169,14 +170,19 @@ func getLastEpochAndRoundFromStorage(
 		if bootstrapData.LastRound > highestRoundInStoredShards {
 			highestRoundInStoredShards = bootstrapData.LastRound
 			mostRecentBootstrapData = bootstrapData
+			mostRecentShard = shardIdStr
 		}
 	}
 
 	if mostRecentBootstrapData == nil {
-		return 0, 0, storage.ErrBootstrapDataNotFoundInStorage
+		return 0, 0, 0, storage.ErrBootstrapDataNotFoundInStorage
 	}
-	log.Debug("found epoch in BootstrapData", "epoch", mostRecentBootstrapData.LastHeader.Epoch)
-	return mostRecentBootstrapData.LastHeader.Epoch, mostRecentBootstrapData.LastRound, nil
+	shardIDAsUint32, err := convertShardIDToUint32(mostRecentShard)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return mostRecentBootstrapData.LastHeader.Epoch, shardIDAsUint32, mostRecentBootstrapData.LastRound, nil
 }
 
 func getBootstrapDataForPersisterPath(
@@ -230,7 +236,8 @@ func getShardsFromDirectory(path string, defaultShardString string) ([]string, e
 
 	for _, file := range files {
 		fileName := file.Name()
-		splitSlice := strings.Split(fileName, defaultShardString)
+		stringToSplitBy := defaultShardString + "_"
+		splitSlice := strings.Split(fileName, stringToSplitBy)
 		if len(splitSlice) < 2 {
 			continue
 		}
@@ -239,4 +246,17 @@ func getShardsFromDirectory(path string, defaultShardString string) ([]string, e
 	}
 
 	return shardIDs, nil
+}
+
+func convertShardIDToUint32(shardIDStr string) (uint32, error) {
+	if shardIDStr == "metachain" {
+		return math.MaxUint32, nil
+	}
+
+	shardID, err := strconv.ParseInt(shardIDStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(shardID), nil
 }
