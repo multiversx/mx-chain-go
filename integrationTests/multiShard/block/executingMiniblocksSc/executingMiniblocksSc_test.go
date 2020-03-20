@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../../../agarioV3.hex"
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnlyProposers tests the following scenario:
 // There are 2 shards and 1 meta, each with only one node (proposer).
