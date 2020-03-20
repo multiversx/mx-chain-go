@@ -34,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
@@ -188,12 +187,22 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
+	esdp.requestHandler = requestHandlerMeta
+
 	interceptorsContainer, err := esdp.createInterceptors(commonDataPool)
 	if err != nil || interceptorsContainer == nil {
 		return nil, err
 	}
 
-	esdp.requestHandler = requestHandlerMeta
+	miniBlocksSyncer, err := esdp.getMiniBlockSyncer(commonDataPool.MiniBlocks())
+	if err != nil {
+		return nil, err
+	}
+
+	missingHeadersSyncer, err := esdp.getHeaderHandlerSyncer(commonDataPool.Headers())
+	if err != nil {
+		return nil, err
+	}
 
 	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
 	metaBlock, err := esdp.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
@@ -201,7 +210,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	prevMetaBlock, err := esdp.getEpochStartMetaBlock(metaBlock.Epoch - 1)
+	prevMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, metaBlock.EpochStart.Economics.PrevEpochStartHash)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +228,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	shardHeaders, err := esdp.getShardHeaders(metaBlock, nodesConfig, shardCoordinator)
+	shardHeaders, err := esdp.getShardHeaders(missingHeadersSyncer, metaBlock, nodesConfig, shardCoordinator)
 	if err != nil {
 		log.Debug("shard headers not found", "error", err)
 	}
@@ -234,7 +243,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	pendingMiniBlocks, err := esdp.getMiniBlocks(epochStartData.PendingMiniBlockHeaders, shardCoordinator.SelfId())
+	pendingMiniBlocks, err := esdp.getMiniBlocks(miniBlocksSyncer, epochStartData.PendingMiniBlockHeaders, shardCoordinator.SelfId())
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +257,13 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	//	log.Info("received miniblock", "type", receivedMb.Type)
 	//}
 
-	lastFinalizedMetaBlock, err := esdp.getMetaBlock(epochStartData.LastFinishedMetaBlock)
+	lastFinalizedMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, epochStartData.LastFinishedMetaBlock)
 	if err != nil {
 		return nil, err
 	}
 	log.Info("received last finalized meta block", "nonce", lastFinalizedMetaBlock.Nonce)
 
-	firstPendingMetaBlock, err := esdp.getMetaBlock(epochStartData.FirstPendingMetaBlock)
+	firstPendingMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, epochStartData.FirstPendingMetaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -311,29 +320,39 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	return components, nil
 }
 
-func (esdp *epochStartDataProvider) getMiniBlocks(pendingMiniBlocks []block.ShardMiniBlockHeader, shardID uint32) (map[string]*block.MiniBlock, error) {
-	cacher, err := lrucache.NewCache(100)
-	if err != nil {
-		return nil, err
-	}
+func (esdp *epochStartDataProvider) getMiniBlockSyncer(dataPool storage.Cacher) (update.EpochStartPendingMiniBlocksSyncHandler, error) {
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        &disabled.Storer{},
-		Cache:          cacher,
+		Cache:          dataPool,
 		Marshalizer:    esdp.marshalizer,
 		RequestHandler: esdp.requestHandler,
 	}
-	pendingMiniBlocksSyncer, err := sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
-	if err != nil {
-		return nil, err
+	return sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+}
+
+func (esdp *epochStartDataProvider) getHeaderHandlerSyncer(pool dataRetriever.HeadersPool) (update.MissingHeadersByHashSyncer, error) {
+	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          pool,
+		Marshalizer:    esdp.marshalizer,
+		RequestHandler: esdp.requestHandler,
 	}
+	return sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+}
+
+func (esdp *epochStartDataProvider) getMiniBlocks(
+	handler update.EpochStartPendingMiniBlocksSyncHandler,
+	pendingMiniBlocks []block.ShardMiniBlockHeader,
+	shardID uint32,
+) (map[string]*block.MiniBlock, error) {
 
 	waitTime := 1 * time.Minute
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksForEpochStart(pendingMiniBlocks, waitTime)
+	err := handler.SyncPendingMiniBlocksForEpochStart(pendingMiniBlocks, waitTime)
 	if err != nil {
 		return nil, err
 	}
 
-	return pendingMiniBlocksSyncer.GetMiniBlocks()
+	return handler.GetMiniBlocks()
 }
 
 func (esdp *epochStartDataProvider) createInterceptors(dataPool dataRetriever.PoolsHolder) (process.InterceptorsContainer, error) {
@@ -526,21 +545,35 @@ func (esdp *epochStartDataProvider) resetTopicsAndInterceptors() {
 	}
 }
 
-func (esdp *epochStartDataProvider) getMetaBlock(hash []byte) (*block.MetaBlock, error) {
-	esdp.requestMetaBlock(hash)
-
-	time.Sleep(delayAfterRequesting)
-
-	for {
-		numConnectedPeers := len(esdp.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(hash, threshold)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for meta block. re-requesting and trying again...")
-		esdp.requestMetaBlock(hash)
+func (esdp *epochStartDataProvider) getMetaBlock(syncer update.MissingHeadersByHashSyncer, hash []byte) (*block.MetaBlock, error) {
+	//esdp.requestMetaBlock(hash)
+	//
+	//time.Sleep(delayAfterRequesting)
+	//
+	//for {
+	//	numConnectedPeers := len(esdp.messenger.Peers())
+	//	threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+	//	mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(hash, threshold)
+	//	if errConsensusNotReached == nil {
+	//		return mb, nil
+	//	}
+	//	log.Info("consensus not reached for meta block. re-requesting and trying again...")
+	//	esdp.requestMetaBlock(hash)
+	//}
+	waitTime := 1 * time.Minute
+	err := syncer.SyncMissingHeadersByHash(esdp.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
+	if err != nil {
+		return nil, err
 	}
+
+	hdrs, err := syncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	syncer.ClearFields()
+
+	return hdrs[string(hash)].(*block.MetaBlock), nil
 }
 
 func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block.MetaBlock, error) {
@@ -584,6 +617,7 @@ func (esdp *epochStartDataProvider) getShardCoordinator(metaBlock *block.MetaBlo
 }
 
 func (esdp *epochStartDataProvider) getShardHeaders(
+	syncer update.MissingHeadersByHashSyncer,
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesSetup,
 	shardCoordinator sharding.Coordinator,
@@ -594,7 +628,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	if shardID == core.MetachainShardId {
 		for _, entry := range metaBlock.EpochStart.LastFinalizedHeaders {
 			var hdr *block.Header
-			hdr, err := esdp.getShardHeader(entry.HeaderHash, entry.ShardID)
+			hdr, err := esdp.getShardHeader(syncer, entry.HeaderHash, entry.ShardID)
 			if err != nil {
 				return nil, err
 			}
@@ -616,6 +650,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	}
 
 	hdr, err := esdp.getShardHeader(
+		syncer,
 		entryForShard.HeaderHash,
 		entryForShard.ShardID,
 	)
@@ -628,27 +663,43 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 }
 
 func (esdp *epochStartDataProvider) getShardHeader(
+	syncer update.MissingHeadersByHashSyncer,
 	hash []byte,
 	shardID uint32,
 ) (*block.Header, error) {
-	esdp.requestShardHeader(shardID, hash)
-	time.Sleep(delayBetweenRequests)
-
-	count := 0
-	for {
-		if count > maxNumTimesToRetry {
-			panic("can't sync with the other peers")
-		}
-		count++
-		numConnectedPeers := len(esdp.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(hash, threshold)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for shard header. re-requesting and trying again...")
-		esdp.requestShardHeader(shardID, hash)
+	waitTime := 1 * time.Minute
+	err := syncer.SyncMissingHeadersByHash(esdp.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
+	if err != nil {
+		return nil, err
 	}
+
+	hdrs, err := syncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	syncer.ClearFields()
+
+	return hdrs[string(hash)].(*block.Header), nil
+
+	//esdp.requestShardHeader(shardID, hash)
+	//time.Sleep(delayBetweenRequests)
+	//
+	//count := 0
+	//for {
+	//	if count > maxNumTimesToRetry {
+	//		panic("can't sync with the other peers")
+	//	}
+	//	count++
+	//	numConnectedPeers := len(esdp.messenger.Peers())
+	//	threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+	//	mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(hash, threshold)
+	//	if errConsensusNotReached == nil {
+	//		return mb, nil
+	//	}
+	//	log.Info("consensus not reached for shard header. re-requesting and trying again...")
+	//	esdp.requestShardHeader(shardID, hash)
+	//}
 }
 
 func (esdp *epochStartDataProvider) requestMetaBlock(hash []byte) {

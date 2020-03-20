@@ -135,6 +135,14 @@ type PendingTransactionsSyncHandler interface {
 	IsInterfaceNil() bool
 }
 
+// MissingHeadersByHashSyncer defines the methods to sync all missing headers by hash
+type MissingHeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardID uint32, headersHashes [][]byte, waitTime time.Duration) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
 // DataWriter defines the methods to write data
 type DataWriter interface {
 	WriteString(s string) (int, error)

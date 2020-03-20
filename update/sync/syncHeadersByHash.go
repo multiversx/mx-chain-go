@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -15,9 +16,9 @@ import (
 
 type missingHeadersByHash struct {
 	mutMissingHdrs sync.Mutex
-	mapHeaders     map[string]*block.Header
+	mapHeaders     map[string]data.HeaderHandler
 	mapHashes      map[string]struct{}
-	pool           storage.Cacher
+	pool           dataRetriever.HeadersPool
 	storage        update.HistoryStorer
 	chReceivedAll  chan bool
 	marshalizer    marshal.Marshalizer
@@ -30,7 +31,7 @@ type missingHeadersByHash struct {
 // ArgsNewMissingHeadersByHashSyncer defines the arguments needed for the sycner
 type ArgsNewMissingHeadersByHashSyncer struct {
 	Storage        storage.Storer
-	Cache          storage.Cacher
+	Cache          dataRetriever.HeadersPool
 	Marshalizer    marshal.Marshalizer
 	RequestHandler process.RequestHandler
 }
@@ -52,7 +53,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*mis
 
 	p := &missingHeadersByHash{
 		mutMissingHdrs: sync.Mutex{},
-		mapHeaders:     make(map[string]*block.Header),
+		mapHeaders:     make(map[string]data.HeaderHandler),
 		mapHashes:      make(map[string]struct{}),
 		pool:           args.Cache,
 		storage:        args.Storage,
@@ -114,7 +115,7 @@ func (m *missingHeadersByHash) SyncMissingHeadersByHash(
 
 // receivedHeader is a callback function when a new header was received
 // it will further ask for missing transactions
-func (m *missingHeadersByHash) receivedHeader(hdrHash []byte) {
+func (m *missingHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdrHash []byte) {
 	m.mutMissingHdrs.Lock()
 	if m.stopSyncing {
 		m.mutMissingHdrs.Unlock()
@@ -145,7 +146,7 @@ func (m *missingHeadersByHash) receivedHeader(hdrHash []byte) {
 	}
 }
 
-func (m *missingHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (*block.Header, bool) {
+func (m *missingHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.HeaderHandler, bool) {
 	header, ok := m.getHeaderFromPool(hash)
 	if ok {
 		return header, true
@@ -165,22 +166,17 @@ func (m *missingHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (*block.H
 	return &hdr, true
 }
 
-func (m *missingHeadersByHash) getHeaderFromPool(hash []byte) (*block.Header, bool) {
-	val, ok := m.pool.Peek(hash)
-	if !ok {
+func (m *missingHeadersByHash) getHeaderFromPool(hash []byte) (data.HeaderHandler, bool) {
+	val, err := m.pool.GetHeaderByHash(hash)
+	if err != nil {
 		return nil, false
 	}
 
-	header, ok := val.(*block.Header)
-	if !ok {
-		return nil, false
-	}
-
-	return header, true
+	return val, true
 }
 
-// GetHeader returns the synced headers
-func (m *missingHeadersByHash) GetHeader() (map[string]*block.Header, error) {
+// GetHeaders returns the synced headers
+func (m *missingHeadersByHash) GetHeaders() (map[string]data.HeaderHandler, error) {
 	m.mutMissingHdrs.Lock()
 	defer m.mutMissingHdrs.Unlock()
 	if !m.syncedAll {
@@ -188,6 +184,14 @@ func (m *missingHeadersByHash) GetHeader() (map[string]*block.Header, error) {
 	}
 
 	return m.mapHeaders, nil
+}
+
+// ClearFields will clear all the maps
+func (m *missingHeadersByHash) ClearFields() {
+	m.mutMissingHdrs.Lock()
+	m.mapHashes = make(map[string]struct{})
+	m.mapHeaders = make(map[string]data.HeaderHandler)
+	m.mutMissingHdrs.Unlock()
 }
 
 // IsInterfaceNil returns nil if underlying object is nil

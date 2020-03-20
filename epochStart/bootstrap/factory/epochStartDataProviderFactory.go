@@ -96,7 +96,7 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 		args.OriginalNodesConfig,
 		args.GeneralConfig,
 	)
-	shouldSync = false // hardcoded so we can test we can sync
+	shouldSync = true // hardcoded so we can test we can sync
 
 	return &epochStartDataProviderFactory{
 		pubKey:                  args.PubKey,
