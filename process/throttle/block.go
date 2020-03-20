@@ -51,6 +51,9 @@ func (bst *blockSizeThrottle) GetMaxSize() uint32 {
 
 // Add adds the new size for last block which has been sent in the given round
 func (bst *blockSizeThrottle) Add(round uint64, size uint32) {
+	if size < core.MinSizeInBytes || size > core.MaxSizeInBytes {
+		return
+	}
 	bst.mutThrottler.Lock()
 	bst.statistics = append(
 		bst.statistics,

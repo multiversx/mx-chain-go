@@ -17,17 +17,28 @@ type blockSizeComputation struct {
 	miniblockSize uint32
 	txSize        uint32
 
-	numMiniBlocks uint32
-	numTxs        uint32
+	numMiniBlocks      uint32
+	numTxs             uint32
+	blockSizeThrottler BlockSizeThrottler
 }
 
 // NewBlockSizeComputation creates a blockSizeComputation instance
-func NewBlockSizeComputation(marshalizer marshal.Marshalizer) (*blockSizeComputation, error) {
+func NewBlockSizeComputation(
+	marshalizer marshal.Marshalizer,
+	blockSizeThrottler BlockSizeThrottler,
+	) (*blockSizeComputation, error) {
+
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(blockSizeThrottler) {
+		return nil, process.ErrNilBlockSizeThrottler
+	}
 
-	bsc := &blockSizeComputation{}
+	bsc := &blockSizeComputation{
+		blockSizeThrottler: blockSizeThrottler,
+	}
+
 	err := bsc.precomputeValues(marshalizer)
 	if err != nil {
 		return nil, err
@@ -128,7 +139,7 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
-	return miniblocksSize+txsSize > core.MaxSizeInBytes
+	return miniblocksSize+txsSize > bsc.blockSizeThrottler.GetMaxSize()
 }
 
 // MaxTransactionsInOneMiniblock returns the maximum transactions in a single miniblock

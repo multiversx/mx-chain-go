@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -54,14 +53,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
+		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -1706,9 +1700,11 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
-	sp.blockSizeThrottler.Add(
-		shardHeader.GetRound(),
-		core.MaxUint32(shardHeader.ItemsInBody(), shardHeader.ItemsInHeader()))
+	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
+	if err != nil {
+		return nil, err
+	}
+	sp.blockSizeThrottler.Add(shardHeader.GetRound(), uint32(len(marshalizedBody)))
 
 	return newBody, nil
 }

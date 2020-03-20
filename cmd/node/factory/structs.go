@@ -75,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -1891,7 +1892,12 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler)
 	if err != nil {
 		return nil, err
 	}
@@ -1974,6 +1980,7 @@ func newShardBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2106,7 +2113,12 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler)
 	if err != nil {
 		return nil, err
 	}
@@ -2251,6 +2263,7 @@ func newMetaBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

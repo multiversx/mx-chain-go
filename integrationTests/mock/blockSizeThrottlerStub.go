@@ -7,7 +7,7 @@ import (
 // BlockSizeThrottlerStub -
 type BlockSizeThrottlerStub struct {
 	GetMaxSizeCalled     func() uint32
-	AddCalled            func(round uint64, items uint32)
+	AddCalled            func(round uint64, size uint32)
 	SucceedCalled        func(round uint64)
 	ComputeMaxSizeCalled func()
 }
@@ -22,9 +22,9 @@ func (bsts *BlockSizeThrottlerStub) GetMaxSize() uint32 {
 }
 
 // Add -
-func (bsts *BlockSizeThrottlerStub) Add(round uint64, items uint32) {
+func (bsts *BlockSizeThrottlerStub) Add(round uint64, size uint32) {
 	if bsts.AddCalled != nil {
-		bsts.AddCalled(round, items)
+		bsts.AddCalled(round, size)
 		return
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -78,14 +77,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
+		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -1742,9 +1736,11 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 		return nil, err
 	}
 
-	mp.blockSizeThrottler.Add(
-		metaHdr.GetRound(),
-		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
+	marshalizedBody, err := mp.marshalizer.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil
 }

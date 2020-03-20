@@ -98,8 +98,11 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestBlockSizeThrottler represents a block size throttler used in adaptive block size computation
+var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
+
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer)
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler)
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -947,6 +950,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
+		BlockSizeThrottler:     TestBlockSizeThrottler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
