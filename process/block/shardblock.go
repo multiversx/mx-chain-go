@@ -859,6 +859,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
+		Epoch:   header.GetEpoch(),
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}

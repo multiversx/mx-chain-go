@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -9,6 +10,9 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -54,10 +58,13 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 // TODO: something similar should be done for determining the correct shardId
 // when booting from storage with an epoch > 0 or add ShardId in boot storer
 func FindLastEpochFromStorage(
+	generalConfig config.Config,
+	marshalizer marshal.Marshalizer,
 	workingDir string,
 	chainID string,
 	defaultDBPath string,
 	defaultEpochString string,
+	defaultShardString string,
 ) (uint32, error) {
 	parentDir := filepath.Join(
 		workingDir,
@@ -90,7 +97,17 @@ func FindLastEpochFromStorage(
 		epochDirs = append(epochDirs, file.Name())
 	}
 
-	return getLastEpochFromDirNames(epochDirs)
+	lastEpoch, err := getLastEpochFromDirNames(epochDirs)
+	if err != nil {
+		return 0, err
+	}
+
+	if lastEpoch == 0 {
+		// if storage is pruning was off, get last known epoch from BootstrapUnit storage
+		return getLastEpochFromStorage(generalConfig, marshalizer, parentDir, defaultEpochString, defaultShardString)
+	}
+
+	return lastEpoch, nil
 }
 
 func getLastEpochFromDirNames(epochDirs []string) (uint32, error) {
@@ -116,4 +133,78 @@ func getLastEpochFromDirNames(epochDirs []string) (uint32, error) {
 	})
 
 	return epochsInDirName[0], nil
+}
+
+func getLastEpochFromStorage(
+	config config.Config,
+	marshalizer marshal.Marshalizer,
+	parentDir string,
+	defaultEpochString string,
+	defaultShardString string,
+) (uint32, error) {
+	persisterFactory := NewPersisterFactory(config.BootstrapStorage.DB)
+	pathWithoutShard := parentDir + string(os.PathSeparator) + defaultEpochString + "_0"
+	shardIdStr, err := getShardFromDirectory(pathWithoutShard, defaultShardString)
+	if err != nil {
+		return 0, err
+	}
+
+	persisterPath := pathWithoutShard + string(os.PathSeparator) + defaultShardString
+	persisterPath += shardIdStr + string(os.PathSeparator) + config.BootstrapStorage.DB.FilePath
+
+	persister, err := persisterFactory.Create(persisterPath)
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		errClose := persister.Close()
+		log.LogIfError(errClose)
+	}()
+
+	cacher, err := lrucache.NewCache(10)
+	if err != nil {
+		return 0, nil
+	}
+
+	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	if err != nil {
+		return 0, err
+	}
+
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+	if err != nil {
+		return 0, err
+	}
+
+	highestRound := bootStorer.GetHighestRound()
+	bootstrapData, err := bootStorer.Get(highestRound)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Debug("found epoch in BootstrapData", "epoch", bootstrapData.LastHeader.Epoch)
+	return bootstrapData.LastHeader.Epoch, nil
+}
+
+func getShardFromDirectory(path string, defaultShardString string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+
+	files, err := f.Readdir(-1)
+	_ = f.Close()
+
+	for _, file := range files {
+		fileName := file.Name()
+		splitSlice := strings.Split(fileName, defaultShardString)
+		if len(splitSlice) < 2 {
+			continue
+		}
+
+		return splitSlice[1], nil
+	}
+
+	return "", errors.New("no shard info found in storage directories structure")
 }

@@ -537,10 +537,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var currentEpoch uint32
 	var errNotCritical error
 	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
+		*generalConfig,
+		&marshal.GogoProtoMarshalizer{}, // TODO: in another branch, this is not hardcoded because coreComponent is initialized before
 		workingDir,
 		nodesConfig.ChainID,
 		defaultDBPath,
 		defaultEpochString,
+		defaultShardString,
 	)
 	if errNotCritical != nil {
 		currentEpoch = 0
