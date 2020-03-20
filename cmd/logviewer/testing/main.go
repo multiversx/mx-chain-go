@@ -247,6 +247,7 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 	}
 
 	logLine := &logger.LogLineWrapper{}
+	logLine.LoggerName = "websocket test"
 	logLine.Message = "websocket test message"
 	logLine.LogLevel = int32(logLevel)
 	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}
