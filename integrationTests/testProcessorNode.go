@@ -1145,6 +1145,11 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		return "", err
 	}
 
+	err = tpn.Node.ValidateTransaction(tx)
+	if err != nil {
+		return "", err
+	}
+
 	_, err = tpn.Node.SendBulkTransactions([]*dataTransaction.Transaction{tx})
 	if err != nil {
 		return "", err
