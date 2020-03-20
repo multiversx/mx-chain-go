@@ -68,58 +68,79 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(
 		nil,
 		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrNilPeerShardResolver))
 }
 
-func TestNewListsSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
+func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
 		"",
-		minAllowedConnectedPeers-1,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators-1,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-func TestNewListsSharder_InvalidMaxIntraShardShouldErr(t *testing.T) {
+func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
 		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList-1,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators-1,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	assert.True(t, check.IfNil(ls))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-func TestNewListsSharder_InvalidMaxCrossShardShouldErr(t *testing.T) {
+func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
 		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList-1,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers-1,
+		minAllowedObservers,
+	)
+
+	assert.True(t, check.IfNil(ls))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ls, err := NewListsSharder(
+		&mock.PeerShardResolverStub{},
+		"",
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers-1,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -132,42 +153,11 @@ func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
 		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList+1,
-		minAllowedPeersOnList,
-		0,
-	)
-
-	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
-
-func TestNewListsSharder_NegativePercentageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ls, err := NewListsSharder(
-		&mock.PeerShardResolverStub{},
-		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		-1,
-	)
-
-	assert.True(t, check.IfNil(ls))
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
-
-func TestNewListsSharder_Over100PercentageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ls, err := NewListsSharder(
-		&mock.PeerShardResolverStub{},
-		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		101,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers+1,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -180,10 +170,11 @@ func TestNewListsSharder_ShouldWork(t *testing.T) {
 	ls, err := NewListsSharder(
 		&mock.PeerShardResolverStub{},
 		"",
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	assert.False(t, check.IfNil(ls))
@@ -198,10 +189,11 @@ func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *t
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker))
@@ -218,10 +210,11 @@ func TestListsSharder_ComputeEvictionListNotReachedObserversShouldRetEmpty(t *te
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers*2,
-		minAllowedPeersOnList*2,
-		minAllowedPeersOnList*2,
-		50,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker))
@@ -238,10 +231,11 @@ func TestListsSharder_ComputeEvictionListNotReachedUnknownShouldRetEmpty(t *test
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 	pidUnknown := peer.ID(fmt.Sprintf("0 %s", unknownMarker))
 	pids := []peer.ID{pidUnknown}
@@ -257,10 +251,11 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - %s", crtShardId, validatorMarker))
 	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - %s", crtShardId, validatorMarker))
@@ -275,14 +270,15 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing.T) {
 	t.Parallel()
 
-	maxPeerCount := 4
+	maxPeerCount := 5
 	ls, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
 		maxPeerCount,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	unknownPids := make([]peer.ID, maxPeerCount)
@@ -305,9 +301,10 @@ func TestListsSharder_ComputeEvictionListCrossShouldFillTheGap(t *testing.T) {
 		createStringPeersShardResolver(),
 		crtPid,
 		5,
-		2,
-		2,
-		50,
+		1,
+		1,
+		1,
+		1,
 	)
 
 	pids := []peer.ID{
@@ -330,9 +327,10 @@ func TestListsSharder_ComputeEvictionListEvictFromAllShouldWork(t *testing.T) {
 		createStringPeersShardResolver(),
 		crtPid,
 		5,
-		2,
-		2,
-		50,
+		1,
+		1,
+		1,
+		1,
 	)
 
 	pids := []peer.ID{
@@ -431,10 +429,11 @@ func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 	lks, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 
 	err := lks.SetPeerShardResolver(nil)
@@ -448,10 +447,11 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	lks, _ := NewListsSharder(
 		createStringPeersShardResolver(),
 		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-		0,
+		minAllowedConnectedPeersListSharder,
+		minAllowedValidators,
+		minAllowedValidators,
+		minAllowedObservers,
+		minAllowedObservers,
 	)
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
 	err := lks.SetPeerShardResolver(newPeerShardResolver)

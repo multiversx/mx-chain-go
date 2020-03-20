@@ -139,7 +139,6 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (pee
 		"shard ID", shardId,
 	)
 
-	//TODO assume for now that the peer is a validator. Update nodesCoordinator to provide the info (observer/validator)
 	return core.P2PPeerInfo{
 		PeerType: core.ValidatorPeer,
 		ShardID:  shardId,

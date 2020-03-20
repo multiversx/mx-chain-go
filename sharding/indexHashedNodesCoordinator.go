@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -431,7 +432,21 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	if len(publicKeys) != len(signersIndexes) {
-		log.Error("public keys not found", "len pubKeys", len(publicKeys), "len signers", len(signersIndexes))
+		strHaving := "having the following keys: \n"
+		for index, value := range validatorsPubKeys[nodesConfig.shardId] {
+			strHaving += fmt.Sprintf(" index %d  key %s\n", index, display.DisplayByteSlice(value))
+		}
+
+		strNeeded := "needed the following keys: \n"
+		for _, pubKey := range publicKeys {
+			strNeeded += fmt.Sprintf(" key %s\n", display.DisplayByteSlice([]byte(pubKey)))
+		}
+
+		log.Error("public keys not found\n"+strHaving+"\n"+strNeeded+"\n",
+			"len pubKeys", len(publicKeys),
+			"len signers", len(signersIndexes),
+		)
+
 		return nil, ErrInvalidNumberPubKeys
 	}
 

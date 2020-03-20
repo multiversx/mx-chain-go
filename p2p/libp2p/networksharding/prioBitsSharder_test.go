@@ -25,11 +25,11 @@ func fakeShard0(_ p2p.PeerID) core.P2PPeerInfo {
 	}
 }
 
-func fakeShardBit0Byte2(id p2p.PeerID) core.P2PPeerInfo {
+func fakeShardBit0Byte0(id p2p.PeerID) core.P2PPeerInfo {
 	ret := sha256.Sum256([]byte(id))
 
 	return core.P2PPeerInfo{
-		ShardID: uint32(ret[2] & 1),
+		ShardID: uint32(ret[0] & 1),
 	}
 }
 
@@ -51,7 +51,7 @@ func (tkr *testKadResolver) IsInterfaceNil() bool {
 
 var (
 	fs0  = &testKadResolver{fakeShard0}
-	fs20 = &testKadResolver{fakeShardBit0Byte2}
+	fs20 = &testKadResolver{fakeShardBit0Byte0}
 )
 
 func TestNewPrioBitsSharder_ZeroPrioBitsShouldErr(t *testing.T) {
@@ -144,14 +144,14 @@ func TestPrioBitsSharderOrdering2_list(t *testing.T) {
 	}
 	l1, _ := s.SortList(peerList, nodeA)
 
-	refPeerInfo := fakeShardBit0Byte2(p2p.PeerID(nodeA))
+	refPeerInfo := fakeShardBit0Byte0(p2p.PeerID(nodeA))
 	sameShardScore := uint64(0)
 	sameShardCount := uint64(0)
 	otherShardScore := uint64(0)
 	retLen := uint64(len(l1))
 	fmt.Printf("[ref] %s , sha %x, shard %d\n", string(nodeA), sha256.Sum256([]byte(nodeA)), refPeerInfo.ShardID)
 	for i, id := range l1 {
-		peerInfo := fakeShardBit0Byte2(p2p.PeerID(id))
+		peerInfo := fakeShardBit0Byte0(p2p.PeerID(id))
 
 		if peerInfo.ShardID == refPeerInfo.ShardID {
 			sameShardScore += retLen - uint64(i)

@@ -232,14 +232,15 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
-		PeerShardResolver:   &unknownPeerShardResolver{},
-		PrioBits:            p2pConfig.Sharding.PrioBits,
-		Pid:                 netMes.p2pHost.ID(),
-		MaxConnectionCount:  p2pConfig.Sharding.TargetPeerCount,
-		MaxIntraShard:       int(p2pConfig.Sharding.MaxIntraShard),
-		MaxCrossShard:       int(p2pConfig.Sharding.MaxCrossShard),
-		PercentageObservers: int(p2pConfig.Sharding.PercentageObservers),
-		Type:                p2pConfig.Sharding.Type,
+		PeerShardResolver:       &unknownPeerShardResolver{},
+		PrioBits:                p2pConfig.Sharding.PrioBits,
+		Pid:                     netMes.p2pHost.ID(),
+		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
+		MaxIntraShardValidators: int(p2pConfig.Sharding.MaxIntraShardValidators),
+		MaxCrossShardValidators: int(p2pConfig.Sharding.MaxCrossShardValidators),
+		MaxIntraShardObservers:  int(p2pConfig.Sharding.MaxIntraShardObservers),
+		MaxCrossShardObservers:  int(p2pConfig.Sharding.MaxCrossShardObservers),
+		Type:                    p2pConfig.Sharding.Type,
 	}
 
 	var err error

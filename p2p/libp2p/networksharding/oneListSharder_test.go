@@ -15,7 +15,7 @@ func TestNewOneListSharder_InvalidMaxPeerCountShouldErr(t *testing.T) {
 
 	ols, err := NewOneListSharder(
 		"",
-		minAllowedConnectedPeers-1,
+		minAllowedConnectedPeersOneSharder-1,
 	)
 
 	assert.True(t, check.IfNil(ols))
@@ -27,7 +27,7 @@ func TestNewOneListSharder_ShouldWork(t *testing.T) {
 
 	ols, err := NewOneListSharder(
 		"",
-		minAllowedConnectedPeers,
+		minAllowedConnectedPeersOneSharder,
 	)
 
 	assert.False(t, check.IfNil(ols))
@@ -41,7 +41,7 @@ func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T
 
 	ols, _ := NewOneListSharder(
 		crtPid,
-		minAllowedConnectedPeers,
+		minAllowedConnectedPeersOneSharder,
 	)
 	pid1 := peer.ID("pid1")
 	pid2 := peer.ID("pid2")
@@ -57,7 +57,7 @@ func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t
 
 	ols, _ := NewOneListSharder(
 		crtPid,
-		minAllowedConnectedPeers,
+		minAllowedConnectedPeersOneSharder,
 	)
 	pid1 := peer.ID("pid1")
 	pid2 := peer.ID("pid2")
@@ -112,7 +112,7 @@ func TestOneListSharder_SetPeerShardResolverShouldNotPanic(t *testing.T) {
 
 	ols, _ := NewOneListSharder(
 		"",
-		minAllowedConnectedPeers,
+		minAllowedConnectedPeersOneSharder,
 	)
 
 	err := ols.SetPeerShardResolver(nil)

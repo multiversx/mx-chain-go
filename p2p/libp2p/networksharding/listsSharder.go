@@ -16,8 +16,9 @@ import (
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
-const minAllowedConnectedPeers = 3
-const minAllowedPeersOnList = 1
+const minAllowedConnectedPeersListSharder = 5
+const minAllowedValidators = 1
+const minAllowedObservers = 1
 
 const intraShardValidators = 0
 const intraShardObservers = 1
@@ -87,48 +88,51 @@ func NewListsSharder(
 	resolver p2p.PeerShardResolver,
 	selfPeerId peer.ID,
 	maxPeerCount int,
-	maxIntraShard int,
-	maxCrossShard int,
-	percentObservers int,
+	maxIntraShardValidators int,
+	maxCrossShardValidators int,
+	maxIntraShardObservers int,
+	maxCrossShardObservers int,
 ) (*listsSharder, error) {
+
 	if check.IfNil(resolver) {
 		return nil, p2p.ErrNilPeerShardResolver
 	}
-	if maxPeerCount < minAllowedConnectedPeers {
-		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeers)
+	if maxPeerCount < minAllowedConnectedPeersListSharder {
+		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeersListSharder)
 	}
-	if maxIntraShard < minAllowedPeersOnList {
-		return nil, fmt.Errorf("%w, maxIntraShard should be at least %d", p2p.ErrInvalidValue, minAllowedPeersOnList)
+	if maxIntraShardValidators < minAllowedValidators {
+		return nil, fmt.Errorf("%w, maxIntraShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
-	if maxCrossShard < minAllowedPeersOnList {
-		return nil, fmt.Errorf("%w, maxCrossShard should be at least %d", p2p.ErrInvalidValue, minAllowedPeersOnList)
+	if maxCrossShardValidators < minAllowedValidators {
+		return nil, fmt.Errorf("%w, maxCrossShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
-	if maxCrossShard+maxIntraShard+1 > maxPeerCount {
-		return nil, fmt.Errorf("%w, maxCrossShard + maxIntraShard should be less than %d", p2p.ErrInvalidValue, maxPeerCount)
+	if maxIntraShardObservers < minAllowedObservers {
+		return nil, fmt.Errorf("%w, maxIntraShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if percentObservers < 0 {
-		return nil, fmt.Errorf("%w, percentObservers should be at least 0", p2p.ErrInvalidValue)
+	if maxCrossShardObservers < minAllowedObservers {
+		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if percentObservers > 100 {
-		return nil, fmt.Errorf("%w, percentObservers should be at most 100", p2p.ErrInvalidValue)
+	if maxCrossShardObservers+maxIntraShardObservers == 0 {
+		log.Warn("no connections to observers are possible")
+	}
+
+	providedPeers := maxIntraShardValidators + maxCrossShardValidators + maxIntraShardObservers + maxCrossShardObservers
+	if providedPeers+1 > maxPeerCount {
+		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, maxPeerCount)
 	}
 
 	ls := &listsSharder{
-		peerShardResolver: resolver,
-		selfPeerId:        selfPeerId,
-		maxPeerCount:      maxPeerCount,
-		computeDistance:   computeDistanceByCountingBits,
+		peerShardResolver:       resolver,
+		selfPeerId:              selfPeerId,
+		maxPeerCount:            maxPeerCount,
+		computeDistance:         computeDistanceByCountingBits,
+		maxIntraShardValidators: maxIntraShardValidators,
+		maxCrossShardValidators: maxCrossShardValidators,
+		maxIntraShardObservers:  maxIntraShardObservers,
+		maxCrossShardObservers:  maxCrossShardObservers,
 	}
 
-	ls.maxIntraShardObservers = maxIntraShard * percentObservers / 100
-	ls.maxIntraShardValidators = maxIntraShard - ls.maxIntraShardObservers
-	ls.maxCrossShardObservers = maxCrossShard * percentObservers / 100
-	ls.maxCrossShardValidators = maxCrossShard - ls.maxCrossShardObservers
-	ls.maxUnknown = maxPeerCount - maxCrossShard - maxIntraShard
-
-	if ls.maxCrossShardObservers+ls.maxIntraShardObservers == 0 {
-		log.Warn("no connections to observers are possible")
-	}
+	ls.maxUnknown = maxPeerCount - providedPeers
 
 	return ls, nil
 }

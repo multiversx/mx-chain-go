@@ -11,7 +11,11 @@ type MessageProcessorStub struct {
 
 // ProcessReceivedMessage -
 func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
-	return mps.ProcessMessageCalled(message)
+	if mps.ProcessMessageCalled != nil {
+		return mps.ProcessMessageCalled(message)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
