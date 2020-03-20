@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
@@ -26,6 +27,12 @@ var log = logger.GetOrCreate("api")
 type validatorInput struct {
 	Name      string
 	Validator validator.Func
+}
+
+// MiddlewareProcessor defines a processor used internally by the web server when processing requests
+type MiddlewareProcessor interface {
+	MiddlewareHandlerFunc() gin.HandlerFunc
+	IsInterfaceNil() bool
 }
 
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
@@ -55,7 +62,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler) error {
+func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -65,6 +72,13 @@ func Start(elrondFacade MainApiHandler) error {
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
+	for _, proc := range processors {
+		if check.IfNil(proc) {
+			continue
+		}
+
+		ws.Use(proc.MiddlewareHandlerFunc())
+	}
 
 	err := registerValidators()
 	if err != nil {

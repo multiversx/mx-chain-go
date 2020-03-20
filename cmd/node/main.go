@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -722,7 +723,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig)
+	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -786,6 +787,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
+		generalConfig.Antiflood.NumConcurrentResolverJobs,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -793,7 +795,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var elasticIndexer indexer.Indexer
-	if coreServiceContainer == nil || coreServiceContainer.IsInterfaceNil() {
+	if check.IfNil(coreServiceContainer) {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
@@ -878,7 +880,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
+	ef, err := facade.NewElrondNodeFacade(
+		currentNode,
+		apiResolver,
+		restAPIServerDebugMode,
+		generalConfig.Antiflood.WebServer,
+	)
+	if err != nil {
+		return fmt.Errorf("%w while creating NodeFacade", err)
+	}
 
 	efConfig := &config.FacadeConfig{
 		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
@@ -1307,7 +1317,19 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (*node.Node, error) {
-	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	var err error
+	var consensusGroupSize uint32
+	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	var txAccumulator node.Accumulator
+	txAccumulatorConfig := config.Antiflood.TxAccumulator
+	txAccumulator, err = accumulator.NewTimeAccumulator(
+		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1323,7 +1345,8 @@ func createNode(
 		return nil, err
 	}
 
-	nd, err := node.NewNode(
+	var nd *node.Node
+	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
 		node.WithInternalMarshalizer(coreData.InternalMarshalizer, config.Marshalizer.SizeCheckDelta),
@@ -1370,6 +1393,8 @@ func createNode(
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
+		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
+		node.WithTxAccumulator(txAccumulator),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

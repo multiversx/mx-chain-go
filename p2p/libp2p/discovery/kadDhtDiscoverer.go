@@ -206,13 +206,13 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 						err = kadDht.BootstrapOnce(ctx, cfg)
 					}
 					if err == kbucket.ErrLookupFailure {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 					}
 					i = 1
 				} else {
 					i++
 					if (i % initReconnectMul) == 0 {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 						i = 1
 					}
 				}

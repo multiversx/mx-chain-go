@@ -30,6 +30,9 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
