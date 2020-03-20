@@ -48,7 +48,6 @@ type baseProcessor struct {
 	marshalizer             marshal.Marshalizer
 	store                   dataRetriever.StorageService
 	uint64Converter         typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler      process.BlockSizeThrottler
 	epochStartTrigger       process.EpochStartTriggerHandler
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
@@ -72,7 +71,7 @@ type bootStorerDataArgs struct {
 	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
 	round                      uint64
 	highestFinalBlockNonce     uint64
-	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlocksInfo
 	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
 	nodesCoordinatorConfigKey  []byte
 	epochStartTriggerConfigKey []byte

@@ -30,6 +30,9 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -50,6 +53,9 @@ const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
 // MetricNumConnectedPeers is the metric for monitoring the number of connected peers
 const MetricNumConnectedPeers = "erd_num_connected_peers"
+
+// MetricNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classification"
 
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"
@@ -81,7 +87,7 @@ const MetricNodeType = "erd_node_type"
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
-// MetricConnectedNodes is the metric for monitoring total connected peers on the network
+// MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
@@ -219,6 +225,9 @@ const MetachainShardId = uint32(0xFFFFFFFF)
 // AllShardId will be used to identify that a message is for all shards
 const AllShardId = uint32(0xFFFFFFF0)
 
+// UnknownShardId will be used to identify an unknown shard ID
+const UnknownShardId = uint32(0xFFFFFFFE)
+
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
 
@@ -251,3 +260,18 @@ const (
 	// NsNotCalculated defines ID of a state which is not calculated
 	NsNotCalculated
 )
+
+// MetricP2pPeerInfo is the metric for the node's p2p info
+const MetricP2pPeerInfo = "erd_p2p_peer_info"
+
+// MetricP2pIntraShardConnectedPeers is the metric that outputs the intra-shard connected peers
+const MetricP2pIntraShardConnectedPeers = "erd_p2p_intra_shard_peers"
+
+// MetricP2pCrossShardConnectedPeers is the metric that outputs the cross-shard connected peers
+const MetricP2pCrossShardConnectedPeers = "erd_p2p_cross_shard_peers"
+
+// MetricP2pUnknownShardConnectedPeers is the metric that outputs the unknown-shard connected peers
+const MetricP2pUnknownShardConnectedPeers = "erd_p2p_unknown_shard_peers"
+
+// MetricP2pNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricP2pNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"

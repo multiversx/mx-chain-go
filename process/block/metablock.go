@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -78,14 +77,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -739,7 +732,6 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
-	mp.blockSizeThrottler.ComputeMaxItems()
 
 	log.Debug("started creating meta block body",
 		"epoch", metaBlock.GetEpoch(),
@@ -1143,8 +1135,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.prepareDataForBootStorer(args)
-
-	mp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers pool", mp.dataPool.Headers().Len(),
@@ -1614,7 +1604,7 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
-		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
+		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {
@@ -1694,12 +1684,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	var err error
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(metaHdr.GetRound())
-
-		if err == nil {
-			mp.blockSizeThrottler.Add(
-				metaHdr.GetRound(),
-				core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
-		}
 	}()
 
 	sw.Start("createShardInfo")
@@ -1747,10 +1731,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	if err != nil {
 		return nil, err
 	}
-
-	mp.blockSizeThrottler.Add(
-		metaHdr.GetRound(),
-		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
 	return body, nil
 }
@@ -1889,19 +1869,19 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlockInfo {
-	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlockInfo, mp.shardCoordinator.NumberOfShards())
+func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlocksInfo {
+	pendingMiniBlocksInfo := make([]bootstrapStorage.PendingMiniBlocksInfo, mp.shardCoordinator.NumberOfShards())
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
-			NumPendingMiniBlocks: mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardID),
-			ShardID:              shardID,
+		pendingMiniBlocksInfo[shardID] = bootstrapStorage.PendingMiniBlocksInfo{
+			MiniBlocksHashes: mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID),
+			ShardID:          shardID,
 		}
 	}
 
-	if len(pendingMiniBlocks) == 0 {
+	if len(pendingMiniBlocksInfo) == 0 {
 		return nil
 	}
 
-	return pendingMiniBlocks
+	return pendingMiniBlocksInfo
 }

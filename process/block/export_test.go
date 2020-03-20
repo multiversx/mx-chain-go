@@ -268,14 +268,10 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
 }
 
-func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
+func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
-}
-
-func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
-	bp.blockSizeThrottler = blockSizeThrottler
+	return sp.createAndProcessMiniBlocksDstMe(haveTime)
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
