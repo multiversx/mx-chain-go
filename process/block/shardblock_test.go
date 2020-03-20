@@ -503,6 +503,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			InitCalled: func() {
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -722,6 +723,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2239,6 +2241,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2348,6 +2351,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2429,6 +2433,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2503,6 +2508,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2751,6 +2757,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2932,6 +2939,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 

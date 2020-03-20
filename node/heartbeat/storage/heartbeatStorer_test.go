@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -148,9 +147,9 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 	msr := &mock.MarshalizerFake{}
 
 	dbt := &heartbeat.DbTimeStamp{
-		TS: types.TimestampNow(),
+		Timestamp: time.Now().UnixNano(),
 	}
-	expectedTime, _ := types.TimestampFromProto(dbt.TS)
+	expectedTime := time.Unix(0, dbt.Timestamp)
 
 	genTimeBytes, _ := msr.Marshal(dbt)
 	_ = storer.Put([]byte("genesisTime"), genTimeBytes)
@@ -172,7 +171,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 	msr := &mock.MarshalizerFake{}
 
 	dbt := &heartbeat.DbTimeStamp{
-		TS: types.TimestampNow(),
+		Timestamp: time.Now().UnixNano(),
 	}
 
 	genTimeBytes, _ := msr.Marshal(dbt)
