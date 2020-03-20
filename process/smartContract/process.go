@@ -635,10 +635,6 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
-func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-}
-
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	txHash []byte,

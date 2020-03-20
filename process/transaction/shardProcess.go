@@ -290,7 +290,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee, nil)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
 
 	return nil
 }
