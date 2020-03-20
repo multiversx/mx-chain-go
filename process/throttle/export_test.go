@@ -1,7 +1,7 @@
 package throttle
 
-func (bst *blockSizeThrottle) SetMaxSize(maxSize uint32) {
-	bst.maxSize = maxSize
+func (bst *blockSizeThrottle) SetCurrentMaxSize(currentMaxSize uint32) {
+	bst.currentMaxSize = currentMaxSize
 }
 
 func (bst *blockSizeThrottle) RoundInLastSizeAdded() uint64 {
@@ -32,27 +32,27 @@ func (bst *blockSizeThrottle) SucceedInSizeAdded(index uint32) bool {
 	return bst.statistics[index].succeed
 }
 
-func (bst *blockSizeThrottle) MaxSizeInLastSizeAdded() uint32 {
+func (bst *blockSizeThrottle) CurrentMaxSizeInLastSizeAdded() uint32 {
 	bst.mutThrottler.RLock()
 	defer bst.mutThrottler.RUnlock()
 
-	return bst.statistics[len(bst.statistics)-1].maxSize
+	return bst.statistics[len(bst.statistics)-1].currentMaxSize
 }
 
 func (bst *blockSizeThrottle) GetMaxSizeWhenSucceed(lastActionMaxSize uint32) uint32 {
 	return bst.getMaxSizeWhenSucceed(lastActionMaxSize)
 }
 
-func (bst *blockSizeThrottle) GetCloserAboveMaxSizeUsedWithoutSucceed(currentMaxSize uint32) uint32 {
-	return bst.getCloserAboveMaxSizeUsedWithoutSucceed(currentMaxSize)
+func (bst *blockSizeThrottle) GetCloserAboveCurrentMaxSizeUsedWithoutSucceed(currentMaxSize uint32) uint32 {
+	return bst.getCloserAboveCurrentMaxSizeUsedWithoutSucceed(currentMaxSize)
 }
 
 func (bst *blockSizeThrottle) GetMaxSizeWhenNotSucceed(lastActionMaxSize uint32) uint32 {
 	return bst.getMaxSizeWhenNotSucceed(lastActionMaxSize)
 }
 
-func (bst *blockSizeThrottle) GetCloserBelowMaxSizeUsedWithSucceed(currentMaxSize uint32) uint32 {
-	return bst.getCloserBelowMaxSizeUsedWithSucceed(currentMaxSize)
+func (bst *blockSizeThrottle) GetCloserBelowCurrentMaxSizeUsedWithSucceed(currentMaxSize uint32) uint32 {
+	return bst.getCloserBelowCurrentMaxSizeUsedWithSucceed(currentMaxSize)
 }
 
 func (bst *blockSizeThrottle) JumpAbovePercent() uint32 {

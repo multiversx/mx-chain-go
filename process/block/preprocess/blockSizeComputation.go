@@ -20,12 +20,14 @@ type blockSizeComputation struct {
 	numMiniBlocks      uint32
 	numTxs             uint32
 	blockSizeThrottler BlockSizeThrottler
+	maxSize            uint32
 }
 
 // NewBlockSizeComputation creates a blockSizeComputation instance
 func NewBlockSizeComputation(
 	marshalizer marshal.Marshalizer,
 	blockSizeThrottler BlockSizeThrottler,
+	maxSize uint32,
 	) (*blockSizeComputation, error) {
 
 	if check.IfNil(marshalizer) {
@@ -37,6 +39,7 @@ func NewBlockSizeComputation(
 
 	bsc := &blockSizeComputation{
 		blockSizeThrottler: blockSizeThrottler,
+		maxSize:            maxSize,
 	}
 
 	err := bsc.precomputeValues(marshalizer)
@@ -139,12 +142,12 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
-	return miniblocksSize+txsSize > bsc.blockSizeThrottler.GetMaxSize()
+	return miniblocksSize+txsSize > bsc.blockSizeThrottler.GetCurrentMaxSize()
 }
 
 // MaxTransactionsInOneMiniblock returns the maximum transactions in a single miniblock
 func (bsc *blockSizeComputation) MaxTransactionsInOneMiniblock() int {
-	return int((core.MaxSizeInBytes - bsc.miniblockSize) / bsc.txSize)
+	return int((bsc.maxSize - bsc.miniblockSize) / bsc.txSize)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

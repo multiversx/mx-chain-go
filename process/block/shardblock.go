@@ -692,7 +692,7 @@ func (sp *shardProcessor) CreateBlock(
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
-	sp.blockSizeThrottler.ComputeMaxSize()
+	sp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),

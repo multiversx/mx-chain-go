@@ -8,43 +8,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testMaxSizeInBytes = uint32(core.MaxSizeInBytes / 1000) * 900
-const testMediumSizeInBytes = uint32(core.MaxSizeInBytes / 1000) * 800
-const testHalfSizeInBytes = uint32(core.MaxSizeInBytes / 1000) * 450
+const minSizeInBytes = uint32(core.MegabyteSize * 10 / 100)
+const maxSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
+const testMaxSizeInBytes = uint32(maxSizeInBytes / 1000) * 900
+const testMediumSizeInBytes = uint32(maxSizeInBytes / 1000) * 800
+const testHalfSizeInBytes = uint32(maxSizeInBytes / 1000) * 450
 
 func TestNewBlockSizeThrottle_ShouldWork(t *testing.T) {
-	bst, err := throttle.NewBlockSizeThrottle()
+	bst, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, bst)
 }
 
-func TestBlockSizeThrottle_MaxSizeToAdd(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_CurrentMaxSizeToAdd(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSize := uint32(core.MaxSizeInBytes - 1)
-	bst.SetMaxSize(maxSize)
-	assert.Equal(t, maxSize, bst.GetMaxSize())
+	maxSize := uint32(maxSizeInBytes - 1)
+	bst.SetCurrentMaxSize(maxSize)
+	assert.Equal(t, maxSize, bst.GetCurrentMaxSize())
 }
 
 func TestBlockSizeThrottle_Add(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSize := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSize)
+	bst.SetCurrentMaxSize(maxSize)
 
 	round := uint64(2)
 	size := uint32(testMediumSizeInBytes)
 	bst.Add(round, size)
 
-	assert.Equal(t, maxSize, bst.MaxSizeInLastSizeAdded())
+	assert.Equal(t, maxSize, bst.CurrentMaxSizeInLastSizeAdded())
 	assert.Equal(t, size, bst.SizeInLastSizeAdded())
 	assert.Equal(t, round, bst.RoundInLastSizeAdded())
 	assert.False(t, bst.SucceedInLastSizeAdded())
 }
 
 func TestBlockSizeThrottle_SucceedInLastSizeAdded(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	round := uint64(2)
 	size := uint32(testMediumSizeInBytes)
@@ -59,7 +61,7 @@ func TestBlockSizeThrottle_SucceedInLastSizeAdded(t *testing.T) {
 }
 
 func TestBlockSizeThrottle_SucceedInSizeAdded(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	round := uint64(2)
 	size := uint32(testMediumSizeInBytes)
@@ -77,125 +79,125 @@ func TestBlockSizeThrottle_SucceedInSizeAdded(t *testing.T) {
 	assert.True(t, bst.SucceedInSizeAdded(1))
 }
 
-func TestBlockSizeThrottle_ComputeMaxSizeShouldNotSetMaxSizeWhenStatisticListIsEmpty(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_ComputeCurrentMaxSizeShouldNotSetCurrentMaxSizeWhenStatisticListIsEmpty(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	bst.ComputeMaxSize()
-	assert.Equal(t, uint32(core.MaxSizeInBytes), bst.GetMaxSize())
+	bst.ComputeCurrentMaxSize()
+	assert.Equal(t, uint32(maxSizeInBytes), bst.GetCurrentMaxSize())
 }
 
-func TestBlockSizeThrottle_ComputeMaxSizeShouldSetMaxSizeToMaxSizeInBytesWhenLastActionSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_ComputeCurrentMaxSizeShouldSetCurrentMaxSizeToMaxSizeWhenLastActionSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	lastActionMaxSize := uint32(core.MaxSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize)
-	bst.Add(2, core.MinSizeInBytes)
+	lastActionMaxSize := uint32(maxSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
-	bst.ComputeMaxSize()
+	bst.ComputeCurrentMaxSize()
 
-	assert.Equal(t, uint32(core.MaxSizeInBytes), bst.GetMaxSize())
+	assert.Equal(t, uint32(maxSizeInBytes), bst.GetCurrentMaxSize())
 }
 
-func TestBlockSizeThrottle_ComputeMaxSizeShouldSetMaxSizeToAnIncreasedValueWhenLastActionSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_ComputeCurrentMaxSizeShouldSetCurrentMaxSizeToAnIncreasedValueWhenLastActionSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	lastActionMaxSize1 := uint32(core.MaxSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize1)
-	bst.Add(2, core.MinSizeInBytes)
+	lastActionMaxSize1 := uint32(maxSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize1)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
-	bst.ComputeMaxSize()
-	increasedValue := lastActionMaxSize1 + uint32(float32(core.MaxSizeInBytes-lastActionMaxSize1)*bst.JumpAboveFactor())
-	assert.Equal(t, increasedValue, bst.GetMaxSize())
+	bst.ComputeCurrentMaxSize()
+	increasedValue := lastActionMaxSize1 + uint32(float32(maxSizeInBytes-lastActionMaxSize1)*bst.JumpAboveFactor())
+	assert.Equal(t, increasedValue, bst.GetCurrentMaxSize())
 
 	bst.SetSucceed(2, false)
 	lastActionMaxSize2 := uint32(testMediumSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize2)
-	bst.Add(3, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize2)
+	bst.Add(3, minSizeInBytes)
 	bst.SetSucceed(3, true)
-	bst.ComputeMaxSize()
+	bst.ComputeCurrentMaxSize()
 	increasedValue = lastActionMaxSize2 + uint32(float32(lastActionMaxSize1-lastActionMaxSize2)*bst.JumpAboveFactor())
-	assert.Equal(t, increasedValue, bst.GetMaxSize())
+	assert.Equal(t, increasedValue, bst.GetCurrentMaxSize())
 
 	bst.SetSucceed(2, true)
-	bst.ComputeMaxSize()
-	increasedValue = lastActionMaxSize2 + uint32(float32(core.MaxSizeInBytes-lastActionMaxSize2)*bst.JumpAboveFactor())
-	assert.Equal(t, increasedValue, bst.GetMaxSize())
+	bst.ComputeCurrentMaxSize()
+	increasedValue = lastActionMaxSize2 + uint32(float32(maxSizeInBytes-lastActionMaxSize2)*bst.JumpAboveFactor())
+	assert.Equal(t, increasedValue, bst.GetCurrentMaxSize())
 }
 
-func TestBlockSizeThrottle_ComputeMaxSizeShouldSetMaxSizeToMinSizeInBlockWhenLastActionNotSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_ComputeCurrentMaxSizeShouldSetCurrentMaxSizeToMinSizeWhenLastActionNotSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	lastActionMaxSize := uint32(core.MinSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize)
-	bst.Add(2, core.MinSizeInBytes)
+	lastActionMaxSize := uint32(minSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, false)
-	bst.ComputeMaxSize()
+	bst.ComputeCurrentMaxSize()
 
-	assert.Equal(t, uint32(core.MinSizeInBytes), bst.GetMaxSize())
+	assert.Equal(t, uint32(minSizeInBytes), bst.GetCurrentMaxSize())
 }
 
-func TestBlockSizeThrottle_ComputeMaxSizeShouldSetMaxSizeToADecreasedValueWhenLastActionNotSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_ComputeCurrentMaxSizeShouldSetCurrentMaxSizeToADecreasedValueWhenLastActionNotSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	lastActionMaxSize1 := core.MaxUint32(testMediumSizeInBytes, core.MinSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize1)
-	bst.Add(2, core.MinSizeInBytes)
+	lastActionMaxSize1 := core.MaxUint32(testMediumSizeInBytes, minSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize1)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, false)
-	bst.ComputeMaxSize()
-	decreasedValue := lastActionMaxSize1 - uint32(float32(lastActionMaxSize1-core.MinSizeInBytes)*bst.JumpBelowFactor())
-	assert.Equal(t, decreasedValue, bst.GetMaxSize())
+	bst.ComputeCurrentMaxSize()
+	decreasedValue := lastActionMaxSize1 - uint32(float32(lastActionMaxSize1-minSizeInBytes)*bst.JumpBelowFactor())
+	assert.Equal(t, decreasedValue, bst.GetCurrentMaxSize())
 
 	bst.SetSucceed(2, true)
-	lastActionMaxSize2 := core.MaxUint32(testMaxSizeInBytes, core.MinSizeInBytes)
-	bst.SetMaxSize(lastActionMaxSize2)
-	bst.Add(3, core.MinSizeInBytes)
+	lastActionMaxSize2 := core.MaxUint32(testMaxSizeInBytes, minSizeInBytes)
+	bst.SetCurrentMaxSize(lastActionMaxSize2)
+	bst.Add(3, minSizeInBytes)
 	bst.SetSucceed(3, false)
-	bst.ComputeMaxSize()
+	bst.ComputeCurrentMaxSize()
 	decreasedValue = lastActionMaxSize2 - uint32(float32(lastActionMaxSize2-lastActionMaxSize1)*bst.JumpBelowFactor())
-	assert.Equal(t, decreasedValue, bst.GetMaxSize())
+	assert.Equal(t, decreasedValue, bst.GetCurrentMaxSize())
 
 	bst.SetSucceed(2, false)
-	bst.ComputeMaxSize()
-	decreasedValue = lastActionMaxSize2 - uint32(float32(lastActionMaxSize2-core.MinSizeInBytes)*bst.JumpBelowFactor())
-	assert.Equal(t, decreasedValue, bst.GetMaxSize())
+	bst.ComputeCurrentMaxSize()
+	decreasedValue = lastActionMaxSize2 - uint32(float32(lastActionMaxSize2-minSizeInBytes)*bst.JumpBelowFactor())
+	assert.Equal(t, decreasedValue, bst.GetCurrentMaxSize())
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldReturnMaxSizeInBytes(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldReturnMaxSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(core.MaxSizeInBytes)
-	assert.Equal(t, uint32(core.MaxSizeInBytes), maxSizeWhenSucceed)
+	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(maxSizeInBytes)
+	assert.Equal(t, uint32(maxSizeInBytes), maxSizeWhenSucceed)
 }
 
 func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldReturnMaxSizeUsedWithoutSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSizeUsedWithoutSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithoutSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithoutSucceed)
+	bst.Add(2, minSizeInBytes)
 	jumpAbovePercent := float32(bst.JumpAbovePercent()+1) / float32(100)
 	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(uint32(float32(maxSizeUsedWithoutSucceed) * jumpAbovePercent))
 
 	assert.Equal(t, maxSizeUsedWithoutSucceed, maxSizeWhenSucceed)
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldIncreaseMaxSizeWithAtLeastOneUnit(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldIncreaseCurrentMaxSizeWithAtLeastOneUnit(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSizeUsedWithoutSucceed := core.MinUint32(core.MinSizeInBytes+1, core.MaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithoutSucceed)
-	bst.Add(2, core.MinSizeInBytes)
-	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(core.MinSizeInBytes)
+	maxSizeUsedWithoutSucceed := core.MinUint32(minSizeInBytes+1, maxSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithoutSucceed)
+	bst.Add(2, minSizeInBytes)
+	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(minSizeInBytes)
 
-	assert.Equal(t, core.MinUint32(core.MinSizeInBytes+1, core.MaxSizeInBytes), maxSizeWhenSucceed)
+	assert.Equal(t, core.MinUint32(minSizeInBytes+1, maxSizeInBytes), maxSizeWhenSucceed)
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldIncreaseMaxSize(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldIncreaseCurrentMaxSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSizeUsedWithoutSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithoutSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithoutSucceed)
+	bst.Add(2, minSizeInBytes)
 	lastActionMaxSize := uint32(float32(maxSizeUsedWithoutSucceed) * 0.5)
 	maxSizeWhenSucceed := bst.GetMaxSizeWhenSucceed(lastActionMaxSize)
 	increasedValue := lastActionMaxSize + uint32(float32(maxSizeUsedWithoutSucceed-lastActionMaxSize)*0.5)
@@ -203,42 +205,42 @@ func TestBlockSizeThrottle_GetMaxSizeWhenSucceedShouldIncreaseMaxSize(t *testing
 	assert.Equal(t, increasedValue, maxSizeWhenSucceed)
 }
 
-func TestBlockSizeThrottle_GetCloserAboveMaxSizeUsedWithoutSucceedShouldReturnMaxSizeInBytes(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetCloserAboveCurrentMaxSizeUsedWithoutSucceedShouldReturnMaxSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	assert.Equal(t, uint32(core.MaxSizeInBytes), bst.GetCloserAboveMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
+	assert.Equal(t, uint32(maxSizeInBytes), bst.GetCloserAboveCurrentMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
 
 	maxSizeUsedWithoutSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithoutSucceed)
-	bst.Add(2, core.MinSizeInBytes)
-	assert.Equal(t, uint32(core.MaxSizeInBytes), bst.GetCloserAboveMaxSizeUsedWithoutSucceed(testMaxSizeInBytes))
+	bst.SetCurrentMaxSize(maxSizeUsedWithoutSucceed)
+	bst.Add(2, minSizeInBytes)
+	assert.Equal(t, uint32(maxSizeInBytes), bst.GetCloserAboveCurrentMaxSizeUsedWithoutSucceed(testMaxSizeInBytes))
 
 	bst.SetSucceed(2, true)
-	assert.Equal(t, uint32(core.MaxSizeInBytes), bst.GetCloserAboveMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
+	assert.Equal(t, uint32(maxSizeInBytes), bst.GetCloserAboveCurrentMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
 }
 
-func TestBlockSizeThrottle_GetCloserAboveMaxSizeUsedWithoutSucceedShouldReturnMaxSizeUsedWithoutSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetCloserAboveCurrentMaxSizeUsedWithoutSucceedShouldReturnMaxSizeUsedWithoutSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSizeUsedWithoutSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithoutSucceed)
-	bst.Add(2, core.MinSizeInBytes)
-	assert.Equal(t, maxSizeUsedWithoutSucceed, bst.GetCloserAboveMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
+	bst.SetCurrentMaxSize(maxSizeUsedWithoutSucceed)
+	bst.Add(2, minSizeInBytes)
+	assert.Equal(t, maxSizeUsedWithoutSucceed, bst.GetCloserAboveCurrentMaxSizeUsedWithoutSucceed(testMaxSizeInBytes - 1))
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldReturnMinSizeInBytes(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldReturnMinSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSizeWhenSucceed := bst.GetMaxSizeWhenNotSucceed(core.MinSizeInBytes)
-	assert.Equal(t, uint32(core.MinSizeInBytes), maxSizeWhenSucceed)
+	maxSizeWhenSucceed := bst.GetMaxSizeWhenNotSucceed(minSizeInBytes)
+	assert.Equal(t, uint32(minSizeInBytes), maxSizeWhenSucceed)
 }
 
 func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldReturnMaxSizeUsedWithSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSizeUsedWithSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithSucceed)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
 	jumpBelowPercent := float32(bst.JumpBelowPercent()+1) / float32(100)
 	maxSizeWhenNotSucceed := bst.GetMaxSizeWhenNotSucceed(uint32(float32(maxSizeUsedWithSucceed) / jumpBelowPercent))
@@ -246,24 +248,24 @@ func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldReturnMaxSizeUsedWithSu
 	assert.Equal(t, maxSizeUsedWithSucceed, maxSizeWhenNotSucceed)
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldDecreaseMaxSizeWithAtLeastOneUnit(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldDecreaseCurrentMaxSizeWithAtLeastOneUnit(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSizeUsedWithSucceed := uint32(core.MinSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	maxSizeUsedWithSucceed := uint32(minSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithSucceed)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
-	maxSizeWhenNotSucceed := bst.GetMaxSizeWhenNotSucceed(core.MinSizeInBytes + 1)
+	maxSizeWhenNotSucceed := bst.GetMaxSizeWhenNotSucceed(minSizeInBytes + 1)
 
-	assert.Equal(t, uint32(core.MinSizeInBytes), maxSizeWhenNotSucceed)
+	assert.Equal(t, uint32(minSizeInBytes), maxSizeWhenNotSucceed)
 }
 
-func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldDecreaseMaxSize(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldDecreaseCurrentMaxSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	maxSizeUsedWithSucceed := core.MaxUint32(testHalfSizeInBytes , core.MinSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	maxSizeUsedWithSucceed := core.MaxUint32(testHalfSizeInBytes , minSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithSucceed)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
 	lastActionMaxSize := uint32(float32(maxSizeUsedWithSucceed) / 0.5)
 	maxSizeWhenNotSucceed := bst.GetMaxSizeWhenNotSucceed(lastActionMaxSize)
@@ -272,27 +274,27 @@ func TestBlockSizeThrottle_GetMaxSizeWhenNotSucceedShouldDecreaseMaxSize(t *test
 	assert.Equal(t, decreasedValue, maxSizeWhenNotSucceed)
 }
 
-func TestBlockSizeThrottle_GetCloserBelowMaxSizeUsedWithSucceedShouldReturnMinSizeInBytes(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetCloserBelowCurrentMaxSizeUsedWithSucceedShouldReturnMinSize(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
-	assert.Equal(t, uint32(core.MinSizeInBytes), bst.GetCloserBelowMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
+	assert.Equal(t, uint32(minSizeInBytes), bst.GetCloserBelowCurrentMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
 
 	maxSizeUsedWithSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithSucceed)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
-	assert.Equal(t, uint32(core.MinSizeInBytes), bst.GetCloserBelowMaxSizeUsedWithSucceed(testMaxSizeInBytes))
+	assert.Equal(t, uint32(minSizeInBytes), bst.GetCloserBelowCurrentMaxSizeUsedWithSucceed(testMaxSizeInBytes))
 
 	bst.SetSucceed(2, false)
-	assert.Equal(t, uint32(core.MinSizeInBytes), bst.GetCloserBelowMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
+	assert.Equal(t, uint32(minSizeInBytes), bst.GetCloserBelowCurrentMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
 }
 
-func TestBlockSizeThrottle_GetCloserBelowMaxSizeUsedWithSucceedShouldReturnMaxSizeUsedWithoutSucceed(t *testing.T) {
-	bst, _ := throttle.NewBlockSizeThrottle()
+func TestBlockSizeThrottle_GetCloserBelowCurrentMaxSizeUsedWithSucceedShouldReturnMaxSizeUsedWithSucceed(t *testing.T) {
+	bst, _ := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 
 	maxSizeUsedWithSucceed := uint32(testMaxSizeInBytes)
-	bst.SetMaxSize(maxSizeUsedWithSucceed)
-	bst.Add(2, core.MinSizeInBytes)
+	bst.SetCurrentMaxSize(maxSizeUsedWithSucceed)
+	bst.Add(2, minSizeInBytes)
 	bst.SetSucceed(2, true)
-	assert.Equal(t, maxSizeUsedWithSucceed, bst.GetCloserBelowMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
+	assert.Equal(t, maxSizeUsedWithSucceed, bst.GetCloserBelowCurrentMaxSizeUsedWithSucceed(testMaxSizeInBytes + 1))
 }

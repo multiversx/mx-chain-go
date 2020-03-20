@@ -6,19 +6,19 @@ import (
 
 // BlockSizeThrottlerStub -
 type BlockSizeThrottlerStub struct {
-	GetMaxSizeCalled     func() uint32
-	AddCalled            func(round uint64, size uint32)
-	SucceedCalled        func(round uint64)
-	ComputeMaxSizeCalled func()
+	GetCurrentMaxSizeCalled     func() uint32
+	AddCalled                   func(round uint64, size uint32)
+	SucceedCalled               func(round uint64)
+	ComputeCurrentMaxSizeCalled func()
 }
 
-// GetMaxSize -
-func (bsts *BlockSizeThrottlerStub) GetMaxSize() uint32 {
-	if bsts.GetMaxSizeCalled != nil {
-		return bsts.GetMaxSizeCalled()
+// GetCurrentMaxSize -
+func (bsts *BlockSizeThrottlerStub) GetCurrentMaxSize() uint32 {
+	if bsts.GetCurrentMaxSizeCalled != nil {
+		return bsts.GetCurrentMaxSizeCalled()
 	}
 
-	return core.MaxSizeInBytes
+	return uint32(core.MegabyteSize * 90 / 100)
 }
 
 // Add -
@@ -37,10 +37,10 @@ func (bsts *BlockSizeThrottlerStub) Succeed(round uint64) {
 	}
 }
 
-// ComputeMaxSize -
-func (bsts *BlockSizeThrottlerStub) ComputeMaxSize() {
-	if bsts.ComputeMaxSizeCalled != nil {
-		bsts.ComputeMaxSizeCalled()
+// ComputeCurrentMaxSize -
+func (bsts *BlockSizeThrottlerStub) ComputeCurrentMaxSize() {
+	if bsts.ComputeCurrentMaxSizeCalled != nil {
+		bsts.ComputeCurrentMaxSizeCalled()
 		return
 	}
 }

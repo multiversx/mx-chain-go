@@ -275,10 +275,3 @@ const MetricP2pUnknownShardConnectedPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2pNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2pNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
-
-// MaxSizeInBytes defines how many bytes are allowed as payload in a message. We can not have 1MB of data
-// as there are cases when extra data is needed (consensus data fields and p2p message fields)
-const MaxSizeInBytes = uint32(MegabyteSize * 90 / 100)
-
-// MinSizeInBytes defines the minimum number of bytes at which a block size could be throttled
-const MinSizeInBytes = uint32(MegabyteSize * 10 / 100)

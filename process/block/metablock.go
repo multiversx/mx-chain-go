@@ -733,7 +733,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
-	mp.blockSizeThrottler.ComputeMaxSize()
+	mp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating meta block body",
 		"epoch", metaBlock.GetEpoch(),

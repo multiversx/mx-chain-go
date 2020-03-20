@@ -459,10 +459,10 @@ type TemporaryAccountsHandler interface {
 // BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
 // block to its peers which should be received in a limited time frame
 type BlockSizeThrottler interface {
-	GetMaxSize() uint32
+	GetCurrentMaxSize() uint32
 	Add(round uint64, size uint32)
 	Succeed(round uint64)
-	ComputeMaxSize()
+	ComputeCurrentMaxSize()
 	IsInterfaceNil() bool
 }
 

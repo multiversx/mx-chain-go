@@ -564,6 +564,8 @@ type processComponentsFactoryArgs struct {
 	stateCheckpointModulus    uint
 	maxComputableRounds       uint64
 	numConcurrentResolverJobs int32
+	minSizeInBytes            uint32
+	maxSizeInBytes            uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -591,6 +593,8 @@ func NewProcessComponentsFactoryArgs(
 	stateCheckpointModulus uint,
 	maxComputableRounds uint64,
 	numConcurrentResolverJobs int32,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -616,6 +620,8 @@ func NewProcessComponentsFactoryArgs(
 		stateCheckpointModulus:    stateCheckpointModulus,
 		maxComputableRounds:       maxComputableRounds,
 		numConcurrentResolverJobs: numConcurrentResolverJobs,
+		minSizeInBytes:            minSizeInBytes,
+		maxSizeInBytes:            maxSizeInBytes,
 	}
 }
 
@@ -1729,6 +1735,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1752,6 +1760,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
 			processArgs.gasSchedule,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 
@@ -1775,6 +1785,8 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1892,12 +1904,12 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2020,6 +2032,8 @@ func newMetaBlockProcessor(
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2113,12 +2127,12 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler)
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}

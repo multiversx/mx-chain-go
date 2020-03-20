@@ -19,45 +19,50 @@ const (
 )
 
 type blockInfo struct {
-	succeed bool
-	round   uint64
-	size    uint32
-	maxSize uint32
+	succeed        bool
+	round          uint64
+	size           uint32
+	currentMaxSize uint32
 }
 
 // blockSizeThrottle implements BlockSizeThrottler interface which throttle block size
 type blockSizeThrottle struct {
-	statistics   []*blockInfo
-	maxSize      uint32
-	mutThrottler sync.RWMutex
+	statistics     []*blockInfo
+	currentMaxSize uint32
+	mutThrottler   sync.RWMutex
+	minSize        uint32
+	maxSize        uint32
 }
 
 // NewBlockSizeThrottle creates a new blockSizeThrottle object
-func NewBlockSizeThrottle() (*blockSizeThrottle, error) {
-	bst := blockSizeThrottle{}
-	bst.statistics = make([]*blockInfo, 0)
-	bst.maxSize = core.MaxSizeInBytes
+func NewBlockSizeThrottle(minSize uint32, maxSize uint32) (*blockSizeThrottle, error) {
+	bst := blockSizeThrottle{
+		statistics:     make([]*blockInfo, 0),
+		currentMaxSize: maxSize,
+		minSize:        minSize,
+		maxSize:        maxSize,
+	}
 	return &bst, nil
 }
 
-// GetMaxSize gets the max size in bytes which could be used in one block, taking into consideration the previous results
-func (bst *blockSizeThrottle) GetMaxSize() uint32 {
+// GetCurrentMaxSize gets the current max size in bytes which could be used in one block, taking into consideration the previous results
+func (bst *blockSizeThrottle) GetCurrentMaxSize() uint32 {
 	bst.mutThrottler.RLock()
-	maxSize := bst.maxSize
+	currentMaxSize := bst.currentMaxSize
 	bst.mutThrottler.RUnlock()
 
-	return maxSize
+	return currentMaxSize
 }
 
 // Add adds the new size for last block which has been sent in the given round
 func (bst *blockSizeThrottle) Add(round uint64, size uint32) {
-	if size < core.MinSizeInBytes || size > core.MaxSizeInBytes {
+	if size < bst.minSize || size > bst.maxSize {
 		return
 	}
 	bst.mutThrottler.Lock()
 	bst.statistics = append(
 		bst.statistics,
-		&blockInfo{round: round, size: size, maxSize: bst.maxSize},
+		&blockInfo{round: round, size: size, currentMaxSize: bst.currentMaxSize},
 	)
 
 	if len(bst.statistics) > maxNumOfStatistics {
@@ -79,18 +84,18 @@ func (bst *blockSizeThrottle) Succeed(round uint64) {
 	bst.mutThrottler.Unlock()
 }
 
-// ComputeMaxSize computes the max size in bytes which could be used in one block, taking into consideration the previous results
-func (bst *blockSizeThrottle) ComputeMaxSize() {
+// ComputeCurrentMaxSize computes the current max size in bytes which could be used in one block, taking into consideration the previous results
+func (bst *blockSizeThrottle) ComputeCurrentMaxSize() {
 	//TODO: This is the first basic implementation, which will adapt the max size which could be used in one block,
-	//based on the last recent history. It will always choose the next value of max size, as a middle distance between
+	//based on the last recent history. It will always choose the next value of current max size, as a middle distance between
 	//the last succeeded and the last not succeeded actions, or vice-versa, depending of the last action state.
 	//This algorithm is good when the network speed/latency is changing during the time, and the node will adapt
 	//based on the last recent history and not on some minimum/maximum values recorded in its whole history.
 
 	bst.mutThrottler.Lock()
 	defer func() {
-		log.Debug("ComputeMaxSize",
-			"max size", bst.maxSize,
+		log.Debug("ComputeCurrentMaxSize",
+			"current max size", bst.currentMaxSize,
 		)
 		bst.mutThrottler.Unlock()
 	}()
@@ -100,21 +105,21 @@ func (bst *blockSizeThrottle) ComputeMaxSize() {
 	}
 
 	lastActionSucceed := bst.statistics[len(bst.statistics)-1].succeed
-	lastActionMaxSize := bst.statistics[len(bst.statistics)-1].maxSize
+	lastActionMaxSize := bst.statistics[len(bst.statistics)-1].currentMaxSize
 
 	if lastActionSucceed {
-		bst.maxSize = bst.getMaxSizeWhenSucceed(lastActionMaxSize)
+		bst.currentMaxSize = bst.getMaxSizeWhenSucceed(lastActionMaxSize)
 	} else {
-		bst.maxSize = bst.getMaxSizeWhenNotSucceed(lastActionMaxSize)
+		bst.currentMaxSize = bst.getMaxSizeWhenNotSucceed(lastActionMaxSize)
 	}
 }
 
 func (bst *blockSizeThrottle) getMaxSizeWhenSucceed(lastActionMaxSize uint32) uint32 {
-	if lastActionMaxSize >= core.MaxSizeInBytes {
-		return core.MaxSizeInBytes
+	if lastActionMaxSize >= bst.maxSize {
+		return bst.maxSize
 	}
 
-	maxSizeUsedWithoutSucceed := bst.getCloserAboveMaxSizeUsedWithoutSucceed(lastActionMaxSize)
+	maxSizeUsedWithoutSucceed := bst.getCloserAboveCurrentMaxSizeUsedWithoutSucceed(lastActionMaxSize)
 	if lastActionMaxSize*100/maxSizeUsedWithoutSucceed > jumpAbovePercent {
 		return maxSizeUsedWithoutSucceed
 	}
@@ -123,22 +128,22 @@ func (bst *blockSizeThrottle) getMaxSizeWhenSucceed(lastActionMaxSize uint32) ui
 	return lastActionMaxSize + increasedMaxSize
 }
 
-func (bst *blockSizeThrottle) getCloserAboveMaxSizeUsedWithoutSucceed(currentMaxSize uint32) uint32 {
+func (bst *blockSizeThrottle) getCloserAboveCurrentMaxSizeUsedWithoutSucceed(currentMaxSize uint32) uint32 {
 	for i := len(bst.statistics) - 1; i >= 0; i-- {
-		if !bst.statistics[i].succeed && bst.statistics[i].maxSize > currentMaxSize {
-			return bst.statistics[i].maxSize
+		if !bst.statistics[i].succeed && bst.statistics[i].currentMaxSize > currentMaxSize {
+			return bst.statistics[i].currentMaxSize
 		}
 	}
 
-	return core.MaxSizeInBytes
+	return bst.maxSize
 }
 
 func (bst *blockSizeThrottle) getMaxSizeWhenNotSucceed(lastActionMaxSize uint32) uint32 {
-	if lastActionMaxSize <= core.MinSizeInBytes {
-		return core.MinSizeInBytes
+	if lastActionMaxSize <= bst.minSize {
+		return bst.minSize
 	}
 
-	maxSizeUsedWithSucceed := bst.getCloserBelowMaxSizeUsedWithSucceed(lastActionMaxSize)
+	maxSizeUsedWithSucceed := bst.getCloserBelowCurrentMaxSizeUsedWithSucceed(lastActionMaxSize)
 	if maxSizeUsedWithSucceed*100/lastActionMaxSize > jumpBelowPercent {
 		return maxSizeUsedWithSucceed
 	}
@@ -147,14 +152,14 @@ func (bst *blockSizeThrottle) getMaxSizeWhenNotSucceed(lastActionMaxSize uint32)
 	return lastActionMaxSize - decreasedMaxSize
 }
 
-func (bst *blockSizeThrottle) getCloserBelowMaxSizeUsedWithSucceed(currentMaxSize uint32) uint32 {
+func (bst *blockSizeThrottle) getCloserBelowCurrentMaxSizeUsedWithSucceed(currentMaxSize uint32) uint32 {
 	for i := len(bst.statistics) - 1; i >= 0; i-- {
-		if bst.statistics[i].succeed && bst.statistics[i].maxSize < currentMaxSize {
-			return bst.statistics[i].maxSize
+		if bst.statistics[i].succeed && bst.statistics[i].currentMaxSize < currentMaxSize {
+			return bst.statistics[i].currentMaxSize
 		}
 	}
 
-	return core.MinSizeInBytes
+	return bst.minSize
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
