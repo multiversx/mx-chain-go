@@ -15,7 +15,7 @@ type receiverMonitor struct {
 	chanDone chan struct{}
 }
 
-func newReceiverMonitor(tb testing.TB) *receiverMonitor {
+func NewReceiverMonitor(tb testing.TB) *receiverMonitor {
 	return &receiverMonitor{
 		timeout:  defaultReceiverMonitorTimeout,
 		tb:       tb,
@@ -23,14 +23,14 @@ func newReceiverMonitor(tb testing.TB) *receiverMonitor {
 	}
 }
 
-func (rm *receiverMonitor) done() {
+func (rm *receiverMonitor) Done() {
 	select {
 	case rm.chanDone <- struct{}{}:
 	default:
 	}
 }
 
-func (rm *receiverMonitor) waitWithTimeout() {
+func (rm *receiverMonitor) WaitWithTimeout() {
 	select {
 	case <-rm.chanDone:
 		return

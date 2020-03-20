@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testContext struct {
+type TestContext struct {
 	T *testing.T
 
 	Round uint64
@@ -47,14 +47,14 @@ func (participant *testParticipant) AddressHex() string {
 	return hex.EncodeToString(participant.Address)
 }
 
-func setupTestContext(t *testing.T) testContext {
-	context := testContext{}
+func SetupTestContext(t *testing.T) TestContext {
+	context := TestContext{}
 	context.T = t
 	context.Round = 500
 
 	context.initAccounts()
 
-	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
+	gasSchedule, err := core.LoadGasScheduleConfig("../gasSchedule.toml")
 	assert.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
@@ -69,7 +69,7 @@ func setupTestContext(t *testing.T) testContext {
 	return context
 }
 
-func (context *testContext) initAccounts() {
+func (context *TestContext) initAccounts() {
 	initialNonce := uint64(1)
 
 	context.Owner = testParticipant{}
@@ -99,14 +99,14 @@ func (context *testContext) initAccounts() {
 	context.createAccount(&context.Carol)
 }
 
-func (context *testContext) createAccount(participant *testParticipant) {
+func (context *TestContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
 	}
 }
 
-func (context *testContext) deploySC(wasmPath string, parametersString string) {
+func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	smartContractCode := getSCCode(wasmPath)
 	owner := &context.Owner
 
@@ -145,11 +145,11 @@ func getSCCode(fileName string) string {
 	return codeEncoded
 }
 
-func (context *testContext) executeSC(sender *testParticipant, txData string) {
+func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) {
 	context.executeSCWithValue(sender, txData, big.NewInt(0))
 }
 
-func (context *testContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
+func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
 		Value:    new(big.Int).Set(value),
@@ -173,14 +173,14 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 	}
 }
 
-func (context *testContext) querySCInt(function string, args [][]byte) uint64 {
+func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
 	bytes := context.querySC(function, args)
 	result := big.NewInt(0).SetBytes(bytes).Uint64()
 
 	return result
 }
 
-func (context *testContext) querySC(function string, args [][]byte) []byte {
+func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	query := process.SCQuery{
 		ScAddress: context.ScAddress,
 		FuncName:  function,
@@ -197,7 +197,7 @@ func (context *testContext) querySC(function string, args [][]byte) []byte {
 	return firstResult
 }
 
-func formatHexNumber(number uint64) string {
+func FormatHexNumber(number uint64) string {
 	bytes := big.NewInt(0).SetUint64(number).Bytes()
 	str := hex.EncodeToString(bytes)
 

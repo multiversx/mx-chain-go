@@ -1,0 +1,26 @@
+package block
+
+import (
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"time"
+)
+
+var StepDelay = time.Second
+
+func GetBlockProposersIndexes(
+	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+) map[uint32]int {
+
+	indexProposer := make(map[uint32]int)
+
+	for sh, testNodeList := range nodesMap {
+		for k, testNode := range testNodeList {
+			if consensusMap[sh][0] == testNode {
+				indexProposer[sh] = k
+			}
+		}
+	}
+
+	return indexProposer
+}
