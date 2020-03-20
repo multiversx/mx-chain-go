@@ -177,6 +177,7 @@ func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
 	// TODO: add a component which opens headers storer and gets the last epoch start metablock
 	// in order to provide the last known epoch in storage. Right now, it won't work as expected
 	// if storage pruning is disabled
+	isEpochFoundInStorage := true
 	currentEpoch, errNotCritical := storageFactory.FindLastEpochFromStorage(
 		esdp.workingDir,
 		esdp.genesisNodesConfig.ChainID,
@@ -185,9 +186,19 @@ func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
 	)
 	if errNotCritical != nil {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
+		isEpochFoundInStorage = false
 	}
 
 	log.Debug("current epoch from the storage : ", "epoch", currentEpoch)
+
+	shouldSync := ShouldSyncWithTheNetwork(
+		args.StartTime,
+		isEpochFoundInStorage,
+		args.OriginalNodesConfig,
+		args.GeneralConfig,
+	)
+
+	log.Debug("shouldSync epochStartData", "shouldSync", shouldSync)
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
