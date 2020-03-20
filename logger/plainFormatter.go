@@ -15,9 +15,10 @@ func (pf *PlainFormatter) Output(line LogLineHandler) []byte {
 
 	level := LogLevel(line.GetLogLevel())
 
-	return []byte(fmt.Sprintf("%s[%s] %s %s\n",
+	return []byte(fmt.Sprintf("%s[%s] [%s] %s %s\n",
 		level,
 		displayTime(line.GetTimestamp()),
+		line.GetLoggerName(),
 		formatMessage(line.GetMessage()),
 		formatArgsNoAnsi(line.GetArgs()...),
 	),

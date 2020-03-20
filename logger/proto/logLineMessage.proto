@@ -12,4 +12,5 @@ message LogLineMessage{
     int32 LogLevel = 2;
     repeated string Args = 3;
     int64 Timestamp = 4;
+    string LoggerName = 5;
 }
