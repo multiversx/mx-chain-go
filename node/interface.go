@@ -21,3 +21,29 @@ type P2PMessenger interface {
 	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	ResetForTopic(topic string)
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// Accumulator defines the interface able to accumulate data and periodically evict them
+type Accumulator interface {
+	AddData(data interface{})
+	OutputChannel() <-chan []interface{}
+	IsInterfaceNil() bool
+}

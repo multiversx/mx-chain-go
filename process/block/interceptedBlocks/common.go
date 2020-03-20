@@ -13,7 +13,7 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.HdrBuff == nil {
+	if len(arg.HdrBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -45,7 +45,7 @@ func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.TxBlockBodyBuff == nil {
+	if len(arg.TxBlockBodyBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -62,22 +62,22 @@ func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 }
 
 func checkHeaderHandler(hdr data.HeaderHandler) error {
-	if hdr.GetPubKeysBitmap() == nil {
+	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-	if hdr.GetPrevHash() == nil {
+	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if hdr.GetSignature() == nil {
+	if len(hdr.GetSignature()) == 0 {
 		return process.ErrNilSignature
 	}
-	if hdr.GetRootHash() == nil {
+	if len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
-	if hdr.GetRandSeed() == nil {
+	if len(hdr.GetRandSeed()) == 0 {
 		return process.ErrNilRandSeed
 	}
-	if hdr.GetPrevRandSeed() == nil {
+	if len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
 
@@ -102,9 +102,11 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
 		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards() &&
-			smbh.SenderShardID != core.MetachainShardId
+			smbh.SenderShardID != core.MetachainShardId &&
+			smbh.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards() &&
-			smbh.ReceiverShardID != core.MetachainShardId
+			smbh.ReceiverShardID != core.MetachainShardId &&
+			smbh.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
@@ -117,9 +119,11 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
 		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != core.MetachainShardId
+			miniblock.SenderShardID != core.MetachainShardId &&
+			miniblock.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != core.MetachainShardId
+			miniblock.ReceiverShardID != core.MetachainShardId &&
+			miniblock.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId

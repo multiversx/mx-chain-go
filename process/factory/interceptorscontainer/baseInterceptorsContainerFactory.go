@@ -35,6 +35,7 @@ type baseInterceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
+	antifloodHandler       process.P2PAntifloodHandler
 }
 
 func checkBaseParams(
@@ -49,6 +50,7 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	antifloodHandler process.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -79,6 +81,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(antifloodHandler) {
+		return process.ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -155,10 +160,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
+		topic,
 		bicf.marshalizer,
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -189,10 +196,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
+		topic,
 		bicf.marshalizer,
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -223,10 +232,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
+		topic,
 		bicf.marshalizer,
 		txFactory,
 		txProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -261,18 +272,21 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		return err
 	}
 
+	// compose header shard topic, for example: shardBlocks_0_META
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+
 	//only one intrashard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
+		identifierHdr,
 		hdrFactory,
 		hdrProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return err
 	}
 
-	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return err
@@ -286,8 +300,8 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
 	shardC := bicf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards+1)
-	interceptorsSlice := make([]process.Interceptor, noOfShards+1)
+	keys := make([]string, noOfShards+2)
+	interceptorsSlice := make([]process.Interceptor, noOfShards+2)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -311,6 +325,16 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 	keys[noOfShards] = identifierMiniBlocks
 	interceptorsSlice[noOfShards] = interceptor
 
+	identifierAllShardsMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
+
+	allShardsMiniBlocksInterceptorinterceptor, err := bicf.createOneMiniBlocksInterceptor(identifierAllShardsMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	keys[noOfShards+1] = identifierAllShardsMiniBlocks
+	interceptorsSlice[noOfShards+1] = allShardsMiniBlocksInterceptorinterceptor
+
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
 
@@ -332,9 +356,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 	}
 
 	interceptor, err := interceptors.NewSingleDataInterceptor(
+		topic,
 		txFactory,
 		txBlockBodyProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -371,9 +397,11 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 
 	//only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
+		identifierHdr,
 		hdrFactory,
 		hdrProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -399,10 +427,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
+		topic,
 		bicf.marshalizer,
 		trieNodesFactory,
 		trieNodesProcessor,
 		bicf.globalThrottler,
+		bicf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

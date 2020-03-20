@@ -2546,7 +2546,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2623,7 +2623,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -3002,8 +3002,9 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	message, err := marshalizerMock.Marshal(body)
 	assert.Nil(t, err)
 
+	bodyNil := &block.Body{}
 	dcdBlk := sp.DecodeBlockBody(nil)
-	assert.Equal(t, &block.Body{}, dcdBlk)
+	assert.Equal(t, bodyNil, dcdBlk)
 
 	dcdBlk = sp.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
@@ -3648,6 +3649,20 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	body.MiniBlocks[0] = nil
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrNilMiniBlock, err)
 }
 
 func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {

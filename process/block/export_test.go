@@ -79,23 +79,22 @@ func NewShardProcessorEmptyWith3shards(
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			AccountsDB:                   accountsDb,
-			ForkDetector:                 &mock.ForkDetectorMock{},
-			Hasher:                       &mock.HasherMock{},
-			Marshalizer:                  &mock.MarshalizerMock{},
-			Store:                        &mock.ChainStorerMock{},
-			ShardCoordinator:             shardCoordinator,
-			NodesCoordinator:             nodesCoordinator,
-			FeeHandler:                   &mock.FeeAccumulatorStub{},
-			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-			RequestHandler:               &mock.RequestHandlerStub{},
-			Core:                         &mock.ServiceContainerMock{},
-			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:                &mock.TransactionCoordinatorMock{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-			HeaderValidator:              hdrValidator,
-			Rounder:                      &mock.RounderMock{},
+			AccountsDB:        accountsDb,
+			ForkDetector:      &mock.ForkDetectorMock{},
+			Hasher:            &mock.HasherMock{},
+			Marshalizer:       &mock.MarshalizerMock{},
+			Store:             &mock.ChainStorerMock{},
+			ShardCoordinator:  shardCoordinator,
+			NodesCoordinator:  nodesCoordinator,
+			FeeHandler:        &mock.FeeAccumulatorStub{},
+			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
+			RequestHandler:    &mock.RequestHandlerStub{},
+			Core:              &mock.ServiceContainerMock{},
+			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:     &mock.TransactionCoordinatorMock{},
+			EpochStartTrigger: &mock.EpochStartTriggerStub{},
+			HeaderValidator:   hdrValidator,
+			Rounder:           &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -219,6 +218,10 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 	return mp.checkShardHeadersFinality(highestNonceHdrs)
 }
 
+func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
+	return mp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
+}
+
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
 	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
@@ -265,14 +268,10 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
 }
 
-func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
+func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
-}
-
-func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
-	bp.blockSizeThrottler = blockSizeThrottler
+	return sp.createAndProcessMiniBlocksDstMe(haveTime)
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -329,12 +328,12 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return mp.verifyCrossShardMiniBlockDstMe(header)
 }
 
-func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	return mp.applyBodyToHeader(metaHdr, bodyHandler)
+func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, body *block.Body) (data.BodyHandler, error) {
+	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	return sp.applyBodyToHeader(shardHdr, bodyHandler)
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, body *block.Body) (*block.Body, error) {
+	return sp.applyBodyToHeader(shardHdr, body)
 }
 
 func (mp *metaProcessor) CreateBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {

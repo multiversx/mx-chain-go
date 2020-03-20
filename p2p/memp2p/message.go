@@ -19,7 +19,7 @@ type message struct {
 	seqNo []byte
 
 	// topics set by the sender
-	topicIds []string
+	topics []string
 
 	// leave empty
 	signature []byte
@@ -41,7 +41,7 @@ func newMessage(topic string, data []byte, peerID p2p.PeerID, seqNo uint64) *mes
 		from:      []byte(string(peerID)),
 		data:      data,
 		seqNo:     seqNoBytes,
-		topicIds:  []string{topic},
+		topics:    []string{topic},
 		signature: empty,
 		key:       []byte(string(peerID)),
 		peer:      peerID,
@@ -63,9 +63,9 @@ func (msg *message) SeqNo() []byte {
 	return msg.seqNo
 }
 
-// TopicIDs returns the topic on which the message was sent
-func (msg *message) TopicIDs() []string {
-	return msg.topicIds
+// Topics returns the topic on which the message was sent
+func (msg *message) Topics() []string {
+	return msg.topics
 }
 
 // Signature returns the message signature

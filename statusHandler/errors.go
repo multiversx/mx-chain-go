@@ -13,3 +13,6 @@ var ErrNilPresenterInterface = errors.New("nil presenter interface")
 
 // ErrNilGrid will be returned when a nil grid is returned
 var ErrNilGrid = errors.New("nil grid")
+
+// ErrNilAppStatusHandler signals that a nil status handler has been provided
+var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")

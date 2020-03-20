@@ -43,6 +43,7 @@ type BlockTrackerMock struct {
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
+	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
 
 	shardCoordinator sharding.Coordinator
 
@@ -431,6 +432,15 @@ func (btm *BlockTrackerMock) RestoreToGenesis() {
 	if btm.RestoreToGenesisCalled != nil {
 		btm.RestoreToGenesisCalled()
 	}
+}
+
+// ShouldAddHeader -
+func (btm *BlockTrackerMock) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
+	if btm.ShouldAddHeaderCalled != nil {
+		return btm.ShouldAddHeaderCalled(headerHandler)
+	}
+
+	return true
 }
 
 // IsInterfaceNil -

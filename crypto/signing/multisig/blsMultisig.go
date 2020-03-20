@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// BlsHashSize specifies the hash size for using bls scheme
+const BlsHashSize = 16
+
 /*
 This implementation follows the modified BLS scheme presented here (curve notation changed in this file as compared to
 the link, so curves G0, G1 in link are referred to as G1, G2 in this file):
@@ -229,7 +232,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrBitmapMismatch
 	}
 
-	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
+	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pk_i, {pk1,..., pk_n})*sig_i
 	signatures := make([][]byte, 0, len(bms.data.sigShares))
 	pubKeysSigners := make([]crypto.PublicKey, 0, len(bms.data.sigShares))
 

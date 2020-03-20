@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -444,7 +446,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
+		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
@@ -491,7 +493,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
 	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
@@ -700,7 +702,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
+	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -764,6 +766,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
+		generalConfig.Antiflood.NumConcurrentResolverJobs,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -771,7 +774,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var elasticIndexer indexer.Indexer
-	if coreServiceContainer == nil || coreServiceContainer.IsInterfaceNil() {
+	if check.IfNil(coreServiceContainer) {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
@@ -815,7 +818,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -856,7 +859,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
+	ef, err := facade.NewElrondNodeFacade(
+		currentNode,
+		apiResolver,
+		restAPIServerDebugMode,
+		generalConfig.Antiflood.WebServer,
+	)
+	if err != nil {
+		return fmt.Errorf("%w while creating NodeFacade", err)
+	}
 
 	efConfig := &config.FacadeConfig{
 		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
@@ -986,14 +997,17 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
-	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator, log logger.Logger) {
+	if check.IfNil(elasticIndexer) {
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(0)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
 
-	if validatorsPubKeys != nil {
+	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
 }
@@ -1111,7 +1125,7 @@ func createNodesCoordinator(
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	_ sharding.RaterHandler,
+	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
 
@@ -1175,14 +1189,12 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
-	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	//if err != nil {
-	//	return nil, err
-	//}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	if err != nil {
+		return nil, err
+	}
 
-	return baseNodesCoordinator, nil
+	return nodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
@@ -1284,12 +1296,36 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (*node.Node, error) {
-	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	var err error
+	var consensusGroupSize uint32
+	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nd, err := node.NewNode(
+	var txAccumulator node.Accumulator
+	txAccumulatorConfig := config.Antiflood.TxAccumulator
+	txAccumulator, err = accumulator.NewTimeAccumulator(
+		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
+		network,
+		config,
+		nodesCoordinator,
+		shardCoordinator,
+		process.EpochStartTrigger,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var nd *node.Node
+	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(coreData.Hasher),
 		node.WithInternalMarshalizer(coreData.InternalMarshalizer, config.Marshalizer.SizeCheckDelta),
@@ -1328,6 +1364,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
@@ -1335,6 +1372,8 @@ func createNode(
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
+		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
+		node.WithTxAccumulator(txAccumulator),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

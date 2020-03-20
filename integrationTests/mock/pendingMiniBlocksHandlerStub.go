@@ -2,24 +2,14 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // PendingMiniBlocksHandlerStub -
 type PendingMiniBlocksHandlerStub struct {
-	PendingMiniBlockHeadersCalled func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
-	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
-	RevertHeaderCalled            func(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocksCalled func(shardID uint32) uint32
-	SetNumPendingMiniBlocksCalled func(shardID uint32, numPendingMiniBlocks uint32)
-}
-
-// PendingMiniBlockHeaders -
-func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
-	if p.PendingMiniBlockHeadersCalled != nil {
-		return p.PendingMiniBlockHeadersCalled(lastNotarizedHeaders)
-	}
-	return nil, nil
+	AddProcessedHeaderCalled   func(handler data.HeaderHandler) error
+	RevertHeaderCalled         func(handler data.HeaderHandler) error
+	GetPendingMiniBlocksCalled func(shardID uint32) [][]byte
+	SetPendingMiniBlocksCalled func(shardID uint32, mbHashes [][]byte)
 }
 
 // AddProcessedHeader -
@@ -38,18 +28,18 @@ func (p *PendingMiniBlocksHandlerStub) RevertHeader(handler data.HeaderHandler) 
 	return nil
 }
 
-// GetNumPendingMiniBlocks -
-func (p *PendingMiniBlocksHandlerStub) GetNumPendingMiniBlocks(shardID uint32) uint32 {
-	if p.GetNumPendingMiniBlocksCalled != nil {
-		return p.GetNumPendingMiniBlocksCalled(shardID)
+// GetPendingMiniBlocks -
+func (p *PendingMiniBlocksHandlerStub) GetPendingMiniBlocks(shardID uint32) [][]byte {
+	if p.GetPendingMiniBlocksCalled != nil {
+		return p.GetPendingMiniBlocksCalled(shardID)
 	}
-	return 0
+	return make([][]byte, 0)
 }
 
-// SetNumPendingMiniBlocks -
-func (p *PendingMiniBlocksHandlerStub) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
-	if p.SetNumPendingMiniBlocksCalled != nil {
-		p.SetNumPendingMiniBlocksCalled(shardID, numPendingMiniBlocks)
+// SetPendingMiniBlocks -
+func (p *PendingMiniBlocksHandlerStub) SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte) {
+	if p.SetPendingMiniBlocksCalled != nil {
+		p.SetPendingMiniBlocksCalled(shardID, mbHashes)
 	}
 }
 

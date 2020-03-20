@@ -10,7 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func initNodesAndTest(
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
@@ -191,7 +191,6 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:TRACE,*:TRACE")
 	runFullConsensusTest(t, blsConsensusType)
 }
 

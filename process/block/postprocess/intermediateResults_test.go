@@ -276,6 +276,45 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	assert.Nil(t, err)
 }
 
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	adrConv := &mock.AddressConverterMock{}
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
+		adrConv,
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	txHash := []byte("txHash")
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 0})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 1})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 2})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 3})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 4})
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), len(txs))
+	irp.mutInterResultsForBlock.Unlock()
+
+	irp.RemoveProcessedResultsFor([][]byte{txHash})
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), 0)
+	assert.Equal(t, len(irp.interResultsForBlock), 0)
+	irp.mutInterResultsForBlock.Unlock()
+}
+
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *testing.T) {
 	t.Parallel()
 
@@ -369,7 +408,13 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	assert.Equal(t, 5, len(mbs[shardCoordinator.SelfId()+1].TxHashes))
+	miniBlockTest := &block.MiniBlock{}
+	for _, mb := range mbs {
+		if mb.ReceiverShardID == shardCoordinator.SelfId()+1 {
+			miniBlockTest = mb
+		}
+	}
+	assert.Equal(t, 5, len(miniBlockTest.TxHashes))
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T) {
@@ -391,7 +436,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	err = irp.VerifyInterMiniBlocks(nil)
+	body := &block.Body{}
+	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 }
 

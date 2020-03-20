@@ -86,10 +86,10 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-// TestMetaHeadersAreRequstedOnlyFromMetachain tests the metaheader request to be made only from metachain nodes
+// TestMetaHeadersAreRequsted tests the metaheader request to be made towards any peer
 // The test will have 2 shards and meta, one shard node will request a metaheader and it should received it only from
 // the meta node
-func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
+func TestMetaHeadersAreRequsted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -99,12 +99,12 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
-	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	node1Shard0Requester := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
 	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
 
-	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2Shard0, node3Shard1, node4Meta}
+	nodes := []*integrationTests.TestProcessorNode{node1Shard0Requester, node2Shard0, node3Shard1, node4Meta}
 
 	defer func() {
 		_ = advertiser.Close()
@@ -153,23 +153,21 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 
 	for _, n := range nodes {
-		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
-			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
-		}
+		n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
+		n.DataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.DataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
-	node1Shard0.DataPool.Headers().Clear()
-	node1Shard0.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
+	node1Shard0Requester.DataPool.Headers().Clear()
+	node1Shard0Requester.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		chanReceived <- struct{}{}
 	})
 
-	retrievedHeader := requestAndRetrieveMetaHeader(node1Shard0, metaHdrHashFromMetachain, chanReceived)
+	retrievedHeader := requestAndRetrieveMetaHeader(node1Shard0Requester, metaHdrHashFromMetachain, chanReceived)
 	require.NotNil(t, retrievedHeader)
 	assert.Equal(t, metaHdrFromMetachain.Nonce, retrievedHeader.Nonce)
 
-	retrievedHeader = requestAndRetrieveMetaHeader(node1Shard0, metaHdrFromShardHash, chanReceived)
+	retrievedHeader = requestAndRetrieveMetaHeader(node1Shard0Requester, metaHdrFromShardHash, chanReceived)
 	assert.Nil(t, retrievedHeader)
 }
 

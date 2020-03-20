@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/bls-go-binary/bls"
+	"github.com/herumi/bls-go-binary/bls"
 )
 
 // Scalar -
@@ -213,6 +213,10 @@ func (sc *Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
 	}
 
 	s1.Scalar.SetByCSPRNG()
+
+	for s1.Scalar.IsOne() || s1.Scalar.IsZero() {
+		s1.Scalar.SetByCSPRNG()
+	}
 
 	return &s1, nil
 }

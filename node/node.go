@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -46,9 +45,6 @@ import (
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
-
-// HeartbeatTopic is the topic used for heartbeat signaling
-const HeartbeatTopic = "heartbeat"
 
 var log = logger.GetOrCreate("node")
 
@@ -100,6 +96,8 @@ type Node struct {
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
 
+	networkShardingCollector NetworkShardingCollector
+
 	consensusTopic string
 	consensusType  string
 
@@ -121,6 +119,9 @@ type Node struct {
 	sizeCheckDelta uint32
 
 	requestHandler process.RequestHandler
+
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -304,6 +305,8 @@ func (n *Node) StartConsensus() error {
 		n.syncTimer,
 		n.headerSigVerifier,
 		n.chainID,
+		n.networkShardingCollector,
+		n.inputAntifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -332,6 +335,7 @@ func (n *Node) StartConsensus() error {
 		NodesCoordinator:     n.nodesCoordinator,
 		SyncTimer:            n.syncTimer,
 		EpochStartSubscriber: n.epochStartSubscriber,
+		AntifloodHandler:     n.inputAntifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -622,99 +626,83 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error
 	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
 }
 
-// SendTransaction will send a new transaction on the topic channel
-func (n *Node) SendTransaction(
-	nonce uint64,
-	senderHex string,
-	receiverHex string,
-	value string,
-	gasPrice uint64,
-	gasLimit uint64,
-	transactionData []byte,
-	signature []byte) (string, error) {
-
-	if n.shardCoordinator == nil || n.shardCoordinator.IsInterfaceNil() {
-		return "", ErrNilShardCoordinator
-	}
-
-	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
-	if err != nil {
-		return "", err
-	}
-
-	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
-	if err != nil {
-		return "", err
-	}
-
-	senderShardId := n.shardCoordinator.ComputeId(sender)
-
-	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
-	if !ok {
-		return "", ErrInvalidValue
-	}
-
-	tx := transaction.Transaction{
-		Nonce:     nonce,
-		Value:     new(big.Int).Set(valAsBigInt),
-		RcvAddr:   receiver.Bytes(),
-		SndAddr:   sender.Bytes(),
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      transactionData,
-		Signature: signature,
-	}
-
-	err = n.validateTx(&tx)
-	if err != nil {
-		return "", err
-	}
-
-	txBuff, err := n.internalMarshalizer.Marshal(&tx)
-	if err != nil {
-		return "", err
-	}
-
-	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
-
-	marshalizedTx, err := n.internalMarshalizer.Marshal(batch.New(txBuff))
-	if err != nil {
-		return "", errors.New("could not marshal transaction")
-	}
-
-	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
-
-	n.messenger.BroadcastOnChannel(
-		SendTransactionsPipe,
-		identifier,
-		marshalizedTx,
-	)
-
-	return txHexHash, nil
-}
-
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	transactionsByShards := make(map[uint32][][]byte)
-
-	if len(txs) == 0 { // no need for nil check, len() for nil returns 0
+	if len(txs) == 0 {
 		return 0, ErrNoTxToProcess
 	}
 
+	filteredTransactions := n.filterTransactions(txs)
+	if len(filteredTransactions) == 0 {
+		return 0, fmt.Errorf("%w after validating", ErrNoTxToProcess)
+	}
+
+	n.addTransactionsToSendPipe(filteredTransactions)
+
+	return uint64(len(filteredTransactions)), nil
+}
+
+func (n *Node) filterTransactions(txs []*transaction.Transaction) []*transaction.Transaction {
+	filteredTransactions := make([]*transaction.Transaction, 0, len(txs))
+	var err error
 	for _, tx := range txs {
-		senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
-		if err != nil {
-			continue
-		}
-
-		senderShardId := n.shardCoordinator.ComputeId(senderBytes)
-		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
-		if err != nil {
-			continue
-		}
-
 		err = n.validateTx(tx)
+		if err != nil {
+			continue
+		}
+
+		filteredTransactions = append(filteredTransactions, tx)
+	}
+
+	return filteredTransactions
+}
+
+func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
+	if check.IfNil(n.txAcumulator) {
+		log.Error("node has a nil tx accumulator instance")
+		return
+	}
+
+	for _, tx := range txs {
+		n.txAcumulator.AddData(tx)
+	}
+}
+
+func (n *Node) sendFromTxAccumulator() {
+	outputChannel := n.txAcumulator.OutputChannel()
+
+	for objs := range outputChannel {
+		//this will read continuously until the chan is closed
+
+		if len(objs) == 0 {
+			continue
+		}
+
+		txs := make([]*transaction.Transaction, 0, len(objs))
+		for _, obj := range objs {
+			tx, ok := obj.(*transaction.Transaction)
+			if !ok {
+				continue
+			}
+
+			txs = append(txs, tx)
+		}
+
+		n.sendBulkTransactions(txs)
+	}
+}
+
+// sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
+func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
+	transactionsByShards := make(map[uint32][][]byte)
+
+	for _, tx := range txs {
+		senderShardId, err := n.getSenderShardId(tx)
+		if err != nil {
+			continue
+		}
+
+		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
 			continue
 		}
@@ -731,8 +719,27 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
+}
 
-	return numOfSentTxs, nil
+func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
+	senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	senderShardId := n.shardCoordinator.ComputeId(senderBytes)
+	if senderShardId != n.shardCoordinator.SelfId() {
+		return senderShardId, nil
+	}
+
+	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
+	//traverse the network only once
+	recvBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	return n.shardCoordinator.ComputeId(recvBytes), nil
 }
 
 func (n *Node) validateTx(tx *transaction.Transaction) error {
@@ -766,7 +773,13 @@ func (n *Node) validateTx(tx *transaction.Transaction) error {
 		return err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAddressNotInThisShard) {
+		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
+		return nil
+	}
+
+	return err
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
@@ -812,37 +825,36 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	dataField []byte,
 	signatureHex string,
-) (*transaction.Transaction, error) {
+) (*transaction.Transaction, []byte, error) {
 
-	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
-		return nil, ErrNilAddressConverter
+	if check.IfNil(n.addrConverter) {
+		return nil, nil, ErrNilAddressConverter
 	}
-
-	if n.accounts == nil || n.accounts.IsInterfaceNil() {
-		return nil, ErrNilAccountsAdapter
+	if check.IfNil(n.accounts) {
+		return nil, nil, ErrNilAccountsAdapter
 	}
 
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
-		return nil, errors.New("could not create receiver address from provided param")
+		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
 	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
-		return nil, errors.New("could not create sender address from provided param")
+		return nil, nil, errors.New("could not create sender address from provided param")
 	}
 
 	signatureBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
-		return nil, errors.New("could not fetch signature bytes")
+		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
-		return nil, ErrInvalidValue
+		return nil, nil, ErrInvalidValue
 	}
 
-	return &transaction.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:     nonce,
 		Value:     valAsBigInt,
 		RcvAddr:   receiverAddress.Bytes(),
@@ -851,7 +863,20 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      dataField,
 		Signature: signatureBytes,
-	}, nil
+	}
+
+	err = n.validateTx(tx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var txHash []byte
+	txHash, err = core.CalculateHash(n.internalMarshalizer, n.hasher, tx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tx, txHash, nil
 }
 
 //GetTransaction gets the transaction
@@ -907,12 +932,12 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	if n.messenger.HasTopicValidator(HeartbeatTopic) {
+	if n.messenger.HasTopicValidator(core.HeartbeatTopic) {
 		return ErrValidatorAlreadySet
 	}
 
-	if !n.messenger.HasTopic(HeartbeatTopic) {
-		err = n.messenger.CreateTopic(HeartbeatTopic, true)
+	if !n.messenger.HasTopic(core.HeartbeatTopic) {
+		err = n.messenger.CreateTopic(core.HeartbeatTopic, true)
 		if err != nil {
 			return err
 		}
@@ -923,7 +948,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.singleSigner,
 		n.privKey,
 		n.internalMarshalizer,
-		HeartbeatTopic,
+		core.HeartbeatTopic,
 		n.shardCoordinator,
 		versionNumber,
 		nodeDisplayName,
@@ -937,7 +962,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
-		n.internalMarshalizer)
+		n.internalMarshalizer,
+		n.networkShardingCollector,
+	)
 	if err != nil {
 		return err
 	}
@@ -960,6 +987,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		heartBeatMsgProcessor,
 		heartbeatStorer,
 		timer,
+		n.inputAntifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -970,7 +998,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
+	err = n.messenger.RegisterMessageProcessor(core.HeartbeatTopic, n.heartbeatMonitor)
 	if err != nil {
 		return err
 	}
@@ -1029,31 +1057,40 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	for _, pubKeyInShards := range n.initialNodesPubkeys {
-		for _, pubKey := range pubKeyInShards {
-			acc, err := n.validatorStatistics.GetPeerAccount([]byte(pubKey))
-			if err != nil {
-				log.Debug("validator api: get peer account", "error", err.Error())
-				continue
-			}
+	validators, m, err := n.getLatestValidators()
+	if err != nil {
+		return m, err
+	}
 
-			peerAcc, ok := acc.(*state.PeerAccount)
-			if !ok {
-				log.Debug("validator api: convert to peer account", "error", ErrCannotConvertToPeerAccount)
-				continue
-			}
-
-			strKey := hex.EncodeToString([]byte(pubKey))
+	for _, validatorInfosInShard := range validators {
+		for _, validatorInfo := range validatorInfosInShard {
+			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
-				NrLeaderSuccess:    peerAcc.LeaderSuccessRate.NrSuccess,
-				NrLeaderFailure:    peerAcc.LeaderSuccessRate.NrFailure,
-				NrValidatorSuccess: peerAcc.ValidatorSuccessRate.NrSuccess,
-				NrValidatorFailure: peerAcc.ValidatorSuccessRate.NrFailure,
+				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
+				NrLeaderFailure:    validatorInfo.LeaderFailure,
+				NrValidatorSuccess: validatorInfo.ValidatorSuccess,
+				NrValidatorFailure: validatorInfo.ValidatorFailure,
+				Rating:             float32(validatorInfo.Rating) * 100 / 1000000,
+				TempRating:         float32(validatorInfo.TempRating) * 100 / 1000000,
 			}
 		}
 	}
 
 	return mapToReturn, nil
+}
+
+func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
+	latestHash, err := n.validatorStatistics.RootHash()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	validators, err := n.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return validators, nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
