@@ -523,6 +523,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Trace("working directory", "path", workingDir)
 
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err = os.RemoveAll(dbPath)
+		if err != nil {
+			return err
+		}
+	}
+
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
@@ -550,14 +562,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
+	if err != nil {
+		return err
+	}
+	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
 
 	log.Trace("creating crypto components")
 	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
 		ctx,
 		generalConfig,
 		nodesConfig,
-		shardCoordinator,
+		genesisShardCoordinator,
 		keyGen,
 		privKey,
 		log,
@@ -585,18 +601,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	epochStartComponentArgs := factoryEpochBootstrap.EpochStartDataProviderFactoryArgs{
-		PubKey:              pubKey,
-		Messenger:           networkComponents.NetMessenger,
-		Marshalizer:         marshalizer,
-		Hasher:              hasher,
-		NodesConfigProvider: nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
-		PathManager:         pathManager,
-		StartTime:           startTime,
-		OriginalNodesConfig: nodesConfig,
-		GeneralConfig:       generalConfig,
-		WorkingDir:          workingDir,
-		DefaultDBPath:       defaultDBPath,
-		DefaultEpochString:  defaultEpochString,
+		PubKey:                  pubKey,
+		Messenger:               networkComponents.NetMessenger,
+		Marshalizer:             marshalizer,
+		Hasher:                  hasher,
+		NodesConfigProvider:     nodesconfigprovider.NewSimpleNodesConfigProvider(nodesConfig),
+		PathManager:             pathManager,
+		StartTime:               startTime,
+		OriginalNodesConfig:     nodesConfig,
+		GeneralConfig:           generalConfig,
+		WorkingDir:              workingDir,
+		DefaultDBPath:           defaultDBPath,
+		DefaultEpochString:      defaultEpochString,
 		PubKey:                  pubKey,
 		Messenger:               networkComponents.NetMessenger,
 		Marshalizer:             coreComponents.InternalMarshalizer,
@@ -636,18 +652,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			"epoch", res.EpochStartMetaBlock.GetEpoch())
 	} else {
 		log.Error("error bootstrapping", "error", err)
-	}
-
-	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanupFlagValue {
-		dbPath := filepath.Join(
-			workingDir,
-			defaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err = os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
 	}
 
 	log.Trace("creating economics data components")

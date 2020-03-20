@@ -314,15 +314,6 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	if err != nil {
 		return nil, err
 	}
-	//pendingMiniBlocks := make([]*block.MiniBlock, 0)
-	//for _, mb := range epochStartData.PendingMiniBlockHeaders {
-	//	receivedMb, errGetMb := esdp.getMiniBlock(&mb)
-	//	if errGetMb != nil {
-	//		return nil, errGetMb
-	//	}
-	//	pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
-	//	log.Info("received miniblock", "type", receivedMb.Type)
-	//}
 
 	lastFinalizedMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, epochStartData.LastFinishedMetaBlock)
 	if err != nil {
