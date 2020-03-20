@@ -25,11 +25,11 @@ func (cf *ConsoleFormatter) Output(line LogLineHandler) []byte {
 	level := LogLevel(line.GetLogLevel())
 	levelColor := getLevelColor(level)
 
-	return []byte(fmt.Sprintf("\033[%s%s\033[0m[%s] [%s] %s %s\n",
+	return []byte(fmt.Sprintf("\033[%s%s\033[0m[%s] %s %s %s\n",
 		levelColor,
 		level,
 		displayTime(line.GetTimestamp()),
-		line.GetLoggerName(),
+		formatLoggerName(line.GetLoggerName()),
 		formatMessage(line.GetMessage()),
 		formatArgs(levelColor, line.GetArgs()...),
 	),
@@ -46,7 +46,7 @@ func formatArgs(levelColor string, args ...string) string {
 
 	argString := ""
 	for index := 1; index < len(args); index += 2 {
-		argString += fmt.Sprintf("\033[%s%s\033[0m=%s ", levelColor, args[index-1], args[index])
+		argString += fmt.Sprintf("\033[%s%s\033[0m = %s ", levelColor, args[index-1], args[index])
 	}
 
 	return argString
