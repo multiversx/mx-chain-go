@@ -124,7 +124,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.Hasher == nil {
 		return ErrNilHasher
 	}
-	if arguments.SelfPublicKey == nil {
+	if len(arguments.SelfPublicKey) == 0 {
 		return ErrNilPubKey
 	}
 	if arguments.Shuffler == nil {
@@ -240,15 +240,15 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
+		if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
+			return nil, ErrInvalidShardId
+		}
 		expandedList = nodesConfig.eligibleMap[shardId]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
 		return nil, ErrEpochNodesConfigDesNotExist
-	}
-	if shardId >= nodesConfig.nbShards && shardId != core.MetachainShardId {
-		return nil, ErrInvalidShardId
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
@@ -307,9 +307,9 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	nodesConfig.mutNodesMaps.RLock()
 	defer nodesConfig.mutNodesMaps.RUnlock()
 
-	shardIdValidator, ok := nodesConfig.publicKeyToValidatorMap[string(publicKey)]
+	v, ok := nodesConfig.publicKeyToValidatorMap[string(publicKey)]
 	if ok {
-		return shardIdValidator.validator, shardIdValidator.shardId, nil
+		return v.validator, v.shardId, nil
 	}
 
 	return nil, 0, ErrValidatorNotFound

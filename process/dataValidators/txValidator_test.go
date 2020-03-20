@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/big"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -41,6 +40,7 @@ func createMockCoordinator(identifierPrefix string, currentShardID uint32) *mock
 
 func getTxValidatorHandler(
 	sndShardId uint32,
+	rcvShardId uint32,
 	nonce uint64,
 	sndAddr state.AddressContainer,
 	fee *big.Int,
@@ -48,6 +48,9 @@ func getTxValidatorHandler(
 	return &mock.TxValidatorHandlerStub{
 		SenderShardIdCalled: func() uint32 {
 			return sndShardId
+		},
+		ReceiverShardIdCalled: func() uint32 {
+			return rcvShardId
 		},
 		NonceCalled: func() uint64 {
 			return nonce
@@ -102,13 +105,14 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb := getAccAdapter(1, big.NewInt(0))
-	shardCoordinator := createMockCoordinator("_", 0)
+	currentShard := uint32(0)
+	shardCoordinator := createMockCoordinator("_", currentShard)
 	maxNonceDeltaAllowed := 100
 	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(1, 1, addressMock, big.NewInt(0))
+	txValidatorHandler := getTxValidatorHandler(currentShard+1, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.Nil(t, result)
@@ -127,11 +131,11 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, big.NewInt(0))
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
-	assert.True(t, strings.Contains(result.Error(), "nonce"))
+	assert.True(t, errors.Is(result, process.ErrWrongTransaction))
 }
 
 func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
@@ -147,11 +151,11 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, big.NewInt(0))
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
-	assert.True(t, strings.Contains(result.Error(), "nonce"))
+	assert.True(t, errors.Is(result, process.ErrWrongTransaction))
 }
 
 func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldReturnFalse(t *testing.T) {
@@ -169,11 +173,12 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, fee)
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, fee)
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.NotNil(t, result)
-	assert.True(t, strings.Contains(result.Error(), "balance"))
+	assert.True(t, errors.Is(result, process.ErrInsufficientFunds))
 }
 
 func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
@@ -209,10 +214,11 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	txValidator, _ := dataValidators.NewTxValidator(accDB, shardCoordinator, maxNonceDeltaAllowed)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
+	assert.True(t, errors.Is(result, process.ErrAddressNotInThisShard))
 }
 
 func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing.T) {
@@ -227,10 +233,11 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 	txValidator, _ := dataValidators.NewTxValidator(accDB, shardCoordinator, maxNonceDeltaAllowed)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
+	assert.True(t, errors.Is(result, process.ErrWrongTypeAssertion))
 }
 
 func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
@@ -244,7 +251,8 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 	txValidator, _ := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
+	currentShard := uint32(0)
+	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.Nil(t, result)

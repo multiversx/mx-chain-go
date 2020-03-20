@@ -1197,7 +1197,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
 	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
 
-	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -1287,7 +1287,7 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
 	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
 
-	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)

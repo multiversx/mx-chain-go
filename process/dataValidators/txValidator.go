@@ -3,8 +3,8 @@ package dataValidators
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -24,10 +24,10 @@ func NewTxValidator(
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -52,7 +52,11 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return errSenderNotInCurrentShard(senderAddress.Bytes(), shardID)
+		return fmt.Errorf("%w for address %s and shard %d",
+			process.ErrAddressNotInThisShard,
+			hex.EncodeToString(senderAddress.Bytes()),
+			shardID,
+		)
 	}
 
 	accountNonce := accountHandler.GetNonce()
@@ -61,37 +65,33 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
-		return errInvalidNonce(accountNonce, txNonce)
+		return fmt.Errorf("%w lowerNonceInTx: %v, veryHighNonceInTx: %v",
+			process.ErrWrongTransaction,
+			lowerNonceInTx,
+			veryHighNonceInTx,
+		)
 	}
 
 	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
-		return errConvertError(senderAddress.Bytes())
+		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
+			process.ErrWrongTypeAssertion,
+			hex.EncodeToString(senderAddress.Bytes()),
+		)
 	}
 
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
-		return errInsufficientBalance(txFee, accountBalance)
+		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
+			process.ErrInsufficientFunds,
+			hex.EncodeToString(senderAddress.Bytes()),
+			txFee,
+			accountBalance,
+		)
 	}
 
 	return nil
-}
-
-func errSenderNotInCurrentShard(senderAddress []byte, currentShard uint32) error {
-	return fmt.Errorf("transaction's sender address %s does not exist in current shard %d", hex.EncodeToString(senderAddress), currentShard)
-}
-
-func errInvalidNonce(accountNonce uint64, txNonce uint64) error {
-	return fmt.Errorf("invalid nonce. Wanted %d, got %d", accountNonce, txNonce)
-}
-
-func errConvertError(senderAddress []byte) error {
-	return fmt.Errorf("cannot convert account handler in a state.Account %s", hex.EncodeToString(senderAddress))
-}
-
-func errInsufficientBalance(txFee *big.Int, accountBalance *big.Int) error {
-	return fmt.Errorf("insufficient balance. Needed at least %d (fee), account has %d", txFee, accountBalance)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -19,28 +19,116 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createWsAntifloodingConfig() config.WebServerAntifloodConfig {
+	return config.WebServerAntifloodConfig{
+		SimultaneousRequests:         1,
+		SameSourceRequests:           1,
+		SameSourceResetIntervalInSec: 1,
+	}
+}
+
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{}, false)
+	ef, _ := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+	return ef
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ApiResolverStub{}, false)
+	ef, _ := NewElrondNodeFacade(
+		node,
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+	return ef
 }
 
-func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
+func TestNewElrondFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
+	t.Parallel()
+
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	assert.NotNil(t, ef)
 	assert.False(t, ef.IsInterfaceNil())
 }
 
-func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{}, false)
+func TestNewElrondFacade_WithNilNodeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ef, err := NewElrondNodeFacade(
+		nil,
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+
 	assert.Nil(t, ef)
+	assert.Equal(t, ErrNilNode, err)
 }
 
-func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil, false)
+func TestNewElrondFacade_WithNilApiResolverShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		nil,
+		false,
+		createWsAntifloodingConfig(),
+	)
+
 	assert.Nil(t, ef)
+	assert.Equal(t, ErrNilApiResolver, err)
+}
+
+func TestNewElrondFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SimultaneousRequests = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
+}
+
+func TestNewElrondFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SameSourceResetIntervalInSec = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
+}
+
+func TestNewElrondFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SameSourceRequests = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
 }
 
 func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
@@ -235,18 +323,6 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 	assert.Equal(t, sync, ef.GetSyncer())
 }
 
-func TestElrondNodeFacade_SendTransaction(t *testing.T) {
-	called := 0
-	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount string, txData []byte, signature []byte) (string, error) {
-		called++
-		return "", nil
-	}
-	ef := createElrondNodeFacadeWithMockResolver(node)
-	_, _ = ef.SendTransaction(1, "test", "test", "0", 0, 0, []byte("code"), []byte{})
-	assert.Equal(t, called, 1)
-}
-
 func TestElrondNodeFacade_GetAccount(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
@@ -306,7 +382,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	ef := NewElrondNodeFacade(
+	ef, _ := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
 			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
@@ -315,6 +391,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 			},
 		},
 		false,
+		createWsAntifloodingConfig(),
 	)
 
 	_, _ = ef.ExecuteSCQuery(nil)
@@ -400,7 +477,16 @@ func TestElrondNodeFacade_StatusMetrics(t *testing.T) {
 		},
 	}
 
-	ef := NewElrondNodeFacade(nodeMock, apiResStub, false)
+	ef, _ := NewElrondNodeFacade(
+		nodeMock,
+		apiResStub,
+		true,
+		config.WebServerAntifloodConfig{
+			SimultaneousRequests:         10,
+			SameSourceRequests:           10,
+			SameSourceResetIntervalInSec: 10,
+		},
+	)
 
 	_ = ef.StatusMetrics()
 
@@ -423,7 +509,16 @@ func TestElrondNodeFacade_RestAPIServerDebugMode(t *testing.T) {
 
 	nodeMock := &mock.NodeMock{}
 	apiResStub := &mock.ApiResolverStub{}
-	ef := NewElrondNodeFacade(nodeMock, apiResStub, true)
+	ef, _ := NewElrondNodeFacade(
+		nodeMock,
+		apiResStub,
+		true,
+		config.WebServerAntifloodConfig{
+			SimultaneousRequests:         10,
+			SameSourceRequests:           10,
+			SameSourceResetIntervalInSec: 10,
+		},
+	)
 
 	assert.True(t, ef.RestAPIServerDebugMode())
 }
@@ -434,13 +529,13 @@ func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
 	nodeCreateTxWasCalled := false
 	nodeMock := &mock.NodeMock{
 		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
-			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error) {
+			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
-			return nil, nil
+			return nil, nil, nil
 		},
 	}
 	ef := createElrondNodeFacadeWithMockResolver(nodeMock)
-	_, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
+	_, _, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
 
 	assert.True(t, nodeCreateTxWasCalled)
 }
