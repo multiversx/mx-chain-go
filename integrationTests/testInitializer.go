@@ -835,7 +835,7 @@ func SyncBlock(
 		}
 	}
 
-	time.Sleep(SyncDelay)
+	time.Sleep(StepDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 

@@ -218,9 +218,9 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
-	}
 
-	time.Sleep(time.Second)
+		time.Sleep(5 * time.Second)
+	}
 
 	for _, nodes := range nodesMap {
 		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
@@ -304,9 +304,9 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
-	}
 
-	time.Sleep(time.Second)
+		time.Sleep(5 * time.Second)
+	}
 
 	for _, nodes := range nodesMap {
 		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
