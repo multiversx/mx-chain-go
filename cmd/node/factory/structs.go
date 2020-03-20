@@ -38,14 +38,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
+	factory2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	txpoolFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -408,7 +404,12 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	datapool, err = createDataPoolFromConfig(args)
+	dataPoolArgs := factory2.ArgsDataPool{
+		Config:           args.config,
+		EconomicsData:    args.economicsData,
+		ShardCoordinator: args.shardCoordinator,
+	}
+	datapool, err = factory2.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -1011,78 +1012,6 @@ func createDataStoreFromConfig(
 		return storageServiceFactory.CreateForMeta()
 	}
 	return nil, errors.New("can not create data store")
-}
-
-func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
-	log.Debug("creatingDataPool from config")
-
-	mainConfig := args.config
-
-	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(mainConfig.TxDataPool),
-		MinGasPrice:    args.economicsData.MinGasPrice(),
-		NumberOfShards: args.shardCoordinator.NumberOfShards(),
-		SelfShardID:    args.shardCoordinator.SelfId(),
-	})
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
-	if err != nil {
-		log.Error("error creating smart contract result pool")
-		return nil, err
-	}
-
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
-	if err != nil {
-		log.Error("error creating reward transaction pool")
-		return nil, err
-	}
-
-	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
-	if err != nil {
-		log.Error("error creating headers pool")
-		return nil, err
-	}
-
-	cacherCfg := storageFactory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
-	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating txBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating peerChangeBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
-	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Info("error creating trieNodes")
-		return nil, err
-	}
-
-	currBlockTxs, err := dataPool.NewCurrentBlockPool()
-	if err != nil {
-		return nil, err
-	}
-
-	return dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currBlockTxs,
-	)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {

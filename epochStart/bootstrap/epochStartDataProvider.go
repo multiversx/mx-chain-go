@@ -14,13 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	factory2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory/interceptors"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/storagehandler"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -28,11 +30,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 var log = logger.GetOrCreate("registration")
@@ -51,12 +56,18 @@ type epochStartDataProvider struct {
 	hasher                         hashing.Hasher
 	messenger                      p2p.Messenger
 	generalConfig                  config.Config
+	economicsConfig                config.EconomicsConfig
+	defaultShardCoordinator        sharding.Coordinator
 	pathManager                    PathManagerHandler
 	nodesConfigProvider            NodesConfigProviderHandler
 	epochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	metaBlockInterceptor           MetaBlockInterceptorHandler
 	shardHeaderInterceptor         ShardHeaderInterceptorHandler
 	miniBlockInterceptor           MiniBlockInterceptorHandler
+	singleSigner                   crypto.SingleSigner
+	blockSingleSigner              crypto.SingleSigner
+	keyGen                         crypto.KeyGenerator
+	blockKeyGen                    crypto.KeyGenerator
 	requestHandler                 process.RequestHandler
 	whiteListHandler               dataRetriever.WhiteListHandler
 	shardCoordinator               sharding.Coordinator
@@ -73,12 +84,18 @@ type ArgsEpochStartDataProvider struct {
 	Marshalizer                    marshal.Marshalizer
 	Hasher                         hashing.Hasher
 	GeneralConfig                  config.Config
+	EconomicsConfig                config.EconomicsConfig
+	DefaultShardCoordinator        sharding.Coordinator
 	PathManager                    PathManagerHandler
 	NodesConfigProvider            NodesConfigProviderHandler
 	EpochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
 	MetaBlockInterceptor           MetaBlockInterceptorHandler
 	ShardHeaderInterceptor         ShardHeaderInterceptorHandler
 	MiniBlockInterceptor           MiniBlockInterceptorHandler
+	SingleSigner                   crypto.SingleSigner
+	BlockSingleSigner              crypto.SingleSigner
+	KeyGen                         crypto.KeyGenerator
+	BlockKeyGen                    crypto.KeyGenerator
 	WhiteListHandler               dataRetriever.WhiteListHandler
 	GenesisNodesConfig             *sharding.NodesSetup
 	WorkingDir                     string
@@ -121,6 +138,21 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, ErrNilWhiteListHandler
 	}
+	if check.IfNil(args.DefaultShardCoordinator) {
+		return nil, ErrNilDefaultShardCoordinator
+	}
+	if check.IfNil(args.BlockKeyGen) {
+		return nil, ErrNilBlockKeyGen
+	}
+	if check.IfNil(args.KeyGen) {
+		return nil, ErrNilKeyGen
+	}
+	if check.IfNil(args.SingleSigner) {
+		return nil, ErrNilSingleSigner
+	}
+	if check.IfNil(args.BlockSingleSigner) {
+		return nil, ErrNilBlockSingleSigner
+	}
 
 	epochStartProvider := &epochStartDataProvider{
 		publicKey:                      args.PublicKey,
@@ -128,6 +160,7 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		hasher:                         args.Hasher,
 		messenger:                      args.Messenger,
 		generalConfig:                  args.GeneralConfig,
+		economicsConfig:                args.EconomicsConfig,
 		pathManager:                    args.PathManager,
 		nodesConfigProvider:            args.NodesConfigProvider,
 		epochStartMetaBlockInterceptor: args.EpochStartMetaBlockInterceptor,
@@ -139,6 +172,11 @@ func NewEpochStartDataProvider(args ArgsEpochStartDataProvider) (*epochStartData
 		workingDir:                     args.WorkingDir,
 		defaultEpochString:             args.DefaultEpochString,
 		defaultDBPath:                  args.DefaultEpochString,
+		defaultShardCoordinator:        args.DefaultShardCoordinator,
+		keyGen:                         args.KeyGen,
+		blockKeyGen:                    args.BlockKeyGen,
+		singleSigner:                   args.SingleSigner,
+		blockSingleSigner:              args.BlockSingleSigner,
 	}
 
 	err := epochStartProvider.initInternalComponents()
@@ -168,6 +206,19 @@ func (esdp *epochStartDataProvider) initInternalComponents() error {
 	if err != nil {
 		return err
 	}
+
+	economicsData, err := economics.NewEconomicsData(&esdp.economicsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	commonDataPool, err := factory2.NewDataPoolFromConfig(
+		factory2.ArgsDataPool{
+			Config:           &esdp.generalConfig,
+			EconomicsData:    economicsData,
+			ShardCoordinator: esdp.defaultShardCoordinator,
+		},
+	)
 
 	return nil
 }
@@ -205,13 +256,28 @@ func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
 func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
 	// TODO: add searching for epoch start metablock and other data inside this component
 
+	interceptorsContainer, err := esdp.createInterceptors(commonDataPool)
+	if err != nil || interceptorsContainer == nil {
+		return nil, err
+	}
+
+	miniBlocksSyncer, err := esdp.getMiniBlockSyncer(commonDataPool.MiniBlocks())
+	if err != nil {
+		return nil, err
+	}
+
+	missingHeadersSyncer, err := esdp.getHeaderHandlerSyncer(commonDataPool.Headers())
+	if err != nil {
+		return nil, err
+	}
+
 	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
 	metaBlock, err := esdp.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
 	if err != nil {
 		return nil, err
 	}
 
-	prevMetaBlock, err := esdp.getEpochStartMetaBlock(metaBlock.Epoch - 1)
+	prevMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, metaBlock.EpochStart.Economics.PrevEpochStartHash)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +295,7 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	shardHeaders, err := esdp.getShardHeaders(metaBlock, esdp.shardCoordinator)
+	shardHeaders, err := esdp.getShardHeaders(missingHeadersSyncer, metaBlock, nodesConfig, shardCoordinator)
 	if err != nil {
 		log.Debug("shard headers not found", "error", err)
 	}
@@ -244,23 +310,27 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 		return nil, err
 	}
 
-	pendingMiniBlocks := make([]*block.MiniBlock, 0)
-	for _, mb := range epochStartData.PendingMiniBlockHeaders {
-		receivedMb, errGetMb := esdp.getMiniBlock(&mb)
-		if errGetMb != nil {
-			return nil, errGetMb
-		}
-		pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
-		log.Info("received miniblock", "type", receivedMb.Type)
+	pendingMiniBlocks, err := esdp.getMiniBlocks(miniBlocksSyncer, epochStartData.PendingMiniBlockHeaders, shardCoordinator.SelfId())
+	if err != nil {
+		return nil, err
 	}
+	//pendingMiniBlocks := make([]*block.MiniBlock, 0)
+	//for _, mb := range epochStartData.PendingMiniBlockHeaders {
+	//	receivedMb, errGetMb := esdp.getMiniBlock(&mb)
+	//	if errGetMb != nil {
+	//		return nil, errGetMb
+	//	}
+	//	pendingMiniBlocks = append(pendingMiniBlocks, receivedMb)
+	//	log.Info("received miniblock", "type", receivedMb.Type)
+	//}
 
-	lastFinalizedMetaBlock, err := esdp.getMetaBlock(epochStartData.LastFinishedMetaBlock)
+	lastFinalizedMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, epochStartData.LastFinishedMetaBlock)
 	if err != nil {
 		return nil, err
 	}
 	log.Info("received last finalized meta block", "nonce", lastFinalizedMetaBlock.Nonce)
 
-	firstPendingMetaBlock, err := esdp.getMetaBlock(epochStartData.FirstPendingMetaBlock)
+	firstPendingMetaBlock, err := esdp.getMetaBlock(missingHeadersSyncer, epochStartData.FirstPendingMetaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +387,59 @@ func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBoo
 	return components, nil
 }
 
+func (esdp *epochStartDataProvider) getMiniBlockSyncer(dataPool storage.Cacher) (update.EpochStartPendingMiniBlocksSyncHandler, error) {
+	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          dataPool,
+		Marshalizer:    esdp.marshalizer,
+		RequestHandler: esdp.requestHandler,
+	}
+	return sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+}
+
+func (esdp *epochStartDataProvider) getHeaderHandlerSyncer(pool dataRetriever.HeadersPool) (update.MissingHeadersByHashSyncer, error) {
+	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          pool,
+		Marshalizer:    esdp.marshalizer,
+		RequestHandler: esdp.requestHandler,
+	}
+	return sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+}
+
+func (esdp *epochStartDataProvider) getMiniBlocks(
+	handler update.EpochStartPendingMiniBlocksSyncHandler,
+	pendingMiniBlocks []block.ShardMiniBlockHeader,
+	shardID uint32,
+) (map[string]*block.MiniBlock, error) {
+
+	waitTime := 1 * time.Minute
+	err := handler.SyncPendingMiniBlocksForEpochStart(pendingMiniBlocks, waitTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return handler.GetMiniBlocks()
+}
+
+func (esdp *epochStartDataProvider) createInterceptors(dataPool dataRetriever.PoolsHolder) (process.InterceptorsContainer, error) {
+	args := interceptors.ArgsEpochStartInterceptorContainer{
+		Config:            esdp.generalConfig,
+		ShardCoordinator:  esdp.defaultShardCoordinator,
+		Marshalizer:       esdp.marshalizer,
+		Hasher:            esdp.hasher,
+		Messenger:         esdp.messenger,
+		DataPool:          dataPool,
+		SingleSigner:      esdp.singleSigner,
+		BlockSingleSigner: esdp.blockSingleSigner,
+		KeyGen:            esdp.keyGen,
+		BlockKeyGen:       esdp.blockKeyGen,
+		WhiteListHandler:  esdp.whiteListHandler,
+	}
+
+	return interceptors.NewEpochStartInterceptorsContainer(args)
+}
+
 func (esdp *epochStartDataProvider) changeMessageProcessorsForMetaBlocks() {
 	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
@@ -352,7 +475,7 @@ func (esdp *epochStartDataProvider) createRequestHandler() error {
 	if err != nil {
 		return err
 	}
-	triesHolder.Put([]byte(factory3.UserAccountTrie), stateTrie)
+	triesHolder.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	peerTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
 	if err != nil {
@@ -363,7 +486,7 @@ func (esdp *epochStartDataProvider) createRequestHandler() error {
 	if err != nil {
 		return err
 	}
-	triesHolder.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         esdp.shardCoordinator,
@@ -435,25 +558,20 @@ func (esdp *epochStartDataProvider) getCurrentEpochStartData(
 	return nil, errors.New("not found")
 }
 
-func (esdp *epochStartDataProvider) initTopicsAndInterceptors() error {
-	err := esdp.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+func (esdp *epochStartDataProvider) initTopicForEpochStartMetaBlockInterceptor() error {
+	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
 		log.Info("error unregistering message processor", "error", err)
+		return err
+	}
+
+	err = esdp.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+	if err != nil {
+		log.Info("error registering message processor", "error", err)
 		return err
 	}
 
 	err = esdp.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, esdp.epochStartMetaBlockInterceptor)
-	if err != nil {
-		return err
-	}
-
-	err = esdp.messenger.CreateTopic(factory.ShardBlocksTopic+"_1_META", true)
-	if err != nil {
-		log.Info("error unregistering message processor", "error", err)
-		return err
-	}
-
-	err = esdp.messenger.RegisterMessageProcessor(factory.ShardBlocksTopic+"_1_META", esdp.shardHeaderInterceptor)
 	if err != nil {
 		return err
 	}
@@ -484,30 +602,52 @@ func (esdp *epochStartDataProvider) getTrieFromRootHash(_ []byte) (state.TriesHo
 }
 
 func (esdp *epochStartDataProvider) resetTopicsAndInterceptors() {
-	err := esdp.messenger.UnregisterAllMessageProcessors()
+	err := esdp.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
 		log.Info("error unregistering message processors", "error", err)
 	}
 }
 
-func (esdp *epochStartDataProvider) getMetaBlock(hash []byte) (*block.MetaBlock, error) {
-	esdp.requestMetaBlock(hash)
-
-	time.Sleep(delayAfterRequesting)
-
-	for {
-		numConnectedPeers := len(esdp.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(hash, threshold)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for meta block. re-requesting and trying again...")
-		esdp.requestMetaBlock(hash)
+func (esdp *epochStartDataProvider) getMetaBlock(syncer update.MissingHeadersByHashSyncer, hash []byte) (*block.MetaBlock, error) {
+	//esdp.requestMetaBlock(hash)
+	//
+	//time.Sleep(delayAfterRequesting)
+	//
+	//for {
+	//	numConnectedPeers := len(esdp.messenger.Peers())
+	//	threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+	//	mb, errConsensusNotReached := esdp.metaBlockInterceptor.GetMetaBlock(hash, threshold)
+	//	if errConsensusNotReached == nil {
+	//		return mb, nil
+	//	}
+	//	log.Info("consensus not reached for meta block. re-requesting and trying again...")
+	//	esdp.requestMetaBlock(hash)
+	//}
+	waitTime := 1 * time.Minute
+	err := syncer.SyncMissingHeadersByHash(esdp.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
+	if err != nil {
+		return nil, err
 	}
+
+	hdrs, err := syncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	syncer.ClearFields()
+
+	return hdrs[string(hash)].(*block.MetaBlock), nil
 }
 
 func (esdp *epochStartDataProvider) getEpochStartMetaBlock(epoch uint32) (*block.MetaBlock, error) {
+	err := esdp.initTopicForEpochStartMetaBlockInterceptor()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		esdp.resetTopicsAndInterceptors()
+	}()
+
 	esdp.requestEpochStartMetaBlock(epoch)
 
 	time.Sleep(delayAfterRequesting)
@@ -540,6 +680,7 @@ func (esdp *epochStartDataProvider) getShardCoordinator(metaBlock *block.MetaBlo
 }
 
 func (esdp *epochStartDataProvider) getShardHeaders(
+	syncer update.MissingHeadersByHashSyncer,
 	metaBlock *block.MetaBlock,
 	shardCoordinator sharding.Coordinator,
 ) (map[uint32]*block.Header, error) {
@@ -549,7 +690,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	if shardID == core.MetachainShardId {
 		for _, entry := range metaBlock.EpochStart.LastFinalizedHeaders {
 			var hdr *block.Header
-			hdr, err := esdp.getShardHeader(entry.HeaderHash, entry.ShardID)
+			hdr, err := esdp.getShardHeader(syncer, entry.HeaderHash, entry.ShardID)
 			if err != nil {
 				return nil, err
 			}
@@ -571,6 +712,7 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 	}
 
 	hdr, err := esdp.getShardHeader(
+		syncer,
 		entryForShard.HeaderHash,
 		entryForShard.ShardID,
 	)
@@ -583,27 +725,43 @@ func (esdp *epochStartDataProvider) getShardHeaders(
 }
 
 func (esdp *epochStartDataProvider) getShardHeader(
+	syncer update.MissingHeadersByHashSyncer,
 	hash []byte,
 	shardID uint32,
 ) (*block.Header, error) {
-	esdp.requestShardHeader(shardID, hash)
-	time.Sleep(delayBetweenRequests)
-
-	count := 0
-	for {
-		if count > maxNumTimesToRetry {
-			panic("can't sync with the other peers")
-		}
-		count++
-		numConnectedPeers := len(esdp.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(hash, threshold)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for shard header. re-requesting and trying again...")
-		esdp.requestShardHeader(shardID, hash)
+	waitTime := 1 * time.Minute
+	err := syncer.SyncMissingHeadersByHash(esdp.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
+	if err != nil {
+		return nil, err
 	}
+
+	hdrs, err := syncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	syncer.ClearFields()
+
+	return hdrs[string(hash)].(*block.Header), nil
+
+	//esdp.requestShardHeader(shardID, hash)
+	//time.Sleep(delayBetweenRequests)
+	//
+	//count := 0
+	//for {
+	//	if count > maxNumTimesToRetry {
+	//		panic("can't sync with the other peers")
+	//	}
+	//	count++
+	//	numConnectedPeers := len(esdp.messenger.Peers())
+	//	threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+	//	mb, errConsensusNotReached := esdp.shardHeaderInterceptor.GetShardHeader(hash, threshold)
+	//	if errConsensusNotReached == nil {
+	//		return mb, nil
+	//	}
+	//	log.Info("consensus not reached for shard header. re-requesting and trying again...")
+	//	esdp.requestShardHeader(shardID, hash)
+	//}
 }
 
 func (esdp *epochStartDataProvider) requestMetaBlock(hash []byte) {

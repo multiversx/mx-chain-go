@@ -17,13 +17,19 @@ import (
 )
 
 type epochStartDataProviderFactory struct {
-	pubKey              crypto.PublicKey
-	messenger           p2p.Messenger
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	pathManager         storage.PathManagerHandler
-	nodesConfigProvider bootstrap.NodesConfigProviderHandler
-	generalConfig       config.Config
+	pubKey                  crypto.PublicKey
+	messenger               p2p.Messenger
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	pathManager             storage.PathManagerHandler
+	nodesConfigProvider     bootstrap.NodesConfigProviderHandler
+	generalConfig           config.Config
+	economicsConfig         config.EconomicsConfig
+	defaultShardCoordinator sharding.Coordinator
+	singleSigner            crypto.SingleSigner
+	blockSingleSigner       crypto.SingleSigner
+	keyGen                  crypto.KeyGenerator
+	blockKeyGen             crypto.KeyGenerator
 	shouldSync          bool
 	workingDir          string
 	defaultDBPath       string
@@ -33,16 +39,22 @@ type epochStartDataProviderFactory struct {
 // EpochStartDataProviderFactoryArgs holds the arguments needed for creating aa factory for the epoch start data
 // provider component
 type EpochStartDataProviderFactoryArgs struct {
-	PubKey                crypto.PublicKey
-	Messenger             p2p.Messenger
-	Marshalizer           marshal.Marshalizer
-	Hasher                hashing.Hasher
-	NodesConfigProvider   bootstrap.NodesConfigProviderHandler
-	PathManager           storage.PathManagerHandler
-	StartTime             time.Time
-	OriginalNodesConfig   *sharding.NodesSetup
-	GeneralConfig         *config.Config
-	IsEpochFoundInStorage bool
+	PubKey                  crypto.PublicKey
+	Messenger               p2p.Messenger
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	NodesConfigProvider     bootstrap.NodesConfigProviderHandler
+	PathManager             storage.PathManagerHandler
+	DefaultShardCoordinator sharding.Coordinator
+	StartTime               time.Time
+	OriginalNodesConfig     *sharding.NodesSetup
+	GeneralConfig           *config.Config
+	EconomicsConfig         *config.EconomicsConfig
+	SingleSigner            crypto.SingleSigner
+	BlockSingleSigner       crypto.SingleSigner
+	KeyGen                  crypto.KeyGenerator
+	BlockKeyGen             crypto.KeyGenerator
+	IsEpochFoundInStorage   bool
 	WorkingDir            string
 	DefaultDBPath         string
 	DefaultEpochString    string
@@ -68,6 +80,21 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, bootstrap.ErrNilNodesConfigProvider
 	}
+	if check.IfNil(args.DefaultShardCoordinator) {
+		return nil, bootstrap.ErrNilDefaultShardCoordinator
+	}
+	if check.IfNil(args.BlockKeyGen) {
+		return nil, bootstrap.ErrNilBlockKeyGen
+	}
+	if check.IfNil(args.KeyGen) {
+		return nil, bootstrap.ErrNilKeyGen
+	}
+	if check.IfNil(args.SingleSigner) {
+		return nil, bootstrap.ErrNilSingleSigner
+	}
+	if check.IfNil(args.BlockSingleSigner) {
+		return nil, bootstrap.ErrNilBlockSingleSigner
+	}
 
 	shouldSync := bootstrap.ShouldSyncWithTheNetwork(
 		args.StartTime,
@@ -78,13 +105,19 @@ func NewEpochStartDataProviderFactory(args EpochStartDataProviderFactoryArgs) (*
 	shouldSync = true // hardcoded so we can test we can sync
 
 	return &epochStartDataProviderFactory{
-		pubKey:              args.PubKey,
-		messenger:           args.Messenger,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		pathManager:         args.PathManager,
-		generalConfig:       *args.GeneralConfig,
-		nodesConfigProvider: args.NodesConfigProvider,
+		pubKey:                  args.PubKey,
+		messenger:               args.Messenger,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		pathManager:             args.PathManager,
+		generalConfig:           *args.GeneralConfig,
+		economicsConfig:         *args.EconomicsConfig,
+		nodesConfigProvider:     args.NodesConfigProvider,
+		defaultShardCoordinator: args.DefaultShardCoordinator,
+		keyGen:                  args.KeyGen,
+		blockKeyGen:             args.BlockKeyGen,
+		singleSigner:            args.SingleSigner,
+		blockSingleSigner:       args.BlockSingleSigner,
 		shouldSync:          shouldSync,
 		workingDir:          args.WorkingDir,
 		defaultEpochString:  args.DefaultEpochString,
@@ -124,6 +157,9 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		return nil, err
 	}
 	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return nil, err
+	}
 
 	argsEpochStart := bootstrap.ArgsEpochStartDataProvider{
 		PublicKey:                      esdpf.pubKey,
@@ -132,7 +168,13 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		Hasher:                         esdpf.hasher,
 		NodesConfigProvider:            esdpf.nodesConfigProvider,
 		GeneralConfig:                  esdpf.generalConfig,
+		EconomicsConfig:                esdpf.economicsConfig,
 		PathManager:                    esdpf.pathManager,
+		SingleSigner:                   esdpf.singleSigner,
+		BlockSingleSigner:              esdpf.blockSingleSigner,
+		KeyGen:                         esdpf.keyGen,
+		BlockKeyGen:                    esdpf.blockKeyGen,
+		DefaultShardCoordinator:        esdpf.defaultShardCoordinator,
 		EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
 		MetaBlockInterceptor:           metaBlockInterceptor,
 		ShardHeaderInterceptor:         shardHdrInterceptor,
@@ -142,7 +184,5 @@ func (esdpf *epochStartDataProviderFactory) Create() (bootstrap.EpochStartDataPr
 		DefaultEpochString:             esdpf.defaultEpochString,
 		DefaultDBPath:                  esdpf.defaultDBPath,
 	}
-	epochStartDataProvider, err := bootstrap.NewEpochStartDataProvider(argsEpochStart)
-
-	return epochStartDataProvider, nil
+	return bootstrap.NewEpochStartDataProvider(argsEpochStart)
 }

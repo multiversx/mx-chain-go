@@ -123,6 +123,7 @@ type EpochStartTriesSyncHandler interface {
 // EpochStartPendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type EpochStartPendingMiniBlocksSyncHandler interface {
 	SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error
+	SyncPendingMiniBlocksForEpochStart(miniBlockHeaders []block.ShardMiniBlockHeader, waitTime time.Duration) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
@@ -131,6 +132,14 @@ type EpochStartPendingMiniBlocksSyncHandler interface {
 type PendingTransactionsSyncHandler interface {
 	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// MissingHeadersByHashSyncer defines the methods to sync all missing headers by hash
+type MissingHeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardID uint32, headersHashes [][]byte, waitTime time.Duration) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
 	IsInterfaceNil() bool
 }
 
