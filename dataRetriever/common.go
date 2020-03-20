@@ -1,6 +1,8 @@
 package dataRetriever
 
-import "github.com/ElrondNetwork/elrond-go/process/factory"
+import (
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+)
 
 // SetEpochHandlerToHdrResolver sets the epoch handler to the metablock hdr resolver
 func SetEpochHandlerToHdrResolver(

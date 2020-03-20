@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,6 +39,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
 func logError(err error) {
 	if err != nil {
@@ -622,9 +625,10 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
 }
 
@@ -651,9 +655,10 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
@@ -682,20 +687,28 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.NotNil(t, err)
 }
 
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	expectedHash := []byte("expected hash")
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
 		node.WithAddressConverter(&mock.AddressConverterStub{
 			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
 				return state.NewAddress([]byte(hexAddress)), nil
@@ -713,9 +726,10 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.NotNil(t, tx)
+	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 	assert.Equal(t, value, tx.Value)
@@ -743,63 +757,6 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	numOfTxsProcessed, err := n.SendBulkTransactions(txs)
 	assert.Equal(t, uint64(0), numOfTxsProcessed)
 	assert.Equal(t, node.ErrNoTxToProcess, err)
-}
-
-func TestSendTransaction_ShouldWork(t *testing.T) {
-	txSent := false
-	mes := &mock.MessengerStub{
-		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
-			txSent = true
-		},
-	}
-
-	marshalizer := &mock.MarshalizerFake{}
-	hasher := &mock.HasherFake{}
-	adrConverter := mock.NewAddressConverterFake(32, "0x")
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
-		node.WithVmMarshalizer(marshalizer),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithAddressConverter(adrConverter),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMessenger(mes),
-		node.WithHasher(hasher),
-	)
-
-	nonce := uint64(50)
-	value := big.NewInt(567)
-	sender := createDummyHexAddress(64)
-	receiver := createDummyHexAddress(64)
-	txData := "data"
-	signature := []byte("signature")
-
-	senderBuff, _ := adrConverter.CreateAddressFromHex(sender)
-	receiverBuff, _ := adrConverter.CreateAddressFromHex(receiver)
-
-	txHexHashResulted, err := n.SendTransaction(
-		nonce,
-		sender,
-		receiver,
-		value.String(),
-		0,
-		0,
-		[]byte(txData),
-		signature)
-
-	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
-		Nonce:     nonce,
-		Value:     new(big.Int).Set(value),
-		SndAddr:   senderBuff.Bytes(),
-		RcvAddr:   receiverBuff.Bytes(),
-		Data:      []byte(txData),
-		Signature: signature,
-	})
-	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))
-
-	assert.Nil(t, err)
-	assert.Equal(t, txHexHashExpected, txHexHashResulted)
-	assert.True(t, txSent)
 }
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
@@ -1114,20 +1071,40 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	initialPubKeys[1] = keys[1]
 	initialPubKeys[2] = keys[2]
 
+	vsp := &mock.ValidatorStatisticsProcessorStub{
+		RootHashCalled: func() (i []byte, err error) {
+			return []byte("hash"), nil
+		},
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
+			validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+
+			for shardId, pubkeysPerShard := range initialPubKeys {
+				validatorInfos[shardId] = make([]*state.ValidatorInfo, 0)
+				for _, pubKey := range pubkeysPerShard {
+					validatorInfos[shardId] = append(validatorInfos[shardId], &state.ValidatorInfo{
+						PublicKey:                  []byte(pubKey),
+						ShardId:                    shardId,
+						List:                       "",
+						Index:                      0,
+						TempRating:                 0,
+						Rating:                     0,
+						RewardAddress:              nil,
+						LeaderSuccess:              0,
+						LeaderFailure:              0,
+						ValidatorSuccess:           0,
+						ValidatorFailure:           0,
+						NumSelectedInSuccessBlocks: 0,
+						AccumulatedFees:            nil,
+					})
+				}
+			}
+			return validatorInfos, nil
+		},
+	}
+
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
-				switch {
-				case bytes.Equal(address, []byte(keys[0][0])):
-					return nil, errors.New("error")
-				case bytes.Equal(address, []byte(keys[1][0])):
-					return &mock.PeerAccountHandlerMock{}, nil
-				default:
-					return state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-				}
-			},
-		}),
+		node.WithValidatorStatistics(vsp),
 	)
 
 	expectedData := &state.ValidatorApiResponse{}
@@ -1325,6 +1302,11 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1388,6 +1370,15 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+				return nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1446,6 +1437,11 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1506,6 +1502,11 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1524,7 +1525,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 	}
 }
 
-func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
+func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *testing.T) {
 	t.Parallel()
 
 	var registeredHandler p2p.MessageProcessor
@@ -1571,6 +1572,18 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
+				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+				return nil
+			},
+			CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+				return nil
+			},
+		}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1584,9 +1597,9 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
 
-	err = registeredHandler.ProcessReceivedMessage(nil, nil)
+	err = registeredHandler.ProcessReceivedMessage(nil, fromConnectedPeerId)
 	assert.NotNil(t, err)
-	assert.Contains(t, "nil message", err.Error())
+	assert.Equal(t, heartbeat.ErrNilMessage, err)
 }
 
 func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
@@ -2165,6 +2178,8 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
@@ -2531,6 +2546,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		node.WithMessenger(mes),
 		node.WithDataPool(dataPool),
 		node.WithTxFeeHandler(feeHandler),
+		node.WithTxAccumulator(mock.NewAccumulatorMock()),
 	)
 
 	numTxs, err := n.SendBulkTransactions(txsToSend)

@@ -130,6 +130,11 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	return nil
 }
 
+// ComputeLeaving -
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
+	return make([]sharding.Validator, 0)
+}
+
 // ComputeConsensusGroup -
 func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	randomess []byte,

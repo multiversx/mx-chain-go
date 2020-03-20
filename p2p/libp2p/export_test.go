@@ -1,8 +1,10 @@
 package libp2p
 
 import (
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
@@ -10,16 +12,20 @@ import (
 var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
 
-func (netMes *networkMessenger) ConnManager() connmgr.ConnManager {
-	return netMes.ctxProvider.connHost.ConnManager()
-}
-
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
-	netMes.ctxProvider.connHost = newHost
+	netMes.p2pHost = newHost
 }
 
-func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {
-	return ds.processReceivedDirectMessage(message)
+func (netMes *networkMessenger) SetLoadBalancer(outgoingPLB p2p.ChannelLoadBalancer) {
+	netMes.outgoingPLB = outgoingPLB
+}
+
+func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer) {
+	netMes.peerDiscoverer = discoverer
+}
+
+func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
+	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
 
 func (ds *directSender) SeenMessages() *timecache.TimeCache {
@@ -32,4 +38,12 @@ func (ds *directSender) Counter() uint64 {
 
 func (mh *MutexHolder) Mutexes() *lrucache.LRUCache {
 	return mh.mutexes
+}
+
+func (ip *identityProvider) HandleStreams(s network.Stream) {
+	ip.handleStreams(s)
+}
+
+func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
+	return ip.processReceivedData(recvBuff)
 }

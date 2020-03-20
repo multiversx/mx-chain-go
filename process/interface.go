@@ -58,6 +58,7 @@ type TxValidator interface {
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
+	ReceiverShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
 	Fee() *big.Int
@@ -98,7 +99,7 @@ type InterceptorProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptorThrottler can
+// InterceptorThrottler can monitor the number of the currently running interceptor go routines
 type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
@@ -119,7 +120,12 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksHashes map[string]struct{},
+
+		haveTime func() bool,
+	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -140,24 +146,19 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
+	RemoveProcessedResultsFor(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
 // DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
 type DataMarshalizer interface {
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
-}
-
-// InternalTransactionProducer creates system transactions (e.g. rewards)
-type InternalTransactionProducer interface {
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	IsInterfaceNil() bool
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
@@ -186,7 +187,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -216,10 +217,11 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
+	Process(validatorInfo data.ValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfoData) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfoData, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -259,7 +261,7 @@ type HashAccesser interface {
 // to synchronize the node
 type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
-	ShouldSync() bool
+	GetNodeState() core.NodeState
 	StopSync()
 	StartSync()
 	SetStatusHandler(handler core.AppStatusHandler) error
@@ -383,8 +385,8 @@ type EpochBootstrapper interface {
 type PendingMiniBlocksHandler interface {
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocks(shardID uint32) uint32
-	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	GetPendingMiniBlocks(shardID uint32) [][]byte
+	SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -397,7 +399,7 @@ type BlockChainHookHandler interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -451,16 +453,6 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
-	IsInterfaceNil() bool
-}
-
-// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
-// block to its peers which should be received in a limited time frame
-type BlockSizeThrottler interface {
-	MaxItemsToAdd() uint32
-	Add(round uint64, items uint32)
-	Succeed(round uint64)
-	ComputeMaxItems()
 	IsInterfaceNil() bool
 }
 
@@ -628,6 +620,38 @@ type BlockTracker interface {
 	IsInterfaceNil() bool
 }
 
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type FloodPreventer interface {
+	AccumulateGlobal(identifier string, size uint64) bool
+	Accumulate(identifier string, size uint64) bool
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls, on a given topic
+type TopicFloodPreventer interface {
+	Accumulate(identifier string, topic string) bool
+	ResetForTopic(topic string)
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// SCQueryService defines how data should be get from a SC account
+type SCQueryService interface {
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	IsInterfaceNil() bool
+}
+
 // EpochStartDataCreator defines the functionality for node to create epoch start data
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
@@ -637,11 +661,20 @@ type EpochStartDataCreator interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) (data.BodyHandler, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfoData) error
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+type EpochStartValidatorInfoCreator interface {
+	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
 }
 
@@ -679,5 +712,29 @@ type RoundTimeDurationHandler interface {
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
+	IsInterfaceNil() bool
+}
+
+// SelectionChance defines the actions which should be handled by a round implementation
+type SelectionChance interface {
+	GetMaxThreshold() uint32
+	GetChancePercent() uint32
+}
+
+// RatingsInfo defines the information needed for the rating computation
+type RatingsInfo interface {
+	StartRating() uint32
+	MaxRating() uint32
+	MinRating() uint32
+	ProposerIncreaseRatingStep() uint32
+	ProposerDecreaseRatingStep() uint32
+	ValidatorIncreaseRatingStep() uint32
+	ValidatorDecreaseRatingStep() uint32
+	SelectionChances() []SelectionChance
+}
+
+// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
+type ValidatorInfoProcessorHandler interface {
+	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
 	IsInterfaceNil() bool
 }

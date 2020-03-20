@@ -39,7 +39,7 @@ func (hrm *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) er
 }
 
 // ProcessReceivedMessage -
-func (hrm *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hrm *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	if hrm.ProcessReceivedMessageCalled == nil {
 		return nil
 	}

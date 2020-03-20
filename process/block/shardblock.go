@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -54,35 +53,28 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
-		accountsDB:                   arguments.AccountsDB,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
-		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
-		stateCheckpointModulus:       arguments.StateCheckpointModulus,
-		blockChain:                   arguments.BlockChain,
-		feeHandler:                   arguments.FeeHandler,
+		accountsDB:             arguments.AccountsDB,
+		forkDetector:           arguments.ForkDetector,
+		hasher:                 arguments.Hasher,
+		marshalizer:            arguments.Marshalizer,
+		store:                  arguments.Store,
+		shardCoordinator:       arguments.ShardCoordinator,
+		nodesCoordinator:       arguments.NodesCoordinator,
+		uint64Converter:        arguments.Uint64Converter,
+		requestHandler:         arguments.RequestHandler,
+		appStatusHandler:       statusHandler.NewNilStatusHandler(),
+		blockChainHook:         arguments.BlockChainHook,
+		txCoordinator:          arguments.TxCoordinator,
+		rounder:                arguments.Rounder,
+		epochStartTrigger:      arguments.EpochStartTrigger,
+		headerValidator:        arguments.HeaderValidator,
+		bootStorer:             arguments.BootStorer,
+		blockTracker:           arguments.BlockTracker,
+		dataPool:               arguments.DataPool,
+		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		blockChain:             arguments.BlockChain,
+		feeHandler:             arguments.FeeHandler,
 	}
 
 	if check.IfNil(arguments.TxsPoolsCleaner) {
@@ -680,19 +672,25 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
-	body, err = sp.applyBodyToHeader(shardHdr, body)
+	finalBody, err := sp.applyBodyToHeader(shardHdr, body)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return shardHdr, body, nil
+	for _, miniBlock := range finalBody.MiniBlocks {
+		log.Trace("CreateBlock: miniblock",
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"type", miniBlock.Type,
+			"num txs", len(miniBlock.TxHashes))
+	}
+
+	return shardHdr, finalBody, nil
 }
 
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
-	sp.blockSizeThrottler.ComputeMaxItems()
-
+func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),
 		"round", shardHdr.GetRound(),
@@ -897,8 +895,6 @@ func (sp *shardProcessor) CommitBlock(
 		sp.appStatusHandler,
 		sp.blockTracker,
 	)
-
-	sp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers", sp.dataPool.Headers().Len(),
@@ -1468,9 +1464,10 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
+	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txsAdded := uint32(0)
@@ -1527,10 +1524,14 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		currMBProcessed, currTxsAdded, hdrProcessFinished, err := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currMetaHdr,
 			processedMiniBlocksHashes,
 			haveTime)
+
+		if err != nil {
+			return nil, 0, 0, err
+		}
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, currMBProcessed...)
@@ -1555,6 +1556,18 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+
+	for _, miniBlock := range miniBlocks {
+		log.Debug("mini block info",
+			"type", miniBlock.Type,
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"txs added", len(miniBlock.TxHashes))
+	}
+
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+		"num txs added", txsAdded,
+		"num hdrs added", hdrsAdded)
 
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
@@ -1587,7 +1600,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime := time.Now()
-	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
@@ -1634,7 +1647,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *block.Body) (*block.Body, error) {
 	sw := core.NewStopWatch()
 	sw.Start("applyBodyToHeader")
 	defer func() {
@@ -1649,13 +1662,8 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 		go sp.checkAndRequestIfMetaHeadersMissing(shardHeader.GetRound())
 	}()
 
-	if check.IfNil(bodyHandler) {
+	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
-	}
-
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
 	}
 
 	var err error
@@ -1686,10 +1694,6 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, bodyHandl
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
-
-	sp.blockSizeThrottler.Add(
-		shardHeader.GetRound(),
-		core.MaxUint32(shardHeader.ItemsInBody(), shardHeader.ItemsInHeader()))
 
 	return newBody, nil
 }

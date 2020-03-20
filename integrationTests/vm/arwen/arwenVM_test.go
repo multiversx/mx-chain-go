@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -69,8 +68,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
-
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(100000000)
@@ -213,8 +210,6 @@ func runWASMVMBenchmark(
 }
 
 func TestGasModel(t *testing.T) {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
-
 	gasSchedule, _ := core.LoadGasScheduleConfig("./gasSchedule.toml")
 
 	totalOp := uint64(0)
@@ -430,7 +425,7 @@ func TestWASMMetering(t *testing.T) {
 	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(2090)
+	expectedBalance := big.NewInt(2615)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -444,7 +439,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	assert.Equal(t, 895, int(consumedGasValue))
+	assert.Equal(t, 370, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
@@ -580,7 +575,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	bob := []byte("12345678901234567890123456789222")
 	_, _ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
-	testAddresses := createTestAddresses(20000)
+	testAddresses := createTestAddresses(2000000)
 	fmt.Println("done")
 
 	initAlice := big.NewInt(100000)
@@ -589,7 +584,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	for j := 0; j < 20; j++ {
+	for j := 0; j < 2000; j++ {
 		start := time.Now()
 
 		for i := 0; i < 1000; i++ {

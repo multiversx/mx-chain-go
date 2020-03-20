@@ -34,6 +34,7 @@ type Monitor struct {
 	messageHandler              MessageHandler
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
+	antifloodHandler            P2PAntifloodHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -45,6 +46,7 @@ func NewMonitor(
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
 	timer Timer,
+	antifloodHandler P2PAntifloodHandler,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -61,6 +63,9 @@ func NewMonitor(
 	if check.IfNil(timer) {
 		return nil, ErrNilTimer
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, ErrNilAntifloodHandler
+	}
 
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
@@ -71,6 +76,7 @@ func NewMonitor(
 		messageHandler:              messageHandler,
 		storer:                      storer,
 		timer:                       timer,
+		antifloodHandler:            antifloodHandler,
 	}
 
 	err := mon.storer.UpdateGenesisTime(genesisTime)
@@ -201,8 +207,24 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	if message == nil || message.IsInterfaceNil() {
+		return ErrNilMessage
+	}
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
+
+	err := m.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+	err = m.antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, core.HeartbeatTopic)
+	if err != nil {
+		return err
+	}
+
+	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
 		return err
 	}

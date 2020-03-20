@@ -1,6 +1,7 @@
 package statusHandler
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -91,13 +92,34 @@ func (sm *statusMetrics) SetStringValue(key string, value string) {
 func (sm *statusMetrics) Close() {
 }
 
-// StatusMetricsMap will return all metrics in a map
-func (sm *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
+// StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
+func (sm *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
 	statusMetricsMap := make(map[string]interface{})
 	sm.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
 		statusMetricsMap[key.(string)] = value
 		return true
 	})
 
-	return statusMetricsMap, nil
+	return statusMetricsMap
+}
+
+// StatusP2pMetricsMap will return the p2p metrics in a map
+func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+	statusMetricsMap := make(map[string]interface{})
+	sm.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if !strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
+		statusMetricsMap[key.(string)] = value
+		return true
+	})
+
+	return statusMetricsMap
 }

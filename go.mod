@@ -2,10 +2,10 @@ module github.com/ElrondNetwork/elrond-go
 
 go 1.13
 
-replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3
+replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.7
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.10
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.12

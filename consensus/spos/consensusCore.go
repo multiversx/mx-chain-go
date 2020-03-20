@@ -30,6 +30,7 @@ type ConsensusCore struct {
 	nodesCoordinator     sharding.NodesCoordinator
 	syncTimer            ntp.SyncTimer
 	epochStartSubscriber epochStart.EpochStartSubscriber
+	antifloodHandler     consensus.P2PAntifloodHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -49,6 +50,7 @@ type ConsensusCoreArgs struct {
 	NodesCoordinator     sharding.NodesCoordinator
 	SyncTimer            ntp.SyncTimer
 	EpochStartSubscriber epochStart.EpochStartSubscriber
+	AntifloodHandler     consensus.P2PAntifloodHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -72,6 +74,7 @@ func NewConsensusCore(
 		nodesCoordinator:     args.NodesCoordinator,
 		syncTimer:            args.SyncTimer,
 		epochStartSubscriber: args.EpochStartSubscriber,
+		antifloodHandler:     args.AntifloodHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -85,6 +88,11 @@ func NewConsensusCore(
 // Blockchain gets the ChainHandler stored in the ConsensusCore
 func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cc.blockChain
+}
+
+// GetAntiFloodHandler will return the antiflood handler which will be used in subrounds
+func (cc *ConsensusCore) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
+	return cc.antifloodHandler
 }
 
 // BlockProcessor gets the BlockProcessor stored in the ConsensusCore

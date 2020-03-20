@@ -112,6 +112,11 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
+	PublicKeyShardId CacheConfig
+	PublicKeyPeerId  CacheConfig
+	PeerIdShardId    CacheConfig
+
+	Antiflood       AntifloodConfig
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
@@ -122,35 +127,12 @@ type Config struct {
 	HeadersPoolConfig HeadersPoolConfig
 }
 
-// NodeConfig will hold basic p2p settings
-type NodeConfig struct {
-	Port            int
-	Seed            string
-	TargetPeerCount int
-}
-
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
-}
-
-// KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
-type KadDhtPeerDiscoveryConfig struct {
-	Enabled                          bool
-	RefreshIntervalInSec             uint32
-	RandezVous                       string
-	InitialPeerList                  []string
-	BucketSize                       uint32
-	RoutingTableRefreshIntervalInSec uint32
-}
-
-// P2PConfig will hold all the P2P settings
-type P2PConfig struct {
-	Node                NodeConfig
-	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -185,4 +167,52 @@ type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
+}
+
+// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+type WebServerAntifloodConfig struct {
+	SimultaneousRequests         uint32
+	SameSourceRequests           uint32
+	SameSourceResetIntervalInSec uint32
+}
+
+// BlackListConfig will hold the p2p peer black list threshold values
+type BlackListConfig struct {
+	ThresholdNumMessagesPerSecond uint32
+	ThresholdSizePerSecond        uint64
+	NumFloodingRounds             uint32
+	PeerBanDurationInSeconds      uint32
+}
+
+// TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
+type TopicMaxMessagesConfig struct {
+	Topic             string
+	NumMessagesPerSec uint32
+}
+
+// TopicAntifloodConfig will hold the maximum values per second to be used in certain topics
+type TopicAntifloodConfig struct {
+	DefaultMaxMessagesPerSec uint32
+	MaxMessages              []TopicMaxMessagesConfig
+}
+
+// TxAccumulatorConfig will hold the tx accumulator config values
+type TxAccumulatorConfig struct {
+	MaxAllowedTimeInMilliseconds   uint32
+	MaxDeviationTimeInMilliseconds uint32
+}
+
+// AntifloodConfig will hold all p2p antiflood parameters
+type AntifloodConfig struct {
+	Enabled                   bool
+	NumConcurrentResolverJobs int32
+	Cache                     CacheConfig
+	BlackList                 BlackListConfig
+	PeerMaxMessagesPerSecond  uint32
+	PeerMaxTotalSizePerSecond uint64
+	MaxMessagesPerSecond      uint32
+	MaxTotalSizePerSecond     uint64
+	WebServer                 WebServerAntifloodConfig
+	Topic                     TopicAntifloodConfig
+	TxAccumulator             TxAccumulatorConfig
 }
