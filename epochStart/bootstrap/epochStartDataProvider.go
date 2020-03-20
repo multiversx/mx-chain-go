@@ -22,9 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory/interceptors"
+	factory3 "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/storagehandler"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -40,14 +39,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
-var log = logger.GetOrCreate("registration")
-var _ process.Interceptor = (*simpleMetaBlockInterceptor)(nil)
+var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const delayBetweenRequests = 1 * time.Second
 const delayAfterRequesting = 1 * time.Second
 const thresholdForConsideringMetaBlockCorrect = 0.2
 const numRequestsToSendOnce = 4
 const maxNumTimesToRetry = 100
+
+// ComponentsNeededForBootstrap holds the components which need to be initialized from network
+type ComponentsNeededForBootstrap struct {
+	EpochStartMetaBlock         *block.MetaBlock
+	PreviousEpochStartMetaBlock *block.MetaBlock
+	ShardHeader                 *block.Header //only for shards, nil for meta
+	NodesConfig                 *sharding.NodesSetup
+	ShardHeaders                map[uint32]*block.Header
+	ShardCoordinator            sharding.Coordinator
+	Tries                       state.TriesHolder
+	PendingMiniBlocks           map[string]*block.MiniBlock
+}
 
 // epochStartDataProvider will handle requesting the needed data to start when joining late the network
 type epochStartDataProvider struct {
@@ -253,7 +263,7 @@ func (esdp *epochStartDataProvider) searchDataInLocalStorage() {
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
-func (esdp *epochStartDataProvider) Bootstrap() (*structs.ComponentsNeededForBootstrap, error) {
+func (esdp *epochStartDataProvider) Bootstrap() (uint32, uint32, uint32, error) {
 	// TODO: add searching for epoch start metablock and other data inside this component
 
 	interceptorsContainer, err := esdp.createInterceptors(commonDataPool)
@@ -414,7 +424,7 @@ func (esdp *epochStartDataProvider) getMiniBlocks(
 }
 
 func (esdp *epochStartDataProvider) createInterceptors(dataPool dataRetriever.PoolsHolder) (process.InterceptorsContainer, error) {
-	args := interceptors.ArgsEpochStartInterceptorContainer{
+	args := factory3.ArgsEpochStartInterceptorContainer{
 		Config:            esdp.generalConfig,
 		ShardCoordinator:  esdp.defaultShardCoordinator,
 		Marshalizer:       esdp.marshalizer,
@@ -428,7 +438,7 @@ func (esdp *epochStartDataProvider) createInterceptors(dataPool dataRetriever.Po
 		WhiteListHandler:  esdp.whiteListHandler,
 	}
 
-	return interceptors.NewEpochStartInterceptorsContainer(args)
+	return factory3.NewEpochStartInterceptorsContainer(args)
 }
 
 func (esdp *epochStartDataProvider) changeMessageProcessorsForMetaBlocks() {

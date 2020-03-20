@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	factoryEpochBootstrap "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -600,50 +601,44 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
-	epochStartComponentArgs := factoryEpochBootstrap.EpochStartDataProviderFactoryArgs{
-		PubKey:                  pubKey,
-		Messenger:               networkComponents.NetMessenger,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		NodesConfigProvider:     nodesconfigprovider.NewSimpleNodesConfigProvider(genesisNodesConfig),
-		PathManager:             pathManager,
-		StartTime:               startTime,
-		OriginalNodesConfig:     genesisNodesConfig,
-		GeneralConfig:           generalConfig,
-		WorkingDir:              workingDir,
-		DefaultDBPath:           defaultDBPath,
-		DefaultEpochString:      defaultEpochString,
-		PubKey:                  pubKey,
-		Messenger:               networkComponents.NetMessenger,
-		Marshalizer:             coreComponents.InternalMarshalizer,
-		Hasher:                  coreComponents.Hasher,
-		NodesConfigProvider:     nodesconfigprovider.NewSimpleNodesConfigProvider(genesisNodesConfig),
-		DefaultShardCoordinator: shardCoordinator,
-		PathManager:             pathManager,
-		StartTime:               startTime,
-		OriginalNodesConfig:     genesisNodesConfig,
-		EconomicsConfig:         economicsConfig,
-		GeneralConfig:           generalConfig,
-		KeyGen:                  cryptoComponents.TxSignKeyGen,
-		BlockKeyGen:             cryptoComponents.BlockSignKeyGen,
-		SingleSigner:            cryptoComponents.TxSingleSigner,
-		BlockSingleSigner:       cryptoComponents.SingleSigner,
-		IsEpochFoundInStorage:   epochFoundInStorage,
+	epochStartBootsrapArgs := bootstrap.ArgsEpochStartDataProvider{
+		PublicKey:                      nil,
+		Messenger:                      nil,
+		Marshalizer:                    nil,
+		Hasher:                         nil,
+		GeneralConfig:                  config.Config{},
+		EconomicsConfig:                config.EconomicsConfig{},
+		DefaultShardCoordinator:        nil,
+		PathManager:                    nil,
+		NodesConfigProvider:            nil,
+		EpochStartMetaBlockInterceptor: nil,
+		MetaBlockInterceptor:           nil,
+		ShardHeaderInterceptor:         nil,
+		MiniBlockInterceptor:           nil,
+		SingleSigner:                   nil,
+		BlockSingleSigner:              nil,
+		KeyGen:                         nil,
+		BlockKeyGen:                    nil,
+		WhiteListHandler:               nil,
+		GenesisNodesConfig:             nil,
+		WorkingDir:                     "",
+		DefaultDBPath:                  "",
+		DefaultEpochString:             "",
 	}
-
-	epochStartComponentFactory, err := factoryEpochBootstrap.NewEpochStartDataProviderFactory(epochStartComponentArgs)
+	bootsrapper, err := bootstrap.NewEpochStartDataProvider(epochStartBootsrapArgs)
 	if err != nil {
+		log.Error("could not create bootsrapper", "err", err)
+		return err
+	}
+	currentEpoch, currentShardId, shardNumber, err := bootsrapper.Bootstrap()
+	if err != nil {
+		log.Error("boostrap return error", "error", err)
 		return err
 	}
 
-	epochStartDataProvider, err := epochStartComponentFactory.Create()
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(shardNumber, currentShardId)
 	if err != nil {
 		return err
-	}
-
-	res, err := epochStartDataProvider.Bootstrap()
-	if err != nil {
-		log.Error("error bootstrapping", "error", err)
 	}
 
 	log.Trace("creating economics data components")
