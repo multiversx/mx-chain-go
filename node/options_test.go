@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -1051,4 +1052,87 @@ func TestWithPubKey_NilPublicKey(t *testing.T) {
 
 	err := opt(node)
 	assert.Equal(t, ErrNilPublicKey, err)
+}
+
+func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlackListHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilBlackListHandler, err)
+}
+
+func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blackListHandler := &mock.BlackListHandlerStub{}
+	opt := WithBlackListHandler(blackListHandler)
+	err := opt(node)
+
+	assert.True(t, node.blackListHandler == blackListHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNetworkShardingCollector(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNetworkShardingCollector, err)
+}
+
+func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	networkShardingCollector := &mock.NetworkShardingCollectorStub{}
+	opt := WithNetworkShardingCollector(networkShardingCollector)
+	err := opt(node)
+
+	assert.True(t, node.networkShardingCollector == networkShardingCollector)
+	assert.Nil(t, err)
+}
+
+func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInputAntifloodHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilAntifloodHandler))
+}
+
+func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	opt := WithInputAntifloodHandler(antifloodHandler)
+	err := opt(node)
+
+	assert.True(t, node.inputAntifloodHandler == antifloodHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxAccumulator(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTxAccumulator, err)
 }

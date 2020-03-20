@@ -127,6 +127,9 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer")
 
@@ -150,3 +153,9 @@ var ErrNilPendingMiniBlocksHandler = errors.New("trying to set nil pending minib
 
 // ErrNilRequestHandler signals that a nil request handler has been provided
 var ErrNilRequestHandler = errors.New("trying to set nil request handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
+var ErrNilTxAccumulator = errors.New("nil tx accumulator")

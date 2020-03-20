@@ -24,7 +24,7 @@ func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(epoch uint32) {
 }
 
 // SetEpoch -
-func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 }
 
 // RequestShardHeader -

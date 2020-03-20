@@ -1,9 +1,12 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -16,21 +19,27 @@ import (
 )
 
 type resolversContainerFactory struct {
-	shardCoordinator  sharding.Coordinator
-	messenger         dataRetriever.TopicMessageHandler
-	marshalizer       marshal.Marshalizer
-	intRandomizer     dataRetriever.IntRandomizer
-	dataTrieContainer state.TriesHolder
-	container         dataRetriever.ResolversContainer
+	shardCoordinator       sharding.Coordinator
+	messenger              dataRetriever.TopicMessageHandler
+	marshalizer            marshal.Marshalizer
+	intRandomizer          dataRetriever.IntRandomizer
+	dataTrieContainer      state.TriesHolder
+	container              dataRetriever.ResolversContainer
+	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
+	throttler              dataRetriever.ResolverThrottler
 }
 
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
-	ShardCoordinator  sharding.Coordinator
-	Messenger         dataRetriever.TopicMessageHandler
-	Marshalizer       marshal.Marshalizer
-	DataTrieContainer state.TriesHolder
-	ExistingResolvers dataRetriever.ResolversContainer
+	ShardCoordinator           sharding.Coordinator
+	Messenger                  dataRetriever.TopicMessageHandler
+	Marshalizer                marshal.Marshalizer
+	DataTrieContainer          state.TriesHolder
+	ExistingResolvers          dataRetriever.ResolversContainer
+	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	NumConcurrentResolvingJobs int32
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -50,14 +59,28 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
+	if check.IfNil(args.InputAntifloodHandler) {
+		return nil, fmt.Errorf("%w on the input side", update.ErrNilAntifloodHandler)
+	}
+	if check.IfNil(args.OutputAntifloodHandler) {
+		return nil, fmt.Errorf("%w on the output side", update.ErrNilAntifloodHandler)
+	}
+
+	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	if err != nil {
+		return nil, err
+	}
 
 	return &resolversContainerFactory{
-		shardCoordinator:  args.ShardCoordinator,
-		messenger:         args.Messenger,
-		marshalizer:       args.Marshalizer,
-		intRandomizer:     &random.ConcurrentSafeIntRandomizer{},
-		dataTrieContainer: args.DataTrieContainer,
-		container:         args.ExistingResolvers,
+		shardCoordinator:       args.ShardCoordinator,
+		messenger:              args.Messenger,
+		marshalizer:            args.Marshalizer,
+		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
+		dataTrieContainer:      args.DataTrieContainer,
+		container:              args.ExistingResolvers,
+		throttler:              thr,
+		inputAntifloodHandler:  args.InputAntifloodHandler,
+		outputAntifloodHandler: args.OutputAntifloodHandler,
 	}, nil
 }
 
@@ -133,30 +156,37 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		baseTopic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		rcf.shardCoordinator.SelfId(),
-	)
+	argResolver := topicResolverSender.ArgTopicResolverSender{
+		Messenger:         rcf.messenger,
+		TopicName:         baseTopic,
+		PeerListCreator:   peerListCreator,
+		Marshalizer:       rcf.marshalizer,
+		Randomizer:        rcf.intRandomizer,
+		TargetShardId:     rcf.shardCoordinator.SelfId(),
+		OutputAntiflooder: rcf.outputAntifloodHandler,
+	}
+
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(argResolver)
 	if err != nil {
 		return nil, err
 	}
 
-	resolver, err := resolvers.NewTrieNodeResolver(
-		resolverSender,
-		rcf.dataTrieContainer.Get([]byte(trieId)),
-		rcf.marshalizer,
-	)
+	argTrie := resolvers.ArgTrieNodeResolver{
+		SenderResolver:   resolverSender,
+		TrieDataGetter:   rcf.dataTrieContainer.Get([]byte(trieId)),
+		Marshalizer:      rcf.marshalizer,
+		AntifloodHandler: rcf.inputAntifloodHandler,
+		Throttler:        rcf.throttler,
+	}
+
+	resolver, err := resolvers.NewTrieNodeResolver(argTrie)
 	if err != nil {
 		return nil, err
 	}
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		baseTopic+resolverSender.TopicRequestSuffix(),
+		resolverSender.RequestTopic(),
 		resolver,
 		false)
 }

@@ -35,6 +35,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
+	AntifloodHandler       process.P2PAntifloodHandler
 	WhiteListHandler       dataRetriever.WhiteListHandler
 }
 
@@ -63,5 +64,6 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
+	AntifloodHandler       process.P2PAntifloodHandler
 	WhiteListHandler       dataRetriever.WhiteListHandler
 }

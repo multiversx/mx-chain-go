@@ -72,7 +72,12 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
-	err := inHdr.integrity()
+	err := inHdr.hdr.CheckChainID(inHdr.chainID)
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.integrity()
 	if err != nil {
 		return err
 	}
@@ -82,12 +87,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
-	if err != nil {
-		return err
-	}
-
-	return inHdr.hdr.CheckChainID(inHdr.chainID)
+	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
