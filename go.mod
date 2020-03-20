@@ -2,7 +2,7 @@ module github.com/ElrondNetwork/elrond-go
 
 go 1.13
 
-replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3
+replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86
 
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200319123654-ac771e0f976f

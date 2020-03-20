@@ -67,7 +67,7 @@ func (bms *BlsMultiSigner) AggregateSignatures(
 	}
 
 	aggSigBLS := &bls.Sign{}
-	bls.BlsAggregateSignatures(aggSigBLS, sigsBLS)
+	aggSigBLS.Aggregate(sigsBLS)
 
 	return aggSigBLS.Serialize(), nil
 }
@@ -108,7 +108,7 @@ func (bms *BlsMultiSigner) VerifyAggregatedSig(
 		return err
 	}
 
-	res := bls.BlsFastAggregateVerify(aggSig, preparedPubKeys, string(msg))
+	res := aggSig.FastAggregateVerify(preparedPubKeys, msg)
 	if !res {
 		return crypto.ErrAggSigNotValid
 	}
@@ -154,7 +154,7 @@ func preparePublicKeys(
 		if !ok {
 			return nil, crypto.ErrInvalidPoint
 		}
-		prepPubKeysPoints[i] = *bls.CastG2ToPublicKey(prepPubKeyG2)
+		prepPubKeysPoints[i] = *bls.CastToPublicKey(prepPubKeyG2)
 	}
 
 	return prepPubKeysPoints, nil
@@ -199,7 +199,7 @@ func (bms *BlsMultiSigner) prepareSignatures(
 		}
 
 		sigPoint := mcl.NewPointG1()
-		sigPoint.G1 = bls.CastG1FromSign(sigBLS)
+		sigPoint.G1 = bls.CastFromSign(sigBLS)
 
 		hPk, err = hashPublicKeyPoints(bms.Hasher, pubKeyPoint, concatPKs)
 		if err != nil {
@@ -211,7 +211,7 @@ func (bms *BlsMultiSigner) prepareSignatures(
 			return nil, err
 		}
 
-		sigBLS = bls.CastG1ToSign(sPointG1.G1)
+		sigBLS = bls.CastToSign(sPointG1.G1)
 		prepSigs = append(prepSigs, *sigBLS)
 	}
 
@@ -277,7 +277,7 @@ func (bms *BlsMultiSigner) sigBytesToPoint(sig []byte) (crypto.Point, error) {
 	}
 
 	pG1 := mcl.NewPointG1()
-	pG1.G1 = bls.CastG1FromSign(sigBLS)
+	pG1.G1 = bls.CastFromSign(sigBLS)
 
 	return pG1, nil
 }

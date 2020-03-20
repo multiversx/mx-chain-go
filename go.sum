@@ -7,8 +7,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200319123654-ac771e0f976f h1:
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200319123654-ac771e0f976f/go.mod h1:u5uieR4W885dDe58kHKPo+mei6QwWvZmfW/Fp2KRIwg=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
-github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3 h1:hxuf96BbVDOVNXmb7EBYu4WZvJmb/ED+S/FW5NX9Mhk=
-github.com/ElrondNetwork/bls-go-binary v0.0.0-20200313082405-cbbb22d84df3/go.mod h1:+zuAdzNaBTOOGSHssMFxQ1UlmcFw1sT4PcTnWpi/o0g=
+github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86 h1:2GJ/9iWj5/JwB1J2p+mWHhCQAOWGpLQ1c0Wv/FOWZwM=
+github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86/go.mod h1:O4Vp1AfR4raRGwFeQpr9X/PQtncEicMoOe6BQt1oX0Y=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.25 h1:FIALKEneTS6BsGgdKDUx16w81S1MvwYnLcaH4o5BMtw=
