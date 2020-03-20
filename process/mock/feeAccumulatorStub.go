@@ -6,7 +6,7 @@ import "math/big"
 type FeeAccumulatorStub struct {
 	CreateBlockStartedCalled    func()
 	GetAccumulatedFeesCalled    func() *big.Int
-	ProcessTransactionFeeCalled func(cost *big.Int)
+	ProcessTransactionFeeCalled func(cost *big.Int, hash []byte)
 	RevertFeesCalled            func(txHashes [][]byte)
 }
 
@@ -35,7 +35,7 @@ func (f *FeeAccumulatorStub) GetAccumulatedFees() *big.Int {
 // ProcessTransactionFee -
 func (f *FeeAccumulatorStub) ProcessTransactionFee(cost *big.Int, txHash []byte) {
 	if f.ProcessTransactionFeeCalled != nil {
-		f.ProcessTransactionFeeCalled(cost)
+		f.ProcessTransactionFeeCalled(cost, txHash)
 	}
 }
 

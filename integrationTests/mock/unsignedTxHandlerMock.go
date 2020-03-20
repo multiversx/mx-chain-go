@@ -9,7 +9,7 @@ import (
 // UnsignedTxHandlerMock -
 type UnsignedTxHandlerMock struct {
 	CleanProcessedUtxsCalled    func()
-	ProcessTransactionFeeCalled func(cost *big.Int)
+	ProcessTransactionFeeCalled func(cost *big.Int, hash []byte)
 	CreateAllUTxsCalled         func() []data.TransactionHandler
 	VerifyCreatedUTxsCalled     func() error
 	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
@@ -60,7 +60,7 @@ func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int, txHash []b
 		return
 	}
 
-	ut.ProcessTransactionFeeCalled(cost)
+	ut.ProcessTransactionFeeCalled(cost, txHash)
 }
 
 // CreateAllUTxs -
