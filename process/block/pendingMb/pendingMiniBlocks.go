@@ -105,11 +105,21 @@ func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) erro
 		delete(p.mapPendingMbShard, mbHash)
 	}
 
-	for mbHash, shardID := range p.mapPendingMbShard {
-		log.Debug("pending miniblocks", "shard", shardID, "hash", mbHash)
-	}
+	p.displayPendingMb()
 
 	return nil
+}
+
+func (p *pendingMiniBlocks) displayPendingMb() {
+	mapShardNumPendingMb := make(map[uint32]int)
+	for mbHash, shardID := range p.mapPendingMbShard {
+		mapShardNumPendingMb[shardID]++
+		log.Trace("pending miniblocks", "shard", shardID, "hash", []byte(mbHash))
+	}
+
+	for shardID, num := range mapShardNumPendingMb {
+		log.Debug("pending miniblocks", "shard", shardID, "num", num)
+	}
 }
 
 // GetPendingMiniBlocks will return the pending miniblocks hashes for a given shard
@@ -124,6 +134,10 @@ func (p *pendingMiniBlocks) GetPendingMiniBlocks(shardID uint32) [][]byte {
 		}
 
 		pendingMiniBlocks = append(pendingMiniBlocks, []byte(mbHash))
+	}
+
+	if len(pendingMiniBlocks) == 0 {
+		return nil
 	}
 
 	return pendingMiniBlocks
