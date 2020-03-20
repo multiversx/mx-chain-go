@@ -39,7 +39,8 @@ type NodesConfigProviderHandler interface {
 
 // EpochStartDataProviderHandler defines what a component which fetches the data needed for starting in an epoch should do
 type EpochStartDataProviderHandler interface {
-	Bootstrap() (*structs.ComponentsNeededForBootstrap, error)
+	Bootstrap() (uint32, uint32, uint32, error)
+	IsInterfaceNil() bool
 }
 
 // PathManagerHandler defines which actions should be done for generating paths for databases directories
