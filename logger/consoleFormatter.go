@@ -24,15 +24,30 @@ func (cf *ConsoleFormatter) Output(line LogLineHandler) []byte {
 
 	level := LogLevel(line.GetLogLevel())
 	levelColor := getLevelColor(level)
+	timestamp := displayTime(line.GetTimestamp())
+	loggerName := formatLoggerName(line.GetLoggerName())
+	message := formatMessage(line.GetMessage())
+	args := formatArgs(levelColor, line.GetArgs()...)
 
-	return []byte(fmt.Sprintf("\033[%s%s\033[0m[%s] %s %s %s\n",
-		levelColor,
-		level,
-		displayTime(line.GetTimestamp()),
-		formatLoggerName(line.GetLoggerName()),
-		formatMessage(line.GetMessage()),
-		formatArgs(levelColor, line.GetArgs()...),
-	),
+	const formatStringWithCorrelationElements = "\033[%s%s\033[0m[%s] %s %s %s %s\n"
+	const formatStringWithoutCorrelationElements = "\033[%s%s\033[0m[%s] %s %s %s\n"
+
+	if correlation.isEnabled() {
+		return []byte(
+			fmt.Sprintf(formatStringWithCorrelationElements,
+				levelColor, level,
+				timestamp, loggerName, formatCorrelationElements(),
+				message, args,
+			),
+		)
+	}
+
+	return []byte(
+		fmt.Sprintf(formatStringWithoutCorrelationElements,
+			levelColor, level,
+			timestamp, loggerName,
+			message, args,
+		),
 	)
 }
 

@@ -14,14 +14,30 @@ func (pf *PlainFormatter) Output(line LogLineHandler) []byte {
 	}
 
 	level := LogLevel(line.GetLogLevel())
+	timestamp := displayTime(line.GetTimestamp())
+	loggerName := formatLoggerName(line.GetLoggerName())
+	message := formatMessage(line.GetMessage())
+	args := formatArgsNoAnsi(line.GetArgs()...)
 
-	return []byte(fmt.Sprintf("%s[%s] %s %s %s\n",
-		level,
-		displayTime(line.GetTimestamp()),
-		formatLoggerName(line.GetLoggerName()),
-		formatMessage(line.GetMessage()),
-		formatArgsNoAnsi(line.GetArgs()...),
-	),
+	const formatStringWithCorrelationElements = "%s[%s] %s %s %s %s\n"
+	const formatStringWithoutCorrelationElements = "%s[%s] %s %s %s\n"
+
+	if correlation.isEnabled() {
+		return []byte(
+			fmt.Sprintf(formatStringWithCorrelationElements,
+				level,
+				timestamp, loggerName, formatCorrelationElements(),
+				message, args,
+			),
+		)
+	}
+
+	return []byte(
+		fmt.Sprintf(formatStringWithoutCorrelationElements,
+			level,
+			timestamp, loggerName,
+			message, args,
+		),
 	)
 }
 

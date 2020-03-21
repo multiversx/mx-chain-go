@@ -403,6 +403,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}()
 	}
 
+	logger.EnableCorrelationElements()
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {

@@ -6,34 +6,52 @@ import (
 	"time"
 )
 
-const msgFixedLengthName = 20
-const msgFixedLength = 40
+const bracketsLength = len("[]")
+const loggerNameFixedLength = 20
+const correlationElementsFixedLength = 10
+const messageFixedLength = 40
 const ellipsisString = "..."
 
 func displayTime(timestamp int64) string {
 	t := time.Unix(0, timestamp)
-
 	return t.Format("2006-01-02 15:04:05.000")
 }
 
 func formatMessage(msg string) string {
-	numWhiteSpaces := 0
-	if len(msg) < msgFixedLength {
-		numWhiteSpaces = msgFixedLength - len(msg)
+	return padRight(msg, messageFixedLength)
+}
+
+func padRight(str string, maxLength int) string {
+	paddingLength := maxLength - len(str)
+
+	if paddingLength > 0 {
+		return str + strings.Repeat(" ", paddingLength)
 	}
 
-	return msg + strings.Repeat(" ", numWhiteSpaces)
+	return str
 }
 
 func formatLoggerName(name string) string {
-	numWhiteSpaces := 0
-	if len(name) < msgFixedLengthName {
-		numWhiteSpaces = msgFixedLengthName - len(name)
-	}
-	if len(name) > msgFixedLengthName {
-		startingIndex := len(name) - msgFixedLengthName + len(ellipsisString)
-		name = ellipsisString + name[startingIndex:]
+	name = truncatePrefix(name, loggerNameFixedLength-bracketsLength)
+	formattedName := fmt.Sprintf("[%s]", name)
+
+	return padRight(formattedName, loggerNameFixedLength)
+}
+
+func truncatePrefix(str string, maxLength int) string {
+	if len(str) > maxLength {
+		startingIndex := len(str) - maxLength + len(ellipsisString)
+		return ellipsisString + str[startingIndex:]
 	}
 
-	return fmt.Sprintf("[%s]", name) + strings.Repeat(" ", numWhiteSpaces)
+	return str
+}
+
+func formatCorrelationElements() string {
+	epoch := correlation.getEpoch()
+	round := correlation.getRound()
+	subRound := correlation.getSubRound()
+	formattedElements := fmt.Sprintf("[%d/%d/%s]", epoch, round, subRound)
+
+	return padRight(formattedElements, correlationElementsFixedLength)
 }
