@@ -47,12 +47,12 @@ func (correlation *logCorrelation) getSubRound() string {
 	return correlation.subRound.Get()
 }
 
-// EnableCorrelationElements enables correlation elements (such as round number) for log lines
+// EnableCorrelationElements enables correlation elements for log lines
 func EnableCorrelationElements() {
 	correlation.enable()
 }
 
-// SetCorrelationEpoch sets the current round as a log correlation element
+// SetCorrelationEpoch sets the current epoch as a log correlation element
 func SetCorrelationEpoch(epoch uint32) {
 	correlation.setEpoch(epoch)
 }
@@ -62,7 +62,7 @@ func SetCorrelationRound(round int64) {
 	correlation.setRound(round)
 }
 
-// SetCorrelationSubround sets the current subRound as a log correlation element
+// SetCorrelationSubround sets the current sub-round as a log correlation element
 func SetCorrelationSubround(subRound string) {
 	correlation.setSubRound(subRound)
 }
