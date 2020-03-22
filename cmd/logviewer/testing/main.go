@@ -132,7 +132,7 @@ func handleLogRequest(w http.ResponseWriter, r *http.Request) {
 		_ = conn.Close()
 	}()
 
-	err = waitForPatternMessage(conn)
+	err = waitForProfile(conn)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -141,15 +141,20 @@ func handleLogRequest(w http.ResponseWriter, r *http.Request) {
 	sendContinouslyWithMonitor(conn)
 }
 
-func waitForPatternMessage(conn *websocket.Conn) error {
+func waitForProfile(conn *websocket.Conn) error {
 	_, message, err := conn.ReadMessage()
 	if err != nil {
 		return err
 	}
 
-	log.Info("pattern received", "pattern", string(message))
+	log.Info("profile received", "profile", string(message))
+	profile, err := logger.UnmarshalProfile(message)
+	if err != nil {
+		return err
+	}
+
 	mutLogLevelPattern.Lock()
-	logLevels, patterns, err = logger.ParseLogLevelAndMatchingString(string(message))
+	logLevels, patterns, err = logger.ParseLogLevelAndMatchingString(profile.LogLevelPatterns)
 	mutLogLevelPattern.Unlock()
 	if err != nil {
 		return err
