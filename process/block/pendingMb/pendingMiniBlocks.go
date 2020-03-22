@@ -29,10 +29,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 	crossShardMiniBlocks := make(map[string]uint32)
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
-			continue
-		}
-		if mbHeader.SenderShardID == core.MetachainShardId && mbHeader.ReceiverShardID == core.AllShardId {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
 			continue
 		}
 
@@ -41,10 +38,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 
 	for _, shardData := range metaBlock.ShardInfo {
 		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
-				continue
-			}
-			if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
+			if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
 				continue
 			}
 
@@ -53,6 +47,20 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 	}
 
 	return crossShardMiniBlocks
+}
+
+func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
+	}
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
+	}
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+
+	return true
 }
 
 // AddProcessedHeader will add in pending list all miniblocks hashes from a given metablock
@@ -105,9 +113,7 @@ func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) erro
 		delete(p.mapPendingMbShard, mbHash)
 	}
 
-	for mbHash, shardID := range p.mapPendingMbShard {
-		log.Debug("pending miniblocks", "shard", shardID, "hash", []byte(mbHash))
-	}
+	p.displayPendingMb()
 
 	return nil
 }
@@ -126,6 +132,10 @@ func (p *pendingMiniBlocks) GetPendingMiniBlocks(shardID uint32) [][]byte {
 		pendingMiniBlocks = append(pendingMiniBlocks, []byte(mbHash))
 	}
 
+	if len(pendingMiniBlocks) == 0 {
+		return nil
+	}
+
 	return pendingMiniBlocks
 }
 
@@ -142,4 +152,16 @@ func (p *pendingMiniBlocks) SetPendingMiniBlocks(shardID uint32, mbHashes [][]by
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *pendingMiniBlocks) IsInterfaceNil() bool {
 	return p == nil
+}
+
+func (p *pendingMiniBlocks) displayPendingMb() {
+	mapShardNumPendingMb := make(map[uint32]int)
+	for mbHash, shardID := range p.mapPendingMbShard {
+		mapShardNumPendingMb[shardID]++
+		log.Trace("pending miniblocks", "shard", shardID, "hash", []byte(mbHash))
+	}
+
+	for shardID, num := range mapShardNumPendingMb {
+		log.Debug("pending miniblocks", "shard", shardID, "num", num)
+	}
 }

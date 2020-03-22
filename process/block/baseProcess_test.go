@@ -293,9 +293,10 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			DataPool:     initDataPool([]byte("")),
-			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockChain:   &blockchain.BlockChain{},
+			DataPool:           initDataPool([]byte("")),
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			BlockChain:         &blockchain.BlockChain{},
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}

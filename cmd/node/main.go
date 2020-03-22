@@ -789,6 +789,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 		generalConfig.GeneralSettings.MaxComputableRounds,
 		generalConfig.Antiflood.NumConcurrentResolverJobs,
+		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
+		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
