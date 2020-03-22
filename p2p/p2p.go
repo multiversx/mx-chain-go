@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/mr-tron/base58/base58"
 )
 
@@ -234,15 +235,17 @@ func MessageOriginatorSeq(msg MessageP2P) string {
 
 // PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
 type PeerShardResolver interface {
-	GetShardID(pid PeerID) uint32 //GetShardID get the shard id of the given peer.ID
-	IsInterfaceNil() bool         //IsInterfaceNil returns true if there is no value under the interface
+	GetPeerInfo(pid PeerID) core.P2PPeerInfo
+	IsInterfaceNil() bool
 }
 
 // ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
 type ConnectedPeersInfo struct {
-	UnknownPeers    []string
-	IntraShardPeers []string
-	CrossShardPeers []string
+	UnknownPeers         []string
+	IntraShardValidators []string
+	IntraShardObservers  []string
+	CrossShardValidators []string
+	CrossShardObservers  []string
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component

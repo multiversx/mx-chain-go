@@ -33,7 +33,7 @@ func TestRegisteringTopics(t *testing.T) {
 	messenger, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
 
-	processor := &mock.MockMessageProcessor{}
+	processor := &mock.MessageProcessorStub{}
 
 	// Cannot register a MessageProcessor to a topic that doesn't exist.
 	err = messenger.RegisterMessageProcessor("rocket", processor)
@@ -135,9 +135,9 @@ func TestConnectivityAndTopics(t *testing.T) {
 
 	// Peers 2 and 3 also listen on the topic "carbohydrate"
 	_ = peers[2].CreateTopic("carbohydrate", false)
-	_ = peers[2].RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peers[2].ID()))
+	_ = peers[2].RegisterMessageProcessor("carbohydrate", &mock.MessageProcessorStub{})
 	_ = peers[3].CreateTopic("carbohydrate", false)
-	_ = peers[3].RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peers[3].ID()))
+	_ = peers[3].RegisterMessageProcessor("carbohydrate", &mock.MessageProcessorStub{})
 
 	// Test to which peers is Peer0 connected, based on the topics they listen to.
 	peer0 := peers[0]

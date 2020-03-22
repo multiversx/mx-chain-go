@@ -232,13 +232,15 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
-		PeerShardResolver:  &unknownPeerShardResolver{},
-		PrioBits:           p2pConfig.Sharding.PrioBits,
-		Pid:                netMes.p2pHost.ID(),
-		MaxConnectionCount: p2pConfig.Sharding.TargetPeerCount,
-		MaxIntraShard:      int(p2pConfig.Sharding.MaxIntraShard),
-		MaxCrossShard:      int(p2pConfig.Sharding.MaxCrossShard),
-		Type:               p2pConfig.Sharding.Type,
+		PeerShardResolver:       &unknownPeerShardResolver{},
+		PrioBits:                p2pConfig.Sharding.PrioBits,
+		Pid:                     netMes.p2pHost.ID(),
+		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
+		MaxIntraShardValidators: int(p2pConfig.Sharding.MaxIntraShardValidators),
+		MaxCrossShardValidators: int(p2pConfig.Sharding.MaxCrossShardValidators),
+		MaxIntraShardObservers:  int(p2pConfig.Sharding.MaxIntraShardObservers),
+		MaxCrossShardObservers:  int(p2pConfig.Sharding.MaxCrossShardObservers),
+		Type:                    p2pConfig.Sharding.Type,
 	}
 
 	var err error
@@ -322,8 +324,10 @@ func (netMes *networkMessenger) printLogsStats() {
 		log.Debug("network connection status",
 			"known peers", len(netMes.Peers()),
 			"connected peers", len(netMes.ConnectedPeers()),
-			"intra shard", len(peersInfo.IntraShardPeers),
-			"cross shard", len(peersInfo.CrossShardPeers),
+			"intra shard validators", len(peersInfo.IntraShardValidators),
+			"intra shard observers", len(peersInfo.IntraShardObservers),
+			"cross shard validators", len(peersInfo.CrossShardValidators),
+			"cross shard observers", len(peersInfo.CrossShardObservers),
 			"unknown", len(peersInfo.UnknownPeers),
 		)
 
@@ -703,12 +707,14 @@ func (netMes *networkMessenger) SetPeerBlackListHandler(handler p2p.BlacklistHan
 // GetConnectedPeersInfo gets the current connected peers information
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.p2pHost.Network().Peers()
-	peerInfo := &p2p.ConnectedPeersInfo{
-		UnknownPeers:    make([]string, 0),
-		IntraShardPeers: make([]string, 0),
-		CrossShardPeers: make([]string, 0),
+	connPeerInfo := &p2p.ConnectedPeersInfo{
+		UnknownPeers:         make([]string, 0),
+		IntraShardValidators: make([]string, 0),
+		IntraShardObservers:  make([]string, 0),
+		CrossShardValidators: make([]string, 0),
+		CrossShardObservers:  make([]string, 0),
 	}
-	selfShardId := netMes.peerShardResolver.GetShardID(netMes.ID())
+	selfPeerInfo := netMes.peerShardResolver.GetPeerInfo(netMes.ID())
 
 	for _, p := range peers {
 		conns := netMes.p2pHost.Network().ConnsToPeer(p)
@@ -717,18 +723,26 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
 		}
 
-		shardId := netMes.peerShardResolver.GetShardID(p2p.PeerID(p))
-		switch shardId {
-		case core.UnknownShardId:
-			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
-		case selfShardId:
-			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)
-		default:
-			peerInfo.CrossShardPeers = append(peerInfo.CrossShardPeers, connString)
+		peerInfo := netMes.peerShardResolver.GetPeerInfo(p2p.PeerID(p))
+		switch peerInfo.PeerType {
+		case core.UnknownPeer:
+			connPeerInfo.UnknownPeers = append(connPeerInfo.UnknownPeers, connString)
+		case core.ValidatorPeer:
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardValidators = append(connPeerInfo.CrossShardValidators, connString)
+			} else {
+				connPeerInfo.IntraShardValidators = append(connPeerInfo.IntraShardValidators, connString)
+			}
+		case core.ObserverdPeer:
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardObservers = append(connPeerInfo.CrossShardObservers, connString)
+			} else {
+				connPeerInfo.IntraShardObservers = append(connPeerInfo.IntraShardObservers, connString)
+			}
 		}
 	}
 
-	return peerInfo
+	return connPeerInfo
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
