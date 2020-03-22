@@ -130,26 +130,9 @@ func (m *MetaBlock) IsInterfaceNil() bool {
 	return m == nil
 }
 
-// ItemsInHeader gets the number of items(hashes) added in block header
-func (m *MetaBlock) ItemsInHeader() uint32 {
-	itemsInHeader := len(m.ShardInfo)
-	for i := 0; i < len(m.ShardInfo); i++ {
-		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
-	}
-
-	itemsInHeader += len(m.MiniBlockHeaders)
-
-	return uint32(itemsInHeader)
-}
-
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (m *MetaBlock) IsStartOfEpochBlock() bool {
 	return len(m.EpochStart.LastFinalizedHeaders) > 0
-}
-
-// ItemsInBody gets the number of items(hashes) added in block body
-func (m *MetaBlock) ItemsInBody() uint32 {
-	return m.TxCount
 }
 
 // Clone will return a clone of the object

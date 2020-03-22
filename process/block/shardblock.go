@@ -55,6 +55,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
+		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -694,6 +695,8 @@ func (sp *shardProcessor) CreateBlock(
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
+	sp.blockSizeThrottler.ComputeCurrentMaxSize()
+
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),
 		"round", shardHdr.GetRound(),
@@ -898,6 +901,8 @@ func (sp *shardProcessor) CommitBlock(
 		sp.appStatusHandler,
 		sp.blockTracker,
 	)
+
+	sp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers", sp.dataPool.Headers().Len(),
@@ -1697,6 +1702,12 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+
+	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
+	if err != nil {
+		return nil, err
+	}
+	sp.blockSizeThrottler.Add(shardHeader.GetRound(), uint32(len(marshalizedBody)))
 
 	return newBody, nil
 }

@@ -185,7 +185,7 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilMarshalizerShouldWork(t *testing.T) {
+func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -255,7 +255,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
+func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -266,7 +266,7 @@ func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
+func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -274,6 +274,17 @@ func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilUint64Converter, err)
+	assert.Nil(t, sp)
+}
+
+func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	arguments.BlockSizeThrottler = nil
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
 	assert.Nil(t, sp)
 }
 
