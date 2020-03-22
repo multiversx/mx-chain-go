@@ -29,10 +29,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 	crossShardMiniBlocks := make(map[string]uint32)
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
-			continue
-		}
-		if mbHeader.SenderShardID == core.MetachainShardId && mbHeader.ReceiverShardID == core.AllShardId {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
 			continue
 		}
 
@@ -41,10 +38,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 
 	for _, shardData := range metaBlock.ShardInfo {
 		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
-				continue
-			}
-			if mbHeader.SenderShardID != core.MetachainShardId && mbHeader.ReceiverShardID == core.MetachainShardId {
+			if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
 				continue
 			}
 
@@ -53,6 +47,20 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.Me
 	}
 
 	return crossShardMiniBlocks
+}
+
+func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
+	}
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
+	}
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+
+	return true
 }
 
 // AddProcessedHeader will add in pending list all miniblocks hashes from a given metablock
