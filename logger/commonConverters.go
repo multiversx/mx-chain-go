@@ -48,9 +48,9 @@ func truncatePrefix(str string, maxLength int) string {
 }
 
 func formatCorrelationElements() string {
-	epoch := correlation.getEpoch()
-	round := correlation.getRound()
-	subRound := correlation.getSubRound()
+	epoch := globalCorrelation.getEpoch()
+	round := globalCorrelation.getRound()
+	subRound := globalCorrelation.getSubRound()
 	formattedElements := fmt.Sprintf("[%d/%d/%s]", epoch, round, subRound)
 
 	return padRight(formattedElements, correlationElementsFixedLength)

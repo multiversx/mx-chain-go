@@ -4,23 +4,21 @@ import (
 	atomic "github.com/ElrondNetwork/elrond-go/core/atomic"
 )
 
-var correlation logCorrelation
+var globalCorrelation logCorrelation
 
 type logCorrelation struct {
-	enabled  bool
+	enabled  atomic.Flag
 	epoch    atomic.Uint32
 	round    atomic.Int64
 	subRound atomic.String
 }
 
-func (correlation *logCorrelation) enable() {
-	// No need for atomic updates (it should only be called once, in main)
-	correlation.enabled = true
+func (correlation *logCorrelation) toggle(enable bool) {
+	correlation.enabled.Toggle(enable)
 }
 
 func (correlation *logCorrelation) isEnabled() bool {
-	// No need for atomic reads here (no updates are ever performed)
-	return correlation.enabled
+	return correlation.enabled.IsSet()
 }
 
 func (correlation *logCorrelation) setEpoch(epoch uint32) {
@@ -47,22 +45,27 @@ func (correlation *logCorrelation) getSubRound() string {
 	return correlation.subRound.Get()
 }
 
-// EnableCorrelationElements enables correlation elements for log lines
-func EnableCorrelationElements() {
-	correlation.enable()
+// ToggleCorrelation enables or disables correlation elements for log lines
+func ToggleCorrelation(enable bool) {
+	globalCorrelation.toggle(enable)
+}
+
+// IsEnabledCorrelation returns whether correlation elements are enabled
+func IsEnabledCorrelation() bool {
+	return globalCorrelation.isEnabled()
 }
 
 // SetCorrelationEpoch sets the current epoch as a log correlation element
 func SetCorrelationEpoch(epoch uint32) {
-	correlation.setEpoch(epoch)
+	globalCorrelation.setEpoch(epoch)
 }
 
 // SetCorrelationRound sets the current round as a log correlation element
 func SetCorrelationRound(round int64) {
-	correlation.setRound(round)
+	globalCorrelation.setRound(round)
 }
 
 // SetCorrelationSubround sets the current sub-round as a log correlation element
 func SetCorrelationSubround(subRound string) {
-	correlation.setSubRound(subRound)
+	globalCorrelation.setSubRound(subRound)
 }
