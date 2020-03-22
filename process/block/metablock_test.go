@@ -61,9 +61,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			DataPool:     mdp,
-			BlockChain:   createTestBlockchain(),
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			DataPool:           mdp,
+			BlockChain:         createTestBlockchain(),
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -295,6 +296,17 @@ func TestNewMetaProcessor_NilPendingMiniBlocksShouldErr(t *testing.T) {
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilPendingMiniBlocksHandler, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.BlockSizeThrottler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
 	assert.Nil(t, be)
 }
 

@@ -74,6 +74,12 @@ type EpochStartConfig struct {
 	RoundsPerEpoch         int64
 }
 
+// BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
+type BlockSizeThrottleConfig struct {
+	MinSizeInBytes uint32
+	MaxSizeInBytes uint32
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -123,9 +129,10 @@ type Config struct {
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig            NTPConfig
-	HeadersPoolConfig    HeadersPoolConfig
-	VirtualMachineConfig VirtualMachineConfig
+	NTPConfig               NTPConfig
+	HeadersPoolConfig       HeadersPoolConfig
+	BlockSizeThrottleConfig BlockSizeThrottleConfig
+	VirtualMachineConfig    VirtualMachineConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
