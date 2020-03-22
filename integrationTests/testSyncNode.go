@@ -143,6 +143,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
+		BlockSizeThrottler:     TestBlockSizeThrottler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
