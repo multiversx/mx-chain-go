@@ -210,6 +210,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
+	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
+
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		log.Debug("process sc payment error", "error", err.Error())
@@ -367,6 +369,8 @@ func (sc *scProcessor) processIfError(
 	tx data.TransactionHandler,
 	returnCode string,
 ) error {
+	log.Trace("scProcessor.processIfError()")
+
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode)
 	if err != nil {
@@ -489,13 +493,13 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
+	intermediateTransactions, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
 		return nil
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(results)
+	err = sc.scrForwarder.AddIntermediateTransactions(intermediateTransactions)
 	if err != nil {
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return nil
@@ -1048,6 +1052,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if scr == nil {
 		return process.ErrNilSmartContractResult
 	}
+
+	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr())
 
 	var err error
 	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
