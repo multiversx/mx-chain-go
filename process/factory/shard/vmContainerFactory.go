@@ -16,6 +16,9 @@ import (
 )
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
+var logArwenDriver = logger.GetOrCreate("arwenDriver")
+var logArwenMain = logger.GetOrCreate("arwenDriver/arwenMain")
+var logDialogue = logger.GetOrCreate("arwenDriver/dialogue")
 
 type vmContainerFactory struct {
 	config             config.VirtualMachineConfig
@@ -80,13 +83,18 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
-	logLevel := ipcLogger.ParseLogLevel(outOfProcessConfig.LogLevel)
+	mainLogLevel := ipcLogger.LogLevel(logArwenMain.GetLevel())
+	dialogueLogLevel := ipcLogger.LogLevel(logDialogue.GetLevel())
 	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
 	messagesMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.MessagesMarshalizer)
 	maxLoopTime := outOfProcessConfig.MaxLoopTime
 
+	logger.GetLogLevelPattern()
+
 	arwenVM, err := ipcNodePart.NewArwenDriver(
-		logVMContainerFactory,
+		logArwenDriver,
+		logArwenMain,
+		logDialogue,
 		vmf.blockChainHookImpl,
 		ipcCommon.ArwenArguments{
 			VMHostArguments: ipcCommon.VMHostArguments{
@@ -94,7 +102,8 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				BlockGasLimit: vmf.blockGasLimit,
 				GasSchedule:   vmf.gasSchedule,
 			},
-			LogLevel:            logLevel,
+			MainLogLevel:        mainLogLevel,
+			DialogueLogLevel:    dialogueLogLevel,
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
 		},

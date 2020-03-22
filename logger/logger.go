@@ -90,6 +90,14 @@ func (l *logger) SetLevel(logLevel LogLevel) {
 	l.mutLevel.Unlock()
 }
 
+// GetLevel gets the current level of the logger
+func (l *logger) GetLevel() LogLevel {
+	l.mutLevel.RLock()
+	level := l.logLevel
+	l.mutLevel.RUnlock()
+	return level
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (l *logger) IsInterfaceNil() bool {
 	return l == nil

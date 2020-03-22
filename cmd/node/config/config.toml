@@ -370,7 +370,6 @@
 [VirtualMachineConfig]
     OutOfProcessEnabled = true
     [VirtualMachineConfig.OutOfProcessConfig]
-        LogLevel = "info"
         LogsMarshalizer = "json"
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
