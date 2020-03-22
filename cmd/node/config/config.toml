@@ -234,13 +234,13 @@
 
 #PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
-    Size = 100
+    Size = 30000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
-# Used for observers, size should be kept low.
+# Used mainly for observers.
 [PeerIdShardId]
-    Size = 5
+    Size = 30000
     Type = "LRU"
 
 [Antiflood]
@@ -255,7 +255,7 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 10000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 5 },
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
     [Antiflood.BlackList]
@@ -362,3 +362,7 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+
+[BlockSizeThrottleConfig]
+    MinSizeInBytes = 104857 # 10% from 1MB
+    MaxSizeInBytes = 943718 # 90% from 1MB

@@ -170,7 +170,8 @@ type TransactionVerifier interface {
 type TransactionFeeHandler interface {
 	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
-	ProcessTransactionFee(cost *big.Int)
+	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -453,6 +454,16 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+	IsInterfaceNil() bool
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	GetCurrentMaxSize() uint32
+	Add(round uint64, size uint32)
+	Succeed(round uint64)
+	ComputeCurrentMaxSize()
 	IsInterfaceNil() bool
 }
 
