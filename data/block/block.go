@@ -150,17 +150,6 @@ func (h *Header) IsStartOfEpochBlock() bool {
 	return len(h.EpochStartMetaHash) > 0
 }
 
-// ItemsInHeader gets the number of items(hashes) added in block header
-func (h *Header) ItemsInHeader() uint32 {
-	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
-	return uint32(itemsInHeader)
-}
-
-// ItemsInBody gets the number of items(hashes) added in block body
-func (h *Header) ItemsInBody() uint32 {
-	return h.TxCount
-}
-
 // CheckChainID returns nil if the header's chain ID matches the one provided
 // otherwise, it will error
 func (h *Header) CheckChainID(reference []byte) error {

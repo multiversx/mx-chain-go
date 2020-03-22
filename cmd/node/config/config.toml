@@ -362,3 +362,7 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+
+[BlockSizeThrottleConfig]
+    MinSizeInBytes = 104857 # 10% from 1MB
+    MaxSizeInBytes = 943718 # 90% from 1MB
