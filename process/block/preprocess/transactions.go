@@ -1062,7 +1062,6 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
 			&totalGasConsumedInSelfShard)
-
 		if err != nil {
 			return processedTxHashes, err
 		}

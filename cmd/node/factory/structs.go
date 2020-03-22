@@ -1951,6 +1951,7 @@ func newShardBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2172,6 +2173,7 @@ func newMetaBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
