@@ -115,7 +115,7 @@ func (cache *TxCache) diagnose() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	logFunc := log.Trace
+	logFunc := log.Debug
 	if !fine {
 		logFunc = log.Warn
 	}
