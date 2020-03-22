@@ -8,6 +8,7 @@ var globalCorrelation logCorrelation
 
 type logCorrelation struct {
 	enabled  atomic.Flag
+	shardID  atomic.String
 	epoch    atomic.Uint32
 	round    atomic.Int64
 	subRound atomic.String
@@ -19,6 +20,14 @@ func (correlation *logCorrelation) toggle(enable bool) {
 
 func (correlation *logCorrelation) isEnabled() bool {
 	return correlation.enabled.IsSet()
+}
+
+func (correlation *logCorrelation) setShard(shardID string) {
+	correlation.shardID.Set(shardID)
+}
+
+func (correlation *logCorrelation) getShard() string {
+	return correlation.shardID.Get()
 }
 
 func (correlation *logCorrelation) setEpoch(epoch uint32) {
@@ -53,6 +62,11 @@ func ToggleCorrelation(enable bool) {
 // IsEnabledCorrelation returns whether correlation elements are enabled
 func IsEnabledCorrelation() bool {
 	return globalCorrelation.isEnabled()
+}
+
+// SetCorrelationShard sets the current shard ID as a log correlation element
+func SetCorrelationShard(shardID string) {
+	globalCorrelation.setShard(shardID)
 }
 
 // SetCorrelationEpoch sets the current epoch as a log correlation element

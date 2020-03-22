@@ -546,6 +546,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+	logger.SetCorrelationShard(shardId)
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,

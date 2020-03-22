@@ -8,9 +8,9 @@ import (
 
 const bracketsLength = len("[]")
 const loggerNameFixedLength = 20
-const correlationElementsFixedLength = 10
+const correlationElementsFixedLength = 14
 const messageFixedLength = 40
-const ellipsisString = "..."
+const ellipsisString = ".."
 
 func displayTime(timestamp int64) string {
 	t := time.Unix(0, timestamp)
@@ -48,10 +48,11 @@ func truncatePrefix(str string, maxLength int) string {
 }
 
 func formatCorrelationElements() string {
+	shard := globalCorrelation.getShard()
 	epoch := globalCorrelation.getEpoch()
 	round := globalCorrelation.getRound()
 	subRound := globalCorrelation.getSubRound()
-	formattedElements := fmt.Sprintf("[%d/%d/%s]", epoch, round, subRound)
+	formattedElements := fmt.Sprintf("[%s/%d/%d/%s]", shard, epoch, round, subRound)
 
 	return padRight(formattedElements, correlationElementsFixedLength)
 }
