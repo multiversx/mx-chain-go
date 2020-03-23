@@ -63,7 +63,7 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrInvalidPublicKey
 	}
 
-	mclPubKey := bls.CastG2ToPublicKey(pubKeyPoint.G2)
+	mclPubKey := bls.CastToPublicKey(pubKeyPoint.G2)
 	signature := &bls.Sign{}
 
 	err := signature.Deserialize(sig)
@@ -89,7 +89,7 @@ func IsPubKeyPointValid(pubKeyPoint *mcl.PointG2) bool {
 
 // IsSigValidPoint validates that the signature isi a valid point on G1
 func IsSigValidPoint(sig *bls.Sign) bool {
-	g1Sig := bls.CastG1FromSign(sig)
+	g1Sig := bls.CastFromSign(sig)
 	return !g1Sig.IsZero() && g1Sig.IsValidOrder() && g1Sig.IsValid()
 }
 

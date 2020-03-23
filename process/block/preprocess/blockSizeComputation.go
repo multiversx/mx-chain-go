@@ -11,27 +11,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message. We can not have 1MB of data
-// as there are cases when extra data is needed (consensus data fields and p2p message fields)
-const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
-
 // blockSizeComputation is able to estimate the size in bytes of a block body given the number of contained
 // transactions hashes and the number of miniblocks. It uses the marshalizer to compute the size as precise as possible.
 type blockSizeComputation struct {
 	miniblockSize uint32
 	txSize        uint32
 
-	numMiniBlocks uint32
-	numTxs        uint32
+	numMiniBlocks      uint32
+	numTxs             uint32
+	blockSizeThrottler BlockSizeThrottler
+	maxSize            uint32
 }
 
 // NewBlockSizeComputation creates a blockSizeComputation instance
-func NewBlockSizeComputation(marshalizer marshal.Marshalizer) (*blockSizeComputation, error) {
+func NewBlockSizeComputation(
+	marshalizer marshal.Marshalizer,
+	blockSizeThrottler BlockSizeThrottler,
+	maxSize uint32,
+	) (*blockSizeComputation, error) {
+
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(blockSizeThrottler) {
+		return nil, process.ErrNilBlockSizeThrottler
+	}
 
-	bsc := &blockSizeComputation{}
+	bsc := &blockSizeComputation{
+		blockSizeThrottler: blockSizeThrottler,
+		maxSize:            maxSize,
+	}
+
 	err := bsc.precomputeValues(marshalizer)
 	if err != nil {
 		return nil, err
@@ -132,12 +142,12 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
-	return miniblocksSize+txsSize > maxAllowedSizeInBytes
+	return miniblocksSize+txsSize > bsc.blockSizeThrottler.GetCurrentMaxSize()
 }
 
 // MaxTransactionsInOneMiniblock returns the maximum transactions in a single miniblock
 func (bsc *blockSizeComputation) MaxTransactionsInOneMiniblock() int {
-	return int((maxAllowedSizeInBytes - bsc.miniblockSize) / bsc.txSize)
+	return int((bsc.maxSize - bsc.miniblockSize) / bsc.txSize)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

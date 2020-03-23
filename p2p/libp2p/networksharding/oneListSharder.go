@@ -9,6 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const minAllowedConnectedPeersOneSharder = 3
+
 type oneListSharder struct {
 	selfPeerId      peer.ID
 	maxPeerCount    int
@@ -20,8 +22,8 @@ func NewOneListSharder(
 	selfPeerId peer.ID,
 	maxPeerCount int,
 ) (*oneListSharder, error) {
-	if maxPeerCount < minAllowedConnectedPeers {
-		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeers)
+	if maxPeerCount < minAllowedConnectedPeersOneSharder {
+		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeersOneSharder)
 	}
 
 	return &oneListSharder{
@@ -34,7 +36,7 @@ func NewOneListSharder(
 // ComputeEvictionList returns the eviction list
 func (ols *oneListSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	list := ols.convertList(pidList)
-	_, evictionProposed := evict(list, ols.maxPeerCount)
+	evictionProposed := evict(list, ols.maxPeerCount)
 
 	return evictionProposed
 }
