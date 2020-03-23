@@ -102,7 +102,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize * 90 / 100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -166,6 +166,7 @@ type TestProcessorNode struct {
 	GenesisBlocks map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
+	RatingsData   *rating.RatingsData
 
 	BlackListHandler      process.BlackListHandler
 	HeaderValidator       process.HeaderConstructionValidator
@@ -326,7 +327,7 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         tpn.PeerState,
@@ -354,6 +355,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initEconomicsData()
+	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
@@ -419,6 +421,10 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 	}
 }
 
+func (tpn *TestProcessorNode) initRatingsData() {
+	tpn.RatingsData = CreateRatingsData()
+}
+
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
@@ -456,64 +462,84 @@ func CreateEconomicsData() *economics.EconomicsData {
 				BleedPercentagePerRound:  "0.00001",
 				UnJailValue:              "1000",
 			},
-			RatingSettings: config.RatingSettings{
-				StartRating:                 500000,
-				MaxRating:                   1000000,
-				MinRating:                   1,
-				ProposerDecreaseRatingStep:  3858,
-				ProposerIncreaseRatingStep:  1929,
-				ValidatorDecreaseRatingStep: 61,
-				ValidatorIncreaseRatingStep: 31,
-				SelectionChance: []config.SelectionChance{
-					{
-						MaxThreshold:  0,
-						ChancePercent: 0,
-					},
-					{
-						MaxThreshold:  100000,
-						ChancePercent: 0,
-					},
-					{
-						MaxThreshold:  200000,
-						ChancePercent: 16,
-					},
-					{
-						MaxThreshold:  300000,
-						ChancePercent: 17,
-					},
-					{
-						MaxThreshold:  400000,
-						ChancePercent: 18,
-					},
-					{
-						MaxThreshold:  500000,
-						ChancePercent: 19,
-					},
-					{
-						MaxThreshold:  600000,
-						ChancePercent: 20,
-					},
-					{
-						MaxThreshold:  700000,
-						ChancePercent: 21,
-					},
-					{
-						MaxThreshold:  800000,
-						ChancePercent: 22,
-					},
-					{
-						MaxThreshold:  900000,
-						ChancePercent: 23,
-					},
-					{
-						MaxThreshold:  1000000,
-						ChancePercent: 24,
-					},
-				},
-			},
 		},
 	)
 	return economicsData
+}
+
+// CreateEconomicsData creates a mock EconomicsData object
+func CreateRatingsData() *rating.RatingsData {
+	ratingsConfig := config.RatingsConfig{
+		ShardChain: config.ShardChain{
+			RatingSteps: config.RatingSteps{
+				ProposerIncreaseRatingStep:  1929,
+				ProposerDecreaseRatingStep:  3858,
+				ValidatorIncreaseRatingStep: 31,
+				ValidatorDecreaseRatingStep: 61,
+			},
+		},
+		MetaChain: config.MetaChain{
+			RatingSteps: config.RatingSteps{
+				ProposerIncreaseRatingStep:  2500,
+				ProposerDecreaseRatingStep:  5000,
+				ValidatorIncreaseRatingStep: 35,
+				ValidatorDecreaseRatingStep: 70,
+			},
+		},
+		General: config.General{
+			StartRating: 500000,
+			MaxRating:   1000000,
+			MinRating:   1,
+			SelectionChances: []*config.SelectionChance{
+				{
+					MaxThreshold:  0,
+					ChancePercent: 5,
+				},
+				{
+					MaxThreshold:  100000,
+					ChancePercent: 0,
+				},
+				{
+					MaxThreshold:  200000,
+					ChancePercent: 16,
+				},
+				{
+					MaxThreshold:  300000,
+					ChancePercent: 17,
+				},
+				{
+					MaxThreshold:  400000,
+					ChancePercent: 18,
+				},
+				{
+					MaxThreshold:  500000,
+					ChancePercent: 19,
+				},
+				{
+					MaxThreshold:  600000,
+					ChancePercent: 20,
+				},
+				{
+					MaxThreshold:  700000,
+					ChancePercent: 21,
+				},
+				{
+					MaxThreshold:  800000,
+					ChancePercent: 22,
+				},
+				{
+					MaxThreshold:  900000,
+					ChancePercent: 23,
+				},
+				{
+					MaxThreshold:  1000000,
+					ChancePercent: 24,
+				},
+			},
+		},
+	}
+	ratingsData, _ := rating.NewRatingsData(ratingsConfig)
+	return ratingsData
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {

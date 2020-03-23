@@ -47,12 +47,12 @@ export NODE_DELAY=10
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=2
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=0
+export META_OBSERVERCOUNT=2
 export META_CONSENSUS_SIZE=3
 
 # Leave unchanged.

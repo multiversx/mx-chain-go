@@ -247,7 +247,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return nil, err
 	}
 
-	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees())
+	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees(), previousHeader.GetShardID())
 	if err != nil {
 		return nil, err
 	}
@@ -464,7 +464,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		vs.mutMissedBlocksCounters.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating())
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetTempRatingWithJournal")
@@ -475,7 +475,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		}
 
 		swInner.Start("ComputeDecreaseAllValidators")
-		err = vs.decreaseForConsensusValidators(consensusGroup)
+		err = vs.decreaseForConsensusValidators(consensusGroup, shardId)
 		swInner.Stop("ComputeDecreaseAllValidators")
 		if err != nil {
 			return err
@@ -485,7 +485,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 	return nil
 }
 
-func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []sharding.Validator) error {
+func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []sharding.Validator, shardId uint32) error {
 	vs.mutMissedBlocksCounters.Lock()
 	defer vs.mutMissedBlocksCounters.Unlock()
 
@@ -497,7 +497,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []s
 
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
-		newRating := vs.rater.ComputeDecreaseValidator(validatorPeerAccount.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
 		verr = validatorPeerAccount.SetTempRatingWithJournal(newRating)
 		if verr != nil {
 			return verr
@@ -531,7 +531,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees)
+		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees, h.ShardID)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -631,7 +631,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int, shardId uint32) error {
 	if len(signingBitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
@@ -655,19 +655,19 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		switch actionType {
 		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 			if err != nil {
 				return err
 			}
 
+			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
 			err = peerAcc.DecreaseValidatorSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeDecreaseValidator(peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeDecreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
 		if err != nil {
@@ -847,11 +847,11 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseValidator(currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseValidator(shardId, currentTempRating)
 		}
 
 		if i == 0 {

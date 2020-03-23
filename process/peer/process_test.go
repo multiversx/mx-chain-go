@@ -54,15 +54,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				BleedPercentagePerRound:  "0.00001",
 				UnJailValue:              "1000",
 			},
-			RatingSettings: config.RatingSettings{
-				StartRating:                 5,
-				MaxRating:                   10,
-				MinRating:                   1,
-				ProposerIncreaseRatingStep:  2,
-				ProposerDecreaseRatingStep:  4,
-				ValidatorIncreaseRatingStep: 1,
-				ValidatorDecreaseRatingStep: 2,
-			},
 		},
 	)
 
@@ -1241,8 +1232,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferences(t
 	rater.StartRating = 500000
 	rater.MinRating = 100000
 	rater.MaxRating = 1000000
-	rater.DecreaseProposer = 2000
-	rater.DecreaseValidator = 10
+	rater.DecreaseProposer = -2000
+	rater.DecreaseValidator = -10
 
 	validators := []struct {
 		validators    int
@@ -1278,9 +1269,9 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferences(t
 				want: result{
 					decreaseValidatorValue: intValidatorProbability,
 					decreaseLeaderValue:    intLeaderProbability,
-					tempRating: rater.StartRating -
-						intLeaderProbability*rater.DecreaseProposer -
-						intValidatorProbability*rater.DecreaseValidator,
+					tempRating: uint32(int32(rater.StartRating) +
+						int32(intLeaderProbability)*rater.DecreaseProposer +
+						int32(intValidatorProbability)*rater.DecreaseValidator),
 				},
 			}
 		}
