@@ -102,7 +102,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize * 90 / 100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -1487,19 +1487,18 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Store:            tpn.Storage,
 		StartHeaders:     tpn.GenesisBlocks,
+		PoolsHolder:      tpn.DataPool,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
 	} else {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)

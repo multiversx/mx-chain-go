@@ -127,91 +127,29 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	pubKey := &mock.PublicKeyMock{
-		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, errExpected
-		},
-	}
-
-	sender, _ := heartbeat.NewSender(
-		&mock.MessengerStub{
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		},
-		&mock.SinglesignStub{
-			SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-				return nil, nil
-			},
-		},
-		&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return pubKey
-			},
-		},
-		&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (i []byte, e error) {
-				return nil, nil
-			},
-		},
-		"",
-		&mock.ShardCoordinatorMock{},
-		"v0.1",
-		"undefined",
-	)
-
-	err := sender.SendHeartbeat()
-
-	assert.Equal(t, errExpected, err)
+	testSendHeartbeat(t, errExpected, nil, nil)
 }
 
 func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	pubKey := &mock.PublicKeyMock{
-		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, nil
-		},
-	}
-
-	sender, _ := heartbeat.NewSender(
-		&mock.MessengerStub{
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		},
-		&mock.SinglesignStub{
-			SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-				return nil, errExpected
-			},
-		},
-		&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return pubKey
-			},
-		},
-		&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (i []byte, e error) {
-				return nil, nil
-			},
-		},
-		"",
-		&mock.ShardCoordinatorMock{},
-		"v0.1",
-		"undefined",
-	)
-
-	err := sender.SendHeartbeat()
-
-	assert.Equal(t, errExpected, err)
+	testSendHeartbeat(t, nil, errExpected, nil)
 }
 
 func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("err")
+	testSendHeartbeat(t, nil, nil, expectedErr)
+}
+
+func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
+	var expectedErr error
 	pubKey := &mock.PublicKeyMock{
 		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, nil
+			expectedErr = pubKeyErr
+			return nil, pubKeyErr
 		},
 	}
 
@@ -222,7 +160,8 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 		},
 		&mock.SinglesignStub{
 			SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-				return nil, nil
+				expectedErr = signErr
+				return nil, signErr
 			},
 		},
 		&mock.PrivateKeyStub{
@@ -232,7 +171,8 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 		},
 		&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (i []byte, e error) {
-				return nil, errExpected
+				expectedErr = marshalErr
+				return nil, marshalErr
 			},
 		},
 		"",
@@ -243,7 +183,7 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 
 	err := sender.SendHeartbeat()
 
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestSender_SendHeartbeatShouldWork(t *testing.T) {
