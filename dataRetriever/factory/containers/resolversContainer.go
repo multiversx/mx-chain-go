@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -25,7 +26,7 @@ func NewResolversContainer() *resolversContainer {
 func (rc *resolversContainer) Get(key string) (dataRetriever.Resolver, error) {
 	value, ok := rc.objects.Get(key)
 	if !ok {
-		return nil, dataRetriever.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in resolvers container for key %v", dataRetriever.ErrInvalidContainerKey, key)
 	}
 
 	resolver, ok := value.(dataRetriever.Resolver)
