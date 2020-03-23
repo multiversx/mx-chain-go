@@ -13,28 +13,31 @@ import (
 // topicRequestSuffix represents the topic name suffix
 const topicRequestSuffix = "_REQUEST"
 
-// NumPeersToQuery number of peers to send the message
-const NumPeersToQuery = 2
+const minPeersToQuery = 2
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
-	Messenger         dataRetriever.MessageHandler
-	TopicName         string
-	PeerListCreator   dataRetriever.PeerListCreator
-	Marshalizer       marshal.Marshalizer
-	Randomizer        dataRetriever.IntRandomizer
-	TargetShardId     uint32
-	OutputAntiflooder dataRetriever.P2PAntifloodHandler
+	Messenger          dataRetriever.MessageHandler
+	TopicName          string
+	PeerListCreator    dataRetriever.PeerListCreator
+	Marshalizer        marshal.Marshalizer
+	Randomizer         dataRetriever.IntRandomizer
+	TargetShardId      uint32
+	OutputAntiflooder  dataRetriever.P2PAntifloodHandler
+	NumIntraShardPeers int
+	NumCrossShardPeers int
 }
 
 type topicResolverSender struct {
-	messenger         dataRetriever.MessageHandler
-	marshalizer       marshal.Marshalizer
-	topicName         string
-	peerListCreator   dataRetriever.PeerListCreator
-	randomizer        dataRetriever.IntRandomizer
-	targetShardId     uint32
-	outputAntiflooder dataRetriever.P2PAntifloodHandler
+	messenger          dataRetriever.MessageHandler
+	marshalizer        marshal.Marshalizer
+	topicName          string
+	peerListCreator    dataRetriever.PeerListCreator
+	randomizer         dataRetriever.IntRandomizer
+	targetShardId      uint32
+	outputAntiflooder  dataRetriever.P2PAntifloodHandler
+	numIntraShardPeers int
+	numCrossShardPeers int
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -54,15 +57,21 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	if check.IfNil(arg.OutputAntiflooder) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
+	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
+		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater than %d",
+			dataRetriever.ErrInvalidValue, minPeersToQuery)
+	}
 
 	resolver := &topicResolverSender{
-		messenger:         arg.Messenger,
-		topicName:         arg.TopicName,
-		peerListCreator:   arg.PeerListCreator,
-		marshalizer:       arg.Marshalizer,
-		randomizer:        arg.Randomizer,
-		targetShardId:     arg.TargetShardId,
-		outputAntiflooder: arg.OutputAntiflooder,
+		messenger:          arg.Messenger,
+		topicName:          arg.TopicName,
+		peerListCreator:    arg.PeerListCreator,
+		marshalizer:        arg.Marshalizer,
+		randomizer:         arg.Randomizer,
+		targetShardId:      arg.TargetShardId,
+		outputAntiflooder:  arg.OutputAntiflooder,
+		numIntraShardPeers: arg.NumIntraShardPeers,
+		numCrossShardPeers: arg.NumCrossShardPeers,
 	}
 
 	return resolver, nil
@@ -76,36 +85,16 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		return err
 	}
 
-	peerList := trs.peerListCreator.PeerList()
-	if len(peerList) == 0 {
-		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrNoConnectedPeerToSendRequest, trs.topicName)
-	}
-
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
-	indexes := createIndexList(len(peerList))
-	shuffledIndexes, err := fisherYatesShuffle(indexes, trs.randomizer)
-	if err != nil {
-		return err
-	}
+	crossPeers := trs.peerListCreator.PeerList()
+	numSent := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
 
-	msgSentCounter := 0
-	for idx := range shuffledIndexes {
-		peer := peerList[idx]
+	intraPeers := trs.peerListCreator.IntraShardPeerList()
+	numSent = numSent + trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
 
-		err = trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
-		if err != nil {
-			continue
-		}
-
-		msgSentCounter++
-		if msgSentCounter == NumPeersToQuery {
-			break
-		}
-	}
-
-	if msgSentCounter == 0 {
-		return err
+	if numSent == 0 {
+		return fmt.Errorf("%w or peer send error, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
 	}
 
 	return nil
@@ -118,6 +107,32 @@ func createIndexList(listLength int) []int {
 	}
 
 	return indexes
+}
+
+func (trs *topicResolverSender) sendOnTopic(peerList []p2p.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
+	if len(peerList) == 0 || maxToSend == 0 {
+		return 0
+	}
+
+	indexes := createIndexList(len(peerList))
+	shuffledIndexes := fisherYatesShuffle(indexes, trs.randomizer)
+
+	msgSentCounter := 0
+	for idx := range shuffledIndexes {
+		peer := peerList[idx]
+
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
+		if err != nil {
+			continue
+		}
+
+		msgSentCounter++
+		if msgSentCounter == maxToSend {
+			break
+		}
+	}
+
+	return msgSentCounter
 }
 
 // Send is used to send an array buffer to a connected peer
@@ -155,20 +170,16 @@ func (trs *topicResolverSender) TargetShardID() uint32 {
 	return trs.targetShardId
 }
 
-func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
+func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
 	newIndexes := make([]int, len(indexes))
 	copy(newIndexes, indexes)
 
 	for i := len(newIndexes) - 1; i > 0; i-- {
-		j, err := randomizer.Intn(i + 1)
-		if err != nil {
-			return nil, err
-		}
-
+		j := randomizer.Intn(i + 1)
 		newIndexes[i], newIndexes[j] = newIndexes[j], newIndexes[i]
 	}
 
-	return newIndexes, nil
+	return newIndexes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
