@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -28,10 +29,10 @@ type simpleEpochStartMetaBlockInterceptor struct {
 // NewSimpleEpochStartMetaBlockInterceptor will return a new instance of simpleEpochStartMetaBlockInterceptor
 func NewSimpleEpochStartMetaBlockInterceptor(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*simpleEpochStartMetaBlockInterceptor, error) {
 	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(hasher) {
-		return nil, ErrNilHasher
+		return nil, epochStart.ErrNilHasher
 	}
 
 	return &simpleEpochStartMetaBlockInterceptor{
@@ -106,7 +107,7 @@ func (s *simpleEpochStartMetaBlockInterceptor) GetEpochStartMetaBlock(target int
 		s.mutReceivedMetaBlocks.RUnlock()
 	}
 
-	return nil, ErrNumTriesExceeded
+	return nil, epochStart.ErrNumTriesExceeded
 }
 
 func (s *simpleEpochStartMetaBlockInterceptor) isMapEntryOk(

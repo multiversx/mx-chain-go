@@ -137,7 +137,7 @@ type PendingTransactionsSyncHandler interface {
 
 // MissingHeadersByHashSyncer defines the methods to sync all missing headers by hash
 type MissingHeadersByHashSyncer interface {
-	SyncMissingHeadersByHash(shardID uint32, headersHashes [][]byte, waitTime time.Duration) error
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, waitTime time.Duration) error
 	GetHeaders() (map[string]data.HeaderHandler, error)
 	ClearFields()
 	IsInterfaceNil() bool

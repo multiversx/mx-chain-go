@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -76,5 +77,33 @@ type Notifier interface {
 // needed in the epoch events
 type ValidatorStatisticsProcessorHandler interface {
 	Process(info data.ValidatorInfoHandler) error
+	IsInterfaceNil() bool
+}
+
+// HeadersByHashSyncer defines the methods to sync all missing headers by hash
+type HeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, waitTime time.Duration) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
+type PendingMiniBlocksSyncHandler interface {
+	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, waitTime time.Duration) error
+	GetMiniBlocks() (map[string]*block.MiniBlock, error)
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	GetSyncedTries() map[string]data.Trie
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
+type StartOfEpochMetaSyncer interface {
+	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }

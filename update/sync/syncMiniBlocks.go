@@ -97,7 +97,7 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(
 }
 
 // SyncPendingMiniBlocksForEpochStart will sync the miniblocks for the given epoch start meta block
-func (p *pendingMiniBlocks) SyncPendingMiniBlocksForEpochStart(
+func (p *pendingMiniBlocks) SyncPendingMiniBlocks(
 	miniBlockHeaders []block.ShardMiniBlockHeader,
 	waitTime time.Duration,
 ) error {

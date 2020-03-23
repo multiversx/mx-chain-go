@@ -3,32 +3,33 @@ package bootstrap
 import (
 	"encoding/hex"
 	"errors"
-	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	factory2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
+	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	factory3 "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
+	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/storagehandler"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -40,9 +41,7 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const delayAfterRequesting = 1 * time.Second
-const thresholdForConsideringMetaBlockCorrect = 0.2
-const maxNumTimesToRetry = 100
+const timeToWait = 5 * time.Second
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
@@ -58,155 +57,81 @@ type ComponentsNeededForBootstrap struct {
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
-	publicKey                      crypto.PublicKey
-	marshalizer                    marshal.Marshalizer
-	hasher                         hashing.Hasher
-	messenger                      p2p.Messenger
-	generalConfig                  config.Config
-	economicsConfig                config.EconomicsConfig
-	pathManager                    PathManagerHandler
-	nodesConfigProvider            NodesConfigProviderHandler
-	epochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
-	metaBlockInterceptor           MetaBlockInterceptorHandler
-	shardHeaderInterceptor         ShardHeaderInterceptorHandler
-	miniBlockInterceptor           MiniBlockInterceptorHandler
-	singleSigner                   crypto.SingleSigner
-	blockSingleSigner              crypto.SingleSigner
-	keyGen                         crypto.KeyGenerator
-	blockKeyGen                    crypto.KeyGenerator
-	requestHandler                 process.RequestHandler
-	whiteListHandler               dataRetriever.WhiteListHandler
-	shardCoordinator               sharding.Coordinator
-	genesisNodesConfig             *sharding.NodesSetup
-	workingDir                     string
-	defaultDBPath                  string
-	defaultEpochString             string
+	publicKey          crypto.PublicKey
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	messenger          p2p.Messenger
+	generalConfig      config.Config
+	economicsData      *economics.EconomicsData
+	singleSigner       crypto.SingleSigner
+	blockSingleSigner  crypto.SingleSigner
+	keyGen             crypto.KeyGenerator
+	blockKeyGen        crypto.KeyGenerator
+	requestHandler     process.RequestHandler
+	whiteListHandler   update.WhiteListHandler
+	shardCoordinator   sharding.Coordinator
+	genesisNodesConfig *sharding.NodesSetup
+	workingDir         string
+	defaultDBPath      string
+	defaultEpochString string
 
-	dataPool      dataRetriever.PoolsHolder
-	computedEpoch uint32
+	interceptorContainer process.InterceptorsContainer
+	dataPool             dataRetriever.PoolsHolder
+	computedEpoch        uint32
+
+	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer             epochStart.HeadersByHashSyncer
+	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
+
+	baseData baseDataInStorage
+}
+
+type baseDataInStorage struct {
+	shardId   uint32
+	lastRound uint64
+	lastEpoch uint32
 }
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	PublicKey                      crypto.PublicKey
-	Messenger                      p2p.Messenger
-	Marshalizer                    marshal.Marshalizer
-	Hasher                         hashing.Hasher
-	GeneralConfig                  config.Config
-	EconomicsConfig                config.EconomicsConfig
-	GenesisShardCoordinator        sharding.Coordinator
-	PathManager                    PathManagerHandler
-	NodesConfigProvider            NodesConfigProviderHandler
-	EpochStartMetaBlockInterceptor EpochStartMetaBlockInterceptorHandler
-	SingleSigner                   crypto.SingleSigner
-	BlockSingleSigner              crypto.SingleSigner
-	KeyGen                         crypto.KeyGenerator
-	BlockKeyGen                    crypto.KeyGenerator
-	WhiteListHandler               dataRetriever.WhiteListHandler
-	GenesisNodesConfig             *sharding.NodesSetup
-	WorkingDir                     string
-	DefaultDBPath                  string
-	DefaultEpochString             string
+	PublicKey               crypto.PublicKey
+	Messenger               p2p.Messenger
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	GeneralConfig           config.Config
+	EconomicsConfig         config.EconomicsConfig
+	GenesisShardCoordinator sharding.Coordinator
+	SingleSigner            crypto.SingleSigner
+	BlockSingleSigner       crypto.SingleSigner
+	KeyGen                  crypto.KeyGenerator
+	BlockKeyGen             crypto.KeyGenerator
+	WhiteListHandler        update.WhiteListHandler
+	GenesisNodesConfig      *sharding.NodesSetup
+	WorkingDir              string
+	DefaultDBPath           string
+	DefaultEpochString      string
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
 func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
-	if check.IfNil(args.PublicKey) {
-		return nil, ErrNilPublicKey
-	}
-	if check.IfNil(args.Messenger) {
-		return nil, ErrNilMessenger
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, ErrNilHasher
-	}
-	if check.IfNil(args.PathManager) {
-		return nil, ErrNilPathManager
-	}
-	if check.IfNil(args.NodesConfigProvider) {
-		return nil, ErrNilNodesConfigProvider
-	}
-	if check.IfNil(args.EpochStartMetaBlockInterceptor) {
-		return nil, ErrNilEpochStartMetaBlockInterceptor
-	}
-	if check.IfNil(args.WhiteListHandler) {
-		return nil, ErrNilWhiteListHandler
-	}
-	if check.IfNil(args.DefaultShardCoordinator) {
-		return nil, ErrNilDefaultShardCoordinator
-	}
-	if check.IfNil(args.BlockKeyGen) {
-		return nil, ErrNilBlockKeyGen
-	}
-	if check.IfNil(args.KeyGen) {
-		return nil, ErrNilKeyGen
-	}
-	if check.IfNil(args.SingleSigner) {
-		return nil, ErrNilSingleSigner
-	}
-	if check.IfNil(args.BlockSingleSigner) {
-		return nil, ErrNilBlockSingleSigner
-	}
-
 	epochStartProvider := &epochStartBootstrap{
-		publicKey:                      args.PublicKey,
-		marshalizer:                    args.Marshalizer,
-		hasher:                         args.Hasher,
-		messenger:                      args.Messenger,
-		generalConfig:                  args.GeneralConfig,
-		economicsConfig:                args.EconomicsConfig,
-		pathManager:                    args.PathManager,
-		nodesConfigProvider:            args.NodesConfigProvider,
-		epochStartMetaBlockInterceptor: args.EpochStartMetaBlockInterceptor,
-		metaBlockInterceptor:           args.MetaBlockInterceptor,
-		shardHeaderInterceptor:         args.ShardHeaderInterceptor,
-		miniBlockInterceptor:           args.MiniBlockInterceptor,
-		whiteListHandler:               args.WhiteListHandler,
-		genesisNodesConfig:             args.GenesisNodesConfig,
-		workingDir:                     args.WorkingDir,
-		defaultEpochString:             args.DefaultEpochString,
-		defaultDBPath:                  args.DefaultEpochString,
-		keyGen:                         args.KeyGen,
-		blockKeyGen:                    args.BlockKeyGen,
-		singleSigner:                   args.SingleSigner,
-		blockSingleSigner:              args.BlockSingleSigner,
+		publicKey:          args.PublicKey,
+		marshalizer:        args.Marshalizer,
+		hasher:             args.Hasher,
+		messenger:          args.Messenger,
+		generalConfig:      args.GeneralConfig,
+		whiteListHandler:   args.WhiteListHandler,
+		genesisNodesConfig: args.GenesisNodesConfig,
+		workingDir:         args.WorkingDir,
+		defaultEpochString: args.DefaultEpochString,
+		defaultDBPath:      args.DefaultEpochString,
+		keyGen:             args.KeyGen,
+		blockKeyGen:        args.BlockKeyGen,
+		singleSigner:       args.SingleSigner,
+		blockSingleSigner:  args.BlockSingleSigner,
 	}
 
 	return epochStartProvider, nil
-}
-
-func (e *epochStartBootstrap) initInternalComponents() error {
-	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
-	if err != nil {
-		return err
-	}
-
-	err = e.initTopicsAndInterceptors()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		e.resetTopicsAndInterceptors()
-	}()
-
-	err = e.createRequestHandler()
-	if err != nil {
-		return err
-	}
-
-	e.dataPool, err = factory2.NewDataPoolFromConfig(
-		factory2.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-		},
-	)
-
-	return nil
 }
 
 func (e *epochStartBootstrap) searchDataInLocalStorage() {
@@ -221,6 +146,7 @@ func (e *epochStartBootstrap) searchDataInLocalStorage() {
 	}
 
 	log.Debug("current epoch from the storage : ", "epoch", currentEpoch)
+	// TODO: write gathered data in baseDataInStorage
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
@@ -240,11 +166,6 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 func (e *epochStartBootstrap) prepareEpochZero() (uint32, uint32, uint32, error) {
 	currentEpoch := uint32(0)
 	return currentEpoch, e.shardCoordinator.SelfId(), e.shardCoordinator.NumberOfShards(), nil
-}
-
-func (e *epochStartBootstrap) isCurrentEpochSavedInStorage() bool {
-	// TODO: implement
-	return true
 }
 
 func (e *epochStartBootstrap) requestDataFromNetwork() {
@@ -273,46 +194,119 @@ func (e *epochStartBootstrap) Bootstrap() (uint32, uint32, uint32, error) {
 		return e.prepareEpochZero()
 	}
 
+	e.computeMostProbableEpoch()
+	e.searchDataInLocalStorage()
+
+	isCurrentEpochSaved := e.baseData.lastEpoch+1 >= e.computedEpoch
+	if isCurrentEpochSaved {
+		return e.prepareEpochFromStorage()
+	}
+
+	err := e.prepareComponentsToSyncFromNetwork()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return e.requestAndProcessing()
+}
+
+func (e *epochStartBootstrap) prepareEpochFromStorage() (uint32, uint32, uint32, error) {
+	return 0, 0, 0, nil
+}
+
+func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
+	var err error
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
+	if err != nil {
+		return err
+	}
+
+	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
+		factoryDataPool.ArgsDataPool{
+			Config:           &e.generalConfig,
+			EconomicsData:    e.economicsData,
+			ShardCoordinator: e.shardCoordinator,
+		},
+	)
+
+	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
+		Config:            e.generalConfig,
+		ShardCoordinator:  e.shardCoordinator,
+		Marshalizer:       e.marshalizer,
+		Hasher:            e.hasher,
+		Messenger:         e.messenger,
+		DataPool:          e.dataPool,
+		SingleSigner:      e.singleSigner,
+		BlockSingleSigner: e.blockSingleSigner,
+		KeyGen:            e.keyGen,
+		BlockKeyGen:       e.blockKeyGen,
+		WhiteListHandler:  e.whiteListHandler,
+	}
+
+	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	if err != nil {
+		return err
+	}
+
+	// TODO epochStart meta syncer
+	e.epochStartMetaBlockSyncer = NewEpochStartmetaBlockSyncer()
+
+	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          e.dataPool.MiniBlocks(),
+		Marshalizer:    e.marshalizer,
+		RequestHandler: e.requestHandler,
+	}
+	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+
+	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
+		Storage:        &disabled.Storer{},
+		Cache:          e.dataPool.Headers(),
+		Marshalizer:    e.marshalizer,
+		RequestHandler: e.requestHandler,
+	}
+	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+
+	return nil
+}
+
+func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {
+	hashesToRequest := make([][]byte, 0, len(meta.EpochStart.LastFinalizedHeaders)+1)
+	shardIds := make([]uint32, 0, len(meta.EpochStart.LastFinalizedHeaders)+1)
+
+	for _, epochStartData := range meta.EpochStart.LastFinalizedHeaders {
+		hashesToRequest = append(hashesToRequest, epochStartData.HeaderHash)
+		shardIds = append(shardIds, epochStartData.ShardID)
+	}
+
+	hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
+	shardIds = append(shardIds, core.MetachainShardId)
+
+	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.headersSyncer.GetHeaders()
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, error) {
-	// TODO: add searching for epoch start metablock and other data inside this component
-
-	err := e.initInternalComponents()
+	metaBlock, err := e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
-		return nil, err
+		return 0, 0, 0, err
 	}
 
-	interceptorsContainer, err := e.createInterceptors(commonDataPool)
-	if err != nil || interceptorsContainer == nil {
-		return nil, err
-	}
-
-	miniBlocksSyncer, err := e.getMiniBlockSyncer(commonDataPool.MiniBlocks())
+	headers, err := e.syncHeadersFrom(metaBlock)
 	if err != nil {
-		return nil, err
+		return 0, 0, 0, err
 	}
 
-	missingHeadersSyncer, err := e.getHeaderHandlerSyncer(commonDataPool.Headers())
-	if err != nil {
-		return nil, err
-	}
-
-	epochNumForRequestingTheLatestAvailable := uint32(math.MaxUint32)
-	metaBlock, err := e.getEpochStartMetaBlock(epochNumForRequestingTheLatestAvailable)
-	if err != nil {
-		return nil, err
-	}
-
-	prevMetaBlock, err := e.getMetaBlock(missingHeadersSyncer, metaBlock.EpochStart.Economics.PrevEpochStartHash)
-	if err != nil {
-		return nil, err
-	}
-
-	e.changeMessageProcessorsForMetaBlocks()
-
-	log.Info("previous meta block", "epoch", prevMetaBlock.Epoch)
 	nodesConfig, err := e.nodesConfigProvider.GetNodesConfigForMetaBlock(metaBlock)
 	if err != nil {
 		return nil, err
@@ -406,71 +400,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, er
 	return components, nil
 }
 
-func (e *epochStartBootstrap) getMiniBlockSyncer(dataPool storage.Cacher) (update.EpochStartPendingMiniBlocksSyncHandler, error) {
-	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        &disabled.Storer{},
-		Cache:          dataPool,
-		Marshalizer:    e.marshalizer,
-		RequestHandler: e.requestHandler,
-	}
-	return sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
-}
-
-func (e *epochStartBootstrap) getHeaderHandlerSyncer(pool dataRetriever.HeadersPool) (update.MissingHeadersByHashSyncer, error) {
-	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        &disabled.Storer{},
-		Cache:          pool,
-		Marshalizer:    e.marshalizer,
-		RequestHandler: e.requestHandler,
-	}
-	return sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
-}
-
-func (e *epochStartBootstrap) getMiniBlocks(
-	handler update.EpochStartPendingMiniBlocksSyncHandler,
-	pendingMiniBlocks []block.ShardMiniBlockHeader,
-	shardID uint32,
-) (map[string]*block.MiniBlock, error) {
-
-	waitTime := 1 * time.Minute
-	err := handler.SyncPendingMiniBlocksForEpochStart(pendingMiniBlocks, waitTime)
-	if err != nil {
-		return nil, err
-	}
-
-	return handler.GetMiniBlocks()
-}
-
-func (e *epochStartBootstrap) createInterceptors(dataPool dataRetriever.PoolsHolder) (process.InterceptorsContainer, error) {
-	args := factory3.ArgsEpochStartInterceptorContainer{
-		Config:            e.generalConfig,
-		ShardCoordinator:  e.defaultShardCoordinator,
-		Marshalizer:       e.marshalizer,
-		Hasher:            e.hasher,
-		Messenger:         e.messenger,
-		DataPool:          dataPool,
-		SingleSigner:      e.singleSigner,
-		BlockSingleSigner: e.blockSingleSigner,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		WhiteListHandler:  e.whiteListHandler,
-	}
-
-	return factory3.NewEpochStartInterceptorsContainer(args)
-}
-
-func (e *epochStartBootstrap) changeMessageProcessorsForMetaBlocks() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
-	if err != nil {
-		log.Info("error unregistering message processor", "error", err)
-	}
-
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.metaBlockInterceptor)
-	if err != nil {
-		log.Info("error unregistering message processor", "error", err)
-	}
-}
-
 func (e *epochStartBootstrap) createRequestHandler() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.marshalizer)
 	if err != nil {
@@ -483,7 +412,6 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		},
 	}
 
-	cacher := disabled.NewDisabledPoolsHolder()
 	triesHolder := state.NewDataTriesHolder()
 
 	stateTrieStorageManager, err := trie.NewTrieStorageManagerWithoutPruning(disabled.NewDisabledStorer())
@@ -512,7 +440,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		Messenger:                e.messenger,
 		Store:                    storageService,
 		Marshalizer:              e.marshalizer,
-		DataPools:                cacher,
+		DataPools:                e.dataPool,
 		Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
 		DataPacker:               dataPacker,
 		TriesContainer:           triesHolder,
@@ -542,27 +470,6 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	return err
 }
 
-func (e *epochStartBootstrap) getMiniBlock(miniBlockHeader *block.ShardMiniBlockHeader) (*block.MiniBlock, error) {
-	e.requestMiniBlock(miniBlockHeader)
-
-	time.Sleep(delayAfterRequesting)
-
-	for {
-		numConnectedPeers := len(e.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := e.miniBlockInterceptor.GetMiniBlock(miniBlockHeader.Hash, threshold)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for epoch start meta block. re-requesting and trying again...")
-		e.requestMiniBlock(miniBlockHeader)
-	}
-}
-
-func (e *epochStartBootstrap) requestMiniBlock(miniBlockHeader *block.ShardMiniBlockHeader) {
-	e.requestHandler.RequestMiniBlock(miniBlockHeader.ReceiverShardID, miniBlockHeader.Hash)
-}
-
 func (e *epochStartBootstrap) getCurrentEpochStartData(
 	shardCoordinator sharding.epochStartBootstrap,
 	metaBlock *block.MetaBlock,
@@ -575,27 +482,6 @@ func (e *epochStartBootstrap) getCurrentEpochStartData(
 	}
 
 	return nil, errors.New("not found")
-}
-
-func (e *epochStartBootstrap) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
-	if err != nil {
-		log.Info("error unregistering message processor", "error", err)
-		return err
-	}
-
-	err = e.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
-	if err != nil {
-		log.Info("error registering message processor", "error", err)
-		return err
-	}
-
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.epochStartMetaBlockInterceptor)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *epochStartBootstrap) getShardID(nodesConfig *sharding.NodesSetup) (uint32, error) {
@@ -613,89 +499,6 @@ func (e *epochStartBootstrap) getShardID(nodesConfig *sharding.NodesSetup) (uint
 	}
 
 	return 0, nil
-}
-
-func (e *epochStartBootstrap) getTrieFromRootHash(_ []byte) (state.TriesHolder, error) {
-	// TODO: get trie from trie syncer
-	return state.NewDataTriesHolder(), nil
-}
-
-func (e *epochStartBootstrap) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
-	if err != nil {
-		log.Info("error unregistering message processors", "error", err)
-	}
-}
-
-func (e *epochStartBootstrap) getMetaBlock(syncer update.MissingHeadersByHashSyncer, hash []byte) (*block.MetaBlock, error) {
-	//e.requestMetaBlock(hash)
-	//
-	//time.Sleep(delayAfterRequesting)
-	//
-	//for {
-	//	numConnectedPeers := len(e.messenger.Peers())
-	//	threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-	//	mb, errConsensusNotReached := e.metaBlockInterceptor.GetMetaBlock(hash, threshold)
-	//	if errConsensusNotReached == nil {
-	//		return mb, nil
-	//	}
-	//	log.Info("consensus not reached for meta block. re-requesting and trying again...")
-	//	e.requestMetaBlock(hash)
-	//}
-	waitTime := 1 * time.Minute
-	err := syncer.SyncMissingHeadersByHash(e.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
-	if err != nil {
-		return nil, err
-	}
-
-	hdrs, err := syncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	syncer.ClearFields()
-
-	return hdrs[string(hash)].(*block.MetaBlock), nil
-}
-
-func (e *epochStartBootstrap) getEpochStartMetaBlock(epoch uint32) (*block.MetaBlock, error) {
-	err := e.initTopicForEpochStartMetaBlockInterceptor()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		e.resetTopicsAndInterceptors()
-	}()
-
-	e.requestEpochStartMetaBlock(epoch)
-
-	time.Sleep(delayAfterRequesting)
-	count := 0
-
-	for {
-		if count > maxNumTimesToRetry {
-			panic("can't sync with other peers")
-		}
-		count++
-		numConnectedPeers := len(e.messenger.Peers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-		mb, errConsensusNotReached := e.epochStartMetaBlockInterceptor.GetEpochStartMetaBlock(threshold, epoch)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-		log.Info("consensus not reached for meta block. re-requesting and trying again...")
-		e.requestEpochStartMetaBlock(epoch)
-	}
-}
-
-func (e *epochStartBootstrap) getShardCoordinator(metaBlock *block.MetaBlock, nodesConfig *sharding.NodesSetup) (sharding.epochStartBootstrap, error) {
-	shardID, err := e.getShardID(nodesConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	numOfShards := len(metaBlock.EpochStart.LastFinalizedHeaders)
-	return sharding.NewMultiShardCoordinator(uint32(numOfShards), shardID)
 }
 
 func (e *epochStartBootstrap) getShardHeaders(
@@ -741,27 +544,6 @@ func (e *epochStartBootstrap) getShardHeaders(
 
 	headersMap[shardID] = hdr
 	return headersMap, nil
-}
-
-func (e *epochStartBootstrap) getShardHeader(
-	syncer update.MissingHeadersByHashSyncer,
-	hash []byte,
-	shardID uint32,
-) (*block.Header, error) {
-	waitTime := 1 * time.Minute
-	err := syncer.SyncMissingHeadersByHash(e.defaultShardCoordinator.SelfId(), [][]byte{hash}, waitTime)
-	if err != nil {
-		return nil, err
-	}
-
-	hdrs, err := syncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	syncer.ClearFields()
-
-	return hdrs[string(hash)].(*block.Header), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

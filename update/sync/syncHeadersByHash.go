@@ -71,7 +71,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*mis
 
 // SyncMissingHeadersByHash syncs the missing headers
 func (m *missingHeadersByHash) SyncMissingHeadersByHash(
-	shardID uint32,
+	shardIDs []uint32,
 	headersHashes [][]byte,
 	waitTime time.Duration,
 ) error {
@@ -80,7 +80,7 @@ func (m *missingHeadersByHash) SyncMissingHeadersByHash(
 	requestedMBs := 0
 	m.mutMissingHdrs.Lock()
 	m.stopSyncing = false
-	for _, hash := range headersHashes {
+	for index, hash := range headersHashes {
 		m.mapHashes[string(hash)] = struct{}{}
 		header, ok := m.getHeaderFromPoolOrStorage(hash)
 		if ok {
@@ -89,7 +89,7 @@ func (m *missingHeadersByHash) SyncMissingHeadersByHash(
 		}
 
 		requestedMBs++
-		m.requestHandler.RequestShardHeader(shardID, hash)
+		m.requestHandler.RequestShardHeader(shardIDs[index], hash)
 	}
 	m.mutMissingHdrs.Unlock()
 
