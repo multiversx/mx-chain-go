@@ -29,8 +29,6 @@ type shardProcessor struct {
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
-	chRcvEpochStart chan bool
-
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
 	txCounter           *transactionCounter
@@ -212,7 +210,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
-	err = sp.requestEpochStartInfo(header, haveTime())
+	err = sp.requestEpochStartInfo(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -281,20 +279,24 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime time.Duration) error {
-	_ = process.EmptyChannel(sp.chRcvEpochStart)
+func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime func() time.Duration) error {
 	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && !sp.epochStartTrigger.IsEpochStart()
+	if !haveMissingMetaHeaders {
+		return nil
+	}
 
-	if haveMissingMetaHeaders {
-		select {
-		case <-sp.chRcvEpochStart:
+	for {
+		time.Sleep(time.Millisecond)
+		if haveTime() < 0 {
+			break
+		}
+
+		if sp.epochStartTrigger.IsEpochStart() {
 			return nil
-		case <-time.After(waitTime):
-			return process.ErrTimeIsOut
 		}
 	}
 
-	return nil
+	return process.ErrTimeIsOut
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
@@ -1337,10 +1339,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	}
 	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
 		return
-	}
-
-	if sp.epochStartTrigger.IsEpochStart() {
-		sp.chRcvEpochStart <- true
 	}
 
 	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance

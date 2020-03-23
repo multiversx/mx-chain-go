@@ -314,27 +314,27 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 	sortedMetaInfo := make([]*metaInfo, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
-		metaInfo := &metaInfo{
+		currMetaInfo := &metaInfo{
 			hdr:  hdr,
 			hash: hash,
 		}
-		sortedMetaInfo = append(sortedMetaInfo, metaInfo)
+		sortedMetaInfo = append(sortedMetaInfo, currMetaInfo)
 	}
 
 	sort.Slice(sortedMetaInfo, func(i, j int) bool {
 		return sortedMetaInfo[i].hdr.Epoch < sortedMetaInfo[j].hdr.Epoch
 	})
 
-	for _, metaInfo := range sortedMetaInfo {
-		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(metaInfo.hash, metaInfo.hdr)
-		if canActivateEpochStart && t.epoch < metaInfo.hdr.Epoch {
-			t.epoch = metaInfo.hdr.Epoch
+	for _, currMetaInfo := range sortedMetaInfo {
+		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(currMetaInfo.hash, currMetaInfo.hdr)
+		if canActivateEpochStart && t.epoch < currMetaInfo.hdr.Epoch {
+			t.epoch = currMetaInfo.hdr.Epoch
 			t.isEpochStart = true
-			t.epochStartRound = metaInfo.hdr.Round
+			t.epochStartRound = currMetaInfo.hdr.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
-			t.epochMetaBlockHash = []byte(metaInfo.hash)
-			t.epochStartMeta = metaInfo.hdr
-			t.saveCurrentState(metaInfo.hdr.GetRound())
+			t.epochMetaBlockHash = []byte(currMetaInfo.hash)
+			t.epochStartMeta = currMetaInfo.hdr
+			t.saveCurrentState(currMetaInfo.hdr.GetRound())
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
@@ -343,13 +343,13 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 		// save all final-valid epoch start blocks
 		if canActivateEpochStart {
-			metaBuff, err := t.marshalizer.Marshal(metaInfo.hdr)
+			metaBuff, err := t.marshalizer.Marshal(currMetaInfo.hdr)
 			if err != nil {
 				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
 				continue
 			}
 
-			epochStartIdentifier := core.EpochStartIdentifier(metaInfo.hdr.Epoch)
+			epochStartIdentifier := core.EpochStartIdentifier(currMetaInfo.hdr.Epoch)
 			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 			if err != nil {
 				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
