@@ -3,6 +3,7 @@ package sharding
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,6 +32,7 @@ func TestValidator_NewValidatorShouldWork(t *testing.T) {
 
 	assert.NotNil(t, validator)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(validator))
 }
 
 func TestValidator_PubKeyShouldWork(t *testing.T) {

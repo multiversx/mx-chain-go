@@ -26,7 +26,7 @@ type ArgValidatorInfoProcessor struct {
 	MiniBlocksPool               storage.Cacher
 	Marshalizer                  marshal.Marshalizer
 	ValidatorStatisticsProcessor epochStart.ValidatorStatisticsProcessorHandler
-	Requesthandler               process.RequestHandler
+	Requesthandler               epochStart.RequestHandler
 	Hasher                       hashing.Hasher
 }
 
@@ -34,7 +34,7 @@ type ArgValidatorInfoProcessor struct {
 type ValidatorInfoProcessor struct {
 	miniBlocksPool               storage.Cacher
 	marshalizer                  marshal.Marshalizer
-	Hasher                       hashing.Hasher
+	hasher                       hashing.Hasher
 	validatorStatisticsProcessor epochStart.ValidatorStatisticsProcessorHandler
 	requestHandler               epochStart.RequestHandler
 
@@ -49,16 +49,19 @@ type ValidatorInfoProcessor struct {
 // NewValidatorInfoProcessor creates a new ValidatorInfoProcessor object
 func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorInfoProcessor, error) {
 	if check.IfNil(arguments.ValidatorStatisticsProcessor) {
-		return nil, process.ErrNilValidatorStatistics
+		return nil, epochStart.ErrNilValidatorStatistics
+	}
+	if check.IfNil(arguments.Hasher) {
+		return nil, epochStart.ErrNilHasher
 	}
 	if check.IfNil(arguments.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.MiniBlocksPool) {
-		return nil, process.ErrNilMiniBlockPool
+		return nil, epochStart.ErrNilMiniBlockPool
 	}
 	if check.IfNil(arguments.Requesthandler) {
-		return nil, process.ErrNilRequestHandler
+		return nil, epochStart.ErrNilRequestHandler
 	}
 
 	vip := &ValidatorInfoProcessor{
@@ -66,7 +69,7 @@ func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorI
 		marshalizer:                  arguments.Marshalizer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		requestHandler:               arguments.Requesthandler,
-		Hasher:                       arguments.Hasher,
+		hasher:                       arguments.Hasher,
 	}
 
 	//TODO: change the registerHandler for the miniblockPool to call
