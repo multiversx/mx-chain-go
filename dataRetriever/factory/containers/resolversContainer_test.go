@@ -1,6 +1,7 @@
 package containers_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -118,7 +119,7 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	valRecovered, err := c.Get(keyNotFound)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
@@ -203,7 +204,7 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 	valRecovered, err := c.Get(key)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 //------- Len

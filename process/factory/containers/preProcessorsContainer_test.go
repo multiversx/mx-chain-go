@@ -1,6 +1,7 @@
 package containers_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -110,7 +111,7 @@ func TestPreProcessorsContainer_GetNotFoundShouldErr(t *testing.T) {
 	valRecovered, err := c.Get(keyNotFound)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
 func TestPreProcessorsContainer_GetWrongTypeShouldErr(t *testing.T) {
@@ -195,7 +196,7 @@ func TestPreProcessorsContainer_RemoveShouldWork(t *testing.T) {
 	valRecovered, err := c.Get(key)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
 //------- Len
