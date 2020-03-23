@@ -137,8 +137,6 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 	opp.mutInterResultsForBlock.Lock()
 	defer opp.mutInterResultsForBlock.Unlock()
 
-	log.Trace("oneMBPostProcessor.AddIntermediateTransactions()", "txs", len(txs))
-
 	selfId := opp.shardCoordinator.SelfId()
 
 	for i := 0; i < len(txs); i++ {
