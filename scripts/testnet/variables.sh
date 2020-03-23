@@ -47,12 +47,12 @@ export NODE_DELAY=10
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=2
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=0
+export META_OBSERVERCOUNT=2
 export META_CONSENSUS_SIZE=3
 
 # Leave unchanged.
@@ -65,7 +65,7 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
-export ALWAYS_NEW_CHAINID=1
+export ALWAYS_NEW_CHAINID=0
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
@@ -75,7 +75,7 @@ export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
 
 # Address of the Seednode. Will be written to the p2p.toml file of the Nodes
-export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"
+export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0

@@ -564,6 +564,15 @@ var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy
 // ErrNotEnoughGas signals that not enough gas has been provided
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")
+
+// ErrNilQuotaStatusHandler signals that a nil quota status handler has been provided
+var ErrNilQuotaStatusHandler = errors.New("nil quota status handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
@@ -617,6 +626,9 @@ var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrEmptyTopic signals that an empty topic has been provided
+var ErrEmptyTopic = errors.New("empty topic")
 
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
@@ -695,3 +707,9 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+
+// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
+var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+
+// ErrNilBlockSizeThrottler signals that block size throttler si nil
+var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")

@@ -409,7 +409,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardZeroId,
+		ShardIDAsObserver:       shardZeroId,
 		NbShards:                2,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,

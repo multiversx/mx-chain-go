@@ -26,6 +26,8 @@ type ConsensusCoreHandler interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
+	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
+	GetAntiFloodHandler() consensus.P2PAntifloodHandler
 	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
@@ -73,6 +75,8 @@ type ConsensusService interface {
 	IsSubroundSignature(int) bool
 	//IsSubroundStartRound returns if the current subround is about start round
 	IsSubroundStartRound(int) bool
+	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
+	GetMaxMessagesInARoundPerPeer() uint32
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -93,7 +97,7 @@ type WorkerHandler interface {
 	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

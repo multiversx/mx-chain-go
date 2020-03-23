@@ -13,7 +13,7 @@ import (
 
 //------- NewSender
 
-func TestNewSender_NilP2pMessengerShouldErr(t *testing.T) {
+func TestNewSender_NilP2PMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	sender, err := heartbeat.NewSender(

@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/cornelk/hashmap"
@@ -23,7 +25,7 @@ func NewSystemSCContainer() *systemSCContainer {
 func (vmc *systemSCContainer) Get(key []byte) (vm.SystemSmartContract, error) {
 	value, ok := vmc.objects.Get(key)
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in system sc container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	sc, ok := value.(vm.SystemSmartContract)
