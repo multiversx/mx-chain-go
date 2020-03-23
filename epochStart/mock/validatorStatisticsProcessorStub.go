@@ -10,7 +10,7 @@ type ValidatorStatisticsProcessorStub struct {
 	IsInterfaceNilCalled func() bool
 }
 
-// LoadInitialState -
+// Process -
 func (pm *ValidatorStatisticsProcessorStub) Process(info data.ValidatorInfoHandler) error {
 	if pm.ProcessCalled != nil {
 		return pm.ProcessCalled(info)
