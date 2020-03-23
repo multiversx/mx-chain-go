@@ -280,6 +280,21 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	txPool.mutexAddCallbacks.Unlock()
 }
 
+// TotalCount returns the total number of transactions in the pool
+func (txPool *shardedTxPool) TotalCount() int64 {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	totalCount := int64(0)
+
+	for _, shard := range txPool.backingMap {
+		cache := shard.Cache
+		totalCount += cache.CountTx()
+	}
+
+	return totalCount
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil

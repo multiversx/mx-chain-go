@@ -162,12 +162,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool, sp.shardCoordinator.NumberOfShards())
-	go getMetricsFromHeader(header, uint64(numTxWithDst), sp.marshalizer, sp.appStatusHandler)
+	numTxs := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool)
+	go getMetricsFromHeader(header, uint64(numTxs), sp.marshalizer, sp.appStatusHandler)
 
-	log.Debug("total txs in pool",
-		"num txs", numTxWithDst,
-	)
+	log.Debug("total txs in pool", "num txs", numTxs)
 
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
