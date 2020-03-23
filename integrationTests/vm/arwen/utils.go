@@ -117,7 +117,7 @@ func (context *TestContext) createAccount(participant *testParticipant) {
 
 // DeploySC -
 func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
-	smartContractCode := getSCCode(wasmPath)
+	smartContractCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
 	txData := smartContractCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)
@@ -148,7 +148,8 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	}
 }
 
-func getSCCode(fileName string) string {
+// GetSCCode -
+func GetSCCode(fileName string) string {
 	code, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		panic("Could not get SC code.")

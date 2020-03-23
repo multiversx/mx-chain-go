@@ -16,7 +16,7 @@ import (
 var ownerAddressBytes = []byte("12345678901234567890123456789012")
 
 func TestAllowNonFloatingPointSC(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "floating_point/non_fp.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/floating_point/non_fp.wasm")
 	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
@@ -32,7 +32,7 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 }
 
 func TestDisallowFloatingPointSC(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "floating_point/fp.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/floating_point/fp.wasm")
 	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
@@ -48,7 +48,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 }
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
 	defer closeVM(wasmvm)
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
@@ -69,7 +69,7 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 }
 
 func TestSCAbortExecution_Abort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
 	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
@@ -94,13 +94,10 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
-	scCode, err := arwen.GetByteCode(wasmFilename)
-	assert.Nil(t, err)
+	scCode := arwen.GetSCCode(wasmFilename)
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	scCodeString := hex.EncodeToString(scCode)
 
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
@@ -108,9 +105,9 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
+		[]byte(scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
 	)
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)
