@@ -18,10 +18,14 @@ func TestUnknownPeerShardResolver_IsInterfaceNil(t *testing.T) {
 	assert.False(t, check.IfNil(upsr))
 }
 
-func TestUnknownPeerShardResolver_GetShardIDShouldReturnUnknownId(t *testing.T) {
+func TestUnknownPeerShardResolver_GetPeerInfoShouldReturnUnknownId(t *testing.T) {
 	t.Parallel()
 
 	upsr := &unknownPeerShardResolver{}
+	expectedPeerInfo := core.P2PPeerInfo{
+		PeerType: core.UnknownPeer,
+		ShardID:  0,
+	}
 
-	assert.Equal(t, core.UnknownShardId, upsr.GetShardID(""))
+	assert.Equal(t, expectedPeerInfo, upsr.GetPeerInfo(""))
 }

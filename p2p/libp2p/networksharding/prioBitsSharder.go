@@ -54,7 +54,9 @@ func (pbs *prioBitsSharder) GetShard(id peer.ID) uint32 {
 	pbs.mutResolver.RLock()
 	defer pbs.mutResolver.RUnlock()
 
-	return pbs.resolver.GetShardID(p2p.PeerID(id))
+	pInfo := pbs.resolver.GetPeerInfo(p2p.PeerID(id))
+
+	return pInfo.ShardID
 }
 
 // Resets distance bits

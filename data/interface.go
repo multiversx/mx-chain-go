@@ -61,8 +61,6 @@ type HeaderHandler interface {
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 
 	IsInterfaceNil() bool
-	ItemsInBody() uint32
-	ItemsInHeader() uint32
 	Clone() HeaderHandler
 	CheckChainID(reference []byte) error
 }

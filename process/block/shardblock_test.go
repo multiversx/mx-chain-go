@@ -185,7 +185,7 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilMarshalizerShouldWork(t *testing.T) {
+func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -255,7 +255,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
+func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -266,7 +266,7 @@ func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
+func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -274,6 +274,17 @@ func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilUint64Converter, err)
+	assert.Nil(t, sp)
+}
+
+func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	arguments.BlockSizeThrottler = nil
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
 	assert.Nil(t, sp)
 }
 
@@ -503,6 +514,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			InitCalled: func() {
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -722,6 +734,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2239,6 +2252,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2348,6 +2362,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2429,6 +2444,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2503,6 +2519,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2751,6 +2768,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2932,6 +2950,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 

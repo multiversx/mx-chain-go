@@ -103,6 +103,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
 			DataPool:     tdp,
 			BlockChain:   blockChain,
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
