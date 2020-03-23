@@ -1,14 +1,15 @@
-package EpochChangeWithNodesShufflingAndRater
+package epochChangeWithNodesShufflingAndRater
 
 import (
 	"context"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {

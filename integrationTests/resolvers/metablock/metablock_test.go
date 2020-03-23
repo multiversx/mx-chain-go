@@ -2,13 +2,13 @@ package metablock
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"

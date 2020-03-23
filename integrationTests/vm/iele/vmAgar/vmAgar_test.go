@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/iele"
 	"io/ioutil"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/iele"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )

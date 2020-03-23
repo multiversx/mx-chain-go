@@ -1,11 +1,12 @@
-package ExecuteBlocksWithTransactionsAndCheckRewards
+package executeBlocksWithTransactionsAndCheckRewards
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 )
 
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {

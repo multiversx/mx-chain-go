@@ -1,12 +1,13 @@
-package EpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment
+package epochStartChangeWithContinuousTransactionsInMultiShardedEnvironment
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 )
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {

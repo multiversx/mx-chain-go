@@ -2,11 +2,12 @@ package antiflood
 
 import (
 	"fmt"
+	"sync/atomic"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"sync/atomic"
-	"time"
 )
 
 // DurationBootstrapingTime -

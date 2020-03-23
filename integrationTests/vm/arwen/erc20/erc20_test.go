@@ -1,9 +1,9 @@
 package erc20
 
 import (
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/stretchr/testify/assert"
 )
 

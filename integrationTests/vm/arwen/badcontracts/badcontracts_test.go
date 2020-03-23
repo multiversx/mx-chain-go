@@ -1,8 +1,9 @@
 package badcontracts
 
 import (
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 )
 
 func Test_Bad_C_NoPanic(t *testing.T) {

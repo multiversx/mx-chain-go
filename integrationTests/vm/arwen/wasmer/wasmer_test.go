@@ -3,11 +3,11 @@ package wasmer
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"

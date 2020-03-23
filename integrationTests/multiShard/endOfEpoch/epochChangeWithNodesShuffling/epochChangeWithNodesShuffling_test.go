@@ -1,13 +1,14 @@
-package EpochChangeWithNodesShuffling
+package epochChangeWithNodesShuffling
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 func TestEpochChangeWithNodesShuffling(t *testing.T) {

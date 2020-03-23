@@ -1,8 +1,9 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 )
 
 // StepDelay -

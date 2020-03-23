@@ -2,11 +2,12 @@ package blacklist
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
 	"math"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"

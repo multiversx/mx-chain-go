@@ -1,11 +1,12 @@
-package EpochStartChangeWithoutTransactionInMultiShardedEnvironment
+package epochStartChangeWithoutTransactionInMultiShardedEnvironment
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 )
 
 func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
