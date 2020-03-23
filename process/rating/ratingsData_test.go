@@ -18,29 +18,35 @@ const (
 	metaValidatorDecreaseRatingStep = int32(4)
 	metaProposerIncreaseRatingStep  = int32(1)
 	metaProposerDecreaseRatingStep  = int32(2)
+
+	signedBlocksThreshold          = 0.025
+	consecutiveMissedBlocksPenalty = 1.1
 )
 
 func createDummyRatingsConfig() *config.RatingsConfig {
 	return &config.RatingsConfig{
 		General: config.General{
-			StartRating: 50,
-			MaxRating:   100,
-			MinRating:   1,
+			StartRating:           50,
+			MaxRating:             100,
+			MinRating:             1,
+			SignedBlocksThreshold: signedBlocksThreshold,
 		},
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
-				ProposerIncreaseRatingStep:  shardProposerIncreaseRatingStep,
-				ProposerDecreaseRatingStep:  shardProposerDecreaseRatingStep,
-				ValidatorIncreaseRatingStep: shardValidatorIncreaseRatingStep,
-				ValidatorDecreaseRatingStep: shardValidatorDecreaseRatingStep,
+				ProposerIncreaseRatingStep:     shardProposerIncreaseRatingStep,
+				ProposerDecreaseRatingStep:     shardProposerDecreaseRatingStep,
+				ValidatorIncreaseRatingStep:    shardValidatorIncreaseRatingStep,
+				ValidatorDecreaseRatingStep:    shardValidatorDecreaseRatingStep,
+				ConsecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
-				ProposerIncreaseRatingStep:  metaProposerIncreaseRatingStep,
-				ProposerDecreaseRatingStep:  metaProposerDecreaseRatingStep,
-				ValidatorIncreaseRatingStep: metaValidatorIncreaseRatingStep,
-				ValidatorDecreaseRatingStep: metaValidatorDecreaseRatingStep,
+				ProposerIncreaseRatingStep:     metaProposerIncreaseRatingStep,
+				ProposerDecreaseRatingStep:     metaProposerDecreaseRatingStep,
+				ValidatorIncreaseRatingStep:    metaValidatorIncreaseRatingStep,
+				ValidatorDecreaseRatingStep:    metaValidatorDecreaseRatingStep,
+				ConsecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty,
 			},
 		},
 	}
@@ -113,6 +119,23 @@ func TestEconomicsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr
 	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
 }
 
+func TestEconomicsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ratingsData := createDummyRatingsConfig()
+	ratingsData.MetaChain.ConsecutiveMissedBlocksPenalty = 0.9
+	economicsData, err := NewRatingsData(ratingsData)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne, err)
+
+	ratingsData.ShardChain.ConsecutiveMissedBlocksPenalty = 0.99
+	economicsData, err = NewRatingsData(ratingsData)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne, err)
+}
+
 func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +143,8 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	maxRating := uint32(100)
 	startRating := uint32(50)
 	signedBlocksThreshold := float32(0.025)
+	shardConsecutivePenalty := float32(1.2)
+	metaConsecutivePenalty := float32(1.3)
 	ratingsData := createDummyRatingsConfig()
 	ratingsData.General.MinRating = minRating
 	ratingsData.General.MaxRating = maxRating
@@ -129,10 +154,12 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	ratingsData.ShardChain.ProposerIncreaseRatingStep = shardProposerIncreaseRatingStep
 	ratingsData.ShardChain.ValidatorIncreaseRatingStep = shardValidatorIncreaseRatingStep
 	ratingsData.ShardChain.ValidatorDecreaseRatingStep = shardValidatorDecreaseRatingStep
+	ratingsData.ShardChain.ConsecutiveMissedBlocksPenalty = shardConsecutivePenalty
 	ratingsData.MetaChain.ProposerDecreaseRatingStep = metaProposerDecreaseRatingStep
 	ratingsData.MetaChain.ProposerIncreaseRatingStep = metaProposerIncreaseRatingStep
 	ratingsData.MetaChain.ValidatorIncreaseRatingStep = metaValidatorIncreaseRatingStep
 	ratingsData.MetaChain.ValidatorDecreaseRatingStep = metaValidatorDecreaseRatingStep
+	ratingsData.MetaChain.ConsecutiveMissedBlocksPenalty = metaConsecutivePenalty
 
 	economicsData, err := NewRatingsData(ratingsData)
 
@@ -150,4 +177,6 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, metaValidatorDecreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	assert.Equal(t, metaProposerIncreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep())
 	assert.Equal(t, metaProposerDecreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep())
+	assert.Equal(t, shardConsecutivePenalty, economicsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
+	assert.Equal(t, metaConsecutivePenalty, economicsData.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
 }

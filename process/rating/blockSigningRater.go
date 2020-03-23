@@ -139,13 +139,15 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
 	var ratingStep int32
 	var consecutiveMissesIncrease int32
-	consecutiveBlocksPenalty := 1.0
+	var consecutiveBlocksPenalty float32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
+		consecutiveBlocksPenalty = bsr.metaRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	} else {
 		ratingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
+		consecutiveBlocksPenalty = bsr.shardRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	}
-	consecutiveMissesIncrease = int32(math.Pow(consecutiveBlocksPenalty, float64(consecutiveMisses)))
+	consecutiveMissesIncrease = int32(math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses)))
 	return bsr.computeRating(ratingStep*consecutiveMissesIncrease, currentRating)
 }
 

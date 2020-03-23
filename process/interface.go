@@ -750,6 +750,7 @@ type RatingsStepHandler interface {
 	ProposerDecreaseRatingStep() int32
 	ValidatorIncreaseRatingStep() int32
 	ValidatorDecreaseRatingStep() int32
+	ConsecutiveMissedBlocksPenalty() float32
 }
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing

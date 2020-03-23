@@ -40,8 +40,9 @@ type SelectionChance struct {
 
 // RatingSteps holds the necessary increases and decreases of the rating steps
 type RatingSteps struct {
-	ProposerIncreaseRatingStep  int32
-	ProposerDecreaseRatingStep  int32
-	ValidatorIncreaseRatingStep int32
-	ValidatorDecreaseRatingStep int32
+	ProposerIncreaseRatingStep     int32
+	ProposerDecreaseRatingStep     int32
+	ValidatorIncreaseRatingStep    int32
+	ValidatorDecreaseRatingStep    int32
+	ConsecutiveMissedBlocksPenalty float32
 }

@@ -30,6 +30,10 @@ func NewRatingsData(settings *config.RatingsConfig) (*RatingsData, error) {
 	if settings.General.SignedBlocksThreshold > 1 || settings.General.SignedBlocksThreshold < 0 {
 		return nil, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne
 	}
+	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 ||
+		settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
+		return nil, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne
+	}
 
 	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.General.SelectionChances {
