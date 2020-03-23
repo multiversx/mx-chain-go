@@ -1,6 +1,8 @@
 package containers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,7 +26,7 @@ func NewPreProcessorsContainer() *preProcessorsContainer {
 func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, error) {
 	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in pre processor container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	preProcessor, ok := value.(process.PreProcessor)
