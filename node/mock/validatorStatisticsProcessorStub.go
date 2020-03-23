@@ -13,7 +13,7 @@ type ValidatorStatisticsProcessorStub struct {
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsCalled                     func(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
 	ProcessCalled                            func(vid data.ValidatorInfoHandler) error
 }
 
@@ -52,8 +52,8 @@ func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.HeaderH
 
 // ProcessRatingsEndOfEpoch -
 func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	if vsp.ProcessRatingsCalled != nil {
-		return vsp.ProcessRatingsCalled(validatorInfos)
+	if vsp.ProcessRatingsEndOfEpochCalled != nil {
+		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos)
 	}
 	return nil
 }
