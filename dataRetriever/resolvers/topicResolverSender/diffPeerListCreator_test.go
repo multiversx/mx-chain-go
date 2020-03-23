@@ -36,7 +36,7 @@ func TestNewDiffPeerListCreator_EmptyMainTopicShouldErr(t *testing.T) {
 
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
-		"",
+		emptyTopic,
 		intraTopic,
 		excludedTopic,
 	)
@@ -51,7 +51,7 @@ func TestNewDiffPeerListCreator_EmptyIntraTopicShouldErr(t *testing.T) {
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		mainTopic,
-		"",
+		emptyTopic,
 		excludedTopic,
 	)
 

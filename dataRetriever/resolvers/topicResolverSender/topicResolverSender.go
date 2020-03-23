@@ -58,11 +58,11 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
 	if arg.NumIntraShardPeers < 0 {
-		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater than 0",
+		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
 			dataRetriever.ErrInvalidValue)
 	}
 	if arg.NumCrossShardPeers < 0 {
-		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater than 0",
+		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater or equal than 0",
 			dataRetriever.ErrInvalidValue)
 	}
 	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
