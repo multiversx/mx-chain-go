@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -43,10 +43,12 @@ func NewMetaStorageHandler(
 	if err != nil {
 		return nil, err
 	}
+
 	storageService, err := storageFactory.CreateForMeta()
 	if err != nil {
 		return nil, err
 	}
+
 	base := &baseStorageHandler{
 		storageService:   storageService,
 		shardCoordinator: shardCoordinator,
@@ -59,7 +61,7 @@ func NewMetaStorageHandler(
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (msh *metaStorageHandler) SaveDataToStorage(components structs.ComponentsNeededForBootstrap) error {
+func (msh *metaStorageHandler) SaveDataToStorage(components *bootstrap.ComponentsNeededForBootstrap) error {
 	// TODO: here we should save all needed data
 
 	defer func() {
@@ -107,10 +109,12 @@ func (msh *metaStorageHandler) SaveDataToStorage(components structs.ComponentsNe
 	if err != nil {
 		return err
 	}
+
 	err = bootStorer.Put([]byte(highestRoundFromBootStorage), bootStrapDataBytes)
 	if err != nil {
 		return err
 	}
+
 	log.Info("saved bootstrap data to storage")
 	return nil
 }
@@ -142,7 +146,7 @@ func (msh *metaStorageHandler) getAndSaveLastHeader(metaBlock *block.MetaBlock) 
 	return bootstrapHdrInfo, nil
 }
 
-func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components structs.ComponentsNeededForBootstrap) ([]byte, error) {
+func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components *bootstrap.ComponentsNeededForBootstrap) ([]byte, error) {
 	metaBlock := components.EpochStartMetaBlock
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {

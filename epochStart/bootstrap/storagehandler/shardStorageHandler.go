@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/structs"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -44,10 +44,12 @@ func NewShardStorageHandler(
 	if err != nil {
 		return nil, err
 	}
+
 	storageService, err := storageFactory.CreateForShard()
 	if err != nil {
 		return nil, err
 	}
+
 	base := &baseStorageHandler{
 		storageService:   storageService,
 		shardCoordinator: shardCoordinator,
@@ -60,7 +62,7 @@ func NewShardStorageHandler(
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (ssh *shardStorageHandler) SaveDataToStorage(components structs.ComponentsNeededForBootstrap) error {
+func (ssh *shardStorageHandler) SaveDataToStorage(components *bootstrap.ComponentsNeededForBootstrap) error {
 	// TODO: here we should save all needed data
 
 	defer func() {
@@ -156,7 +158,7 @@ func (ssh *shardStorageHandler) getAndSaveLastHeader(shardHeader *block.Header) 
 	return bootstrapHdrInfo, nil
 }
 
-func (ssh *shardStorageHandler) getAndSaveTriggerRegistry(components structs.ComponentsNeededForBootstrap) ([]byte, error) {
+func (ssh *shardStorageHandler) getAndSaveTriggerRegistry(components *bootstrap.ComponentsNeededForBootstrap) ([]byte, error) {
 	shardHeader := components.ShardHeader
 
 	metaBlock := components.EpochStartMetaBlock
