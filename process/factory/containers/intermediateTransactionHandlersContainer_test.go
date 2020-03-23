@@ -1,6 +1,7 @@
 package containers_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -110,7 +111,7 @@ func TestIntermediateTransactionHandlersContainer_GetNotFoundShouldErr(t *testin
 	valRecovered, err := c.Get(keyNotFound)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
 func TestIntermediateTransactionHandlersContainer_GetWrongTypeShouldErr(t *testing.T) {
@@ -195,7 +196,7 @@ func TestIntermediateTransactionHandlersContainer_RemoveShouldWork(t *testing.T)
 	valRecovered, err := c.Get(key)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
 //------- Len

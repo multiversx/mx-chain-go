@@ -24,7 +24,10 @@ func haveTimeTrue() bool {
 	return true
 }
 
-func isShardStuckFalse(_ uint32) bool {
+func isShardStuckFalse(uint32) bool {
+	return false
+}
+func isMaxBlockSizeReachedFalse(int, int) bool {
 	return false
 }
 
