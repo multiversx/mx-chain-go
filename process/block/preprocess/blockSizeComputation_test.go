@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -11,19 +12,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const maxSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
+
 func TestNewBlockSizeComputation_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bsc, err := preprocess.NewBlockSizeComputation(nil)
+	bsc, err := preprocess.NewBlockSizeComputation(nil, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	assert.True(t, check.IfNil(bsc))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestNewBlockSizeComputation_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bsc, err := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, nil, maxSizeInBytes)
+
+	assert.True(t, check.IfNil(bsc))
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
+}
+
 func TestNewBlockSizeComputation_WithMockMarshalizerShouldWorkAndComputeValues(t *testing.T) {
 	t.Parallel()
 
-	bsc, err := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, err := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	assert.False(t, check.IfNil(bsc))
 	assert.Nil(t, err)
@@ -43,15 +55,19 @@ func TestNewBlockSizeComputation_MarshalizerFailsShouldErr(t *testing.T) {
 func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 	cnt := 0
 	expectedErr := errors.New("expected error")
-	bsc, err := preprocess.NewBlockSizeComputation(&mock.MarshalizerStub{
-		MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
-			if cnt == idxCallMarshalFail {
-				return nil, expectedErr
-			}
-			cnt++
-			return []byte("dummy"), nil
+	bsc, err := preprocess.NewBlockSizeComputation(
+		&mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+				if cnt == idxCallMarshalFail {
+					return nil, expectedErr
+				}
+				cnt++
+				return []byte("dummy"), nil
+			},
 		},
-	})
+		&mock.BlockSizeThrottlerStub{},
+		maxSizeInBytes,
+	)
 
 	assert.True(t, check.IfNil(bsc))
 	assert.Equal(t, expectedErr, err)
@@ -60,7 +76,7 @@ func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	val := 56
 	bsc.AddNumMiniBlocks(val)
@@ -71,7 +87,7 @@ func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {
 func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	val := 57
 	bsc.AddNumTxs(val)
@@ -82,7 +98,7 @@ func TestBlockSizeComputation_AddNumTxs(t *testing.T) {
 func TestBlockSizeComputation_Init(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	numTxs := 57
 	numMiniblocks := 23
@@ -98,7 +114,7 @@ func TestBlockSizeComputation_Init(t *testing.T) {
 func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	testData := []struct {
 		numNewMiniBlocks int
@@ -125,7 +141,7 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{})
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
 
 	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 

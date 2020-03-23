@@ -48,6 +48,7 @@ type baseProcessor struct {
 	marshalizer             marshal.Marshalizer
 	store                   dataRetriever.StorageService
 	uint64Converter         typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler      process.BlockSizeThrottler
 	epochStartTrigger       process.EpochStartTriggerHandler
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
@@ -71,7 +72,7 @@ type bootStorerDataArgs struct {
 	lastSelfNotarizedHeaders   []bootstrapStorage.BootstrapHeaderInfo
 	round                      uint64
 	highestFinalBlockNonce     uint64
-	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlockInfo
+	pendingMiniBlocks          []bootstrapStorage.PendingMiniBlocksInfo
 	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
 	nodesCoordinatorConfigKey  []byte
 	epochStartTriggerConfigKey []byte
@@ -374,6 +375,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockChain) {
 		return process.ErrNilBlockChain
+	}
+	if check.IfNil(arguments.BlockSizeThrottler) {
+		return process.ErrNilBlockSizeThrottler
 	}
 
 	return nil

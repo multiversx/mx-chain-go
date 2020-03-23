@@ -91,7 +91,14 @@ func (cm *CacherMock) RemoveOldest() {
 
 // Keys -
 func (cm *CacherMock) Keys() [][]byte {
-	panic("implement me")
+	keys := make([][]byte, len(cm.dataMap))
+	idx := 0
+	for k := range cm.dataMap {
+		keys[idx] = []byte(k)
+		idx++
+	}
+
+	return keys
 }
 
 // Len -

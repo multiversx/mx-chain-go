@@ -276,6 +276,45 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	assert.Nil(t, err)
 }
 
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	adrConv := &mock.AddressConverterMock{}
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
+		adrConv,
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	txHash := []byte("txHash")
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 0})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 1})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 2})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 3})
+	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 4})
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), len(txs))
+	irp.mutInterResultsForBlock.Unlock()
+
+	irp.RemoveProcessedResultsFor([][]byte{txHash})
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), 0)
+	assert.Equal(t, len(irp.interResultsForBlock), 0)
+	irp.mutInterResultsForBlock.Unlock()
+}
+
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *testing.T) {
 	t.Parallel()
 

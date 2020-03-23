@@ -17,6 +17,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -128,6 +129,126 @@ func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) 
 	}
 
 	return libP2PMes
+}
+
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: 0,
+			Seed: "",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
+
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateFixedNetworkOf8Peers assembles a network as following:
+//
+//                             0------------------- 1
+//                             |                    |
+//        2 ------------------ 3 ------------------ 4
+//        |                    |                    |
+//        5                    6                    7
+func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(8)
+
+	connections := map[int][]int{
+		0: {1, 3},
+		1: {4},
+		2: {5, 3},
+		3: {4, 6},
+		4: {7},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+// CreateFixedNetworkOf14Peers assembles a network as following:
+//
+//                 0
+//                 |
+//                 1
+//                 |
+//  +--+--+--+--+--2--+--+--+--+--+
+//  |  |  |  |  |  |  |  |  |  |  |
+//  3  4  5  6  7  8  9  10 11 12 13
+func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(14)
+
+	connections := map[int][]int{
+		0: {1},
+		1: {2},
+		2: {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
+	peers := make([]p2p.Messenger, numPeers)
+
+	for i := 0; i < numPeers; i++ {
+		peers[i] = CreateMessengerWithNoDiscovery()
+	}
+
+	return peers
+}
+
+func createConnections(peers []p2p.Messenger, connections map[int][]int) error {
+	for pid, connectTo := range connections {
+		err := connectPeerToOthers(peers, pid, connectTo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) error {
+	for _, connectToIdx := range connectToIdxes {
+		err := peers[idx].ConnectToPeer(peers[connectToIdx].Addresses()[0])
+		if err != nil {
+			return fmt.Errorf("%w connecting %s to %s", err, peers[idx].ID(), peers[connectToIdx].ID())
+		}
+	}
+
+	return nil
+}
+
+// ClosePeers calls Messenger.Close on the provided peers
+func ClosePeers(peers []p2p.Messenger) {
+	for _, p := range peers {
+		_ = p.Close()
+	}
 }
 
 // CreateTestDataPool creates a test data pool for shard nodes
@@ -643,7 +764,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
-// WaitOperationToBeDone calls nrOfRounds times propose and sync
+// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		UpdateRound(nodes, round)
@@ -1403,6 +1524,7 @@ func generateValidTx(
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
 
+	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	mockNode, _ := node.NewNode(
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
@@ -1412,6 +1534,7 @@ func generateValidTx(
 		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
 		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
 		node.WithAccountsAdapter(accnts),
+		node.WithTxAccumulator(txAccumulator),
 	)
 
 	tx, err := mockNode.GenerateTransaction(
@@ -1607,8 +1730,8 @@ func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
 	}
 }
 
-// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
-func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+// StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
 		_ = n.Messenger.Bootstrap()
 	}

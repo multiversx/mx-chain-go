@@ -9,6 +9,7 @@ import (
 
 type feeHandler struct {
 	mut             sync.RWMutex
+	mapHashFee      map[string]*big.Int
 	accumulatedFees *big.Int
 }
 
@@ -16,12 +17,14 @@ type feeHandler struct {
 func NewFeeAccumulator() (*feeHandler, error) {
 	f := &feeHandler{}
 	f.accumulatedFees = big.NewInt(0)
+	f.mapHashFee = make(map[string]*big.Int)
 	return f, nil
 }
 
 // CreateBlockStarted does the cleanup before creating a new block
 func (f *feeHandler) CreateBlockStarted() {
 	f.mut.Lock()
+	f.mapHashFee = make(map[string]*big.Int)
 	f.accumulatedFees = big.NewInt(0)
 	f.mut.Unlock()
 }
@@ -36,15 +39,32 @@ func (f *feeHandler) GetAccumulatedFees() *big.Int {
 }
 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
-func (f *feeHandler) ProcessTransactionFee(cost *big.Int) {
+func (f *feeHandler) ProcessTransactionFee(cost *big.Int, txHash []byte) {
 	if cost == nil {
 		log.Debug("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
 		return
 	}
 
 	f.mut.Lock()
+	f.mapHashFee[string(txHash)] = big.NewInt(0).Set(cost)
 	f.accumulatedFees.Add(f.accumulatedFees, cost)
 	f.mut.Unlock()
+}
+
+// RevertFees reverts the accumulated fees for txHashes
+func (f *feeHandler) RevertFees(txHashes [][]byte) {
+	f.mut.Lock()
+	defer f.mut.Unlock()
+
+	for _, txHash := range txHashes {
+		cost, ok := f.mapHashFee[string(txHash)]
+		if !ok {
+			continue
+		}
+
+		f.accumulatedFees.Sub(f.accumulatedFees, cost)
+		delete(f.mapHashFee, string(txHash))
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

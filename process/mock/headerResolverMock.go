@@ -36,7 +36,7 @@ func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte, epoch uint32) er
 }
 
 // ProcessReceivedMessage -
-func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 

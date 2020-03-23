@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -1097,4 +1098,39 @@ func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
 
 	assert.True(t, node.networkShardingCollector == networkShardingCollector)
 	assert.Nil(t, err)
+}
+
+func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInputAntifloodHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilAntifloodHandler))
+}
+
+func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	opt := WithInputAntifloodHandler(antifloodHandler)
+	err := opt(node)
+
+	assert.True(t, node.inputAntifloodHandler == antifloodHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxAccumulator(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTxAccumulator, err)
 }

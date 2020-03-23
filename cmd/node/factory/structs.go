@@ -75,6 +75,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
+	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -116,7 +118,9 @@ type EpochStartNotifier interface {
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
-	NetMessenger p2p.Messenger
+	NetMessenger           p2p.Messenger
+	InputAntifloodHandler  P2PAntifloodHandler
+	OutputAntifloodHandler P2PAntifloodHandler
 }
 
 // Core struct holds the core components of the Elrond protocol
@@ -487,11 +491,16 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
+func NetworkComponentsFactory(
+	p2pConfig config.P2PConfig,
+	mainConfig config.Config,
+	statusHandler core.AppStatusHandler,
+) (*Network, error) {
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Context:       context.Background(),
 		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     *p2pConfig,
+		P2pConfig:     p2pConfig,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
@@ -499,34 +508,64 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig) (*Network, error) {
 		return nil, err
 	}
 
+	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(mainConfig, statusHandler)
+	if errNewAntiflood != nil {
+		return nil, errNewAntiflood
+	}
+
+	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
+	}
+
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
+	if errOutputAntiflood != nil {
+		return nil, errOutputAntiflood
+	}
+
+	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
+	}
+
+	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Network{
-		NetMessenger: netMessenger,
+		NetMessenger:           netMessenger,
+		InputAntifloodHandler:  inputAntifloodHandler,
+		OutputAntifloodHandler: outputAntifloodHandler,
 	}, nil
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents         *coreComponentsFactoryArgs
-	genesisConfig          *sharding.Genesis
-	economicsData          *economics.EconomicsData
-	nodesConfig            *sharding.NodesSetup
-	gasSchedule            map[string]map[string]uint64
-	syncer                 ntp.SyncTimer
-	shardCoordinator       sharding.Coordinator
-	nodesCoordinator       sharding.NodesCoordinator
-	data                   *Data
-	coreData               *Core
-	crypto                 *Crypto
-	state                  *State
-	network                *Network
-	coreServiceContainer   serviceContainer.Core
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	epochStartNotifier     EpochStartNotifier
-	epochStart             *config.EpochStartConfig
-	rater                  sharding.RaterHandler
-	startEpochNum          uint32
-	sizeCheckDelta         uint32
-	stateCheckpointModulus uint
-	maxComputableRounds    uint64
+	coreComponents            *coreComponentsFactoryArgs
+	genesisConfig             *sharding.Genesis
+	economicsData             *economics.EconomicsData
+	nodesConfig               *sharding.NodesSetup
+	gasSchedule               map[string]map[string]uint64
+	syncer                    ntp.SyncTimer
+	shardCoordinator          sharding.Coordinator
+	nodesCoordinator          sharding.NodesCoordinator
+	data                      *Data
+	coreData                  *Core
+	crypto                    *Crypto
+	state                     *State
+	network                   *Network
+	coreServiceContainer      serviceContainer.Core
+	requestedItemsHandler     dataRetriever.RequestedItemsHandler
+	epochStartNotifier        EpochStartNotifier
+	epochStart                *config.EpochStartConfig
+	rater                     sharding.RaterHandler
+	startEpochNum             uint32
+	sizeCheckDelta            uint32
+	stateCheckpointModulus    uint
+	maxComputableRounds       uint64
+	numConcurrentResolverJobs int32
+	minSizeInBytes            uint32
+	maxSizeInBytes            uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -553,30 +592,36 @@ func NewProcessComponentsFactoryArgs(
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
 	maxComputableRounds uint64,
+	numConcurrentResolverJobs int32,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:         coreComponents,
-		genesisConfig:          genesisConfig,
-		economicsData:          economicsData,
-		nodesConfig:            nodesConfig,
-		gasSchedule:            gasSchedule,
-		syncer:                 syncer,
-		shardCoordinator:       shardCoordinator,
-		nodesCoordinator:       nodesCoordinator,
-		data:                   data,
-		coreData:               coreData,
-		crypto:                 crypto,
-		state:                  state,
-		network:                network,
-		coreServiceContainer:   coreServiceContainer,
-		requestedItemsHandler:  requestedItemsHandler,
-		epochStartNotifier:     epochStartNotifier,
-		epochStart:             epochStart,
-		startEpochNum:          startEpochNum,
-		rater:                  rater,
-		sizeCheckDelta:         sizeCheckDelta,
-		stateCheckpointModulus: stateCheckpointModulus,
-		maxComputableRounds:    maxComputableRounds,
+		coreComponents:            coreComponents,
+		genesisConfig:             genesisConfig,
+		economicsData:             economicsData,
+		nodesConfig:               nodesConfig,
+		gasSchedule:               gasSchedule,
+		syncer:                    syncer,
+		shardCoordinator:          shardCoordinator,
+		nodesCoordinator:          nodesCoordinator,
+		data:                      data,
+		coreData:                  coreData,
+		crypto:                    crypto,
+		state:                     state,
+		network:                   network,
+		coreServiceContainer:      coreServiceContainer,
+		requestedItemsHandler:     requestedItemsHandler,
+		epochStartNotifier:        epochStartNotifier,
+		epochStart:                epochStart,
+		startEpochNum:             startEpochNum,
+		rater:                     rater,
+		sizeCheckDelta:            sizeCheckDelta,
+		stateCheckpointModulus:    stateCheckpointModulus,
+		maxComputableRounds:       maxComputableRounds,
+		numConcurrentResolverJobs: numConcurrentResolverJobs,
+		minSizeInBytes:            minSizeInBytes,
+		maxSizeInBytes:            maxSizeInBytes,
 	}
 }
 
@@ -610,6 +655,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.coreData,
 		args.network,
 		args.sizeCheckDelta,
+		args.numConcurrentResolverJobs,
 	)
 	if err != nil {
 		return nil, err
@@ -820,6 +866,10 @@ func newRequestHandler(
 			return nil, err
 		}
 
+		log.Debug("created resolvers",
+			"resolvers", resolversFinder.ResolverKeys(),
+		)
+
 		return requestHandler, nil
 	}
 
@@ -832,6 +882,10 @@ func newRequestHandler(
 		if err != nil {
 			return nil, err
 		}
+
+		log.Debug("created resolvers",
+			"resolvers", resolversFinder.ResolverKeys(),
+		)
 
 		return requestHandler, nil
 	}
@@ -1165,6 +1219,7 @@ func newResolverContainerFactory(
 	coreData *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1174,6 +1229,7 @@ func newResolverContainerFactory(
 			coreData,
 			network,
 			sizeCheckDelta,
+			numConcurrentResolverJobs,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1183,6 +1239,7 @@ func newResolverContainerFactory(
 			coreData,
 			network,
 			sizeCheckDelta,
+			numConcurrentResolverJobs,
 		)
 	}
 
@@ -1229,6 +1286,7 @@ func newShardInterceptorContainerFactory(
 		SizeCheckDelta:         sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
+		AntifloodHandler:       network.InputAntifloodHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1277,6 +1335,7 @@ func newMetaInterceptorContainerFactory(
 		SizeCheckDelta:         sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
+		AntifloodHandler:       network.InputAntifloodHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1292,6 +1351,7 @@ func newShardResolverContainerFactory(
 	core *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.InternalMarshalizer)
@@ -1300,15 +1360,18 @@ func newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
-		Store:                    data.Store,
-		Marshalizer:              core.InternalMarshalizer,
-		DataPools:                data.Datapool,
-		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
-		DataPacker:               dataPacker,
-		TriesContainer:           core.TriesContainer,
-		SizeCheckDelta:           sizeCheckDelta,
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  network.NetMessenger,
+		Store:                      data.Store,
+		Marshalizer:                core.InternalMarshalizer,
+		DataPools:                  data.Datapool,
+		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             core.TriesContainer,
+		SizeCheckDelta:             sizeCheckDelta,
+		InputAntifloodHandler:      network.InputAntifloodHandler,
+		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1324,6 +1387,7 @@ func newMetaResolverContainerFactory(
 	core *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.InternalMarshalizer)
 	if err != nil {
@@ -1331,15 +1395,18 @@ func newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
-		Store:                    data.Store,
-		Marshalizer:              core.InternalMarshalizer,
-		DataPools:                data.Datapool,
-		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
-		DataPacker:               dataPacker,
-		TriesContainer:           core.TriesContainer,
-		SizeCheckDelta:           sizeCheckDelta,
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  network.NetMessenger,
+		Store:                      data.Store,
+		Marshalizer:                core.InternalMarshalizer,
+		DataPools:                  data.Datapool,
+		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             core.TriesContainer,
+		SizeCheckDelta:             sizeCheckDelta,
+		InputAntifloodHandler:      network.InputAntifloodHandler,
+		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1648,6 +1715,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1671,6 +1740,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
 			processArgs.gasSchedule,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 
@@ -1694,6 +1765,8 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1811,7 +1884,12 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -1853,6 +1931,7 @@ func newShardBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1894,6 +1973,7 @@ func newShardBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1933,6 +2013,8 @@ func newMetaBlockProcessor(
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2026,7 +2108,12 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2066,6 +2153,7 @@ func newMetaBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2171,6 +2259,7 @@ func newMetaBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
