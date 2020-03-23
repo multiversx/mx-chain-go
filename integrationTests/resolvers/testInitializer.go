@@ -12,8 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
+// Log -
 var Log = logger.GetOrCreate("integrationtests/multishard/resolvers")
 
+// CreateResolverRequester -
 func CreateResolverRequester(
 	resolverShardID uint32,
 	requesterShardID uint32,
@@ -38,6 +40,7 @@ func CreateResolverRequester(
 	return nResolver, nRequester
 }
 
+// CreateShardHeader -
 func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.Header{
 		Nonce:        nonce,
@@ -75,6 +78,7 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 	return hdr, hash
 }
 
+// CreateMetaHeader -
 func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.MetaBlock{
 		Nonce:         nonce,
@@ -96,6 +100,7 @@ func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 	return hdr, hash
 }
 
+// CreateMiniblock -
 func CreateMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBlock, []byte) {
 	dummyTxHash := make([]byte, integrationTests.TestHasher.Size())
 	miniblock := &block.MiniBlock{
@@ -111,6 +116,7 @@ func CreateMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	return miniblock, hash
 }
 
+// CreateReward -
 func CreateReward(round uint64) (data.TransactionHandler, []byte) {
 	reward := &rewardTx.RewardTx{
 		Round:   round,

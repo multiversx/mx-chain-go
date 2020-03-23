@@ -5,8 +5,10 @@ import (
 	"time"
 )
 
+// StepDelay -
 var StepDelay = time.Second
 
+// GetBlockProposersIndexes -
 func GetBlockProposersIndexes(
 	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,

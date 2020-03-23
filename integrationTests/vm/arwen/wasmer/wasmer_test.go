@@ -83,14 +83,14 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 	assert.Equal(t, "abort here", vmOutput.ReturnMessage)
 }
 
-func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []byte) {
+func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []byte) {
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
-	scCode, err := arwen.GetBytecode(wasm_filename)
+	scCode, err := arwen.GetBytecode(wasmFilename)
 	assert.Nil(t, err)
 
 	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)

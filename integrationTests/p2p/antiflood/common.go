@@ -9,8 +9,10 @@ import (
 	"time"
 )
 
+// DurationBootstrapingTime -
 var DurationBootstrapingTime = 2 * time.Second
 
+// FloodTheNetwork -
 func FloodTheNetwork(peer p2p.Messenger, topic string, isFlooding *atomic.Value, messageSize uint64) {
 	for {
 		peer.Broadcast(topic, make([]byte, messageSize))
@@ -21,6 +23,7 @@ func FloodTheNetwork(peer p2p.Messenger, topic string, isFlooding *atomic.Value,
 	}
 }
 
+// CreateTopicsAndMockInterceptors -
 func CreateTopicsAndMockInterceptors(
 	peers []p2p.Messenger,
 	blacklistHandlers []floodPreventers.QuotaStatusHandler,

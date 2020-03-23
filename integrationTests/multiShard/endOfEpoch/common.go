@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// CreateAndPropagateBlocks -
 func CreateAndPropagateBlocks(
 	t *testing.T,
 	nbRounds uint64,
@@ -32,6 +33,7 @@ func CreateAndPropagateBlocks(
 	return currentRound, currentNonce
 }
 
+// VerifyIfNodesHasCorrectEpoch -
 func VerifyIfNodesHasCorrectEpoch(
 	t *testing.T,
 	epoch uint32,
@@ -51,6 +53,7 @@ func VerifyIfNodesHasCorrectEpoch(
 	}
 }
 
+// VerifyIfAddedShardHeadersAreWithNewEpoch -
 func VerifyIfAddedShardHeadersAreWithNewEpoch(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
@@ -89,6 +92,7 @@ func VerifyIfAddedShardHeadersAreWithNewEpoch(
 	}
 }
 
+// GetBlockProposersIndexes -
 func GetBlockProposersIndexes(
 	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,

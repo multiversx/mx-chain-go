@@ -10,6 +10,7 @@ import (
 	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 )
 
+// MessageProcessor -
 type MessageProcessor struct {
 	numMessagesProcessed  uint32
 	sizeMessagesProcessed uint64

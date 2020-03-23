@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestContext -
 type TestContext struct {
 	T *testing.T
 
@@ -47,6 +48,7 @@ func (participant *testParticipant) AddressHex() string {
 	return hex.EncodeToString(participant.Address)
 }
 
+// SetupTestContext -
 func SetupTestContext(t *testing.T) TestContext {
 	context := TestContext{}
 	context.T = t
@@ -106,6 +108,7 @@ func (context *TestContext) createAccount(participant *testParticipant) {
 	}
 }
 
+// DeploySC -
 func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	smartContractCode := getSCCode(wasmPath)
 	owner := &context.Owner
@@ -145,6 +148,7 @@ func getSCCode(fileName string) string {
 	return codeEncoded
 }
 
+// ExecuteSC -
 func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) {
 	context.executeSCWithValue(sender, txData, big.NewInt(0))
 }
@@ -173,6 +177,7 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 	}
 }
 
+// QuerySCInt -
 func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
 	bytes := context.querySC(function, args)
 	result := big.NewInt(0).SetBytes(bytes).Uint64()
@@ -197,6 +202,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	return firstResult
 }
 
+// FormatHexNumber -
 func FormatHexNumber(number uint64) string {
 	bytes := big.NewInt(0).SetUint64(number).Bytes()
 	str := hex.EncodeToString(bytes)
