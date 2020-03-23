@@ -93,11 +93,16 @@ func (ls *logSender) waitForProfile() error {
 		return err
 	}
 
-	ls.log.Info("websocket log profile received", "profile", string(message))
 	profile, err := logger.UnmarshalProfile(message)
 	if err != nil {
 		return err
 	}
+
+	ls.log.Info("websocket log profile received",
+		"pattern", profile.LogLevelPatterns,
+		"with correlation", profile.WithCorrelation,
+		"with logger name", profile.WithLoggerName,
+	)
 
 	err = profile.Apply()
 	if err != nil {
