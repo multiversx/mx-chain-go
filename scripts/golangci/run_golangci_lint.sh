@@ -1,3 +1,8 @@
+if ! [ -x "$(command -v golangci-lint)" ]; then
+  echo Error: golangci-lint is not installed.
+  exit 1
+fi
+
 input="linters.txt"
 
 dir_output="Output"
