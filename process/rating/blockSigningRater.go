@@ -176,7 +176,7 @@ func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRa
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
-// GetChance returns the RatingChanceHandler for the pk
+// GetChance returns the chances modifier for the pk
 func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
 	chance := bsr.ratingChances[0].GetChancePercentage()
 	for i := 0; i < len(bsr.ratingChances); i++ {
