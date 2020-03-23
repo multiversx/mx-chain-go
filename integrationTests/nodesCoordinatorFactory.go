@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// ArgIndexHashedNodesCoordinatorFactory -
 type ArgIndexHashedNodesCoordinatorFactory struct {
 	nodesPerShard           int
 	nbMetaNodes             int
@@ -25,9 +26,11 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	bootStorer              storage.Storer
 }
 
+// IndexHashedNodesCoordinatorFactory -
 type IndexHashedNodesCoordinatorFactory struct {
 }
 
+// CreateNodesCoordinator -
 func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator {
 
 	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
@@ -56,6 +59,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	return nodesCoordinator
 }
 
+// IndexHashedNodesCoordinatorWithRaterFactory -
 type IndexHashedNodesCoordinatorWithRaterFactory struct {
 	sharding.RaterHandler
 }
@@ -100,11 +104,13 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	}
 }
 
+// NodesWithRater -
 type NodesWithRater struct {
 	sharding.NodesCoordinator
 	sharding.RaterHandler
 }
 
+// IsInterfaceNil -
 func (nwr *NodesWithRater) IsInterfaceNil() bool {
 	return nwr == nil
 }
