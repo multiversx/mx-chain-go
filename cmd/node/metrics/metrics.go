@@ -61,11 +61,13 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
 
-	appStatusHandler.SetStringValue(core.MetricP2pNumConnectedPeersClassification, initString)
-	appStatusHandler.SetStringValue(core.MetricP2pPeerInfo, initString)
-	appStatusHandler.SetStringValue(core.MetricP2pCrossShardConnectedPeers, initString)
-	appStatusHandler.SetStringValue(core.MetricP2pIntraShardConnectedPeers, initString)
-	appStatusHandler.SetStringValue(core.MetricP2pUnknownShardConnectedPeers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, initString)
 
 	var consensusGroupSize uint32
 	switch {
@@ -158,22 +160,26 @@ func computeConnectedPeers(
 ) {
 	peersInfo := networkComponents.NetMessenger.GetConnectedPeersInfo()
 
-	peerClassification := fmt.Sprintf("intrashard:%d,crossshard:%d,unknown:%d,",
-		len(peersInfo.IntraShardPeers),
-		len(peersInfo.CrossShardPeers),
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
+		len(peersInfo.IntraShardValidators),
+		len(peersInfo.CrossShardValidators),
+		len(peersInfo.IntraShardObservers),
+		len(peersInfo.CrossShardObservers),
 		len(peersInfo.UnknownPeers),
 	)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, peerClassification)
-	appStatusHandler.SetStringValue(core.MetricP2pNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, peerClassification)
 
 	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
 	setCurrentP2pNodeAddresses(appStatusHandler, networkComponents)
 }
 
 func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
-	appStatusHandler.SetStringValue(core.MetricP2pUnknownShardConnectedPeers, sliceToString(info.UnknownPeers))
-	appStatusHandler.SetStringValue(core.MetricP2pIntraShardConnectedPeers, sliceToString(info.IntraShardPeers))
-	appStatusHandler.SetStringValue(core.MetricP2pCrossShardConnectedPeers, sliceToString(info.CrossShardPeers))
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, sliceToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, sliceToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, sliceToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, sliceToString(info.CrossShardObservers))
 }
 
 func sliceToString(input []string) string {
@@ -189,7 +195,7 @@ func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
 	networkComponents *factory.Network,
 ) {
-	appStatusHandler.SetStringValue(core.MetricP2pPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
 }
 
 func registerPollProbableHighestNonce(

@@ -1101,7 +1101,7 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
-	computedShardId := ihgs.computeShardForPublicKey(ihgs.nodesConfig[0])
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[0])
 	// should remain in same shard with intra shard shuffling
 	require.Equal(t, arguments.ShardId, computedShardId)
 }
