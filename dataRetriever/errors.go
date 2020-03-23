@@ -8,7 +8,7 @@ import (
 var ErrNilMessage = errors.New("nil message")
 
 // ErrSendRequest signals that the connected peers list is empty or errors appeared when sending requests
-var ErrSendRequest = errors.New("can not send request, peer list empty or send error")
+var ErrSendRequest = errors.New("cannot send request: peer list is empty or errors during the sending")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")

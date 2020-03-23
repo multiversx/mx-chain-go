@@ -12,14 +12,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var mainTopic = "mainTopic"
+var intraTopic = "intraTopic"
+var excludedTopic = "excluded"
+var emptyTopic = ""
+
 func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		nil,
-		"mainTopic",
-		"intraTopic",
-		"excluded",
+		mainTopic,
+		intraTopic,
+		excludedTopic,
 	)
 
 	assert.True(t, check.IfNil(dplc))
@@ -32,8 +37,8 @@ func TestNewDiffPeerListCreator_EmptyMainTopicShouldErr(t *testing.T) {
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		"",
-		"intraTopic",
-		"excluded",
+		intraTopic,
+		excludedTopic,
 	)
 
 	assert.True(t, check.IfNil(dplc))
@@ -45,9 +50,9 @@ func TestNewDiffPeerListCreator_EmptyIntraTopicShouldErr(t *testing.T) {
 
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
-		"mainTopic",
+		mainTopic,
 		"",
-		"excluded",
+		excludedTopic,
 	)
 
 	assert.True(t, check.IfNil(dplc))
@@ -57,9 +62,6 @@ func TestNewDiffPeerListCreator_EmptyIntraTopicShouldErr(t *testing.T) {
 func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	excludedTopic := "excludedTopic"
-	intraTopic := "intraTopic"
 	dplc, err := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		mainTopic,
@@ -125,9 +127,6 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	intraTopic := "intraTopic"
-	excludedTopic := "excludedTopic"
 	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
@@ -145,9 +144,6 @@ func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) 
 func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	intraTopic := "intraTopic"
-	excludedTopic := ""
 	pID1 := p2p.PeerID("peer1")
 	pID2 := p2p.PeerID("peer2")
 	peersOnMain := []p2p.PeerID{pID1, pID2}
@@ -159,7 +155,7 @@ func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *
 		},
 		mainTopic,
 		intraTopic,
-		excludedTopic,
+		emptyTopic,
 	)
 
 	assert.Equal(t, peersOnMain, dplc.PeerList())
@@ -168,9 +164,6 @@ func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *
 func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	intraTopic := "intraTopic"
-	excludedTopic := "excludedTopic"
 	pID1 := p2p.PeerID("peer1")
 	pID2 := p2p.PeerID("peer2")
 	pID3 := p2p.PeerID("peer3")
@@ -203,9 +196,6 @@ func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
 func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	intraTopic := "intraTopic"
-	excludedTopic := "excludedTopic"
 	pID1 := p2p.PeerID("peer1")
 	pID2 := p2p.PeerID("peer2")
 	peersOnMain := []p2p.PeerID{pID1, pID2}
@@ -236,14 +226,15 @@ func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T)
 func TestDiffPeerListCreator_IntraShardPeersList(t *testing.T) {
 	t.Parallel()
 
-	mainTopic := "mainTopic"
-	intraTopic := "intraTopic"
-	excludedTopic := "excludedTopic"
 	peerList := []p2p.PeerID{"pid1", "pid2"}
 	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
-				return peerList
+				if topic == intraTopic {
+					return peerList
+				}
+
+				return nil
 			},
 		},
 		mainTopic,

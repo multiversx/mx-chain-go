@@ -9,12 +9,12 @@ type PeerListCreatorStub struct {
 }
 
 // PeerList -
-func (p PeerListCreatorStub) PeerList() []p2p.PeerID {
+func (p *PeerListCreatorStub) PeerList() []p2p.PeerID {
 	return p.PeerListCalled()
 }
 
 // IntraShardPeerList -
-func (p PeerListCreatorStub) IntraShardPeerList() []p2p.PeerID {
+func (p *PeerListCreatorStub) IntraShardPeerList() []p2p.PeerID {
 	return p.IntraShardPeerListCalled()
 }
 

@@ -20,7 +20,7 @@ func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSend
 		TopicName:          "topic",
 		PeerListCreator:    &mock.PeerListCreatorStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
-		Randomizer:         &mock.IntRandomizerMock{},
+		Randomizer:         &mock.IntRandomizerStub{},
 		TargetShardId:      0,
 		OutputAntiflooder:  &mock.P2PAntifloodHandlerStub{},
 		NumIntraShardPeers: 2,
@@ -85,6 +85,30 @@ func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 }
 
+func TestNewTopicResolverSender_InvalidNumIntraShardPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.NumIntraShardPeers = -1
+	arg.NumCrossShardPeers = 100
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
+func TestNewTopicResolverSender_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.NumCrossShardPeers = -1
+	arg.NumIntraShardPeers = 100
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
 func TestNewTopicResolverSender_InvalidNumberOfPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -101,6 +125,18 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.False(t, check.IfNil(trs))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), trs.TargetShardID())
+}
+
+func TestNewTopicResolverSender_OkValsWithNumZeroShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.NumIntraShardPeers = 0
 	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
 	assert.False(t, check.IfNil(trs))
@@ -250,7 +286,7 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 	assert.Equal(t, arg.NumCrossShardPeers, numSent)
 }
 
-func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallIntraShard(t *testing.T) {
+func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t *testing.T) {
 	t.Parallel()
 
 	pIDs := []p2p.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
@@ -391,7 +427,7 @@ func TestTopicResolverSender_Topic(t *testing.T) {
 
 func TestFisherYatesShuffle_EmptyShouldReturnEmpty(t *testing.T) {
 	indexes := make([]int, 0)
-	randomizer := &mock.IntRandomizerMock{}
+	randomizer := &mock.IntRandomizerStub{}
 
 	resultIndexes := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
 
@@ -400,7 +436,7 @@ func TestFisherYatesShuffle_EmptyShouldReturnEmpty(t *testing.T) {
 
 func TestFisherYatesShuffle_OneElementShouldReturnTheSame(t *testing.T) {
 	indexes := []int{1}
-	randomizer := &mock.IntRandomizerMock{
+	randomizer := &mock.IntRandomizerStub{
 		IntnCalled: func(n int) int {
 			return n - 1
 		},
@@ -413,7 +449,7 @@ func TestFisherYatesShuffle_OneElementShouldReturnTheSame(t *testing.T) {
 
 func TestFisherYatesShuffle_ShouldWork(t *testing.T) {
 	indexes := []int{1, 2, 3, 4, 5}
-	randomizer := &mock.IntRandomizerMock{
+	randomizer := &mock.IntRandomizerStub{
 		IntnCalled: func(n int) int {
 			return 0
 		},

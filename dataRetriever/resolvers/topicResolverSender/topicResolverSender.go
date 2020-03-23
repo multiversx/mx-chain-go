@@ -57,8 +57,16 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	if check.IfNil(arg.OutputAntiflooder) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
+	if arg.NumIntraShardPeers < 0 {
+		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if arg.NumCrossShardPeers < 0 {
+		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater than 0",
+			dataRetriever.ErrInvalidValue)
+	}
 	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
-		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater than %d",
+		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater or equal than %d",
 			dataRetriever.ErrInvalidValue, minPeersToQuery)
 	}
 
@@ -94,7 +102,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	numSent = numSent + trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
 
 	if numSent == 0 {
-		return fmt.Errorf("%w or peer send error, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
+		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
 	}
 
 	return nil

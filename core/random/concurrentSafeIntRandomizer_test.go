@@ -43,6 +43,9 @@ func TestConcurrentSafeIntRandomizer_IntnInvalidShouldReturnZero(t *testing.T) {
 
 	res = csir.Intn(0)
 	assert.Equal(t, 0, res)
+
+	res = csir.Intn(1)
+	assert.Equal(t, 0, res)
 }
 
 func TestConcurrentSafeIntRandomizer_IntnShouldWork(t *testing.T) {
@@ -54,6 +57,6 @@ func TestConcurrentSafeIntRandomizer_IntnShouldWork(t *testing.T) {
 	maxValue := 70
 	res := csir.Intn(maxValue)
 
-	assert.True(t, res > 0, fmt.Sprintf("0 comparison, generated %d, max %d", res, maxValue))
+	assert.True(t, res >= 0, fmt.Sprintf("0 comparison, generated %d, max %d", res, maxValue))
 	assert.True(t, res < maxValue, fmt.Sprintf("max comparison, generated %d, max %d", res, maxValue))
 }
