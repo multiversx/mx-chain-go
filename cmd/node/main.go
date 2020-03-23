@@ -1124,6 +1124,8 @@ func createShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
+	// TODO: after start in epoch is merged, this needs to be refactored as the shardID cannot always be taken
+	// from initial configuration but needs to be determined by nodes coordinator
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
@@ -1161,11 +1163,7 @@ func createNodesCoordinator(
 	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
-
-	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
-	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		shardId, err = processDestinationShardAsObserver(prefsConfig)
-	}
+	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1209,7 +1207,7 @@ func createNodesCoordinator(
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardId,
+		ShardIDAsObserver:       shardIDAsObserver,
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleValidators,
 		WaitingNodes:            waitingValidators,
