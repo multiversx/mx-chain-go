@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/herumi/bls-go-binary/bls"
@@ -18,9 +19,9 @@ func TestNewPointG2(t *testing.T) {
 	pG2 := NewPointG2()
 	require.NotNil(t, pG2)
 
-	baseG2 := &bls.G2{}
-	baseG2Str := BaseG2()
-	err := baseG2.SetString(baseG2Str, 10)
+	bG2 := &bls.G2{}
+	baseG2Str := baseG2()
+	err := bG2.SetString(baseG2Str, 10)
 	require.Nil(t, err)
 
 	mclPointG2, ok := pG2.GetUnderlyingObj().(*bls.G2)
@@ -28,7 +29,7 @@ func TestNewPointG2(t *testing.T) {
 	require.True(t, mclPointG2.IsValid())
 	require.True(t, mclPointG2.IsValidOrder())
 	require.False(t, mclPointG2.IsZero())
-	require.True(t, baseG2.IsEqual(mclPointG2))
+	require.True(t, bG2.IsEqual(mclPointG2))
 }
 
 func TestPointG2_Equal(t *testing.T) {
@@ -312,7 +313,7 @@ func TestPointG2_IsInterfaceNil(t *testing.T) {
 
 	var point *PointG2
 
-	require.True(t, point.IsInterfaceNil())
+	require.True(t, check.IfNil(point))
 	point = NewPointG2()
-	require.False(t, point.IsInterfaceNil())
+	require.False(t, check.IfNil(point))
 }

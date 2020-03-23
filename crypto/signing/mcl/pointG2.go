@@ -19,7 +19,7 @@ func NewPointG2() *PointG2 {
 		G2: &bls.G2{},
 	}
 
-	bpG2Str := BaseG2()
+	bpG2Str := baseG2()
 	err := point.G2.SetString(bpG2Str, 10)
 	if err != nil {
 		panic(err.Error())
