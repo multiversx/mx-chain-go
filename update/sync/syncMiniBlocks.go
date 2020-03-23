@@ -295,6 +295,14 @@ func (p *pendingMiniBlocks) GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	return p.mapMiniBlocks, nil
 }
 
+// ClearFields will clear all the maps
+func (p *pendingMiniBlocks) ClearFields() {
+	p.mutPendingMb.Lock()
+	p.mapHashes = make(map[string]struct{})
+	p.mapMiniBlocks = make(map[string]*block.MiniBlock)
+	p.mutPendingMb.Unlock()
+}
+
 // IsInterfaceNil returns nil if underlying object is nil
 func (p *pendingMiniBlocks) IsInterfaceNil() bool {
 	return p == nil

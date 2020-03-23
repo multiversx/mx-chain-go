@@ -93,30 +93,6 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(randomness []b
 	return pubKeys, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
-}
-
 // LoadState -
 func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil

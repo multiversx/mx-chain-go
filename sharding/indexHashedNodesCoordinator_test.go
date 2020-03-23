@@ -1151,33 +1151,6 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpo
 	require.True(t, isStringSubgroup(pKeys, shard0PubKeys))
 }
 
-func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesInvalidRandomness(t *testing.T) {
-	t.Parallel()
-
-	args := createArguments()
-	ihgs, err := NewIndexHashedNodesCoordinator(args)
-	require.Nil(t, err)
-
-	var addresses []string
-	addresses, err = ihgs.GetConsensusValidatorsRewardsAddresses(nil, 0, 0, 0)
-	require.Equal(t, ErrNilRandomness, err)
-	require.Nil(t, addresses)
-}
-
-func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesOK(t *testing.T) {
-	t.Parallel()
-
-	args := createArguments()
-	ihgs, err := NewIndexHashedNodesCoordinator(args)
-	require.Nil(t, err)
-
-	var addresses []string
-	randomness := []byte("randomness")
-	addresses, err = ihgs.GetConsensusValidatorsRewardsAddresses(randomness, 0, 0, 0)
-	require.Nil(t, err)
-	require.True(t, len(addresses) > 0)
-}
-
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {
 	t.Parallel()
 

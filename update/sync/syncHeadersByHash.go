@@ -132,13 +132,7 @@ func (m *missingHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdr
 		return
 	}
 
-	header, ok := m.getHeaderFromPool(hdrHash)
-	if !ok {
-		m.mutMissingHdrs.Unlock()
-		return
-	}
-
-	m.mapHeaders[string(hdrHash)] = header
+	m.mapHeaders[string(hdrHash)] = hdrHandler
 	receivedAll := len(m.mapHashes) == len(m.mapHeaders)
 	m.mutMissingHdrs.Unlock()
 	if receivedAll {

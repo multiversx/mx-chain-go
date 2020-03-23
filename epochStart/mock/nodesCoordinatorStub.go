@@ -88,20 +88,6 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 	return nil, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorStub) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	return nil, nil
-}
-
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
 	return nil

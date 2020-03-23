@@ -351,27 +351,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	return pubKeys, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
-// number, returning their staking/rewards addresses
-func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	consensusNodes, err := ihgs.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, len(consensusNodes))
-	for i, v := range consensusNodes {
-		addresses[i] = string(v.Address())
-	}
-
-	return addresses, nil
-}
-
 // GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
 func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)

@@ -42,10 +42,6 @@ func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(randomness []byte, r
 	return nil, nil
 }
 
-func (n *nodesCoordinator) GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-	return nil, nil
-}
-
 func (n *nodesCoordinator) GetOwnPublicKey() []byte {
 	return nil
 }

@@ -11,7 +11,7 @@ const keyPrefix = "indexHashed_"
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
 	PubKey  []byte `json:"pubKey"`
-	Address []byte `json:"address"`
+	Address []byte `json:"address"` //TODO: address is not needed here - delete on refactor
 }
 
 // EpochValidators holds one epoch configuration for a nodes coordinator

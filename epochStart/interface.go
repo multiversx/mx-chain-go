@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -92,6 +93,7 @@ type HeadersByHashSyncer interface {
 type PendingMiniBlocksSyncHandler interface {
 	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, waitTime time.Duration) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
+	ClearFields()
 	IsInterfaceNil() bool
 }
 
@@ -105,5 +107,15 @@ type AccountsDBSyncer interface {
 // StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
 type StartOfEpochMetaSyncer interface {
 	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
+	IsInterfaceNil() bool
+}
+
+// StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
+type StartOfEpochNodesConfigHandler interface {
+	NodesConfigFromMetaBlock(
+		currMetaBlock *block.MetaBlock,
+		prevMetaBlock *block.MetaBlock,
+		publicKey []byte,
+	) (*sharding.NodesCoordinatorRegistry, uint32, error)
 	IsInterfaceNil() bool
 }

@@ -123,7 +123,6 @@ type EpochStartTriesSyncHandler interface {
 // EpochStartPendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type EpochStartPendingMiniBlocksSyncHandler interface {
 	SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error
-	SyncPendingMiniBlocksForEpochStart(miniBlockHeaders []block.ShardMiniBlockHeader, waitTime time.Duration) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }

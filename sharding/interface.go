@@ -43,7 +43,6 @@ type PublicKeysSelector interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
 

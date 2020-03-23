@@ -222,7 +222,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, _, err := sr.GetNextConsensusGroup(
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,

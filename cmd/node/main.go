@@ -33,8 +33,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	factoryEpochBootstrap "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -625,18 +623,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultDBPath:                  "",
 		DefaultEpochString:             "",
 	}
-	bootsrapper, err := bootstrap.NewEpochStartDataProvider(epochStartBootsrapArgs)
+	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
 	if err != nil {
 		log.Error("could not create bootsrapper", "err", err)
 		return err
 	}
-	currentEpoch, currentShardId, shardNumber, err := bootsrapper.Bootstrap()
+	currentEpoch, currentShardId, numOfShards, err := bootsrapper.Bootstrap()
 	if err != nil {
 		log.Error("boostrap return error", "error", err)
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(shardNumber, currentShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, currentShardId)
 	if err != nil {
 		return err
 	}

@@ -41,9 +41,6 @@ var ErrNilStorage = errors.New("nil storage")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilArgsPendingMiniblocks signals that nil argument was passed
-var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
-
 // ErrNilMiniblocks signals that nil argument was passed
 var ErrNilMiniblocks = errors.New("nil arguments for miniblocks object")
 
@@ -86,14 +83,8 @@ var ErrNilTriggerStorage = errors.New("nil trigger storage")
 // ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
 var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 
-// ErrNilMiniblocksStorage signals that nil miniblocks storage has been provided
-var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
-
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
-
-// ErrTxHashDoesNotMatch signals that created and received tx hash does not match
-var ErrTxHashDoesNotMatch = errors.New("validatorInfo miniblock tx hash does not match")
 
 // ErrRewardMiniBlockHashDoesNotMatch signals that created and received rewards miniblock hash does not match
 var ErrRewardMiniBlockHashDoesNotMatch = errors.New("reward miniblock hash does not match")
@@ -133,3 +124,6 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
+
+// ErrEpochStartDataForShardNotFound signals that epoch start shard data was not found for current shard id
+var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current shard not found")
