@@ -17,6 +17,7 @@ func newMessageProcessor() *messageProcessor {
 	}
 }
 
+// ProcessReceivedMessage -
 func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
@@ -26,6 +27,7 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 	return nil
 }
 
+// Messages -
 func (mp *messageProcessor) Messages(pid p2p.PeerID) []p2p.MessageP2P {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
@@ -33,6 +35,7 @@ func (mp *messageProcessor) Messages(pid p2p.PeerID) []p2p.MessageP2P {
 	return mp.messages[pid]
 }
 
+// IsInterfaceNil -
 func (mp *messageProcessor) IsInterfaceNil() bool {
 	return mp == nil
 }
