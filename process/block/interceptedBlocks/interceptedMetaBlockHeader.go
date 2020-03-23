@@ -90,8 +90,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	imh.epochStartTrigger.ReceivedHeader(imh.hdr)
-
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
