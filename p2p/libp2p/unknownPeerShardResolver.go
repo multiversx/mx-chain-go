@@ -8,9 +8,12 @@ import (
 type unknownPeerShardResolver struct {
 }
 
-// GetShardID returns the sharding.UnknownShardId value
-func (upsr *unknownPeerShardResolver) GetShardID(_ p2p.PeerID) uint32 {
-	return core.UnknownShardId
+// GetPeerInfo returns a P2PPeerInfo value holding an unknown peer value
+func (upsr *unknownPeerShardResolver) GetPeerInfo(_ p2p.PeerID) core.P2PPeerInfo {
+	return core.P2PPeerInfo{
+		PeerType: core.UnknownPeer,
+		ShardID:  0,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

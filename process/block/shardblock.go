@@ -542,7 +542,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error("error indexing round %d block header %s", header.GetRound(), err.Error())
+		log.Error("error indexing block header",
+			"header", header.GetRound(),
+			"error", err.Error(),
+		)
 		return
 	}
 
@@ -1530,13 +1533,13 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		}
 
 		processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-		currMBProcessed, currTxsAdded, hdrProcessFinished, err := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		currMBProcessed, currTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currMetaHdr,
 			processedMiniBlocksHashes,
 			haveTime)
 
-		if err != nil {
-			return nil, 0, 0, err
+		if errCreated != nil {
+			return nil, 0, 0, errCreated
 		}
 
 		// all txs processed, add to processed miniblocks
