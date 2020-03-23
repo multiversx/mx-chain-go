@@ -126,6 +126,8 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	log.Trace("accountsDB.saveCode", "codeHash", codeHash)
+
 	err = adb.mainTrie.Update(codeHash, code)
 	if err != nil {
 		return err

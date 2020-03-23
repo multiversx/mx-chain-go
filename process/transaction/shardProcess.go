@@ -278,7 +278,6 @@ func (txProc *txProcessor) processMoveBalance(
 		acntSrc.IncreaseNonce(1)
 	}
 
-
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return err
