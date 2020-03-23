@@ -108,3 +108,12 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilEpochHandler signals that a nil epoch handler has been provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
+var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
+
+// ErrNilOwnPublicKey signals that a nil own public key has been provided
+var ErrNilOwnPublicKey = errors.New("nil own public key")
+
+// ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
+var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")

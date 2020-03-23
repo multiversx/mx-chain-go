@@ -1192,6 +1192,17 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	endOfProcessingHandler := func() error {
+		fmt.Println("closing app from handler")
+		//TODO: analyze why this syscall won't trigger the sigs verification in startNode()
+		//_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		return nil
+	}
+	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, shardId, endOfProcessingHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1205,6 +1216,7 @@ func createNodesCoordinator(
 		WaitingNodes:            waitingValidators,
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      shuffledOutHandler,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

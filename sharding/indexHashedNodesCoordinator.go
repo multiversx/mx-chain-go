@@ -60,6 +60,7 @@ type indexHashedNodesCoordinator struct {
 	metaConsensusGroupSize  int
 	nodesPerShardSetter     NodesPerShardSetter
 	consensusGroupCacher    Cacher
+	shuffledOutHandler      ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -93,6 +94,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
+		shuffledOutHandler:      arguments.ShuffledOutHandler,
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
@@ -136,6 +138,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.ConsensusGroupCache == nil {
 		return ErrNilCacher
+	}
+	if check.IfNil(arguments.ShuffledOutHandler) {
+		return ErrNilShuffledOutHandler
 	}
 
 	return nil
@@ -199,11 +204,12 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		}
 	}
 
-	nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
+	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardId = shardIDForSelfPublicKey
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	return nil
+	return ihgs.shuffledOutHandler.Process(shardIDForSelfPublicKey)
 }
 
 // ComputeLeaving -

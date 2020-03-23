@@ -140,6 +140,14 @@ type RatingChance interface {
 	IsInterfaceNil() bool
 }
 
+// ShuffledOutHandler defines the methods needed for the computation of a shuffled out event
+type ShuffledOutHandler interface {
+	Process(newShardID uint32) error
+	RegisterHandler(handler func(newShardID uint32))
+	CurrentShardID() uint32
+	IsInterfaceNil() bool
+}
+
 // EpochHandler defines a struct able to output current epoch
 type EpochHandler interface {
 	Epoch() uint32

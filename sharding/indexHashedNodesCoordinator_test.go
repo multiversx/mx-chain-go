@@ -84,6 +84,7 @@ func createArguments() ArgNodesCoordinator {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	return arguments
 }
@@ -220,6 +221,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -263,6 +265,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -320,6 +323,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -368,6 +372,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2Validators(t *te
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -429,6 +434,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsRevert
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -479,6 +485,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsSameIn
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -579,6 +586,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest6From10Validators
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           selfPubKey,
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
@@ -631,6 +639,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     cache,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -702,6 +711,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     cache,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -746,6 +756,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -774,6 +785,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -804,6 +816,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -927,6 +940,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -1004,6 +1018,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1065,6 +1080,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
