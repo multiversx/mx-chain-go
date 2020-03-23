@@ -1,15 +1,18 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 // PeerShardResolverStub -
 type PeerShardResolverStub struct {
-	GetShardIDCalled func(pid p2p.PeerID) uint32
+	GetPeerInfoCalled func(pid p2p.PeerID) core.P2PPeerInfo
 }
 
-// GetShardID -
-func (psrs *PeerShardResolverStub) GetShardID(pid p2p.PeerID) uint32 {
-	return psrs.GetShardIDCalled(pid)
+// GetPeerInfo -
+func (psrs *PeerShardResolverStub) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
+	return psrs.GetPeerInfoCalled(pid)
 }
 
 // IsInterfaceNil -

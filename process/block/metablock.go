@@ -79,6 +79,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
+		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -732,6 +733,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
+	mp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating meta block body",
 		"epoch", metaBlock.GetEpoch(),
@@ -1135,6 +1137,8 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.prepareDataForBootStorer(args)
+
+	mp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
 		"headers pool", mp.dataPool.Headers().Len(),
@@ -1731,6 +1735,12 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	if err != nil {
 		return nil, err
 	}
+
+	marshalizedBody, err := mp.marshalizer.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil
 }

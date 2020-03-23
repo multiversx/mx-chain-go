@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -198,7 +199,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		}
 	}
 
-	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
+	nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
@@ -431,7 +432,21 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	if len(publicKeys) != len(signersIndexes) {
-		log.Error("public keys not found", "len pubKeys", len(publicKeys), "len signers", len(signersIndexes))
+		strHaving := "having the following keys: \n"
+		for index, value := range validatorsPubKeys[nodesConfig.shardId] {
+			strHaving += fmt.Sprintf(" index %d  key %s\n", index, display.DisplayByteSlice(value))
+		}
+
+		strNeeded := "needed the following keys: \n"
+		for _, pubKey := range publicKeys {
+			strNeeded += fmt.Sprintf(" key %s\n", display.DisplayByteSlice([]byte(pubKey)))
+		}
+
+		log.Error("public keys not found\n"+strHaving+"\n"+strNeeded+"\n",
+			"len pubKeys", len(publicKeys),
+			"len signers", len(signersIndexes),
+		)
+
 		return nil, ErrInvalidNumberPubKeys
 	}
 
@@ -597,17 +612,25 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
+func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := uint32(0)
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
+		log.Trace("computeShardForSelfPublicKey found existing config",
+			"shard", epNodesConfig.shardId,
+		)
 		selfShard = epNodesConfig.shardId
 	}
 
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
+				log.Trace("computeShardForSelfPublicKey found validator in eligible",
+					"shard", shard,
+					"validator PK", v,
+				)
+
 				return shard
 			}
 		}
@@ -616,11 +639,19 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *e
 	for shard, validators := range nodesConfig.waitingMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
+				log.Trace("computeShardForSelfPublicKey found validator in waiting",
+					"shard", shard,
+					"validator PK", v,
+				)
+
 				return shard
 			}
 		}
 	}
 
+	log.Trace("computeShardForSelfPublicKey returned default",
+		"shard", selfShard,
+	)
 	return selfShard
 }
 
@@ -652,26 +683,26 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
 	for shardId, validators := range eligible {
-		for _, validator := range validators {
-			pk := validator.PubKey()
+		for _, v := range validators {
+			pk := v.PubKey()
 			log.Debug("eligible", "pk", pk, "shardId", shardId)
 		}
 	}
 
 	for shardId, validators := range waiting {
-		for _, validator := range validators {
-			pk := validator.PubKey()
+		for _, v := range validators {
+			pk := v.PubKey()
 			log.Debug("waiting", "pk", pk, "shardId", shardId)
 		}
 	}
 
-	for _, validator := range leaving {
-		pk := validator.PubKey()
+	for _, v := range leaving {
+		pk := v.PubKey()
 		log.Debug("computed leaving", "pk", pk)
 	}
 
-	for _, validator := range actualLeaving {
-		pk := validator.PubKey()
+	for _, v := range actualLeaving {
+		pk := v.PubKey()
 		log.Debug("actually remaining", "pk", pk)
 	}
 }
