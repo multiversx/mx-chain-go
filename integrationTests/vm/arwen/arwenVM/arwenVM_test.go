@@ -32,10 +32,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := arwen.GetBytecode("misc/fib_arwen.wasm")
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
 
 	tx := vm.CreateTx(
 		t,
@@ -45,13 +42,13 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+		scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -76,9 +73,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := arwen.GetBytecode("misc/fib_arwen.wasm")
-	assert.Nil(t, err)
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
 	defer testContext.Close()
@@ -95,7 +90,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		gasLimit,
 		"")
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -110,7 +105,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+		scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -163,10 +158,7 @@ func runWASMVMBenchmark(
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode, err := arwen.GetBytecode(fileSC)
-	assert.Nil(tb, err)
-
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode(fileSC)
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
@@ -175,7 +167,7 @@ func runWASMVMBenchmark(
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
+		Data:      []byte(scCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -184,7 +176,7 @@ func runWASMVMBenchmark(
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(tb, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -229,7 +221,7 @@ func TestGasModel(t *testing.T) {
 	fmt.Println("CPUCALCULATE 8000 ")
 	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "../misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
 	deployAndExecuteERC20WithBigInt(t, 2, gasSchedule)
 }
@@ -247,10 +239,7 @@ func TestWASMNamespacing(t *testing.T) {
 	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
 	// by Arwen, then this SC should have no problem to call imported functions
 	// (as if it were run by Ethereuem).
-	scCode, err := arwen.GetBytecode("misc/fib_ewasmified.wasm")
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode("../testdata/misc/fib_ewasmified.wasm")
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
@@ -259,7 +248,7 @@ func TestWASMNamespacing(t *testing.T) {
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
+		Data:      []byte(scCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -268,7 +257,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -307,10 +296,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode, err := arwen.GetBytecode("misc/cpucalculate_arwen.wasm")
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen.wasm")
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
@@ -319,7 +305,7 @@ func TestWASMMetering(t *testing.T) {
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
+		Data:      []byte(scCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -328,7 +314,7 @@ func TestWASMMetering(t *testing.T) {
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -392,10 +378,8 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := getBytecode("erc20-c-03/wrc20_arwen.wasm")
-	require.Nil(t, err)
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	scCodeString := hex.EncodeToString(scCode)
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	defer testContext.Close()
 
@@ -408,10 +392,10 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+initialSupply),
+		[]byte(scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+initialSupply),
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	ownerNonce++
 
@@ -479,10 +463,8 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := arwen.GetBytecode("erc20/wrc20_arwen_03.wasm")
-	assert.Nil(t, err)
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	scCodeString := hex.EncodeToString(scCode)
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
 	defer testContext.Close()
 
@@ -494,10 +476,10 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+hex.EncodeToString(ownerBalance.Bytes())),
+		[]byte(scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@00"+hex.EncodeToString(ownerBalance.Bytes())),
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 	ownerNonce++
 
