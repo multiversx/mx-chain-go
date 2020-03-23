@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -39,7 +40,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    arg.epochStartSubscriber,
-		ShardId:                 arg.shardId,
+		ShardIDAsObserver:       arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
 		WaitingNodes:            arg.waitingMap,
@@ -74,7 +75,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    arg.epochStartSubscriber,
-		ShardId:                 arg.shardId,
+		ShardIDAsObserver:       arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
 		WaitingNodes:            arg.waitingMap,

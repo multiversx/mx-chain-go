@@ -123,7 +123,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandListsForEpochConfig(node
 
 func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochNodesConfig, shardId uint32) ([]Validator, error) {
 	validators := nodesConfig.eligibleMap[shardId]
-	log.Trace("Expanding eligible list", "shardId", shardId)
+	log.Trace("Expanding eligible list", "shardID", shardId)
 	return ihgs.expandEligibleList(validators)
 }
 
