@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var mainTopic = "mainTopic"
-var intraTopic = "intraTopic"
-var excludedTopic = "excluded"
-var emptyTopic = ""
+const mainTopic = "mainTopic"
+const intraTopic = "intraTopic"
+const excludedTopic = "excluded"
+const emptyTopic = ""
 
 func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
