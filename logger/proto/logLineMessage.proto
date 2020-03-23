@@ -13,4 +13,13 @@ message LogLineMessage{
     repeated string Args = 3;
     int64 Timestamp = 4;
     string LoggerName = 5;
+    LogCorrelationMessage Correlation = 6 [(gogoproto.nullable) = false];
 }
+
+message LogCorrelationMessage{
+    string Shard = 1;
+    uint32 Epoch = 2;
+    int64 Round = 3;
+    string SubRound = 4;
+}
+

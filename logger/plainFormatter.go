@@ -25,7 +25,7 @@ func (pf *PlainFormatter) Output(line LogLineHandler) []byte {
 	}
 
 	if IsEnabledCorrelation() {
-		correlation = formatCorrelationElements()
+		correlation = formatCorrelationElements(line.GetCorrelation())
 	}
 
 	return []byte(

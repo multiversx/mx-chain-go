@@ -7,20 +7,22 @@ import (
 
 // LogLine is the structure used to hold a log line
 type LogLine struct {
-	LoggerName string
-	Message    string
-	LogLevel   LogLevel
-	Args       []interface{}
-	Timestamp  time.Time
+	LoggerName  string
+	Correlation LogCorrelationMessage
+	Message     string
+	LogLevel    LogLevel
+	Args        []interface{}
+	Timestamp   time.Time
 }
 
-func newLogLine(loggerName string, message string, logLevel LogLevel, args ...interface{}) *LogLine {
+func newLogLine(loggerName string, correlation LogCorrelationMessage, message string, logLevel LogLevel, args ...interface{}) *LogLine {
 	return &LogLine{
-		LoggerName: loggerName,
-		Message:    message,
-		LogLevel:   logLevel,
-		Args:       args,
-		Timestamp:  time.Now(),
+		LoggerName:  loggerName,
+		Correlation: correlation,
+		Message:     message,
+		LogLevel:    logLevel,
+		Args:        args,
+		Timestamp:   time.Now(),
 	}
 }
 

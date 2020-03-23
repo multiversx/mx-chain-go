@@ -17,6 +17,7 @@ type Logger interface {
 // LogLineHandler defines the get methods for a log line struct used by the formatter interface
 type LogLineHandler interface {
 	GetLoggerName() string
+	GetCorrelation() LogCorrelationMessage
 	GetMessage() string
 	GetLogLevel() int32
 	GetArgs() []string

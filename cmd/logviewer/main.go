@@ -179,14 +179,16 @@ func startLogViewer(ctx *cli.Context) error {
 		}()
 	}
 
+	profile := &logger.Profile{
+		LogLevelPatterns: argsConfig.logLevelPatterns,
+		WithCorrelation:  argsConfig.withCorrelation,
+		WithLoggerName:   argsConfig.withLoggerName,
+	}
+
+	profile.Apply()
+
 	go func() {
 		for {
-			profile := &logger.Profile{
-				LogLevelPatterns: argsConfig.logLevelPatterns,
-				WithCorrelation:  argsConfig.withCorrelation,
-				WithLoggerName:   argsConfig.withLoggerName,
-			}
-
 			webSocket, err = openWebSocket(argsConfig.address, profile)
 			if err != nil {
 				log.Error(fmt.Sprintf("logviewer websocket error, retrying in %v...", retryDuration), "error", err.Error())
@@ -307,11 +309,12 @@ func outputMessage(message []byte) {
 	}
 
 	recoveredLogLine := &logger.LogLine{
-		LoggerName: logLine.LoggerName,
-		Message:    logLine.Message,
-		LogLevel:   logger.LogLevel(logLine.LogLevel),
-		Args:       make([]interface{}, len(logLine.Args)),
-		Timestamp:  time.Unix(0, logLine.Timestamp),
+		LoggerName:  logLine.LoggerName,
+		Correlation: logLine.Correlation,
+		Message:     logLine.Message,
+		LogLevel:    logger.LogLevel(logLine.LogLevel),
+		Args:        make([]interface{}, len(logLine.Args)),
+		Timestamp:   time.Unix(0, logLine.Timestamp),
 	}
 	for i, str := range logLine.Args {
 		recoveredLogLine.Args[i] = str

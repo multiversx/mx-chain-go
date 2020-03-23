@@ -47,11 +47,11 @@ func truncatePrefix(str string, maxLength int) string {
 	return str
 }
 
-func formatCorrelationElements() string {
-	shard := globalCorrelation.getShard()
-	epoch := globalCorrelation.getEpoch()
-	round := globalCorrelation.getRound()
-	subRound := globalCorrelation.getSubRound()
+func formatCorrelationElements(correlation LogCorrelationMessage) string {
+	shard := correlation.GetShard()
+	epoch := correlation.GetEpoch()
+	round := correlation.GetRound()
+	subRound := correlation.GetSubRound()
 	formattedElements := fmt.Sprintf("[%s/%d/%d/%s]", shard, epoch, round, subRound)
 
 	return padRight(formattedElements, correlationElementsFixedLength)

@@ -7,18 +7,13 @@ import (
 )
 
 func TestCorrelation_Toggle(t *testing.T) {
-	correlation := logCorrelation{}
-
-	correlation.toggle(true)
-	require.True(t, correlation.isEnabled())
-	correlation.toggle(false)
-	require.False(t, correlation.isEnabled())
-
-	// Now with the global setter
 	ToggleCorrelation(true)
-	require.True(t, globalCorrelation.isEnabled())
+	require.True(t, globalCorrelationFlag.IsSet())
+	require.True(t, IsEnabledCorrelation())
+
 	ToggleCorrelation(false)
-	require.False(t, globalCorrelation.isEnabled())
+	require.False(t, globalCorrelationFlag.IsSet())
+	require.False(t, IsEnabledCorrelation())
 }
 
 func TestCorrelation_SettingElements(t *testing.T) {

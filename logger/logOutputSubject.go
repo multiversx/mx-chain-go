@@ -46,6 +46,7 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 
 	line := &LogLineWrapper{}
 	line.LoggerName = logLine.LoggerName
+	line.Correlation = logLine.Correlation
 	line.Message = logLine.Message
 	line.LogLevel = int32(logLine.LogLevel)
 	line.Args = make([]string, len(logLine.Args))
