@@ -115,9 +115,9 @@ func (cache *TxCache) diagnose() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	logFunc := log.Debug
+	logFunc := log.Trace
 	if !fine {
-		logFunc = log.Warn
+		logFunc = log.Debug
 	}
 
 	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
