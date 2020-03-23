@@ -123,8 +123,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	log.Debug("setting ratingReader")
 
 	rr := &RatingReader{
-		getRating:                  vs.getRating,
-		updateRatingFromTempRating: vs.updateRatingFromTempRating,
+		getRating: vs.getRating,
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
@@ -789,36 +788,6 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	}
 
 	return peer.GetTempRating()
-}
-
-func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
-	rootHash, err := vs.RootHash()
-	if err != nil {
-		log.Warn("updateRatingFromTempRating getRootHash failed", "error", err)
-	}
-
-	log.Trace("updateRatingFromTempRating before", "rootHash", rootHash)
-	for _, pk := range pks {
-		peer, getAccountErr := vs.GetPeerAccount([]byte(pk))
-		if getAccountErr != nil {
-			return getAccountErr
-		}
-
-		tempRating := vs.getTempRating(pk)
-		rating := vs.getRating(pk)
-		log.Trace("updateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
-		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
-		if err != nil {
-			return err
-		}
-	}
-	rootHash, err = vs.RootHash()
-	if err != nil {
-		log.Warn("updateRatingFromTempRating.getting root hash failed", "error", err)
-	}
-
-	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
-	return nil
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {
