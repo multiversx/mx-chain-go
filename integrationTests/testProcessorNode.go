@@ -469,7 +469,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateRatingsData() *rating.RatingsData {
-	ratingsConfig := &config.RatingsConfig{
+	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
 				ProposerIncreaseRatingStep:     1929,

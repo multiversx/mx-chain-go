@@ -1,6 +1,7 @@
 package rating_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -378,6 +379,30 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoValueForMaxThresholdShouldE
 	assert.Equal(t, process.ErrNoChancesForMaxThreshold, err)
 }
 
+func TestBlockSigningRater_NewBlockSigningRaterWitStartRatingSmallerThanMinShouldErr(t *testing.T) {
+
+	ratingsData := createDefaultRatingsData()
+	ratingsData.MinRatingProperty = 50
+	ratingsData.StartRatingProperty = 40
+	ratingsData.MaxRatingProperty = 100
+
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
+
+	assert.Nil(t, bsr)
+	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
+}
+
+func TestBlockSigningRater_NewBlockSigningRaterWitStartRatingGreaterThanMaxdShouldErr(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.MinRatingProperty = 50
+	ratingsData.StartRatingProperty = 110
+	ratingsData.MaxRatingProperty = 100
+
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
+
+	assert.Nil(t, bsr)
+	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
+}
 func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
 

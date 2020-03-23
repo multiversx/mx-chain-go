@@ -5,25 +5,19 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 // RaterMock -
 type RaterMock struct {
 	GetRatingCalled                  func(string) uint32
-	UpdateRatingFromTempRatingCalled func([]string) error
-	GetStartRatingCalled             func() uint32
+	GetStartRatingCalled           func() uint32
 	GetSignedBlocksThresholdCalled   func() float32
-	ComputeIncreaseProposerCalled    func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseProposerCalled    func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
-	ComputeIncreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
-	GetChanceCalled                  func(rating uint32) uint32
-	RatingReader                     sharding.RatingReader
+	ComputeIncreaseProposerCalled  func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
+	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32) uint32
+	GetChanceCalled                func(rating uint32) uint32
+	RatingReader                   sharding.RatingReader
 }
 
 // GetRating -
 func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
-}
-
-// UpdateRatingFromTempRating -
-func (rm *RaterMock) UpdateRatingFromTempRating(pks []string) error {
-	return rm.UpdateRatingFromTempRatingCalled(pks)
 }
 
 // GetStartRating -

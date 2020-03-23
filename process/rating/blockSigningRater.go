@@ -2,6 +2,7 @@ package rating
 
 import (
 	"math"
+	"fmt"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -28,10 +29,17 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
 	if ratingsData.MinRating() > ratingsData.MaxRating() {
-		return nil, process.ErrMaxRatingIsSmallerThanMinRating
+		return nil, fmt.Errorf("%w: minRating: %v, maxRating: %v",
+			process.ErrMaxRatingIsSmallerThanMinRating,
+			ratingsData.MinRating(),
+			ratingsData.MaxRating())
 	}
 	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
-		return nil, process.ErrStartRatingNotBetweenMinAndMax
+		return nil, fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
+			process.ErrStartRatingNotBetweenMinAndMax,
+			ratingsData.MinRating(),
+			ratingsData.StartRating(),
+			ratingsData.MaxRating())
 	}
 	if len(ratingsData.SelectionChances()) == 0 {
 		return nil, process.ErrNoChancesProvided
@@ -94,11 +102,6 @@ func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32
 // GetRating returns the Rating for the specified public key
 func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
-}
-
-// UpdateRatingFromTempRating returns the TempRating for the specified public keys
-func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) error {
-	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
 }
 
 // SetRatingReader sets the Reader that can read ratings

@@ -32,7 +32,7 @@ type RatingValue struct {
 	Value int32
 }
 
-//RatingValue will hold different rating options with increase and decresea steps
+// SelectionChance will hold the percentage modifier for up to the specified threshold
 type SelectionChance struct {
 	MaxThreshold  uint32
 	ChancePercent uint32

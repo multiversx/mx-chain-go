@@ -1090,11 +1090,11 @@ func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 	return cfg, nil
 }
 
-func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
-	cfg := &config.RatingsConfig{}
+func loadRatingsConfig(filepath string) (config.RatingsConfig, error) {
+	cfg := config.RatingsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
-		return nil, err
+		return cfg, err
 	}
 
 	return cfg, nil

@@ -206,7 +206,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	return nil
 }
 
-// ComputeLeaving -
+// ComputeLeaving - computes leaving validators
 func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator {
 	return make([]Validator, 0)
 }
@@ -685,37 +685,32 @@ func (ihgs *indexHashedNodesCoordinator) displayNodesConfiguration(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	leaving []Validator,
-	actualLeaving []Validator,
+	actualRemaining []Validator,
 	nbShards uint32,
 ) {
 
-	for _, validator := range eligible[core.MetachainShardId] {
-		pk := validator.PubKey()
-		log.Debug("eligible", "pk", pk, "shardId", core.MetachainShardId)
-	}
-	for _, validator := range waiting[core.MetachainShardId] {
-		pk := validator.PubKey()
-		log.Debug("waiting", "pk", pk, "shardId", core.MetachainShardId)
-	}
-
-	for shardId := uint32(0); shardId < nbShards; shardId++ {
-		for _, v := range eligible[shardId] {
-			pk := v.PubKey()
-			log.Debug("eligible", "pk", pk, "shardId", shardId)
+	for shard := uint32(0); shard <= nbShards; shard++ {
+		shardID := shard
+		if shardID == nbShards {
+			shardID = core.MetachainShardId
 		}
-		for _, v := range waiting[shardId] {
+		for _, v := range eligible[shardID] {
 			pk := v.PubKey()
-			log.Debug("waiting", "pk", pk, "shardId", shardId)
+			log.Debug("eligible", "pk", pk, "shardId", shardID)
+		}
+		for _, v := range waiting[shardID] {
+			pk := v.PubKey()
+			log.Debug("waiting", "pk", pk, "shardId", shardID)
 		}
 	}
 
-	for _, validator := range leaving {
-		pk := validator.PubKey()
+	for _, v := range leaving {
+		pk := v.PubKey()
 		log.Debug("computed leaving", "pk", pk)
 	}
 
-	for _, validator := range actualLeaving {
-		pk := validator.PubKey()
+	for _, v := range actualRemaining {
+		pk := v.PubKey()
 		log.Debug("actually remaining", "pk", pk)
 	}
 }
