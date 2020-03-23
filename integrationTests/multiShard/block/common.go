@@ -7,7 +7,7 @@ import (
 )
 
 // StepDelay -
-var StepDelay = time.Second
+var StepDelay = time.Second * 2
 
 // GetBlockProposersIndexes -
 func GetBlockProposersIndexes(
