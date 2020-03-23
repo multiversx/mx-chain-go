@@ -252,7 +252,7 @@ func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTra
 		return nil, process.ErrNilBlockBody
 	}
 
-	allTxs := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
+	allTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, miniBlock := range body.MiniBlocks {
 		shouldSkipMiniblock := miniBlock.SenderShardID == txs.shardCoordinator.SelfId() || !txs.isMiniBlockCorrect(miniBlock.Type)
 		if shouldSkipMiniblock {
@@ -282,7 +282,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 		return nil, process.ErrNilBlockBody
 	}
 
-	allTxs := make([]*txcache.WrappedTransaction, 0, process.MaxItemsInBlock)
+	allTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, miniBlock := range body.MiniBlocks {
 		shouldSkipMiniblock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() || !txs.isMiniBlockCorrect(miniBlock.Type)
 		if shouldSkipMiniblock {
@@ -1062,7 +1062,6 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
 			&totalGasConsumedInSelfShard)
-
 		if err != nil {
 			return processedTxHashes, err
 		}

@@ -55,7 +55,11 @@ func (f *feeHandler) GetAccumulatedFees() *big.Int {
 }
 
 // ProcessTransactionFee -
-func (f *feeHandler) ProcessTransactionFee(_ *big.Int) {
+func (f *feeHandler) ProcessTransactionFee(_ *big.Int, _ []byte) {
+}
+
+// RevertFees -
+func (f *feeHandler) RevertFees(_ [][]byte) {
 }
 
 // IsInterfaceNil -

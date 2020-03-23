@@ -180,7 +180,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
 
 	err = txProc.accounts.SaveAccount(acntSnd)
 	if err != nil {
@@ -190,7 +190,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 	return process.ErrFailedTransaction
 }
 
-func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transaction, acntSnd state.UserAccountHandler) error {
+func (txProc *txProcessor) createReceiptWithReturnedGas(txHash []byte, tx *transaction.Transaction, acntSnd state.UserAccountHandler) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -209,11 +209,6 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 		return nil
 	}
 
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return err
-	}
-
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
 		SndAddr: tx.SndAddr,
@@ -221,7 +216,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 		TxHash:  txHash,
 	}
 
-	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	err := txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
 	if err != nil {
 		return err
 	}
@@ -280,15 +275,22 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		acntSrc.IncreaseNonce(+1)
+		acntSrc.IncreaseNonce(1)
 	}
 
-	err = txProc.createReceiptWithReturnedGas(tx, acntSrc)
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc)
+	if err != nil {
+		return err
+	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+
 	return txProc.saveAccounts(acntSrc, acntDst)
 }
 

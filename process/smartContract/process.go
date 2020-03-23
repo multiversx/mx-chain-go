@@ -216,9 +216,16 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	var txHash []byte
+	txHash, err = core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(acntSnd, tx, err.Error())
+			errNotCritical := sc.processIfError(acntSnd, txHash, tx, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -239,7 +246,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	var executed bool
-	executed, err = sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
+	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return nil
@@ -269,7 +276,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	var consumedFee *big.Int
 	var results []data.TransactionHandler
-	results, consumedFee, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
+	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
@@ -291,7 +298,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	acntDst.AddToDeveloperReward(newDeveloperReward)
-	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
 
 	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
@@ -320,6 +327,7 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error
 }
 
 func (sc *scProcessor) resolveBuiltInFunctions(
+	txHash []byte,
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -334,11 +342,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	valueToSend, err := builtIn.ProcessBuiltinFunction(tx, acntSnd, acntDst, vmInput)
-	if err != nil {
-		return true, err
-	}
-
-	txHash, err := sc.computeTransactionHash(tx)
 	if err != nil {
 		return true, err
 	}
@@ -371,18 +374,19 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
 	return true, sc.saveAccounts(acntSnd, acntDst)
 }
 
 func (sc *scProcessor) processIfError(
 	acntSnd state.UserAccountHandler,
+	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
 ) error {
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	scrIfError, err := sc.createSCRsWhenError(tx, returnCode)
+	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode)
 	if err != nil {
 		return err
 	}
@@ -407,7 +411,7 @@ func (sc *scProcessor) processIfError(
 		return err
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
 	return nil
 }
@@ -464,6 +468,12 @@ func (sc *scProcessor) DeploySmartContract(
 		return process.ErrWrongTransaction
 	}
 
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
 	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
@@ -471,7 +481,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(acntSnd, tx, err.Error())
+			errNotCritical := sc.processIfError(acntSnd, txHash, tx, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -508,7 +518,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, vmInput.CallType)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
 		return nil
@@ -520,7 +530,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
 	log.Debug("SmartContract deployed")
 	return nil
@@ -650,12 +660,9 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
-func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-}
-
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
+	txHash []byte,
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
@@ -665,11 +672,6 @@ func (sc *scProcessor) processVMOutput(
 	}
 	if check.IfNil(tx) {
 		return nil, nil, process.ErrNilTransaction
-	}
-
-	txHash, err := sc.computeTransactionHash(tx)
-	if err != nil {
-		return nil, nil, err
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -777,14 +779,10 @@ func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 }
 
 func (sc *scProcessor) createSCRsWhenError(
+	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
 ) ([]data.TransactionHandler, error) {
-	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-	if err != nil {
-		return nil, err
-	}
-
 	rcvAddress := tx.GetSndAddr()
 
 	callType := determineCallType(tx)
@@ -1074,9 +1072,15 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	}
 
 	var err error
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(nil, scr, err.Error())
+			errNotCritical := sc.processIfError(nil, txHash, scr, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}

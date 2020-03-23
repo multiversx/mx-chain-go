@@ -764,7 +764,8 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 
 	acntSrc, _, tx := createAccountsAndTransaction()
 
-	_, _, err = sc.processVMOutput(nil, tx, acntSrc, vmcommon.DirectCall)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -783,7 +784,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -805,7 +806,8 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: 0,
 	}
-	_, _, err = sc.processVMOutput(vmOutput, tx, nil, vmcommon.DirectCall)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -835,7 +837,8 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(0)
-	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall)
 	assert.Nil(t, err)
 }
 
@@ -1344,8 +1347,8 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	sc, err := NewSmartContractProcessor(arguments)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
-
-	_, _, err = sc.ProcessVMOutput(nil, tx, acntSrc)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	_, _, err = sc.ProcessVMOutput(nil, txHash, tx, acntSrc)
 
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1361,7 +1364,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	assert.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.ProcessVMOutput(vmOutput, nil, acntSrc)
+	_, _, err = sc.ProcessVMOutput(vmOutput, nil, nil, acntSrc)
 
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1388,7 +1391,8 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(0)
-	_, _, err = sc.ProcessVMOutput(vmOutput, tx, acntSrc)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	_, _, err = sc.ProcessVMOutput(vmOutput, txHash, tx, acntSrc)
 	assert.Nil(t, err)
 }
 

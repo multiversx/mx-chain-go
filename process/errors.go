@@ -716,3 +716,6 @@ var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
 // ErrAddressNotInThisShard signals that the provided address does not belong to current shard
 var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+
+// ErrNilBlockSizeThrottler signals that block size throttler si nil
+var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
