@@ -332,6 +332,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorInfos)
+	if err != nil {
+		return err
+	}
+
 	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorInfos)
 	if err != nil {
 		return err
@@ -704,6 +709,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 	}
 
 	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorInfos)
 	if err != nil {
 		return nil, err
 	}

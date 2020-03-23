@@ -4,12 +4,13 @@ import "github.com/ElrondNetwork/elrond-go/process"
 
 // RatingsInfoMock -
 type RatingsInfoMock struct {
-	StartRatingProperty          uint32
-	MaxRatingProperty            uint32
-	MinRatingProperty            uint32
-	MetaRatingsStepDataProperty  process.RatingsStepHandler
-	ShardRatingsStepDataProperty process.RatingsStepHandler
-	SelectionChancesProperty     []process.SelectionChance
+	StartRatingProperty           uint32
+	MaxRatingProperty             uint32
+	MinRatingProperty             uint32
+	SignedBlocksThresholdProperty float32
+	MetaRatingsStepDataProperty   process.RatingsStepHandler
+	ShardRatingsStepDataProperty  process.RatingsStepHandler
+	SelectionChancesProperty      []process.SelectionChance
 }
 
 // StartRating -
@@ -25,6 +26,11 @@ func (rd *RatingsInfoMock) MaxRating() uint32 {
 // MinRating -
 func (rd *RatingsInfoMock) MinRating() uint32 {
 	return rd.MinRatingProperty
+}
+
+// SignedBlocksThreshold -
+func (rd *RatingsInfoMock) SignedBlocksThreshold() float32 {
+	return rd.SignedBlocksThresholdProperty
 }
 
 // SelectionChances -

@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"math"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -13,6 +14,7 @@ import (
 type BlockSigningRater struct {
 	sharding.RatingReader
 	startRating             uint32
+	signedBlocksThreshold   float32
 	maxRating               uint32
 	minRating               uint32
 	shardRatingsStepHandler process.RatingsStepHandler
@@ -33,6 +35,9 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 	}
 	if len(ratingsData.SelectionChances()) == 0 {
 		return nil, process.ErrNoChancesProvided
+	}
+	if ratingsData.SignedBlocksThreshold() < 0 || ratingsData.SignedBlocksThreshold() > 1 {
+		return nil, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne
 	}
 
 	ratingChances := make([]process.RatingChanceHandler, len(ratingsData.SelectionChances()))
@@ -66,6 +71,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		startRating:             ratingsData.StartRating(),
 		minRating:               ratingsData.MinRating(),
 		maxRating:               ratingsData.MaxRating(),
+		signedBlocksThreshold:   ratingsData.SignedBlocksThreshold(),
 		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
 		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
 		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
@@ -112,6 +118,11 @@ func (bsr *BlockSigningRater) GetStartRating() uint32 {
 	return bsr.startRating
 }
 
+// GetSignedBlocksThreshold ets the signedBlocksThreshold
+func (bsr *BlockSigningRater) GetSignedBlocksThreshold() float32 {
+	return bsr.signedBlocksThreshold
+}
+
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
 func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
 	var ratingStep int32
@@ -125,14 +136,17 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
-func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
 	var ratingStep int32
+	var consecutiveMissesIncrease int32
+	consecutiveBlocksPenalty := 1.0
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
 	} else {
 		ratingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
 	}
-	return bsr.computeRating(ratingStep, currentRating)
+	consecutiveMissesIncrease = int32(math.Pow(consecutiveBlocksPenalty, float64(consecutiveMisses)))
+	return bsr.computeRating(ratingStep*consecutiveMissesIncrease, currentRating)
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator

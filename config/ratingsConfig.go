@@ -9,10 +9,11 @@ type RatingsConfig struct {
 
 // General will hold ratings settings both for metachain and shardChain
 type General struct {
-	StartRating      uint32
-	MaxRating        uint32
-	MinRating        uint32
-	SelectionChances []*SelectionChance
+	StartRating           uint32
+	MaxRating             uint32
+	MinRating             uint32
+	SignedBlocksThreshold float32
+	SelectionChances      []*SelectionChance
 }
 
 // ShardChain will hold RatingSteps for the Shard

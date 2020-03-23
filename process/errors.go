@@ -555,6 +555,9 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
 
+// ErrSignedBlocksThresholdNotBetweenZeroAndOne signals that the signed blocks threshold is not between 0 and 1
+var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks threshold is not between 0 and 1")
+
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
 

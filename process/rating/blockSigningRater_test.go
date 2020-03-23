@@ -175,7 +175,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAcce
 	shardId := uint32(0)
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue)
+	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue, 0)
 
 	expectedValue := uint32(int32(initialRatingValue) + proposerDecreaseRatingStep)
 
@@ -203,7 +203,7 @@ func TestBlockSigningRater_UpdateRatingsShouldNotDecreaseBelowMinRating(t *testi
 	shardId := uint32(0)
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue)
+	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue, 0)
 
 	expectedValue := minRating
 
@@ -235,7 +235,7 @@ func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *
 	bsr.SetRatingReader(rrm)
 
 	pk1ComputedRating := bsr.ComputeIncreaseProposer(shardId, ratingsMap[pk1])
-	pk2ComputedRating := bsr.ComputeDecreaseProposer(shardId, ratingsMap[pk2])
+	pk2ComputedRating := bsr.ComputeDecreaseProposer(shardId, ratingsMap[pk2], 0)
 	pk3ComputedRating := bsr.ComputeIncreaseValidator(shardId, ratingsMap[pk3])
 	pk4ComputedRating := bsr.ComputeDecreaseValidator(shardId, ratingsMap[pk4])
 
@@ -274,7 +274,7 @@ func TestBlockSigningRater_UpdateRatingsOnMetaWithMultiplePeersShouldReturnRatin
 	bsr.SetRatingReader(rrm)
 
 	pk1ComputedRating := bsr.ComputeIncreaseProposer(core.MetachainShardId, ratingsMap[pk1])
-	pk2ComputedRating := bsr.ComputeDecreaseProposer(core.MetachainShardId, ratingsMap[pk2])
+	pk2ComputedRating := bsr.ComputeDecreaseProposer(core.MetachainShardId, ratingsMap[pk2], 0)
 	pk3ComputedRating := bsr.ComputeIncreaseValidator(core.MetachainShardId, ratingsMap[pk3])
 	pk4ComputedRating := bsr.ComputeDecreaseValidator(core.MetachainShardId, ratingsMap[pk4])
 
@@ -326,6 +326,26 @@ func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *tes
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
+func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdNegativeShouldErr(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SignedBlocksThresholdProperty = -0.01
+
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
+
+	assert.Nil(t, bsr)
+	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+}
+
+func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdAbove1ShouldErr(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.SignedBlocksThresholdProperty = 1.01
+
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
+
+	assert.Nil(t, bsr)
+	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+}
+
 func TestBlockSigningRater_NewBlockSigningRaterWithNonExistingMaxThresholdZeroShouldErr(t *testing.T) {
 	chances := []process.SelectionChance{
 		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
@@ -371,13 +391,13 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(0, uint32(testValue)))
 	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(0, uint32(testValue)))
 	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(0, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(0, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(0, uint32(testValue), 0))
 
 	assert.Equal(t, ratingsData.StartRating(), bsr.GetStartRating())
 	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(core.MetachainShardId, uint32(testValue)))
 	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(core.MetachainShardId, uint32(testValue)))
 	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(core.MetachainShardId, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(core.MetachainShardId, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(core.MetachainShardId, uint32(testValue), 0))
 
 	assert.Equal(t, ratingsData.SelectionChances()[0].GetChancePercent(), bsr.GetChance(uint32(0)))
 	assert.Equal(t, ratingsData.SelectionChances()[1].GetChancePercent(), bsr.GetChance(uint32(9)))

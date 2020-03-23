@@ -31,8 +31,8 @@ func NewPeerAccount(
 
 	return &PeerAccount{
 		PeerAccountData: PeerAccountData{
-			AccumulatedFees:  big.NewInt(0),
-			Stake: big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+			Stake:           big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -443,6 +443,24 @@ func (pa *PeerAccount) SetTempRatingWithJournal(rating uint32) error {
 
 	pa.accountTracker.Journalize(entry)
 	pa.TempRating = rating
+
+	return pa.accountTracker.SaveAccount(pa)
+}
+
+// GetConsecutiveProposerMisses gets the current consecutive proposer misses
+func (pa *PeerAccount) GetConsecutiveProposerMisses() uint32 {
+	return pa.ConsecutiveProposerMisses
+}
+
+// SetConsecutiveProposerMisses sets the account's consecutive misses as proposer, saving the old state before changing
+func (pa *PeerAccount) SetConsecutiveProposerMissesWithJournal(consecutiveMisses uint32) error {
+	entry, err := NewPeerJournalEntryConsecutiveProposerMisses(pa, pa.ConsecutiveProposerMisses)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.ConsecutiveProposerMisses = consecutiveMisses
 
 	return pa.accountTracker.SaveAccount(pa)
 }

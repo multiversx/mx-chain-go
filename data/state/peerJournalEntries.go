@@ -382,6 +382,37 @@ func (pjer *PeerJournalEntryTempRating) IsInterfaceNil() bool {
 	return pjer == nil
 }
 
+// PeerJournalEntryConsecutiveProposerMisses is used to revert a rating change
+type PeerJournalEntryConsecutiveProposerMisses struct {
+	account                      *PeerAccount
+	oldConsecutiveProposerMisses uint32
+}
+
+// NewPeerJournalEntryConsecutiveProposerMisses outputs a new PeerJournalEntryConsecutiveProposerMisses
+// implementation used to revert a state change
+func NewPeerJournalEntryConsecutiveProposerMisses(account *PeerAccount, consecutiveMisses uint32) (*PeerJournalEntryConsecutiveProposerMisses, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryConsecutiveProposerMisses{
+		account:                      account,
+		oldConsecutiveProposerMisses: consecutiveMisses,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjer *PeerJournalEntryConsecutiveProposerMisses) Revert() (AccountHandler, error) {
+	pjer.account.ConsecutiveProposerMisses = pjer.oldConsecutiveProposerMisses
+
+	return pjer.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjer *PeerJournalEntryConsecutiveProposerMisses) IsInterfaceNil() bool {
+	return pjer == nil
+}
+
 // PeerJournalEntryUnStakedNonce is used to revert a unstaked nonce change
 type PeerJournalEntryUnStakedNonce struct {
 	account          *PeerAccount

@@ -18,15 +18,16 @@ type PeerAccountHandlerMock struct {
 	address           state.AddressContainer
 	trackableDataTrie state.DataTrieTracker
 
-	SetNonceWithJournalCalled      func(nonce uint64) error
-	SetCodeHashWithJournalCalled   func(codeHash []byte) error
-	SetRootHashWithJournalCalled   func([]byte) error
-	RatingCalled                   func() uint32
-	SetCodeWithJournalCalled       func(codeHash []byte) error
-	SetRatingWithJournalCalled     func(rating uint32) error
-	TempRatingCalled               func() uint32
-	SetTempRatingWithJournalCalled func(rating uint32) error
-
+	SetNonceWithJournalCalled                     func(nonce uint64) error
+	SetCodeHashWithJournalCalled                  func(codeHash []byte) error
+	SetRootHashWithJournalCalled                  func([]byte) error
+	RatingCalled                                  func() uint32
+	SetCodeWithJournalCalled                      func(codeHash []byte) error
+	SetRatingWithJournalCalled                    func(rating uint32) error
+	TempRatingCalled                              func() uint32
+	SetTempRatingWithJournalCalled                func(rating uint32) error
+	ConsecutiveProposerMissesCalled               func() uint32
+	SetConsecutiveProposerMissesWithJournalCalled func(rating uint32) error
 	IncreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
@@ -232,6 +233,22 @@ func (pahm *PeerAccountHandlerMock) GetTempRating() uint32 {
 func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) error {
 	if pahm.SetTempRatingWithJournalCalled != nil {
 		return pahm.SetTempRatingWithJournalCalled(rating)
+	}
+	return nil
+}
+
+// GetConsecutiveProposerMisses -
+func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
+	if pahm.ConsecutiveProposerMissesCalled != nil {
+		return pahm.ConsecutiveProposerMissesCalled()
+	}
+	return 0
+}
+
+// SetConsecutiveProposerMissesWithJournal -
+func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMissesWithJournal(consecutiveMisses uint32) error {
+	if pahm.SetConsecutiveProposerMissesWithJournalCalled != nil {
+		return pahm.SetConsecutiveProposerMissesWithJournalCalled(consecutiveMisses)
 	}
 	return nil
 }

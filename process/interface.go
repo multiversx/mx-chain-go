@@ -223,6 +223,7 @@ type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) (err error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -737,6 +738,7 @@ type RatingsInfoHandler interface {
 	StartRating() uint32
 	MaxRating() uint32
 	MinRating() uint32
+	SignedBlocksThreshold() float32
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance

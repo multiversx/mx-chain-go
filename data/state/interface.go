@@ -91,6 +91,8 @@ type PeerAccountHandler interface {
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32
 	SetTempRatingWithJournal(uint322 uint32) error
+	GetConsecutiveProposerMisses() uint32
+	SetConsecutiveProposerMissesWithJournal(uint322 uint32) error
 	ResetAtNewEpoch() error
 	SetRewardAddressWithJournal(address []byte) error
 	SetSchnorrPublicKeyWithJournal(address []byte) error

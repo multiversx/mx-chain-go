@@ -7,12 +7,13 @@ import (
 
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
-	startRating          uint32
-	maxRating            uint32
-	minRating            uint32
-	metaRatingsStepData  process.RatingsStepHandler
-	shardRatingsStepData process.RatingsStepHandler
-	selectionChances     []process.SelectionChance
+	startRating           uint32
+	maxRating             uint32
+	minRating             uint32
+	signedBlocksThreshold float32
+	metaRatingsStepData   process.RatingsStepHandler
+	shardRatingsStepData  process.RatingsStepHandler
+	selectionChances      []process.SelectionChance
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -26,6 +27,9 @@ func NewRatingsData(settings *config.RatingsConfig) (*RatingsData, error) {
 	if settings.General.MaxRating < settings.General.StartRating || settings.General.MinRating > settings.General.StartRating {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
+	if settings.General.SignedBlocksThreshold > 1 || settings.General.SignedBlocksThreshold < 0 {
+		return nil, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne
+	}
 
 	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.General.SelectionChances {
@@ -36,12 +40,13 @@ func NewRatingsData(settings *config.RatingsConfig) (*RatingsData, error) {
 	}
 
 	return &RatingsData{
-		startRating:          settings.General.StartRating,
-		maxRating:            settings.General.MaxRating,
-		minRating:            settings.General.MinRating,
-		metaRatingsStepData:  NewRatingStepData(settings.MetaChain.RatingSteps),
-		shardRatingsStepData: NewRatingStepData(settings.ShardChain.RatingSteps),
-		selectionChances:     chances,
+		startRating:           settings.General.StartRating,
+		maxRating:             settings.General.MaxRating,
+		minRating:             settings.General.MinRating,
+		signedBlocksThreshold: settings.General.SignedBlocksThreshold,
+		metaRatingsStepData:   NewRatingStepData(settings.MetaChain.RatingSteps),
+		shardRatingsStepData:  NewRatingStepData(settings.ShardChain.RatingSteps),
+		selectionChances:      chances,
 	}, nil
 }
 
@@ -58,6 +63,11 @@ func (rd *RatingsData) MaxRating() uint32 {
 // MinRating will return the min rating
 func (rd *RatingsData) MinRating() uint32 {
 	return rd.minRating
+}
+
+// SignedBlocksThreshold will return the signed blocks threshold
+func (rd *RatingsData) SignedBlocksThreshold() float32 {
+	return rd.signedBlocksThreshold
 }
 
 // SelectionChances will return the array of selectionChances and thresholds

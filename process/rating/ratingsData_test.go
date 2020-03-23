@@ -96,17 +96,35 @@ func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
 }
 
+func TestEconomicsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ratingsData := createDummyRatingsConfig()
+	ratingsData.General.SignedBlocksThreshold = -0.1
+	economicsData, err := NewRatingsData(ratingsData)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+
+	ratingsData.General.SignedBlocksThreshold = 1.01
+	economicsData, err = NewRatingsData(ratingsData)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+}
+
 func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
 	minRating := uint32(10)
 	maxRating := uint32(100)
 	startRating := uint32(50)
-
+	signedBlocksThreshold := float32(0.025)
 	ratingsData := createDummyRatingsConfig()
 	ratingsData.General.MinRating = minRating
 	ratingsData.General.MaxRating = maxRating
 	ratingsData.General.StartRating = startRating
+	ratingsData.General.SignedBlocksThreshold = signedBlocksThreshold
 	ratingsData.ShardChain.ProposerDecreaseRatingStep = shardProposerDecreaseRatingStep
 	ratingsData.ShardChain.ProposerIncreaseRatingStep = shardProposerIncreaseRatingStep
 	ratingsData.ShardChain.ValidatorIncreaseRatingStep = shardValidatorIncreaseRatingStep
@@ -123,6 +141,7 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, startRating, economicsData.StartRating())
 	assert.Equal(t, minRating, economicsData.MinRating())
 	assert.Equal(t, maxRating, economicsData.MaxRating())
+	assert.Equal(t, signedBlocksThreshold, economicsData.SignedBlocksThreshold())
 	assert.Equal(t, shardValidatorIncreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep())
 	assert.Equal(t, shardValidatorDecreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	assert.Equal(t, shardProposerIncreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep())

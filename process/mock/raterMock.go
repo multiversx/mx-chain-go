@@ -23,8 +23,9 @@ type RaterMock struct {
 	GetRatingCalled                  func(string) uint32
 	UpdateRatingFromTempRatingCalled func([]string) error
 	GetStartRatingCalled             func() uint32
+	GetSignedBlocksThresholdCalled   func() float32
 	ComputeIncreaseProposerCalled    func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseProposerCalled    func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseProposerCalled    func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
 	ComputeIncreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
 	ComputeDecreaseValidatorCalled   func(shardId uint32, rating uint32) uint32
 	GetChancesCalled                 func(val uint32) uint32
@@ -52,7 +53,7 @@ func GetNewMockRater() *RaterMock {
 		}
 		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.ComputeDecreaseProposerCalled = func(shardId uint32, rating uint32) uint32 {
+	raterMock.ComputeDecreaseProposerCalled = func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaDecreaseProposer
@@ -115,14 +116,19 @@ func (rm *RaterMock) GetStartRating() uint32 {
 	return rm.GetStartRatingCalled()
 }
 
+// GetSignedBlocksThreshold -
+func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
+	return rm.GetSignedBlocksThresholdCalled()
+}
+
 // ComputeIncreaseProposer -
 func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
 	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32 {
-	return rm.ComputeDecreaseProposerCalled(shardId, currentRating)
+func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
 }
 
 // ComputeIncreaseValidator -

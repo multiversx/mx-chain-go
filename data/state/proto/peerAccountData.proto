@@ -64,4 +64,6 @@ message PeerAccountData {
 
 	bytes  RootHash = 15;
 	uint64 Nonce    = 16;
+
+	uint32 ConsecutiveProposerMisses = 20;
 }

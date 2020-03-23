@@ -380,6 +380,43 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 	return vInfos, err
 }
 
+// ProcessRatingsEndOfEpoch makes end of epoch process on the rating
+func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	for shardId, validators := range validatorInfos {
+		for _, validator := range validators {
+			validatorAppereances := validator.ValidatorSuccess + validator.ValidatorFailure
+			computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+			if computedThreshold <= vs.rater.GetSignedBlocksThreshold() {
+				newRating := validator.TempRating
+				for i := uint32(0); i < validatorAppereances; i++ {
+					newRating = vs.rater.ComputeDecreaseValidator(shardId, newRating)
+				}
+
+				pa, err := vs.GetPeerAccount(validator.PublicKey)
+				if err != nil {
+					return err
+				}
+
+				err = pa.SetTempRatingWithJournal(newRating)
+				if err != nil {
+					return err
+				}
+
+				log.Trace("below signed blocks threshold",
+					"pk", validator.PublicKey,
+					"signed %", computedThreshold,
+					"new tempRating", newRating,
+					"old tempRating", validator.TempRating,
+				)
+
+				validator.TempRating = newRating
+			}
+		}
+	}
+
+	return nil
+}
+
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
 func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
 	sw := core.NewStopWatch()
@@ -465,8 +502,15 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		vs.mutMissedBlocksCounters.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses())
 		swInner.Stop("ComputeDecreaseProposer")
+
+		swInner.Start("SetConsecutiveProposerMisses")
+		err = leaderPeerAcc.SetConsecutiveProposerMissesWithJournal(leaderPeerAcc.GetConsecutiveProposerMisses() + 1)
+		swInner.Stop("SetConsecutiveProposerMisses")
+		if err != nil {
+			return err
+		}
 
 		swInner.Start("SetTempRatingWithJournal")
 		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
@@ -660,6 +704,11 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 				return err
 			}
 
+			err = peerAcc.SetConsecutiveProposerMissesWithJournal(0)
+			if err != nil {
+				return err
+			}
+
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
@@ -668,7 +717,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
 			err = peerAcc.DecreaseValidatorSuccessRateWithJournal(1)
-			newRating = vs.rater.ComputeDecreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
 		if err != nil {
@@ -878,7 +927,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating, 0)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
