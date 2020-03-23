@@ -80,6 +80,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	endOfEpoch.VerifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	endOfEpoch.VerifyThatNodesHaveCorrectEpoch(t, epoch, nodes)
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }

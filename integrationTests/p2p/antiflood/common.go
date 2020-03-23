@@ -11,7 +11,7 @@ import (
 )
 
 // DurationBootstrapingTime -
-var DurationBootstrapingTime = 2 * time.Second
+const DurationBootstrapingTime = 2 * time.Second
 
 // FloodTheNetwork -
 func FloodTheNetwork(peer p2p.Messenger, topic string, isFlooding *atomic.Value, messageSize uint64) {

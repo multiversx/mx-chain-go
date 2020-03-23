@@ -33,8 +33,8 @@ func CreateAndPropagateBlocks(
 	return currentRound, currentNonce
 }
 
-// VerifyIfNodesHasCorrectEpoch -
-func VerifyIfNodesHasCorrectEpoch(
+// VerifyThatNodesHaveCorrectEpoch -
+func VerifyThatNodesHaveCorrectEpoch(
 	t *testing.T,
 	epoch uint32,
 	nodes []*integrationTests.TestProcessorNode,

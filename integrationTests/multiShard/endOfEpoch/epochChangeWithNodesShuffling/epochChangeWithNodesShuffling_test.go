@@ -86,6 +86,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	}
 
 	for _, nodes := range nodesMap {
-		endOfEpoch.VerifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
+		endOfEpoch.VerifyThatNodesHaveCorrectEpoch(t, expectedLastEpoch, nodes)
 	}
 }

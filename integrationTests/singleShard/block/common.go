@@ -3,7 +3,7 @@ package block
 import "time"
 
 // StepDelay -
-var StepDelay = time.Second
+const StepDelay = time.Second
 
 // P2pBootstrapDelay -
-var P2pBootstrapDelay = time.Second * 12
+const P2pBootstrapDelay = time.Second * 12

@@ -62,6 +62,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	_, _ = endOfEpoch.CreateAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, idxProposers)
 
 	epoch := uint32(1)
-	endOfEpoch.VerifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	endOfEpoch.VerifyThatNodesHaveCorrectEpoch(t, epoch, nodes)
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
