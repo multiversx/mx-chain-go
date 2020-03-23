@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const negativeNumber = -1
+const allFiles = -1
 
 // GetCacherFromConfig will return the cache config needed for storage unit from a config came from the toml file
 func GetCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
@@ -79,7 +79,7 @@ func FindLatestDataFromStorage(
 		return 0, 0, 0, err
 	}
 
-	files, err := f.Readdir(negativeNumber)
+	files, err := f.Readdir(allFiles)
 	_ = f.Close()
 
 	if err != nil {
@@ -231,7 +231,7 @@ func getShardsFromDirectory(path string, defaultShardString string) ([]string, e
 		return nil, err
 	}
 
-	files, err := f.Readdir(negativeNumber)
+	files, err := f.Readdir(allFiles)
 	_ = f.Close()
 
 	for _, file := range files {
