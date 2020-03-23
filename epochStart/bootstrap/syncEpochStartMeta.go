@@ -7,14 +7,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type epochStartMetaSyncer struct {
-	requestHandler epochStart.RequestHandler
-	messenger      p2p.Messenger
-	metaBlockPool  storage.Cacher
+	requestHandler                 epochStart.RequestHandler
+	messenger                      p2p.Messenger
+	metaBlockPool                  storage.Cacher
+	epochStartMetaBlockInterceptor process.Interceptor
 }
 
 func NewEpochStartMetaSyncer() (*epochStartMetaSyncer, error) {

@@ -127,3 +127,9 @@ var ErrNilValidatorInfo = errors.New("validator info is nil")
 
 // ErrEpochStartDataForShardNotFound signals that epoch start shard data was not found for current shard id
 var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current shard not found")
+
+// ErrNumTriesExceeded signals that number of tries has exceeded
+var ErrNumTriesExceeded = errors.New("number of tries exceeded")
+
+// ErrMissingHeader signals that searched header is missing
+var ErrMissingHeader = errors.New("missing header")

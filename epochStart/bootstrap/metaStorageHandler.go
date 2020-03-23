@@ -1,4 +1,4 @@
-package storagehandler
+package bootstrap
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -61,9 +60,7 @@ func NewMetaStorageHandler(
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (msh *metaStorageHandler) SaveDataToStorage(components *bootstrap.ComponentsNeededForBootstrap) error {
-	// TODO: here we should save all needed data
-
+func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
 	defer func() {
 		err := msh.storageService.CloseAll()
 		if err != nil {
@@ -88,21 +85,20 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *bootstrap.Component
 		return err
 	}
 
-	nodesCoordinatorConfigKey, err := msh.getAndSaveNodesCoordinatorKey(components.EpochStartMetaBlock)
+	nodesCoordinatorConfigKey, err := msh.getAndSaveNodesCoordinatorKey(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
 	}
 
 	bootStrapData := bootstrapStorage.BootstrapData{
-		LastHeader:                lastHeader,                                         // meta - epoch start metablock ; shard - shard header
-		LastCrossNotarizedHeaders: nil,                                                // lastFinalizedMetaBlock + firstPendingMetaBlock
-		LastSelfNotarizedHeaders:  []bootstrapStorage.BootstrapHeaderInfo{lastHeader}, // meta - epoch start metablock , shard: shard header
-		ProcessedMiniBlocks:       nil,                                                // first pending metablock and pending miniblocks - difference between them
-		// (shard - only shard ; meta - possible not to fill at all)
-		PendingMiniBlocks:          miniBlocks,                // pending miniblocks
-		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey, // wait for radu's component
-		EpochStartTriggerConfigKey: triggerConfigKey,          // metachain/shard trigger registery
-		HighestFinalBlockNonce:     lastHeader.Nonce,          //
+		LastHeader:                 lastHeader, // meta - epoch start metablock ; shard - shard header
+		LastCrossNotarizedHeaders:  nil,        // lastFinalizedMetaBlock + firstPendingMetaBlock
+		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
+		ProcessedMiniBlocks:        nil,
+		PendingMiniBlocks:          miniBlocks,
+		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
+		EpochStartTriggerConfigKey: triggerConfigKey,
+		HighestFinalBlockNonce:     lastHeader.Nonce,
 		LastRound:                  int64(components.EpochStartMetaBlock.Round),
 	}
 	bootStrapDataBytes, err := msh.marshalizer.Marshal(&bootStrapData)
@@ -111,6 +107,11 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *bootstrap.Component
 	}
 
 	err = bootStorer.Put([]byte(highestRoundFromBootStorage), bootStrapDataBytes)
+	if err != nil {
+		return err
+	}
+
+	err = msh.saveTries(components)
 	if err != nil {
 		return err
 	}
@@ -146,7 +147,7 @@ func (msh *metaStorageHandler) getAndSaveLastHeader(metaBlock *block.MetaBlock) 
 	return bootstrapHdrInfo, nil
 }
 
-func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components *bootstrap.ComponentsNeededForBootstrap) ([]byte, error) {
+func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
 	metaBlock := components.EpochStartMetaBlock
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {

@@ -23,10 +23,20 @@ type syncValidatorStatus struct {
 	requestHandler   process.RequestHandler
 }
 
-// NewSyncValidatorStatus creates a new validator status process component
-func NewSyncValidatorStatus() (*syncValidatorStatus, error) {
+// ArgsNewSyncValidatorStatus
+type ArgsNewSyncValidatorStatus struct {
+	DataPool       dataRetriever.PoolsHolder
+	Marshalizer    marshal.Marshalizer
+	RequestHandler process.RequestHandler
+}
 
-	s := &syncValidatorStatus{}
+// NewSyncValidatorStatus creates a new validator status process component
+func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStatus, error) {
+	s := &syncValidatorStatus{
+		dataPool:       args.DataPool,
+		marshalizer:    args.Marshalizer,
+		requestHandler: args.RequestHandler,
+	}
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        &disabled.Storer{},
 		Cache:          s.dataPool.MiniBlocks(),
@@ -130,6 +140,9 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 
 			shardId := fmt.Sprint(vid.ShardId)
 			// TODO - make decision according to validatorInfo.List after it is implemented
+			// most probably there is a need to create an indexed hashed nodescoordinator - set the data manually
+			// call the shuffling and save the result - this is still problematic as you always need the -1 config
+			// recursively going to genesis - data has to be updated in the peer trie.
 			epochValidators.EligibleValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
 
 			if shouldSearchSelfId && !found && bytes.Equal(vid.PublicKey, publicKey) {

@@ -7,14 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/nodesconfigprovider"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
@@ -117,43 +113,6 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		InitialNodes:  getInitialNodes(nodesMap),
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
-
-	epochStartProviderFactoryArgs := factory.EpochStartDataProviderFactoryArgs{
-		PubKey:              nodeToJoinLate.NodeKeys.Pk,
-		Messenger:           advertiser,
-		Marshalizer:         integrationTests.TestMarshalizer,
-		Hasher:              integrationTests.TestHasher,
-		NodesConfigProvider: nodesconfigprovider.NewSimpleNodesConfigProvider(&nodesConfig),
-		StartTime:           time.Time{},
-		OriginalNodesConfig: &nodesConfig,
-		PathManager:         &mock.PathManagerStub{},
-		GeneralConfig: &config.Config{
-			EpochStartConfig: config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 5,
-				RoundsPerEpoch:         10,
-			},
-			WhiteListPool: config.CacheConfig{
-				Size:   10000,
-				Type:   "LRU",
-				Shards: 1,
-			},
-			StoragePruning: config.StoragePruningConfig{
-				Enabled:             false,
-				FullArchive:         true,
-				NumEpochsToKeep:     3,
-				NumActivePersisters: 3,
-			},
-		},
-		IsEpochFoundInStorage: false,
-	}
-	epochStartDataProviderFactory, _ := factory.NewEpochStartDataProviderFactory(epochStartProviderFactoryArgs)
-	epochStartDataProvider, _ := epochStartDataProviderFactory.Create()
-
-	res, err := epochStartDataProvider.Bootstrap()
-	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	// TODO: add more checks
-	assert.Equal(t, epoch, res.EpochStartMetaBlock.Epoch)
 }
 
 func convertToSlice(originalMap map[uint32][]*integrationTests.TestProcessorNode) []*integrationTests.TestProcessorNode {

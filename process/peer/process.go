@@ -340,9 +340,8 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount *state.PeerAccount) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.BLSPublicKey,
-		ShardId:                    peerAccount.CurrentShardId,
-		List:                       "list",
-		Index:                      0,
+		ShardId:                    peerAccount.NextShardId,
+		List:                       peerAccount.List,
 		TempRating:                 peerAccount.TempRating,
 		Rating:                     peerAccount.Rating,
 		RewardAddress:              peerAccount.RewardAddress,
