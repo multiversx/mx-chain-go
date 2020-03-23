@@ -15,7 +15,7 @@ func MakeDiffList(
 	return makeDiffList(allConnectedPeers, excludedConnectedPeers)
 }
 
-func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
+func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
 	return fisherYatesShuffle(indexes, randomizer)
 }
 
