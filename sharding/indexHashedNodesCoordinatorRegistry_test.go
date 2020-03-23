@@ -86,7 +86,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 
 	actualConfig := nodesCoordinator.nodesConfig[0]
 
-	assert.Equal(t, expectedConfig.shardId, actualConfig.shardId)
+	assert.Equal(t, expectedConfig.shardID, actualConfig.shardID)
 	assert.Equal(t, expectedConfig.nbShards, actualConfig.nbShards)
 	assert.True(t, sameValidatorsMaps(expectedConfig.eligibleMap, actualConfig.eligibleMap))
 	assert.True(t, sameValidatorsMaps(expectedConfig.waitingMap, actualConfig.waitingMap))

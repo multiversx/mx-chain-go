@@ -47,12 +47,12 @@ export NODE_DELAY=10
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=2
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=0
+export META_OBSERVERCOUNT=2
 export META_CONSENSUS_SIZE=3
 
 # Leave unchanged.
@@ -65,7 +65,7 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
-export ALWAYS_NEW_CHAINID=1
+export ALWAYS_NEW_CHAINID=0
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
