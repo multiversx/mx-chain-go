@@ -904,17 +904,31 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Debug("pools info",
-		"headers", sp.dataPool.Headers().Len(),
-		"headers capacity", sp.dataPool.Headers().MaxSize(),
-		"miniblocks", sp.dataPool.MiniBlocks().Len(),
-		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
-	)
+	sp.displayPoolsInfo()
 
 	sp.cleanupBlockTrackerPools(headerHandler)
+
 	go sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) displayPoolsInfo() {
+	log.Trace("pools info",
+		"shard", sp.shardCoordinator.SelfId(),
+		"num headers", sp.dataPool.Headers().GetNumHeaders(sp.shardCoordinator.SelfId()))
+
+	log.Trace("pools info",
+		"shard", core.MetachainShardId,
+		"num headers", sp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+
+	numShardsToKeepHeaders := 2
+	log.Debug("pools info",
+		"total headers", sp.dataPool.Headers().Len(),
+		"headers pool capacity", sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders,
+		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
+		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
+	)
 }
 
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {

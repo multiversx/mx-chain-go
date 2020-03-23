@@ -179,11 +179,16 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	numShardHeadersFromPool := 0
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+	}
+
 	go getMetricsFromMetaHeader(
 		header,
 		mp.marshalizer,
 		mp.appStatusHandler,
-		mp.dataPool.Headers().Len(),
+		numShardHeadersFromPool,
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
@@ -1109,11 +1114,16 @@ func (mp *metaProcessor) CommitBlock(
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
+	numShardHeadersFromPool := 0
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+	}
+
 	go mp.headersCounter.displayLogInfo(
 		header,
 		body,
 		headerHash,
-		mp.dataPool.Headers().Len(),
+		numShardHeadersFromPool,
 		mp.blockTracker,
 	)
 
@@ -1140,15 +1150,31 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Debug("pools info",
-		"headers pool", mp.dataPool.Headers().Len(),
-		"headers pool capacity", mp.dataPool.Headers().MaxSize(),
-	)
+	mp.displayPoolsInfo()
 
 	mp.cleanupBlockTrackerPools(headerHandler)
+
 	go mp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (mp *metaProcessor) displayPoolsInfo() {
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		log.Trace("pools info",
+			"shard", shardID,
+			"num headers", mp.dataPool.Headers().GetNumHeaders(shardID))
+	}
+
+	log.Trace("pools info",
+		"shard", core.MetachainShardId,
+		"num headers", mp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+
+	numShardsToKeepHeaders := int(mp.shardCoordinator.NumberOfShards()) + 1
+	log.Debug("pools info",
+		"total headers", mp.dataPool.Headers().Len(),
+		"headers pool capacity", mp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders,
+	)
 }
 
 func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {

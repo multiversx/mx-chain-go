@@ -18,6 +18,7 @@ type HeadersCacherStub struct {
 	NoncesCalled                        func(shardId uint32) []uint64
 	LenCalled                           func() int
 	MaxSizeCalled                       func() int
+	GetNumHeadersCalled                 func(shardId uint32) int
 }
 
 // AddHeader -
@@ -92,4 +93,13 @@ func (hcs *HeadersCacherStub) MaxSize() int {
 // IsInterfaceNil -
 func (hcs *HeadersCacherStub) IsInterfaceNil() bool {
 	return hcs == nil
+}
+
+// GetNumHeaders -
+func (hcs *HeadersCacherStub) GetNumHeaders(shardId uint32) int {
+	if hcs.GetNumHeadersCalled != nil {
+		return hcs.GetNumHeadersCalled(shardId)
+	}
+
+	return 0
 }
