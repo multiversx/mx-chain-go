@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -20,8 +21,8 @@ const (
 	metaProposerDecreaseRatingStep  = int32(2)
 )
 
-func createDummyRatingsConfig() *config.RatingsConfig {
-	return &config.RatingsConfig{
+func createDummyRatingsConfig() config.RatingsConfig {
+	return config.RatingsConfig{
 		General: config.General{
 			StartRating: 50,
 			MaxRating:   100,
@@ -46,89 +47,89 @@ func createDummyRatingsConfig() *config.RatingsConfig {
 	}
 }
 
-func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
+func TestRatingsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsData := createDummyRatingsConfig()
-	ratingsData.General.MinRating = 10
-	ratingsData.General.MaxRating = 8
-	economicsData, err := NewRatingsData(ratingsData)
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.General.MinRating = 10
+	ratingsConfig.General.MaxRating = 8
+	ratingsData, err := NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrMaxRatingIsSmallerThanMinRating))
 }
 
-func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
+func TestRatingsData_RatingsDataMinSmallerThanOne(t *testing.T) {
 	t.Parallel()
 
-	ratingsData := createDummyRatingsConfig()
-	ratingsData.General.MinRating = 0
-	ratingsData.General.MaxRating = 8
-	economicsData, err := NewRatingsData(ratingsData)
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.General.MinRating = 0
+	ratingsConfig.General.MaxRating = 8
+	ratingsData, err := NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, economicsData)
+	assert.Nil(t, ratingsData)
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
-func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
+func TestRatingsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsData := createDummyRatingsConfig()
-	ratingsData.General.MinRating = 10
-	ratingsData.General.MaxRating = 100
-	ratingsData.General.StartRating = 110
-	economicsData, err := NewRatingsData(ratingsData)
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.General.MinRating = 10
+	ratingsConfig.General.MaxRating = 100
+	ratingsConfig.General.StartRating = 110
+	ratingsData, err := NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
 }
 
-func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
+func TestRatingsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsData := createDummyRatingsConfig()
-	ratingsData.General.MinRating = 10
-	ratingsData.General.MaxRating = 100
-	ratingsData.General.StartRating = 5
-	economicsData, err := NewRatingsData(ratingsData)
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.General.MinRating = 10
+	ratingsConfig.General.MaxRating = 100
+	ratingsConfig.General.StartRating = 5
+	ratingsData, err := NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
 }
 
-func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
+func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
 	minRating := uint32(10)
 	maxRating := uint32(100)
 	startRating := uint32(50)
 
-	ratingsData := createDummyRatingsConfig()
-	ratingsData.General.MinRating = minRating
-	ratingsData.General.MaxRating = maxRating
-	ratingsData.General.StartRating = startRating
-	ratingsData.ShardChain.ProposerDecreaseRatingStep = shardProposerDecreaseRatingStep
-	ratingsData.ShardChain.ProposerIncreaseRatingStep = shardProposerIncreaseRatingStep
-	ratingsData.ShardChain.ValidatorIncreaseRatingStep = shardValidatorIncreaseRatingStep
-	ratingsData.ShardChain.ValidatorDecreaseRatingStep = shardValidatorDecreaseRatingStep
-	ratingsData.MetaChain.ProposerDecreaseRatingStep = metaProposerDecreaseRatingStep
-	ratingsData.MetaChain.ProposerIncreaseRatingStep = metaProposerIncreaseRatingStep
-	ratingsData.MetaChain.ValidatorIncreaseRatingStep = metaValidatorIncreaseRatingStep
-	ratingsData.MetaChain.ValidatorDecreaseRatingStep = metaValidatorDecreaseRatingStep
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.General.MinRating = minRating
+	ratingsConfig.General.MaxRating = maxRating
+	ratingsConfig.General.StartRating = startRating
+	ratingsConfig.ShardChain.ProposerDecreaseRatingStep = shardProposerDecreaseRatingStep
+	ratingsConfig.ShardChain.ProposerIncreaseRatingStep = shardProposerIncreaseRatingStep
+	ratingsConfig.ShardChain.ValidatorIncreaseRatingStep = shardValidatorIncreaseRatingStep
+	ratingsConfig.ShardChain.ValidatorDecreaseRatingStep = shardValidatorDecreaseRatingStep
+	ratingsConfig.MetaChain.ProposerDecreaseRatingStep = metaProposerDecreaseRatingStep
+	ratingsConfig.MetaChain.ProposerIncreaseRatingStep = metaProposerIncreaseRatingStep
+	ratingsConfig.MetaChain.ValidatorIncreaseRatingStep = metaValidatorIncreaseRatingStep
+	ratingsConfig.MetaChain.ValidatorDecreaseRatingStep = metaValidatorDecreaseRatingStep
 
-	economicsData, err := NewRatingsData(ratingsData)
+	ratingsData, err := NewRatingsData(ratingsConfig)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, economicsData)
-	assert.Equal(t, startRating, economicsData.StartRating())
-	assert.Equal(t, minRating, economicsData.MinRating())
-	assert.Equal(t, maxRating, economicsData.MaxRating())
-	assert.Equal(t, shardValidatorIncreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep())
-	assert.Equal(t, shardValidatorDecreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
-	assert.Equal(t, shardProposerIncreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep())
-	assert.Equal(t, shardProposerDecreaseRatingStep, economicsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep())
-	assert.Equal(t, metaValidatorIncreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep())
-	assert.Equal(t, metaValidatorDecreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
-	assert.Equal(t, metaProposerIncreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep())
-	assert.Equal(t, metaProposerDecreaseRatingStep, economicsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep())
+	assert.NotNil(t, ratingsData)
+	assert.Equal(t, startRating, ratingsData.StartRating())
+	assert.Equal(t, minRating, ratingsData.MinRating())
+	assert.Equal(t, maxRating, ratingsData.MaxRating())
+	assert.Equal(t, shardValidatorIncreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep())
+	assert.Equal(t, shardValidatorDecreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
+	assert.Equal(t, shardProposerIncreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep())
+	assert.Equal(t, shardProposerDecreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep())
+	assert.Equal(t, metaValidatorIncreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep())
+	assert.Equal(t, metaValidatorDecreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
+	assert.Equal(t, metaProposerIncreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep())
+	assert.Equal(t, metaProposerDecreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep())
 }

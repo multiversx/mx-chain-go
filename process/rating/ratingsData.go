@@ -1,6 +1,8 @@
 package rating
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -16,15 +18,22 @@ type RatingsData struct {
 }
 
 // NewRatingsData creates a new RatingsData instance
-func NewRatingsData(settings *config.RatingsConfig) (*RatingsData, error) {
+func NewRatingsData(settings config.RatingsConfig) (*RatingsData, error) {
 	if settings.General.MinRating < 1 {
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
 	if settings.General.MinRating > settings.General.MaxRating {
-		return nil, process.ErrMaxRatingIsSmallerThanMinRating
+		return nil, fmt.Errorf("%w: minRating: %v, maxRating: %v",
+			process.ErrMaxRatingIsSmallerThanMinRating,
+			settings.General.MinRating,
+			settings.General.MaxRating)
 	}
 	if settings.General.MaxRating < settings.General.StartRating || settings.General.MinRating > settings.General.StartRating {
-		return nil, process.ErrStartRatingNotBetweenMinAndMax
+		return nil, fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
+			process.ErrStartRatingNotBetweenMinAndMax,
+			settings.General.MinRating,
+			settings.General.StartRating,
+			settings.General.MaxRating)
 	}
 
 	chances := make([]process.SelectionChance, 0)

@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -26,10 +27,17 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
 	if ratingsData.MinRating() > ratingsData.MaxRating() {
-		return nil, process.ErrMaxRatingIsSmallerThanMinRating
+		return nil, fmt.Errorf("%w: minRating: %v, maxRating: %v",
+			process.ErrMaxRatingIsSmallerThanMinRating,
+			ratingsData.MinRating(),
+			ratingsData.MaxRating())
 	}
 	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
-		return nil, process.ErrStartRatingNotBetweenMinAndMax
+		return nil, fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
+			process.ErrStartRatingNotBetweenMinAndMax,
+			ratingsData.MinRating(),
+			ratingsData.StartRating(),
+			ratingsData.MaxRating())
 	}
 	if len(ratingsData.SelectionChances()) == 0 {
 		return nil, process.ErrNoChancesProvided

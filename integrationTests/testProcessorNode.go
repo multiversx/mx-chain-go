@@ -102,7 +102,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize * 90 / 100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -469,7 +469,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateRatingsData() *rating.RatingsData {
-	ratingsConfig := &config.RatingsConfig{
+	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
 				ProposerIncreaseRatingStep:  1929,
