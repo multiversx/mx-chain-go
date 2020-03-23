@@ -1274,11 +1274,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	metaBlocksPool := sp.dataPool.Headers()
-	if metaBlocksPool == nil {
-		return
-	}
-
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return
@@ -1329,11 +1324,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if !sp.blockTracker.ShouldAddHeader(metaBlock) {
-		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
-		return
-	}
-
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
 	if err != nil {
 		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
@@ -1349,13 +1339,16 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
-	sp.epochStartTrigger.ReceivedHeader(metaBlock)
 	if sp.epochStartTrigger.IsEpochStart() {
 		sp.chRcvEpochStart <- true
 	}
 
 	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
 	if isMetaBlockOutOfRequestRange {
+		return
+	}
+
+	if !sp.blockTracker.ShouldAddHeader(metaBlock) {
 		return
 	}
 
