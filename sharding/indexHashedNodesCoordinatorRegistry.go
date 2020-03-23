@@ -68,7 +68,7 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	for epoch, cfg := range config {
 		log.Debug("restored config for",
 			"epoch", epoch,
-			"computed shard ID", cfg.shardId,
+			"computed shard ID", cfg.shardID,
 		)
 	}
 }
@@ -130,7 +130,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 	}
