@@ -1348,10 +1348,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
-	if !sp.blockTracker.ShouldAddHeader(metaBlock) {
-		return
-	}
-
 	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
 

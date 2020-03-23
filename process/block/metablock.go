@@ -1496,10 +1496,6 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		return
 	}
 
-	if !mp.blockTracker.ShouldAddHeader(shardHeader) {
-		return
-	}
-
 	go mp.txCoordinator.RequestMiniBlocks(shardHeader)
 }
 

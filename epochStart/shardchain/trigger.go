@@ -84,7 +84,7 @@ type trigger struct {
 }
 
 type metaInfo struct {
-	meta *block.MetaBlock
+	hdr  *block.MetaBlock
 	hash string
 }
 
@@ -268,7 +268,8 @@ func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.Met
 	t.epochFinalityAttestingRound = metaHdr.GetRound()
 }
 
-// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled only called with validated metablocks
+// receivedMetaBlock is a callback function when a new metablock was received
+// upon receiving checks if trigger can be updated
 func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
@@ -311,29 +312,29 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 	t.mapHashHdr[string(hdrHash)] = metaHdr
 	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
 
-	sortedMetas := make([]metaInfo, 0, len(t.mapEpochStartHdrs))
-	for hash, meta := range t.mapEpochStartHdrs {
-		metaInfo := metaInfo{
-			meta: meta,
+	sortedMetaInfo := make([]*metaInfo, 0, len(t.mapEpochStartHdrs))
+	for hash, hdr := range t.mapEpochStartHdrs {
+		metaInfo := &metaInfo{
+			hdr:  hdr,
 			hash: hash,
 		}
-		sortedMetas = append(sortedMetas, metaInfo)
+		sortedMetaInfo = append(sortedMetaInfo, metaInfo)
 	}
 
-	sort.Slice(sortedMetas, func(i, j int) bool {
-		return sortedMetas[i].meta.Epoch < sortedMetas[j].meta.Epoch
+	sort.Slice(sortedMetaInfo, func(i, j int) bool {
+		return sortedMetaInfo[i].hdr.Epoch < sortedMetaInfo[j].hdr.Epoch
 	})
 
-	for _, metaInfo := range sortedMetas {
-		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(metaInfo.hash, metaInfo.meta)
-		if canActivateEpochStart && t.epoch < metaInfo.meta.Epoch {
-			t.epoch = metaInfo.meta.Epoch
+	for _, metaInfo := range sortedMetaInfo {
+		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(metaInfo.hash, metaInfo.hdr)
+		if canActivateEpochStart && t.epoch < metaInfo.hdr.Epoch {
+			t.epoch = metaInfo.hdr.Epoch
 			t.isEpochStart = true
-			t.epochStartRound = metaInfo.meta.Round
+			t.epochStartRound = metaInfo.hdr.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(metaInfo.hash)
-			t.epochStartMeta = metaInfo.meta
-			t.saveCurrentState(metaInfo.meta.GetRound())
+			t.epochStartMeta = metaInfo.hdr
+			t.saveCurrentState(metaInfo.hdr.GetRound())
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
@@ -342,13 +343,13 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 		// save all final-valid epoch start blocks
 		if canActivateEpochStart {
-			metaBuff, err := t.marshalizer.Marshal(metaInfo.meta)
+			metaBuff, err := t.marshalizer.Marshal(metaInfo.hdr)
 			if err != nil {
 				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
 				continue
 			}
 
-			epochStartIdentifier := core.EpochStartIdentifier(metaInfo.meta.Epoch)
+			epochStartIdentifier := core.EpochStartIdentifier(metaInfo.hdr.Epoch)
 			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 			if err != nil {
 				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
