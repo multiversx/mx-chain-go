@@ -123,6 +123,7 @@ func TestNewMonitor_NilPeerTypeProviderShouldErr(t *testing.T) {
 		&mock.HeartbeatStorerStub{},
 		nil,
 		th,
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -159,6 +160,7 @@ func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 		nil,
 	)

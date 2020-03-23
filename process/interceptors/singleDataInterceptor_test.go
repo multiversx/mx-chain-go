@@ -307,9 +307,11 @@ func TestSingleDataInterceptor_SetIsDataForCurrentShardVerifier(t *testing.T) {
 	t.Parallel()
 
 	sdi, _ := interceptors.NewSingleDataInterceptor(
+		"topic",
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	err := sdi.SetIsDataForCurrentShardVerifier(nil)

@@ -97,11 +97,7 @@ func NewTestP2PNode(
 }
 
 func (tP2pNode *TestP2PNode) initStorage() {
-	if tP2pNode.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tP2pNode.Storage = CreateMetaStore(tP2pNode.ShardCoordinator)
-	} else {
-		tP2pNode.Storage = CreateShardStore(tP2pNode.ShardCoordinator.NumberOfShards())
-	}
+	tP2pNode.Storage = CreateStore(tP2pNode.ShardCoordinator.NumberOfShards())
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {
@@ -253,7 +249,7 @@ func CreateNodesWithTestP2PNodes(
 			BootStorer:              CreateMemUnit(),
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			Epoch:                   0,
-			EpochStartSubscriber:    &mock.EpochStartNotifierStub{},
+			EpochStartNotifier:      &mock.EpochStartNotifierStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -292,7 +288,7 @@ func CreateNodesWithTestP2PNodes(
 				BootStorer:              CreateMemUnit(),
 				WaitingNodes:            make(map[uint32][]sharding.Validator),
 				Epoch:                   0,
-				EpochStartSubscriber:    &mock.EpochStartNotifierStub{},
+				EpochStartNotifier:      &mock.EpochStartNotifierStub{},
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

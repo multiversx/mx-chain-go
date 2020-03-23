@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -104,7 +104,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize * 90 / 100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -191,15 +191,15 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
 
-	ForkDetector          process.ForkDetector
-	BlockProcessor        process.BlockProcessor
-	BroadcastMessenger    consensus.BroadcastMessenger
-	Bootstrapper          TestBootstrapper
-	Rounder               *mock.RounderMock
-	BootstrapStorer       *mock.BoostrapStorerMock
-	StorageBootstrapper   *mock.StorageBootstrapperMock
-	RequestedItemsHandler dataRetriever.RequestedItemsHandler
-	WhiteListHandler      process.InterceptedDataWhiteList
+	ForkDetector             process.ForkDetector
+	BlockProcessor           process.BlockProcessor
+	BroadcastMessenger       consensus.BroadcastMessenger
+	Bootstrapper             TestBootstrapper
+	Rounder                  *mock.RounderMock
+	BootstrapStorer          *mock.BoostrapStorerMock
+	StorageBootstrapper      *mock.StorageBootstrapperMock
+	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
+	WhiteListHandler         process.InterceptedDataWhiteList
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
@@ -326,11 +326,11 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
 	tpn.AccntState, stateTrie, _ = CreateAccountsDB(state.UserAccount)
-	tpn.TrieContainer.Put([]byte(factory3.UserAccountTrie), stateTrie)
+	tpn.TrieContainer.Put([]byte(factory2.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
 	tpn.PeerState, peerTrie, _ = CreateAccountsDB(state.ValidatorAccount)
-	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+	tpn.TrieContainer.Put([]byte(factory2.PeerAccountTrie), peerTrie)
 }
 
 func (tpn *TestProcessorNode) initTestNode() {

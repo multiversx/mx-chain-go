@@ -432,10 +432,12 @@ func TestMultiDataInterceptor_SetIsDataForCurrentShardVerifier(t *testing.T) {
 	t.Parallel()
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(
+		"topic",
 		&mock.MarshalizerMock{},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	err := mdi.SetIsDataForCurrentShardVerifier(nil)

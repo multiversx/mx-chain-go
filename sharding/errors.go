@@ -22,14 +22,8 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilEpochHandler signals that the epoch handler
-var ErrNilEpochHandler = errors.New("nil epoch handler")
-
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
-
-// ErrNilChanceComputer signals that the chanceComputer is nil
-var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
@@ -72,15 +66,6 @@ var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does
 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
-
-// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
-var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
-
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
-var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
-
-// ErrEligibleTooFewSelections signals an invalid selection for consensus group
-var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
 
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")

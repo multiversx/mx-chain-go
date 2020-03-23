@@ -40,7 +40,6 @@ type TrieSyncContainer interface {
 // EpochStartVerifier defines the functionality needed by sync all state from epochTrigger
 type EpochStartVerifier interface {
 	IsEpochStart() bool
-	ReceivedHeader(header data.HeaderHandler)
 	Epoch() uint32
 	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
