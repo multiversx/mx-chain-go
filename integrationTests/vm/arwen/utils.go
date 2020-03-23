@@ -73,7 +73,8 @@ func SetupTestContext(t *testing.T) TestContext {
 	return context
 }
 
-func (context *TestContext) close() {
+// Close closes the test context
+func (context *TestContext) Close() {
 	context.VMContainer.Close()
 }
 
@@ -148,7 +149,11 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 }
 
 func getSCCode(fileName string) string {
-	code, _ := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		panic("Could not get SC code.")
+	}
+
 	codeEncoded := hex.EncodeToString(code)
 
 	return codeEncoded
