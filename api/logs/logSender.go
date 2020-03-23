@@ -74,7 +74,8 @@ func (ls *logSender) StartSendingBlocking() {
 		_ = ls.writer.Close()
 		_ = logger.RemoveLogObserver(ls.writer)
 		_ = ls.lastProfile.Apply()
-		ls.log.Info("reverted log profile", "profile", ls.lastProfile)
+
+		ls.log.Info("reverted log profile", "profile", ls.lastProfile.String())
 	}()
 
 	err := ls.waitForProfile()
@@ -98,11 +99,7 @@ func (ls *logSender) waitForProfile() error {
 		return err
 	}
 
-	ls.log.Info("websocket log profile received",
-		"pattern", profile.LogLevelPatterns,
-		"with correlation", profile.WithCorrelation,
-		"with logger name", profile.WithLoggerName,
-	)
+	ls.log.Info("websocket log profile received", "profile", profile.String())
 
 	err = profile.Apply()
 	if err != nil {

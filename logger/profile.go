@@ -2,6 +2,7 @@ package logger
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // Profile holds global logger options
@@ -51,4 +52,12 @@ func (profile *Profile) Apply() error {
 	ToggleCorrelation(profile.WithCorrelation)
 	ToggleLoggerName(profile.WithLoggerName)
 	return nil
+}
+
+func (profile *Profile) String() string {
+	return fmt.Sprintf("[pattern=%s, with correlation=%t, with logger name=%t]",
+		profile.LogLevelPatterns,
+		profile.WithCorrelation,
+		profile.WithLoggerName,
+	)
 }

@@ -152,11 +152,7 @@ func waitForProfile(conn *websocket.Conn) error {
 		return err
 	}
 
-	log.Info("websocket log profile received",
-		"pattern", profile.LogLevelPatterns,
-		"with correlation", profile.WithCorrelation,
-		"with logger name", profile.WithLoggerName,
-	)
+	log.Info("websocket log profile received", "profile", profile.String())
 
 	mutLogLevelPattern.Lock()
 	logLevels, patterns, err = logger.ParseLogLevelAndMatchingString(profile.LogLevelPatterns)
