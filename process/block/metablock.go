@@ -1170,10 +1170,13 @@ func (mp *metaProcessor) displayPoolsInfo() {
 		"shard", core.MetachainShardId,
 		"num headers", mp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
 
+	// numShardsToKeepHeaders represents the total number of shards for which meta node would keep tracking headers
+	// (in this case this number is equal with: number of shards + metachain (self shard))
 	numShardsToKeepHeaders := int(mp.shardCoordinator.NumberOfShards()) + 1
+	capacity := mp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
 	log.Debug("pools info",
 		"total headers", mp.dataPool.Headers().Len(),
-		"headers pool capacity", mp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders,
+		"headers pool capacity", capacity,
 	)
 }
 

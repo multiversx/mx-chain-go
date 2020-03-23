@@ -922,10 +922,13 @@ func (sp *shardProcessor) displayPoolsInfo() {
 		"shard", core.MetachainShardId,
 		"num headers", sp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
 
+	// numShardsToKeepHeaders represents the total number of shards for which shard node would keep tracking headers
+	// (in this case this number is equal with: self shard + metachain)
 	numShardsToKeepHeaders := 2
+	capacity := sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
 	log.Debug("pools info",
 		"total headers", sp.dataPool.Headers().Len(),
-		"headers pool capacity", sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders,
+		"headers pool capacity", capacity,
 		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
 		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
