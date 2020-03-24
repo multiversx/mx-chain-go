@@ -836,10 +836,10 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	lastShardHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if err != nil {
+		lastCrossNotarizedHeaderForShard, hash, errBlockTracker := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		if errBlockTracker != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-			return nil, 0, 0, err
+			return nil, 0, 0, errBlockTracker
 		}
 
 		lastShardHdr[shardID] = lastCrossNotarizedHeaderForShard

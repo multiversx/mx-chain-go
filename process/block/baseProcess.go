@@ -868,8 +868,9 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
 
+	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue
@@ -915,11 +916,14 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
-	if check.IfNil(chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
 		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
 	}
 
-	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
+	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
+
+	return currentHeader, currentBlockHash
 }
 
 func (bp *baseProcessor) updateStateStorage(
