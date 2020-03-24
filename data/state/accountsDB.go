@@ -568,10 +568,10 @@ func (adb *AccountsDB) Journalize(entry JournalEntry) {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) {
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	return adb.mainTrie.Prune(rootHash, identifier)
+	adb.mainTrie.Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
