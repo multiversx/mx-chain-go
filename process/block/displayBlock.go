@@ -30,7 +30,7 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-func (txc *transactionCounter) getNumTxsFromPool(shardID uint32, dataPool dataRetriever.PoolsHolder) int {
+func (txc *transactionCounter) getNumTxsFromPool(dataPool dataRetriever.PoolsHolder) int {
 	txPool := dataPool.Transactions()
 	withTotalCount, ok := txPool.(interface{ TotalCount() int })
 	if !ok {

@@ -160,7 +160,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	numTxs := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool)
+	numTxs := sp.txCounter.getNumTxsFromPool(sp.dataPool)
 	go getMetricsFromHeader(header, uint64(numTxs), sp.marshalizer, sp.appStatusHandler)
 
 	log.Debug("total txs in pool", "num txs", numTxs)
