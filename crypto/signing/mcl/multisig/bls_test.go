@@ -649,6 +649,8 @@ func TestBlsMultiSigner_PrepareSignaturesInvalidPubKeyInKeysShouldErr(t *testing
 }
 
 func Test_ScalarMulPkNilPkShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := mcl.NewSuiteBLS12()
 	scalar := suite.CreateScalar()
 	scalarBytes, err := scalar.MarshalBinary()
@@ -660,6 +662,8 @@ func Test_ScalarMulPkNilPkShouldErr(t *testing.T) {
 }
 
 func Test_ScalarMulPkNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := mcl.NewSuiteBLS12()
 	scalar := suite.CreateScalar()
 	kg := signing.NewKeyGenerator(suite)
@@ -673,6 +677,8 @@ func Test_ScalarMulPkNilSuiteShouldErr(t *testing.T) {
 }
 
 func Test_ScalarMulPkOK(t *testing.T) {
+	t.Parallel()
+
 	suite := mcl.NewSuiteBLS12()
 	scalar := suite.CreateScalar()
 	kg := signing.NewKeyGenerator(suite)
@@ -698,7 +704,75 @@ func Test_ScalarMulPkOK(t *testing.T) {
 	require.NotNil(t, point)
 }
 
+func Test_HashPublicKeyPointsNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	msg := "message"
+	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
+	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
+	require.Nil(t, err)
+
+	hash, err := multisig.HashPublicKeyPoints(nil, pubKeys[0].Point(), concatPubKeys)
+	require.Equal(t, crypto.ErrNilHasher, err)
+	require.Nil(t, hash)
+}
+
+func Test_HashPublicKeyPointsNilPubKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherSpongeMock{}
+	msg := "message"
+	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
+	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
+	require.Nil(t, err)
+
+	hash, err := multisig.HashPublicKeyPoints(hasher, nil, concatPubKeys)
+	require.Equal(t, crypto.ErrNilPublicKeyPoint, err)
+	require.Nil(t, hash)
+}
+
+func Test_HashPublicKeyPointsWrongSizeHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherMock{}
+	msg := "message"
+	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
+	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
+	require.Nil(t, err)
+
+	hash, err := multisig.HashPublicKeyPoints(hasher, pubKeys[0].Point(), concatPubKeys)
+	require.Equal(t, crypto.ErrWrongSizeHasher, err)
+	require.Nil(t, hash)
+}
+
+func Test_HashPublicKeyPointsNilConcatPubKeysShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherMock{}
+	msg := "message"
+	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
+	hash, err := multisig.HashPublicKeyPoints(hasher, pubKeys[0].Point(), nil)
+	require.Equal(t, crypto.ErrNilParam, err)
+	require.Nil(t, hash)
+}
+
+func Test_HashPublicKeyPointsOK(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherSpongeMock{}
+	msg := "message"
+	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
+	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
+	require.Nil(t, err)
+
+	hash, err := multisig.HashPublicKeyPoints(hasher, pubKeys[0].Point(), concatPubKeys)
+	require.Nil(t, err)
+	require.NotNil(t, hash)
+}
+
 func TestBlsMultiSigner_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	var llSig *multisig.BlsMultiSigner
 
 	require.True(t, check.IfNil(llSig))

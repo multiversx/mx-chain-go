@@ -22,3 +22,11 @@ func (bms *BlsMultiSigner) PrepareSignatures(suite crypto.Suite, signatures [][]
 func ScalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypto.Point, error) {
 	return scalarMulPk(suite, scalarBytes, pk)
 }
+
+func HashPublicKeyPoints(hasher hashing.Hasher, pubKeyPoint crypto.Point, concatPubKeys []byte) ([]byte, error) {
+	return hashPublicKeyPoints(hasher, pubKeyPoint, concatPubKeys)
+}
+
+func ConcatPubKeys(pubKeys []crypto.PublicKey) ([]byte, error) {
+	return concatPubKeys(pubKeys)
+}
