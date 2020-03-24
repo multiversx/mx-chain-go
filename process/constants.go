@@ -46,22 +46,10 @@ const EpochChangeGracePeriod = 1
 // in one round, when node processes a received block
 const MaxHeaderRequestsAllowed = 10
 
-// MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
-// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-// TODO might remove this and make use of the blockSizeComputation
-const MaxItemsInBlock = 15000
-
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
 const NumTxPerSenderBatchForFillingMiniblock = 10
-
-// NumTxFactorForSelectTransactions is used to compute the number of transactions that should be selected from the cache
-const NumTxFactorForSelectTransactions = float32(2)
-
-// MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
-// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-const MinItemsInBlock = 15000
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
@@ -85,10 +73,6 @@ const RoundModulusTrigger = 5
 // RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
 const RoundModulusTriggerWhenSyncIsStuck = 20
 
-// MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
-// from the full pool capacity, for the received data which are not needed in the near future
-const MaxOccupancyPercentageAllowed = float64(0.9)
-
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedBlock = 10
@@ -108,3 +92,6 @@ const MaxMetaHeadersAllowedInOneShardBlock = 100
 
 // MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
 const MaxShardHeadersAllowedInOneMetaBlock = 100
+
+// MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
+const MaxNumOfTxsToSelect = 30000

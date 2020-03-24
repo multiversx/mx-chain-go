@@ -45,10 +45,13 @@ type node interface {
 	setHasher(hashing.Hasher)
 }
 
-type snapshotsBuffer interface {
-	add([]byte, bool)
+type atomicBuffer interface {
 	len() int
-	removeFirst()
-	getFirst() *snapshotsQueueEntry
-	clone() snapshotsBuffer
+	add(rootHash []byte)
+	contains(rootHash []byte) bool
+	remove(rootHash []byte)
+}
+
+type snapshotNode interface {
+	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 }

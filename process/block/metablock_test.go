@@ -61,9 +61,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			DataPool:     mdp,
-			BlockChain:   createTestBlockchain(),
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			DataPool:           mdp,
+			BlockChain:         createTestBlockchain(),
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -298,6 +299,17 @@ func TestNewMetaProcessor_NilPendingMiniBlocksShouldErr(t *testing.T) {
 	assert.Nil(t, be)
 }
 
+func TestNewMetaProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.BlockSizeThrottler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
+	assert.Nil(t, be)
+}
+
 func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -463,12 +475,14 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
-	}
+	)
+
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
@@ -485,12 +499,13 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
 		},
-	}
+	)
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
@@ -508,12 +523,13 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 
-	blkc := &blockchain.MetaChain{
-		CurrentBlock: &block.MetaBlock{
+	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.MetaBlock{
 			Nonce:                  0,
 			AccumulatedFeesInEpoch: big.NewInt(0),
 		},
-	}
+	)
 	hdr := createMetaBlockHeader()
 	body := &block.Body{}
 	// set accounts not dirty
@@ -648,9 +664,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewMetaChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewMetaChain()
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

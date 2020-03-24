@@ -75,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -388,7 +389,7 @@ func NewDataComponentsFactoryArgs(
 // DataComponentsFactory creates the data components
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
+	blkc, err := createBlockChainFromConfig(args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -563,6 +564,8 @@ type processComponentsFactoryArgs struct {
 	stateCheckpointModulus    uint
 	maxComputableRounds       uint64
 	numConcurrentResolverJobs int32
+	minSizeInBytes            uint32
+	maxSizeInBytes            uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -590,6 +593,8 @@ func NewProcessComponentsFactoryArgs(
 	stateCheckpointModulus uint,
 	maxComputableRounds uint64,
 	numConcurrentResolverJobs int32,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -615,6 +620,8 @@ func NewProcessComponentsFactoryArgs(
 		stateCheckpointModulus:    stateCheckpointModulus,
 		maxComputableRounds:       maxComputableRounds,
 		numConcurrentResolverJobs: numConcurrentResolverJobs,
+		minSizeInBytes:            minSizeInBytes,
+		maxSizeInBytes:            maxSizeInBytes,
 	}
 }
 
@@ -984,27 +991,16 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	return nil, errors.New("no hasher provided in config file")
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
-	badBlockCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size,
-		config.BadBlocksCache.Shards)
-	if err != nil {
-		return nil, err
-	}
+func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 
 	if coordinator == nil {
 		return nil, state.ErrNilShardCoordinator
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		var blockChain *blockchain.BlockChain
-		blockChain, err = blockchain.NewBlockChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewBlockChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -1012,13 +1008,9 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == core.MetachainShardId {
-		var blockChain *blockchain.MetaChain
-		blockChain, err = blockchain.NewMetaChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewMetaChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -1562,12 +1554,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 func createInMemoryStoreBlkc(
 	shardCoordinator sharding.Coordinator,
 ) (dataRetriever.StorageService, data.ChainHandler, error) {
-
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	blkc, err := blockchain.NewMetaChain(cache)
-	if err != nil {
-		return nil, nil, err
-	}
+	blkc := blockchain.NewMetaChain()
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
@@ -1728,6 +1715,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1751,6 +1740,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
 			processArgs.gasSchedule,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 
@@ -1774,6 +1765,8 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1891,7 +1884,12 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -1975,6 +1973,7 @@ func newShardBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2014,6 +2013,8 @@ func newMetaBlockProcessor(
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2107,7 +2108,12 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2253,6 +2259,7 @@ func newMetaBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

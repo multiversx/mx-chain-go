@@ -19,8 +19,7 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache *txcache.TxCache) *ad
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
-	numRequested := int(process.MaxItemsInBlock * process.NumTxFactorForSelectTransactions)
-	txs := adapter.txCache.SelectTransactions(numRequested, process.NumTxPerSenderBatchForFillingMiniblock)
+	txs := adapter.txCache.SelectTransactions(process.MaxNumOfTxsToSelect, process.NumTxPerSenderBatchForFillingMiniblock)
 	return txs
 }
 
