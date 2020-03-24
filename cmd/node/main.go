@@ -577,6 +577,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			"last round", lastRound,
 			"last shard ID", lastShardId)
 	}
+	if !generalConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		currentEpoch = 0
+	}
 
 	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanupFlagValue {
