@@ -51,5 +51,5 @@ if [ $PRIVATE_REPOS -eq 1 ]; then
 
   git clone git@github.com:ElrondNetwork/elrond-txgen-go.git
   cd elrond-txgen-go
-  git checkout fix-1903
+  git checkout master
 fi
