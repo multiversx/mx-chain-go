@@ -2,6 +2,7 @@ package rating_test
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -9,20 +10,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
-	validatorIncreaseRatingStep     = int32(1)
-	validatorDecreaseRatingStep     = int32(-2)
-	proposerIncreaseRatingStep      = int32(2)
-	proposerDecreaseRatingStep      = int32(-4)
-	metaValidatorIncreaseRatingStep = int32(3)
-	metaValidatorDecreaseRatingStep = int32(-4)
-	metaProposerIncreaseRatingStep  = int32(5)
-	metaProposerDecreaseRatingStep  = int32(-10)
-	minRating                       = uint32(1)
-	maxRating                       = uint32(100)
-	startRating                     = uint32(50)
+	validatorIncreaseRatingStep         = int32(1)
+	validatorDecreaseRatingStep         = int32(-2)
+	proposerIncreaseRatingStep          = int32(2)
+	proposerDecreaseRatingStep          = int32(-4)
+	metaValidatorIncreaseRatingStep     = int32(3)
+	metaValidatorDecreaseRatingStep     = int32(-4)
+	metaProposerIncreaseRatingStep      = int32(5)
+	metaProposerDecreaseRatingStep      = int32(-10)
+	minRating                           = uint32(1)
+	maxRating                           = uint32(100)
+	startRating                         = uint32(50)
+	consecutiveMissedBlocksPenaltyMeta  = 1.2
+	consecutiveMissedBlocksPenaltyShard = 1.1
 )
 
 func createDefaultChances() []process.SelectionChance {
@@ -43,16 +47,18 @@ func createDefaultRatingsData() *mock.RatingsInfoMock {
 		MaxRatingProperty:   maxRating,
 		MinRatingProperty:   minRating,
 		MetaRatingsStepDataProperty: &mock.RatingStepMock{
-			ProposerIncreaseRatingStepProperty:  metaProposerIncreaseRatingStep,
-			ProposerDecreaseRatingStepProperty:  metaProposerDecreaseRatingStep,
-			ValidatorIncreaseRatingStepProperty: metaValidatorIncreaseRatingStep,
-			ValidatorDecreaseRatingStepProperty: metaValidatorDecreaseRatingStep,
+			ProposerIncreaseRatingStepProperty:     metaProposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:     metaProposerDecreaseRatingStep,
+			ValidatorIncreaseRatingStepProperty:    metaValidatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty:    metaValidatorDecreaseRatingStep,
+			ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyMeta,
 		},
 		ShardRatingsStepDataProperty: &mock.RatingStepMock{
-			ProposerIncreaseRatingStepProperty:  proposerIncreaseRatingStep,
-			ProposerDecreaseRatingStepProperty:  proposerDecreaseRatingStep,
-			ValidatorIncreaseRatingStepProperty: validatorIncreaseRatingStep,
-			ValidatorDecreaseRatingStepProperty: validatorDecreaseRatingStep,
+			ProposerIncreaseRatingStepProperty:     proposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:     proposerDecreaseRatingStep,
+			ValidatorIncreaseRatingStepProperty:    validatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty:    validatorDecreaseRatingStep,
+			ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyShard,
 		},
 		SelectionChancesProperty: createDefaultChances(),
 	}
@@ -327,6 +333,17 @@ func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *tes
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
+func TestBlockSigningRater_NewBlockSigningRaterWithMinGreaterThanMaxShouldErr(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.MinRatingProperty = 100
+	ratingsData.MaxRatingProperty = 90
+
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
+
+	assert.Nil(t, bsr)
+	assert.True(t, errors.Is(err, process.ErrMaxRatingIsSmallerThanMinRating))
+}
+
 func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdNegativeShouldErr(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
 	ratingsData.SignedBlocksThresholdProperty = -0.01
@@ -403,8 +420,71 @@ func TestBlockSigningRater_NewBlockSigningRaterWitStartRatingGreaterThanMaxdShou
 	assert.Nil(t, bsr)
 	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
 }
+
+func TestBlockSigningRater_RevertIncreaseValidator(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	startRating := ratingsData.StartRating()
+	validatorIncrease := make(map[uint32]int32)
+	validatorIncrease[0] = ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+	validatorIncrease[core.MetachainShardId] = ratingsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+
+	bsr, _ := rating.NewBlockSigningRater(ratingsData)
+
+	for shardId := range validatorIncrease {
+		zeroReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 0)
+		assert.Equal(t, startRating, zeroReverts)
+
+		oneRevert := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 1)
+		assert.Equal(t, uint32(int32(startRating)-validatorIncrease[shardId]), oneRevert)
+
+		tenReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 10)
+		assert.Equal(t, uint32(int32(startRating)-10*validatorIncrease[shardId]), tenReverts)
+
+		hundredReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 100)
+		assert.Equal(t, ratingsData.MinRating(), hundredReverts)
+
+		ratingBelowMinRating := bsr.RevertIncreaseValidator(shardId, ratingsData.MinRating()-1, 0)
+		assert.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+
+		ratingBelowMinRating = bsr.RevertIncreaseValidator(shardId, ratingsData.MinRating()-1, 1)
+		assert.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+	}
+}
+
+func TestBlockSigningRater_RevertIncreaseValidatorWithOverFlow(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.StartRatingProperty = math.MaxUint32 / 2
+	ratingsData.MaxRatingProperty = math.MaxUint32
+	ratingsData.ShardRatingsStepDataProperty = &mock.RatingStepMock{
+		ProposerIncreaseRatingStepProperty:     proposerIncreaseRatingStep,
+		ProposerDecreaseRatingStepProperty:     proposerDecreaseRatingStep,
+		ValidatorIncreaseRatingStepProperty:    math.MaxInt32,
+		ValidatorDecreaseRatingStepProperty:    validatorDecreaseRatingStep,
+		ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyShard,
+	}
+	ratingsData.SelectionChancesProperty[len(ratingsData.SelectionChancesProperty)-1] = &rating.SelectionChance{
+		MaxThreshold:  ratingsData.MaxRating(),
+		ChancePercent: 10,
+	}
+
+	bsr, _ := rating.NewBlockSigningRater(ratingsData)
+	zeroReverts := bsr.RevertIncreaseValidator(0, ratingsData.StartRating(), 0)
+	assert.Equal(t, ratingsData.StartRating(), zeroReverts)
+
+	oneRevert := bsr.RevertIncreaseValidator(0, ratingsData.StartRating(), 1)
+	assert.Equal(t, ratingsData.MinRating(), oneRevert)
+
+	overFlowRevert := bsr.RevertIncreaseValidator(0, ratingsData.StartRating(), 2)
+	assert.Equal(t, ratingsData.MinRating(), overFlowRevert)
+
+	overFlowRevert = bsr.RevertIncreaseValidator(0, ratingsData.StartRating(), math.MaxUint32)
+	assert.Equal(t, ratingsData.MinRating(), overFlowRevert)
+}
+
 func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
+	shardRatingsStepHandler := ratingsData.ShardChainRatingsStepHandler()
+	metaRatingsStepHandler := ratingsData.MetaRatingsStepDataProperty
 
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
@@ -413,22 +493,28 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 
 	testValue := int32(50)
 	assert.Equal(t, ratingsData.StartRating(), bsr.GetStartRating())
-	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(0, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(0, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(0, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(0, uint32(testValue), 0))
+	assert.Equal(t, ratingsData.SignedBlocksThreshold(), bsr.GetSignedBlocksThreshold())
+
+	assert.Equal(t, uint32(testValue+shardRatingsStepHandler.ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(0, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+shardRatingsStepHandler.ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(0, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+shardRatingsStepHandler.ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(0, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+shardRatingsStepHandler.ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(0, uint32(testValue), 0))
+	assert.Equal(t, uint32(testValue-shardRatingsStepHandler.ValidatorIncreaseRatingStep()), bsr.RevertIncreaseValidator(0, uint32(testValue), 1))
 
 	assert.Equal(t, ratingsData.StartRating(), bsr.GetStartRating())
-	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(core.MetachainShardId, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(core.MetachainShardId, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(core.MetachainShardId, uint32(testValue)))
-	assert.Equal(t, uint32(testValue+ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(core.MetachainShardId, uint32(testValue), 0))
+	assert.Equal(t, uint32(testValue+metaRatingsStepHandler.ValidatorIncreaseRatingStep()), bsr.ComputeIncreaseValidator(core.MetachainShardId, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+metaRatingsStepHandler.ValidatorDecreaseRatingStep()), bsr.ComputeDecreaseValidator(core.MetachainShardId, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+metaRatingsStepHandler.ProposerIncreaseRatingStep()), bsr.ComputeIncreaseProposer(core.MetachainShardId, uint32(testValue)))
+	assert.Equal(t, uint32(testValue+metaRatingsStepHandler.ProposerDecreaseRatingStep()), bsr.ComputeDecreaseProposer(core.MetachainShardId, uint32(testValue), 0))
+	assert.Equal(t, uint32(testValue-metaRatingsStepHandler.ValidatorIncreaseRatingStep()), bsr.RevertIncreaseValidator(core.MetachainShardId, uint32(testValue), 1))
 
 	assert.Equal(t, ratingsData.SelectionChances()[0].GetChancePercent(), bsr.GetChance(uint32(0)))
 	assert.Equal(t, ratingsData.SelectionChances()[1].GetChancePercent(), bsr.GetChance(uint32(9)))
 	assert.Equal(t, ratingsData.SelectionChances()[2].GetChancePercent(), bsr.GetChance(uint32(20)))
 	assert.Equal(t, ratingsData.SelectionChances()[3].GetChancePercent(), bsr.GetChance(uint32(50)))
 	assert.Equal(t, ratingsData.SelectionChances()[4].GetChancePercent(), bsr.GetChance(uint32(100)))
+
+	assert.False(t, bsr.IsInterfaceNil())
 }
 
 func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *testing.T) {
@@ -452,4 +538,120 @@ func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *te
 
 	chancesFor80 := uint32(110)
 	assert.Equal(t, chancesFor80, chances)
+}
+
+func TestBlockSigningRater_ComputeDecreaseProposer(t *testing.T) {
+	ratingsData := &mock.RatingsInfoMock{
+		StartRatingProperty: startRating * 100,
+		MaxRatingProperty:   maxRating * 100,
+		MinRatingProperty:   minRating * 100,
+		MetaRatingsStepDataProperty: &mock.RatingStepMock{
+			ProposerIncreaseRatingStepProperty:     metaProposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:     metaProposerDecreaseRatingStep * 100,
+			ValidatorIncreaseRatingStepProperty:    metaValidatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty:    metaValidatorDecreaseRatingStep,
+			ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyMeta,
+		},
+		ShardRatingsStepDataProperty: &mock.RatingStepMock{
+			ProposerIncreaseRatingStepProperty:     proposerIncreaseRatingStep,
+			ProposerDecreaseRatingStepProperty:     proposerDecreaseRatingStep * 100,
+			ValidatorIncreaseRatingStepProperty:    validatorIncreaseRatingStep,
+			ValidatorDecreaseRatingStepProperty:    validatorDecreaseRatingStep,
+			ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyShard,
+		},
+		SelectionChancesProperty: createDefaultChances(),
+	}
+
+	ratingsData.SelectionChancesProperty[len(ratingsData.SelectionChancesProperty)-1] = &rating.SelectionChance{
+		MaxThreshold:  ratingsData.MaxRating(),
+		ChancePercent: 10,
+	}
+
+	startRating := ratingsData.StartRating()
+	proposerDecrease := make(map[uint32]int32)
+	proposerDecrease[0] = ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()
+	proposerDecrease[core.MetachainShardId] = ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep()
+
+	penalty := make(map[uint32]float32)
+	penalty[0] = ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty()
+	penalty[core.MetachainShardId] = ratingsData.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty()
+
+	bsr, _ := rating.NewBlockSigningRater(ratingsData)
+
+	var consecutiveMisses uint32
+	for shardId := range proposerDecrease {
+		consecutiveMisses = 0
+		zeroConsecutive := bsr.ComputeDecreaseProposer(shardId, ratingsData.StartRating(), consecutiveMisses)
+		decreaseStep := float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
+		require.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), zeroConsecutive)
+
+		consecutiveMisses = 1
+		oneConsecutive := bsr.ComputeDecreaseProposer(shardId, ratingsData.StartRating(), consecutiveMisses)
+		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
+		require.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), oneConsecutive)
+
+		consecutiveMisses = 5
+		fiveConsecutive := bsr.ComputeDecreaseProposer(shardId, ratingsData.StartRating(), consecutiveMisses)
+		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
+		require.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), fiveConsecutive)
+
+		consecutiveMisses = 0
+		ratingBelowMinRating := bsr.ComputeDecreaseProposer(shardId, ratingsData.MinRating()-1, consecutiveMisses)
+		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
+		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+
+		consecutiveMisses = 1
+		ratingBelowMinRating = bsr.ComputeDecreaseProposer(shardId, ratingsData.MinRating()-1, consecutiveMisses)
+		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
+		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+	}
+}
+
+func TestBlockSigningRater_ComputeDecreaseProposerWithOverFlow(t *testing.T) {
+	ratingsData := createDefaultRatingsData()
+	ratingsData.StartRatingProperty = math.MaxUint32 / 2
+	ratingsData.MaxRatingProperty = math.MaxUint32
+	ratingsData.ShardRatingsStepDataProperty = &mock.RatingStepMock{
+		ProposerIncreaseRatingStepProperty:     proposerIncreaseRatingStep,
+		ProposerDecreaseRatingStepProperty:     -math.MaxUint32 / 10,
+		ValidatorIncreaseRatingStepProperty:    validatorIncreaseRatingStep,
+		ValidatorDecreaseRatingStepProperty:    validatorDecreaseRatingStep,
+		ConsecutiveMissedBlocksPenaltyProperty: 2,
+	}
+	ratingsData.SelectionChancesProperty[len(ratingsData.SelectionChancesProperty)-1] = &rating.SelectionChance{
+		MaxThreshold:  ratingsData.MaxRating(),
+		ChancePercent: 10,
+	}
+
+	proposerDecreaseRatingStep := ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()
+	consecutiveMissedBlocksPenalty := ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty()
+	startRating := ratingsData.StartRating()
+
+	bsr, _ := rating.NewBlockSigningRater(ratingsData)
+	var consecutiveMisses uint32
+
+	consecutiveMisses = 0
+	zeroMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
+	decreaseStep := float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
+	assert.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), zeroMisses)
+
+	consecutiveMisses = 1
+	oneMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
+	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
+	assert.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), oneMisses)
+
+	consecutiveMisses = 2
+	twoMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
+	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
+	assert.Equal(t, uint32(int32(startRating)+int32(decreaseStep)), twoMisses)
+
+	consecutiveMisses = 10
+	tenMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
+	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
+	assert.Equal(t, ratingsData.MinRating(), tenMisses)
+
+	consecutiveMisses = math.MaxUint32
+	maxMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
+	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
+	assert.Equal(t, ratingsData.MinRating(), maxMisses)
 }

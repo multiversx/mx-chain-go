@@ -33,6 +33,12 @@ func createDummyRatingsConfig() config.RatingsConfig {
 			MaxRating:             100,
 			MinRating:             1,
 			SignedBlocksThreshold: signedBlocksThreshold,
+			SelectionChances: []*config.SelectionChance{
+				{MaxThreshold: 0, ChancePercent: 5},
+				{MaxThreshold: 25, ChancePercent: 19},
+				{MaxThreshold: 75, ChancePercent: 20},
+				{MaxThreshold: 100, ChancePercent: 21},
+			},
 		},
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
@@ -105,7 +111,7 @@ func TestRatingsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrStartRatingNotBetweenMinAndMax))
 }
 
-func TestEconomicsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr(t *testing.T) {
+func TestRatingsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ratingsConfig := createDummyRatingsConfig()
@@ -122,7 +128,7 @@ func TestEconomicsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr
 	assert.True(t, errors.Is(err, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne))
 }
 
-func TestEconomicsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(t *testing.T) {
+func TestRatingsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ratingsConfig := createDummyRatingsConfig()
@@ -167,6 +173,14 @@ func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	ratingsConfig.MetaChain.ValidatorDecreaseRatingStep = metaValidatorDecreaseRatingStep
 	ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty = metaConsecutivePenalty
 
+	selectionChances := []*config.SelectionChance{
+		{MaxThreshold: 0, ChancePercent: 1},
+		{MaxThreshold: minRating, ChancePercent: 2},
+		{MaxThreshold: maxRating, ChancePercent: 4},
+	}
+
+	ratingsConfig.General.SelectionChances = selectionChances
+
 	ratingsData, err := NewRatingsData(ratingsConfig)
 
 	assert.Nil(t, err)
@@ -185,4 +199,9 @@ func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, metaProposerDecreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep())
 	assert.Equal(t, shardConsecutivePenalty, ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
 	assert.Equal(t, metaConsecutivePenalty, ratingsData.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
+
+	for i := range selectionChances {
+		assert.Equal(t, selectionChances[i].MaxThreshold, ratingsData.SelectionChances()[i].GetMaxThreshold())
+		assert.Equal(t, selectionChances[i].ChancePercent, ratingsData.SelectionChances()[i].GetChancePercent())
+	}
 }

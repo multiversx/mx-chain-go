@@ -89,8 +89,8 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 	}, nil
 }
 
-func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32 {
-	newVal := int64(val) + int64(ratingStep)
+func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint32) uint32 {
+	newVal := int64(currentRating) + int64(ratingStep)
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
 	}
@@ -140,22 +140,39 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
+// ComputeIncreaseProposer computes the new rating for the increaseLeader
+func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+	var ratingStep int32
+	if shardId == core.MetachainShardId {
+		ratingStep = bsr.metaRatingsStepHandler.ValidatorIncreaseRatingStep()
+	} else {
+		ratingStep = bsr.shardRatingsStepHandler.ValidatorIncreaseRatingStep()
+	}
+
+	decreaseValue := -int64(ratingStep) * int64(nrReverts)
+	// overflow
+	if decreaseValue > 0 || decreaseValue < math.MinInt32 {
+		decreaseValue = math.MinInt32
+	}
+	return bsr.computeRating(int32(decreaseValue), currentRating)
+}
+
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
 func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
-	var ratingStep int32
+	var proposerDecreaseRatingStep int32
 
 	var consecutiveBlocksPenalty float32
 	if shardId == core.MetachainShardId {
-		ratingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
+		proposerDecreaseRatingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
 		consecutiveBlocksPenalty = bsr.metaRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	} else {
-		ratingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
+		proposerDecreaseRatingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
 		consecutiveBlocksPenalty = bsr.shardRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	}
-	computedIncrease := math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses)) * float64(ratingStep)
+	computedIncrease := float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses))
 	var consecutiveMissesIncrease int32
-	if computedIncrease > math.MaxInt32 {
-		consecutiveMissesIncrease = math.MaxInt32
+	if computedIncrease < math.MinInt32 || computedIncrease >= 0 {
+		consecutiveMissesIncrease = math.MinInt32
 	} else {
 		consecutiveMissesIncrease = int32(computedIncrease)
 	}
