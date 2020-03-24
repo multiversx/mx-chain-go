@@ -135,6 +135,13 @@ func (b *Body) IntegrityAndValidity() error {
 	return nil
 }
 
+// Clone returns a clone of the object
+func (b *Body) Clone() data.BodyHandler {
+	bodyCopy := *b
+
+	return &bodyCopy
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *Body) IsInterfaceNil() bool {
 	return b == nil
