@@ -68,6 +68,6 @@ arwen:
 ifndef ARWEN_PATH
 	$(error ARWEN_PATH is undefined)
 endif
-	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen | sed 's/.*-//')
+	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //')
 	go build -o ${ARWEN_PATH} $(shell go env GOPATH)/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(shell cat go.mod | grep arwen | sed 's/.*arwen-wasm-vm //')/cmd/arwen
 	stat ${ARWEN_PATH}

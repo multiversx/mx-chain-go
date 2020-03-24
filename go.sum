@@ -9,6 +9,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200322202342-e83dc053b616 h1:
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200322202342-e83dc053b616/go.mod h1:u5uieR4W885dDe58kHKPo+mei6QwWvZmfW/Fp2KRIwg=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200324114556-43ffd9551b8f h1:T55YLe+Wq+xLab/XFAjmzWxrph0qMFoHAF51TKP1ySA=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200324114556-43ffd9551b8f/go.mod h1:u5uieR4W885dDe58kHKPo+mei6QwWvZmfW/Fp2KRIwg=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.11 h1:ju82rER9MQ/290qqwYaxah6E0peTN589feSiF6/e0jQ=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.11/go.mod h1:u5uieR4W885dDe58kHKPo+mei6QwWvZmfW/Fp2KRIwg=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86 h1:2GJ/9iWj5/JwB1J2p+mWHhCQAOWGpLQ1c0Wv/FOWZwM=
