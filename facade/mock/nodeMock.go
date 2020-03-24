@@ -21,6 +21,7 @@ type NodeMock struct {
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (*state.Account, error)
@@ -76,6 +77,11 @@ func (nm *NodeMock) CreateTransaction(nonce uint64, value string, receiverHex st
 	gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
 
 	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
+}
+
+//ValidateTransaction --
+func (nm *NodeMock) ValidateTransaction(tx *transaction.Transaction) error {
+	return nm.ValidateTransactionHandler(tx)
 }
 
 // GetTransaction -
