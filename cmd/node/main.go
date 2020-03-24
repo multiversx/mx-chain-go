@@ -636,6 +636,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		WorkingDir:         workingDir,
 		DefaultDBPath:      defaultDBPath,
 		DefaultEpochString: defaultEpochString,
+		DefaultShardString: defaultShardString,
 	}
 	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
 	if err != nil {
@@ -646,6 +647,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		log.Error("boostrap return error", "error", err)
 		return err
+	}
+
+	if !generalConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		currentEpoch = 0
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, currentShardId)

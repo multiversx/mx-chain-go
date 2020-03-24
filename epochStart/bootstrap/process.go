@@ -74,6 +74,7 @@ type epochStartBootstrap struct {
 	workingDir         string
 	defaultDBPath      string
 	defaultEpochString string
+	defaultShardString string
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -101,7 +102,7 @@ type epochStartBootstrap struct {
 type baseDataInStorage struct {
 	shardId        uint32
 	numberOfShards uint32
-	lastRound      uint64
+	lastRound      int64
 	lastEpoch      uint32
 }
 
@@ -122,6 +123,7 @@ type ArgsEpochStartBootstrap struct {
 	WorkingDir         string
 	DefaultDBPath      string
 	DefaultEpochString string
+	DefaultShardString string
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -136,6 +138,7 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 		workingDir:         args.WorkingDir,
 		defaultEpochString: args.DefaultEpochString,
 		defaultDBPath:      args.DefaultEpochString,
+		defaultShardString: args.DefaultShardString,
 		keyGen:             args.KeyGen,
 		blockKeyGen:        args.BlockKeyGen,
 		singleSigner:       args.SingleSigner,
@@ -146,18 +149,24 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 }
 
 func (e *epochStartBootstrap) searchDataInLocalStorage() {
-	currentEpoch, errNotCritical := storageFactory.FindLastEpochFromStorage(
+	var errNotCritical error
+	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage( // TODO: use last round and shard ID
+		e.generalConfig,
+		e.marshalizer, // TODO: remove hardcoded marshalizer when start in epoch is merged.
 		e.workingDir,
 		e.genesisNodesConfig.ChainID,
 		e.defaultDBPath,
 		e.defaultEpochString,
+		e.defaultShardString,
 	)
 	if errNotCritical != nil {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
+	} else {
+		log.Debug("got last data from storage",
+			"epoch", e.baseData.lastEpoch,
+			"last round", e.baseData.lastRound,
+			"last shard ID", e.baseData.lastRound)
 	}
-
-	log.Debug("current epoch from the storage : ", "epoch", currentEpoch)
-	e.baseData.lastEpoch = currentEpoch
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
