@@ -15,19 +15,19 @@ const initNumMessages = 1
 
 type quota struct {
 	numReceivedMessages   uint32
-	sizeReceivedMessages  uint64
 	numProcessedMessages  uint32
+	sizeReceivedMessages  uint64
 	sizeProcessedMessages uint64
 }
 
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
+	maxMessagesPerPeer uint32
+	maxMessages        uint32
 	mutOperation       *sync.RWMutex
 	cacher             storage.Cacher
 	statusHandlers     []QuotaStatusHandler
-	maxMessagesPerPeer uint32
 	maxSizePerPeer     uint64
-	maxMessages        uint32
 	maxSize            uint64
 	globalQuota        *quota
 }
