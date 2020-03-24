@@ -359,14 +359,8 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigNilSuiteShouldErr(t *testing.T) 
 	llSig := &multisig.KyberMultiSignerBLS{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
 	aggSig, _ := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares, pubKeys)
-	pubKeysPoints := make([]crypto.Point, len(pubKeys))
-
-	for i := range pubKeys {
-		pubKeysPoints = append(pubKeysPoints, pubKeys[i].Point())
-	}
 
 	err := llSig.VerifyAggregatedSig(nil, pubKeys, aggSig, msg)
-
 	require.Equal(t, crypto.ErrNilSuite, err)
 }
 

@@ -42,18 +42,15 @@ func (tdaw *TrackableDataTrie) OriginalValue(key []byte) []byte {
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
 func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
-	strKey := string(key)
 	tailLength := len(key) + len(tdaw.identifier)
 
 	//search in dirty data cache
-	value, found := tdaw.dirtyData[strKey]
-	if found {
+	if value, found := tdaw.dirtyData[string(key)]; found {
 		return trimValue(value, tailLength)
 	}
 
 	//search in original data cache
-	value, found = tdaw.originalData[strKey]
-	if found {
+	if value, found := tdaw.originalData[string(key)]; found {
 		return trimValue(value, tailLength)
 	}
 

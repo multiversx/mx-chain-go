@@ -1,10 +1,11 @@
 package sharding
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
@@ -144,7 +145,8 @@ func getExpandedEligibleList(num int) []Validator {
 	sliceToRet := make([]Validator, 0)
 
 	for i := 1; i <= num; i++ {
-		randRat := rand.Intn(5) + 8
+		randBigInt, _ := rand.Int(rand.Reader, big.NewInt(5))
+		randRat := int(randBigInt.Uint64()) + 8
 		pubkey := make([]byte, 32)
 		_, _ = rand.Read(pubkey)
 		address := make([]byte, 32)
