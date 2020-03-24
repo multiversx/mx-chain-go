@@ -150,9 +150,9 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 
 func (e *epochStartBootstrap) searchDataInLocalStorage() {
 	var errNotCritical error
-	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage( // TODO: use last round and shard ID
+	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
 		e.generalConfig,
-		e.marshalizer, // TODO: remove hardcoded marshalizer when start in epoch is merged.
+		e.marshalizer,
 		e.workingDir,
 		e.genesisNodesConfig.ChainID,
 		e.defaultDBPath,
