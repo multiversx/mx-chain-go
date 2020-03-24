@@ -1035,12 +1035,19 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	}
 }
 
-func enableGopsIfNeeded(_ *cli.Context, log logger.Logger) {
-	if err := agent.Listen(agent.Options{}); err != nil {
-		log.Error("failure to init gops", "error", err.Error())
+func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
+	var gopsEnabled bool
+	if ctx.IsSet(gopsEn.Name) {
+		gopsEnabled = ctx.GlobalBool(gopsEn.Name)
 	}
 
-	log.Debug("gops", "enabled", true)
+	if gopsEnabled {
+		if err := agent.Listen(agent.Options{}); err != nil {
+			log.Error("failure to init gops", "error", err.Error())
+		}
+	}
+
+	log.Debug("gops", "enabled", gopsEnabled)
 }
 
 func loadMainConfig(filepath string) (*config.Config, error) {
