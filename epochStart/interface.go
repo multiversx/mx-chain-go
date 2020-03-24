@@ -11,7 +11,6 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
-	ReceivedHeader(header data.HeaderHandler)
 	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
@@ -52,21 +51,21 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartHandler defines the action taken on epoch start event
-type EpochStartHandler interface {
+// ActionHandler defines the action taken on epoch start event
+type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(hdr data.HeaderHandler)
 	NotifyOrder() uint32
 }
 
-// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
-type EpochStartSubscriber interface {
-	RegisterHandler(handler EpochStartHandler)
-	UnregisterHandler(handler EpochStartHandler)
+// RegistrationHandler provides Register and Unregister functionality for the end of epoch events
+type RegistrationHandler interface {
+	RegisterHandler(handler ActionHandler)
+	UnregisterHandler(handler ActionHandler)
 }
 
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
+// Notifier defines which actions should be done for handling new epoch's events
+type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool

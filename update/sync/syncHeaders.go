@@ -84,56 +84,10 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		uint64Converter:        args.Uint64Converter,
 	}
 
-	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockIfEpochStart)
 	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockFirstPending)
 	h.metaBlockPool.RegisterHandler(h.receivedUnFinishedMetaBlocks)
 
 	return h, nil
-}
-
-func (h *headersToSync) receivedMetaBlockIfEpochStart(headerHandler data.HeaderHandler, _ []byte) {
-	h.mutMeta.Lock()
-	if h.stopSyncing || h.epochStartMetaBlock.IsStartOfEpochBlock() {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	meta, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	isWrongEpoch := meta.Epoch > h.epochToSync || meta.Epoch < h.epochToSync-1
-	if isWrongEpoch {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	h.epochHandler.ReceivedHeader(meta)
-	if !h.epochHandler.IsEpochStart() {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	epochStartMetaHash := h.epochHandler.EpochStartMetaHdrHash()
-	metaData, err := h.metaBlockPool.GetHeaderByHash(epochStartMetaHash)
-	if err != nil {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	metaBlock, ok := metaData.(*block.MetaBlock)
-	if !ok {
-		h.mutMeta.Unlock()
-		return
-	}
-
-	h.epochStartMetaBlock = metaBlock
-	h.stopSyncing = true
-	h.mutMeta.Unlock()
-
-	h.chReceivedAll <- true
 }
 
 func (h *headersToSync) receivedMetaBlockFirstPending(headerHandler data.HeaderHandler, hash []byte) {
@@ -229,12 +183,34 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 	epochStartId := core.EpochStartIdentifier(epoch)
 	meta, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), h.marshalizer, h.store)
 	if err != nil {
-		_ = process.EmptyChannel(h.chReceivedAll)
-
 		h.mutMeta.Lock()
 		h.stopSyncing = false
 		h.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 		h.mutMeta.Unlock()
+
+		startTime := time.Now()
+		for {
+			time.Sleep(time.Millisecond)
+			elapsedTime := time.Since(startTime)
+			if elapsedTime > waitTime {
+				return process.ErrTimeIsOut
+			}
+
+			if !h.epochHandler.IsEpochStart() {
+				continue
+			}
+
+			meta, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), h.marshalizer, h.store)
+			if err != nil {
+				continue
+			}
+
+			h.mutMeta.Lock()
+			h.epochStartMetaBlock = meta
+			h.mutMeta.Unlock()
+
+			break
+		}
 
 		err = WaitFor(h.chReceivedAll, waitTime)
 		if err != nil {

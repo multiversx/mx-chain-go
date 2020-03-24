@@ -1382,7 +1382,10 @@ func DoComputeMissingBlocks(
 
 	arguments.MaxComputableRounds = maxComputableRounds
 
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	_ = validatorStatistics.CheckForMissedBlocks(currentHeaderRounds, previousHeaderRound, []byte("prev"), 0, 0)
 
 	firstKey := "testpk_0"

@@ -24,8 +24,8 @@ type PubKeyHeartbeat struct {
 	TotalUpTime     int64     `json:"totalUpTimeSec"`
 	TotalDownTime   int64     `json:"totalDownTimeSec"`
 	VersionNumber   string    `json:"versionNumber"`
-	IsValidator     bool      `json:"isValidator"`
 	NodeDisplayName string    `json:"nodeDisplayName"`
+	PeerType        string    `json:"peerType"`
 }
 
 // MarshalJSON is called when a json marshal is triggered on this field

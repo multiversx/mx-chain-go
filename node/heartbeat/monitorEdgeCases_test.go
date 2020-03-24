@@ -25,7 +25,9 @@ func createMonitor(
 		genesisTime,
 		&mock.MessageHandlerStub{},
 		storer,
+		&mock.PeerTypeProviderStub{},
 		timer,
+		createMockP2PAntifloodHandler(),
 	)
 
 	return mon

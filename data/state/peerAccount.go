@@ -31,8 +31,8 @@ func NewPeerAccount(
 
 	return &PeerAccount{
 		PeerAccountData: PeerAccountData{
-			AccumulatedFees:  big.NewInt(0),
-			Stake: big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+			Stake:           big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -305,7 +305,7 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseLeaderAccumulatedFees increases the account's accumulated fees
+// AddToAccumulatedFees increases the account's accumulated fees
 func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
 	if value.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -414,6 +414,21 @@ func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal(value uint32) error 
 // GetRating gets the rating
 func (pa *PeerAccount) GetRating() uint32 {
 	return pa.Rating
+}
+
+// SetListAndIndexWithJournal will update the peer's list (eligible, waiting) and the index inside it with journal
+func (pa *PeerAccount) SetListAndIndexWithJournal(shardID uint32, list string, index int32) error {
+	entry, err := NewPeerJournalEntryListIndex(pa, pa.CurrentShardId, pa.List, pa.IndexInList)
+	if err != nil {
+		return err
+	}
+
+	pa.accountTracker.Journalize(entry)
+	pa.CurrentShardId = shardID
+	pa.List = list
+	pa.IndexInList = index
+
+	return pa.accountTracker.SaveAccount(pa)
 }
 
 // SetRatingWithJournal sets the account's rating id, saving the old state before changing

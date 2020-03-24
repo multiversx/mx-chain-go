@@ -28,7 +28,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Settings           *config.EpochStartConfig
 	Epoch              uint32
 	EpochStartRound    uint64
-	EpochStartNotifier epochStart.EpochStartNotifier
+	EpochStartNotifier epochStart.Notifier
 	Marshalizer        marshal.Marshalizer
 	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
@@ -48,7 +48,7 @@ type trigger struct {
 	triggerStateKey             []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
-	epochStartNotifier          epochStart.EpochStartNotifier
+	epochStartNotifier          epochStart.Notifier
 	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
@@ -355,10 +355,6 @@ func (t *trigger) Epoch() uint32 {
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
 func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
-}
-
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
-func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch

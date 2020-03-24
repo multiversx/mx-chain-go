@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -29,8 +28,6 @@ type shardProcessor struct {
 	*baseProcessor
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
-
-	chRcvEpochStart chan bool
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
@@ -54,14 +51,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
-	if err != nil {
-		return nil, err
-	}
-
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     blockSizeThrottler,
+		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
 		hasher:                 arguments.Hasher,
 		marshalizer:            arguments.Marshalizer,
@@ -218,7 +210,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
-	err = sp.requestEpochStartInfo(header, haveTime())
+	err = sp.requestEpochStartInfo(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -287,20 +279,24 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime time.Duration) error {
-	_ = process.EmptyChannel(sp.chRcvEpochStart)
+func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime func() time.Duration) error {
 	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && !sp.epochStartTrigger.IsEpochStart()
+	if !haveMissingMetaHeaders {
+		return nil
+	}
 
-	if haveMissingMetaHeaders {
-		select {
-		case <-sp.chRcvEpochStart:
+	for {
+		time.Sleep(time.Millisecond)
+		if haveTime() < 0 {
+			break
+		}
+
+		if sp.epochStartTrigger.IsEpochStart() {
 			return nil
-		case <-time.After(waitTime):
-			return process.ErrTimeIsOut
 		}
 	}
 
-	return nil
+	return process.ErrTimeIsOut
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
@@ -548,7 +544,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error("error indexing round %d block header %s", header.GetRound(), err.Error())
+		log.Error("error indexing block header",
+			"header", header.GetRound(),
+			"error", err.Error(),
+		)
 		return
 	}
 
@@ -685,7 +684,7 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	for _, miniBlock := range finalBody.MiniBlocks {
-		log.Debug("CreateBlock: miniblock",
+		log.Trace("CreateBlock: miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
@@ -698,7 +697,7 @@ func (sp *shardProcessor) CreateBlock(
 // createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func() bool) (*block.Body, error) {
-	sp.blockSizeThrottler.ComputeMaxItems()
+	sp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating block body",
 		"epoch", shardHdr.GetEpoch(),
@@ -1311,11 +1310,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	metaBlocksPool := sp.dataPool.Headers()
-	if metaBlocksPool == nil {
-		return
-	}
-
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return
@@ -1366,11 +1360,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if !sp.blockTracker.ShouldAddHeader(metaBlock) {
-		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
-		return
-	}
-
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
 	if err != nil {
 		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
@@ -1384,11 +1373,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	}
 	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
 		return
-	}
-
-	sp.epochStartTrigger.ReceivedHeader(metaBlock)
-	if sp.epochStartTrigger.IsEpochStart() {
-		sp.chRcvEpochStart <- true
 	}
 
 	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
@@ -1509,9 +1493,10 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
+	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txsAdded := uint32(0)
@@ -1568,13 +1553,13 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
-		currMBProcessed, currTxsAdded, hdrProcessFinished, err := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		currMBProcessed, currTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currMetaHdr,
 			processedMiniBlocksHashes,
 			haveTime)
 
-		if err != nil {
-			return nil, 0, 0, err
+		if errCreated != nil {
+			return nil, 0, 0, errCreated
 		}
 
 		// all txs processed, add to processed miniblocks
@@ -1600,6 +1585,18 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+
+	for _, miniBlock := range miniBlocks {
+		log.Debug("mini block info",
+			"type", miniBlock.Type,
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"txs added", len(miniBlock.TxHashes))
+	}
+
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+		"num txs added", txsAdded,
+		"num hdrs added", hdrsAdded)
 
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
@@ -1632,7 +1629,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime := time.Now()
-	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
@@ -1727,9 +1724,11 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
-	sp.blockSizeThrottler.Add(
-		shardHeader.GetRound(),
-		core.MaxUint32(shardHeader.ItemsInBody(), shardHeader.ItemsInHeader()))
+	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
+	if err != nil {
+		return nil, err
+	}
+	sp.blockSizeThrottler.Add(shardHeader.GetRound(), uint32(len(marshalizedBody)))
 
 	return newBody, nil
 }

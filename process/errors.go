@@ -537,8 +537,11 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReader signals that nil rating reader has been provided
-var ErrNilRatingReader = errors.New("nil rating reader")
+// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
+var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
+
+// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
+var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
@@ -560,6 +563,15 @@ var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy
 
 // ErrNotEnoughGas signals that not enough gas has been provided
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")
+
+// ErrNilQuotaStatusHandler signals that a nil quota status handler has been provided
+var ErrNilQuotaStatusHandler = errors.New("nil quota status handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
@@ -615,6 +627,9 @@ var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
+// ErrEmptyTopic signals that an empty topic has been provided
+var ErrEmptyTopic = errors.New("empty topic")
+
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
 
@@ -635,12 +650,6 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
-
-// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
-var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
-
-// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
-var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch econimics data does not match")
 
 // ErrNilEpochEconomics signals that nil end of epoch econimics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
@@ -698,3 +707,9 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+
+// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
+var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+
+// ErrNilBlockSizeThrottler signals that block size throttler si nil
+var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")

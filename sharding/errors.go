@@ -25,9 +25,6 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilChanceComputer signals that the chanceComputer is nil
-var ErrNilChanceComputer = errors.New("nil chance computer")
-
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -64,20 +61,11 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
-// ErrEpochNodesConfigDesNotExist signals that the epoch nodes configuration is missing
-var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does not exist")
+// ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
-
-// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
-var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
-
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
-var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
-
-// ErrEligibleTooFewSelections signals an invalid selection for consensus group
-var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
 
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")
@@ -87,6 +75,9 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
+// ErrNilListIndexUpdater signals that a nil list index updater was provided
+var ErrNilListIndexUpdater = errors.New("nil list index updater")
 
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")
@@ -100,5 +91,8 @@ var ErrValidatorNotFound = errors.New("validator not found")
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
-// ErrNilCacher signals that the cacher is nil
+// ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that a nil epoch handler has been provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")

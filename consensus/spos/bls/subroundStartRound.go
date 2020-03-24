@@ -44,7 +44,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
-	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
+	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -74,6 +74,8 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
+	topic := spos.GetConsensusTopicIDFromShardCoordinator(sr.ShardCoordinator())
+	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	return true
 }
 

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -392,13 +393,13 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	}
 }
 
-// WithEpochStartSubscriber sets up the epoch start subscriber
-func WithEpochStartSubscriber(epochStartSubscriber epochStart.EpochStartSubscriber) Option {
+// WithEpochStartEventNotifier sets up the notifier for the epoch start event
+func WithEpochStartEventNotifier(epochStartEventNotifier epochStart.RegistrationHandler) Option {
 	return func(n *Node) error {
-		if epochStartSubscriber == nil {
+		if epochStartEventNotifier == nil {
 			return ErrNilEpochStartTrigger
 		}
-		n.epochStartSubscriber = epochStartSubscriber
+		n.epochStartRegistrationHandler = epochStartEventNotifier
 		return nil
 	}
 }
@@ -519,6 +520,42 @@ func WithRequestHandler(requestHandler process.RequestHandler) Option {
 			return ErrNilRequestHandler
 		}
 		n.requestHandler = requestHandler
+		return nil
+	}
+}
+
+// WithNetworkShardingCollector sets up a network sharding updater for the Node
+func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
+	return func(n *Node) error {
+		if check.IfNil(networkShardingCollector) {
+			return ErrNilNetworkShardingCollector
+		}
+		n.networkShardingCollector = networkShardingCollector
+		return nil
+	}
+}
+
+// WithInputAntifloodHandler sets up an antiflood handler for the Node on the input side
+func WithInputAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(antifloodHandler) {
+			return fmt.Errorf("%w on input", ErrNilAntifloodHandler)
+		}
+		n.inputAntifloodHandler = antifloodHandler
+		return nil
+	}
+}
+
+// WithTxAccumulator sets up a transaction accumulator handler for the Node
+func WithTxAccumulator(accumulator Accumulator) Option {
+	return func(n *Node) error {
+		if check.IfNil(accumulator) {
+			return ErrNilTxAccumulator
+		}
+		n.txAcumulator = accumulator
+
+		go n.sendFromTxAccumulator()
+
 		return nil
 	}
 }

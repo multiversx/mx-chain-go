@@ -20,22 +20,22 @@ func (ipcm *InterimProcessorContainerMock) Get(key block.Type) (process.Intermed
 }
 
 // Add -
-func (ipcm *InterimProcessorContainerMock) Add(key block.Type, val process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) Add(_ block.Type, _ process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
 // AddMultiple -
-func (ipcm *InterimProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) AddMultiple(_ []block.Type, _ []process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
 // Replace -
-func (ipcm *InterimProcessorContainerMock) Replace(key block.Type, val process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) Replace(_ block.Type, _ process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
 // Remove -
-func (ipcm *InterimProcessorContainerMock) Remove(key block.Type) {
+func (ipcm *InterimProcessorContainerMock) Remove(_ block.Type) {
 	panic("implement me")
 }
 

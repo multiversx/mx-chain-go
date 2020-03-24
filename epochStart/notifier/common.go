@@ -10,7 +10,7 @@ func NewHandlerForEpochStart(
 	actionFunc func(hdr data.HeaderHandler),
 	prepareFunc func(metaHeader data.HeaderHandler),
 	id uint32,
-) epochStart.EpochStartHandler {
+) epochStart.ActionHandler {
 	handler := handlerStruct{
 		act:     actionFunc,
 		prepare: prepareFunc,

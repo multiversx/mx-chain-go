@@ -42,7 +42,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService      dataRetriever.StorageService
 	AdrConv             state.AddressConverter
 	PeerAdapter         state.AccountsAdapter
-	Rater               sharding.RaterHandler
+	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
 	StartEpoch          uint32
@@ -56,7 +56,7 @@ type validatorStatistics struct {
 	shardCoordinator        sharding.Coordinator
 	adrConv                 state.AddressConverter
 	peerAdapter             state.AccountsAdapter
-	rater                   sharding.RaterHandler
+	rater                   sharding.PeerAccountListAndRatingHandler
 	rewardsHandler          process.RewardsHandler
 	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
@@ -118,7 +118,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
 
 	if !ok {
-		return nil, process.ErrNilRatingReader
+		return nil, process.ErrNilRatingReaderSetter
 	}
 	log.Debug("setting ratingReader")
 
@@ -129,7 +129,24 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
+	listIndexUpdaterSetter, ok := rater.(sharding.ListIndexUpdaterSetter)
+	if !ok {
+		return nil, process.ErrNilListIndexUpdaterSetter
+	}
+	log.Debug("setting list index updater")
+
+	liu := &ListIndexUpdater{
+		updateListAndIndex: vs.updateListAndIndex,
+	}
+
+	listIndexUpdaterSetter.SetListIndexUpdater(liu)
+
+	err := vs.nodesCoordinator.UpdatePeersListAndIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	err = vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -773,7 +790,7 @@ func (vs *validatorStatistics) IsInterfaceNil() bool {
 func (vs *validatorStatistics) getRating(s string) uint32 {
 	peer, err := vs.GetPeerAccount([]byte(s))
 	if err != nil {
-		log.Debug("Error getting peer account", "error", err)
+		log.Debug("error getting peer account", "error", err, "key", s)
 		return vs.rater.GetStartRating()
 	}
 
@@ -819,6 +836,17 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 
 	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
 	return nil
+}
+
+// updateListAndIndex updates the list and the index for a given public key
+func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+	peer, err := vs.GetPeerAccount([]byte(pubKey))
+	if err != nil {
+		log.Debug("error getting peer account", "error", err, "key", pubKey)
+		return err
+	}
+
+	return peer.SetListAndIndexWithJournal(shardID, list, index)
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {

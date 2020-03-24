@@ -25,7 +25,7 @@ func (hrm *MiniBlocksResolverMock) RequestDataFromHashArray(hashes [][]byte, epo
 }
 
 // ProcessReceivedMessage -
-func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 

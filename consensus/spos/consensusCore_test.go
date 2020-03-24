@@ -12,21 +12,22 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	consensusCoreMock := mock.InitConsensusCore()
 
 	args := &spos.ConsensusCoreArgs{
-		BlockChain:           consensusCoreMock.Blockchain(),
-		BlockProcessor:       consensusCoreMock.BlockProcessor(),
-		Bootstrapper:         consensusCoreMock.BootStrapper(),
-		BroadcastMessenger:   consensusCoreMock.BroadcastMessenger(),
-		ChronologyHandler:    consensusCoreMock.Chronology(),
-		Hasher:               consensusCoreMock.Hasher(),
-		Marshalizer:          consensusCoreMock.Marshalizer(),
-		BlsPrivateKey:        consensusCoreMock.PrivateKey(),
-		BlsSingleSigner:      consensusCoreMock.SingleSigner(),
-		MultiSigner:          consensusCoreMock.MultiSigner(),
-		Rounder:              consensusCoreMock.Rounder(),
-		ShardCoordinator:     consensusCoreMock.ShardCoordinator(),
-		NodesCoordinator:     consensusCoreMock.NodesCoordinator(),
-		SyncTimer:            consensusCoreMock.SyncTimer(),
-		EpochStartSubscriber: consensusCoreMock.EpochStartSubscriber(),
+		BlockChain:                    consensusCoreMock.Blockchain(),
+		BlockProcessor:                consensusCoreMock.BlockProcessor(),
+		Bootstrapper:                  consensusCoreMock.BootStrapper(),
+		BroadcastMessenger:            consensusCoreMock.BroadcastMessenger(),
+		ChronologyHandler:             consensusCoreMock.Chronology(),
+		Hasher:                        consensusCoreMock.Hasher(),
+		Marshalizer:                   consensusCoreMock.Marshalizer(),
+		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
+		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
+		MultiSigner:                   consensusCoreMock.MultiSigner(),
+		Rounder:                       consensusCoreMock.Rounder(),
+		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
+		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
+		SyncTimer:                     consensusCoreMock.SyncTimer(),
+		EpochStartRegistrationHandler: consensusCoreMock.EpochStartRegistrationHandler(),
+		AntifloodHandler:     		   consensusCoreMock.GetAntiFloodHandler(),
 	}
 	return args
 }
@@ -223,6 +224,20 @@ func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.AntifloodHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

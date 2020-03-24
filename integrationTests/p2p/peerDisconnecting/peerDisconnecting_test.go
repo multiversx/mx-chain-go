@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -15,8 +16,47 @@ import (
 )
 
 var durationBootstrapingTime = 2 * time.Second
+var randezVous = ""
 
-func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
+func createDefaultConfig() config.P2PConfig {
+	return config.P2PConfig{
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			RandezVous:                       randezVous,
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
+		},
+	}
+}
+
+func TestPeerDisconnectionWithOneAdvertiserWithShardingWithPrioBits(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Sharding = config.ShardingConfig{
+		TargetPeerCount: 100,
+		PrioBits:        4,
+		Type:            p2p.PrioBitsSharder,
+	}
+
+	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
+}
+
+func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Sharding = config.ShardingConfig{
+		TargetPeerCount:         100,
+		MaxIntraShardValidators: 40,
+		MaxCrossShardValidators: 40,
+		MaxIntraShardObservers:  1,
+		MaxCrossShardObservers:  1,
+		Type:                    p2p.ListsSharder,
+	}
+
+	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
+}
+
+func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PConfig) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -24,24 +64,25 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	numOfPeers := 20
 	netw := mocknet.New(context.Background())
 
+	p2pConfigSeeder := p2pConfig
+	argSeeder := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfigSeeder,
+	}
 	//Step 1. Create advertiser
-	advertiser, _ := libp2p.NewMemoryMessenger(
-		context.Background(),
-		netw,
-		integrationTests.CreateKadPeerDiscoverer(time.Second, nil),
-	)
+	advertiser, _ := libp2p.NewMockMessenger(argSeeder, netw)
+	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(advertiser)}
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
-		node, _ := libp2p.NewMemoryMessenger(
-			context.Background(),
-			netw,
-			integrationTests.CreateKadPeerDiscoverer(
-				time.Second,
-				[]string{integrationTests.GetConnectableAddress(advertiser)},
-			),
-		)
+		arg := libp2p.ArgsNetworkMessenger{
+			Context:       context.Background(),
+			ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:     p2pConfig,
+		}
+		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node
 	}
 

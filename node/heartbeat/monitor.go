@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types:. heartbeat.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. heartbeat.proto
 package heartbeat
 
 import (
@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat")
@@ -24,6 +23,7 @@ var log = logger.GetOrCreate("node/heartbeat")
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	marshalizer                 marshal.Marshalizer
+	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutPubKeysMap               sync.RWMutex
@@ -35,6 +35,7 @@ type Monitor struct {
 	messageHandler              MessageHandler
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
+	antifloodHandler            P2PAntifloodHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -45,10 +46,15 @@ func NewMonitor(
 	genesisTime time.Time,
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
+	peerTypeProvider PeerTypeProviderHandler,
 	timer Timer,
+	antifloodHandler P2PAntifloodHandler,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(peerTypeProvider) {
+		return nil, ErrNilPeerTypeProvider
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
@@ -62,16 +68,21 @@ func NewMonitor(
 	if check.IfNil(timer) {
 		return nil, ErrNilTimer
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, ErrNilAntifloodHandler
+	}
 
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
+		peerTypeProvider:            peerTypeProvider,
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 		genesisTime:                 genesisTime,
 		messageHandler:              messageHandler,
 		storer:                      storer,
 		timer:                       timer,
+		antifloodHandler:            antifloodHandler,
 	}
 
 	err := mon.storer.UpdateGenesisTime(genesisTime)
@@ -118,7 +129,8 @@ func (m *Monitor) initializeHeartBeatForPK(
 ) error {
 	hbmi, err := m.loadHbmiFromStorer(pubkey)
 	if err != nil { // if pubKey not found in DB, create a new instance
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+		peerType := m.computePeerType([]byte(pubkey), shardId)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			return err
 		}
@@ -186,6 +198,7 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
+	receivedHbmi.peerType = m.computePeerType([]byte(pubKey), receivedHbmi.computedShardID)
 
 	return receivedHbmi, nil
 }
@@ -202,8 +215,24 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	if message == nil || message.IsInterfaceNil() {
+		return ErrNilMessage
+	}
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
+
+	err := m.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+	err = m.antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, core.HeartbeatTopic)
+	if err != nil {
+		return err
+	}
+
+	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
 		return err
 	}
@@ -222,7 +251,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	hbmi, ok := m.heartbeatMessages[pubKeyStr]
 	if hbmi == nil || !ok {
 		var err error
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
+		peerType := m.computePeerType(hb.Pubkey, hb.ShardID)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			log.Debug("error creating hbmi", "error", err.Error())
 			m.mutHeartbeatMessages.Unlock()
@@ -233,8 +263,9 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
+	isInEligibleList := m.computePeerType(hb.Pubkey, computedShardID)
 
-	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, isInEligibleList)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
@@ -281,6 +312,16 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 
 	// if not found, return the latest known computed shard ID
 	return m.heartbeatMessages[pubkey].computedShardID
+}
+
+func (m *Monitor) computePeerType(pubkey []byte, shardID uint32) string {
+	peerType, err := m.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
+	if err != nil {
+		log.Warn("monitor: compute peer type", "error", err)
+		return string(core.ObserverList)
+	}
+
+	return string(peerType)
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {
@@ -331,8 +372,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			TotalUpTime:     int64(v.totalUpTime.Seconds()),
 			TotalDownTime:   int64(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
-			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
+			PeerType:        v.peerType,
 		}
 		status[idx] = tmp
 		idx++
@@ -359,16 +400,16 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		ReceivedShardID: v.receivedShardID,
 		ComputedShardID: v.computedShardID,
 		VersionNumber:   v.versionNumber,
-		IsValidator:     v.isValidator,
 		NodeDisplayName: v.nodeDisplayName,
+		PeerType:        v.peerType,
 	}
 
-	ret.TimeStamp, _ = types.TimestampProto(v.timeStamp)
-	ret.MaxInactiveTime = types.DurationProto(v.maxInactiveTime)
-	ret.TotalUpTime = types.DurationProto(v.totalUpTime)
-	ret.TotalDownTime = types.DurationProto(v.totalDownTime)
-	ret.LastUptimeDowntime, _ = types.TimestampProto(v.lastUptimeDowntime)
-	ret.GenesisTime, _ = types.TimestampProto(v.genesisTime)
+	ret.TimeStamp = v.timeStamp.UnixNano()
+	ret.MaxInactiveTime = v.maxInactiveTime.Nanoseconds()
+	ret.TotalUpTime = v.totalUpTime.Nanoseconds()
+	ret.TotalDownTime = v.totalDownTime.Nanoseconds()
+	ret.LastUptimeDowntime = v.lastUptimeDowntime.UnixNano()
+	ret.GenesisTime = v.genesisTime.UnixNano()
 
 	return ret
 }
@@ -381,14 +422,15 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		computedShardID:             hbDTO.ComputedShardID,
 		versionNumber:               hbDTO.VersionNumber,
 		nodeDisplayName:             hbDTO.NodeDisplayName,
-		isValidator:                 hbDTO.IsValidator,
+		peerType:                    hbDTO.PeerType,
 	}
 
-	hbmi.maxInactiveTime, _ = types.DurationFromProto(hbDTO.MaxInactiveTime)
-	hbmi.timeStamp, _ = types.TimestampFromProto(hbDTO.TimeStamp)
-	hbmi.totalUpTime, _ = types.DurationFromProto(hbDTO.TotalUpTime)
-	hbmi.totalDownTime, _ = types.DurationFromProto(hbDTO.TotalDownTime)
-	hbmi.lastUptimeDowntime, _ = types.TimestampFromProto(hbDTO.LastUptimeDowntime)
-	hbmi.genesisTime, _ = types.TimestampFromProto(hbDTO.GenesisTime)
+	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
+	hbmi.timeStamp = time.Unix(0, hbDTO.TimeStamp)
+	hbmi.totalUpTime = time.Duration(hbDTO.TotalUpTime)
+	hbmi.totalDownTime = time.Duration(hbDTO.TotalDownTime)
+	hbmi.lastUptimeDowntime = time.Unix(0, hbDTO.LastUptimeDowntime)
+	hbmi.genesisTime = time.Unix(0, hbDTO.GenesisTime)
+
 	return hbmi
 }

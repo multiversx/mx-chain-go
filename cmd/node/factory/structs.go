@@ -3,12 +3,9 @@ package factory
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"time"
 
@@ -59,8 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -80,9 +75,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
+	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -91,9 +89,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/urfave/cli"
 )
 
@@ -113,8 +109,8 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler)
 	IsInterfaceNil() bool
@@ -122,7 +118,9 @@ type EpochStartNotifier interface {
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
-	NetMessenger p2p.Messenger
+	NetMessenger           p2p.Messenger
+	InputAntifloodHandler  P2PAntifloodHandler
+	OutputAntifloodHandler P2PAntifloodHandler
 }
 
 // Core struct holds the core components of the Elrond protocol
@@ -493,21 +491,52 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, core *Core) (*Network, error) {
-	var randReader io.Reader
-	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
-	} else {
-		randReader = rand.Reader
+func NetworkComponentsFactory(
+	p2pConfig config.P2PConfig,
+	mainConfig config.Config,
+	statusHandler core.AppStatusHandler,
+) (*Network, error) {
+
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
 	}
 
-	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
+	netMessenger, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(mainConfig, statusHandler)
+	if errNewAntiflood != nil {
+		return nil, errNewAntiflood
+	}
+
+	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
+	}
+
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
+	if errOutputAntiflood != nil {
+		return nil, errOutputAntiflood
+	}
+
+	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
+	}
+
+	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Network{
-		NetMessenger: netMessenger,
+		NetMessenger:           netMessenger,
+		InputAntifloodHandler:  inputAntifloodHandler,
+		OutputAntifloodHandler: outputAntifloodHandler,
 	}, nil
 }
 
@@ -530,11 +559,14 @@ type processComponentsFactoryArgs struct {
 	whiteListHandler       process.InterceptedDataWhiteList
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
-	rater                  sharding.RaterHandler
+	rater                  sharding.PeerAccountListAndRatingHandler
 	startEpochNum          uint32
 	sizeCheckDelta         uint32
 	stateCheckpointModulus uint
 	maxComputableRounds    uint64
+	numConcurrentResolverJobs int32
+	minSizeInBytes            uint32
+	maxSizeInBytes            uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -558,10 +590,13 @@ func NewProcessComponentsFactoryArgs(
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
-	rater sharding.RaterHandler,
+	rater sharding.PeerAccountListAndRatingHandler,
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
 	maxComputableRounds uint64,
+	numConcurrentResolverJobs int32,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:         coreComponents,
@@ -587,6 +622,9 @@ func NewProcessComponentsFactoryArgs(
 		sizeCheckDelta:         sizeCheckDelta,
 		stateCheckpointModulus: stateCheckpointModulus,
 		maxComputableRounds:    maxComputableRounds,
+		numConcurrentResolverJobs: numConcurrentResolverJobs,
+		minSizeInBytes:            minSizeInBytes,
+		maxSizeInBytes:            maxSizeInBytes,
 	}
 }
 
@@ -620,6 +658,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.coreData,
 		args.network,
 		args.sizeCheckDelta,
+		args.numConcurrentResolverJobs,
 	)
 	if err != nil {
 		return nil, err
@@ -892,40 +931,6 @@ func newEpochStartTrigger(
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-type seedRandReader struct {
-	index int
-	seed  []byte
-}
-
-// NewSeedRandReader will return a new instance of a seed-based reader
-func NewSeedRandReader(seed []byte) *seedRandReader {
-	return &seedRandReader{seed: seed, index: 0}
-}
-
-func (srr *seedRandReader) Read(p []byte) (n int, err error) {
-	if srr.seed == nil {
-		return 0, errors.New("nil seed")
-	}
-	if len(srr.seed) == 0 {
-		return 0, errors.New("empty seed")
-	}
-	if p == nil {
-		return 0, errors.New("nil buffer")
-	}
-	if len(p) == 0 {
-		return 0, errors.New("empty buffer")
-	}
-
-	for i := 0; i < len(p); i++ {
-		p[i] = srr.seed[srr.index]
-
-		srr.index++
-		srr.index %= len(srr.seed)
-	}
-
-	return len(p), nil
-}
-
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
 func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
@@ -1026,10 +1031,10 @@ func createDataStoreFromConfig(
 func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
-	configs := args.config
+	mainConfig := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(configs.TxDataPool),
+		Config:         storageFactory.GetCacherFromConfig(mainConfig.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
 		SelfShardID:    args.shardCoordinator.SelfId(),
@@ -1039,39 +1044,39 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(configs.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {
 		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(configs.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(configs.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(configs.TrieNodesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating trieNodes")
@@ -1114,7 +1119,7 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 		return sha256.Sha256{}, nil
 	case "blake2b":
 		if cfg.Consensus.Type == BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: hashing.BlsHashSize}, nil
+			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
 	}
@@ -1137,45 +1142,6 @@ func createMultiSigner(
 	default:
 		return nil, errors.New("no consensus type provided in config file")
 	}
-}
-
-func createNetMessenger(
-	p2pConfig *config.P2PConfig,
-	log logger.Logger,
-	randReader io.Reader,
-) (p2p.Messenger, error) {
-
-	if p2pConfig.Node.Port < 0 {
-		return nil, errors.New("cannot start node on port < 0")
-	}
-
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
-	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("peer discovery", "method", pDiscoverer.Name())
-
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	nm, err := libp2p.NewNetworkMessenger(
-		context.Background(),
-		p2pConfig.Node.Port,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		pDiscoverer,
-		libp2p.ListenAddrWithIp4AndTcp,
-		p2pConfig.Node.TargetPeerCount,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return nm, nil
 }
 
 func newInterceptorContainerFactory(
@@ -1238,6 +1204,7 @@ func newResolverContainerFactory(
 	coreData *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1247,6 +1214,7 @@ func newResolverContainerFactory(
 			coreData,
 			network,
 			sizeCheckDelta,
+			numConcurrentResolverJobs,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1256,6 +1224,7 @@ func newResolverContainerFactory(
 			coreData,
 			network,
 			sizeCheckDelta,
+			numConcurrentResolverJobs,
 		)
 	}
 
@@ -1303,6 +1272,7 @@ func newShardInterceptorContainerFactory(
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
+		AntifloodHandler:       network.InputAntifloodHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1353,6 +1323,7 @@ func newMetaInterceptorContainerFactory(
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
+		AntifloodHandler:       network.InputAntifloodHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1368,6 +1339,7 @@ func newShardResolverContainerFactory(
 	core *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.InternalMarshalizer)
@@ -1376,15 +1348,18 @@ func newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
-		Store:                    data.Store,
-		Marshalizer:              core.InternalMarshalizer,
-		DataPools:                data.Datapool,
-		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
-		DataPacker:               dataPacker,
-		TriesContainer:           core.TriesContainer,
-		SizeCheckDelta:           sizeCheckDelta,
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  network.NetMessenger,
+		Store:                      data.Store,
+		Marshalizer:                core.InternalMarshalizer,
+		DataPools:                  data.Datapool,
+		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             core.TriesContainer,
+		SizeCheckDelta:             sizeCheckDelta,
+		InputAntifloodHandler:      network.InputAntifloodHandler,
+		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1400,6 +1375,7 @@ func newMetaResolverContainerFactory(
 	core *Core,
 	network *Network,
 	sizeCheckDelta uint32,
+	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.InternalMarshalizer)
 	if err != nil {
@@ -1407,15 +1383,18 @@ func newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
-		Store:                    data.Store,
-		Marshalizer:              core.InternalMarshalizer,
-		DataPools:                data.Datapool,
-		Uint64ByteSliceConverter: core.Uint64ByteSliceConverter,
-		DataPacker:               dataPacker,
-		TriesContainer:           core.TriesContainer,
-		SizeCheckDelta:           sizeCheckDelta,
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  network.NetMessenger,
+		Store:                      data.Store,
+		Marshalizer:                core.InternalMarshalizer,
+		DataPools:                  data.Datapool,
+		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             core.TriesContainer,
+		SizeCheckDelta:             sizeCheckDelta,
+		InputAntifloodHandler:      network.InputAntifloodHandler,
+		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1729,6 +1708,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			headerValidator,
 			blockTracker,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1752,6 +1733,8 @@ func newBlockProcessor(
 			processArgs.stateCheckpointModulus,
 			processArgs.crypto.MessageSignVerifier,
 			processArgs.gasSchedule,
+			processArgs.minSizeInBytes,
+			processArgs.maxSizeInBytes,
 		)
 	}
 
@@ -1775,6 +1758,8 @@ func newShardBlockProcessor(
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1892,7 +1877,12 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -1934,6 +1924,7 @@ func newShardBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1975,6 +1966,7 @@ func newShardBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2014,6 +2006,8 @@ func newMetaBlockProcessor(
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
+	minSizeInBytes uint32,
+	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2107,7 +2101,12 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer)
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2147,6 +2146,7 @@ func newMetaBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
+		txFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2189,6 +2189,7 @@ func newMetaBlockProcessor(
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:      core.InternalMarshalizer,
+		Hasher:           core.Hasher,
 		Store:            data.Store,
 		ShardCoordinator: shardCoordinator,
 		NodesCoordinator: nodesCoordinator,
@@ -2252,6 +2253,7 @@ func newMetaBlockProcessor(
 		FeeHandler:             txFeeHandler,
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
+		BlockSizeThrottler:     blockSizeThrottler,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
@@ -2310,6 +2312,68 @@ func newValidatorStatisticsProcessor(
 	}
 
 	return validatorStatisticsProcessor, nil
+}
+
+// PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
+func PrepareNetworkShardingCollector(
+	network *Network,
+	config *config.Config,
+	nodesCoordinator sharding.NodesCoordinator,
+	coordinator sharding.Coordinator,
+	epochHandler sharding.EpochHandler,
+) (*networksharding.PeerShardMapper, error) {
+
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	localId := network.NetMessenger.ID()
+	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
+
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	return networkShardingCollector, nil
+}
+
+func createNetworkShardingCollector(
+	config *config.Config,
+	nodesCoordinator sharding.NodesCoordinator,
+	epochHandler sharding.EpochHandler,
+) (*networksharding.PeerShardMapper, error) {
+
+	cacheConfig := config.PublicKeyPeerId
+	cachePkPid, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PublicKeyShardId
+	cachePkShardId, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PeerIdShardId
+	cachePidShardId, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return networksharding.NewPeerShardMapper(
+		cachePkPid,
+		cachePkShardId,
+		cachePidShardId,
+		nodesCoordinator,
+		epochHandler,
+	)
+}
+
+func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
+	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
 }
 
 func generateInMemoryAccountsAdapter(

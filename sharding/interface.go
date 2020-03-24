@@ -27,6 +27,7 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
+	UpdatePeersListAndIndex() error
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
@@ -44,6 +45,12 @@ type PublicKeysSelector interface {
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
+}
+
+// EpochHandler defines what a component which handles current epoch should be able to do
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
 }
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
@@ -69,15 +76,18 @@ type NodesPerShardSetter interface {
 		eligible map[uint32][]Validator,
 		waiting map[uint32][]Validator,
 		epoch uint32,
+		updateList bool,
 	) error
 	ComputeLeaving(allValidators []Validator) []Validator
 }
 
-//RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
-type RaterHandler interface {
+//PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
+type PeerAccountListAndRatingHandler interface {
 	RatingReader
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
+	// UpdateListAndIndex updated the list and the index for a peer
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
@@ -88,6 +98,22 @@ type RaterHandler interface {
 	ComputeIncreaseValidator(val uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(val uint32) uint32
+}
+
+// ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
+type ListIndexUpdaterHandler interface {
+	// UpdateListAndIndex updated the list and the index for a peer
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+// ListIndexUpdaterSetter provides the capabilities to set a ListIndexUpdater
+type ListIndexUpdaterSetter interface {
+	// SetListIndexUpdater will set the updater
+	SetListIndexUpdater(updater ListIndexUpdaterHandler)
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }
 
 //RatingReader provides rating reading capabilities for the ratingHandler

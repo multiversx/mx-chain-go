@@ -104,8 +104,8 @@ type Storer interface {
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

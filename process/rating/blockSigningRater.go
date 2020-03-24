@@ -5,12 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// BlockSigningRater defines the behaviour of a struct able to do ratings for validators
-type BlockSigningRater struct {
+// BlockSigningRaterAndListIndexer defines the behaviour of a struct able to do ratings for validators
+type BlockSigningRaterAndListIndexer struct {
 	sharding.RatingReader
+	sharding.ListIndexUpdaterHandler
 	startRating                 uint32
 	maxRating                   uint32
 	minRating                   uint32
@@ -21,8 +23,8 @@ type BlockSigningRater struct {
 	ratingChances               []sharding.RatingChance
 }
 
-// NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
-func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, error) {
+// NewBlockSigningRaterAndListIndexer creates a new PeerAccountListAndRatingHandler of Type BlockSigningRaterAndListIndexer
+func NewBlockSigningRaterAndListIndexer(ratingsData *economics.RatingsData) (*BlockSigningRaterAndListIndexer, error) {
 	if ratingsData.MinRating() < 1 {
 		return nil, process.ErrMinRatingSmallerThanOne
 	}
@@ -63,7 +65,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 		return nil, process.ErrNoChancesForMaxThreshold
 	}
 
-	return &BlockSigningRater{
+	return &BlockSigningRaterAndListIndexer{
 		startRating:                 ratingsData.StartRating(),
 		minRating:                   ratingsData.MinRating(),
 		maxRating:                   ratingsData.MaxRating(),
@@ -71,12 +73,13 @@ func NewBlockSigningRater(ratingsData process.RatingsInfo) (*BlockSigningRater, 
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                NewNilRatingReader(ratingsData.StartRating()),
+		RatingReader:                NewDisabledRatingReader(ratingsData.StartRating()),
 		ratingChances:               ratingChances,
+		ListIndexUpdaterHandler:     &DisabledListIndexUpdater{},
 	}, nil
 }
 
-func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) computeRating(ratingStep int32, val uint32) uint32 {
 	newVal := int64(val) + int64(ratingStep)
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
@@ -89,54 +92,66 @@ func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32
 }
 
 // GetRating returns the Rating for the specified public key
-func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
-// UpdateRatingFromTempRating returns the TempRating for the specified public keys
-func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) error {
-	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
-}
-
 // SetRatingReader sets the Reader that can read ratings
-func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
+func (bsr *BlockSigningRaterAndListIndexer) SetRatingReader(reader sharding.RatingReader) {
 	if !check.IfNil(reader) {
 		bsr.RatingReader = reader
 	}
 }
 
+// UpdateRatingFromTempRating returns the TempRating for the specified public keys
+func (bsr *BlockSigningRaterAndListIndexer) UpdateRatingFromTempRating(pks []string) error {
+	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
+}
+
+// SetListIndexUpdater sets the list index update
+func (bsr *BlockSigningRaterAndListIndexer) SetListIndexUpdater(updater sharding.ListIndexUpdaterHandler) {
+	if !check.IfNil(updater) {
+		bsr.ListIndexUpdaterHandler = updater
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (bsr *BlockSigningRater) IsInterfaceNil() bool {
+func (bsr *BlockSigningRaterAndListIndexer) IsInterfaceNil() bool {
 	return bsr == nil
 }
 
 // GetStartRating gets the StartingRating
-func (bsr *BlockSigningRater) GetStartRating() uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) GetStartRating() uint32 {
 	return bsr.startRating
 }
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
-func (bsr *BlockSigningRater) ComputeIncreaseProposer(val uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) ComputeIncreaseProposer(val uint32) uint32 {
 	return bsr.computeRating(bsr.proposerIncreaseRatingStep, val)
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
-func (bsr *BlockSigningRater) ComputeDecreaseProposer(val uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) ComputeDecreaseProposer(val uint32) uint32 {
 	return bsr.computeRating(bsr.proposerDecreaseRatingStep, val)
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator
-func (bsr *BlockSigningRater) ComputeIncreaseValidator(val uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) ComputeIncreaseValidator(val uint32) uint32 {
 	return bsr.computeRating(bsr.validatorIncreaseRatingStep, val)
 }
 
 // ComputeDecreaseValidator computes the new rating for the decreaseValidator
-func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) ComputeDecreaseValidator(val uint32) uint32 {
 	return bsr.computeRating(bsr.validatorDecreaseRatingStep, val)
 }
 
+// UpdateListAndIndex will update the list and the index for a peer
+func (bsr *BlockSigningRaterAndListIndexer) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+	return bsr.ListIndexUpdaterHandler.UpdateListAndIndex(pubKey, shardID, list, index)
+}
+
 // GetChance returns the RatingChance for the pk
-func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
+func (bsr *BlockSigningRaterAndListIndexer) GetChance(currentRating uint32) uint32 {
 	chance := bsr.ratingChances[0].GetChancePercentage()
 	for i := 0; i < len(bsr.ratingChances); i++ {
 		currentChance := bsr.ratingChances[i]

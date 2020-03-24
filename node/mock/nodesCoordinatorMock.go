@@ -6,13 +6,22 @@ import (
 
 // NodesCoordinatorMock -
 type NodesCoordinatorMock struct {
-	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
-	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
+	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
+}
+
+// UpdatePeersListAndIndex -
+func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
+	return nil
 }
 
 // GetAllEligibleValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllEligibleValidatorsPublicKeysCalled()
+	}
 	return nil, nil
 }
 
@@ -112,6 +121,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	_ map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	_ uint32,
+	_ bool,
 ) error {
 	return nil
 }
@@ -167,6 +177,11 @@ func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]u
 // GetOwnPublicKey -
 func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
+}
+
+// GetNodesPerShard -
+func (ncm *NodesCoordinatorMock) GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

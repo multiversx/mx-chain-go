@@ -37,12 +37,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
-	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
-	if errTxValidation != nil {
-		return errTxValidation
-	}
-
-	return nil
+	return txip.txValidator.CheckTxValidity(interceptedTx)
 }
 
 // Save will save the received data into the cacher

@@ -1,5 +1,20 @@
 package core
 
+// PeerType represents the type of a peer
+type PeerType string
+
+// EligibleList represents the list of peers who participate in consensus inside a shard
+const EligibleList PeerType = "eligible"
+
+// WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
+const WaitingList PeerType = "waiting"
+
+// ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
+const ObserverList PeerType = "observer"
+
+// NewList -
+const NewList PeerType = "new"
+
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
 const UnVersionedAppString = "undefined"
@@ -30,6 +45,9 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -50,6 +68,9 @@ const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
 // MetricNumConnectedPeers is the metric for monitoring the number of connected peers
 const MetricNumConnectedPeers = "erd_num_connected_peers"
+
+// MetricNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classification"
 
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"
@@ -81,7 +102,7 @@ const MetricNodeType = "erd_node_type"
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
-// MetricConnectedNodes is the metric for monitoring total connected peers on the network
+// MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
@@ -186,6 +207,9 @@ const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
 
+// MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
+const MetricPeerType = "erd_peer_type"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
@@ -251,3 +275,24 @@ const (
 	// NsNotCalculated defines ID of a state which is not calculated
 	NsNotCalculated
 )
+
+// MetricP2PPeerInfo is the metric for the node's p2p info
+const MetricP2PPeerInfo = "erd_p2p_peer_info"
+
+// MetricP2PIntraShardValidators is the metric that outputs the intra-shard connected validators
+const MetricP2PIntraShardValidators = "erd_p2p_intra_shard_validators"
+
+// MetricP2PCrossShardValidators is the metric that outputs the cross-shard connected validators
+const MetricP2PCrossShardValidators = "erd_p2p_cross_shard_validators"
+
+// MetricP2PIntraShardObservers is the metric that outputs the intra-shard connected observers
+const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
+
+// MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
+const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
+
+// MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
+const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
+
+// MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"

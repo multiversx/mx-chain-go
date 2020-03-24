@@ -78,8 +78,8 @@ func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderM
 	return rrm
 }
 
-func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRater {
-	bsr, _ := rating.NewBlockSigningRater(rd)
+func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRaterAndListIndexer {
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 	ratingPk := pk
 	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = initialRating
@@ -92,7 +92,7 @@ func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rat
 func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
 
@@ -103,7 +103,7 @@ func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRatin
 
 func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
@@ -116,7 +116,7 @@ func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testi
 func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	ratingPk := "test"
 	ratingValue := uint32(5)
@@ -213,7 +213,7 @@ func TestBlockSigningRater_UpdateRatingsShouldNotDecreaseBelowMinRating(t *testi
 
 func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	pk1 := "pk1"
 	pk2 := "pk2"
@@ -264,7 +264,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithChancesNilShouldErr(t *testin
 
 	ratingsData, _ := economics.NewRatingsData(data)
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
+	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNoChancesProvided, err)
@@ -306,45 +306,43 @@ func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldE
 
 	ratingsData, _ := economics.NewRatingsData(data)
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
+	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrDuplicateThreshold, err)
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *testing.T) {
-	chances := make([]process.SelectionChance, 0)
-	chances = append(chances, &economics.SelectionChance{
+	chances := make([]config.SelectionChance, 0)
+	chances = append(chances, config.SelectionChance{
 		MaxThreshold:  10,
 		ChancePercent: 0,
 	})
-	chances = append(chances, &economics.SelectionChance{
+	chances = append(chances, config.SelectionChance{
 		MaxThreshold:  20,
 		ChancePercent: 90,
 	})
-	chances = append(chances, &economics.SelectionChance{
+	chances = append(chances, config.SelectionChance{
 		MaxThreshold:  20,
 		ChancePercent: 100,
 	})
-	chances = append(chances, &economics.SelectionChance{
+	chances = append(chances, config.SelectionChance{
 		MaxThreshold:  100,
 		ChancePercent: 110,
 	})
 
-	ratingsData := &mock.RatingsInfoMock{
-		StartRatingVal:                 startRating,
-		MaxRatingVal:                   maxRating,
-		MinRatingVal:                   0,
-		ProposerIncreaseRatingStepVal:  proposerIncreaseRatingStep,
-		ProposerDecreaseRatingStepVal:  proposerDecreaseRatingStep,
-		ValidatorIncreaseRatingStepVal: validatorIncreaseRatingStep,
-		ValidatorDecreaseRatingStepVal: validatorDecreaseRatingStep,
-		SelectionChancesVal:            chances,
+	data := config.RatingSettings{
+		StartRating:                 startRating,
+		MaxRating:                   maxRating,
+		MinRating:                   0,
+		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
+		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
+		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
+		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
+		SelectionChance:             chances,
 	}
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
-
-	assert.Nil(t, bsr)
+	_, err := economics.NewRatingsData(data)
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
@@ -380,7 +378,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoMaxThresholdZeroShouldErr(t
 
 	ratingsData, _ := economics.NewRatingsData(data)
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
+	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNilMinChanceIfZero, err)
@@ -414,7 +412,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoValueForMaxThresholdShouldE
 
 	ratingsData, _ := economics.NewRatingsData(data)
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
+	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNoChancesForMaxThreshold, err)
@@ -423,7 +421,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoValueForMaxThresholdShouldE
 func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
+	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	assert.NotNil(t, bsr)
 	assert.Nil(t, err)
@@ -432,7 +430,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(ratingsData)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
 
 	chance := bsr.GetChance(startRating)
 
@@ -443,7 +441,7 @@ func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *t
 func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	ratingValue := uint32(80)
 	chances := bsr.GetChance(ratingValue)

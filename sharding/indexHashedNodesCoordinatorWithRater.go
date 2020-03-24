@@ -30,8 +30,8 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	}
 
 	ihncr.nodesPerShardSetter = ihncr
-	ihncr.epochStartSubscriber.UnregisterHandler(indexNodesCoordinator)
-	ihncr.epochStartSubscriber.RegisterHandler(ihncr)
+	ihncr.epochStartRegistrationHandler.UnregisterHandler(indexNodesCoordinator)
+	ihncr.epochStartRegistrationHandler.RegisterHandler(ihncr)
 
 	err := ihncr.expandAllLists(indexNodesCoordinator.currentEpoch)
 	if err != nil {
@@ -46,8 +46,9 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	epoch uint32,
+	updateList bool,
 ) error {
-	err := ihgs.indexHashedNodesCoordinator.SetNodesPerShards(eligible, waiting, epoch)
+	err := ihgs.indexHashedNodesCoordinator.SetNodesPerShards(eligible, waiting, epoch, updateList)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandAllLists(epoch uint32) e
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
-		return ErrEpochNodesConfigDesNotExist
+		return ErrEpochNodesConfigDoesNotExist
 	}
 
 	shardsExpanded := make(map[uint32][]Validator)
@@ -123,7 +124,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandListsForEpochConfig(node
 
 func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochNodesConfig, shardId uint32) ([]Validator, error) {
 	validators := nodesConfig.eligibleMap[shardId]
-	log.Trace("Expanding eligible list", "shardId", shardId)
+	log.Trace("Expanding eligible list", "shardID", shardId)
 	return ihgs.expandEligibleList(validators)
 }
 

@@ -155,7 +155,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -168,7 +168,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 				nodesCoordinatorFactory,
 			)
 		}
@@ -214,8 +214,8 @@ func createNode(
 		TestHasher,
 		cache,
 		bootStorer,
+		&mock.ListIndexUpdaterStub{},
 	}
-
 	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
 	return NewTestProcessorNodeWithCustomNodesCoordinator(
@@ -292,13 +292,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			BootStorer:              bootStorer,
-			EpochStartSubscriber:    epochStartSubscriber,
-			ShardId:                 shardId,
+			EpochStartNotifier:      epochStartSubscriber,
+			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     consensusCache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -369,14 +370,15 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
-			EpochStartSubscriber:    epochStartSubscriber,
+			EpochStartNotifier:      epochStartSubscriber,
 			BootStorer:              bootStorer,
-			ShardId:                 shardId,
+			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

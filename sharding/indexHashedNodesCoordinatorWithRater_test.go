@@ -47,7 +47,7 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waiting, 0))
+	assert.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waiting, 0, true))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
@@ -64,13 +64,14 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -143,13 +144,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ratingPk0 := uint32(5)
@@ -208,13 +210,14 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
@@ -248,13 +251,14 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -283,13 +287,14 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -332,13 +337,14 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                2,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -401,14 +407,15 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardZeroId,
+		ShardIDAsObserver:       shardZeroId,
 		NbShards:                2,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -490,7 +497,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
