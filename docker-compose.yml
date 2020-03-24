@@ -67,3 +67,5 @@ services:
 #  elrond:
 #    external:
 #      name: "elrond"
+  test:
+    build: ./

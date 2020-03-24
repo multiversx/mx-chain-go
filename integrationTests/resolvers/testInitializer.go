@@ -12,9 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.GetOrCreate("integrationtests/multishard/resolvers")
+// Log -
+var Log = logger.GetOrCreate("integrationtests/multishard/resolvers")
 
-func createResolverRequester(
+// CreateResolverRequester -
+func CreateResolverRequester(
 	resolverShardID uint32,
 	requesterShardID uint32,
 ) (*integrationTests.TestProcessorNode, *integrationTests.TestProcessorNode) {
@@ -31,14 +33,15 @@ func createResolverRequester(
 
 	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
-	log.LogIfError(err)
+	Log.LogIfError(err)
 
 	time.Sleep(time.Second)
 
 	return nResolver, nRequester
 }
 
-func createShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
+// CreateShardHeader -
+func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.Header{
 		Nonce:        nonce,
 		PrevHash:     []byte("prev hash"),
@@ -70,12 +73,13 @@ func createShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)
-	log.LogIfError(err)
+	Log.LogIfError(err)
 
 	return hdr, hash
 }
 
-func createMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
+// CreateMetaHeader -
+func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.MetaBlock{
 		Nonce:         nonce,
 		Epoch:         0,
@@ -91,12 +95,13 @@ func createMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)
-	log.LogIfError(err)
+	Log.LogIfError(err)
 
 	return hdr, hash
 }
 
-func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBlock, []byte) {
+// CreateMiniblock -
+func CreateMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBlock, []byte) {
 	dummyTxHash := make([]byte, integrationTests.TestHasher.Size())
 	miniblock := &block.MiniBlock{
 		TxHashes:        [][]byte{dummyTxHash},
@@ -106,12 +111,13 @@ func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, miniblock)
-	log.LogIfError(err)
+	Log.LogIfError(err)
 
 	return miniblock, hash
 }
 
-func createReward(round uint64) (data.TransactionHandler, []byte) {
+// CreateReward -
+func CreateReward(round uint64) (data.TransactionHandler, []byte) {
 	reward := &rewardTx.RewardTx{
 		Round:   round,
 		Epoch:   0,
@@ -120,7 +126,7 @@ func createReward(round uint64) (data.TransactionHandler, []byte) {
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)
-	log.LogIfError(err)
+	Log.LogIfError(err)
 
 	return reward, hash
 }
