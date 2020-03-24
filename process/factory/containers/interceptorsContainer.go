@@ -1,6 +1,8 @@
 package containers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
@@ -23,7 +25,7 @@ func NewInterceptorsContainer() *interceptorsContainer {
 func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 	value, ok := ic.objects.Get(key)
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in interceptors container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	interceptor, ok := value.(process.Interceptor)

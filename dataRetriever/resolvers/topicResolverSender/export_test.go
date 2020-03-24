@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+const TopicRequestSuffix = topicRequestSuffix
+
 func MakeDiffList(
 	allConnectedPeers []p2p.PeerID,
 	excludedConnectedPeers []p2p.PeerID,
@@ -13,7 +15,7 @@ func MakeDiffList(
 	return makeDiffList(allConnectedPeers, excludedConnectedPeers)
 }
 
-func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
+func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
 	return fisherYatesShuffle(indexes, randomizer)
 }
 

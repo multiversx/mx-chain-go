@@ -67,6 +67,7 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
@@ -142,6 +143,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
+		BlockSizeThrottler:     TestBlockSizeThrottler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

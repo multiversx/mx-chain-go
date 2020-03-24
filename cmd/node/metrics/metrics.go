@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -57,6 +58,16 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
 	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
+	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
+	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
+
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, initString)
 
 	var consensusGroupSize uint32
 	switch {
@@ -122,17 +133,69 @@ func registerPollConnectedPeers(
 	networkComponents *factory.Network,
 ) error {
 
-	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	p2pMetricsHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		computeNumConnectedPeers(appStatusHandler, networkComponents)
+		computeConnectedPeers(appStatusHandler, networkComponents)
 	}
 
-	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
 	if err != nil {
 		return errors.New("cannot register handler func for num of connected peers")
 	}
 
 	return nil
+}
+
+func computeNumConnectedPeers(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+}
+
+func computeConnectedPeers(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	peersInfo := networkComponents.NetMessenger.GetConnectedPeersInfo()
+
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
+		len(peersInfo.IntraShardValidators),
+		len(peersInfo.CrossShardValidators),
+		len(peersInfo.IntraShardObservers),
+		len(peersInfo.CrossShardObservers),
+		len(peersInfo.UnknownPeers),
+	)
+	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, peerClassification)
+
+	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
+	setCurrentP2pNodeAddresses(appStatusHandler, networkComponents)
+}
+
+func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, sliceToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, sliceToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, sliceToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, sliceToString(info.CrossShardObservers))
+}
+
+func sliceToString(input []string) string {
+	output := ""
+	for _, str := range input {
+		output += str + ","
+	}
+
+	return output
+}
+
+func setCurrentP2pNodeAddresses(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
 }
 
 func registerPollProbableHighestNonce(

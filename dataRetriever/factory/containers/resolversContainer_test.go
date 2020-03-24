@@ -1,6 +1,7 @@
 package containers_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -118,7 +119,7 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	valRecovered, err := c.Get(keyNotFound)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
@@ -203,7 +204,7 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 	valRecovered, err := c.Get(key)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 //------- Len
@@ -221,4 +222,21 @@ func TestResolversContainer_LenShouldWork(t *testing.T) {
 
 	c.Remove("key1")
 	assert.Equal(t, 1, c.Len())
+}
+
+//------- ResolverKeys
+
+func TestResolversContainer_ResolverKeys(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key0", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+	_ = c.Add("a", &mock.ResolverStub{})
+
+	expectedString := "a, key0, key1, key2"
+
+	assert.Equal(t, expectedString, c.ResolverKeys())
 }

@@ -45,6 +45,9 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -65,6 +68,9 @@ const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
 // MetricNumConnectedPeers is the metric for monitoring the number of connected peers
 const MetricNumConnectedPeers = "erd_num_connected_peers"
+
+// MetricNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classification"
 
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"
@@ -96,7 +102,7 @@ const MetricNodeType = "erd_node_type"
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
-// MetricConnectedNodes is the metric for monitoring total connected peers on the network
+// MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
@@ -269,3 +275,24 @@ const (
 	// NsNotCalculated defines ID of a state which is not calculated
 	NsNotCalculated
 )
+
+// MetricP2PPeerInfo is the metric for the node's p2p info
+const MetricP2PPeerInfo = "erd_p2p_peer_info"
+
+// MetricP2PIntraShardValidators is the metric that outputs the intra-shard connected validators
+const MetricP2PIntraShardValidators = "erd_p2p_intra_shard_validators"
+
+// MetricP2PCrossShardValidators is the metric that outputs the cross-shard connected validators
+const MetricP2PCrossShardValidators = "erd_p2p_cross_shard_validators"
+
+// MetricP2PIntraShardObservers is the metric that outputs the intra-shard connected observers
+const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
+
+// MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
+const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
+
+// MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
+const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
+
+// MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"

@@ -219,7 +219,6 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("not found")
 	metaHash := []byte("epochStartBlock_0")
 	meta := &block.MetaBlock{Epoch: 1,
 		EpochStart: block.EpochStart{
@@ -246,13 +245,14 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 		},
 	}
 
+	metaBytes, _ := args.Marshalizer.Marshal(meta)
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &mock.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
-				return nil, localErr
+				return metaBytes, nil
 			},
 			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
-				return nil, localErr
+				return metaBytes, nil
 			},
 		}
 	}}

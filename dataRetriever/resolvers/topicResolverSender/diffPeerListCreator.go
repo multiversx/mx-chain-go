@@ -2,7 +2,9 @@ package topicResolverSender
 
 import (
 	"bytes"
+	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -12,6 +14,7 @@ import (
 type DiffPeerListCreator struct {
 	messenger             dataRetriever.MessageHandler
 	mainTopic             string
+	intraShardTopic       string
 	excludePeersFromTopic string
 }
 
@@ -19,15 +22,23 @@ type DiffPeerListCreator struct {
 func NewDiffPeerListCreator(
 	messenger dataRetriever.MessageHandler,
 	mainTopic string,
+	intraShardTopic string,
 	excludePeersFromTopic string,
 ) (*DiffPeerListCreator, error) {
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return nil, dataRetriever.ErrNilMessenger
+	}
+	if len(mainTopic) == 0 {
+		return nil, fmt.Errorf("%w for mainTopic", dataRetriever.ErrEmptyString)
+	}
+	if len(intraShardTopic) == 0 {
+		return nil, fmt.Errorf("%w for intraShardTopic", dataRetriever.ErrEmptyString)
 	}
 
 	return &DiffPeerListCreator{
 		messenger:             messenger,
 		mainTopic:             mainTopic,
+		intraShardTopic:       intraShardTopic,
 		excludePeersFromTopic: excludePeersFromTopic,
 	}, nil
 }
@@ -53,6 +64,11 @@ func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
 	}
 
 	return diffList
+}
+
+// IntraShardPeerList returns the intra shard peer list
+func (dplc *DiffPeerListCreator) IntraShardPeerList() []p2p.PeerID {
+	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

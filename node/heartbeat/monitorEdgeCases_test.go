@@ -27,6 +27,7 @@ func createMonitor(
 		storer,
 		&mock.PeerTypeProviderStub{},
 		timer,
+		createMockP2PAntifloodHandler(),
 	)
 
 	return mon

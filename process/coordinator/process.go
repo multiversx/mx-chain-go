@@ -44,6 +44,7 @@ type transactionCoordinator struct {
 
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
 	gasHandler         process.GasHandler
+	feeHandler         process.TransactionFeeHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -57,6 +58,7 @@ func NewTransactionCoordinator(
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
+	feeHandler process.TransactionFeeHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -86,6 +88,9 @@ func NewTransactionCoordinator(
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(feeHandler) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
@@ -93,6 +98,7 @@ func NewTransactionCoordinator(
 		gasHandler:       gasHandler,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
+		feeHandler:       feeHandler,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -385,7 +391,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	for _, miniBlock := range body.MiniBlocks {
-		log.Debug("ProcessBlockTransaction: miniblock",
+		log.Trace("ProcessBlockTransaction: miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
@@ -801,6 +807,7 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		}
 		interProc.RemoveProcessedResultsFor(txHashes)
 	}
+	tc.feeHandler.RevertFees(txHashes)
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
@@ -859,11 +866,11 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 		mb := interProc.GetCreatedInShardMiniBlock()
 		if mb == nil {
-			log.Debug("CreateReceiptsHash nil inshard miniblock for type", "type", value)
+			log.Trace("CreateReceiptsHash nil inshard miniblock for type", "type", value)
 			continue
 		}
 
-		log.Debug("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+		log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
 			"type", mb.Type,
 			"senderShardID", mb.SenderShardID,
 			"receiverShardID", mb.ReceiverShardID,

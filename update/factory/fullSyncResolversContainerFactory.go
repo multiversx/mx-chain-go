@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -15,22 +16,33 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+const defaultTargetShardID = uint32(0)
+const numCrossShardPeers = 2
+const numIntraShardPeers = 2
+
 type resolversContainerFactory struct {
-	shardCoordinator  sharding.Coordinator
-	messenger         dataRetriever.TopicMessageHandler
-	marshalizer       marshal.Marshalizer
-	intRandomizer     dataRetriever.IntRandomizer
-	dataTrieContainer state.TriesHolder
-	container         dataRetriever.ResolversContainer
+	shardCoordinator       sharding.Coordinator
+	messenger              dataRetriever.TopicMessageHandler
+	marshalizer            marshal.Marshalizer
+	intRandomizer          dataRetriever.IntRandomizer
+	dataTrieContainer      state.TriesHolder
+	container              dataRetriever.ResolversContainer
+	intraShardTopic        string
+	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
+	throttler              dataRetriever.ResolverThrottler
 }
 
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
-	ShardCoordinator  sharding.Coordinator
-	Messenger         dataRetriever.TopicMessageHandler
-	Marshalizer       marshal.Marshalizer
-	DataTrieContainer state.TriesHolder
-	ExistingResolvers dataRetriever.ResolversContainer
+	ShardCoordinator           sharding.Coordinator
+	Messenger                  dataRetriever.TopicMessageHandler
+	Marshalizer                marshal.Marshalizer
+	DataTrieContainer          state.TriesHolder
+	ExistingResolvers          dataRetriever.ResolversContainer
+	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	NumConcurrentResolvingJobs int32
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -51,13 +63,23 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		return nil, update.ErrNilResolverContainer
 	}
 
+	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	if err != nil {
+		return nil, err
+	}
+	intraShardTopic := core.ConsensusTopic +
+		args.ShardCoordinator.CommunicationIdentifier(args.ShardCoordinator.SelfId())
 	return &resolversContainerFactory{
-		shardCoordinator:  args.ShardCoordinator,
-		messenger:         args.Messenger,
-		marshalizer:       args.Marshalizer,
-		intRandomizer:     &random.ConcurrentSafeIntRandomizer{},
-		dataTrieContainer: args.DataTrieContainer,
-		container:         args.ExistingResolvers,
+		shardCoordinator:       args.ShardCoordinator,
+		messenger:              args.Messenger,
+		marshalizer:            args.Marshalizer,
+		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
+		dataTrieContainer:      args.DataTrieContainer,
+		container:              args.ExistingResolvers,
+		intraShardTopic:        intraShardTopic,
+		inputAntifloodHandler:  args.InputAntifloodHandler,
+		outputAntifloodHandler: args.OutputAntifloodHandler,
+		throttler:              thr,
 	}, nil
 }
 
@@ -128,51 +150,48 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string) (dataRetriever.Resolver, error) {
 	excludePeersFromTopic := core.ConsensusTopic + rcf.shardCoordinator.CommunicationIdentifier(rcf.shardCoordinator.SelfId())
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, baseTopic, excludePeersFromTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, baseTopic, rcf.intraShardTopic, excludePeersFromTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		baseTopic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		rcf.shardCoordinator.SelfId(),
-	)
+	arg := topicResolverSender.ArgTopicResolverSender{
+		Messenger:          rcf.messenger,
+		TopicName:          baseTopic,
+		PeerListCreator:    peerListCreator,
+		Marshalizer:        rcf.marshalizer,
+		Randomizer:         rcf.intRandomizer,
+		TargetShardId:      defaultTargetShardID,
+		OutputAntiflooder:  rcf.outputAntifloodHandler,
+		NumCrossShardPeers: numCrossShardPeers,
+		NumIntraShardPeers: numIntraShardPeers,
+	}
+	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	resolver, err := resolvers.NewTrieNodeResolver(
-		resolverSender,
-		rcf.dataTrieContainer.Get([]byte(trieId)),
-		rcf.marshalizer,
-	)
+	trie := rcf.dataTrieContainer.Get([]byte(trieId))
+	argTrieResolver := resolvers.ArgTrieNodeResolver{
+		SenderResolver:   resolverSender,
+		TrieDataGetter:   trie,
+		Marshalizer:      rcf.marshalizer,
+		AntifloodHandler: rcf.inputAntifloodHandler,
+		Throttler:        rcf.throttler,
+	}
+	resolver, err := resolvers.NewTrieNodeResolver(argTrieResolver)
 	if err != nil {
 		return nil, err
 	}
 
-	//add on the request topic
-	return rcf.createTopicAndAssignHandler(
-		baseTopic+resolverSender.TopicRequestSuffix(),
-		resolver,
-		false)
-}
-
-func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
-	topicName string,
-	resolver dataRetriever.Resolver,
-	createChannel bool,
-) (dataRetriever.Resolver, error) {
-
-	err := rcf.messenger.CreateTopic(topicName, createChannel)
+	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolver, rcf.messenger.RegisterMessageProcessor(topicName, resolver)
+	return resolver, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
