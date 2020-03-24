@@ -1430,11 +1430,6 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
-	shardHeadersPool := mp.dataPool.Headers()
-	if shardHeadersPool == nil {
-		return
-	}
-
 	shardHeader, ok := headerHandler.(*block.Header)
 	if !ok {
 		return
@@ -1480,11 +1475,6 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-	}
-
-	if !mp.blockTracker.ShouldAddHeader(shardHeader) {
-		shardHeadersPool.RemoveHeaderByHash(shardHeaderHash)
-		return
 	}
 
 	lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardHeader.GetShardID())
