@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -639,6 +640,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
+	chanShuffledOut := make(chan bool, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		preferencesConfig.Preferences,
@@ -647,6 +649,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
+		generalConfig.EpochStartConfig.RoundsPerEpoch,
+		chanShuffledOut,
 	)
 	if err != nil {
 		return err
@@ -914,8 +918,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("application is now running")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	<-sigs
-	log.Info("terminating at user's signal...")
+	select {
+	case <-sigs:
+		log.Info("terminating at user's signal...")
+	case <-chanShuffledOut:
+	}
 
 	log.Debug("closing all store units....")
 	err = dataComponents.Store.CloseAll()
@@ -1150,6 +1157,8 @@ func createNodesCoordinator(
 	hasher hashing.Hasher,
 	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
+	roundsPerEpoch int64,
+	chanShuffledOut chan bool,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1192,10 +1201,21 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	thresholdEpochDuration := 0.25
+	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * roundsPerEpoch
+	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
+	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
+	randDurationBeforeStop, err := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
+	if err != nil {
+		return nil, err
+	}
 	endOfProcessingHandler := func() error {
-		fmt.Println("closing app from handler")
-		//TODO: analyze why this syscall won't trigger the sigs verification in startNode()
-		//_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		go func() {
+			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
+			fmt.Println(fmt.Sprintf("the application stopped after waiting %d miliseconds because the node was "+
+				"shuffled out", randDurationBeforeStop))
+			chanShuffledOut <- true
+		}()
 		return nil
 	}
 	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, shardId, endOfProcessingHandler)
