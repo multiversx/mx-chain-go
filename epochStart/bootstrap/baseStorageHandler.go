@@ -27,17 +27,20 @@ type baseStorageHandler struct {
 	currentEpoch     uint32
 }
 
-func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlockInfo, error) {
-	countersMap := make(map[uint32]int)
-	for _, miniBlock := range miniBlocks {
-		countersMap[miniBlock.SenderShardID]++
+func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+	pendingMBsMap := make(map[uint32][][]byte)
+	for hash, miniBlock := range miniBlocks {
+		if _, ok := pendingMBsMap[miniBlock.SenderShardID]; !ok {
+			pendingMBsMap[miniBlock.SenderShardID] = make([][]byte, 0)
+		}
+		pendingMBsMap[miniBlock.SenderShardID] = append(pendingMBsMap[miniBlock.SenderShardID], []byte(hash))
 	}
 
-	sliceToRet := make([]bootstrapStorage.PendingMiniBlockInfo, 0)
-	for shardID, count := range countersMap {
-		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlockInfo{
-			ShardID:              shardID,
-			NumPendingMiniBlocks: uint32(count),
+	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	for shardID, hashes := range pendingMBsMap {
+		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
 		})
 	}
 

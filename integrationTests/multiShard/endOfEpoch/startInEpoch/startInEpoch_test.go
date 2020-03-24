@@ -1,4 +1,4 @@
-package epochStart
+package startInEpoch
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -96,8 +97,8 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
-	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
+	endOfEpoch.VerifyThatNodesHaveCorrectEpoch(t, epoch, nodes)
+	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	epochHandler := &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {

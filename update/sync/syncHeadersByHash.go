@@ -42,7 +42,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*mis
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
 	if check.IfNil(args.Cache) {
-		return nil, dataRetriever.ErrNilCacher
+		return nil, update.ErrNilCacher
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer

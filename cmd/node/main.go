@@ -37,7 +37,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -578,11 +577,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	networkComponents, err = factory.NetworkComponentsFactory(p2pConfig, log, &blake2b.Blake2b{})
-	if err != nil {
-		return err
-	}
-
 	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, pubKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
@@ -612,7 +606,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponents, err = factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -622,29 +616,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
-	epochStartBootsrapArgs := bootstrap.ArgsEpochStartDataProvider{
-		PublicKey:                      nil,
-		Messenger:                      nil,
-		Marshalizer:                    nil,
-		Hasher:                         nil,
-		GeneralConfig:                  config.Config{},
-		EconomicsConfig:                config.EconomicsConfig{},
-		DefaultShardCoordinator:        nil,
-		PathManager:                    nil,
-		NodesConfigProvider:            nil,
-		EpochStartMetaBlockInterceptor: nil,
-		MetaBlockInterceptor:           nil,
-		ShardHeaderInterceptor:         nil,
-		MiniBlockInterceptor:           nil,
-		SingleSigner:                   nil,
-		BlockSingleSigner:              nil,
-		KeyGen:                         nil,
-		BlockKeyGen:                    nil,
-		WhiteListHandler:               nil,
-		GenesisNodesConfig:             nil,
-		WorkingDir:                     "",
-		DefaultDBPath:                  "",
-		DefaultEpochString:             "",
+	epochStartBootsrapArgs := bootstrap.ArgsEpochStartBootstrap{
+		PublicKey:          nil,
+		Marshalizer:        nil,
+		Hasher:             nil,
+		Messenger:          nil,
+		GeneralConfig:      config.Config{},
+		EconomicsData:      nil,
+		SingleSigner:       nil,
+		BlockSingleSigner:  nil,
+		KeyGen:             nil,
+		BlockKeyGen:        nil,
+		GenesisNodesConfig: nil,
+		PathManager:        nil,
+		WorkingDir:         "",
+		DefaultDBPath:      "",
+		DefaultEpochString: "",
 	}
 	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
 	if err != nil {
