@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/cornelk/hashmap"
 )
 
