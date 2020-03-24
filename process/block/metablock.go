@@ -1142,7 +1142,6 @@ func (mp *metaProcessor) CommitBlock(
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
-		processedMiniBlocks:        nil,
 		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
 	}
 
@@ -1906,10 +1905,6 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 			MiniBlocksHashes: mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID),
 			ShardID:          shardID,
 		}
-	}
-
-	if len(pendingMiniBlocksInfo) == 0 {
-		return nil
 	}
 
 	return pendingMiniBlocksInfo

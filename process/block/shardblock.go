@@ -1804,6 +1804,10 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
 
+	if len(selfNotarizedHeaders) == 0 {
+		return nil
+	}
+
 	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
 
 	for index := range selfNotarizedHeaders {

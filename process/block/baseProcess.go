@@ -756,7 +756,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
+	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 		bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(shardID)
@@ -770,7 +770,11 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
 
-	return bootstrapStorage.TrimHeaderInfoSlice(lastCrossNotarizedHeaders)
+	if len(lastCrossNotarizedHeaders) == 0 {
+		return nil
+	}
+
+	return lastCrossNotarizedHeaders
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
