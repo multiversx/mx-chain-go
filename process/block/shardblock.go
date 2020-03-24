@@ -909,17 +909,34 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Debug("pools info",
-		"headers", sp.dataPool.Headers().Len(),
-		"headers capacity", sp.dataPool.Headers().MaxSize(),
-		"miniblocks", sp.dataPool.MiniBlocks().Len(),
-		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
-	)
+	sp.displayPoolsInfo()
 
 	sp.cleanupBlockTrackerPools(headerHandler)
+
 	go sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) displayPoolsInfo() {
+	log.Trace("pools info",
+		"shard", sp.shardCoordinator.SelfId(),
+		"num headers", sp.dataPool.Headers().GetNumHeaders(sp.shardCoordinator.SelfId()))
+
+	log.Trace("pools info",
+		"shard", core.MetachainShardId,
+		"num headers", sp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+
+	// numShardsToKeepHeaders represents the total number of shards for which shard node would keep tracking headers
+	// (in this case this number is equal with: self shard + metachain)
+	numShardsToKeepHeaders := 2
+	capacity := sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
+	log.Debug("pools info",
+		"total headers", sp.dataPool.Headers().Len(),
+		"headers pool capacity", capacity,
+		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
+		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
+	)
 }
 
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
@@ -1789,6 +1806,10 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
+
+	if len(selfNotarizedHeaders) == 0 {
+		return nil
+	}
 
 	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
 
