@@ -285,6 +285,8 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 		return nil
 	}
 
+	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
+
 	for {
 		time.Sleep(time.Millisecond)
 		if haveTime() < 0 {
