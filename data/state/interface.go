@@ -91,7 +91,7 @@ type PeerAccountHandler interface {
 	SetRating(uint32)
 	GetTempRating() uint32
 	SetTempRating(uint32)
-	ResetAtNewEpoch() error
+	ResetAtNewEpoch()
 	AccountHandler
 }
 

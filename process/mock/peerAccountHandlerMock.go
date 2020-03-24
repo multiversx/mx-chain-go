@@ -198,8 +198,7 @@ func (p *PeerAccountHandlerMock) SetTempRating(val uint32) {
 }
 
 // ResetAtNewEpoch -
-func (p *PeerAccountHandlerMock) ResetAtNewEpoch() error {
-	return nil
+func (p *PeerAccountHandlerMock) ResetAtNewEpoch() {
 }
 
 // AddressContainer -
