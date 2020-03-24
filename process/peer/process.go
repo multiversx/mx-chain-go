@@ -381,22 +381,28 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 // ProcessRatingsEndOfEpoch makes end of epoch process on the rating
 func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	if len(validatorInfos) == 0 {
+		return process.ErrNilValidatorInfos
+	}
+
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
 			validatorAppereances := validator.ValidatorSuccess + validator.ValidatorFailure
-			computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+			if validatorAppereances == 0 {
+				validatorAppereances = 1
+			}
+			computedThreshold := float32(validator.ValidatorFailure) / float32(validatorAppereances)
 			if computedThreshold <= vs.rater.GetSignedBlocksThreshold() {
-				newRating := validator.TempRating
-				for i := uint32(0); i < validatorAppereances; i++ {
-					newRating = vs.rater.ComputeDecreaseValidator(shardId, newRating)
-				}
+				oldTempRating := vs.computeShouldHaveBeenRating(validator, shardId)
+
+				newTempRating := vs.rater.ComputeDecreaseValidator(shardId, oldTempRating)
 
 				pa, err := vs.GetPeerAccount(validator.PublicKey)
 				if err != nil {
 					return err
 				}
 
-				err = pa.SetTempRatingWithJournal(newRating)
+				err = pa.SetTempRatingWithJournal(newTempRating)
 				if err != nil {
 					return err
 				}
@@ -404,16 +410,38 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 				log.Trace("below signed blocks threshold",
 					"pk", validator.PublicKey,
 					"signed %", computedThreshold,
-					"new tempRating", newRating,
+					"new tempRating", newTempRating,
 					"old tempRating", validator.TempRating,
 				)
 
-				validator.TempRating = newRating
+				validator.TempRating = newTempRating
 			}
 		}
 	}
 
 	return nil
+}
+
+func (vs *validatorStatistics) computeShouldHaveBeenRating(validator *state.ValidatorInfo, shardId uint32) uint32 {
+	startRating := vs.rater.GetStartRating()
+
+	incorrectlyIncreasedValidatorNumber :=
+		validator.NumSelectedInSuccessBlocks -
+			validator.LeaderSuccess -
+			validator.ValidatorSuccess
+
+	newRating := vs.rater.ComputeIncreaseValidator(shardId, startRating)
+	shardIncreaseRatingStep := newRating - startRating
+
+	// incorrectlyIncreasedValidatorNumber - 1 becaue we call 1 time ComputeDecreaseValidator
+	totalRatingToDecrease := shardIncreaseRatingStep * (incorrectlyIncreasedValidatorNumber - 1)
+	var shouldHaveBeenRating uint32
+	if totalRatingToDecrease > validator.TempRating {
+		shouldHaveBeenRating = 0
+	} else {
+		shouldHaveBeenRating = validator.TempRating - totalRatingToDecrease
+	}
+	return shouldHaveBeenRating
 }
 
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch

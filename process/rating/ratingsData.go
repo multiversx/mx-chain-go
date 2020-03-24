@@ -37,13 +37,20 @@ func NewRatingsData(settings config.RatingsConfig) (*RatingsData, error) {
 			settings.General.MaxRating)
 	}
 	if settings.General.SignedBlocksThreshold > 1 || settings.General.SignedBlocksThreshold < 0 {
-		return nil, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne
+		return nil, fmt.Errorf("%w signedBlocksThreshold: %v",
+			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
+			settings.General.SignedBlocksThreshold)
 	}
-	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 ||
-		settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
-		return nil, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne
+	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 {
+		return nil, fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			settings.MetaChain.ConsecutiveMissedBlocksPenalty)
 	}
-
+	if settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
+		return nil, fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			settings.ShardChain.ConsecutiveMissedBlocksPenalty)
+	}
 	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.General.SelectionChances {
 		chances = append(chances, &SelectionChance{

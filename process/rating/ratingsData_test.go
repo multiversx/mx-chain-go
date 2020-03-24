@@ -2,11 +2,13 @@ package rating
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -111,13 +113,13 @@ func TestEconomicsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr
 	ratingsData, err := NewRatingsData(ratingsConfig)
 
 	assert.Nil(t, ratingsData)
-	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+	assert.True(t, errors.Is(err, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne))
 
 	ratingsConfig.General.SignedBlocksThreshold = 1.01
 	ratingsData, err = NewRatingsData(ratingsConfig)
 
 	assert.Nil(t, ratingsData)
-	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+	assert.True(t, errors.Is(err, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne))
 }
 
 func TestEconomicsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(t *testing.T) {
@@ -127,14 +129,17 @@ func TestEconomicsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldEr
 	ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty = 0.9
 	ratingsData, err := NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, ratingsData)
-	assert.Equal(t, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne, err)
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne))
+	require.True(t, strings.Contains(err.Error(), "meta"))
 
+	ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty = 1.99
 	ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty = 0.99
 	ratingsData, err = NewRatingsData(ratingsConfig)
 
-	assert.Nil(t, ratingsData)
-	assert.Equal(t, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne, err)
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne))
+	require.True(t, strings.Contains(err.Error(), "shard"))
 }
 
 func TestRatingsData_RatingsCorrectValues(t *testing.T) {

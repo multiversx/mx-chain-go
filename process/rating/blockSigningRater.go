@@ -1,8 +1,8 @@
 package rating
 
 import (
-	"math"
 	"fmt"
+	"math"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -45,7 +45,9 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		return nil, process.ErrNoChancesProvided
 	}
 	if ratingsData.SignedBlocksThreshold() < 0 || ratingsData.SignedBlocksThreshold() > 1 {
-		return nil, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne
+		return nil, fmt.Errorf("%w signedBlocksThreshold: %v",
+			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
+			ratingsData.SignedBlocksThreshold())
 	}
 
 	ratingChances := make([]process.RatingChanceHandler, len(ratingsData.SelectionChances()))
@@ -141,7 +143,7 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
 func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
 	var ratingStep int32
-	var consecutiveMissesIncrease int32
+
 	var consecutiveBlocksPenalty float32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ProposerDecreaseRatingStep()
@@ -150,8 +152,15 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 		ratingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
 		consecutiveBlocksPenalty = bsr.shardRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	}
-	consecutiveMissesIncrease = int32(math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses)))
-	return bsr.computeRating(ratingStep*consecutiveMissesIncrease, currentRating)
+	computedIncrease := math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses)) * float64(ratingStep)
+	var consecutiveMissesIncrease int32
+	if computedIncrease > math.MaxInt32 {
+		consecutiveMissesIncrease = math.MaxInt32
+	} else {
+		consecutiveMissesIncrease = int32(computedIncrease)
+	}
+
+	return bsr.computeRating(consecutiveMissesIncrease, currentRating)
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator

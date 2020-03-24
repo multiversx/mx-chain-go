@@ -334,7 +334,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdNegative
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
-	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+	assert.True(t, errors.Is(err, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne))
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdAbove1ShouldErr(t *testing.T) {
@@ -344,7 +344,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithSignedBlocksThresholdAbove1Sh
 	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
-	assert.Equal(t, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne, err)
+	assert.True(t, errors.Is(err, process.ErrSignedBlocksThresholdNotBetweenZeroAndOne))
 }
 
 func TestBlockSigningRater_NewBlockSigningRaterWithNonExistingMaxThresholdZeroShouldErr(t *testing.T) {
