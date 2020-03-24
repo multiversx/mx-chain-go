@@ -8,6 +8,11 @@ type nodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 }
 
+// SaveNodesCoordinatorRegistry -
+func (ncs *nodesCoordinatorStub) SaveNodesCoordinatorRegistry(_ *sharding.NodesCoordinatorRegistry) error {
+	return nil
+}
+
 // UpdatePeersListAndIndex -
 func (ncs *nodesCoordinatorStub) UpdatePeersListAndIndex() error {
 	panic("implement me")

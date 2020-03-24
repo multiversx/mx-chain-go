@@ -47,6 +47,16 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
+	err = ihgs.SaveNodesCoordinatorRegistry(config)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveNodesCoordinatorRegistry saves a nodesCoordinator registry
+func (ihgs *indexHashedNodesCoordinator) SaveNodesCoordinatorRegistry(config *NodesCoordinatorRegistry) error {
 	ihgs.currentEpoch = config.CurrentEpoch
 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 

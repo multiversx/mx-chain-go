@@ -21,6 +21,7 @@ type syncValidatorStatus struct {
 	dataPool         dataRetriever.PoolsHolder
 	marshalizer      marshal.Marshalizer
 	requestHandler   process.RequestHandler
+	nodeCoordinator  sharding.NodesCoordinator
 }
 
 // ArgsNewSyncValidatorStatus
@@ -84,6 +85,8 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	configId = fmt.Sprint(prevMetaBlock.Epoch)
 	nodesConfig.EpochsConfig[configId] = epochValidators
 
+	// TODO: use shuffling process from nodesCoordinator to create the final data
+
 	return nodesConfig, selfShardId, nil
 }
 
@@ -139,11 +142,12 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 			}
 
 			shardId := fmt.Sprint(vid.ShardId)
-			// TODO - make decision according to validatorInfo.List after it is implemented
-			// most probably there is a need to create an indexed hashed nodescoordinator - set the data manually
-			// call the shuffling and save the result - this is still problematic as you always need the -1 config
-			// recursively going to genesis - data has to be updated in the peer trie.
-			epochValidators.EligibleValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
+			switch vid.List {
+			case string(core.EligibleList):
+				epochValidators.EligibleValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
+			case string(core.WaitingList):
+				epochValidators.WaitingValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
+			}
 
 			if shouldSearchSelfId && !found && bytes.Equal(vid.PublicKey, publicKey) {
 				selfShardId = vid.ShardId

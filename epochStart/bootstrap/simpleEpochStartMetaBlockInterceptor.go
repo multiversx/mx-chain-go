@@ -57,6 +57,10 @@ func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2
 		return err
 	}
 
+	if !mb.IsStartOfEpochBlock() {
+		return epochStart.ErrNotEpochStartBlock
+	}
+
 	s.mutReceivedMetaBlocks.Lock()
 	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
 	if err != nil {

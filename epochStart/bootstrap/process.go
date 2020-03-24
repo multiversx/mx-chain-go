@@ -148,27 +148,6 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 	return epochStartProvider, nil
 }
 
-func (e *epochStartBootstrap) searchDataInLocalStorage() {
-	var errNotCritical error
-	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
-		e.generalConfig,
-		e.marshalizer,
-		e.workingDir,
-		e.genesisNodesConfig.ChainID,
-		e.defaultDBPath,
-		e.defaultEpochString,
-		e.defaultShardString,
-	)
-	if errNotCritical != nil {
-		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
-	} else {
-		log.Debug("got last data from storage",
-			"epoch", e.baseData.lastEpoch,
-			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.lastRound)
-	}
-}
-
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
 	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
 	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
@@ -209,12 +188,22 @@ func (e *epochStartBootstrap) Bootstrap() (uint32, uint32, uint32, error) {
 	e.computeMostProbableEpoch()
 	e.searchDataInLocalStorage()
 
+	// TODO: make a better decision according to lastRound, lastEpoch
 	isCurrentEpochSaved := e.baseData.lastEpoch+1 >= e.computedEpoch
 	if isCurrentEpochSaved {
-		return e.prepareEpochFromStorage()
+		epoch, shardId, numOfShards, err := e.prepareEpochFromStorage()
+		if err == nil {
+			return epoch, shardId, numOfShards, nil
+		}
 	}
 
-	err := e.prepareComponentsToSyncFromNetwork()
+	var err error
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	err = e.prepareComponentsToSyncFromNetwork()
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -222,17 +211,8 @@ func (e *epochStartBootstrap) Bootstrap() (uint32, uint32, uint32, error) {
 	return e.requestAndProcessing()
 }
 
-func (e *epochStartBootstrap) prepareEpochFromStorage() (uint32, uint32, uint32, error) {
-	// TODO: compute self shard ID for current epoch
-	return 0, 0, 0, nil
-}
-
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
-	if err != nil {
-		return err
-	}
 
 	whiteListCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(e.generalConfig.WhiteListPool.Type),
