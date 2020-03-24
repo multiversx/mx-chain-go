@@ -6,10 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
+
+var log = logger.GetOrCreate("api/node")
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
@@ -51,7 +54,20 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
 	router.GET("/p2pstatus", P2pStatusMetrics)
+	router.GET("/panic", Panic)
 	// placeholder for custom routes
+}
+
+// Panic will generate a division by 0 exception
+func Panic(_ *gin.Context) {
+	go func() {
+		log.Error("generating division by 0 error")
+		a := 1
+		for {
+			a--
+			_ = 5 / a
+		}
+	}()
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node
