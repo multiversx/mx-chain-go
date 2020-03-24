@@ -3,6 +3,7 @@ package node
 import (
 	"math/big"
 	"net/http"
+	"runtime"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -54,20 +55,19 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
 	router.GET("/p2pstatus", P2pStatusMetrics)
-	router.GET("/panic", Panic)
+	router.GET("/godump", GoRoutinesDump)
 	// placeholder for custom routes
 }
 
-// Panic will generate a division by 0 exception
-func Panic(_ *gin.Context) {
-	go func() {
-		log.Error("generating division by 0 error")
-		a := 1
-		for {
-			a--
-			_ = 5 / a
-		}
-	}()
+// GoRoutinesDump will dump go routines info
+func GoRoutinesDump(c *gin.Context) {
+	log.Warn("go routines dump")
+
+	buff := make([]byte, 1<<27)
+	num := runtime.Stack(buff, true)
+	log.Warn(string(buff[:num]))
+
+	c.JSON(http.StatusOK, gin.H{"go routines dump": true})
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node
