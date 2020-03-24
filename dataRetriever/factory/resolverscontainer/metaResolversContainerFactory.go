@@ -53,6 +53,9 @@ func NewMetaResolversContainerFactory(
 		return nil, err
 	}
 
+	base.intraShardTopic = core.ConsensusTopic +
+		base.shardCoordinator.CommunicationIdentifier(base.shardCoordinator.SelfId())
+
 	return &metaResolversContainerFactory{
 		baseResolversContainerFactory: base,
 	}, nil
