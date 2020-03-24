@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -419,8 +420,7 @@ func TestMultiSignerBLS_ScalarMulSigNilScalarShouldErr(t *testing.T) {
 func TestMultiSignerBLS_ScalarMulSigNilSigShouldErr(t *testing.T) {
 	t.Parallel()
 	_, pubKey, _, llSig := genSigParamsBLS()
-	rs := pubKey.Suite().RandomStream()
-	scalar, _ := pubKey.Suite().CreateScalar().Pick(rs)
+	scalar, _ := pubKey.Suite().CreateScalar().Pick()
 	bmsSigner := llSig.(*multisig.BlsMultiSigner)
 	scalarBytes, _ := scalar.MarshalBinary()
 	res, err := bmsSigner.ScalarMulSig(pubKey.Suite(), scalarBytes, nil)
@@ -430,7 +430,28 @@ func TestMultiSignerBLS_ScalarMulSigNilSigShouldErr(t *testing.T) {
 }
 
 func TestBlsMultiSigner_ScalarMulSigNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+	privKey, pubKey, _, llSig := genSigParamsBLS()
+	msg := []byte("message")
+	sig, _ := llSig.SignShare(privKey, msg)
 
+	scalar, _ := pubKey.Suite().CreateScalar().Pick()
+	bmsSigner := llSig.(*multisig.BlsMultiSigner)
+	mclScalar, _ := scalar.(*mcl.Scalar)
+	scalarBytesHexStr := mclScalar.Scalar.GetString(16)
+
+	// odd length hex string fails hex decoding, so make it even
+	if len(scalarBytesHexStr)%2 != 0 {
+		scalarBytesHexStr = "0" + scalarBytesHexStr
+	}
+
+	scalarBytes, err := hex.DecodeString(scalarBytesHexStr)
+	sigPointG1, err := sigBytesToPointG1(sig)
+	require.Nil(t, err)
+	res, err := bmsSigner.ScalarMulSig(nil, scalarBytes, sigPointG1)
+
+	require.Equal(t, crypto.ErrNilSuite, err)
+	require.Nil(t, res)
 }
 
 func TestMultiSignerBLS_ScalarMulSigOK(t *testing.T) {
@@ -438,8 +459,7 @@ func TestMultiSignerBLS_ScalarMulSigOK(t *testing.T) {
 	msg := []byte("message")
 	privKey, pubKey, _, llSig := genSigParamsBLS()
 	sig, _ := llSig.SignShare(privKey, msg)
-	rs := pubKey.Suite().RandomStream()
-	scalar, _ := pubKey.Suite().CreateScalar().Pick(rs)
+	scalar, _ := pubKey.Suite().CreateScalar().Pick()
 	mclScalar, _ := scalar.(*mcl.Scalar)
 	scalarBytesHexStr := mclScalar.Scalar.GetString(16)
 
@@ -652,18 +672,39 @@ func Test_ScalarMulPkNilSuiteShouldErr(t *testing.T) {
 	require.Nil(t, point)
 }
 
-/*
- TODO: Fix test
 func Test_ScalarMulPkOK(t *testing.T) {
 	suite := mcl.NewSuiteBLS12()
 	scalar := suite.CreateScalar()
 	kg := signing.NewKeyGenerator(suite)
+
 	_, pk := kg.GeneratePair()
-	scalarBytes, err := scalar.MarshalBinary()
-	require.Nil(t, err)
+	require.NotNil(t, pk)
+
+	mclScalar, ok := scalar.GetUnderlyingObj().(*bls.Fr)
+	require.True(t, ok)
+	scalarHexStr := mclScalar.GetString(16)
+	scalarBytes := make([]byte, 32)
+
+	// odd length hex string fails hex decoding, so make it even
+	if len(scalarHexStr)%2 != 0 {
+		scalarHexStr = "0" + scalarHexStr
+	}
+
+	nb, err := hex.Decode(scalarBytes, []byte(scalarHexStr))
+	require.Equal(t, 32, nb)
 
 	point, err := multisig.ScalarMulPk(suite, scalarBytes, pk.Point())
 	require.Nil(t, err)
 	require.NotNil(t, point)
 }
-*/
+
+func TestBlsMultiSigner_IsInterfaceNil(t *testing.T) {
+	var llSig *multisig.BlsMultiSigner
+
+	require.True(t, check.IfNil(llSig))
+
+	hasher := &mock.HasherSpongeMock{}
+	llSig = &multisig.BlsMultiSigner{Hasher: hasher}
+
+	require.False(t, check.IfNil(llSig))
+}

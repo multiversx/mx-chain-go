@@ -37,7 +37,7 @@ type Scalar interface {
 	// Inv returns the modular inverse of scalar s given as parameter
 	Inv(s Scalar) (Scalar, error)
 	// Pick returns a fresh random or pseudo-random scalar
-	Pick(rand cipher.Stream) (Scalar, error)
+	Pick() (Scalar, error)
 	// SetBytes sets the scalar from a byte-slice,
 	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) (Scalar, error)
@@ -73,7 +73,7 @@ type Point interface {
 	// Mul returns the result of multiplying receiver by the scalar s.
 	Mul(s Scalar) (Point, error)
 	// Pick returns a fresh random or pseudo-random Point.
-	Pick(rand cipher.Stream) (Point, error)
+	Pick() (Point, error)
 	// GetUnderlyingObj returns the object the implementation wraps
 	GetUnderlyingObj() interface{}
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -111,7 +111,7 @@ type Suite interface {
 	Group
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
-	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	CreateKeyPair() (Scalar, Point)
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }

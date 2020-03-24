@@ -1,7 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -139,13 +138,11 @@ func TestPointG2_AddInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_AddOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
-	point1, err := pointG2.Pick(stream)
+	point1, err := pointG2.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointG2.Pick(stream)
+	point2, err := pointG2.Pick()
 	require.Nil(t, err)
 
 	sum, err := point1.Add(point2)
@@ -187,13 +184,11 @@ func TestPointG2_SubInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_SubOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
-	point1, err := pointG2.Pick(stream)
+	point1, err := pointG2.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointG2.Pick(stream)
+	point2, err := pointG2.Pick()
 	require.Nil(t, err)
 
 	sum, _ := point1.Add(point2)
@@ -240,11 +235,9 @@ func TestPointG2_MulInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_MulOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
 	s := NewScalar()
-	scalar, err := s.Pick(stream)
+	scalar, err := s.Pick()
 	require.Nil(t, err)
 
 	res, err := pointG2.Mul(scalar)
@@ -263,10 +256,8 @@ func TestPointG2_MulOK(t *testing.T) {
 func TestPointG2_PickOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	point1 := NewPointG2()
-	point2, err1 := point1.Pick(stream)
+	point2, err1 := point1.Pick()
 	eq, err2 := point1.Equal(point2)
 
 	assert.Nil(t, err1)
@@ -296,8 +287,7 @@ func TestPointG2_MarshalBinary(t *testing.T) {
 func TestPointG2_UnmarshalBinary(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-	point1, _ := NewPointG2().Pick(stream)
+	point1, _ := NewPointG2().Pick()
 	pointBytes, _ := point1.MarshalBinary()
 
 	point2 := NewPointG2()
