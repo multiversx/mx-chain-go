@@ -225,16 +225,17 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 // and TestP2PNodes
 func CreateNodesWithTestP2PNodes(
 	nodesPerShard int,
-	nbMetaNodes int,
-	nbShards int,
+	numMetaNodes int,
+	numShards int,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
+	numObserversOnShard int,
 	p2pConfig config.P2PConfig,
 ) map[uint32][]*TestP2PNode {
 
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -243,8 +244,8 @@ func CreateNodesWithTestP2PNodes(
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
-			ShardId:                 shardId,
-			NbShards:                uint32(nbShards),
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(numShards),
 			EligibleNodes:           validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
@@ -255,16 +256,13 @@ func CreateNodesWithTestP2PNodes(
 			EpochStartSubscriber:    &mock.EpochStartNotifierStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
-		if err != nil {
-			fmt.Println("Error creating node coordinator " + err.Error())
-		}
+		log.LogIfError(err)
 
 		nodesList := make([]*TestP2PNode, len(validatorList))
 		for i := range validatorList {
 			kp := cp.Keys[shardId][i]
 			nodesList[i] = NewTestP2PNode(
-				uint32(nbShards),
+				uint32(numShards),
 				shardId,
 				p2pConfig,
 				nodesCoordinator,
@@ -274,12 +272,59 @@ func CreateNodesWithTestP2PNodes(
 		nodesMap[shardId] = nodesList
 	}
 
+	for counter := uint32(0); counter < uint32(numShards+1); counter++ {
+		for j := 0; j < numObserversOnShard; j++ {
+			shardId := counter
+			if shardId == uint32(numShards) {
+				shardId = core.MetachainShardId
+			}
+
+			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+				ShardConsensusGroupSize: shardConsensusGroupSize,
+				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Hasher:                  TestHasher,
+				ShardIDAsObserver:       shardId,
+				NbShards:                uint32(numShards),
+				EligibleNodes:           validatorsMap,
+				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:     cache,
+				Shuffler:                &mock.NodeShufflerMock{},
+				BootStorer:              CreateMemUnit(),
+				WaitingNodes:            make(map[uint32][]sharding.Validator),
+				Epoch:                   0,
+				EpochStartSubscriber:    &mock.EpochStartNotifierStub{},
+			}
+			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			log.LogIfError(err)
+
+			n := NewTestP2PNode(
+				uint32(numShards),
+				shardId,
+				p2pConfig,
+				nodesCoordinator,
+				createCryptoPair(),
+			)
+
+			nodesMap[shardId] = append(nodesMap[shardId], n)
+		}
+	}
+
 	return nodesMap
+}
+
+func createCryptoPair() TestKeyPair {
+	suite := mcl.NewSuiteBLS12()
+	keyGen := signing.NewKeyGenerator(suite)
+
+	kp := TestKeyPair{}
+	kp.Sk, kp.Pk = keyGen.GeneratePair()
+
+	return kp
 }
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/Intra/Cross/Unk"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -298,10 +343,12 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
-						len(peerInfo.IntraShardPeers),
-						len(peerInfo.CrossShardPeers),
+						len(peerInfo.IntraShardValidators),
+						len(peerInfo.CrossShardValidators),
+						len(peerInfo.IntraShardObservers),
+						len(peerInfo.CrossShardObservers),
 						len(peerInfo.UnknownPeers),
 					),
 				},
