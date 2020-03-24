@@ -3,6 +3,7 @@ package broadcast
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -110,7 +111,7 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 
 // BroadcastHeader will send on metachain blocks topic the header
 func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
 

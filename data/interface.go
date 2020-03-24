@@ -67,6 +67,7 @@ type HeaderHandler interface {
 
 // BodyHandler interface for a block body
 type BodyHandler interface {
+	Clone() BodyHandler
 	// IntegrityAndValidity checks the integrity and validity of the block
 	IntegrityAndValidity() error
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -85,12 +86,6 @@ type ChainHandler interface {
 	SetCurrentBlockHeaderHash(hash []byte)
 	GetCurrentBlockBody() BodyHandler
 	SetCurrentBlockBody(body BodyHandler) error
-	GetLocalHeight() int64
-	SetLocalHeight(height int64)
-	GetNetworkHeight() int64
-	SetNetworkHeight(height int64)
-	HasBadBlock(blockHash []byte) bool
-	PutBadBlock(blockHash []byte)
 	IsInterfaceNil() bool
 	CreateNewHeader() HeaderHandler
 }

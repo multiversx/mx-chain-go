@@ -365,14 +365,10 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
-func CreateShardChain() *blockchain.BlockChain {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	blockChain, _ := blockchain.NewBlockChain(
-		badBlockCache,
-	)
-	blockChain.GenesisHeader = &dataBlock.Header{}
-	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+func CreateShardChain() data.ChainHandler {
+	blockChain := blockchain.NewBlockChain()
+	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
 	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
@@ -381,13 +377,9 @@ func CreateShardChain() *blockchain.BlockChain {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	metaChain, _ := blockchain.NewMetaChain(
-		badBlockCache,
-	)
-	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
-	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain := blockchain.NewMetaChain()
+	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
@@ -531,8 +523,7 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
-		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-		newBlkc, _ := blockchain.NewMetaChain(cache)
+		newBlkc := blockchain.NewMetaChain()
 		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
