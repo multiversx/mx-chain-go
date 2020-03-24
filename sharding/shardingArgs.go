@@ -13,7 +13,7 @@ type ArgNodesCoordinator struct {
 	Shuffler                NodesShuffler
 	EpochStartSubscriber    EpochStartSubscriber
 	BootStorer              storage.Storer
-	ShardId                 uint32
+	ShardIDAsObserver       uint32
 	NbShards                uint32
 	EligibleNodes           map[uint32][]Validator
 	WaitingNodes            map[uint32][]Validator

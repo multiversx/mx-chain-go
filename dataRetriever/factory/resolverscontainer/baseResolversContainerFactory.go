@@ -17,6 +17,8 @@ import (
 
 const emptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
+const numCrossShardPeers = 2
+const numIntraShardPeers = 2
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -32,6 +34,7 @@ type baseResolversContainerFactory struct {
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 	throttler                dataRetriever.ResolverThrottler
+	intraShardTopic          string
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -224,19 +227,21 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, excludedTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:         brcf.messenger,
-		TopicName:         topic,
-		PeerListCreator:   peerListCreator,
-		Marshalizer:       brcf.marshalizer,
-		Randomizer:        brcf.intRandomizer,
-		TargetShardId:     targetShardId,
-		OutputAntiflooder: brcf.outputAntifloodHandler,
+		Messenger:          brcf.messenger,
+		TopicName:          topic,
+		PeerListCreator:    peerListCreator,
+		Marshalizer:        brcf.marshalizer,
+		Randomizer:         brcf.intRandomizer,
+		TargetShardId:      targetShardId,
+		OutputAntiflooder:  brcf.outputAntifloodHandler,
+		NumCrossShardPeers: numCrossShardPeers,
+		NumIntraShardPeers: numIntraShardPeers,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units

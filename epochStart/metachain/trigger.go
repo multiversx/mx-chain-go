@@ -354,10 +354,6 @@ func (t *trigger) Epoch() uint32 {
 func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
 }
 
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
-func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
-}
-
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
 func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochStartMetaHash
