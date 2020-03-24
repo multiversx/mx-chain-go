@@ -558,16 +558,31 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var currentEpoch uint32
+	var lastRound int64
+	var lastShardId uint32
 	var errNotCritical error
-	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
+	currentEpoch, lastShardId, lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage( // TODO: use last round and shard ID
+		*generalConfig,
+		&marshal.GogoProtoMarshalizer{}, // TODO: remove hardcoded marshalizer when start in epoch is merged.
 		workingDir,
 		nodesConfig.ChainID,
 		defaultDBPath,
 		defaultEpochString,
+		defaultShardString,
 	)
 	if errNotCritical != nil {
 		currentEpoch = 0
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
+	} else {
+		log.Debug("got last data from storage",
+			"epoch", currentEpoch,
+			"last round", lastRound,
+			"last shard ID", lastShardId)
+	}
+	if !generalConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		currentEpoch = 0
 	}
 
 	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
