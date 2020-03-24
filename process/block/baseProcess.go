@@ -951,10 +951,7 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
+	accounts.PruneTrie(prevRootHash, data.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -992,11 +989,7 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
-
-		errNotCritical := bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
+		bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
 	}
 }
 
