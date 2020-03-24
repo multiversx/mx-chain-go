@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -13,4 +14,10 @@ type StartOfEpochNodesConfigHandler interface {
 		publicKey []byte,
 	) (*sharding.NodesCoordinatorRegistry, uint32, error)
 	IsInterfaceNil() bool
+}
+
+// EpochStartInterceptor
+type EpochStartInterceptor interface {
+	process.Interceptor
+	GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)
 }

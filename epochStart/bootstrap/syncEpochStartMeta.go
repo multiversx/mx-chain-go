@@ -6,21 +6,48 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type epochStartMetaSyncer struct {
 	requestHandler                 epochStart.RequestHandler
 	messenger                      p2p.Messenger
-	metaBlockPool                  storage.Cacher
-	epochStartMetaBlockInterceptor process.Interceptor
+	epochStartMetaBlockInterceptor EpochStartInterceptor
+	marshalizer                    marshal.Marshalizer
+	hasher                         hashing.Hasher
 }
 
-func NewEpochStartMetaSyncer() (*epochStartMetaSyncer, error) {
-	return &epochStartMetaSyncer{}, nil
+// ArgsNewEpochStartMetaSyncer -
+type ArgsNewEpochStartMetaSyncer struct {
+	RequestHandler epochStart.RequestHandler
+	Messenger      p2p.Messenger
+	Marshalizer    marshal.Marshalizer
+	Hasher         hashing.Hasher
+}
+
+const delayBetweenRequests = 1 * time.Second
+const thresholdForConsideringMetaBlockCorrect = 0.2
+const numRequestsToSendOnce = 4
+const maxNumTimesToRetry = 100
+
+func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
+	e := &epochStartMetaSyncer{
+		requestHandler: args.RequestHandler,
+		messenger:      args.Messenger,
+		marshalizer:    args.Marshalizer,
+		hasher:         args.Hasher,
+	}
+
+	var err error
+	e.epochStartMetaBlockInterceptor, err = NewSimpleEpochStartMetaBlockInterceptor(e.marshalizer, e.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
@@ -33,12 +60,35 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(waitTime time.Duration) (*bloc
 		e.resetTopicsAndInterceptors()
 	}()
 
+	e.requestEpochStartMetaBlock()
+
 	unknownEpoch := uint32(math.MaxUint32)
-	e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
+	count := 0
+	for {
+		if count > maxNumTimesToRetry {
+			panic("can't sync with other peers")
+		}
+		count++
+		numConnectedPeers := len(e.messenger.Peers())
+		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+		mb, errConsensusNotReached := e.epochStartMetaBlockInterceptor.GetEpochStartMetaBlock(threshold, unknownEpoch)
+		if errConsensusNotReached == nil {
+			return mb, nil
+		}
+		log.Info("consensus not reached for meta block. re-requesting and trying again...")
+		e.requestEpochStartMetaBlock()
+	}
 
-	// TODO: implement waitTime and consensus
+	return nil, epochStart.ErrNumTriesExceeded
+}
 
-	return nil, nil
+func (e *epochStartMetaSyncer) requestEpochStartMetaBlock() {
+	// send more requests
+	unknownEpoch := uint32(math.MaxUint32)
+	for i := 0; i < numRequestsToSendOnce; i++ {
+		time.Sleep(delayBetweenRequests)
+		e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
+	}
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {

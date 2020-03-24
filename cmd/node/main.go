@@ -321,8 +321,6 @@ var coreServiceContainer serviceContainer.Core
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = core.UnVersionedAppString
 
-var currentEpoch = uint32(0)
-
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	log := logger.GetOrCreate("main")
@@ -616,22 +614,28 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
 	epochStartBootsrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:          nil,
-		Marshalizer:        nil,
-		Hasher:             nil,
-		Messenger:          nil,
-		GeneralConfig:      config.Config{},
-		EconomicsData:      nil,
-		SingleSigner:       nil,
-		BlockSingleSigner:  nil,
-		KeyGen:             nil,
-		BlockKeyGen:        nil,
-		GenesisNodesConfig: nil,
-		PathManager:        nil,
-		WorkingDir:         "",
-		DefaultDBPath:      "",
-		DefaultEpochString: "",
+		PublicKey:          pubKey,
+		Marshalizer:        coreComponents.InternalMarshalizer,
+		Hasher:             coreComponents.Hasher,
+		Messenger:          networkComponents.NetMessenger,
+		GeneralConfig:      *generalConfig,
+		EconomicsData:      economicsData,
+		SingleSigner:       cryptoComponents.TxSingleSigner,
+		BlockSingleSigner:  cryptoComponents.SingleSigner,
+		KeyGen:             cryptoComponents.TxSignKeyGen,
+		BlockKeyGen:        cryptoComponents.BlockSignKeyGen,
+		GenesisNodesConfig: genesisNodesConfig,
+		PathManager:        pathManager,
+		WorkingDir:         workingDir,
+		DefaultDBPath:      defaultDBPath,
+		DefaultEpochString: defaultEpochString,
 	}
 	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
 	if err != nil {
@@ -645,12 +649,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, currentShardId)
-	if err != nil {
-		return err
-	}
-
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
 	if err != nil {
 		return err
 	}

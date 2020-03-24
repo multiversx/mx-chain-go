@@ -271,7 +271,13 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer()
+	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
+		RequestHandler: e.requestHandler,
+		Messenger:      e.messenger,
+		Marshalizer:    e.marshalizer,
+		Hasher:         e.hasher,
+	}
+	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err
 	}
