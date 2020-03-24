@@ -25,6 +25,7 @@ type Facade struct {
 	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler             func(hash string) (*transaction.Transaction, error)
 	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	ValidateTransactionHandler        func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler              func() external.StatusMetricsHandler
@@ -120,6 +121,11 @@ func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 // SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method
 func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return f.SendBulkTransactionsHandler(txs)
+}
+
+//ValidateTransaction --
+func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
+	return f.ValidateTransactionHandler(tx)
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method

@@ -432,8 +432,16 @@ func (txs *transactions) processTxsFromMe(
 	isShardStuckFalse := func(uint32) bool {
 		return false
 	}
+	isMaxBlockSizeReachedFalse := func(int, int) bool {
+		return false
+	}
 
-	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTime, isShardStuckFalse, txsFromMe)
+	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocksFromMe(
+		haveTime,
+		isShardStuckFalse,
+		isMaxBlockSizeReachedFalse,
+		txsFromMe,
+		)
 	if err != nil {
 		return err
 	}
@@ -740,7 +748,12 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 	)
 
 	startTime = time.Now()
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTime, txs.blockTracker.IsShardStuck, sortedTxs)
+	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(
+		haveTime,
+		txs.blockTracker.IsShardStuck,
+		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		sortedTxs,
+		)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -757,6 +770,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
+	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createAndProcessMiniBlocksFromMe has been started")
@@ -820,7 +834,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		if len(miniBlock.TxHashes) == 0 {
 			numNewMiniBlocks = 1
 		}
-		if txs.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, 1) {
+		if isMaxBlockSizeReached(numNewMiniBlocks, 1) {
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", numTxsAdded,
 				"total txs", len(sortedTxs))

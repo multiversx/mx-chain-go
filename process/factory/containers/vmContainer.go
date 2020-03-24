@@ -1,6 +1,8 @@
 package containers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/cornelk/hashmap"
@@ -23,7 +25,7 @@ func NewVirtualMachinesContainer() *virtualMachinesContainer {
 func (vmc *virtualMachinesContainer) Get(key []byte) (vmcommon.VMExecutionHandler, error) {
 	value, ok := vmc.objects.Get(key)
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in vm container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	vm, ok := value.(vmcommon.VMExecutionHandler)
