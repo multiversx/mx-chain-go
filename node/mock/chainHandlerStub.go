@@ -72,36 +72,6 @@ func (chs *ChainHandlerStub) SetCurrentBlockBody(body data.BodyHandler) error {
 	return nil
 }
 
-// GetLocalHeight -
-func (chs *ChainHandlerStub) GetLocalHeight() int64 {
-	panic("implement me")
-}
-
-// SetLocalHeight -
-func (chs *ChainHandlerStub) SetLocalHeight(_ int64) {
-	panic("implement me")
-}
-
-// GetNetworkHeight -
-func (chs *ChainHandlerStub) GetNetworkHeight() int64 {
-	panic("implement me")
-}
-
-// SetNetworkHeight -
-func (chs *ChainHandlerStub) SetNetworkHeight(_ int64) {
-	panic("implement me")
-}
-
-// HasBadBlock -
-func (chs *ChainHandlerStub) HasBadBlock(_ []byte) bool {
-	panic("implement me")
-}
-
-// PutBadBlock -
-func (chs *ChainHandlerStub) PutBadBlock(_ []byte) {
-	panic("implement me")
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (chs *ChainHandlerStub) IsInterfaceNil() bool {
 	return chs == nil
