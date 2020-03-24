@@ -285,6 +285,8 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 		return nil
 	}
 
+	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
+
 	for {
 		time.Sleep(time.Millisecond)
 		if haveTime() < 0 {
@@ -545,7 +547,8 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		log.Error("error indexing block header",
-			"header", header.GetRound(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
 			"error", err.Error(),
 		)
 		return
