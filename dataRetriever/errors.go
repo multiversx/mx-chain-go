@@ -7,8 +7,8 @@ import (
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
-var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+// ErrSendRequest signals that the connected peers list is empty or errors appeared when sending requests
+var ErrSendRequest = errors.New("cannot send request: peer list is empty or errors during the sending")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
@@ -169,3 +169,9 @@ var ErrSystemBusy = errors.New("system busy")
 
 // ErrNilThrottler signals that a nil throttler has been provided
 var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrEmptyString signals that an empty string has been provided
+var ErrEmptyString = errors.New("empty string")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")
