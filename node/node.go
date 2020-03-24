@@ -632,29 +632,9 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 		return 0, ErrNoTxToProcess
 	}
 
-	filteredTransactions := n.filterTransactions(txs)
-	if len(filteredTransactions) == 0 {
-		return 0, fmt.Errorf("%w after validating", ErrNoTxToProcess)
-	}
+	n.addTransactionsToSendPipe(txs)
 
-	n.addTransactionsToSendPipe(filteredTransactions)
-
-	return uint64(len(filteredTransactions)), nil
-}
-
-func (n *Node) filterTransactions(txs []*transaction.Transaction) []*transaction.Transaction {
-	filteredTransactions := make([]*transaction.Transaction, 0, len(txs))
-	var err error
-	for _, tx := range txs {
-		err = n.validateTx(tx)
-		if err != nil {
-			continue
-		}
-
-		filteredTransactions = append(filteredTransactions, tx)
-	}
-
-	return filteredTransactions
+	return uint64(len(txs)), nil
 }
 
 func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
@@ -742,7 +722,8 @@ func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
 	return n.shardCoordinator.ComputeId(recvBytes), nil
 }
 
-func (n *Node) validateTx(tx *transaction.Transaction) error {
+// ValidateTransaction will validate a transaction
+func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, core.MaxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil
@@ -863,11 +844,6 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      dataField,
 		Signature: signatureBytes,
-	}
-
-	err = n.validateTx(tx)
-	if err != nil {
-		return nil, nil, err
 	}
 
 	var txHash []byte

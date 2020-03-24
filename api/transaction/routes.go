@@ -15,6 +15,7 @@ import (
 type TxService interface {
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
@@ -96,6 +97,12 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
+	err = ef.ValidateTransaction(tx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
+		return
+	}
+
 	_, err = ef.SendBulkTransactions([]*transaction.Transaction{tx})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -134,6 +141,11 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Data,
 			receivedTx.Signature,
 		)
+		if err != nil {
+			continue
+		}
+
+		err = ef.ValidateTransaction(tx)
 		if err != nil {
 			continue
 		}

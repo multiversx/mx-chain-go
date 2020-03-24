@@ -117,7 +117,7 @@ func (cache *TxCache) diagnose() {
 
 	logFunc := log.Trace
 	if !fine {
-		logFunc = log.Warn
+		logFunc = log.Debug
 	}
 
 	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)

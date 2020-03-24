@@ -727,13 +727,15 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	signature := "617eff4f"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
-
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 	assert.Equal(t, value, tx.Value)
 	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+
+	err = n.ValidateTransaction(tx)
+	assert.Nil(t, err)
 }
 
 func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
