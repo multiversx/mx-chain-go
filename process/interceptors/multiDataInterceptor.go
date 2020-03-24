@@ -15,21 +15,27 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	marshalizer  marshal.Marshalizer
-	factory      process.InterceptedDataFactory
-	processor    process.InterceptorProcessor
-	throttler    process.InterceptorThrottler
-	dataVerifier process.InterceptedDataVerifier
+	topic            string
+	marshalizer      marshal.Marshalizer
+	factory          process.InterceptedDataFactory
+	processor        process.InterceptorProcessor
+	throttler        process.InterceptorThrottler
+	dataVerifier 	 process.InterceptedDataVerifier
+	antifloodHandler process.P2PAntifloodHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
 func NewMultiDataInterceptor(
+	topic string,
 	marshalizer marshal.Marshalizer,
 	factory process.InterceptedDataFactory,
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
+	antifloodHandler process.P2PAntifloodHandler,
 ) (*MultiDataInterceptor, error) {
-
+	if len(topic) == 0 {
+		return nil, process.ErrEmptyTopic
+	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -42,13 +48,18 @@ func NewMultiDataInterceptor(
 	if check.IfNil(throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, process.ErrNilAntifloodHandler
+	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		marshalizer:  marshalizer,
-		factory:      factory,
-		processor:    processor,
-		throttler:    throttler,
-		dataVerifier: NewDefaultDataVerifier(),
+		topic:            topic,
+		marshalizer:      marshalizer,
+		factory:          factory,
+		processor:        processor,
+		throttler:        throttler,
+		dataVerifier: 	  NewDefaultDataVerifier(),
+		antifloodHandler: antifloodHandler,
 	}
 
 	return multiDataIntercept, nil
@@ -65,8 +76,8 @@ func (mdi *MultiDataInterceptor) SetIsDataForCurrentShardVerifier(verifier proce
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
-	err := preProcessMesage(mdi.throttler, message)
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer, mdi.topic)
 	if err != nil {
 		return err
 	}
@@ -83,7 +94,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return process.ErrNoDataInMessage
 	}
 
-	filteredMultiDataBuff := make([][]byte, 0, len(multiDataBuff))
 	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
@@ -106,13 +116,11 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
-		//data is validated, add it to filtered out buff
-		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
 		if !mdi.dataVerifier.IsForCurrentShard(interceptedData) {
 			log.Trace("intercepted data is for other shards",
 				"pid", p2p.MessageOriginatorPid(message),
 				"seq no", p2p.MessageOriginatorSeq(message),
-				"topics", message.TopicIDs(),
+				"topics", message.Topics(),
 				"hash", interceptedData.Hash(),
 			)
 			wgProcess.Done()
@@ -120,19 +128,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 
 		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
-	}
-
-	var buffToSend []byte
-	haveDataForBroadcast := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
-	if haveDataForBroadcast {
-		buffToSend, err = mdi.marshalizer.Marshal(&batch.Batch{Data: filteredMultiDataBuff})
-		if err != nil {
-			return err
-		}
-
-		if broadcastHandler != nil {
-			broadcastHandler(buffToSend)
-		}
 	}
 
 	return lastErrEncountered

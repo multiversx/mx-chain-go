@@ -14,6 +14,7 @@ func (nsh *NilStatusHandler) IsInterfaceNil() bool {
 	return nsh == nil
 }
 
+// AddUint64 method - won't do anything
 func (nsh *NilStatusHandler) AddUint64(_ string, _ uint64) {
 }
 

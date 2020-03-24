@@ -134,13 +134,17 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeade
 	return selfNotarizedHeaders, nil
 }
 
-func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
-	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
-		msb.pendingMiniBlocksHandler.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
+func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {
+	for _, pendingMiniBlockInfo := range pendingMiniBlocksInfo {
+		msb.pendingMiniBlocksHandler.SetPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.MiniBlocksHashes)
 
 		log.Debug("set pending miniblocks",
 			"shard", pendingMiniBlockInfo.ShardID,
-			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
+			"num", len(pendingMiniBlockInfo.MiniBlocksHashes))
+
+		for _, hash := range pendingMiniBlockInfo.MiniBlocksHashes {
+			log.Trace("miniblock", "hash", hash)
+		}
 	}
 }
 

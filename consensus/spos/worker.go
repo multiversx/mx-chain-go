@@ -40,6 +40,8 @@ type Worker struct {
 	appStatusHandler   core.AppStatusHandler
 	chainID            []byte
 
+	networkShardingCollector consensus.NetworkShardingCollector
+
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
 
@@ -54,6 +56,8 @@ type Worker struct {
 
 	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
 	mutReceivedHeadersHandler sync.RWMutex
+
+	antifloodHandler consensus.P2PAntifloodHandler
 }
 
 // NewWorker creates a new Worker object
@@ -73,6 +77,8 @@ func NewWorker(
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
+	networkShardingCollector consensus.NetworkShardingCollector,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -90,28 +96,32 @@ func NewWorker(
 		syncTimer,
 		headerSigVerifier,
 		chainID,
+		networkShardingCollector,
+		antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	wrk := Worker{
-		consensusService:   consensusService,
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessor,
-		bootstrapper:       bootstrapper,
-		broadcastMessenger: broadcastMessenger,
-		consensusState:     consensusState,
-		forkDetector:       forkDetector,
-		keyGenerator:       keyGenerator,
-		marshalizer:        marshalizer,
-		rounder:            rounder,
-		shardCoordinator:   shardCoordinator,
-		singleSigner:       singleSigner,
-		syncTimer:          syncTimer,
-		headerSigVerifier:  headerSigVerifier,
-		chainID:            chainID,
-		appStatusHandler:   statusHandler.NewNilStatusHandler(),
+		consensusService:         consensusService,
+		blockChain:               blockChain,
+		blockProcessor:           blockProcessor,
+		bootstrapper:             bootstrapper,
+		broadcastMessenger:       broadcastMessenger,
+		consensusState:           consensusState,
+		forkDetector:             forkDetector,
+		keyGenerator:             keyGenerator,
+		marshalizer:              marshalizer,
+		rounder:                  rounder,
+		shardCoordinator:         shardCoordinator,
+		singleSigner:             singleSigner,
+		syncTimer:                syncTimer,
+		headerSigVerifier:        headerSigVerifier,
+		chainID:                  chainID,
+		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		networkShardingCollector: networkShardingCollector,
+		antifloodHandler:         antifloodHandler,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -120,6 +130,11 @@ func NewWorker(
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
+
+	// set the limit for the antiflood handler
+	topic := GetConsensusTopicIDFromShardCoordinator(shardCoordinator)
+	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
+	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
 	go wrk.checkChannels()
 
@@ -144,6 +159,8 @@ func checkNewWorkerParams(
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
+	networkShardingCollector consensus.NetworkShardingCollector,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
@@ -189,6 +206,12 @@ func checkNewWorkerParams(
 	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
+	}
+	if check.IfNil(networkShardingCollector) {
+		return ErrNilNetworkShardingCollector
+	}
+	if check.IfNil(antifloodHandler) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -270,7 +293,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -278,11 +301,23 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return ErrNilDataToProcess
 	}
 
-	cnsDta := &consensus.Message{}
-	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	err := wrk.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
+
+	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
+	err = wrk.antifloodHandler.CanProcessMessageOnTopic(message.Peer(), topic)
+	if err != nil {
+		return err
+	}
+
+	cnsDta := &consensus.Message{}
+	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
 		return fmt.Errorf("%w : received: %s, wanted: %s",
 			ErrInvalidChainID,
@@ -324,6 +359,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			ErrInvalidSignature,
 			sigVerifErr.Error())
 	}
+
+	go wrk.updateNetworkShardingVals(message, cnsDta)
 
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
@@ -397,6 +434,11 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	sinceRoundStart := time.Since(wrk.rounder.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.rounder.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
+}
+
+func (wrk *Worker) updateNetworkShardingVals(message p2p.MessageP2P, cnsMsg *consensus.Message) {
+	wrk.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), cnsMsg.PubKey)
+	wrk.networkShardingCollector.UpdatePublicKeyShardId(cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
@@ -522,7 +564,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
 		wrk.consensusService.IsSubroundSignature(subroundId)
 	if shouldBroadcastLastCommittedHeader {
-		wrk.broadcastLastCommittedHeader()
+		//TODO: Should be analyzed if call of wrk.broadcastLastCommittedHeader() is still necessary
 	}
 }
 

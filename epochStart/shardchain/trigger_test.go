@@ -222,7 +222,7 @@ func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100}
 	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
-	epochStartTrigger.ReceivedHeader(header)
+	epochStartTrigger.receivedMetaBlock(header, hash)
 
 	assert.False(t, epochStartTrigger.IsEpochStart())
 }
@@ -236,21 +236,23 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
 	oldEpHeader := &block.MetaBlock{Nonce: 99, Epoch: 0}
-	prevHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, oldEpHeader)
+	oldHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, oldEpHeader)
 
 	hash := []byte("hash")
-	header := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: prevHash}
+	header := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: oldHash}
 	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
-	epochStartTrigger.ReceivedHeader(header)
-	epochStartTrigger.ReceivedHeader(oldEpHeader)
 
-	prevHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	prevHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	epochStartTrigger.receivedMetaBlock(header, prevHash)
+	epochStartTrigger.receivedMetaBlock(oldEpHeader, oldHash)
+
 	header = &block.MetaBlock{Nonce: 101, Epoch: 1, PrevHash: prevHash}
-	epochStartTrigger.ReceivedHeader(header)
-
 	prevHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	epochStartTrigger.receivedMetaBlock(header, prevHash)
+
 	header = &block.MetaBlock{Nonce: 102, Epoch: 1, PrevHash: prevHash}
-	epochStartTrigger.ReceivedHeader(header)
+	currHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	epochStartTrigger.receivedMetaBlock(header, currHash)
 
 	assert.True(t, epochStartTrigger.IsEpochStart())
 }
@@ -348,13 +350,20 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
-	epochStartTrigger.ReceivedHeader(previousHeader99)
+	currHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
+	epochStartTrigger.receivedMetaBlock(previousHeader99, currHash)
 	assert.False(t, epochStartTrigger.IsEpochStart())
-	epochStartTrigger.ReceivedHeader(epochStartHeader)
+
+	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
+	epochStartTrigger.receivedMetaBlock(epochStartHeader, currHash)
 	assert.False(t, epochStartTrigger.IsEpochStart())
-	epochStartTrigger.ReceivedHeader(newHeader101)
+
+	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader101)
+	epochStartTrigger.receivedMetaBlock(newHeader101, currHash)
 	assert.False(t, epochStartTrigger.IsEpochStart())
-	epochStartTrigger.ReceivedHeader(newHeader102)
+
+	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader102)
+	epochStartTrigger.receivedMetaBlock(newHeader102, currHash)
 	assert.True(t, epochStartTrigger.IsEpochStart())
 }
 

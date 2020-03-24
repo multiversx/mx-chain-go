@@ -12,7 +12,6 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
-	ReceivedHeader(header data.HeaderHandler)
 	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte

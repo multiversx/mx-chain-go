@@ -155,7 +155,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		}
 
 		for i := range waitingMap[shardId] {
-			cache, _ := lrucache.NewCache(10000)
+			dataCache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -168,7 +168,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				i,
 				seedAddress,
 				cpWaiting,
-				cache,
+				dataCache,
 				nodesCoordinatorFactory,
 			)
 		}
@@ -293,7 +293,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			Shuffler:                nodeShuffler,
 			BootStorer:              bootStorer,
 			EpochStartNotifier:      epochStartSubscriber,
-			ShardId:                 shardId,
+			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
@@ -372,7 +372,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			Shuffler:                nodeShuffler,
 			EpochStartNotifier:      epochStartSubscriber,
 			BootStorer:              bootStorer,
-			ShardId:                 shardId,
+			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            waitingMap,

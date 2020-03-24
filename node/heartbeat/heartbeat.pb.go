@@ -7,7 +7,6 @@ import (
 	bytes "bytes"
 	fmt "fmt"
 	proto "github.com/gogo/protobuf/proto"
-	types "github.com/gogo/protobuf/types"
 	io "io"
 	math "math"
 	math_bits "math/bits"
@@ -112,20 +111,20 @@ func (m *Heartbeat) GetNodeDisplayName() string {
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
 type HeartbeatDTO struct {
-	MaxDurationPeerUnresponsive *types.Duration  `protobuf:"bytes,1,opt,name=MaxDurationPeerUnresponsive,proto3" json:"MaxDurationPeerUnresponsive,omitempty"`
-	MaxInactiveTime             *types.Duration  `protobuf:"bytes,2,opt,name=MaxInactiveTime,proto3" json:"MaxInactiveTime,omitempty"`
-	TotalUpTime                 *types.Duration  `protobuf:"bytes,3,opt,name=TotalUpTime,proto3" json:"TotalUpTime,omitempty"`
-	TotalDownTime               *types.Duration  `protobuf:"bytes,4,opt,name=TotalDownTime,proto3" json:"TotalDownTime,omitempty"`
-	TimeStamp                   *types.Timestamp `protobuf:"bytes,5,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
-	IsActive                    bool             `protobuf:"varint,6,opt,name=IsActive,proto3" json:"IsActive,omitempty"`
-	ReceivedShardID             uint32           `protobuf:"varint,7,opt,name=ReceivedShardID,proto3" json:"ReceivedShardID,omitempty"`
-	ComputedShardID             uint32           `protobuf:"varint,8,opt,name=ComputedShardID,proto3" json:"ComputedShardID,omitempty"`
-	VersionNumber               string           `protobuf:"bytes,9,opt,name=VersionNumber,proto3" json:"VersionNumber,omitempty"`
-	NodeDisplayName             string           `protobuf:"bytes,10,opt,name=NodeDisplayName,proto3" json:"NodeDisplayName,omitempty"`
-	PeerType                    string           `protobuf:"bytes,11,opt,name=PeerType,proto3" json:"PeerType,omitempty"`
-	IsValidator                 bool             `protobuf:"varint,12,opt,name=IsValidator,proto3" json:"IsValidator,omitempty"`
-	LastUptimeDowntime          *types.Timestamp `protobuf:"bytes,13,opt,name=LastUptimeDowntime,proto3" json:"LastUptimeDowntime,omitempty"`
-	GenesisTime                 *types.Timestamp `protobuf:"bytes,14,opt,name=GenesisTime,proto3" json:"GenesisTime,omitempty"`
+	MaxDurationPeerUnresponsive int64  `protobuf:"varint,1,opt,name=MaxDurationPeerUnresponsive,proto3" json:"MaxDurationPeerUnresponsive,omitempty"`
+	MaxInactiveTime             int64  `protobuf:"varint,2,opt,name=MaxInactiveTime,proto3" json:"MaxInactiveTime,omitempty"`
+	TotalUpTime                 int64  `protobuf:"varint,3,opt,name=TotalUpTime,proto3" json:"TotalUpTime,omitempty"`
+	TotalDownTime               int64  `protobuf:"varint,4,opt,name=TotalDownTime,proto3" json:"TotalDownTime,omitempty"`
+	TimeStamp                   int64  `protobuf:"varint,5,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
+	IsActive                    bool   `protobuf:"varint,6,opt,name=IsActive,proto3" json:"IsActive,omitempty"`
+	ReceivedShardID             uint32 `protobuf:"varint,7,opt,name=ReceivedShardID,proto3" json:"ReceivedShardID,omitempty"`
+	ComputedShardID             uint32 `protobuf:"varint,8,opt,name=ComputedShardID,proto3" json:"ComputedShardID,omitempty"`
+	VersionNumber               string `protobuf:"bytes,9,opt,name=VersionNumber,proto3" json:"VersionNumber,omitempty"`
+	NodeDisplayName             string `protobuf:"bytes,10,opt,name=NodeDisplayName,proto3" json:"NodeDisplayName,omitempty"`
+	PeerType                    string `protobuf:"bytes,11,opt,name=PeerType,proto3" json:"PeerType,omitempty"`
+	IsValidator                 bool   `protobuf:"varint,12,opt,name=IsValidator,proto3" json:"IsValidator,omitempty"`
+	LastUptimeDowntime          int64  `protobuf:"varint,13,opt,name=LastUptimeDowntime,proto3" json:"LastUptimeDowntime,omitempty"`
+	GenesisTime                 int64  `protobuf:"varint,14,opt,name=GenesisTime,proto3" json:"GenesisTime,omitempty"`
 }
 
 func (m *HeartbeatDTO) Reset()      { *m = HeartbeatDTO{} }
@@ -160,39 +159,39 @@ func (m *HeartbeatDTO) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_HeartbeatDTO proto.InternalMessageInfo
 
-func (m *HeartbeatDTO) GetMaxDurationPeerUnresponsive() *types.Duration {
+func (m *HeartbeatDTO) GetMaxDurationPeerUnresponsive() int64 {
 	if m != nil {
 		return m.MaxDurationPeerUnresponsive
 	}
-	return nil
+	return 0
 }
 
-func (m *HeartbeatDTO) GetMaxInactiveTime() *types.Duration {
+func (m *HeartbeatDTO) GetMaxInactiveTime() int64 {
 	if m != nil {
 		return m.MaxInactiveTime
 	}
-	return nil
+	return 0
 }
 
-func (m *HeartbeatDTO) GetTotalUpTime() *types.Duration {
+func (m *HeartbeatDTO) GetTotalUpTime() int64 {
 	if m != nil {
 		return m.TotalUpTime
 	}
-	return nil
+	return 0
 }
 
-func (m *HeartbeatDTO) GetTotalDownTime() *types.Duration {
+func (m *HeartbeatDTO) GetTotalDownTime() int64 {
 	if m != nil {
 		return m.TotalDownTime
 	}
-	return nil
+	return 0
 }
 
-func (m *HeartbeatDTO) GetTimeStamp() *types.Timestamp {
+func (m *HeartbeatDTO) GetTimeStamp() int64 {
 	if m != nil {
 		return m.TimeStamp
 	}
-	return nil
+	return 0
 }
 
 func (m *HeartbeatDTO) GetIsActive() bool {
@@ -244,22 +243,22 @@ func (m *HeartbeatDTO) GetIsValidator() bool {
 	return false
 }
 
-func (m *HeartbeatDTO) GetLastUptimeDowntime() *types.Timestamp {
+func (m *HeartbeatDTO) GetLastUptimeDowntime() int64 {
 	if m != nil {
 		return m.LastUptimeDowntime
 	}
-	return nil
+	return 0
 }
 
-func (m *HeartbeatDTO) GetGenesisTime() *types.Timestamp {
+func (m *HeartbeatDTO) GetGenesisTime() int64 {
 	if m != nil {
 		return m.GenesisTime
 	}
-	return nil
+	return 0
 }
 
 type DbTimeStamp struct {
-	TS *types.Timestamp `protobuf:"bytes,1,opt,name=TS,proto3" json:"TS,omitempty"`
+	Timestamp int64 `protobuf:"varint,1,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
 }
 
 func (m *DbTimeStamp) Reset()      { *m = DbTimeStamp{} }
@@ -294,11 +293,11 @@ func (m *DbTimeStamp) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DbTimeStamp proto.InternalMessageInfo
 
-func (m *DbTimeStamp) GetTS() *types.Timestamp {
+func (m *DbTimeStamp) GetTimestamp() int64 {
 	if m != nil {
-		return m.TS
+		return m.Timestamp
 	}
-	return nil
+	return 0
 }
 
 func init() {
@@ -310,42 +309,38 @@ func init() {
 func init() { proto.RegisterFile("heartbeat.proto", fileDescriptor_3c667767fb9826a9) }
 
 var fileDescriptor_3c667767fb9826a9 = []byte{
-	// 549 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0xcf, 0x8f, 0xd2, 0x40,
-	0x14, 0xee, 0xec, 0x4f, 0x3a, 0x05, 0x49, 0xe6, 0x60, 0x2a, 0x9a, 0x91, 0x10, 0x0f, 0xc4, 0x03,
-	0x9b, 0xac, 0x17, 0x8d, 0x26, 0x1b, 0xdd, 0x26, 0x8a, 0x71, 0x91, 0x94, 0xb2, 0x07, 0x3d, 0x4d,
-	0xb7, 0x4f, 0x76, 0x22, 0xed, 0x34, 0xed, 0x14, 0x97, 0x9b, 0x7f, 0x82, 0x7f, 0x86, 0xff, 0x88,
-	0x89, 0x47, 0x8e, 0x7b, 0x94, 0x72, 0xf1, 0xc8, 0x9f, 0x60, 0x3a, 0x50, 0x60, 0xd9, 0x0d, 0x78,
-	0x9a, 0x7c, 0xef, 0x7d, 0xdf, 0x17, 0xde, 0xfb, 0x1e, 0xc5, 0xe5, 0x4b, 0x60, 0x91, 0x74, 0x81,
-	0xc9, 0x46, 0x18, 0x09, 0x29, 0xc8, 0xbe, 0x7a, 0x2a, 0x8f, 0x7b, 0x42, 0xf4, 0xfa, 0x70, 0xa4,
-	0x90, 0x9b, 0x7c, 0x39, 0x92, 0xdc, 0x87, 0x58, 0x32, 0x3f, 0x9c, 0xf1, 0x2a, 0x74, 0x9d, 0xe0,
-	0x25, 0x11, 0x93, 0x5c, 0x04, 0xb3, 0x7e, 0xed, 0x17, 0xc2, 0xfa, 0xbb, 0xdc, 0x9b, 0x98, 0xf8,
-	0xb0, 0xcd, 0x86, 0x7d, 0xc1, 0x3c, 0x13, 0x55, 0x51, 0xbd, 0x68, 0xe7, 0x90, 0xdc, 0xc7, 0x07,
-	0xed, 0xc4, 0xfd, 0x0a, 0x43, 0x73, 0x47, 0x35, 0xe6, 0x88, 0x3c, 0xc2, 0x7a, 0x87, 0xf7, 0x02,
-	0x26, 0x93, 0x08, 0xcc, 0x5d, 0xd5, 0x5a, 0x16, 0x32, 0xbf, 0xce, 0x25, 0x8b, 0xbc, 0xa6, 0x65,
-	0xee, 0x55, 0x51, 0xbd, 0x64, 0xe7, 0x90, 0x3c, 0xc1, 0xa5, 0x73, 0x88, 0x62, 0x2e, 0x82, 0x56,
-	0xe2, 0xbb, 0x10, 0x99, 0xfb, 0x55, 0x54, 0xd7, 0xed, 0x9b, 0x45, 0x52, 0xc7, 0xe5, 0x96, 0xf0,
-	0xc0, 0xe2, 0x71, 0xd8, 0x67, 0xc3, 0x16, 0xf3, 0xc1, 0x3c, 0x50, 0xbc, 0xf5, 0x72, 0x6d, 0xba,
-	0x8f, 0x8b, 0x8b, 0x39, 0x2c, 0xe7, 0x23, 0xf9, 0x8c, 0x1f, 0x9e, 0xb1, 0x2b, 0x6b, 0x3e, 0x6d,
-	0x1b, 0x20, 0xea, 0x06, 0x11, 0xc4, 0xa1, 0x08, 0x62, 0x3e, 0x00, 0x35, 0x9e, 0x71, 0xfc, 0xa0,
-	0x31, 0x5b, 0x4f, 0x23, 0x5f, 0x4f, 0x23, 0x17, 0xd8, 0x9b, 0xd4, 0xe4, 0x14, 0x97, 0xcf, 0xd8,
-	0x55, 0x33, 0x60, 0x17, 0x92, 0x0f, 0xc0, 0xe1, 0x3e, 0xa8, 0xb5, 0x6c, 0x34, 0x5c, 0x57, 0x90,
-	0x97, 0xd8, 0x70, 0x84, 0x64, 0xfd, 0x6e, 0xa8, 0x0c, 0x76, 0xb7, 0x19, 0xac, 0xb2, 0xc9, 0x09,
-	0x2e, 0x29, 0x68, 0x89, 0x6f, 0x81, 0x92, 0xef, 0x6d, 0x93, 0xdf, 0xe4, 0x93, 0xe7, 0x58, 0xcf,
-	0xde, 0x4e, 0x76, 0x2b, 0x6a, 0xf9, 0xc6, 0x71, 0xe5, 0x96, 0xd8, 0xc9, 0xaf, 0xc9, 0x5e, 0x92,
-	0x49, 0x05, 0x17, 0x9a, 0xf1, 0x6b, 0x35, 0x87, 0x4a, 0xa3, 0x60, 0x2f, 0x70, 0x16, 0x98, 0x0d,
-	0x17, 0xc0, 0x07, 0xe0, 0xe5, 0xc1, 0x1f, 0xaa, 0xe0, 0xd7, 0xcb, 0x19, 0xf3, 0x54, 0xf8, 0x61,
-	0x22, 0x97, 0xcc, 0xc2, 0x8c, 0xb9, 0x56, 0xbe, 0x7d, 0x2a, 0xfa, 0x7f, 0x9e, 0x0a, 0xbe, 0xf3,
-	0x54, 0xb2, 0xdf, 0x9f, 0x05, 0xea, 0x0c, 0x43, 0x30, 0x0d, 0x45, 0x59, 0x60, 0x52, 0xc5, 0x46,
-	0x33, 0x3e, 0x67, 0x7d, 0xee, 0x31, 0x29, 0x22, 0xb3, 0xa8, 0xc6, 0x5b, 0x2d, 0x91, 0xf7, 0x98,
-	0x7c, 0x60, 0xb1, 0xec, 0x86, 0xd9, 0x3f, 0x2d, 0xdb, 0x66, 0xf6, 0x9a, 0xa5, 0xad, 0x0b, 0xbc,
-	0x43, 0x45, 0x5e, 0x61, 0xe3, 0x2d, 0x04, 0x10, 0xf3, 0x58, 0x45, 0x78, 0x6f, 0xab, 0xc9, 0x2a,
-	0xbd, 0xf6, 0x02, 0x1b, 0x96, 0xbb, 0x8c, 0xe5, 0x29, 0xde, 0x71, 0x3a, 0xf3, 0xbb, 0xde, 0xe4,
-	0xb1, 0xe3, 0x74, 0xde, 0x9c, 0x8c, 0xc6, 0x54, 0xbb, 0x1e, 0x53, 0x6d, 0x3a, 0xa6, 0xe8, 0x7b,
-	0x4a, 0xd1, 0xcf, 0x94, 0xa2, 0xdf, 0x29, 0x45, 0xa3, 0x94, 0xa2, 0x3f, 0x29, 0x45, 0x7f, 0x53,
-	0xaa, 0x4d, 0x53, 0x8a, 0x7e, 0x4c, 0xa8, 0x36, 0x9a, 0x50, 0xed, 0x7a, 0x42, 0xb5, 0x4f, 0xfa,
-	0xe2, 0x23, 0xe4, 0x1e, 0x28, 0xe3, 0x67, 0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0x32, 0xbe, 0x6a,
-	0x48, 0x98, 0x04, 0x00, 0x00,
+	// 485 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x93, 0xcf, 0x6e, 0x13, 0x31,
+	0x10, 0xc6, 0xd7, 0x24, 0x4d, 0x13, 0x27, 0xa1, 0x92, 0x0f, 0xc8, 0x02, 0x64, 0x45, 0x11, 0x87,
+	0x48, 0x48, 0xbd, 0xf0, 0x00, 0xfc, 0x5b, 0x09, 0x22, 0xd1, 0x10, 0x6d, 0x92, 0x1e, 0xb8, 0x39,
+	0xdd, 0x11, 0xb5, 0xc8, 0xae, 0x57, 0xb6, 0x37, 0x34, 0x37, 0x1e, 0x81, 0xc7, 0xe0, 0xc8, 0x4b,
+	0x20, 0x71, 0xcc, 0xb1, 0x47, 0xb2, 0xb9, 0x70, 0xec, 0x23, 0x20, 0x4f, 0x9b, 0x6c, 0x1a, 0x2a,
+	0xc4, 0x69, 0xf4, 0x7d, 0xf3, 0xc9, 0xf6, 0xfc, 0x46, 0xa6, 0x47, 0xe7, 0x20, 0x8d, 0x9b, 0x82,
+	0x74, 0xc7, 0x99, 0xd1, 0x4e, 0xb3, 0x03, 0x2c, 0xdd, 0x1f, 0x84, 0x36, 0xde, 0x6e, 0x5a, 0x8c,
+	0xd3, 0xc3, 0xa1, 0x5c, 0xcc, 0xb4, 0x8c, 0x39, 0xe9, 0x90, 0x5e, 0x2b, 0xda, 0x48, 0xf6, 0x80,
+	0xd6, 0x86, 0xf9, 0xf4, 0x13, 0x2c, 0xf8, 0x3d, 0x6c, 0xdc, 0x28, 0xf6, 0x98, 0x36, 0x46, 0xea,
+	0x63, 0x2a, 0x5d, 0x6e, 0x80, 0x57, 0xb0, 0x55, 0x1a, 0xfe, 0xbc, 0xd1, 0xb9, 0x34, 0x71, 0x3f,
+	0xe4, 0xd5, 0x0e, 0xe9, 0xb5, 0xa3, 0x8d, 0x64, 0x4f, 0x68, 0xfb, 0x14, 0x8c, 0x55, 0x3a, 0x1d,
+	0xe4, 0xc9, 0x14, 0x0c, 0x3f, 0xe8, 0x90, 0x5e, 0x23, 0xba, 0x6d, 0xb2, 0x1e, 0x3d, 0x1a, 0xe8,
+	0x18, 0x42, 0x65, 0xb3, 0x99, 0x5c, 0x0c, 0x64, 0x02, 0xbc, 0x86, 0xb9, 0x7d, 0xbb, 0xfb, 0xbd,
+	0x4a, 0x5b, 0xdb, 0x39, 0xc2, 0xf1, 0x7b, 0xf6, 0x82, 0x3e, 0x3a, 0x91, 0x17, 0x61, 0x6e, 0xa4,
+	0x53, 0x3a, 0x1d, 0x02, 0x98, 0x49, 0x6a, 0xc0, 0x66, 0x3a, 0xb5, 0x6a, 0x0e, 0x38, 0x5e, 0x25,
+	0xfa, 0x57, 0xc4, 0x5f, 0x7e, 0x22, 0x2f, 0xfa, 0xa9, 0x3c, 0x73, 0x6a, 0x0e, 0x63, 0x95, 0x00,
+	0xce, 0x5e, 0x89, 0xf6, 0x6d, 0xd6, 0xa1, 0xcd, 0xb1, 0x76, 0x72, 0x36, 0xc9, 0x30, 0x55, 0xc1,
+	0xd4, 0xae, 0xe5, 0xc7, 0x45, 0x19, 0xea, 0xcf, 0x29, 0x66, 0xaa, 0x98, 0xb9, 0x6d, 0x7a, 0x98,
+	0xbe, 0x8e, 0x9c, 0x4c, 0x32, 0x04, 0x52, 0x89, 0x4a, 0x83, 0x3d, 0xa4, 0xf5, 0xbe, 0x7d, 0x89,
+	0xb7, 0x22, 0x85, 0x7a, 0xb4, 0xd5, 0xfe, 0xad, 0x11, 0x9c, 0x81, 0x9a, 0x43, 0xbc, 0x01, 0x7e,
+	0x88, 0xc0, 0xf7, 0x6d, 0x9f, 0x7c, 0xad, 0x93, 0x2c, 0x77, 0x65, 0xb2, 0x7e, 0x9d, 0xdc, 0xb3,
+	0xff, 0x5e, 0x51, 0xe3, 0x3f, 0x57, 0x44, 0xef, 0x5c, 0x91, 0x7f, 0xbf, 0x67, 0x3c, 0x5e, 0x64,
+	0xc0, 0x9b, 0x18, 0xd9, 0x6a, 0x4f, 0xb0, 0x6f, 0x4f, 0xe5, 0x4c, 0xc5, 0xd2, 0x69, 0xc3, 0x5b,
+	0x38, 0xde, 0xae, 0xc5, 0x8e, 0x29, 0x7b, 0x27, 0xad, 0x9b, 0x64, 0x4e, 0x25, 0xe0, 0x89, 0xf9,
+	0xca, 0xdb, 0x08, 0xe9, 0x8e, 0x8e, 0x3f, 0xf1, 0x0d, 0xa4, 0x60, 0x95, 0x45, 0xde, 0xf7, 0xaf,
+	0x77, 0xb2, 0x63, 0x75, 0x9f, 0xd2, 0x66, 0x38, 0x2d, 0xf1, 0xde, 0xc0, 0xb7, 0x08, 0x9f, 0x94,
+	0xf0, 0xd1, 0x78, 0xf5, 0x7c, 0xb9, 0x12, 0xc1, 0xe5, 0x4a, 0x04, 0x57, 0x2b, 0x41, 0xbe, 0x14,
+	0x82, 0x7c, 0x2b, 0x04, 0xf9, 0x59, 0x08, 0xb2, 0x2c, 0x04, 0xf9, 0x55, 0x08, 0xf2, 0xbb, 0x10,
+	0xc1, 0x55, 0x21, 0xc8, 0xd7, 0xb5, 0x08, 0x96, 0x6b, 0x11, 0x5c, 0xae, 0x45, 0xf0, 0xa1, 0xb1,
+	0xfd, 0x75, 0xd3, 0x1a, 0xfe, 0xb7, 0x67, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x52, 0xb8, 0xd6,
+	0x52, 0x89, 0x03, 0x00, 0x00,
 }
 
 func (this *Heartbeat) Equal(that interface{}) bool {
@@ -406,19 +401,19 @@ func (this *HeartbeatDTO) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.MaxDurationPeerUnresponsive.Equal(that1.MaxDurationPeerUnresponsive) {
+	if this.MaxDurationPeerUnresponsive != that1.MaxDurationPeerUnresponsive {
 		return false
 	}
-	if !this.MaxInactiveTime.Equal(that1.MaxInactiveTime) {
+	if this.MaxInactiveTime != that1.MaxInactiveTime {
 		return false
 	}
-	if !this.TotalUpTime.Equal(that1.TotalUpTime) {
+	if this.TotalUpTime != that1.TotalUpTime {
 		return false
 	}
-	if !this.TotalDownTime.Equal(that1.TotalDownTime) {
+	if this.TotalDownTime != that1.TotalDownTime {
 		return false
 	}
-	if !this.TimeStamp.Equal(that1.TimeStamp) {
+	if this.TimeStamp != that1.TimeStamp {
 		return false
 	}
 	if this.IsActive != that1.IsActive {
@@ -442,10 +437,10 @@ func (this *HeartbeatDTO) Equal(that interface{}) bool {
 	if this.IsValidator != that1.IsValidator {
 		return false
 	}
-	if !this.LastUptimeDowntime.Equal(that1.LastUptimeDowntime) {
+	if this.LastUptimeDowntime != that1.LastUptimeDowntime {
 		return false
 	}
-	if !this.GenesisTime.Equal(that1.GenesisTime) {
+	if this.GenesisTime != that1.GenesisTime {
 		return false
 	}
 	return true
@@ -469,7 +464,7 @@ func (this *DbTimeStamp) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.TS.Equal(that1.TS) {
+	if this.Timestamp != that1.Timestamp {
 		return false
 	}
 	return true
@@ -495,21 +490,11 @@ func (this *HeartbeatDTO) GoString() string {
 	}
 	s := make([]string, 0, 18)
 	s = append(s, "&heartbeat.HeartbeatDTO{")
-	if this.MaxDurationPeerUnresponsive != nil {
-		s = append(s, "MaxDurationPeerUnresponsive: "+fmt.Sprintf("%#v", this.MaxDurationPeerUnresponsive)+",\n")
-	}
-	if this.MaxInactiveTime != nil {
-		s = append(s, "MaxInactiveTime: "+fmt.Sprintf("%#v", this.MaxInactiveTime)+",\n")
-	}
-	if this.TotalUpTime != nil {
-		s = append(s, "TotalUpTime: "+fmt.Sprintf("%#v", this.TotalUpTime)+",\n")
-	}
-	if this.TotalDownTime != nil {
-		s = append(s, "TotalDownTime: "+fmt.Sprintf("%#v", this.TotalDownTime)+",\n")
-	}
-	if this.TimeStamp != nil {
-		s = append(s, "TimeStamp: "+fmt.Sprintf("%#v", this.TimeStamp)+",\n")
-	}
+	s = append(s, "MaxDurationPeerUnresponsive: "+fmt.Sprintf("%#v", this.MaxDurationPeerUnresponsive)+",\n")
+	s = append(s, "MaxInactiveTime: "+fmt.Sprintf("%#v", this.MaxInactiveTime)+",\n")
+	s = append(s, "TotalUpTime: "+fmt.Sprintf("%#v", this.TotalUpTime)+",\n")
+	s = append(s, "TotalDownTime: "+fmt.Sprintf("%#v", this.TotalDownTime)+",\n")
+	s = append(s, "TimeStamp: "+fmt.Sprintf("%#v", this.TimeStamp)+",\n")
 	s = append(s, "IsActive: "+fmt.Sprintf("%#v", this.IsActive)+",\n")
 	s = append(s, "ReceivedShardID: "+fmt.Sprintf("%#v", this.ReceivedShardID)+",\n")
 	s = append(s, "ComputedShardID: "+fmt.Sprintf("%#v", this.ComputedShardID)+",\n")
@@ -517,12 +502,8 @@ func (this *HeartbeatDTO) GoString() string {
 	s = append(s, "NodeDisplayName: "+fmt.Sprintf("%#v", this.NodeDisplayName)+",\n")
 	s = append(s, "PeerType: "+fmt.Sprintf("%#v", this.PeerType)+",\n")
 	s = append(s, "IsValidator: "+fmt.Sprintf("%#v", this.IsValidator)+",\n")
-	if this.LastUptimeDowntime != nil {
-		s = append(s, "LastUptimeDowntime: "+fmt.Sprintf("%#v", this.LastUptimeDowntime)+",\n")
-	}
-	if this.GenesisTime != nil {
-		s = append(s, "GenesisTime: "+fmt.Sprintf("%#v", this.GenesisTime)+",\n")
-	}
+	s = append(s, "LastUptimeDowntime: "+fmt.Sprintf("%#v", this.LastUptimeDowntime)+",\n")
+	s = append(s, "GenesisTime: "+fmt.Sprintf("%#v", this.GenesisTime)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -532,9 +513,7 @@ func (this *DbTimeStamp) GoString() string {
 	}
 	s := make([]string, 0, 5)
 	s = append(s, "&heartbeat.DbTimeStamp{")
-	if this.TS != nil {
-		s = append(s, "TS: "+fmt.Sprintf("%#v", this.TS)+",\n")
-	}
+	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -629,29 +608,15 @@ func (m *HeartbeatDTO) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.GenesisTime != nil {
-		{
-			size, err := m.GenesisTime.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.GenesisTime != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.GenesisTime))
 		i--
-		dAtA[i] = 0x72
+		dAtA[i] = 0x70
 	}
-	if m.LastUptimeDowntime != nil {
-		{
-			size, err := m.LastUptimeDowntime.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.LastUptimeDowntime != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.LastUptimeDowntime))
 		i--
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x68
 	}
 	if m.IsValidator {
 		i--
@@ -704,65 +669,30 @@ func (m *HeartbeatDTO) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
-	if m.TimeStamp != nil {
-		{
-			size, err := m.TimeStamp.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.TimeStamp != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.TimeStamp))
 		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x28
 	}
-	if m.TotalDownTime != nil {
-		{
-			size, err := m.TotalDownTime.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.TotalDownTime != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.TotalDownTime))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x20
 	}
-	if m.TotalUpTime != nil {
-		{
-			size, err := m.TotalUpTime.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.TotalUpTime != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.TotalUpTime))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x18
 	}
-	if m.MaxInactiveTime != nil {
-		{
-			size, err := m.MaxInactiveTime.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.MaxInactiveTime != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.MaxInactiveTime))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x10
 	}
-	if m.MaxDurationPeerUnresponsive != nil {
-		{
-			size, err := m.MaxDurationPeerUnresponsive.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.MaxDurationPeerUnresponsive != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.MaxDurationPeerUnresponsive))
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -787,17 +717,10 @@ func (m *DbTimeStamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.TS != nil {
-		{
-			size, err := m.TS.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintHeartbeat(dAtA, i, uint64(size))
-		}
+	if m.Timestamp != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.Timestamp))
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -851,25 +774,20 @@ func (m *HeartbeatDTO) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.MaxDurationPeerUnresponsive != nil {
-		l = m.MaxDurationPeerUnresponsive.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.MaxDurationPeerUnresponsive != 0 {
+		n += 1 + sovHeartbeat(uint64(m.MaxDurationPeerUnresponsive))
 	}
-	if m.MaxInactiveTime != nil {
-		l = m.MaxInactiveTime.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.MaxInactiveTime != 0 {
+		n += 1 + sovHeartbeat(uint64(m.MaxInactiveTime))
 	}
-	if m.TotalUpTime != nil {
-		l = m.TotalUpTime.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.TotalUpTime != 0 {
+		n += 1 + sovHeartbeat(uint64(m.TotalUpTime))
 	}
-	if m.TotalDownTime != nil {
-		l = m.TotalDownTime.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.TotalDownTime != 0 {
+		n += 1 + sovHeartbeat(uint64(m.TotalDownTime))
 	}
-	if m.TimeStamp != nil {
-		l = m.TimeStamp.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.TimeStamp != 0 {
+		n += 1 + sovHeartbeat(uint64(m.TimeStamp))
 	}
 	if m.IsActive {
 		n += 2
@@ -895,13 +813,11 @@ func (m *HeartbeatDTO) Size() (n int) {
 	if m.IsValidator {
 		n += 2
 	}
-	if m.LastUptimeDowntime != nil {
-		l = m.LastUptimeDowntime.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.LastUptimeDowntime != 0 {
+		n += 1 + sovHeartbeat(uint64(m.LastUptimeDowntime))
 	}
-	if m.GenesisTime != nil {
-		l = m.GenesisTime.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.GenesisTime != 0 {
+		n += 1 + sovHeartbeat(uint64(m.GenesisTime))
 	}
 	return n
 }
@@ -912,9 +828,8 @@ func (m *DbTimeStamp) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.TS != nil {
-		l = m.TS.Size()
-		n += 1 + l + sovHeartbeat(uint64(l))
+	if m.Timestamp != 0 {
+		n += 1 + sovHeartbeat(uint64(m.Timestamp))
 	}
 	return n
 }
@@ -945,11 +860,11 @@ func (this *HeartbeatDTO) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&HeartbeatDTO{`,
-		`MaxDurationPeerUnresponsive:` + strings.Replace(fmt.Sprintf("%v", this.MaxDurationPeerUnresponsive), "Duration", "types.Duration", 1) + `,`,
-		`MaxInactiveTime:` + strings.Replace(fmt.Sprintf("%v", this.MaxInactiveTime), "Duration", "types.Duration", 1) + `,`,
-		`TotalUpTime:` + strings.Replace(fmt.Sprintf("%v", this.TotalUpTime), "Duration", "types.Duration", 1) + `,`,
-		`TotalDownTime:` + strings.Replace(fmt.Sprintf("%v", this.TotalDownTime), "Duration", "types.Duration", 1) + `,`,
-		`TimeStamp:` + strings.Replace(fmt.Sprintf("%v", this.TimeStamp), "Timestamp", "types.Timestamp", 1) + `,`,
+		`MaxDurationPeerUnresponsive:` + fmt.Sprintf("%v", this.MaxDurationPeerUnresponsive) + `,`,
+		`MaxInactiveTime:` + fmt.Sprintf("%v", this.MaxInactiveTime) + `,`,
+		`TotalUpTime:` + fmt.Sprintf("%v", this.TotalUpTime) + `,`,
+		`TotalDownTime:` + fmt.Sprintf("%v", this.TotalDownTime) + `,`,
+		`TimeStamp:` + fmt.Sprintf("%v", this.TimeStamp) + `,`,
 		`IsActive:` + fmt.Sprintf("%v", this.IsActive) + `,`,
 		`ReceivedShardID:` + fmt.Sprintf("%v", this.ReceivedShardID) + `,`,
 		`ComputedShardID:` + fmt.Sprintf("%v", this.ComputedShardID) + `,`,
@@ -957,8 +872,8 @@ func (this *HeartbeatDTO) String() string {
 		`NodeDisplayName:` + fmt.Sprintf("%v", this.NodeDisplayName) + `,`,
 		`PeerType:` + fmt.Sprintf("%v", this.PeerType) + `,`,
 		`IsValidator:` + fmt.Sprintf("%v", this.IsValidator) + `,`,
-		`LastUptimeDowntime:` + strings.Replace(fmt.Sprintf("%v", this.LastUptimeDowntime), "Timestamp", "types.Timestamp", 1) + `,`,
-		`GenesisTime:` + strings.Replace(fmt.Sprintf("%v", this.GenesisTime), "Timestamp", "types.Timestamp", 1) + `,`,
+		`LastUptimeDowntime:` + fmt.Sprintf("%v", this.LastUptimeDowntime) + `,`,
+		`GenesisTime:` + fmt.Sprintf("%v", this.GenesisTime) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -968,7 +883,7 @@ func (this *DbTimeStamp) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&DbTimeStamp{`,
-		`TS:` + strings.Replace(fmt.Sprintf("%v", this.TS), "Timestamp", "types.Timestamp", 1) + `,`,
+		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1249,10 +1164,10 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MaxDurationPeerUnresponsive", wireType)
 			}
-			var msglen int
+			m.MaxDurationPeerUnresponsive = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1262,33 +1177,16 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.MaxDurationPeerUnresponsive |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.MaxDurationPeerUnresponsive == nil {
-				m.MaxDurationPeerUnresponsive = &types.Duration{}
-			}
-			if err := m.MaxDurationPeerUnresponsive.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 2:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MaxInactiveTime", wireType)
 			}
-			var msglen int
+			m.MaxInactiveTime = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1298,33 +1196,16 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.MaxInactiveTime |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.MaxInactiveTime == nil {
-				m.MaxInactiveTime = &types.Duration{}
-			}
-			if err := m.MaxInactiveTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 3:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalUpTime", wireType)
 			}
-			var msglen int
+			m.TotalUpTime = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1334,33 +1215,16 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.TotalUpTime |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.TotalUpTime == nil {
-				m.TotalUpTime = &types.Duration{}
-			}
-			if err := m.TotalUpTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 4:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalDownTime", wireType)
 			}
-			var msglen int
+			m.TotalDownTime = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1370,33 +1234,16 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.TotalDownTime |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.TotalDownTime == nil {
-				m.TotalDownTime = &types.Duration{}
-			}
-			if err := m.TotalDownTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 5:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TimeStamp", wireType)
 			}
-			var msglen int
+			m.TimeStamp = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1406,28 +1253,11 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.TimeStamp |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.TimeStamp == nil {
-				m.TimeStamp = &types.Timestamp{}
-			}
-			if err := m.TimeStamp.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsActive", wireType)
@@ -1603,10 +1433,10 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 			}
 			m.IsValidator = bool(v != 0)
 		case 13:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LastUptimeDowntime", wireType)
 			}
-			var msglen int
+			m.LastUptimeDowntime = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1616,33 +1446,16 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.LastUptimeDowntime |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LastUptimeDowntime == nil {
-				m.LastUptimeDowntime = &types.Timestamp{}
-			}
-			if err := m.LastUptimeDowntime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 14:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GenesisTime", wireType)
 			}
-			var msglen int
+			m.GenesisTime = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1652,28 +1465,11 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.GenesisTime |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.GenesisTime == nil {
-				m.GenesisTime = &types.Timestamp{}
-			}
-			if err := m.GenesisTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHeartbeat(dAtA[iNdEx:])
@@ -1728,10 +1524,10 @@ func (m *DbTimeStamp) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TS", wireType)
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
 			}
-			var msglen int
+			m.Timestamp = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1741,28 +1537,11 @@ func (m *DbTimeStamp) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.Timestamp |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.TS == nil {
-				m.TS = &types.Timestamp{}
-			}
-			if err := m.TS.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHeartbeat(dAtA[iNdEx:])

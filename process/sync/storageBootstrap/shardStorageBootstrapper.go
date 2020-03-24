@@ -184,7 +184,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 	return selfNotarizedHeaders, nil
 }
 
-func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
+func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
 }
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {

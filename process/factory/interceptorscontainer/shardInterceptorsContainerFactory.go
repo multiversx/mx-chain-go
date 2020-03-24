@@ -42,6 +42,7 @@ func NewShardInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -112,6 +113,7 @@ func NewShardInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		blackList:              args.BlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:       args.AntifloodHandler,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
@@ -121,7 +123,7 @@ func NewShardInterceptorsContainerFactory(
 		addrConverter:                    args.AddrConverter,
 	}
 
-	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
+	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}

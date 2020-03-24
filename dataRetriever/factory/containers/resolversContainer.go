@@ -1,6 +1,10 @@
 package containers
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/cornelk/hashmap"
 )
@@ -22,7 +26,7 @@ func NewResolversContainer() *resolversContainer {
 func (rc *resolversContainer) Get(key string) (dataRetriever.Resolver, error) {
 	value, ok := rc.objects.Get(key)
 	if !ok {
-		return nil, dataRetriever.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in resolvers container for key %v", dataRetriever.ErrInvalidContainerKey, key)
 	}
 
 	resolver, ok := value.(dataRetriever.Resolver)
@@ -84,6 +88,21 @@ func (rc *resolversContainer) Remove(key string) {
 // Len returns the length of the added objects
 func (rc *resolversContainer) Len() int {
 	return rc.objects.Len()
+}
+
+// ResolverKeys will return the contained resolvers keys in a concatenated string
+func (rc *resolversContainer) ResolverKeys() string {
+	ch := rc.objects.Iter()
+	keys := make([]string, 0)
+	for kv := range ch {
+		keys = append(keys, kv.Key.(string))
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.Compare(keys[i], keys[j]) < 0
+	})
+
+	return strings.Join(keys, ", ")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -141,7 +141,7 @@ func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createArguments()
-	arguments.ShardId = 10
+	arguments.ShardIDAsObserver = 10
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 
 	require.Equal(t, ErrInvalidShardId, err)
@@ -1010,7 +1010,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardZeroId,
+		ShardIDAsObserver:       shardZeroId,
 		NbShards:                2,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            make(map[uint32][]Validator),
@@ -1072,7 +1072,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardZeroId,
+		ShardIDAsObserver:       shardZeroId,
 		NbShards:                2,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
@@ -1115,9 +1115,9 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
-	computedShardId := ihgs.computeShardForPublicKey(ihgs.nodesConfig[0])
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[0])
 	// should remain in same shard with intra shard shuffling
-	require.Equal(t, arguments.ShardId, computedShardId)
+	require.Equal(t, arguments.ShardIDAsObserver, computedShardId)
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {
