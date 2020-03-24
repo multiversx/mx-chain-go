@@ -159,3 +159,6 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
 var ErrNilTxAccumulator = errors.New("nil tx accumulator")
+
+// ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
+var ErrNilNodeStopChannel = errors.New("nil node stop channel")

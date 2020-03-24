@@ -1136,3 +1136,27 @@ func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
 
 	assert.Equal(t, ErrNilTxAccumulator, err)
 }
+
+func TestWithNodeStopChannel_NilNodeStopChannelShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodeStopChannel(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNodeStopChannel, err)
+}
+
+func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	ch := make(chan bool, 1)
+	opt := WithNodeStopChannel(ch)
+	err := opt(node)
+
+	assert.True(t, node.chanStopNodeProcess == ch)
+	assert.Nil(t, err)
+}

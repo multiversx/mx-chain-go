@@ -640,7 +640,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
-	chanShuffledOut := make(chan bool, 1)
+	chanStopNodeProcess := make(chan bool, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		preferencesConfig.Preferences,
@@ -650,7 +650,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
-		chanShuffledOut,
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -830,6 +830,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -921,7 +922,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
-	case <-chanShuffledOut:
+	case <-chanStopNodeProcess:
 	}
 
 	log.Debug("closing all store units....")
@@ -1158,7 +1159,7 @@ func createNodesCoordinator(
 	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
 	roundsPerEpoch int64,
-	chanShuffledOut chan bool,
+	chanStopNodeProcess chan bool,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1214,7 +1215,7 @@ func createNodesCoordinator(
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
 			fmt.Println(fmt.Sprintf("the application stopped after waiting %d miliseconds because the node was "+
 				"shuffled out", randDurationBeforeStop))
-			chanShuffledOut <- true
+			chanStopNodeProcess <- true
 		}()
 		return nil
 	}
@@ -1350,6 +1351,7 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartSubscriber epochStart.EpochStartSubscriber,
+	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -1429,6 +1431,7 @@ func createNode(
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
+		node.WithNodeStopChannel(chanStopNodeProcess),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

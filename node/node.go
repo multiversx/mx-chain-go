@@ -122,6 +122,8 @@ type Node struct {
 
 	inputAntifloodHandler P2PAntifloodHandler
 	txAcumulator          Accumulator
+
+	chanStopNodeProcess chan bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
