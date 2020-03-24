@@ -182,6 +182,9 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
 			return 0, errors.New(errorString)
 		},
+		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+			return nil
+		},
 	}
 	ws := startNodeServer(&facade)
 
@@ -224,6 +227,9 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
 			return 1, nil
+		},
+		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+			return nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -301,6 +307,9 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, e error) {
 			sendBulkTxsWasCalled = true
 			return 0, nil
+		},
+		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+			return nil
 		},
 	}
 	ws := startNodeServer(&facade)
