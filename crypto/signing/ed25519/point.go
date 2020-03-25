@@ -2,7 +2,6 @@ package ed25519
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"crypto/ed25519"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,6 +28,7 @@ func (ep *ed25519Point) Equal(p crypto.Point) (bool, error) {
 
 	return bytes.Equal(ep.PublicKey, ed25519P.PublicKey), nil
 }
+
 // GetUnderlyingObj returns the object the implementation wraps
 func (ep *ed25519Point) GetUnderlyingObj() interface{} {
 	return ep.PublicKey
@@ -117,7 +117,7 @@ func (ep *ed25519Point) Mul(_ crypto.Scalar) (crypto.Point, error) {
 }
 
 // Pick is not needed for this use case, should be removed if possible
-func (ep *ed25519Point) Pick(_ cipher.Stream) (crypto.Point, error) {
+func (ep *ed25519Point) Pick() (crypto.Point, error) {
 	log.Error("ed25519Point",
 		"message", "Pick for ed25519Point is not implemented, should not be called")
 
