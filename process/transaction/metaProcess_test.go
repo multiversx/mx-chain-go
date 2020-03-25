@@ -249,7 +249,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
-func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
+func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.T) {
 	t.Parallel()
 
 	journalizeCalled := 0
@@ -277,19 +277,26 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
+	called := false
 	execTx, _ := txproc.NewMetaTxProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
+		&mock.SCProcessorMock{
+			ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error {
+				called = true
+				return nil
+			},
+		},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)
-	assert.Equal(t, process.ErrWrongTransaction, err)
+	assert.Equal(t, nil, err)
+	assert.True(t, called)
 }
 
 func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
@@ -465,6 +472,11 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		wasCalled = true
 		return process.ErrNoVM
 	}
+	calledIfError := false
+	scProcessorMock.ProcessIfErrorCalled = func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error {
+		calledIfError = true
+		return nil
+	}
 
 	computeType, _ := coordinator.NewTxTypeHandler(
 		&mock.AddressConverterMock{},
@@ -483,6 +495,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	)
 
 	err = execTx.ProcessTransaction(&tx)
-	assert.Equal(t, process.ErrWrongTransaction, err)
+	assert.Equal(t, nil, err)
 	assert.False(t, wasCalled)
+	assert.True(t, calledIfError)
 }
