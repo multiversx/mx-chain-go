@@ -66,7 +66,6 @@ func (txc *transactionCounter) displayLogInfo(
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
-	// TODO: Why read lock acquired for setting a value?
 	txc.mutex.RLock()
 	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, txc.totalTxs)
 	txc.mutex.RUnlock()
