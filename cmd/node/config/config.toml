@@ -245,7 +245,7 @@
 
 [Antiflood]
     Enabled = true
-    NumConcurrentResolverJobs = 10
+    NumConcurrentResolverJobs = 50
     PeerMaxMessagesPerSecond = 75
     PeerMaxTotalSizePerSecond = 2097152
     MaxMessagesPerSecond = 400
@@ -257,7 +257,10 @@
         DefaultMaxMessagesPerSec = 10000
         MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
-                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
+                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 },
+                       { Topic = "transactions*", NumMessagesPerSec = 3500 },
+                       { Topic = "unsignedTransactions*", NumMessagesPerSec = 3500 },
+                       { Topic = "rewardsTransactions*", NumMessagesPerSec = 3500 }]
     [Antiflood.BlackList]
         ThresholdNumMessagesPerSecond = 150
         ThresholdSizePerSecond = 4194304
