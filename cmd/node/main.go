@@ -244,6 +244,16 @@ VERSION:
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
+	//logWithCorrelation is used to enable log correlation elements
+	logWithCorrelation = cli.BoolFlag{
+		Name:  "log-correlation",
+		Usage: "Boolean option for enabling log correlation elements.",
+	}
+	//logWithLoggerName is used to enable log correlation elements
+	logWithLoggerName = cli.BoolFlag{
+		Name:  "log-logger-name",
+		Usage: "Boolean option for logger name in the logs.",
+	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
 		Name:  "disable-ansi-color",
@@ -349,6 +359,8 @@ func main() {
 		disableAnsiColor,
 		logLevel,
 		logSaveFile,
+		logWithCorrelation,
+		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -403,6 +415,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}()
 	}
 
+	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
+	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
@@ -532,6 +546,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+	logger.SetCorrelationShard(shardId)
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,

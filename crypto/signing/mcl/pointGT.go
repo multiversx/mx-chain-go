@@ -1,8 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
@@ -151,16 +149,16 @@ func (po *PointGT) Mul(s crypto.Scalar) (crypto.Point, error) {
 }
 
 // Pick returns a new random or pseudo-random Point.
-func (po *PointGT) Pick(rand cipher.Stream) (crypto.Point, error) {
+func (po *PointGT) Pick() (crypto.Point, error) {
 	var p1, p2 crypto.Point
 	var err error
 
-	p1, err = NewPointG1().Pick(rand)
+	p1, err = NewPointG1().Pick()
 	if err != nil {
 		return nil, err
 	}
 
-	p2, err = NewPointG2().Pick(rand)
+	p2, err = NewPointG2().Pick()
 	if err != nil {
 		return nil, err
 	}
