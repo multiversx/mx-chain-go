@@ -1,9 +1,9 @@
 package mcl
 
 import (
-	"crypto/cipher"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/herumi/bls-go-binary/bls"
@@ -18,9 +18,9 @@ func TestNewPointG2(t *testing.T) {
 	pG2 := NewPointG2()
 	require.NotNil(t, pG2)
 
-	baseG2 := &bls.G2{}
-	baseG2Str := BaseG2()
-	err := baseG2.SetString(baseG2Str, 10)
+	bG2 := &bls.G2{}
+	baseG2Str := baseG2()
+	err := bG2.SetString(baseG2Str, 10)
 	require.Nil(t, err)
 
 	mclPointG2, ok := pG2.GetUnderlyingObj().(*bls.G2)
@@ -28,7 +28,7 @@ func TestNewPointG2(t *testing.T) {
 	require.True(t, mclPointG2.IsValid())
 	require.True(t, mclPointG2.IsValidOrder())
 	require.False(t, mclPointG2.IsZero())
-	require.True(t, baseG2.IsEqual(mclPointG2))
+	require.True(t, bG2.IsEqual(mclPointG2))
 }
 
 func TestPointG2_Equal(t *testing.T) {
@@ -138,13 +138,11 @@ func TestPointG2_AddInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_AddOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
-	point1, err := pointG2.Pick(stream)
+	point1, err := pointG2.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointG2.Pick(stream)
+	point2, err := pointG2.Pick()
 	require.Nil(t, err)
 
 	sum, err := point1.Add(point2)
@@ -186,13 +184,11 @@ func TestPointG2_SubInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_SubOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
-	point1, err := pointG2.Pick(stream)
+	point1, err := pointG2.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointG2.Pick(stream)
+	point2, err := pointG2.Pick()
 	require.Nil(t, err)
 
 	sum, _ := point1.Add(point2)
@@ -239,11 +235,9 @@ func TestPointG2_MulInvalidParamShouldErr(t *testing.T) {
 func TestPointG2_MulOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointG2 := NewPointG2()
 	s := NewScalar()
-	scalar, err := s.Pick(stream)
+	scalar, err := s.Pick()
 	require.Nil(t, err)
 
 	res, err := pointG2.Mul(scalar)
@@ -262,10 +256,8 @@ func TestPointG2_MulOK(t *testing.T) {
 func TestPointG2_PickOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	point1 := NewPointG2()
-	point2, err1 := point1.Pick(stream)
+	point2, err1 := point1.Pick()
 	eq, err2 := point1.Equal(point2)
 
 	assert.Nil(t, err1)
@@ -295,8 +287,7 @@ func TestPointG2_MarshalBinary(t *testing.T) {
 func TestPointG2_UnmarshalBinary(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-	point1, _ := NewPointG2().Pick(stream)
+	point1, _ := NewPointG2().Pick()
 	pointBytes, _ := point1.MarshalBinary()
 
 	point2 := NewPointG2()
@@ -312,7 +303,7 @@ func TestPointG2_IsInterfaceNil(t *testing.T) {
 
 	var point *PointG2
 
-	require.True(t, point.IsInterfaceNil())
+	require.True(t, check.IfNil(point))
 	point = NewPointG2()
-	require.False(t, point.IsInterfaceNil())
+	require.False(t, check.IfNil(point))
 }
