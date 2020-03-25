@@ -261,10 +261,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 	// it is not allowed to send transactions to metachain if those are not of type smart contract
 	if len(tx.GetData()) == 0 {
-		receiptErr := txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
-		if receiptErr != nil {
-			return receiptErr
-		}
+		return txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
 	}
 
 	return nil

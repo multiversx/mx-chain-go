@@ -95,11 +95,9 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 
 	switch txType {
 	case process.SCDeployment:
-		err = txProc.processSCDeployment(tx, adrSrc)
-		return err
+		return txProc.processSCDeployment(tx, adrSrc)
 	case process.SCInvoking:
-		err = txProc.processSCInvoking(tx, adrSrc, adrDst)
-		return err
+		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
