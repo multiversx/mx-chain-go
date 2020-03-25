@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1384,4 +1386,44 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+}
+
+func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = factory.StakingSCAddress
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	assert.Nil(t, err)
+	acntSrc.Balance = big.NewInt(45)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
+	scProcessorMock := &mock.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(5, 3)
+	execTx, _ := txproc.NewTxProcessor(
+		adb,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		shardC,
+		scProcessorMock,
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
+				return process.MoveBalance, nil
+			},
+		},
+		feeHandlerMock(),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+
+	err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, err, process.ErrFailedTransaction)
 }
