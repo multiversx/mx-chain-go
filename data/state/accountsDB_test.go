@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -594,18 +596,15 @@ func TestAccountsDB_CancelPrune(t *testing.T) {
 func TestAccountsDB_PruneTrie(t *testing.T) {
 	t.Parallel()
 
-	pruneTrieWasCalled := false
+	pruneTrieWasCalled := atomic.Flag{}
 	trieStub := &mock.TrieStub{
-		PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) error {
-			pruneTrieWasCalled = true
-			return nil
+		PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruneTrieWasCalled.Set()
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	err := adb.PruneTrie([]byte("roothash"), data.OldRoot)
-
-	assert.Nil(t, err)
-	assert.True(t, pruneTrieWasCalled)
+	adb.PruneTrie([]byte("roothash"), data.OldRoot)
+	assert.True(t, pruneTrieWasCalled.IsSet())
 }
 
 func TestAccountsDB_SnapshotState(t *testing.T) {

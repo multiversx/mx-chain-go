@@ -365,7 +365,7 @@ func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.S
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 
@@ -387,14 +387,10 @@ func getAccountFactory(accountType Type) state.AccountFactory {
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
-func CreateShardChain() *blockchain.BlockChain {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	blockChain, _ := blockchain.NewBlockChain(
-		badBlockCache,
-	)
-	blockChain.GenesisHeader = &dataBlock.Header{}
-	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+func CreateShardChain() data.ChainHandler {
+	blockChain := blockchain.NewBlockChain()
+	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
 	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
@@ -403,13 +399,9 @@ func CreateShardChain() *blockchain.BlockChain {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	metaChain, _ := blockchain.NewMetaChain(
-		badBlockCache,
-	)
-	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
-	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain := blockchain.NewMetaChain()
+	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
@@ -553,8 +545,7 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
-		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-		newBlkc, _ := blockchain.NewMetaChain(cache)
+		newBlkc := blockchain.NewMetaChain()
 		newAccounts, _, _ := CreateAccountsDB(UserAccount)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -748,7 +739,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }

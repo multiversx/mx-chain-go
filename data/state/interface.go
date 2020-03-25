@@ -144,7 +144,7 @@ type AccountsAdapter interface {
 
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error
+	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
