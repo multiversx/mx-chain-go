@@ -2,7 +2,6 @@ package ed25519
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"crypto/ed25519"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -138,7 +137,7 @@ func (es *ed25519Scalar) Inv(_ crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Pick returns a fresh random or pseudo-random scalar
-func (es *ed25519Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
+func (es *ed25519Scalar) Pick() (crypto.Scalar, error) {
 	log.Error("ed25519Scalar",
 		"message", "Pick for ed25519Scalar is not implemented, should not be called")
 
@@ -159,7 +158,7 @@ func (es *ed25519Scalar) IsInterfaceNil() bool {
 	return es == nil
 }
 
-func(es *ed25519Scalar) getPrivateKeyFromScalar(s crypto.Scalar) (ed25519.PrivateKey, error) {
+func (es *ed25519Scalar) getPrivateKeyFromScalar(s crypto.Scalar) (ed25519.PrivateKey, error) {
 	if check.IfNil(s) {
 		return nil, crypto.ErrNilParam
 	}

@@ -180,6 +180,12 @@ func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
+	args.Accounts = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return &mock.PeerAccountHandlerMock{}, nil
+		},
+	}
+
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	balance, err := bh.GetBalance(make([]byte, 0))
@@ -209,12 +215,9 @@ func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		AccountData: state.AccountData{
-			Nonce:   1,
-			Balance: big.NewInt(2),
-		},
-	}
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	_ = accnt.AddToBalance(big.NewInt(2))
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -254,12 +257,9 @@ func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		AccountData: state.AccountData{
-			Nonce:   1,
-			Balance: big.NewInt(2),
-		},
-	}
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	_ = accnt.AddToBalance(big.NewInt(2))
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -301,7 +301,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	variableIdentifier := []byte("variable")
 	variableValue := []byte("value")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
 	args := createMockVMAccountsArguments()
@@ -341,7 +341,7 @@ func TestBlockChainHookImpl_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *test
 func TestBlockChainHookImpl_IsCodeEmptyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -381,7 +381,7 @@ func TestBlockChainHookImpl_GetCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	code := []byte("code")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.SetCode(code)
 
 	args := createMockVMAccountsArguments()
@@ -448,14 +448,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			AccountData: state.AccountData{
-				Nonce:    0,
-				Balance:  nil,
-				CodeHash: nil,
-				RootHash: nil,
-			},
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -481,14 +474,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			AccountData: state.AccountData{
-				Nonce:    0,
-				Balance:  nil,
-				CodeHash: nil,
-				RootHash: nil,
-			},
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
@@ -510,14 +496,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			AccountData: state.AccountData{
-				Nonce:    0,
-				Balance:  nil,
-				CodeHash: nil,
-				RootHash: nil,
-			},
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
