@@ -167,9 +167,7 @@ func (m *Monitor) loadRestOfPubKeysFromStorage() error {
 	for _, peer := range peersSlice {
 		pubKey := string(peer)
 		_, ok := m.heartbeatMessages[pubKey]
-		log.Info("loaded heartbeat for pubkey from storage", "pubkey", peer)
 		if !ok { // peer not in nodes map
-			log.Info("success heartbeat for pubkey load from storage", "pubkey", peer)
 			hbmi, err1 := m.loadHbmiFromStorer(pubKey)
 			if err1 != nil {
 				continue

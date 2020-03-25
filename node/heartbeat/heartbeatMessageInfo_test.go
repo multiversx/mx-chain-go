@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
@@ -217,4 +218,49 @@ func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *t
 	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime())
 	expectedTime := time.Unix(1, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
+}
+
+func TestHeartbeatMessageInfo_GetIsValidator_NotValidatorShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	mockTimer := mock.NewMockTimer()
+	genesisTime := time.Unix(1, 0)
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
+		100*time.Second,
+		dummyPeerType,
+		genesisTime,
+		mockTimer,
+	)
+
+	assert.False(t, hbmi.GetIsValidator())
+}
+
+func TestHeartbeatMessageInfo_GetIsValidator_PeerTypeEligibleShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	mockTimer := mock.NewMockTimer()
+	genesisTime := time.Unix(1, 0)
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
+		100*time.Second,
+		string(core.EligibleList),
+		genesisTime,
+		mockTimer,
+	)
+
+	assert.True(t, hbmi.GetIsValidator())
+}
+
+func TestHeartbeatMessageInfo_GetIsValidator_PeerTypeWaitingShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	mockTimer := mock.NewMockTimer()
+	genesisTime := time.Unix(1, 0)
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
+		100*time.Second,
+		string(core.WaitingList),
+		genesisTime,
+		mockTimer,
+	)
+
+	assert.True(t, hbmi.GetIsValidator())
 }

@@ -143,7 +143,7 @@ func (hbmi *heartbeatMessageInfo) computeUptimeDowntime(
 // HeartbeatReceived processes a new message arrived from a peer
 func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	computedShardID uint32,
-	receivedshardID uint32,
+	receivedShardID uint32,
 	version string,
 	nodeDisplayName string,
 	peerType string,
@@ -153,7 +153,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	crtTime := hbmi.getTimeHandler()
 
 	hbmi.computedShardID = computedShardID
-	hbmi.receivedShardID = receivedshardID
+	hbmi.receivedShardID = receivedShardID
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
 	hbmi.peerType = peerType
