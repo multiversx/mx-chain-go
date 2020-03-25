@@ -263,7 +263,8 @@ func (boot *baseBootstrap) computeNodeState() {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
