@@ -10,22 +10,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type nodesCoordinator struct {
-	shuffler         sharding.NodesShuffler
-	chance           sharding.ChanceComputer
-	shardCoordinator sharding.Coordinator
-	nodesConfig      map[uint32]*epochNodesConfig
-
+	shuffler                sharding.NodesShuffler
+	chance                  sharding.ChanceComputer
+	numShards               map[uint32]uint32
 	shardConsensusGroupSize uint32
 	metaConsensusGroupSize  uint32
-}
+	validatorAccountsDB     state.AccountsAdapter
+	adrConv                 state.AddressConverter
 
-type validatorWithShardID struct {
-	validator sharding.Validator
-	shardID   uint32
+	nodesConfig map[uint32]*epochNodesConfig
 }
 
 type epochNodesConfig struct {
@@ -36,9 +34,29 @@ type epochNodesConfig struct {
 	expandedEligibleMap map[uint32][]sharding.Validator
 }
 
+// ArgsNewStartInEpochNodesCoordinator -
+type ArgsNewStartInEpochNodesCoordinator struct {
+	Shuffler                sharding.NodesShuffler
+	Chance                  sharding.ChanceComputer
+	ValidatorAccountsDB     state.AccountsAdapter
+	AdrConv                 state.AddressConverter
+	ShardConsensusGroupSize uint32
+	MetaConsensusGroupSize  uint32
+}
+
 // NewStartInEpochNodesCoordinator creates an epoch start nodes coordinator
-func NewStartInEpochNodesCoordinator() (*nodesCoordinator, error) {
-	return nil, nil
+func NewStartInEpochNodesCoordinator(args ArgsNewStartInEpochNodesCoordinator) (*nodesCoordinator, error) {
+	n := &nodesCoordinator{
+		shuffler:                args.Shuffler,
+		chance:                  args.Chance,
+		shardConsensusGroupSize: args.ShardConsensusGroupSize,
+		metaConsensusGroupSize:  args.MetaConsensusGroupSize,
+		nodesConfig:             make(map[uint32]*epochNodesConfig),
+		validatorAccountsDB:     args.ValidatorAccountsDB,
+		adrConv:                 args.AdrConv,
+	}
+
+	return n, nil
 }
 
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
@@ -56,6 +74,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	randomness := metaBlock.GetPrevRandSeed()
 	newEpoch := metaBlock.GetEpoch()
+	n.numShards[newEpoch] = uint32(len(metaBlock.EpochStart.LastFinalizedHeaders))
 
 	sort.Slice(validatorInfos, func(i, j int) bool {
 		return bytes.Compare(validatorInfos[i].PublicKey, validatorInfos[j].PublicKey) < 0
@@ -69,7 +88,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 	eligibleMap := make(map[uint32][]sharding.Validator)
 	waitingMap := make(map[uint32][]sharding.Validator)
 	newNodesMap := make([]sharding.Validator, 0)
-	for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i < n.numShards[newEpoch]; i++ {
 		eligibleMap[i] = make([]sharding.Validator, 0)
 		waitingMap[i] = make([]sharding.Validator, 0)
 	}
@@ -100,7 +119,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		NewNodes: newNodesMap,
 		Leaving:  leaving,
 		Rand:     randomness,
-		NbShards: n.shardCoordinator.NumberOfShards(),
+		NbShards: n.numShards[newEpoch],
 	}
 
 	newEligibleMap, newWaitingMap, _ := n.shuffler.UpdateNodeLists(shufflerArgs)
@@ -118,18 +137,13 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	epochValidators := epochNodesConfigToEpochValidators(n.nodesConfig[newEpoch])
 	if updateListInfo {
-		err = n.updateListInfoToTrie()
+		err = n.updateAccountListAndIndex(newEpoch)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return epochValidators, nil
-}
-
-func (n *nodesCoordinator) updateListInfoToTrie() error {
-	// TODO: write shuffled data to the trie
-	return nil
 }
 
 func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) ([]sharding.Validator, error) {
@@ -269,6 +283,71 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 	}
 
 	return result
+}
+
+func (n *nodesCoordinator) updateAccountListAndIndex(epoch uint32) error {
+	err := n.updateAccountsForGivenMap(n.nodesConfig[epoch].eligibleMap, core.EligibleList)
+	if err != nil {
+		return err
+	}
+
+	err = n.updateAccountsForGivenMap(n.nodesConfig[epoch].waitingMap, core.WaitingList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *nodesCoordinator) updateAccountsForGivenMap(
+	validators map[uint32][]sharding.Validator,
+	list core.PeerType,
+) error {
+	for shardId, accountsPerShard := range validators {
+		for index, account := range accountsPerShard {
+			err := n.updateListAndIndex(
+				string(account.PubKey()),
+				shardId,
+				string(list),
+				int32(index))
+			if err != nil {
+				log.Warn("error while updating list and index for peer",
+					"error", err,
+					"public key", account.PubKey())
+			}
+		}
+	}
+
+	return nil
+}
+
+func (n *nodesCoordinator) updateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+	peer, err := n.getPeerAccount([]byte(pubKey))
+	if err != nil {
+		log.Debug("error getting peer account", "error", err, "key", pubKey)
+		return err
+	}
+
+	return peer.SetListAndIndexWithJournal(shardID, list, index)
+}
+
+func (n *nodesCoordinator) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+	addressContainer, err := n.adrConv.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := n.validatorAccountsDB.GetAccountWithJournal(addressContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccount, ok := account.(state.PeerAccountHandler)
+	if !ok {
+		return nil, process.ErrInvalidPeerAccount
+	}
+
+	return peerAccount, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

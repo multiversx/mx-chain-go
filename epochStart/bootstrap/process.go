@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -75,6 +77,7 @@ type epochStartBootstrap struct {
 	defaultDBPath      string
 	defaultEpochString string
 	defaultShardString string
+	rater              sharding.ChanceComputer
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -124,6 +127,7 @@ type ArgsEpochStartBootstrap struct {
 	DefaultDBPath      string
 	DefaultEpochString string
 	DefaultShardString string
+	Rater              sharding.ChanceComputer
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -143,6 +147,7 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 		blockKeyGen:        args.BlockKeyGen,
 		singleSigner:       args.SingleSigner,
 		blockSingleSigner:  args.BlockSingleSigner,
+		rater:              args.Rater,
 	}
 
 	return epochStartProvider, nil
@@ -287,16 +292,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 
-	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:       e.dataPool,
-		Marshalizer:    e.marshalizer,
-		RequestHandler: e.requestHandler,
-	}
-	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -348,7 +343,17 @@ func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, er
 		return 0, 0, 0, err
 	}
 
-	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta, pubKeyBytes)
+	err = e.createTrieStorageManagers()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	err = e.processNodesConfig(pubKeyBytes, e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -373,18 +378,43 @@ func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, er
 	return e.baseData.shardId, e.baseData.numberOfShards, e.baseData.lastEpoch, nil
 }
 
+func (e *epochStartBootstrap) processNodesConfig(pubKey []byte, rootHash []byte) error {
+	accountFactory, err := factory.NewAccountFactoryCreator(state.ValidatorAccount)
+	if err != nil {
+		return err
+	}
+	peerAccountsDB, err := state.NewPeerAccountsDB(e.peerAccountTries[string(rootHash)], e.hasher, e.marshalizer, accountFactory)
+	if err != nil {
+		return err
+	}
+
+	blsAddressConverter, err := addressConverters.NewPlainAddressConverter(
+		e.generalConfig.BLSPublicKey.Length,
+		e.generalConfig.BLSPublicKey.Prefix,
+	)
+	if err != nil {
+		return err
+	}
+	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
+		DataPool:            e.dataPool,
+		Marshalizer:         e.marshalizer,
+		RequestHandler:      e.requestHandler,
+		Rater:               e.rater,
+		GenesisNodesConfig:  e.genesisNodesConfig,
+		ValidatorAccountsDB: peerAccountsDB,
+		AdrConv:             blsAddressConverter,
+	}
+	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	if err != nil {
+		return err
+	}
+
+	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta, pubKey)
+	return err
+}
+
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
-	err := e.createTrieStorageManagers()
-	if err != nil {
-		return err
-	}
-
-	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
-	if err != nil {
-		return err
-	}
-
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	err := e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
 		return err
 	}
@@ -470,17 +500,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	err = e.createTrieStorageManagers()
-	if err != nil {
-		return err
-	}
-
 	err = e.syncUserAccountsState(ownShardHdr.RootHash)
-	if err != nil {
-		return err
-	}
-
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}

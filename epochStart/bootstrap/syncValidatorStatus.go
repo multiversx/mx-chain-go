@@ -1,9 +1,6 @@
 package bootstrap
 
 import (
-	"bytes"
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -21,14 +18,18 @@ type syncValidatorStatus struct {
 	dataPool         dataRetriever.PoolsHolder
 	marshalizer      marshal.Marshalizer
 	requestHandler   process.RequestHandler
-	nodeCoordinator  sharding.NodesCoordinator
+	nodeCoordinator  EpochStartNodesCoordinator
 }
 
 // ArgsNewSyncValidatorStatus
 type ArgsNewSyncValidatorStatus struct {
-	DataPool       dataRetriever.PoolsHolder
-	Marshalizer    marshal.Marshalizer
-	RequestHandler process.RequestHandler
+	DataPool            dataRetriever.PoolsHolder
+	Marshalizer         marshal.Marshalizer
+	RequestHandler      process.RequestHandler
+	Rater               sharding.ChanceComputer
+	GenesisNodesConfig  *sharding.NodesSetup
+	ValidatorAccountsDB state.AccountsAdapter
+	AdrConv             state.AddressConverter
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -50,6 +51,23 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
+	nodeShuffler := sharding.NewXorValidatorsShuffler(
+		args.GenesisNodesConfig.MinNodesPerShard,
+		args.GenesisNodesConfig.MetaChainMinNodes,
+		args.GenesisNodesConfig.Hysteresis,
+		args.GenesisNodesConfig.Adaptivity,
+	)
+
+	argsNodesCoordinator := ArgsNewStartInEpochNodesCoordinator{
+		Shuffler:                nodeShuffler,
+		Chance:                  args.Rater,
+		ShardConsensusGroupSize: args.GenesisNodesConfig.ConsensusGroupSize,
+		MetaConsensusGroupSize:  args.GenesisNodesConfig.MetaChainConsensusGroupSize,
+		AdrConv:                 args.AdrConv,
+		ValidatorAccountsDB:     args.ValidatorAccountsDB,
+	}
+	s.nodeCoordinator, err = NewStartInEpochNodesCoordinator(argsNodesCoordinator)
+
 	return s, nil
 }
 
@@ -68,40 +86,23 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 
-	epochValidators, err := s.processNodesConfigFor(currMetaBlock, publicKey)
+	epochValidators, err := s.processNodesConfigFor(currMetaBlock)
 	if err != nil {
 		return nil, 0, err
 	}
 	validatorInfos[currMetaBlock.Epoch] = epochValidators
 
-	prevEpochValidators, err := s.processNodesConfigFor(prevMetaBlock, nil)
+	prevEpochValidators, err := s.processNodesConfigFor(prevMetaBlock)
 	if err != nil {
 		return nil, 0, err
 	}
 	validatorInfos[prevMetaBlock.Epoch] = prevEpochValidators
 
-	s.createNodesConfig()
-	s.doShuffling()
-	s.exportFinalNodeConfig()
-
 	return nodesConfig, selfShardId, nil
-}
-
-func (s *syncValidatorStatus) createNodesConfig() {
-
-}
-
-func (s *syncValidatorStatus) doShuffling() {
-
-}
-
-func (s *syncValidatorStatus) exportFinalNodeConfig() {
-
 }
 
 func (s *syncValidatorStatus) processNodesConfigFor(
 	metaBlock *block.MetaBlock,
-	publicKey []byte,
 ) ([]*state.ValidatorInfo, error) {
 	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {

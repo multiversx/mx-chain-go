@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -16,8 +17,19 @@ type StartOfEpochNodesConfigHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartInterceptor
+// EpochStartInterceptor -
 type EpochStartInterceptor interface {
 	process.Interceptor
 	GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)
+}
+
+// EpochStartNodesCoordinator -
+type EpochStartNodesCoordinator interface {
+	ComputeNodesConfigFor(
+		metaBlock *block.MetaBlock,
+		validatorInfos []*state.ValidatorInfo,
+		updateListInfo bool,
+	) (*sharding.EpochValidators, error)
+	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) (uint32, bool)
+	IsInterfaceNil() bool
 }

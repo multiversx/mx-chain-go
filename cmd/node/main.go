@@ -620,6 +620,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	rater, err := rating.NewBlockSigningRaterAndListIndexer(economicsData.RatingsData())
+	if err != nil {
+		return err
+	}
+
 	epochStartBootsrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:          pubKey,
 		Marshalizer:        coreComponents.InternalMarshalizer,
@@ -637,6 +642,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultDBPath:      defaultDBPath,
 		DefaultEpochString: defaultEpochString,
 		DefaultShardString: defaultShardString,
+		Rater:              rater,
 	}
 	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
 	if err != nil {
@@ -656,11 +662,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, currentShardId)
-	if err != nil {
-		return err
-	}
-
-	rater, err := rating.NewBlockSigningRaterAndListIndexer(economicsData.RatingsData())
 	if err != nil {
 		return err
 	}
