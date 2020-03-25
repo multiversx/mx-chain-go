@@ -269,19 +269,19 @@ func Test_RegisterHandler(t *testing.T) {
 	require.Equal(t, 1, len(pool.onAddCallbacks))
 }
 
-func Test_TotalCount(t *testing.T) {
+func Test_GetCounts(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	require.Equal(t, int64(0), pool.TotalCount())
+	require.Equal(t, int64(0), pool.GetCounts().GetTotal())
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
 	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
 	pool.AddData([]byte("hash-z"), createTx("bob", 15), "3")
-	require.Equal(t, int64(3), pool.TotalCount())
+	require.Equal(t, int64(3), pool.GetCounts().GetTotal())
 	pool.RemoveDataFromAllShards([]byte("hash-x"))
-	require.Equal(t, int64(2), pool.TotalCount())
+	require.Equal(t, int64(2), pool.GetCounts().GetTotal())
 	pool.Clear()
-	require.Equal(t, int64(0), pool.TotalCount())
+	require.Equal(t, int64(0), pool.GetCounts().GetTotal())
 }
 
 func Test_IsInterfaceNil(t *testing.T) {

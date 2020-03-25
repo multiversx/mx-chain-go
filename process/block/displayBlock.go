@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -30,14 +31,14 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-func (txc *transactionCounter) getNumTxsFromPool(dataPool dataRetriever.PoolsHolder) int {
+func (txc *transactionCounter) getTxPoolCounts(dataPool dataRetriever.PoolsHolder) counting.Counts {
 	txPool := dataPool.Transactions()
-	withTotalCount, ok := txPool.(interface{ TotalCount() int })
+	asCountable, ok := txPool.(counting.Countable)
 	if !ok {
-		return 0
+		return &counting.NullCounts{}
 	}
 
-	return withTotalCount.TotalCount()
+	return asCountable.GetCounts()
 }
 
 // subtractRestoredTxs updated the total processed txs in case of restore
@@ -81,7 +82,7 @@ func (txc *transactionCounter) displayLogInfo(
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
-		"txs in pool", txc.getNumTxsFromPool(selfId, dataPool),
+		"txs in pool", txc.getTxPoolCounts(dataPool).String(),
 		"num shards", numShards,
 		"shard", selfId,
 	}

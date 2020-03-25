@@ -1,5 +1,10 @@
 package counting
 
+import (
+	"fmt"
+	"strings"
+)
+
 var _ Counts = (*ShardedCounts)(nil)
 
 // ShardedCounts keeps counts for a sharded data structure
@@ -24,18 +29,21 @@ func (counts *ShardedCounts) PutCounts(shardName string, value int64) {
 func (counts *ShardedCounts) GetTotal() int64 {
 	total := int64(0)
 
-	for _, value := range counts.byShard {
-		total += value
+	for _, count := range counts.byShard {
+		total += count
 	}
 
 	return total
 }
 
 func (counts *ShardedCounts) String() string {
-	return nil
-}
+	var builder strings.Builder
 
-// Strings returns formatted strings, one for each shard
-func (counts *ShardedCounts) Strings() []string {
-	return nil
+	fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
+
+	for shardName, count := range counts.byShard {
+		fmt.Fprintf(&builder, "%s:%d; ", shardName, count)
+	}
+
+	return builder.String()
 }
