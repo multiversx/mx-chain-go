@@ -7,15 +7,16 @@ import (
 	bytes "bytes"
 	encoding_binary "encoding/binary"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_big "math/big"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -258,7 +259,6 @@ type PeerAccountData struct {
 	SchnorrPublicKey           []byte        `protobuf:"bytes,2,opt,name=SchnorrPublicKey,proto3" json:"SchnorrPublicKey,omitempty"`
 	RewardAddress              []byte        `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress,omitempty"`
 	Stake                      *math_big.Int `protobuf:"bytes,4,opt,name=Stake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Stake,omitempty"`
-	AccumulatedFees            *math_big.Int `protobuf:"bytes,18,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
 	JailTime                   TimePeriod    `protobuf:"bytes,5,opt,name=JailTime,proto3" json:"JailTime"`
 	PastJailTimes              []TimePeriod  `protobuf:"bytes,6,rep,name=PastJailTimes,proto3" json:"PastJailTimes"`
 	CurrentShardId             uint32        `protobuf:"varint,7,opt,name=CurrentShardId,proto3" json:"CurrentShardId,omitempty"`
@@ -267,12 +267,11 @@ type PeerAccountData struct {
 	UnStakedNonce              uint64        `protobuf:"varint,10,opt,name=UnStakedNonce,proto3" json:"UnStakedNonce,omitempty"`
 	ValidatorSuccessRate       SignRate      `protobuf:"bytes,11,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
 	LeaderSuccessRate          SignRate      `protobuf:"bytes,12,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
-	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,19,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
-	CodeHash                   []byte        `protobuf:"bytes,13,opt,name=CodeHash,proto3" json:"CodeHash,omitempty"`
-	Rating                     uint32        `protobuf:"varint,14,opt,name=Rating,proto3" json:"Rating,omitempty"`
-	TempRating                 uint32        `protobuf:"varint,17,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
-	RootHash                   []byte        `protobuf:"bytes,15,opt,name=RootHash,proto3" json:"RootHash,omitempty"`
-	Nonce                      uint64        `protobuf:"varint,16,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	Rating                     uint32        `protobuf:"varint,13,opt,name=Rating,proto3" json:"Rating,omitempty"`
+	Nonce                      uint64        `protobuf:"varint,14,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	TempRating                 uint32        `protobuf:"varint,15,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
+	AccumulatedFees            *math_big.Int `protobuf:"bytes,16,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,17,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
 }
 
 func (m *PeerAccountData) Reset()      { *m = PeerAccountData{} }
@@ -327,13 +326,6 @@ func (m *PeerAccountData) GetRewardAddress() []byte {
 func (m *PeerAccountData) GetStake() *math_big.Int {
 	if m != nil {
 		return m.Stake
-	}
-	return nil
-}
-
-func (m *PeerAccountData) GetAccumulatedFees() *math_big.Int {
-	if m != nil {
-		return m.AccumulatedFees
 	}
 	return nil
 }
@@ -394,23 +386,16 @@ func (m *PeerAccountData) GetLeaderSuccessRate() SignRate {
 	return SignRate{}
 }
 
-func (m *PeerAccountData) GetNumSelectedInSuccessBlocks() uint32 {
+func (m *PeerAccountData) GetRating() uint32 {
 	if m != nil {
-		return m.NumSelectedInSuccessBlocks
+		return m.Rating
 	}
 	return 0
 }
 
-func (m *PeerAccountData) GetCodeHash() []byte {
+func (m *PeerAccountData) GetNonce() uint64 {
 	if m != nil {
-		return m.CodeHash
-	}
-	return nil
-}
-
-func (m *PeerAccountData) GetRating() uint32 {
-	if m != nil {
-		return m.Rating
+		return m.Nonce
 	}
 	return 0
 }
@@ -422,16 +407,16 @@ func (m *PeerAccountData) GetTempRating() uint32 {
 	return 0
 }
 
-func (m *PeerAccountData) GetRootHash() []byte {
+func (m *PeerAccountData) GetAccumulatedFees() *math_big.Int {
 	if m != nil {
-		return m.RootHash
+		return m.AccumulatedFees
 	}
 	return nil
 }
 
-func (m *PeerAccountData) GetNonce() uint64 {
+func (m *PeerAccountData) GetNumSelectedInSuccessBlocks() uint32 {
 	if m != nil {
-		return m.Nonce
+		return m.NumSelectedInSuccessBlocks
 	}
 	return 0
 }
@@ -499,6 +484,54 @@ var fileDescriptor_26bd0314afcce126 = []byte{
 	0x7b, 0xab, 0x72, 0x73, 0x6f, 0x55, 0x6e, 0xef, 0xad, 0xca, 0x0f, 0xb5, 0x48, 0x11, 0xc5, 0x46,
 	0x75, 0x3d, 0xaf, 0x97, 0xff, 0x05, 0x00, 0x00, 0xff, 0xff, 0x10, 0xf5, 0x41, 0xb2, 0xc8, 0x06,
 	0x00, 0x00,
+	// 744 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x41, 0x6f, 0xda, 0x48,
+	0x18, 0xc5, 0x24, 0x24, 0x30, 0x81, 0x10, 0x66, 0xb3, 0x91, 0x15, 0xad, 0x0c, 0x42, 0xab, 0x55,
+	0xb4, 0xda, 0xc0, 0xaa, 0xa9, 0xd4, 0x43, 0x95, 0x56, 0x90, 0x82, 0x44, 0x1b, 0x59, 0xc8, 0x4e,
+	0x5b, 0xa9, 0x3d, 0x0d, 0x9e, 0xa9, 0xb1, 0x62, 0x66, 0xd0, 0x78, 0xac, 0xb4, 0xb7, 0x5e, 0x7a,
+	0xef, 0x8f, 0xe8, 0xa1, 0xea, 0x2f, 0xc9, 0x31, 0xc7, 0x9c, 0xd2, 0xc6, 0xb9, 0x54, 0x39, 0xe5,
+	0x27, 0x54, 0x1e, 0xdb, 0x04, 0x03, 0xe2, 0xd4, 0x13, 0x7c, 0xef, 0x7b, 0xef, 0xcd, 0xf7, 0x8d,
+	0xde, 0x18, 0xfc, 0x39, 0x26, 0x84, 0xb7, 0x2c, 0x8b, 0xf9, 0x54, 0x3c, 0x43, 0x02, 0x35, 0xc6,
+	0x9c, 0x09, 0x06, 0x73, 0xf2, 0x67, 0x77, 0xdf, 0x76, 0xc4, 0xd0, 0x1f, 0x34, 0x2c, 0x36, 0x6a,
+	0xda, 0xcc, 0x66, 0x4d, 0x09, 0x0f, 0xfc, 0x77, 0xb2, 0x92, 0x85, 0xfc, 0x17, 0xa9, 0xea, 0x8f,
+	0x40, 0xe1, 0xc4, 0x19, 0x11, 0x53, 0xa0, 0xd1, 0x18, 0x6e, 0x83, 0x5c, 0x67, 0xcc, 0xac, 0xa1,
+	0xaa, 0xd4, 0x94, 0xbd, 0x55, 0x23, 0x2a, 0x42, 0xd4, 0x60, 0x3e, 0xc5, 0x6a, 0x36, 0x42, 0x65,
+	0x51, 0x17, 0x00, 0x84, 0xc2, 0x3e, 0xe1, 0x0e, 0xc3, 0xf0, 0x21, 0x28, 0x98, 0x02, 0x71, 0x11,
+	0x42, 0x52, 0xbd, 0xf1, 0x60, 0x2b, 0x3a, 0xa1, 0x31, 0xb1, 0x6f, 0xaf, 0x9e, 0x5f, 0x55, 0x33,
+	0xc6, 0x3d, 0x11, 0xfe, 0x0f, 0xd6, 0x3b, 0x14, 0x4b, 0x4d, 0x76, 0xa9, 0x26, 0xa1, 0xd5, 0xbb,
+	0x20, 0x6f, 0x3a, 0x36, 0x35, 0x90, 0x20, 0xf0, 0x2f, 0x50, 0xd0, 0xb9, 0xe9, 0x5b, 0x16, 0xf1,
+	0x3c, 0x79, 0x66, 0xc9, 0xb8, 0x07, 0xa2, 0x6e, 0x17, 0x39, 0xae, 0xcf, 0x23, 0x77, 0xd9, 0x8d,
+	0x81, 0xfa, 0x97, 0x2c, 0xd8, 0x7e, 0x85, 0x5c, 0x07, 0x23, 0xc1, 0x78, 0x6b, 0xec, 0x18, 0xc4,
+	0x1b, 0x33, 0xea, 0x11, 0x78, 0x08, 0xca, 0x3a, 0x3f, 0x26, 0x08, 0x93, 0xb4, 0x75, 0xfb, 0x8f,
+	0xdb, 0xab, 0x6a, 0x99, 0xa6, 0x5b, 0xc6, 0x2c, 0x77, 0x5a, 0x9e, 0x3a, 0x3b, 0x2d, 0x8f, 0x5b,
+	0xc6, 0x2c, 0x17, 0x76, 0x01, 0xd4, 0xf9, 0x64, 0xae, 0x64, 0x80, 0x15, 0xe9, 0xb0, 0x73, 0x7b,
+	0x55, 0x85, 0x74, 0xae, 0x6b, 0x2c, 0x50, 0xcc, 0xf8, 0x24, 0x93, 0xac, 0x2e, 0xf4, 0x49, 0x86,
+	0x59, 0xa0, 0xa8, 0x7f, 0x5a, 0x07, 0xe5, 0x7e, 0x3a, 0x6d, 0xb0, 0x0e, 0x8a, 0xed, 0x63, 0xb3,
+	0xef, 0x0f, 0x5c, 0xc7, 0x7a, 0x41, 0x3e, 0xc8, 0xeb, 0x29, 0x1a, 0x29, 0x0c, 0xfe, 0x0b, 0xb6,
+	0x4c, 0x6b, 0x48, 0x19, 0xe7, 0xf7, 0xbc, 0xac, 0xe4, 0xcd, 0xe1, 0xf0, 0x6f, 0x50, 0x32, 0xc8,
+	0x19, 0xe2, 0xb8, 0x85, 0x31, 0x4f, 0xd6, 0x2d, 0x1a, 0x69, 0x10, 0xbe, 0x05, 0x39, 0x53, 0xa0,
+	0xd3, 0x68, 0x89, 0x62, 0xbb, 0xf3, 0xed, 0x7b, 0xb5, 0x35, 0x42, 0x62, 0xd8, 0x1c, 0x38, 0x76,
+	0xa3, 0x47, 0xc5, 0xe3, 0xa9, 0xd8, 0x77, 0x5c, 0xce, 0x28, 0xd6, 0x89, 0x38, 0x63, 0xfc, 0xb4,
+	0x49, 0x64, 0xb5, 0x6f, 0xb3, 0x26, 0x0e, 0x1f, 0x4b, 0xdb, 0xb1, 0x7b, 0x54, 0x1c, 0x21, 0x4f,
+	0x10, 0x6e, 0x44, 0x9e, 0xf0, 0x00, 0xe4, 0x9f, 0x23, 0xc7, 0x95, 0x41, 0xcc, 0xc9, 0x20, 0x56,
+	0xa6, 0x82, 0x18, 0x45, 0x3c, 0x4e, 0xe2, 0x84, 0x08, 0x0f, 0x41, 0xa9, 0x8f, 0x3c, 0x91, 0xd4,
+	0x9e, 0xba, 0x56, 0x5b, 0x59, 0xa6, 0x4c, 0xb3, 0xe1, 0x3f, 0x60, 0xf3, 0xc8, 0xe7, 0x9c, 0x50,
+	0x61, 0x0e, 0x11, 0xc7, 0x3d, 0xac, 0xae, 0xcb, 0x90, 0xce, 0xa0, 0xb0, 0x06, 0x36, 0x74, 0xf2,
+	0x7e, 0x42, 0xca, 0x4b, 0xd2, 0x34, 0x04, 0xff, 0x03, 0x15, 0x9d, 0x61, 0xd2, 0xa3, 0xaf, 0x91,
+	0x23, 0x1c, 0x6a, 0x1f, 0x3b, 0x9e, 0x50, 0x0b, 0x35, 0x65, 0x2f, 0x6f, 0xcc, 0x37, 0xc2, 0xeb,
+	0x7e, 0x49, 0xe5, 0xda, 0x58, 0x67, 0xd4, 0x22, 0x2a, 0x90, 0xaf, 0x3a, 0x0d, 0xc2, 0xde, 0xd4,
+	0xf3, 0x48, 0x82, 0x86, 0x04, 0x51, 0x37, 0xe4, 0xed, 0x94, 0xe3, 0x1d, 0x93, 0xa7, 0x18, 0x6f,
+	0xb8, 0x50, 0x02, 0x8f, 0x40, 0x25, 0xfd, 0x68, 0x42, 0x9f, 0xe2, 0x32, 0x9f, 0x79, 0x3e, 0xdc,
+	0x01, 0x6b, 0x06, 0x0a, 0x77, 0x50, 0x4b, 0xf2, 0x02, 0xe2, 0x2a, 0xfc, 0x36, 0x45, 0x5b, 0x6c,
+	0x46, 0xdf, 0xa6, 0x68, 0x7a, 0x0d, 0x80, 0x13, 0x32, 0x1a, 0xc7, 0x8a, 0xb2, 0x54, 0x4c, 0x21,
+	0x90, 0x81, 0x72, 0xcb, 0xb2, 0xfc, 0x91, 0xef, 0x22, 0x41, 0x70, 0x97, 0x10, 0x4f, 0xdd, 0xfa,
+	0x9d, 0xb1, 0x9a, 0x75, 0x87, 0x4f, 0xc0, 0xae, 0xee, 0x8f, 0x4c, 0xe2, 0x12, 0x4b, 0x10, 0xdc,
+	0xa3, 0xf1, 0x6a, 0x6d, 0x97, 0x59, 0xa7, 0x9e, 0x5a, 0x91, 0x03, 0x2e, 0x61, 0xb4, 0x9f, 0x5e,
+	0x5c, 0x6b, 0x99, 0xcb, 0x6b, 0x2d, 0x73, 0x77, 0xad, 0x29, 0x1f, 0x03, 0x4d, 0xf9, 0x1a, 0x68,
+	0xca, 0x79, 0xa0, 0x29, 0x17, 0x81, 0xa6, 0x5c, 0x06, 0x9a, 0xf2, 0x23, 0xd0, 0x94, 0x9f, 0x81,
+	0x96, 0xb9, 0x0b, 0x34, 0xe5, 0xf3, 0x8d, 0x96, 0xb9, 0xb8, 0xd1, 0x32, 0x97, 0x37, 0x5a, 0xe6,
+	0x4d, 0xce, 0x13, 0x48, 0x90, 0xc1, 0x9a, 0xbc, 0xe8, 0x83, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff,
+	0x0c, 0xdc, 0x43, 0xdb, 0x3c, 0x06, 0x00, 0x00,
 }
 
 func (this *TimeStamp) Equal(that interface{}) bool {
@@ -655,12 +688,6 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.AccumulatedFees, that1.AccumulatedFees) {
-			return false
-		}
-	}
 	if !this.JailTime.Equal(&that1.JailTime) {
 		return false
 	}
@@ -690,22 +717,22 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 	if !this.LeaderSuccessRate.Equal(&that1.LeaderSuccessRate) {
 		return false
 	}
-	if this.NumSelectedInSuccessBlocks != that1.NumSelectedInSuccessBlocks {
-		return false
-	}
-	if !bytes.Equal(this.CodeHash, that1.CodeHash) {
-		return false
-	}
 	if this.Rating != that1.Rating {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
 		return false
 	}
 	if this.TempRating != that1.TempRating {
 		return false
 	}
-	if !bytes.Equal(this.RootHash, that1.RootHash) {
-		return false
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.AccumulatedFees, that1.AccumulatedFees) {
+			return false
+		}
 	}
-	if this.Nonce != that1.Nonce {
+	if this.NumSelectedInSuccessBlocks != that1.NumSelectedInSuccessBlocks {
 		return false
 	}
 	return true
@@ -762,13 +789,12 @@ func (this *PeerAccountData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 23)
+	s := make([]string, 0, 21)
 	s = append(s, "&state.PeerAccountData{")
 	s = append(s, "BLSPublicKey: "+fmt.Sprintf("%#v", this.BLSPublicKey)+",\n")
 	s = append(s, "SchnorrPublicKey: "+fmt.Sprintf("%#v", this.SchnorrPublicKey)+",\n")
 	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
 	s = append(s, "Stake: "+fmt.Sprintf("%#v", this.Stake)+",\n")
-	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
 	s = append(s, "JailTime: "+strings.Replace(this.JailTime.GoString(), `&`, ``, 1)+",\n")
 	if this.PastJailTimes != nil {
 		vs := make([]TimePeriod, len(this.PastJailTimes))
@@ -783,12 +809,11 @@ func (this *PeerAccountData) GoString() string {
 	s = append(s, "UnStakedNonce: "+fmt.Sprintf("%#v", this.UnStakedNonce)+",\n")
 	s = append(s, "ValidatorSuccessRate: "+strings.Replace(this.ValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "LeaderSuccessRate: "+strings.Replace(this.LeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
-	s = append(s, "NumSelectedInSuccessBlocks: "+fmt.Sprintf("%#v", this.NumSelectedInSuccessBlocks)+",\n")
-	s = append(s, "CodeHash: "+fmt.Sprintf("%#v", this.CodeHash)+",\n")
 	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
-	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
-	s = append(s, "RootHash: "+fmt.Sprintf("%#v", this.RootHash)+",\n")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
+	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
+	s = append(s, "NumSelectedInSuccessBlocks: "+fmt.Sprintf("%#v", this.NumSelectedInSuccessBlocks)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -989,7 +1014,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x98
+		dAtA[i] = 0x88
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -1003,39 +1028,21 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x1
 	i--
-	dAtA[i] = 0x92
+	dAtA[i] = 0x82
 	if m.TempRating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TempRating))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0x78
 	}
 	if m.Nonce != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Nonce))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
-	}
-	if len(m.RootHash) > 0 {
-		i -= len(m.RootHash)
-		copy(dAtA[i:], m.RootHash)
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.RootHash)))
-		i--
-		dAtA[i] = 0x7a
+		dAtA[i] = 0x70
 	}
 	if m.Rating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Rating))
 		i--
-		dAtA[i] = 0x70
-	}
-	if len(m.CodeHash) > 0 {
-		i -= len(m.CodeHash)
-		copy(dAtA[i:], m.CodeHash)
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.CodeHash)))
-		i--
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x68
 	}
 	{
 		size, err := m.LeaderSuccessRate.MarshalToSizedBuffer(dAtA[:i])
@@ -1269,22 +1276,14 @@ func (m *PeerAccountData) Size() (n int) {
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	l = m.LeaderSuccessRate.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
-	l = len(m.CodeHash)
-	if l > 0 {
-		n += 1 + l + sovPeerAccountData(uint64(l))
-	}
 	if m.Rating != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.Rating))
 	}
-	l = len(m.RootHash)
-	if l > 0 {
-		n += 1 + l + sovPeerAccountData(uint64(l))
-	}
 	if m.Nonce != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.Nonce))
+		n += 1 + sovPeerAccountData(uint64(m.Nonce))
 	}
 	if m.TempRating != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.TempRating))
+		n += 1 + sovPeerAccountData(uint64(m.TempRating))
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -1373,9 +1372,7 @@ func (this *PeerAccountData) String() string {
 		`UnStakedNonce:` + fmt.Sprintf("%v", this.UnStakedNonce) + `,`,
 		`ValidatorSuccessRate:` + strings.Replace(strings.Replace(this.ValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`LeaderSuccessRate:` + strings.Replace(strings.Replace(this.LeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
-		`CodeHash:` + fmt.Sprintf("%v", this.CodeHash) + `,`,
 		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
-		`RootHash:` + fmt.Sprintf("%v", this.RootHash) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
 		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
@@ -2224,40 +2221,6 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 13:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CodeHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CodeHash = append(m.CodeHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.CodeHash == nil {
-				m.CodeHash = []byte{}
-			}
-			iNdEx = postIndex
-		case 14:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
 			}
@@ -2276,41 +2239,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 15:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RootHash = append(m.RootHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.RootHash == nil {
-				m.RootHash = []byte{}
-			}
-			iNdEx = postIndex
-		case 16:
+		case 14:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
 			}
@@ -2329,7 +2258,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 17:
+		case 15:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
 			}
@@ -2348,7 +2277,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 18:
+		case 16:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
 			}
@@ -2386,7 +2315,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 19:
+		case 17:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NumSelectedInSuccessBlocks", wireType)
 			}

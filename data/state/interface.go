@@ -37,14 +37,7 @@ type AddressContainer interface {
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
-	IsInterfaceNil() bool
-}
-
-// AccountTracker saves an account state and journalizes new entries
-type AccountTracker interface {
-	SaveAccount(accountHandler AccountHandler) error
-	Journalize(entry JournalEntry)
+	CreateAccount(address AddressContainer) (AccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -58,58 +51,72 @@ type Updater interface {
 // It knows about code and data, as data structures not hashes
 type AccountHandler interface {
 	AddressContainer() AddressContainer
-
-	GetCodeHash() []byte
-	SetCodeHash([]byte)
-	SetCodeHashWithJournal([]byte) error
-	GetCode() []byte
-	SetCode(code []byte)
-	SetNonce(nonce uint64)
+	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
-	SetNonceWithJournal(nonce uint64) error
-
-	GetRootHash() []byte
-	SetRootHash([]byte)
-	DataTrie() data.Trie
-	SetDataTrie(trie data.Trie)
-	DataTrieTracker() DataTrieTracker
-
 	IsInterfaceNil() bool
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
-	AccountHandler
-	AddToAccumulatedFees(value *big.Int) error
-	IncreaseLeaderSuccessRateWithJournal(value uint32) error
-	DecreaseLeaderSuccessRateWithJournal(value uint32) error
-	IncreaseValidatorSuccessRateWithJournal(value uint32) error
-	DecreaseValidatorSuccessRateWithJournal(value uint32) error
-	IncreaseNumSelectedInSuccessBlocks() error
+	GetBLSPublicKey() []byte
+	SetBLSPublicKey([]byte) error
+	GetSchnorrPublicKey() []byte
+	SetSchnorrPublicKey([]byte) error
+	GetRewardAddress() []byte
+	SetRewardAddress([]byte) error
+	GetStake() *big.Int
+	SetStake(*big.Int) error
+	GetAccumulatedFees() *big.Int
+	SetAccumulatedFees(*big.Int)
+	GetJailTime() TimePeriod
+	SetJailTime(TimePeriod)
+	GetCurrentShardId() uint32
+	SetCurrentShardId(uint32)
+	GetNextShardId() uint32
+	SetNextShardId(uint32)
+	GetNodeInWaitingList() bool
+	SetNodeInWaitingList(bool)
+	GetUnStakedNonce() uint64
+	SetUnStakedNonce(uint64)
+	IncreaseLeaderSuccessRate(uint32)
+	DecreaseLeaderSuccessRate(uint32)
+	IncreaseValidatorSuccessRate(uint32)
+	DecreaseValidatorSuccessRate(uint32)
+	GetNumSelectedInSuccessBlocks() uint32
+	IncreaseNumSelectedInSuccessBlocks()
+	GetLeaderSuccessRate() SignRate
+	GetValidatorSuccessRate() SignRate
 	GetRating() uint32
-	SetRatingWithJournal(uint322 uint32) error
+	SetRating(uint32)
 	GetTempRating() uint32
-	SetTempRatingWithJournal(uint322 uint32) error
+	SetTempRating(uint32)
 	ResetAtNewEpoch() error
-	SetRewardAddressWithJournal(address []byte) error
-	SetSchnorrPublicKeyWithJournal(address []byte) error
-	SetBLSPublicKeyWithJournal(address []byte) error
-	SetStakeWithJournal(stake *big.Int) error
+	AccountHandler
 }
 
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
-	AccountHandler
-	ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error)
-	ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error
-	AddToDeveloperReward(value *big.Int) error
+	SetCode(code []byte)
+	GetCode() []byte
+	SetCodeHash([]byte)
+	GetCodeHash() []byte
+	SetRootHash([]byte)
+	GetRootHash() []byte
+	SetDataTrie(trie data.Trie)
+	DataTrie() data.Trie
+	DataTrieTracker() DataTrieTracker
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
-	SetOwnerAddressWithJournal(ownerAddress []byte) error
+	ClaimDeveloperRewards([]byte) (*big.Int, error)
+	AddToDeveloperReward(*big.Int)
+	GetDeveloperReward() *big.Int
+	ChangeOwnerAddress([]byte, []byte) error
+	SetOwnerAddress([]byte)
 	GetOwnerAddress() []byte
+	AccountHandler
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -127,24 +134,21 @@ type DataTrieTracker interface {
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
-	GetAccountWithJournal(addressContainer AddressContainer) (AccountHandler, error) // will create if it not exist
 	GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error)
-	HasAccount(addressContainer AddressContainer) (bool, error)
+	LoadAccount(address AddressContainer) (AccountHandler, error)
+	SaveAccount(account AccountHandler) error
 	RemoveAccount(addressContainer AddressContainer) error
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
+
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	PutCode(accountHandler AccountHandler, code []byte) error
-	RemoveCode(codeHash []byte) error
-	SaveDataTrie(accountHandler AccountHandler) error
 	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	ClosePersister() error
 	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
@@ -161,5 +165,21 @@ type TriesHolder interface {
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()
+	IsInterfaceNil() bool
+}
+
+type baseAccountHandler interface {
+	AddressContainer() AddressContainer
+	IncreaseNonce(nonce uint64)
+	GetNonce() uint64
+	SetCode(code []byte)
+	GetCode() []byte
+	SetCodeHash([]byte)
+	GetCodeHash() []byte
+	SetRootHash([]byte)
+	GetRootHash() []byte
+	SetDataTrie(trie data.Trie)
+	DataTrie() data.Trie
+	DataTrieTracker() DataTrieTracker
 	IsInterfaceNil() bool
 }

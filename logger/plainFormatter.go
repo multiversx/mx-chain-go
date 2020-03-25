@@ -14,13 +14,26 @@ func (pf *PlainFormatter) Output(line LogLineHandler) []byte {
 	}
 
 	level := LogLevel(line.GetLogLevel())
+	timestamp := displayTime(line.GetTimestamp())
+	loggerName := ""
+	correlation := ""
+	message := formatMessage(line.GetMessage())
+	args := formatArgsNoAnsi(line.GetArgs()...)
 
-	return []byte(fmt.Sprintf("%s[%s] %s %s\n",
-		level,
-		displayTime(line.GetTimestamp()),
-		formatMessage(line.GetMessage()),
-		formatArgsNoAnsi(line.GetArgs()...),
-	),
+	if IsEnabledLoggerName() {
+		loggerName = formatLoggerName(line.GetLoggerName())
+	}
+
+	if IsEnabledCorrelation() {
+		correlation = formatCorrelationElements(line.GetCorrelation())
+	}
+
+	return []byte(
+		fmt.Sprintf(formatPlainString,
+			level,
+			timestamp, loggerName, correlation,
+			message, args,
+		),
 	)
 }
 
@@ -34,7 +47,7 @@ func formatArgsNoAnsi(args ...string) string {
 
 	argString := ""
 	for index := 1; index < len(args); index += 2 {
-		argString += fmt.Sprintf("%s=%s ", args[index-1], args[index])
+		argString += fmt.Sprintf("%s = %s ", args[index-1], args[index])
 	}
 
 	return argString

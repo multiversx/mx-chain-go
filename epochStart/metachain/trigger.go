@@ -196,6 +196,7 @@ func (t *trigger) Update(round uint64) {
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
+		logger.SetCorrelationEpoch(t.epoch)
 	}
 }
 

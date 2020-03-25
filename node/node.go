@@ -387,12 +387,12 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 		return big.NewInt(0), nil
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return big.NewInt(0), nil
 	}
 
-	return account.Balance, nil
+	return account.GetBalance(), nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -861,7 +861,7 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (*state.Account, error) {
+func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
@@ -877,19 +877,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return &state.Account{
-				AccountData: state.AccountData{
-					Nonce:    0,
-					Balance:  big.NewInt(0),
-					RootHash: nil,
-					CodeHash: nil,
-				},
-			}, nil
+			return state.NewUserAccount(addr)
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return nil, errors.New("account is not of type with balance and nonce")
 	}
