@@ -240,6 +240,9 @@ func (bms *BlsMultiSigner) scalarMulSig(suite crypto.Suite, scalarBytes []byte, 
 	if sigPoint == nil {
 		return nil, crypto.ErrNilSignature
 	}
+	if check.IfNil(suite) {
+		return nil, crypto.ErrNilSuite
+	}
 
 	scalar := suite.CreateScalar()
 	sc, ok := scalar.(*mcl.Scalar)
@@ -330,12 +333,12 @@ func hashPublicKeyPoints(hasher hashing.Hasher, pubKeyPoint crypto.Point, concat
 		return nil, crypto.ErrNilPublicKeyPoint
 	}
 
-	pointBytes, err := pubKeyPoint.MarshalBinary()
-	if err != nil {
-		return nil, err
+	blsPoint, ok := pubKeyPoint.GetUnderlyingObj().(*bls.G2)
+	if !ok {
+		return nil, crypto.ErrInvalidPoint
 	}
-
-	concatPkWithPKs := append(pointBytes, concatPubKeys...)
+	blsPointString := blsPoint.GetString(16)
+	concatPkWithPKs := append([]byte(blsPointString), concatPubKeys...)
 
 	// H1(pk_i, {pk_1, ..., pk_n})
 	h := hasher.Compute(string(concatPkWithPKs))
@@ -346,7 +349,7 @@ func hashPublicKeyPoints(hasher hashing.Hasher, pubKeyPoint crypto.Point, concat
 	return h32, nil
 }
 
-// createScalar creates crypto.Scalar from a byte array
+// createScalar creates crypto.Scalar from a 32 len byte array
 func createScalar(suite crypto.Suite, scalarBytes []byte) (crypto.Scalar, error) {
 	if check.IfNil(suite) {
 		return nil, crypto.ErrNilSuite
