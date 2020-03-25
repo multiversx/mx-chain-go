@@ -196,11 +196,11 @@ func (n *nodesCoordinator) setNodesPerShards(
 }
 
 // ComputeShardForSelfPublicKey -
-func (n *nodesCoordinator) ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) (uint32, bool) {
+func (n *nodesCoordinator) ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) uint32 {
 	for shard, validators := range n.nodesConfig[epoch].eligibleMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				return shard, true
+				return shard
 			}
 		}
 	}
@@ -208,12 +208,12 @@ func (n *nodesCoordinator) ComputeShardForSelfPublicKey(epoch uint32, pubKey []b
 	for shard, validators := range n.nodesConfig[epoch].waitingMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				return shard, true
+				return shard
 			}
 		}
 	}
 
-	return 0, false
+	return core.AllShardId
 }
 
 func (n *nodesCoordinator) expandSavedNodes(

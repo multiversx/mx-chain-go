@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -84,19 +86,37 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-
-	epochValidators, err := s.processNodesConfigFor(currMetaBlock)
+	prevEpochValidatorsInfo, err := s.processNodesConfigFor(prevMetaBlock)
 	if err != nil {
 		return nil, 0, err
 	}
-	validatorInfos[currMetaBlock.Epoch] = epochValidators
 
-	prevEpochValidators, err := s.processNodesConfigFor(prevMetaBlock)
+	prevEpochsValidators, err := s.nodeCoordinator.ComputeNodesConfigFor(prevMetaBlock, prevEpochValidatorsInfo, false)
 	if err != nil {
 		return nil, 0, err
 	}
-	validatorInfos[prevMetaBlock.Epoch] = prevEpochValidators
+
+	currEpochValidatorsInfo, err := s.processNodesConfigFor(currMetaBlock)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	currEpochsValidators, err := s.nodeCoordinator.ComputeNodesConfigFor(currMetaBlock, currEpochValidatorsInfo, true)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	selfShardId := s.nodeCoordinator.ComputeShardForSelfPublicKey(currMetaBlock.Epoch, publicKey)
+
+	nodesConfig := &sharding.NodesCoordinatorRegistry{
+		EpochsConfig: make(map[string]*sharding.EpochValidators, 2),
+		CurrentEpoch: currMetaBlock.Epoch,
+	}
+
+	epochConfigId := fmt.Sprint(prevMetaBlock.Epoch)
+	nodesConfig.EpochsConfig[epochConfigId] = prevEpochsValidators
+	epochConfigId = fmt.Sprint(currMetaBlock.Epoch)
+	nodesConfig.EpochsConfig[epochConfigId] = currEpochsValidators
 
 	return nodesConfig, selfShardId, nil
 }

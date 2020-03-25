@@ -30,6 +30,6 @@ type EpochStartNodesCoordinator interface {
 		validatorInfos []*state.ValidatorInfo,
 		updateListInfo bool,
 	) (*sharding.EpochValidators, error)
-	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) (uint32, bool)
+	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) uint32
 	IsInterfaceNil() bool
 }
