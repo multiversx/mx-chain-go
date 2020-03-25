@@ -1391,14 +1391,6 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			return nil
-		},
-	}
-
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -1407,15 +1399,15 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
+	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	assert.Nil(t, err)
+	acntSrc.Balance = big.NewInt(45)
 
-	acntSrc.Balance = big.NewInt(46)
-	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &mock.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(5, 3)
 	execTx, _ := txproc.NewTxProcessor(
-		accounts,
+		adb,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
