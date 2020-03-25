@@ -1136,11 +1136,23 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1186,6 +1198,18 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1218,6 +1242,17 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1258,6 +1293,18 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1304,11 +1351,23 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1372,6 +1431,9 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
@@ -1379,6 +1441,15 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
+			},
+		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1439,11 +1510,26 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+					1: {
+						{PublicKey: []byte("pk3")},
+					},
+				}, nil
+			},
+		}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1504,11 +1590,33 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+				return map[uint32][][]byte{
+					0: {[]byte("pk1"), []byte("pk2")},
+					1: {[]byte("pk3")},
+				}, nil
+			},
+		}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+					1: {
+						{PublicKey: []byte("pk3")},
+					},
+				}, nil
+			},
+		}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1523,7 +1631,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 
 	elements := n.HeartbeatMonitor().GetHeartbeats()
 	for _, status := range elements {
-		assert.True(t, status.IsValidator)
+		assert.Equal(t, string(core.EligibleList), status.PeerType)
 	}
 }
 
@@ -1574,6 +1682,9 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
@@ -1584,6 +1695,15 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 			},
 			CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
 				return nil
+			},
+		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
