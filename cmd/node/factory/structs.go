@@ -2097,6 +2097,8 @@ func newMetaBlockProcessor(
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(
+		core.Hasher,
+		core.InternalMarshalizer,
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 		shardCoordinator,

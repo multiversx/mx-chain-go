@@ -225,7 +225,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, txHash, tx, err.Error())
+			err = sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
 			if err != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -361,7 +361,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	return true, nil
 }
 
-func (sc *scProcessor) processIfError(
+// ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
+func (sc *scProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
@@ -458,7 +459,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, txHash, tx, err.Error())
+			err = sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
 			if err != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -1058,7 +1059,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(nil, txHash, scr, err.Error())
+			err = sc.ProcessIfError(nil, txHash, scr, err.Error())
 			if err != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}

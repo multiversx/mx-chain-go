@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -17,6 +19,8 @@ type baseTxProcessor struct {
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
 	economicsFee     process.FeeHandler
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
 }
 
 func (txProc *baseTxProcessor) getAccounts(

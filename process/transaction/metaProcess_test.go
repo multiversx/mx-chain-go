@@ -17,6 +17,8 @@ import (
 
 func createMetaTxProcessor() process.TransactionProcessor {
 	txProc, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -34,6 +36,8 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		nil,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -50,6 +54,8 @@ func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		nil,
 		mock.NewOneShardCoordinatorMock(),
@@ -66,6 +72,8 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		nil,
@@ -82,6 +90,8 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -98,6 +108,8 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -114,6 +126,8 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -130,6 +144,8 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -159,6 +175,8 @@ func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T)
 	addressConv := &mock.AddressConverterMock{}
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		addressConv,
 		mock.NewOneShardCoordinatorMock(),
@@ -179,6 +197,8 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -215,6 +235,8 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -256,6 +278,8 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -312,6 +336,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	}
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -372,6 +398,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	}
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -444,6 +472,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		accounts)
 
 	execTx, _ := txproc.NewMetaTxProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 		accounts,
 		&mock.AddressConverterMock{},
 		shardCoordinator,
