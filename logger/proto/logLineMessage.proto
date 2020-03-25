@@ -8,8 +8,17 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message LogLineMessage{
-    string Message = 1;
-    int32 LogLevel = 2;
-    repeated string Args = 3;
-    int64 Timestamp = 4;
+    string                  Message = 1;
+    int32                   LogLevel = 2;
+    repeated string         Args = 3;
+    int64                   Timestamp = 4;
+    string                  LoggerName = 5;
+    LogCorrelationMessage   Correlation = 6 [(gogoproto.nullable) = false];
+}
+
+message LogCorrelationMessage{
+    string  Shard = 1;
+    uint32  Epoch = 2;
+    int64   Round = 3;
+    string  SubRound = 4;
 }
