@@ -862,10 +862,12 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	saveMetricsForACommittedBlock(
+		sp.nodesCoordinator,
 		sp.appStatusHandler,
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
+		header,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
