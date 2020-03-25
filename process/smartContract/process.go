@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -256,7 +256,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	var vm vmcommon.VMExecutionHandler
-	vm, err = sc.getVMFromRecvAddress(tx)
+	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
@@ -428,27 +428,6 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 	return nil
 }
 
-func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
-	// first parsed argument after the code in case of vmDeploy is the actual vmType
-	vmAppendedType := make([]byte, core.VMTypeLen)
-	vmArgLen := len(vmType)
-	if vmArgLen > core.VMTypeLen {
-		return nil, process.ErrVMTypeLengthInvalid
-	}
-
-	copy(vmAppendedType[core.VMTypeLen-vmArgLen:], vmType)
-	return vmAppendedType, nil
-}
-
-func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.GetRcvAddr())
-	vm, err := sc.vmContainer.Get(vmType)
-	if err != nil {
-		return nil, err
-	}
-	return vm, nil
-}
-
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(
 	tx data.TransactionHandler,
@@ -494,7 +473,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	vmInput, vmType, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		log.Debug("Transaction error", "error", err.Error())
 		return nil
@@ -534,101 +513,6 @@ func (sc *scProcessor) DeploySmartContract(
 
 	log.Debug("SmartContract deployed")
 	return nil
-}
-
-func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput := &vmcommon.ContractCallInput{}
-	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunction()
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput.RecipientAddr = tx.GetRcvAddr()
-
-	return vmCallInput, nil
-}
-
-func (sc *scProcessor) createVMDeployInput(
-	tx data.TransactionHandler,
-) (*vmcommon.ContractCreateInput, []byte, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(vmInput.Arguments) < 1 {
-		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
-	}
-
-	vmType, err := sc.getVMTypeFromArguments(vmInput.Arguments[0])
-	if err != nil {
-		return nil, nil, err
-	}
-	// delete the first argument as it is the vmType
-	vmInput.Arguments = vmInput.Arguments[1:]
-
-	vmCreateInput := &vmcommon.ContractCreateInput{}
-	hexCode, err := sc.argsParser.GetCode()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.ContractCode, err = hex.DecodeString(string(hexCode))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.VMInput = *vmInput
-
-	return vmCreateInput, vmType, nil
-}
-
-func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
-	var err error
-	vmInput := &vmcommon.VMInput{}
-	vmInput.CallType = determineCallType(tx)
-
-	dataToParse := tx.GetData()
-	if vmInput.CallType == vmcommon.AsynchronousCallBack {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-	}
-
-	err = sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.CallerAddr = tx.GetSndAddr()
-	vmInput.Arguments, err = sc.argsParser.GetArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
-	vmInput.GasPrice = tx.GetGasPrice()
-	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
-
-	if tx.GetGasLimit() < moveBalanceGasConsume {
-		return nil, process.ErrNotEnoughGas
-	}
-
-	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
-
-	return vmInput, nil
-}
-
-func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
-	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
-	if isSCR {
-		return scr.CallType
-	}
-	return vmcommon.DirectCall
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
