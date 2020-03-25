@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -1040,7 +1040,7 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 	for _, validatorInfosInShard := range validators {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
+			strKey := hex.EncodeToString(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
 				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
 				NrLeaderFailure:    validatorInfo.LeaderFailure,
