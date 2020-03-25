@@ -364,26 +364,16 @@ func deploySystemSmartContracts(
 	})
 
 	for _, key := range systemSCAddresses {
-		addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
-		if err != nil {
-			return err
-		}
-
-		_, err = state.NewAccount(addr, accountsDB)
-		if err != nil {
-			return err
-		}
-
-		_, err = accountsDB.Commit()
-		if err != nil {
-			return err
-		}
-
 		tx.SndAddr = key
-		err = txProcessor.ProcessTransaction(tx)
+		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
+	}
+
+	_, err := accountsDB.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -473,7 +463,7 @@ func setBalanceToTrie(
 		return process.ErrMintAddressNotInThisShard
 	}
 
-	accWrp, err := accounts.GetAccountWithJournal(addrContainer)
+	accWrp, err := accounts.LoadAccount(addrContainer)
 	if err != nil {
 		return err
 	}
@@ -483,7 +473,12 @@ func setBalanceToTrie(
 		return process.ErrWrongTypeAssertion
 	}
 
-	return account.AddToBalance(balance)
+	err = account.AddToBalance(balance)
+	if err != nil {
+		return err
+	}
+
+	return accounts.SaveAccount(account)
 }
 
 type NilMessageSignVerifier struct {

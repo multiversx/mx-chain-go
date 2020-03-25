@@ -220,8 +220,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
-			return state.NewAccount(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer) (wrapper state.AccountHandler, e error) {
+			return state.NewUserAccount(address)
 		},
 	})
 	return adb

@@ -22,12 +22,11 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{
-			AccountData: state.AccountData{
-				Nonce:   nonce,
-				Balance: new(big.Int).Set(balance),
-			},
-		}, nil
+		acc, _ := state.NewUserAccount(addressContainer)
+		acc.Nonce = nonce
+		acc.Balance = balance
+
+		return acc, nil
 	}
 
 	return accDB
@@ -143,11 +142,11 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		nil,
 		tdp,
 		addrConverter,
@@ -163,11 +162,11 @@ func TestNewTxsPoolsCleaner_NilDataPoolShouldErr(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		nil,
 		addrConverter,
@@ -183,7 +182,7 @@ func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
@@ -192,7 +191,7 @@ func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
 	}
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -208,11 +207,11 @@ func TestNewTxsPoolsCleaner_NilAddressConverterShouldErr(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		nil,
@@ -228,12 +227,12 @@ func TestNewTxsPoolsCleaner_NilFeeHandlerShouldErr(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -249,12 +248,12 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -271,12 +270,12 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 	maxCleanTime := time.Second
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -296,7 +295,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 
 	numRemovedTxsExpected := uint64(3)
 	cleanDuration := 2 * time.Second
-	accounts := &mock.AccountsStub{
+	adb := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
@@ -305,7 +304,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -327,12 +326,12 @@ func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 	cleanDuration := 2 * time.Second
 	nonce := uint64(11)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -354,12 +353,12 @@ func TestTxPoolsCleaner_CleanNotEnoughBalanceShouldRemoveTx(t *testing.T) {
 	cleanDuration := 2 * time.Second
 	nonce := uint64(10)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -385,12 +384,12 @@ func TestTxPoolsCleaner_CleanShouldNotRemoveOkTransactions(t *testing.T) {
 	cleanDuration := 2 * time.Second
 	nonce := uint64(10)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -410,12 +409,12 @@ func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
 
 	nonce := uint64(11)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,
@@ -432,12 +431,12 @@ func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
 
 	nonce := uint64(1)
 	balance := big.NewInt(1)
-	accounts := getAccAdapter(nonce, balance)
+	adb := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithDelayedKeys(time.Second)
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(
-		accounts,
+		adb,
 		shardCoordinator,
 		tdp,
 		addrConverter,

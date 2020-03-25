@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -14,7 +16,6 @@ type AccountWrapMock struct {
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
-	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
@@ -22,11 +23,55 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 }
 
+// AddToBalance -
+func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
+	return nil
+}
+
+// SubFromBalance -
+func (awm *AccountWrapMock) SubFromBalance(_ *big.Int) error {
+	return nil
+}
+
+// GetBalance -
+func (awm *AccountWrapMock) GetBalance() *big.Int {
+	return nil
+}
+
+// ClaimDeveloperRewards -
+func (awm *AccountWrapMock) ClaimDeveloperRewards([]byte) (*big.Int, error) {
+	return nil, nil
+}
+
+// AddToDeveloperReward -
+func (awm *AccountWrapMock) AddToDeveloperReward(*big.Int) {
+
+}
+
+// GetDeveloperReward -
+func (awm *AccountWrapMock) GetDeveloperReward() *big.Int {
+	return nil
+}
+
+// ChangeOwnerAddress -
+func (awm *AccountWrapMock) ChangeOwnerAddress([]byte, []byte) error {
+	return nil
+}
+
+// SetOwnerAddress -
+func (awm *AccountWrapMock) SetOwnerAddress([]byte) {
+
+}
+
+// GetOwnerAddress -
+func (awm *AccountWrapMock) GetOwnerAddress() []byte {
+	return nil
+}
+
 // NewAccountWrapMock -
-func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker) *AccountWrapMock {
+func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
 	return &AccountWrapMock{
 		address:           adr,
-		tracker:           tracker,
 		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
 	}
 }
@@ -39,11 +84,6 @@ func (awm *AccountWrapMock) GetCodeHash() []byte {
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
-}
-
-// SetCodeHashWithJournal -
-func (awm *AccountWrapMock) SetCodeHashWithJournal(codeHash []byte) error {
-	return awm.SetCodeHashWithJournalCalled(codeHash)
 }
 
 // GetCode -
@@ -59,11 +99,6 @@ func (awm *AccountWrapMock) GetRootHash() []byte {
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.rootHash = rootHash
-}
-
-// SetNonceWithJournal -
-func (awm *AccountWrapMock) SetNonceWithJournal(nonce uint64) error {
-	return awm.SetNonceWithJournalCalled(nonce)
 }
 
 // AddressContainer -
@@ -92,14 +127,9 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
-// SetDataTrieTracker -
-func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
-	awm.trackableDataTrie = tracker
-}
-
-// SetNonce -
-func (awm *AccountWrapMock) SetNonce(nonce uint64) {
-	awm.nonce = nonce
+//IncreaseNonce -
+func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
+	awm.nonce = awm.nonce + val
 }
 
 // GetNonce -
