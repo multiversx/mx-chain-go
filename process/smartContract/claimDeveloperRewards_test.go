@@ -20,16 +20,8 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 	tx := &transaction.Transaction{
 		SndAddr: sender,
 	}
-	journalizeWasCalled, saveAccountWasCalled := false, false
-	acc, _ := state.NewAccount(mock.NewAddressMock([]byte("addr12")), &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeWasCalled = true
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountWasCalled = true
-			return nil
-		},
-	})
+
+	acc, _ := state.NewUserAccount(mock.NewAddressMock([]byte("addr12")))
 
 	reward, err := cdr.ProcessBuiltinFunction(nil, nil, acc, nil)
 	require.Nil(t, reward)
@@ -45,11 +37,9 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 
 	acc.OwnerAddress = sender
 	value := big.NewInt(100)
-	_ = acc.AddToDeveloperReward(value)
+	acc.AddToDeveloperReward(value)
 	reward, err = cdr.ProcessBuiltinFunction(tx, nil, acc, nil)
 	require.Nil(t, err)
-	require.True(t, journalizeWasCalled)
-	require.True(t, saveAccountWasCalled)
 	require.Equal(t, value, reward)
 
 }
