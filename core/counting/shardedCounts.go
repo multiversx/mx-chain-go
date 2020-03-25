@@ -42,7 +42,7 @@ func (counts *ShardedCounts) String() string {
 	fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
 
 	for shardName, count := range counts.byShard {
-		fmt.Fprintf(&builder, "%s:%d; ", shardName, count)
+		fmt.Fprintf(&builder, "[%s]=%d; ", shardName, count)
 	}
 
 	return builder.String()
