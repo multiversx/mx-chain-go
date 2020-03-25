@@ -225,7 +225,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	defer func() {
 		if err != nil {
-			errNotCritical = :sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
