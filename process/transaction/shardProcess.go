@@ -155,11 +155,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	err = txProc.increaseNonce(acntSnd)
-	if err != nil {
-		return err
-	}
-
+	acntSnd.IncreaseNonce(1)
 	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
 	if err != nil {
 		return err
@@ -183,6 +179,11 @@ func (txProc *txProcessor) executingFailedTransaction(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+
+	err = txProc.accounts.SaveAccount(acntSnd)
+	if err != nil {
+		return err
+	}
 
 	return process.ErrFailedTransaction
 }
@@ -296,10 +297,7 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		err = txProc.increaseNonce(acntSrc)
-		if err != nil {
-			return err
-		}
+		acntSrc.IncreaseNonce(1)
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -313,6 +311,24 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+
+	return txProc.saveAccounts(acntSrc, acntDst)
+}
+
+func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+	if !check.IfNil(acntSnd) {
+		err := txProc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err := txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -368,10 +384,6 @@ func (txProc *txProcessor) moveBalances(
 	}
 
 	return nil
-}
-
-func (txProc *txProcessor) increaseNonce(acntSrc state.UserAccountHandler) error {
-	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

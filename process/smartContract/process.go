@@ -225,8 +225,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	defer func() {
 		if err != nil {
-			err = sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
-			if err != nil {
+			errNotCritical = :sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -269,6 +269,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
+
 	var consumedFee *big.Int
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
@@ -292,13 +297,31 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	err = acntDst.AddToDeveloperReward(newDeveloperReward)
+	acntDst.AddToDeveloperReward(newDeveloperReward)
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
+
+	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
-		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
-		return nil
+		log.Debug("error saving account")
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
+	return nil
+}
+
+func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+	if !check.IfNil(acntSnd) {
+		err := sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err := sc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -328,11 +351,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, process.ErrNotEnoughGas
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
-	if err != nil {
-		return true, err
-	}
-
 	gasRemaining := tx.GetGasLimit() - gasConsumed
 	scrRefund, consumedFee, err := sc.createSCRForSender(
 		big.NewInt(0),
@@ -358,7 +376,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
-	return true, nil
+	return true, sc.saveAccounts(acntSnd, acntDst)
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
@@ -378,6 +396,11 @@ func (sc *scProcessor) ProcessIfError(
 		err = acntSnd.AddToBalance(tx.GetValue())
 		if err != nil {
 			return err
+		}
+
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			log.Debug("error saving account")
 		}
 	} else {
 		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
@@ -459,8 +482,8 @@ func (sc *scProcessor) DeploySmartContract(
 
 	defer func() {
 		if err != nil {
-			err = sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
-			if err != nil {
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -487,6 +510,12 @@ func (sc *scProcessor) DeploySmartContract(
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
+		return nil
+	}
+
+	err = sc.accounts.SaveAccount(acntSnd)
+	if err != nil {
+		log.Debug("Save account error", "error", err.Error())
 		return nil
 	}
 
@@ -610,12 +639,8 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return nil
 	}
 
-	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
-	if err != nil {
-		return err
-	}
-
-	err = sc.economicsFee.CheckValidityTxValues(tx)
+	acntSnd.IncreaseNonce(1)
+	err := sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -694,6 +719,13 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	scrTxs = append(scrTxs, scrRefund)
+
+	if !check.IfNil(acntSnd) {
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
 	if err != nil {
@@ -907,14 +939,6 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		if len(outAcc.StorageUpdates) > 0 {
-			//SC with data variables
-			err = sc.accounts.SaveDataTrie(acc)
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		err = sc.updateSmartContractCode(acc, outAcc, tx)
 		if err != nil {
 			return nil, err
@@ -926,20 +950,28 @@ func (sc *scProcessor) processSCOutputAccounts(
 				return nil, process.ErrWrongNonceInVMOutput
 			}
 
-			err = acc.SetNonceWithJournal(outAcc.Nonce)
-			if err != nil {
-				return nil, err
-			}
+			nonceDifference := outAcc.Nonce - acc.GetNonce()
+			acc.IncreaseNonce(nonceDifference)
 		}
 
 		// if no change then continue
 		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
+			err = sc.accounts.SaveAccount(acc)
+			if err != nil {
+				return nil, err
+			}
+
 			continue
 		}
 
-		sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 
 		err = acc.AddToBalance(outAcc.BalanceDelta)
+		if err != nil {
+			return nil, err
+		}
+
+		err = sc.accounts.SaveAccount(acc)
 		if err != nil {
 			return nil, err
 		}
@@ -963,15 +995,8 @@ func (sc *scProcessor) updateSmartContractCode(
 
 	isDeployment := len(account.GetCode()) == 0
 	if isDeployment {
-		err := account.SetOwnerAddressWithJournal(tx.GetSndAddr())
-		if err != nil {
-			return err
-		}
-
-		err = sc.accounts.PutCode(account, outAcc.Code)
-		if err != nil {
-			return err
-		}
+		account.SetOwnerAddress(tx.GetSndAddr())
+		account.SetCode(outAcc.Code)
 
 		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
 		return nil
@@ -980,10 +1005,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	// TODO: implement upgradable flag for smart contracts
 	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
 	if isUpgradeEnabled {
-		err := sc.accounts.PutCode(account, outAcc.Code)
-		if err != nil {
-			return err
-		}
+		account.SetCode(outAcc.Code)
 
 		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
 		return nil
@@ -1031,7 +1053,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountH
 		return nil, nil
 	}
 
-	acnt, err := sc.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := sc.accounts.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -1059,8 +1081,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	defer func() {
 		if err != nil {
-			err = sc.ProcessIfError(nil, txHash, scr, err.Error())
-			if err != nil {
+			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error())
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -1107,13 +1129,16 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	if scr.Value == nil {
-		return nil
-	}
+	if scr.Value != nil {
+		err = dstAcc.AddToBalance(scr.Value)
+		if err != nil {
+			return err
+		}
 
-	err = dstAcc.AddToBalance(scr.Value)
-	if err != nil {
-		return err
+		err = sc.accounts.SaveAccount(dstAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
