@@ -128,7 +128,7 @@ func (s *Sender) updateMetrics(hb *Heartbeat) {
 func (s *Sender) computePeerList(pubkey []byte) string {
 	peerType, _, err := s.peerTypeProvider.ComputeForPubKey(pubkey)
 	if err != nil {
-		log.Warn("monitor: compute peer type", "error", err)
+		log.Warn("sender: compute peer type", "error", err)
 		return string(core.ObserverList)
 	}
 

@@ -195,5 +195,5 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
-	return hbmi.peerType == string(core.EligibleList)
+	return hbmi.peerType == string(core.EligibleList) || hbmi.peerType == string(core.WaitingList)
 }
