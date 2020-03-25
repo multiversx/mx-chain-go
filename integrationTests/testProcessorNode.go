@@ -25,7 +25,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -102,7 +101,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize * 90 / 100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -317,11 +316,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(stateFactory.UserAccount)
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(stateFactory.ValidatorAccount)
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 }
 
@@ -859,6 +858,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
+		TestHasher,
+		TestMarshalizer,
 		tpn.AccntState,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
@@ -1447,8 +1448,10 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
-	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.OwnAccount.Address)
-	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
+	nodeAccount, _ := tpn.AccntState.LoadAccount(tpn.OwnAccount.Address)
+	nodeAccount.(state.UserAccountHandler).IncreaseNonce(nonce)
+
+	err := tpn.AccntState.SaveAccount(nodeAccount)
 	if err != nil {
 		return err
 	}

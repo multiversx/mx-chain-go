@@ -613,11 +613,11 @@ func DisplayProcessTxDetails(
 	txHandler data.TransactionHandler,
 ) {
 	if !check.IfNil(accountHandler) {
-		account, ok := accountHandler.(*state.Account)
+		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
 			log.Trace(message,
-				"nonce", account.Nonce,
-				"balance", account.Balance,
+				"nonce", account.GetNonce(),
+				"balance", account.GetBalance(),
 			)
 		}
 	}
