@@ -267,17 +267,18 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr := sr.BlockProcessor().CreateNewHeader(uint64(sr.Rounder().Index()))
 
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	var prevRandSeed []byte
-	if check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
+	if check.IfNil(currentHeader) {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
 
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
-		hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
+		hdr.SetNonce(currentHeader.GetNonce() + 1)
 		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
 
-		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
+		prevRandSeed = currentHeader.GetRandSeed()
 	}
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
@@ -543,8 +544,9 @@ func (sr *subroundBlock) isBlockReceived(threshold int) bool {
 
 func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 	roundInLastCommittedBlock := int64(0)
-	if !check.IfNil(sr.Blockchain().GetCurrentBlockHeader()) {
-		roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) {
+		roundInLastCommittedBlock = int64(currentHeader.GetRound())
 	}
 
 	return roundInLastCommittedBlock
