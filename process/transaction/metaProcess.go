@@ -1,9 +1,12 @@
 package transaction
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -17,6 +20,8 @@ type metaTxProcessor struct {
 
 // NewMetaTxProcessor creates a new txProcessor engine
 func NewMetaTxProcessor(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
 	addressConv state.AddressConverter,
 	shardCoordinator sharding.Coordinator,
@@ -49,6 +54,8 @@ func NewMetaTxProcessor(
 		shardCoordinator: shardCoordinator,
 		adrConv:          addressConv,
 		economicsFee:     economicsFee,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 
 	return &metaTxProcessor{
@@ -60,7 +67,7 @@ func NewMetaTxProcessor(
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
@@ -93,7 +100,16 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
-	return process.ErrWrongTransaction
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

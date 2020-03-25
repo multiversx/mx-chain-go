@@ -19,9 +19,7 @@ import (
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
-	marshalizer      marshal.Marshalizer
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
 	receiptForwarder process.IntermediateTransactionHandler
@@ -82,12 +80,12 @@ func NewTxProcessor(
 		shardCoordinator: shardCoordinator,
 		adrConv:          addressConv,
 		economicsFee:     economicsFee,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 
 	return &txProcessor{
 		baseTxProcessor:  baseTxProcess,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
 		scProcessor:      scProcessor,
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
@@ -251,6 +249,25 @@ func (txProc *txProcessor) processTxFee(
 	return cost, nil
 }
 
+func (txProc *txProcessor) checkIfValidTxToMetaChain(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+	adrDst state.AddressContainer,
+) error {
+
+	destShardId := txProc.shardCoordinator.ComputeId(adrDst)
+	if destShardId != core.MetachainShardId {
+		return nil
+	}
+
+	// it is not allowed to send transactions to metachain if those are not of type smart contract
+	if len(tx.GetData()) == 0 {
+		return txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
+	}
+
+	return nil
+}
+
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
@@ -259,6 +276,11 @@ func (txProc *txProcessor) processMoveBalance(
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.checkIfValidTxToMetaChain(tx, acntSrc, adrDst)
 	if err != nil {
 		return err
 	}
