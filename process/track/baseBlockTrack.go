@@ -55,7 +55,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
-	maxNumHeadersToKeepPerShard := int(float64(arguments.PoolsHolder.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	maxNumHeadersToKeepPerShard := arguments.PoolsHolder.Headers().MaxSize()
 
 	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator, maxNumHeadersToKeepPerShard)
 	if err != nil {
