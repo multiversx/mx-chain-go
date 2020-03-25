@@ -149,3 +149,6 @@ var ErrInvalidAddressLength = errors.New("invalid address length")
 // ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
 // transaction fee is covered by the current balance
 var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
+var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")
