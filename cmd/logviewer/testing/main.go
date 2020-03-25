@@ -132,7 +132,7 @@ func handleLogRequest(w http.ResponseWriter, r *http.Request) {
 		_ = conn.Close()
 	}()
 
-	err = waitForPatternMessage(conn)
+	err = waitForProfile(conn)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -141,15 +141,21 @@ func handleLogRequest(w http.ResponseWriter, r *http.Request) {
 	sendContinouslyWithMonitor(conn)
 }
 
-func waitForPatternMessage(conn *websocket.Conn) error {
+func waitForProfile(conn *websocket.Conn) error {
 	_, message, err := conn.ReadMessage()
 	if err != nil {
 		return err
 	}
 
-	log.Info("pattern received", "pattern", string(message))
+	profile, err := logger.UnmarshalProfile(message)
+	if err != nil {
+		return err
+	}
+
+	log.Info("websocket log profile received", "profile", profile.String())
+
 	mutLogLevelPattern.Lock()
-	logLevels, patterns, err = logger.ParseLogLevelAndMatchingString(string(message))
+	logLevels, patterns, err = logger.ParseLogLevelAndMatchingString(profile.LogLevelPatterns)
 	mutLogLevelPattern.Unlock()
 	if err != nil {
 		return err
@@ -247,6 +253,8 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 	}
 
 	logLine := &logger.LogLineWrapper{}
+	logLine.LoggerName = "websocket test"
+	logLine.Correlation = logger.LogCorrelationMessage{Shard: "foobar", Epoch: 42}
 	logLine.Message = "websocket test message"
 	logLine.LogLevel = int32(logLevel)
 	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}

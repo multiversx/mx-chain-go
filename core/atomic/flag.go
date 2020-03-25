@@ -23,3 +23,12 @@ func (flag *Flag) IsSet() bool {
 	value := atomic.LoadUint32(&flag.value)
 	return value == 1
 }
+
+// Toggle toggles the flag
+func (flag *Flag) Toggle(set bool) {
+	if set {
+		flag.Set()
+	} else {
+		flag.Unset()
+	}
+}
