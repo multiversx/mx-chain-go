@@ -13,6 +13,7 @@ type AccountWrapMock struct {
 	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
+	codeMetadata      []byte
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
@@ -21,6 +22,14 @@ type AccountWrapMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
+}
+
+// NewAccountWrapMock -
+func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
+	return &AccountWrapMock{
+		address:           adr,
+		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
+	}
 }
 
 // AddToBalance -
@@ -68,14 +77,6 @@ func (awm *AccountWrapMock) GetOwnerAddress() []byte {
 	return nil
 }
 
-// NewAccountWrapMock -
-func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
-	return &AccountWrapMock{
-		address:           adr,
-		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
-	}
-}
-
 // GetCodeHash -
 func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
@@ -86,9 +87,24 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
 }
 
+// SetCode -
+func (awm *AccountWrapMock) SetCode(code []byte) {
+	awm.code = code
+}
+
 // GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
+}
+
+// SetCodeMetadata -
+func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
+	awm.codeMetadata = codeMetadata
+}
+
+// GetCodeMetadata -
+func (awm *AccountWrapMock) GetCodeMetadata() []byte {
+	return awm.codeMetadata
 }
 
 // GetRootHash -
@@ -104,11 +120,6 @@ func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 // AddressContainer -
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
-}
-
-// SetCode -
-func (awm *AccountWrapMock) SetCode(code []byte) {
-	awm.code = code
 }
 
 // DataTrie -
