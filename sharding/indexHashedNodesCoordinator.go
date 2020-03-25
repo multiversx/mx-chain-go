@@ -61,7 +61,7 @@ type indexHashedNodesCoordinator struct {
 	metaConsensusGroupSize        int
 	nodesPerShardSetter           NodesPerShardSetter
 	consensusGroupCacher          Cacher
-	shardIDAsObserver       uint32
+	shardIDAsObserver             uint32
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -96,7 +96,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:       	   arguments.ShardIDAsObserver,
+		shardIDAsObserver:             arguments.ShardIDAsObserver,
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
@@ -187,6 +187,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
+	nodesConfig.expandedEligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.publicKeyToValidatorMap = make(map[string]*validatorWithShardID)
 	for shardId, shardEligible := range nodesConfig.eligibleMap {
@@ -258,7 +259,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			return nil, ErrInvalidShardId
 		}
-		expandedList = nodesConfig.eligibleMap[shardID]
+		expandedList = nodesConfig.expandedEligibleMap[shardID]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 

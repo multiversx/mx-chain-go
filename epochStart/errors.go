@@ -133,3 +133,9 @@ var ErrNumTriesExceeded = errors.New("number of tries exceeded")
 
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
+
+// ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
+
+// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")

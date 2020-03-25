@@ -66,34 +66,43 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
 
-	nodesConfig := &sharding.NodesCoordinatorRegistry{
-		EpochsConfig: make(map[string]*sharding.EpochValidators),
-		CurrentEpoch: currMetaBlock.Epoch,
-	}
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 
-	epochValidators, selfShardId, err := s.processNodesConfigFor(currMetaBlock, publicKey)
+	epochValidators, err := s.processNodesConfigFor(currMetaBlock, publicKey)
 	if err != nil {
 		return nil, 0, err
 	}
-	configId := fmt.Sprint(currMetaBlock.Epoch)
-	nodesConfig.EpochsConfig[configId] = epochValidators
+	validatorInfos[currMetaBlock.Epoch] = epochValidators
 
-	epochValidators, _, err = s.processNodesConfigFor(prevMetaBlock, nil)
+	prevEpochValidators, err := s.processNodesConfigFor(prevMetaBlock, nil)
 	if err != nil {
 		return nil, 0, err
 	}
-	configId = fmt.Sprint(prevMetaBlock.Epoch)
-	nodesConfig.EpochsConfig[configId] = epochValidators
+	validatorInfos[prevMetaBlock.Epoch] = prevEpochValidators
 
-	// TODO: use shuffling process from nodesCoordinator to create the final data
+	s.createNodesConfig()
+	s.doShuffling()
+	s.exportFinalNodeConfig()
 
 	return nodesConfig, selfShardId, nil
+}
+
+func (s *syncValidatorStatus) createNodesConfig() {
+
+}
+
+func (s *syncValidatorStatus) doShuffling() {
+
+}
+
+func (s *syncValidatorStatus) exportFinalNodeConfig() {
+
 }
 
 func (s *syncValidatorStatus) processNodesConfigFor(
 	metaBlock *block.MetaBlock,
 	publicKey []byte,
-) (*sharding.EpochValidators, uint32, error) {
+) ([]*state.ValidatorInfo, error) {
 	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
 		if mbHeader.Type != block.PeerBlock {
@@ -112,51 +121,28 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 	s.miniBlocksSyncer.ClearFields()
 	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, timeToWait)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	peerMiniBlocks, err := s.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	epochValidators := &sharding.EpochValidators{
-		EligibleValidators: make(map[string][]*sharding.SerializableValidator),
-		WaitingValidators:  make(map[string][]*sharding.SerializableValidator),
-	}
-
-	selfShardId := core.AllShardId
-	found := false
-	shouldSearchSelfId := len(publicKey) == 0
+	validatorInfos := make([]*state.ValidatorInfo, 0)
 	for _, mb := range peerMiniBlocks {
 		for _, txHash := range mb.TxHashes {
 			vid := &state.ValidatorInfo{}
 			err := s.marshalizer.Unmarshal(vid, txHash)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
 
-			serializableValidator := &sharding.SerializableValidator{
-				PubKey:  vid.PublicKey,
-				Address: vid.RewardAddress, // TODO - take out - need to refactor validator.go and its usage across the project
-			}
-
-			shardId := fmt.Sprint(vid.ShardId)
-			switch vid.List {
-			case string(core.EligibleList):
-				epochValidators.EligibleValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
-			case string(core.WaitingList):
-				epochValidators.WaitingValidators[shardId] = append(epochValidators.EligibleValidators[shardId], serializableValidator)
-			}
-
-			if shouldSearchSelfId && !found && bytes.Equal(vid.PublicKey, publicKey) {
-				selfShardId = vid.ShardId
-				found = true
-			}
+			validatorInfos = append(validatorInfos, vid)
 		}
 	}
 
-	return epochValidators, selfShardId, nil
+	return validatorInfos, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

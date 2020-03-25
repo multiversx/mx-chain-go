@@ -127,7 +127,6 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		}
 
 		var nodesConfig *epochNodesConfig
-
 		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
 		if err != nil {
 			return nil, err
@@ -137,6 +136,8 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		if nbShards < 2 {
 			return nil, ErrInvalidNumberOfShards
 		}
+
+		nodesConfig.expandedEligibleMap = nodesConfig.eligibleMap
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
@@ -155,11 +156,11 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	}
 
 	for k, v := range config.eligibleMap {
-		result.EligibleValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.EligibleValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	for k, v := range config.waitingMap {
-		result.WaitingValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	return result
@@ -203,7 +204,8 @@ func serializableValidatorsMapToValidatorsMap(
 	return result, nil
 }
 
-func validatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
+// ValidatorArrayToSerializableValidatorArray -
+func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
