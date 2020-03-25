@@ -1,8 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
@@ -207,7 +205,7 @@ func (sc *Scalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
 }
 
 // Pick returns a fresh random or pseudo-random scalarInt
-func (sc *Scalar) Pick(_ cipher.Stream) (crypto.Scalar, error) {
+func (sc *Scalar) Pick() (crypto.Scalar, error) {
 	s1 := Scalar{
 		Scalar: &bls.Fr{},
 	}

@@ -1,7 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -109,13 +108,11 @@ func TestPointGT_AddInvalidParamShouldErr(t *testing.T) {
 func TestPointGT_AddOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointGT := NewPointGT()
-	point1, err := pointGT.Pick(stream)
+	point1, err := pointGT.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointGT.Pick(stream)
+	point2, err := pointGT.Pick()
 	require.Nil(t, err)
 
 	sum, err := point1.Add(point2)
@@ -157,13 +154,11 @@ func TestPointGT_SubInvalidParamShouldErr(t *testing.T) {
 func TestPointGT_SubOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointGT := NewPointGT()
-	point1, err := pointGT.Pick(stream)
+	point1, err := pointGT.Pick()
 	require.Nil(t, err)
 
-	point2, err := pointGT.Pick(stream)
+	point2, err := pointGT.Pick()
 	require.Nil(t, err)
 
 	sum, _ := point1.Add(point2)
@@ -176,10 +171,8 @@ func TestPointGT_SubOK(t *testing.T) {
 }
 
 func TestPointGT_Neg(t *testing.T) {
-	var stream cipher.Stream
-
 	point1 := NewPointGT()
-	point, _ := point1.Pick(stream)
+	point, _ := point1.Pick()
 
 	point2 := point.Neg()
 	point3 := point2.Neg()
@@ -213,12 +206,10 @@ func TestPointGT_MulInvalidParamShouldErr(t *testing.T) {
 func TestPointGT_MulOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	pointGT := NewPointGT()
-	point2, _ := pointGT.Pick(stream)
+	point2, _ := pointGT.Pick()
 	s := NewScalar()
-	scalar, err := s.Pick(stream)
+	scalar, err := s.Pick()
 	require.Nil(t, err)
 
 	res, err := point2.Mul(scalar)
@@ -231,10 +222,8 @@ func TestPointGT_MulOK(t *testing.T) {
 func TestPointGT_PickOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-
 	point1 := NewPointGT()
-	point2, err1 := point1.Pick(stream)
+	point2, err1 := point1.Pick()
 	eq, err2 := point1.Equal(point2)
 
 	assert.Nil(t, err1)
@@ -264,8 +253,7 @@ func TestPointGT_MarshalBinary(t *testing.T) {
 func TestPointGT_UnmarshalBinary(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
-	point1, _ := NewPointGT().Pick(stream)
+	point1, _ := NewPointGT().Pick()
 	pointBytes, _ := point1.MarshalBinary()
 
 	point2 := NewPointGT()
