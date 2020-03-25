@@ -2,8 +2,6 @@ module github.com/ElrondNetwork/elrond-go
 
 go 1.13
 
-replace github.com/herumi/bls-go-binary => github.com/ElrondNetwork/bls-go-binary v0.0.0-20200319125743-50dfeda45e86
-
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11
 	github.com/ElrondNetwork/concurrent-map v0.1.2
@@ -23,7 +21,7 @@ require (
 	github.com/google/gops v0.3.6
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/herumi/bls-go-binary v0.0.0-00010101000000-000000000000
+	github.com/herumi/bls-go-binary v0.0.0-20200324054641-17de9ae04665
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
