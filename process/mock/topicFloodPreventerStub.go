@@ -2,16 +2,16 @@ package mock
 
 // TopicAntiFloodStub -
 type TopicAntiFloodStub struct {
-	AccumulateCalled func(identifier string, topic string) bool
+	AccumulateCalled func(identifier string, topic string, numMessages uint32) error
 }
 
 // Accumulate -
-func (t *TopicAntiFloodStub) Accumulate(identifier string, topic string) bool {
+func (t *TopicAntiFloodStub) Accumulate(identifier string, topic string, numMessages uint32) error {
 	if t.AccumulateCalled != nil {
-		return t.AccumulateCalled(identifier, topic)
+		return t.AccumulateCalled(identifier, topic, numMessages)
 	}
 
-	return true
+	return nil
 }
 
 // ResetForTopic -

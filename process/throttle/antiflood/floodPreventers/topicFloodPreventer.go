@@ -47,7 +47,7 @@ func NewTopicFloodPreventer(
 
 // Accumulate tries to increment the counter values held at "identifier" position for the given topic
 // It returns true if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
-func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool {
+func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string, numMessages uint32) error {
 	tfp.mutTopicMaxMessages.Lock()
 	defer tfp.mutTopicMaxMessages.Unlock()
 
@@ -57,16 +57,14 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 	}
 
 	_, ok = tfp.counterMap[topic][identifier]
-	if !ok {
-		tfp.counterMap[topic][identifier] = 1
-		return true
-	}
-
-	// if this was already in the map, just increment it
-	tfp.counterMap[topic][identifier]++
+	tfp.counterMap[topic][identifier] += numMessages
 
 	limitExceeded := tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic)
-	return !limitExceeded
+	if limitExceeded {
+		return process.ErrSystemBusy
+	}
+
+	return nil
 }
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic

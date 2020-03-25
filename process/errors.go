@@ -320,9 +320,6 @@ var ErrNilSCDestAccount = errors.New("nil destination SC account")
 // ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
 var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
-// ErrWrongNonceInStakingData signals that nonce in staking data is wrong
-var ErrWrongNonceInStakingData = errors.New("nonce invalid ")
-
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 

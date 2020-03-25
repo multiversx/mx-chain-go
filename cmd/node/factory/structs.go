@@ -94,9 +94,6 @@ import (
 )
 
 const (
-	// BlsConsensusType specifies the signature scheme used in the consensus
-	BlsConsensusType = "bls"
-
 	// MaxTxsToRequest specifies the maximum number of txs to request
 	MaxTxsToRequest = 100
 )
@@ -1112,7 +1109,7 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
-	case BlsConsensusType:
+	case consensus.BlsConsensusType:
 		return &mclsig.BlsSingleSigner{}, nil
 	default:
 		return nil, errors.New("no consensus type provided in config file")
@@ -1120,7 +1117,7 @@ func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	if cfg.Consensus.Type == BlsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
+	if cfg.Consensus.Type == consensus.BlsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
 		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
 	}
 
@@ -1128,7 +1125,7 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		if cfg.Consensus.Type == BlsConsensusType {
+		if cfg.Consensus.Type == consensus.BlsConsensusType {
 			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
@@ -1146,7 +1143,7 @@ func createMultiSigner(
 ) (crypto.MultiSigner, error) {
 
 	switch config.Consensus.Type {
-	case BlsConsensusType:
+	case consensus.BlsConsensusType:
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
 	default:

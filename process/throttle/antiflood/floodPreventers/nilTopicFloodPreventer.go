@@ -10,9 +10,9 @@ func NewNilTopicFloodPreventer() *nilTopicFloodPreventer {
 	return &nilTopicFloodPreventer{}
 }
 
-// Accumulate will always return true
-func (ntfp *nilTopicFloodPreventer) Accumulate(_ string, _ string) bool {
-	return true
+// Accumulate will always return nil
+func (ntfp *nilTopicFloodPreventer) Accumulate(_ string, _ string, _ uint32) error {
+	return nil
 }
 
 // ResetForTopic does nothing
