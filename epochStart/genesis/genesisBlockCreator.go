@@ -318,6 +318,8 @@ func createProcessorsForMetaGenesisBlock(
 	}
 
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
+		args.Hasher,
+		args.Marshalizer,
 		args.Accounts,
 		args.AddrConv,
 		args.ShardCoordinator,
