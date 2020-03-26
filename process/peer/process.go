@@ -332,6 +332,10 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NrFailure,
 		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NrSuccess,
 		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NrFailure,
+		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NrSuccess,
+		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NrFailure,
+		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NrSuccess,
+		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NrFailure,
 		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}

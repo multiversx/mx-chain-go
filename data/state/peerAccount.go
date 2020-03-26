@@ -154,6 +154,10 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 func (pa *peerAccount) ResetAtNewEpoch() error {
 	pa.AccumulatedFees = big.NewInt(0)
 	pa.SetRating(pa.GetTempRating())
+	pa.TotalLeaderSuccessRate.NrFailure += pa.LeaderSuccessRate.NrFailure
+	pa.TotalLeaderSuccessRate.NrSuccess += pa.LeaderSuccessRate.NrSuccess
+	pa.TotalValidatorSuccessRate.NrSuccess += pa.ValidatorSuccessRate.NrSuccess
+	pa.TotalValidatorSuccessRate.NrFailure += pa.ValidatorSuccessRate.NrFailure
 	pa.LeaderSuccessRate.NrFailure = 0
 	pa.LeaderSuccessRate.NrSuccess = 0
 	pa.ValidatorSuccessRate.NrSuccess = 0
@@ -174,6 +178,6 @@ func (pa *peerAccount) GetConsecutiveProposerMisses() uint32 {
 }
 
 // SetConsecutiveProposerMisses sets the account's consecutive misses as proposer
-func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32)  {
+func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	pa.ConsecutiveProposerMisses = consecutiveMisses
 }

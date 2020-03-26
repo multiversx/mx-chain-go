@@ -33,6 +33,10 @@ message ValidatorApiResponse {
 	uint32 NrValidatorFailure = 4 [(gogoproto.jsontag) = "nrValidatorFailure"];
 	float Rating = 5 [(gogoproto.jsontag) = "rating"];
 	float TempRating = 6 [(gogoproto.jsontag) = "tempRating"];
+    uint32 TotalNrLeaderSuccess = 7 [(gogoproto.jsontag) = "totalNrLeaderSuccess"];
+    uint32 TotalNrLeaderFailure = 8 [(gogoproto.jsontag) = "totalNrLeaderFailure"];
+    uint32 TotalNrValidatorSuccess = 9 [(gogoproto.jsontag) = "totalNrValidatorSuccess"];
+    uint32 TotalNrValidatorFailure = 10 [(gogoproto.jsontag) = "totalNrValidatorFailure"];
 }
 
 
@@ -59,4 +63,6 @@ message PeerAccountData {
     bytes  AccumulatedFees            = 16 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     uint32 NumSelectedInSuccessBlocks = 17;
 	uint32 ConsecutiveProposerMisses = 18;
+    SignRate TotalValidatorSuccessRate     = 19 [(gogoproto.nullable) = false];
+    SignRate TotalLeaderSuccessRate        = 20 [(gogoproto.nullable) = false];
 }

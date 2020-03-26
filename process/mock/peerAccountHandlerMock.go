@@ -174,6 +174,16 @@ func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
+// GetValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
 // GetRating -
 func (p *PeerAccountHandlerMock) GetRating() uint32 {
 	return 0

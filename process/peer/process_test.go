@@ -1666,10 +1666,17 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), pa0.GetAccumulatedFees())
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrFailure)
+
+	assert.Equal(t, uint32(11), pa0.GetTotalValidatorSuccessRate().NrSuccess)
+	assert.Equal(t, uint32(22), pa0.GetTotalValidatorSuccessRate().NrFailure)
+	assert.Equal(t, uint32(33), pa0.GetTotalLeaderSuccessRate().NrSuccess)
+	assert.Equal(t, uint32(44), pa0.GetTotalLeaderSuccessRate().NrFailure)
+
 	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrSuccess)
 	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrFailure)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrSuccess)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrFailure)
+
 	assert.Equal(t, uint32(0), pa0.GetNumSelectedInSuccessBlocks())
 	assert.Equal(t, pa0.GetTempRating(), pa0.GetRating())
 }
@@ -1921,6 +1928,10 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrSuccess, validatorInfo.ValidatorSuccess)
 	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrFailure, validatorInfo.LeaderFailure)
 	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrSuccess, validatorInfo.LeaderSuccess)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NrFailure, validatorInfo.TotalValidatorFailure)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NrSuccess, validatorInfo.TotalValidatorSuccess)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NrFailure, validatorInfo.TotalLeaderFailure)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NrSuccess, validatorInfo.TotalLeaderSuccess)
 	assert.Equal(t, "list", validatorInfo.List)
 	assert.Equal(t, uint32(0), validatorInfo.Index)
 	assert.Equal(t, peerAccount.GetRewardAddress(), validatorInfo.RewardAddress)
@@ -1958,6 +1969,14 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		LeaderSuccessRate: state.SignRate{
 			NrSuccess: 3,
 			NrFailure: 4,
+		},
+		TotalValidatorSuccessRate: state.SignRate{
+			NrSuccess: 10,
+			NrFailure: 20,
+		},
+		TotalLeaderSuccessRate: state.SignRate{
+			NrSuccess: 30,
+			NrFailure: 40,
 		},
 		NumSelectedInSuccessBlocks: 5,
 		Rating:                     51,

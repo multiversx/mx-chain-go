@@ -21,4 +21,8 @@ message ValidatorInfo {
     uint32 ValidatorFailure = 11;
     uint32 NumSelectedInSuccessBlocks = 12;
     bytes AccumulatedFees = 13 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 TotalLeaderSuccess = 14;
+    uint32 TotalLeaderFailure = 15;
+    uint32 TotalValidatorSuccess = 16;
+    uint32 TotalValidatorFailure = 17;
 }

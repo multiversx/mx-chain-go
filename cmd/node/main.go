@@ -746,6 +746,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		[]string{
 			configurationFileName,
 			configurationEconomicsFileName,
+			configurationRatingsFileName,
 			configurationPreferencesFileName,
 			p2pConfigurationFileName,
 			configurationFileName,
@@ -1106,13 +1107,13 @@ func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 }
 
 func loadRatingsConfig(filepath string) (config.RatingsConfig, error) {
-	cfg := config.RatingsConfig{}
+	cfg := &config.RatingsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
-		return cfg, err
+		return config.RatingsConfig{}, err
 	}
 
-	return cfg, nil
+	return *cfg, nil
 }
 
 func loadPreferencesConfig(filepath string) (*config.Preferences, error) {

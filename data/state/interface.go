@@ -87,6 +87,8 @@ type PeerAccountHandler interface {
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
+	GetTotalLeaderSuccessRate() SignRate
+	GetTotalValidatorSuccessRate() SignRate
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
