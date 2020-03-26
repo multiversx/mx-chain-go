@@ -13,6 +13,7 @@ import (
 
 const statusSyncing = "currently syncing"
 const statusSynchronized = "synchronized"
+const invalidKey = "invalid key"
 
 //WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
@@ -107,12 +108,24 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	nodeName := wr.presenter.GetNodeName()
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
+	peerType := wr.presenter.GetPeerType()
+
+	nodeTypeAndListDisplay := instanceType
+	if peerType != string(core.ObserverList) && !strings.Contains(peerType, invalidKey) {
+		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
+	}
 	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(core.MetachainShardId) {
 		shardIdStr = "meta"
 	}
 	wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
-	rows[0] = []string{fmt.Sprintf("Node name: %s (Shard %s - %s)", nodeName, shardIdStr, strings.Title(instanceType))}
+	rows[0] = []string{
+		fmt.Sprintf("Node name: %s (Shard %s - %s)",
+			nodeName,
+			shardIdStr,
+			strings.Title(nodeTypeAndListDisplay),
+		),
+	}
 
 	appVersion := wr.presenter.GetAppVersion()
 	needUpdate, latestStableVersion := wr.presenter.CheckSoftwareVersion()
