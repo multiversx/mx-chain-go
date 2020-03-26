@@ -6,13 +6,17 @@ import (
 
 // NodesCoordinatorMock -
 type NodesCoordinatorMock struct {
-	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
-	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
+	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 }
 
 // GetAllEligibleValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllEligibleValidatorsPublicKeysCalled()
+	}
 	return nil, nil
 }
 

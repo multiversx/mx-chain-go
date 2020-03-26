@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -254,7 +255,7 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 
 	logLine := &logger.LogLineWrapper{}
 	logLine.LoggerName = "websocket test"
-	logLine.Correlation = logger.LogCorrelationMessage{Shard: "foobar", Epoch: 42}
+	logLine.Correlation = proto.LogCorrelationMessage{Shard: "foobar", Epoch: 42}
 	logLine.Message = "websocket test message"
 	logLine.LogLevel = int32(logLevel)
 	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}

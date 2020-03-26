@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -77,7 +78,7 @@ func (txc *transactionCounter) displayLogInfo(
 	}
 
 	txc.mutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", logger.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
@@ -143,7 +144,7 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
 				fmt.Sprintf("MetaBlockHash_%d", i+1),
-				display.DisplayByteSlice(header.MetaBlockHashes[i])}))
+				logger.DisplayByteSlice(header.MetaBlockHashes[i])}))
 
 			part = ""
 		} else if i == 1 {
@@ -184,7 +185,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
+					logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {
