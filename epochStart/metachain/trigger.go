@@ -173,6 +173,8 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 	t.isEpochStart = true
 	t.saveCurrentState(round)
 
+	log.Debug("trigger.ForceEpochStart", "isEpochStart", t.isEpochStart)
+
 	return nil
 }
 
@@ -196,6 +198,7 @@ func (t *trigger) Update(round uint64) {
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
+		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 		logger.SetCorrelationEpoch(t.epoch)
 	}
 }
@@ -220,17 +223,6 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
-	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
-	if errNotCritical != nil {
-		log.Debug("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
-	}
-
-	errNotCritical = t.metaHeaderStorage.Put([]byte(epochStartIdentifier), metaBuff)
-	if errNotCritical != nil {
-		log.Debug("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
-	}
-
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
@@ -241,6 +233,19 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.epochStartMetaHash = metaHash
 
 	t.saveCurrentState(metaBlock.Round)
+
+	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
+
+	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
+	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if errNotCritical != nil {
+		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = t.metaHeaderStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if errNotCritical != nil {
+		log.Warn("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
+	}
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
@@ -337,7 +342,10 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	t.isEpochStart = false
 	t.epochStartMeta = epochStartMeta
 
-	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
+	log.Debug("trigger.revert",
+		"isEpochStart", t.isEpochStart,
+		"epoch", t.epoch,
+		"epochStartRound", t.currEpochStartRound)
 
 	return nil
 }
