@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,7 +155,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	}
 
 	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-	indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+	indexesProposers := block.GetBlockProposersIndexes(consensusNodes, nodesMap)
 	integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, nonce)
 
 	for _, nodes := range nodesMap {
