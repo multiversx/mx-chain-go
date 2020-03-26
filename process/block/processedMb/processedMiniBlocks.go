@@ -3,7 +3,7 @@ package processedMb
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
@@ -90,15 +90,22 @@ func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []b
 	pmb.mutProcessedMiniBlocks.RLock()
 	defer pmb.mutProcessedMiniBlocks.RUnlock()
 
+	if len(pmb.processedMiniBlocks) == 0 {
+		return nil
+	}
+
 	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0, len(pmb.processedMiniBlocks))
+
 	for metaHash, miniBlocksHashes := range pmb.processedMiniBlocks {
 		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
 			MetaHash:         []byte(metaHash),
 			MiniBlocksHashes: make([][]byte, 0, len(miniBlocksHashes)),
 		}
+
 		for miniBlockHash := range miniBlocksHashes {
 			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
 		}
+
 		miniBlocksInMetaBlocks = append(miniBlocksInMetaBlocks, miniBlocksInMeta)
 	}
 

@@ -73,10 +73,6 @@ const RoundModulusTrigger = 5
 // RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
 const RoundModulusTriggerWhenSyncIsStuck = 20
 
-// MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
-// from the full pool capacity, for the received data which are not needed in the near future
-const MaxOccupancyPercentageAllowed = float64(0.9)
-
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedBlock = 10

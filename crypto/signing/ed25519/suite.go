@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"crypto/ed25519"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("crypto/signing/ed25519")
@@ -13,7 +13,7 @@ var log = logger.GetOrCreate("crypto/signing/ed25519")
 // ED25519 is the string representations of the ed25519 scheme
 const ED25519 = "Ed25519"
 
-type suiteEd25519 struct {}
+type suiteEd25519 struct{}
 
 // NewEd25519 returns a wrapper over ed25519
 func NewEd25519() *suiteEd25519 {
@@ -21,7 +21,7 @@ func NewEd25519() *suiteEd25519 {
 }
 
 // CreateKeyPair returns a pair of Ed25519 keys
-func (s *suiteEd25519) CreateKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
+func (s *suiteEd25519) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic("could not create ed25519 key pair: " + err.Error())
@@ -32,7 +32,7 @@ func (s *suiteEd25519) CreateKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Poi
 
 // CreatePoint returns a newly created public key which is a point on ed25519
 func (s *suiteEd25519) CreatePoint() crypto.Point {
-	_, publicKey := s.CreateKeyPair(nil)
+	_, publicKey := s.CreateKeyPair()
 	return publicKey
 }
 

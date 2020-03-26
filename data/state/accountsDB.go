@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
@@ -517,13 +517,13 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	return adb.mainTrie.Prune(rootHash, identifier)
+	adb.mainTrie.Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
