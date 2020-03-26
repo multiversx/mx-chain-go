@@ -884,28 +884,29 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 func (sc *scProcessor) updateSmartContractCode(
 	account state.UserAccountHandler,
-	outAcc *vmcommon.OutputAccount,
+	outputAccount *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 ) error {
-	if len(outAcc.Code) == 0 {
+	if len(outputAccount.Code) == 0 {
 		return nil
 	}
 
 	isDeployment := len(account.GetCode()) == 0
+	isSenderOwner := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
+	isUpgrade := !isDeployment && isSenderOwner && true
+
 	if isDeployment {
 		account.SetOwnerAddress(tx.GetSndAddr())
-		account.SetCode(outAcc.Code)
+		account.SetCodeMetadata([]byte("TODO"))
+		account.SetCode(outputAccount.Code)
 
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
 		return nil
 	}
 
-	// TODO: implement upgradable flag for smart contracts
-	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
-	if isUpgradeEnabled {
-		account.SetCode(outAcc.Code)
-
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+	if isUpgrade {
+		account.SetCode(outputAccount.Code)
+		log.Trace("updateSmartContractCode(): updated", "address", outputAccount.Address)
 		return nil
 	}
 

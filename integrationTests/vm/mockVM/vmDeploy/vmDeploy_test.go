@@ -21,7 +21,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -69,7 +69,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -117,7 +117,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -167,7 +167,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@@0000%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
