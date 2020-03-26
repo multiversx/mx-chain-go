@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )

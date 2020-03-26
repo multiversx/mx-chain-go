@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 const checkInterval = time.Hour + 5*time.Minute
