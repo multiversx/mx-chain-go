@@ -24,5 +24,5 @@ func TestString_SetGet(t *testing.T) {
 	}()
 
 	wg.Wait()
-	require.True(t, str.Get() == "foobar" || str.Get() == "barfoo")
+	require.Contains(t, []string{"foobar", "barfoo", "foo", "bar"}, str.Get())
 }
