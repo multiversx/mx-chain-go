@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/require"
 )
 

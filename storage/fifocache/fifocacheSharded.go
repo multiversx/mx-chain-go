@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 )
 
 var log = logger.GetOrCreate("storage/fifocache")
