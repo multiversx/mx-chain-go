@@ -90,10 +90,9 @@ type PeerAccountHandler interface {
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
-	SetTempRatingWithJournal(uint322 uint32) error
 	SetTempRating(uint32)
 	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMissesWithJournal(uint322 uint32) error
+	SetConsecutiveProposerMisses(uint322 uint32)
 	ResetAtNewEpoch() error
 	AccountHandler
 }

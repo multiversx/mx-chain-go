@@ -146,61 +146,11 @@ func (awm *AccountWrapMock) GetConsecutiveProposerMisses() uint32 {
 }
 
 // SetConsecutiveProposerMissesWithJournal -
-func (awm *AccountWrapMock) SetConsecutiveProposerMissesWithJournal(consecutiveMisses uint32) error {
+func (awm *AccountWrapMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	awm.consecutiveMisses = consecutiveMisses
-	return nil
 }
 
 // IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
 	return awm == nil
-}
-
-func (awm *AccountWrapMock) AddToAccumulatedFees(value *big.Int) error {
-	return nil
-}
-func (awm *AccountWrapMock) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
-	return nil
-}
-func (awm *AccountWrapMock) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
-	return nil
-}
-func (awm *AccountWrapMock) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
-	return nil
-}
-func (awm *AccountWrapMock) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
-	return nil
-}
-func (awm *AccountWrapMock) IncreaseNumSelectedInSuccessBlocks() error {
-	return nil
-}
-func (awm *AccountWrapMock) GetRating() uint32 {
-	return awm.rating
-}
-func (awm *AccountWrapMock) SetRatingWithJournal(rating uint32) error {
-	awm.rating = rating
-	return nil
-}
-func (awm *AccountWrapMock) GetTempRating() uint32 {
-	return awm.tempRating
-}
-func (awm *AccountWrapMock) SetTempRatingWithJournal(tempRating uint32) error {
-	awm.tempRating = tempRating
-	return nil
-}
-
-func (awm *AccountWrapMock) ResetAtNewEpoch() error {
-	return nil
-}
-func (awm *AccountWrapMock) SetRewardAddressWithJournal(address []byte) error {
-	return nil
-}
-func (awm *AccountWrapMock) SetSchnorrPublicKeyWithJournal(address []byte) error {
-	return nil
-}
-func (awm *AccountWrapMock) SetBLSPublicKeyWithJournal(address []byte) error {
-	return nil
-}
-func (awm *AccountWrapMock) SetStakeWithJournal(stake *big.Int) error {
-	return nil
 }

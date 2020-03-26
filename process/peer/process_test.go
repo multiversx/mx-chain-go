@@ -458,13 +458,13 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitsEligibleAndWaiting(
 	//verify 6 saves
 	for _, validators := range eligibleMap {
 		for _, val := range validators {
-			assert.Equal(t, 6, actualMap[string(val.PubKey())])
+			assert.Equal(t, 1, actualMap[string(val.PubKey())])
 		}
 	}
 
 	for _, validators := range waitingMap {
 		for _, val := range validators {
-			assert.Equal(t, 6, actualMap[string(val.PubKey())])
+			assert.Equal(t, 1, actualMap[string(val.PubKey())])
 		}
 	}
 
@@ -1511,7 +1511,7 @@ func getAccountsMock() *mock.AccountsStub {
 			return make([]byte, 0), nil
 		},
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
 }
@@ -2019,7 +2019,7 @@ func updateArgumetsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
 		return validatorInfoMap, nil
 	}
-	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+	peerAdapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
 		return pa0, nil
 	}
 	arguments.PeerAdapter = peerAdapter

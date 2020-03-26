@@ -17,8 +17,8 @@ type PeerAccountHandlerMock struct {
 	GetTempRatingCalled                func() uint32
 	SetAccumulatedFeesCalled           func(*big.Int)
 	GetAccumulatedFeesCalled           func() *big.Int
-	GetConsecutiveProposerMissesCalled            func() uint32
-	SetConsecutiveProposerMissesCalled func(rating uint32) error
+	GetConsecutiveProposerMissesCalled func() uint32
+	SetConsecutiveProposerMissesCalled func(rating uint32)
 }
 
 // GetBLSPublicKey -
@@ -272,11 +272,10 @@ func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
 }
 
 // SetConsecutiveProposerMissesWithJournal -
-func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMissesWithJournal(consecutiveMisses uint32) error {
+func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	if pahm.SetConsecutiveProposerMissesCalled != nil {
-		return pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
 	}
-	return nil
 }
 
 // IsInterfaceNil -

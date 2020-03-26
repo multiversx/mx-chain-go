@@ -400,10 +400,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 					return err
 				}
 
-				err = pa.SetTempRatingWithJournal(newTempRating)
-				if err != nil {
-					return err
-				}
+				pa.SetTempRating(newTempRating)
 
 				log.Trace("below signed blocks threshold",
 					"pk", validator.PublicKey,
@@ -514,11 +511,8 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetConsecutiveProposerMisses")
-		err = leaderPeerAcc.SetConsecutiveProposerMissesWithJournal(leaderPeerAcc.GetConsecutiveProposerMisses() + 1)
+		leaderPeerAcc.SetConsecutiveProposerMisses(leaderPeerAcc.GetConsecutiveProposerMisses() + 1)
 		swInner.Stop("SetConsecutiveProposerMisses")
-		if err != nil {
-			return err
-		}
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
@@ -696,7 +690,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		switch actionType {
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)
-			peerAcc.SetConsecutiveProposerMissesWithJournal(0)
+			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			peerAcc.SetAccumulatedFees(big.NewInt(0).Add(peerAcc.GetAccumulatedFees(), leaderAccumulatedFees))
