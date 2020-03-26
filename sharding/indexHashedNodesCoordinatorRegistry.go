@@ -28,6 +28,25 @@ type NodesCoordinatorRegistry struct {
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
+	return ihgs.baseLoadState(key)
+}
+
+// LoadState loads the nodes coordinator state from the used boot storage
+func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	err := ihgs.baseLoadState(key)
+	if err != nil {
+		return err
+	}
+
+	err = ihgs.expandAllLists(ihgs.currentEpoch)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ncInternalkey := append([]byte(keyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
@@ -168,6 +187,8 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	if err != nil {
 		return nil, err
 	}
+
+	result.expandedEligibleMap = result.eligibleMap
 
 	return result, nil
 }
