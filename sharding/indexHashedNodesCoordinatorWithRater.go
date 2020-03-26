@@ -140,7 +140,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 			//default chance if all validators need to be selected
 			chances = minChance
 		}
-		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
+		log.Debug("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
 
 		for i := uint32(0); i < chances; i++ {
 			validatorList = append(validatorList, validatorInShard)
