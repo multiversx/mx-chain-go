@@ -247,7 +247,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			return nil, ErrInvalidShardId
 		}
-		expandedList = nodesConfig.expandedEligibleMap[shardID]
+		// TODO: Replace next line with this line after fix: expandedList = nodesConfig.expandedEligibleMap[shardID]
+		expandedList = nodesConfig.eligibleMap[shardID]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 

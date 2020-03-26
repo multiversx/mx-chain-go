@@ -707,7 +707,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	}
 
 	err := mp.CommitBlock(hdr, body)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
@@ -1610,7 +1610,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	// test header not in pool and defer called
 	err := mp.SaveLastNotarizedHeader(metaHdr)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardID).GetNonce())
 
 	// wrong header type in pool and defer called
