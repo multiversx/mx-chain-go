@@ -95,7 +95,7 @@ func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point,
 		return nil, nil, crypto.ErrNilSuite
 	}
 
-	private, public = suite.CreateKeyPair(suite.RandomStream())
+	private, public = suite.CreateKeyPair()
 
 	return private, public, nil
 }

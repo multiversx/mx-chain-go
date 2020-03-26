@@ -28,6 +28,25 @@ type NodesCoordinatorRegistry struct {
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
+	return ihgs.baseLoadState(key)
+}
+
+// LoadState loads the nodes coordinator state from the used boot storage
+func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	err := ihgs.baseLoadState(key)
+	if err != nil {
+		return err
+	}
+
+	err = ihgs.expandAllLists(ihgs.currentEpoch)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ncInternalkey := append([]byte(keyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
@@ -68,7 +87,7 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	for epoch, cfg := range config {
 		log.Debug("restored config for",
 			"epoch", epoch,
-			"computed shard ID", cfg.shardId,
+			"computed shard ID", cfg.shardID,
 		)
 	}
 }
@@ -130,7 +149,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardId = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 	}
@@ -168,6 +187,8 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	if err != nil {
 		return nil, err
 	}
+
+	result.expandedEligibleMap = result.eligibleMap
 
 	return result, nil
 }

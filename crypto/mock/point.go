@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"crypto/cipher"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -12,8 +10,8 @@ type PointMock struct {
 	Y int
 
 	GetUnderlyingObjStub func() interface{}
-	MarshalBinaryStub   func(x, y int) ([]byte, error)
-	UnmarshalBinaryStub func([]byte) (x, y int, err error)
+	MarshalBinaryStub    func(x, y int) ([]byte, error)
+	UnmarshalBinaryStub  func([]byte) (x, y int, err error)
 }
 
 // Equal tests if receiver is equal with the Point p given as parameter.
@@ -92,7 +90,7 @@ func (po *PointMock) Mul(s crypto.Scalar) (crypto.Point, error) {
 }
 
 // Pick returns a fresh random or pseudo-random Point.
-func (po *PointMock) Pick(_ cipher.Stream) (crypto.Point, error) {
+func (po *PointMock) Pick() (crypto.Point, error) {
 	panic("implement me")
 }
 

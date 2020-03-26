@@ -3,464 +3,177 @@ package state
 
 import (
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
-type PeerAccount struct {
+type peerAccount struct {
+	*baseAccount
 	PeerAccountData
+}
 
-	addressContainer AddressContainer
-	code             []byte
-	accountTracker   AccountTracker
-	dataTrieTracker  DataTrieTracker
+// NewEmptyPeerAccount returns an empty peerAccount
+func NewEmptyPeerAccount() *peerAccount {
+	return &peerAccount{
+		baseAccount: &baseAccount{},
+		PeerAccountData: PeerAccountData{
+			Stake:           big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		},
+	}
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(
-	addressContainer AddressContainer,
-	tracker AccountTracker,
-) (*PeerAccount, error) {
+func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
 	if addressContainer == nil {
 		return nil, ErrNilAddressContainer
 	}
-	if tracker == nil {
-		return nil, ErrNilAccountTracker
-	}
 
-	return &PeerAccount{
-		PeerAccountData: PeerAccountData{
-			AccumulatedFees: big.NewInt(0),
-			Stake:           big.NewInt(0),
+	return &peerAccount{
+		baseAccount: &baseAccount{
+			addressContainer: addressContainer,
+			dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
 		},
-		addressContainer: addressContainer,
-		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
+		PeerAccountData: PeerAccountData{
+			Stake:           big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		},
 	}, nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
-func (pa *PeerAccount) IsInterfaceNil() bool {
-	return pa == nil
-}
-
-// AddressContainer returns the address associated with the account
-func (pa *PeerAccount) AddressContainer() AddressContainer {
-	return pa.addressContainer
-}
-
-// SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
-func (pa *PeerAccount) SetNonceWithJournal(nonce uint64) error {
-	entry, err := NewBaseJournalEntryNonce(pa, pa.Nonce)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.Nonce = nonce
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-//SetNonce saves the nonce to the account
-func (pa *PeerAccount) SetNonce(nonce uint64) {
-	pa.Nonce = nonce
-}
-
-// GetNonce gets the nonce of the account
-func (pa *PeerAccount) GetNonce() uint64 {
-	return pa.Nonce
-}
-
-// GetCodeHash returns the code hash associated with this account
-func (pa *PeerAccount) GetCodeHash() []byte {
-	return pa.CodeHash
-}
-
-// SetCodeHash sets the code hash associated with the account
-func (pa *PeerAccount) SetCodeHash(codeHash []byte) {
-	pa.CodeHash = codeHash
-}
-
-// SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing
-func (pa *PeerAccount) SetCodeHashWithJournal(codeHash []byte) error {
-	entry, err := NewBaseJournalEntryCodeHash(pa, pa.CodeHash)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.CodeHash = codeHash
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// GetCode gets the actual code that needs to be run in the VM
-func (pa *PeerAccount) GetCode() []byte {
-	return pa.code
-}
-
-// SetCode sets the actual code that needs to be run in the VM
-func (pa *PeerAccount) SetCode(code []byte) {
-	pa.code = code
-}
-
-// GetRootHash returns the root hash associated with this account
-func (pa *PeerAccount) GetRootHash() []byte {
-	return pa.RootHash
-}
-
-// SetRootHash sets the root hash associated with the account
-func (pa *PeerAccount) SetRootHash(roothash []byte) {
-	pa.RootHash = roothash
-}
-
-// DataTrie returns the trie that holds the current account's data
-func (pa *PeerAccount) DataTrie() data.Trie {
-	return pa.dataTrieTracker.DataTrie()
-}
-
-// SetDataTrie sets the trie that holds the current account's data
-func (pa *PeerAccount) SetDataTrie(trie data.Trie) {
-	pa.dataTrieTracker.SetDataTrie(trie)
-}
-
-// DataTrieTracker returns the trie wrapper used in managing the SC data
-func (pa *PeerAccount) DataTrieTracker() DataTrieTracker {
-	return pa.dataTrieTracker
-}
-
-// SetRewardAddressWithJournal sets the account's reward address, saving the old address before changing
-func (pa *PeerAccount) SetRewardAddressWithJournal(address []byte) error {
-	if len(address) < 1 {
-		return ErrEmptyAddress
-	}
-
-	entry, err := NewPeerJournalEntryAddress(pa, pa.RewardAddress)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.RewardAddress = address
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// SetSchnorrPublicKeyWithJournal sets the account's public key, saving the old key before changing
-func (pa *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
-	if len(pubKey) < 1 {
-		return ErrNilSchnorrPublicKey
-	}
-
-	entry, err := NewPeerJournalEntrySchnorrPublicKey(pa, pa.SchnorrPublicKey)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.SchnorrPublicKey = pubKey
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// SetBLSPublicKeyWithJournal sets the account's bls public key, saving the old key before changing
-func (pa *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
+// SetBLSPublicKey sets the account's bls public key, saving the old key before changing
+func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
 	if len(pubKey) < 1 {
 		return ErrNilBLSPublicKey
 	}
 
-	entry, err := NewPeerJournalEntryBLSPublicKey(pa, pa.BLSPublicKey)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
 	pa.BLSPublicKey = pubKey
-
-	return pa.accountTracker.SaveAccount(pa)
+	return nil
 }
 
-// SetStakeWithJournal sets the account's stake, saving the old stake before changing
-func (pa *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
+// SetSchnorrPublicKey sets the account's public key, saving the old key before changing
+func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) error {
+	if len(pubKey) < 1 {
+		return ErrNilSchnorrPublicKey
+	}
+
+	pa.SchnorrPublicKey = pubKey
+	return nil
+}
+
+// SetRewardAddress sets the account's reward address, saving the old address before changing
+func (pa *peerAccount) SetRewardAddress(address []byte) error {
+	if len(address) < 1 {
+		return ErrEmptyAddress
+	}
+
+	pa.RewardAddress = address
+	return nil
+}
+
+// SetStake sets the account's stake
+func (pa *peerAccount) SetStake(stake *big.Int) error {
 	if stake == nil {
 		return ErrNilStake
 	}
 
-	entry, err := NewPeerJournalEntryStake(pa, pa.Stake)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.Stake = stake
-
-	return pa.accountTracker.SaveAccount(pa)
+	pa.Stake = big.NewInt(0).Set(stake)
+	return nil
 }
 
-// SetJailTimeWithJournal sets the account's jail time, saving the old state before changing
-func (pa *PeerAccount) SetJailTimeWithJournal(jailTime TimePeriod) error {
-	entry, err := NewPeerJournalEntryJailTime(pa, pa.JailTime)
-	if err != nil {
-		return err
-	}
+// SetAccumulatedFees sets the account's accumulated fees
+func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
+	pa.AccumulatedFees = big.NewInt(0).Set(fees)
+}
 
-	pa.accountTracker.Journalize(entry)
+// SetJailTime sets the account's jail time
+func (pa *peerAccount) SetJailTime(jailTime TimePeriod) {
 	pa.JailTime = jailTime
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// SetUnStakedNonceWithJournal sets the account's shard id, saving the old state before changing
-func (pa *PeerAccount) SetUnStakedNonceWithJournal(nonce uint64) error {
-	entry, err := NewPeerJournalEntryUnStakedNonce(pa, pa.UnStakedNonce)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.UnStakedNonce = nonce
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// SetCurrentShardIdWithJournal sets the account's shard id, saving the old state before changing
-func (pa *PeerAccount) SetCurrentShardIdWithJournal(shId uint32) error {
-	entry, err := NewPeerJournalEntryCurrentShardId(pa, pa.CurrentShardId)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
+// SetCurrentShardId sets the account's shard id
+func (pa *peerAccount) SetCurrentShardId(shId uint32) {
 	pa.CurrentShardId = shId
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// SetNextShardIdWithJournal sets the account's shard id, saving the old state before changing
-func (pa *PeerAccount) SetNextShardIdWithJournal(shId uint32) error {
-	entry, err := NewPeerJournalEntryNextShardId(pa, pa.NextShardId)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
+// SetNextShardId sets the account's shard id
+func (pa *peerAccount) SetNextShardId(shId uint32) {
 	pa.NextShardId = shId
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// SetNodeInWaitingListWithJournal sets the account's nodes status whether in waiting list, saving the old state before
-func (pa *PeerAccount) SetNodeInWaitingListWithJournal(nodeInWaitingList bool) error {
-	entry, err := NewPeerJournalEntryInWaitingList(pa, pa.NodeInWaitingList)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
+// SetNodeInWaitingList sets the account's nodes status whether in waiting list
+func (pa *peerAccount) SetNodeInWaitingList(nodeInWaitingList bool) {
 	pa.NodeInWaitingList = nodeInWaitingList
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseValidatorSuccessRateWithJournal increases the account's number of successful signing,
-// saving the old state before changing
-func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
-	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	if err != nil {
-		return err
-	}
+// SetUnStakedNonce sets the account's shard id
+func (pa *peerAccount) SetUnStakedNonce(nonce uint64) {
+	pa.UnStakedNonce = nonce
+}
 
-	pa.accountTracker.Journalize(entry)
+// IncreaseLeaderSuccessRate increases the account's number of successful signing
+func (pa *peerAccount) IncreaseLeaderSuccessRate(value uint32) {
+	pa.LeaderSuccessRate.NrSuccess += value
+}
+
+// DecreaseLeaderSuccessRate increases the account's number of missing signing
+func (pa *peerAccount) DecreaseLeaderSuccessRate(value uint32) {
+	pa.LeaderSuccessRate.NrFailure += value
+}
+
+// IncreaseValidatorSuccessRate increases the account's number of successful signing
+func (pa *peerAccount) IncreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NrSuccess += value
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseNumSelectedInSuccessBlocks increases the counter for number of selection in successful blocks
-func (pa *PeerAccount) IncreaseNumSelectedInSuccessBlocks() error {
-	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.NumSelectedInSuccessBlocks += 1
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
-// saving the old state before changing
-func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
-	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
+// DecreaseValidatorSuccessRate increases the account's number of missed signing
+func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NrFailure += value
-
-	return pa.accountTracker.SaveAccount(pa)
 }
 
-// IncreaseLeaderAccumulatedFees increases the account's accumulated fees
-func (pa *PeerAccount) AddToAccumulatedFees(value *big.Int) error {
-	if value.Cmp(big.NewInt(0)) == 0 {
-		return nil
-	}
+// IncreaseNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
+func (pa *peerAccount) IncreaseNumSelectedInSuccessBlocks() {
+	pa.NumSelectedInSuccessBlocks++
+}
 
-	entry, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-	if err != nil {
-		return err
-	}
+// SetRating sets the account's rating id
+func (pa *peerAccount) SetRating(rating uint32) {
+	pa.Rating = rating
+}
 
-	newAccumulatedFees := big.NewInt(0).Add(pa.AccumulatedFees, value)
-	pa.accountTracker.Journalize(entry)
-	pa.AccumulatedFees = newAccumulatedFees
+// SetTempRating sets the account's tempRating
+func (pa *peerAccount) SetTempRating(rating uint32) {
+	pa.TempRating = rating
+}
 
-	return pa.accountTracker.SaveAccount(pa)
+// IsInterfaceNil return if there is no value under the interface
+func (pa *peerAccount) IsInterfaceNil() bool {
+	return pa == nil
 }
 
 // ResetAtNewEpoch will reset a set of values after changing epoch
-func (pa *PeerAccount) ResetAtNewEpoch() error {
-	entryAccFee, err := NewPeerJournalEntryAccumulatedFees(pa, pa.AccumulatedFees)
-	if err != nil {
-		return err
-	}
-
-	newAccumulatedFees := big.NewInt(0)
-	pa.accountTracker.Journalize(entryAccFee)
-	pa.AccumulatedFees = newAccumulatedFees
-
-	err = pa.accountTracker.SaveAccount(pa)
-	if err != nil {
-		return err
-	}
-
-	err = pa.SetRatingWithJournal(pa.GetTempRating())
-	if err != nil {
-		return err
-	}
-
-	entryLeaderRate, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entryLeaderRate)
+func (pa *peerAccount) ResetAtNewEpoch() error {
+	pa.AccumulatedFees = big.NewInt(0)
+	pa.SetRating(pa.GetTempRating())
 	pa.LeaderSuccessRate.NrFailure = 0
 	pa.LeaderSuccessRate.NrSuccess = 0
-
-	err = pa.accountTracker.SaveAccount(pa)
-	if err != nil {
-		return err
-	}
-
-	entryValidatorRate, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entryValidatorRate)
 	pa.ValidatorSuccessRate.NrSuccess = 0
 	pa.ValidatorSuccessRate.NrFailure = 0
-
-	err = pa.accountTracker.SaveAccount(pa)
-	if err != nil {
-		return err
-	}
-
-	entry, err := NewPeerJournalEntryNumSelectedInSuccessBlocks(pa, pa.NumSelectedInSuccessBlocks)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
 	pa.NumSelectedInSuccessBlocks = 0
 
-	return pa.accountTracker.SaveAccount(pa)
+	return nil
 }
 
-// IncreaseLeaderSuccessRateWithJournal increases the account's number of successful signing,
-// saving the old state before changing
-func (pa *PeerAccount) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
-	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrSuccess += value
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// DecreaseLeaderSuccessRateWithJournal increases the account's number of missing signing,
-// saving the old state before changing
-func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
-	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrFailure += value
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// GetRating gets the rating
-func (pa *PeerAccount) GetRating() uint32 {
-	return pa.Rating
-}
-
-// SetRatingWithJournal sets the account's rating id, saving the old state before changing
-func (pa *PeerAccount) SetRatingWithJournal(rating uint32) error {
-	entry, err := NewPeerJournalEntryRating(pa, pa.Rating)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.Rating = rating
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// GetTempRating gets the rating
-func (pa *PeerAccount) GetTempRating() uint32 {
-	return pa.TempRating
-}
-
-// SetTempRatingWithJournal sets the account's tempRating, saving the old state before changing
-func (pa *PeerAccount) SetTempRatingWithJournal(rating uint32) error {
-	entry, err := NewPeerJournalEntryTempRating(pa, pa.TempRating)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.TempRating = rating
-
-	return pa.accountTracker.SaveAccount(pa)
+//IncreaseNonce adds the given value to the current nonce
+func (pa *peerAccount) IncreaseNonce(val uint64) {
+	pa.Nonce = pa.Nonce + val
 }
 
 // GetConsecutiveProposerMisses gets the current consecutive proposer misses
-func (pa *PeerAccount) GetConsecutiveProposerMisses() uint32 {
+func (pa *peerAccount) GetConsecutiveProposerMisses() uint32 {
 	return pa.ConsecutiveProposerMisses
 }
 
-// SetConsecutiveProposerMisses sets the account's consecutive misses as proposer, saving the old state before changing
-func (pa *PeerAccount) SetConsecutiveProposerMissesWithJournal(consecutiveMisses uint32) error {
-	entry, err := NewPeerJournalEntryConsecutiveProposerMisses(pa, pa.ConsecutiveProposerMisses)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
+// SetConsecutiveProposerMisses sets the account's consecutive misses as proposer
+func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32)  {
 	pa.ConsecutiveProposerMisses = consecutiveMisses
-
-	return pa.accountTracker.SaveAccount(pa)
 }

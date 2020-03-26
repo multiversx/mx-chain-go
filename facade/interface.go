@@ -32,6 +32,9 @@ type NodeWrapper interface {
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
 
+	//ValidateTransaction will validate a transaction
+	ValidateTransaction(tx *transaction.Transaction) error
+
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
@@ -40,7 +43,7 @@ type NodeWrapper interface {
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
-	GetAccount(address string) (*state.Account, error)
+	GetAccount(address string) (state.UserAccountHandler, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat

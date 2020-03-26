@@ -140,6 +140,7 @@ type TransactionCoordinator interface {
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error
 	IsInterfaceNil() bool
 }
 
@@ -362,7 +363,6 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64)
-	ReceivedHeader(header data.HeaderHandler)
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64

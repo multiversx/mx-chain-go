@@ -21,9 +21,10 @@ type NodeMock struct {
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GetAccountHandler                              func(address string) (*state.Account, error)
+	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -78,6 +79,11 @@ func (nm *NodeMock) CreateTransaction(nonce uint64, value string, receiverHex st
 	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
 }
 
+//ValidateTransaction --
+func (nm *NodeMock) ValidateTransaction(tx *transaction.Transaction) error {
+	return nm.ValidateTransactionHandler(tx)
+}
+
 // GetTransaction -
 func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nm.GetTransactionHandler(hash)
@@ -104,7 +110,7 @@ func (nm *NodeMock) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, 
 }
 
 // GetAccount -
-func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
+func (nm *NodeMock) GetAccount(address string) (state.UserAccountHandler, error) {
 	return nm.GetAccountHandler(address)
 }
 

@@ -19,9 +19,7 @@ import (
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
-	marshalizer      marshal.Marshalizer
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
 	receiptForwarder process.IntermediateTransactionHandler
@@ -82,12 +80,12 @@ func NewTxProcessor(
 		shardCoordinator: shardCoordinator,
 		adrConv:          addressConv,
 		economicsFee:     economicsFee,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 
 	return &txProcessor{
 		baseTxProcessor:  baseTxProcess,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
 		scProcessor:      scProcessor,
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
@@ -157,11 +155,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	err = txProc.increaseNonce(acntSnd)
-	if err != nil {
-		return err
-	}
-
+	acntSnd.IncreaseNonce(1)
 	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
 	if err != nil {
 		return err
@@ -185,6 +179,11 @@ func (txProc *txProcessor) executingFailedTransaction(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+
+	err = txProc.accounts.SaveAccount(acntSnd)
+	if err != nil {
+		return err
+	}
 
 	return process.ErrFailedTransaction
 }
@@ -250,6 +249,25 @@ func (txProc *txProcessor) processTxFee(
 	return cost, nil
 }
 
+func (txProc *txProcessor) checkIfValidTxToMetaChain(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+	adrDst state.AddressContainer,
+) error {
+
+	destShardId := txProc.shardCoordinator.ComputeId(adrDst)
+	if destShardId != core.MetachainShardId {
+		return nil
+	}
+
+	// it is not allowed to send transactions to metachain if those are not of type smart contract
+	if len(tx.GetData()) == 0 {
+		return txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
+	}
+
+	return nil
+}
+
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
@@ -258,6 +276,11 @@ func (txProc *txProcessor) processMoveBalance(
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.checkIfValidTxToMetaChain(tx, acntSrc, adrDst)
 	if err != nil {
 		return err
 	}
@@ -274,10 +297,7 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		err = txProc.increaseNonce(acntSrc)
-		if err != nil {
-			return err
-		}
+		acntSrc.IncreaseNonce(1)
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -291,6 +311,24 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+
+	return txProc.saveAccounts(acntSrc, acntDst)
+}
+
+func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+	if !check.IfNil(acntSnd) {
+		err := txProc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err := txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -346,10 +384,6 @@ func (txProc *txProcessor) moveBalances(
 	}
 
 	return nil
-}
-
-func (txProc *txProcessor) increaseNonce(acntSrc state.UserAccountHandler) error {
-	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

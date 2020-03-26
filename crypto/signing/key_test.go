@@ -1,7 +1,6 @@
 package signing_test
 
 import (
-	"crypto/cipher"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -64,7 +63,7 @@ func createPoint() crypto.Point {
 	}
 }
 
-func createKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
+func createKeyPair() (crypto.Scalar, crypto.Point) {
 	scalar := createScalar()
 	point, _ := createPoint().Mul(scalar)
 	return scalar, point

@@ -320,6 +320,9 @@ var ErrNilSCDestAccount = errors.New("nil destination SC account")
 // ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
 var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
+// ErrWrongNonceInStakingData signals that nonce in staking data is wrong
+var ErrWrongNonceInStakingData = errors.New("nonce invalid ")
+
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
@@ -678,6 +681,12 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
 
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
 // ErrDuplicateThreshold signals that two thresholds are the same
 var ErrDuplicateThreshold = errors.New("two thresholds are the same")
 
@@ -719,3 +728,6 @@ var ErrAddressNotInThisShard = errors.New("provided address does not belong to c
 
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
+
+// ErrInvalidMetaTransaction signals that meta transaction is invalid
+var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
