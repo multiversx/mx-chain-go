@@ -214,6 +214,11 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex)
 }
 
+// ValidateTransaction will validate a transaction
+func (ef *ElrondNodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
+	return ef.node.ValidateTransaction(tx)
+}
+
 // ValidatorStatisticsApi will return the statistics for all validators
 func (ef *ElrondNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return ef.node.ValidatorStatisticsApi()
@@ -236,7 +241,7 @@ func (ef *ElrondNodeFacade) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // GetAccount returns an accountResponse containing information
 // about the account correlated with provided address
-func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
+func (ef *ElrondNodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ef.node.GetAccount(address)
 }
 

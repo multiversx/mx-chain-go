@@ -136,6 +136,7 @@ func (chr *chronology) startRound() {
 
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
+	logger.SetCorrelationSubround(sr.Name())
 
 	if !sr.DoWork(chr.rounder) {
 		chr.subroundId = srBeforeStartRound
@@ -153,6 +154,7 @@ func (chr *chronology) updateRound() {
 	if oldRoundIndex != chr.rounder.Index() {
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.rounder.Index(), chr.rounder.TimeStamp().Unix())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
+		logger.SetCorrelationRound(chr.rounder.Index())
 
 		chr.initRound()
 	}

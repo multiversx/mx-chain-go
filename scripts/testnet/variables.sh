@@ -65,7 +65,7 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
-export ALWAYS_NEW_CHAINID=1
+export ALWAYS_NEW_CHAINID=0
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"

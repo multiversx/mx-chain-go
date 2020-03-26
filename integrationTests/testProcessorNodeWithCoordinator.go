@@ -73,7 +73,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
 				Hasher:                  TestHasher,
-				ShardId:                 shardId,
+				ShardIDAsObserver:       shardId,
 				NbShards:                numShards,
 				EligibleNodes:           validatorsMap,
 				WaitingNodes:            waitingMap,

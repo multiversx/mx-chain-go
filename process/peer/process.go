@@ -310,7 +310,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 			return nil, err
 		}
 
-		currentShardId := peerAccount.CurrentShardId
+		currentShardId := peerAccount.GetCurrentShardId()
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
 
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
@@ -319,26 +319,26 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount *state.PeerAccount) *state.ValidatorInfo {
+func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
-		PublicKey:                  peerAccount.BLSPublicKey,
-		ShardId:                    peerAccount.CurrentShardId,
+		PublicKey:                  peerAccount.GetBLSPublicKey(),
+		ShardId:                    peerAccount.GetCurrentShardId(),
 		List:                       "list",
 		Index:                      0,
-		TempRating:                 peerAccount.TempRating,
-		Rating:                     peerAccount.Rating,
-		RewardAddress:              peerAccount.RewardAddress,
-		LeaderSuccess:              peerAccount.LeaderSuccessRate.NrSuccess,
-		LeaderFailure:              peerAccount.LeaderSuccessRate.NrFailure,
-		ValidatorSuccess:           peerAccount.ValidatorSuccessRate.NrSuccess,
-		ValidatorFailure:           peerAccount.ValidatorSuccessRate.NrFailure,
-		NumSelectedInSuccessBlocks: peerAccount.NumSelectedInSuccessBlocks,
-		AccumulatedFees:            big.NewInt(0).Set(peerAccount.AccumulatedFees),
+		TempRating:                 peerAccount.GetTempRating(),
+		Rating:                     peerAccount.GetRating(),
+		RewardAddress:              peerAccount.GetRewardAddress(),
+		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NrSuccess,
+		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NrFailure,
+		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NrSuccess,
+		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NrFailure,
+		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
+		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
 }
 
-func (vs *validatorStatistics) unmarshalPeer(pa []byte) (*state.PeerAccount, error) {
-	peerAccount := &state.PeerAccount{}
+func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
+	peerAccount := state.NewEmptyPeerAccount()
 	err := vs.marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
 		return nil, err
@@ -394,7 +394,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 			if err != nil {
 				return err
 			}
-			account, err := vs.peerAdapter.GetAccountWithJournal(addrContainer)
+			account, err := vs.peerAdapter.LoadAccount(addrContainer)
 			if err != nil {
 				return err
 			}
@@ -405,6 +405,11 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 			}
 
 			err = peerAccount.ResetAtNewEpoch()
+			if err != nil {
+				return err
+			}
+
+			err = vs.peerAdapter.SaveAccount(peerAccount)
 			if err != nil {
 				return err
 			}
@@ -467,9 +472,10 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating())
 		swInner.Stop("ComputeDecreaseProposer")
 
-		swInner.Start("SetTempRatingWithJournal")
-		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
-		swInner.Stop("SetTempRatingWithJournal")
+		swInner.Start("SetTempRating")
+		leaderPeerAcc.SetTempRating(newRating)
+		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)
+		swInner.Stop("SetTempRating")
 		if err != nil {
 			return err
 		}
@@ -498,9 +504,11 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []s
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
-		verr = validatorPeerAccount.SetTempRatingWithJournal(newRating)
-		if verr != nil {
-			return verr
+		validatorPeerAccount.SetTempRating(newRating)
+
+		err := vs.peerAdapter.SaveAccount(validatorPeerAccount)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -584,12 +592,7 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	err = vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
@@ -598,37 +601,30 @@ func (vs *validatorStatistics) savePeerAccountData(
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	err := peerAccount.SetRewardAddressWithJournal(data.Address())
+	err := peerAccount.SetRewardAddress(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetSchnorrPublicKeyWithJournal(data.Address())
+	err = peerAccount.SetSchnorrPublicKey(data.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKeyWithJournal(data.PubKey())
+	err = peerAccount.SetBLSPublicKey(data.PubKey())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetStakeWithJournal(stakeValue)
+	err = peerAccount.SetStake(stakeValue)
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetRatingWithJournal(startRating)
-	if err != nil {
-		return err
-	}
+	peerAccount.SetRating(startRating)
+	peerAccount.SetTempRating(startRating)
 
-	err = peerAccount.SetTempRatingWithJournal(startRating)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return vs.peerAdapter.SaveAccount(peerAccount)
 }
 
 func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int, shardId uint32) error {
@@ -642,10 +638,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			return err
 		}
 
-		err = peerAcc.IncreaseNumSelectedInSuccessBlocks()
-		if err != nil {
-			return err
-		}
+		peerAcc.IncreaseNumSelectedInSuccessBlocks()
 
 		var newRating uint32
 		isLeader := i == 0
@@ -654,27 +647,20 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 
 		switch actionType {
 		case leaderSuccess:
-			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
-			if err != nil {
-				return err
-			}
-
+			peerAcc.IncreaseLeaderSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
-			err = peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
+			peerAcc.SetAccumulatedFees(big.NewInt(0).Add(peerAcc.GetAccumulatedFees(), leaderAccumulatedFees))
 		case validatorSuccess:
-			err = peerAcc.IncreaseValidatorSuccessRateWithJournal(1)
+			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
-			err = peerAcc.DecreaseValidatorSuccessRateWithJournal(1)
+			peerAcc.DecreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeDecreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
-		if err != nil {
-			return err
-		}
-
-		err = peerAcc.SetTempRatingWithJournal(newRating)
+		peerAcc.SetTempRating(newRating)
+		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
 			return err
 		}
@@ -690,7 +676,7 @@ func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccount
 		return nil, err
 	}
 
-	account, err := vs.peerAdapter.GetAccountWithJournal(addressContainer)
+	account, err := vs.peerAdapter.LoadAccount(addressContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -730,17 +716,16 @@ func (vs *validatorStatistics) updateMissedBlocksCounters() error {
 		}
 
 		if roundCounters.leaderDecreaseCount > 0 {
-			err = peerAccount.DecreaseLeaderSuccessRateWithJournal(roundCounters.leaderDecreaseCount)
-			if err != nil {
-				return err
-			}
+			peerAccount.DecreaseLeaderSuccessRate(roundCounters.leaderDecreaseCount)
 		}
 
 		if roundCounters.validatorDecreaseCount > 0 {
-			err = peerAccount.DecreaseValidatorSuccessRateWithJournal(roundCounters.validatorDecreaseCount)
-			if err != nil {
-				return err
-			}
+			peerAccount.DecreaseValidatorSuccessRate(roundCounters.validatorDecreaseCount)
+		}
+
+		err = vs.peerAdapter.SaveAccount(peerAccount)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -798,7 +783,7 @@ func (vs *validatorStatistics) display(validatorKey string) {
 		return
 	}
 
-	acc, ok := peerAcc.(*state.PeerAccount)
+	acc, ok := peerAcc.(state.PeerAccountHandler)
 
 	if !ok {
 		log.Trace("display", "error", "not a peeracc")
@@ -806,13 +791,13 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Trace("validator statistics",
-		"pk", acc.BLSPublicKey,
-		"leader fail", acc.LeaderSuccessRate.NrFailure,
-		"leader success", acc.LeaderSuccessRate.NrSuccess,
-		"val fail", acc.ValidatorSuccessRate.NrFailure,
-		"val success", acc.ValidatorSuccessRate.NrSuccess,
-		"temp rating", acc.TempRating,
-		"rating", acc.Rating,
+		"pk", acc.GetBLSPublicKey(),
+		"leader fail", acc.GetLeaderSuccessRate().NrFailure,
+		"leader success", acc.GetLeaderSuccessRate().NrSuccess,
+		"val fail", acc.GetValidatorSuccessRate().NrFailure,
+		"val success", acc.GetValidatorSuccessRate().NrSuccess,
+		"temp rating", acc.GetTempRating(),
+		"rating", acc.GetRating(),
 	)
 }
 
@@ -836,14 +821,8 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 		if err != nil {
 			return err
 		}
-		err = validatorPeerAccount.DecreaseLeaderSuccessRateWithJournal(leaderAppearances)
-		if err != nil {
-			return err
-		}
-		err = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal(consensusGroupAppearances)
-		if err != nil {
-			return err
-		}
+		validatorPeerAccount.DecreaseLeaderSuccessRate(leaderAppearances)
+		validatorPeerAccount.DecreaseValidatorSuccessRate(consensusGroupAppearances)
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
@@ -858,7 +837,8 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 			ratingDifference = validatorPeerAccount.GetTempRating() - currentTempRating
 		}
 
-		err = validatorPeerAccount.SetTempRatingWithJournal(currentTempRating)
+		validatorPeerAccount.SetTempRating(currentTempRating)
+		err = vs.peerAdapter.SaveAccount(validatorPeerAccount)
 		if err != nil {
 			return err
 		}
@@ -880,10 +860,6 @@ func (vs *validatorStatistics) Process(vid data.ValidatorInfoHandler) error {
 		return err
 	}
 
-	err = pa.SetRatingWithJournal(vid.GetTempRating())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	pa.SetRating(vid.GetTempRating())
+	return vs.peerAdapter.SaveAccount(pa)
 }

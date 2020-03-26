@@ -23,7 +23,9 @@ func createMockLogSender() (*logs.LogSender, *mock.WsConnStub, io.Writer) {
 		return nil
 	})
 	conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {
-		return websocket.TextMessage, []byte("*:INFO"), nil
+		profile := logger.Profile{LogLevelPatterns: "*:INFO"}
+		profileJson, _ := profile.Marshal()
+		return websocket.TextMessage, profileJson, nil
 	})
 
 	ls, _ := logs.NewLogSender(

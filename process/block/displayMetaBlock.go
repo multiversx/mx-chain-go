@@ -58,7 +58,7 @@ func (hc *headersCounter) displayLogInfo(
 	header *block.MetaBlock,
 	body *block.Body,
 	headerHash []byte,
-	numHeadersFromPool int,
+	numShardHeadersFromPool int,
 	blockTracker process.BlockTracker,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
@@ -77,7 +77,7 @@ func (hc *headersCounter) displayLogInfo(
 	arguments := []interface{}{
 		"total MB processed", hc.shardMBHeadersTotalProcessed,
 		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
-		"shard headers in pool", numHeadersFromPool,
+		"shard headers in pool", numShardHeadersFromPool,
 	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 

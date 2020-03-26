@@ -196,6 +196,7 @@ func (t *trigger) Update(round uint64) {
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
+		logger.SetCorrelationEpoch(t.epoch)
 	}
 }
 
@@ -351,10 +352,6 @@ func (t *trigger) Epoch() uint32 {
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
 func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
-}
-
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
-func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
