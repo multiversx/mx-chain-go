@@ -125,8 +125,8 @@ func incrementCountAcceptedBlocks(
 
 	bitMap := header.GetPubKeysBitmap()
 
-	indexInBitmap := bitMap[myIndex/8]&(1<<uint8(myIndex%8)) == 1
-	if indexInBitmap {
+	indexNotInBitmap := bitMap[myIndex/8]&(1<<uint8(myIndex%8)) == 0
+	if !indexNotInBitmap {
 		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
 	}
 }
