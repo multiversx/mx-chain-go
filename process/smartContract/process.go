@@ -897,7 +897,8 @@ func (sc *scProcessor) updateSmartContractCode(
 
 	if isDeployment {
 		account.SetOwnerAddress(tx.GetSndAddr())
-		account.SetCodeMetadata([]byte("TODO"))
+		// TODO: from outputAccount.CodeMetadata.
+		account.SetCodeMetadata([]byte{})
 		account.SetCode(outputAccount.Code)
 
 		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
@@ -1025,7 +1026,13 @@ func (sc *scProcessor) processSimpleSCR(
 	scr *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	err := sc.updateSmartContractCode(dstAcc, &vmcommon.OutputAccount{Code: scr.Code, Address: scr.RcvAddr}, scr)
+	outputAccount := &vmcommon.OutputAccount{
+		Code: scr.Code,
+		// TODO: CodeMetaData: scr.CodeMetadata?
+		// TODO: Where is VMType in OutputAccount though? Is it in the data field?
+		Address: scr.RcvAddr,
+	}
+	err := sc.updateSmartContractCode(dstAcc, outputAccount, scr)
 	if err != nil {
 		return err
 	}
