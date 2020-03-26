@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -67,24 +68,25 @@ type ComponentsNeededForBootstrap struct {
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
 	// should come via arguments
-	publicKey          crypto.PublicKey
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	messenger          p2p.Messenger
-	generalConfig      config.Config
-	economicsData      *economics.EconomicsData
-	singleSigner       crypto.SingleSigner
-	blockSingleSigner  crypto.SingleSigner
-	keyGen             crypto.KeyGenerator
-	blockKeyGen        crypto.KeyGenerator
-	shardCoordinator   sharding.Coordinator
-	genesisNodesConfig *sharding.NodesSetup
-	pathManager        storage.PathManagerHandler
-	workingDir         string
-	defaultDBPath      string
-	defaultEpochString string
-	defaultShardString string
-	rater              sharding.ChanceComputer
+	publicKey                  crypto.PublicKey
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	messenger                  p2p.Messenger
+	generalConfig              config.Config
+	economicsData              *economics.EconomicsData
+	singleSigner               crypto.SingleSigner
+	blockSingleSigner          crypto.SingleSigner
+	keyGen                     crypto.KeyGenerator
+	blockKeyGen                crypto.KeyGenerator
+	shardCoordinator           sharding.Coordinator
+	genesisNodesConfig         *sharding.NodesSetup
+	pathManager                storage.PathManagerHandler
+	workingDir                 string
+	defaultDBPath              string
+	defaultEpochString         string
+	defaultShardString         string
+	destinationShardAsObserver string
+	rater                      sharding.ChanceComputer
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -119,45 +121,47 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	PublicKey          crypto.PublicKey
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
-	Messenger          p2p.Messenger
-	GeneralConfig      config.Config
-	EconomicsData      *economics.EconomicsData
-	SingleSigner       crypto.SingleSigner
-	BlockSingleSigner  crypto.SingleSigner
-	KeyGen             crypto.KeyGenerator
-	BlockKeyGen        crypto.KeyGenerator
-	GenesisNodesConfig *sharding.NodesSetup
-	PathManager        storage.PathManagerHandler
-	WorkingDir         string
-	DefaultDBPath      string
-	DefaultEpochString string
-	DefaultShardString string
-	Rater              sharding.ChanceComputer
+	PublicKey                  crypto.PublicKey
+	Marshalizer                marshal.Marshalizer
+	Hasher                     hashing.Hasher
+	Messenger                  p2p.Messenger
+	GeneralConfig              config.Config
+	EconomicsData              *economics.EconomicsData
+	SingleSigner               crypto.SingleSigner
+	BlockSingleSigner          crypto.SingleSigner
+	KeyGen                     crypto.KeyGenerator
+	BlockKeyGen                crypto.KeyGenerator
+	GenesisNodesConfig         *sharding.NodesSetup
+	PathManager                storage.PathManagerHandler
+	WorkingDir                 string
+	DefaultDBPath              string
+	DefaultEpochString         string
+	DefaultShardString         string
+	Rater                      sharding.ChanceComputer
+	DestinationShardAsObserver string
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
 func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
 	epochStartProvider := &epochStartBootstrap{
-		publicKey:          args.PublicKey,
-		marshalizer:        args.Marshalizer,
-		hasher:             args.Hasher,
-		messenger:          args.Messenger,
-		generalConfig:      args.GeneralConfig,
-		economicsData:      args.EconomicsData,
-		genesisNodesConfig: args.GenesisNodesConfig,
-		workingDir:         args.WorkingDir,
-		pathManager:        args.PathManager,
-		defaultEpochString: args.DefaultEpochString,
-		defaultDBPath:      args.DefaultEpochString,
-		defaultShardString: args.DefaultShardString,
-		keyGen:             args.KeyGen,
-		blockKeyGen:        args.BlockKeyGen,
-		singleSigner:       args.SingleSigner,
-		blockSingleSigner:  args.BlockSingleSigner,
-		rater:              args.Rater,
+		publicKey:                  args.PublicKey,
+		marshalizer:                args.Marshalizer,
+		hasher:                     args.Hasher,
+		messenger:                  args.Messenger,
+		generalConfig:              args.GeneralConfig,
+		economicsData:              args.EconomicsData,
+		genesisNodesConfig:         args.GenesisNodesConfig,
+		workingDir:                 args.WorkingDir,
+		pathManager:                args.PathManager,
+		defaultEpochString:         args.DefaultEpochString,
+		defaultDBPath:              args.DefaultEpochString,
+		defaultShardString:         args.DefaultShardString,
+		keyGen:                     args.KeyGen,
+		blockKeyGen:                args.BlockKeyGen,
+		singleSigner:               args.SingleSigner,
+		blockSingleSigner:          args.BlockSingleSigner,
+		rater:                      args.Rater,
+		destinationShardAsObserver: args.DestinationShardAsObserver,
 	}
 
 	return epochStartProvider, nil
@@ -303,6 +307,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		KeyGen:            e.keyGen,
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
+		ChainID:           []byte(e.genesisNodesConfig.ChainID),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -400,7 +405,17 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 
 	if e.baseData.shardId == core.AllShardId {
-		e.baseData.shardId = 0 // TODO: replace with preferred shard ID as observer
+		destShardID := core.MetachainShardId
+		if e.destinationShardAsObserver != "metachain" {
+			var destShardIDUint64 uint64
+			destShardIDUint64, err = strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
+			if err != nil {
+				return Parameters{}, nil
+			}
+			destShardID = uint32(destShardIDUint64)
+		}
+
+		e.baseData.shardId = destShardID
 	}
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {

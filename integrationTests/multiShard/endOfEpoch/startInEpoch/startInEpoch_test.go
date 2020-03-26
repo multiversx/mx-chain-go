@@ -119,6 +119,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		StartTime:     time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
 		RoundDuration: 4000,
 		InitialNodes:  getInitialNodes(nodesMap),
+		ChainID:       string(integrationTests.ChainID),
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
 
@@ -126,23 +127,24 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:          nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:        integrationTests.TestMarshalizer,
-		Hasher:             integrationTests.TestHasher,
-		Messenger:          messenger,
-		GeneralConfig:      getGeneralConfig(),
-		EconomicsData:      integrationTests.CreateEconomicsData(),
-		SingleSigner:       &mock.SignerMock{},
-		BlockSingleSigner:  &mock.SignerMock{},
-		KeyGen:             &mock.KeyGenMock{},
-		BlockKeyGen:        &mock.KeyGenMock{},
-		GenesisNodesConfig: &nodesConfig,
-		PathManager:        &mock.PathManagerStub{},
-		WorkingDir:         "test_directory",
-		DefaultDBPath:      "test_db",
-		DefaultEpochString: "test_epoch",
-		DefaultShardString: "test_shard",
-		Rater:              &mock.RaterMock{},
+		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
+		Marshalizer:                integrationTests.TestMarshalizer,
+		Hasher:                     integrationTests.TestHasher,
+		Messenger:                  messenger,
+		GeneralConfig:              getGeneralConfig(),
+		EconomicsData:              integrationTests.CreateEconomicsData(),
+		SingleSigner:               &mock.SignerMock{},
+		BlockSingleSigner:          &mock.SignerMock{},
+		KeyGen:                     &mock.KeyGenMock{},
+		BlockKeyGen:                &mock.KeyGenMock{},
+		GenesisNodesConfig:         &nodesConfig,
+		PathManager:                &mock.PathManagerStub{},
+		WorkingDir:                 "test_directory",
+		DefaultDBPath:              "test_db",
+		DefaultEpochString:         "test_epoch",
+		DefaultShardString:         "test_shard",
+		Rater:                      &mock.RaterMock{},
+		DestinationShardAsObserver: "0",
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

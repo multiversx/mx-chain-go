@@ -33,6 +33,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	KeyGen            crypto.KeyGenerator
 	BlockKeyGen       crypto.KeyGenerator
 	WhiteListHandler  update.WhiteListHandler
+	ChainID           []byte
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -54,7 +55,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(1 * time.Minute)
 	feeHandler := genesis.NewGenesisFeeHandler()
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	chainID := []byte("integration tests chain ID") // TODO: change this with the real Chain ID
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
@@ -79,7 +79,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		TxFeeHandler:           feeHandler,
 		BlackList:              blackListHandler,
 		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                chainID,
+		ChainID:                args.ChainID,
 		SizeCheckDelta:         uint32(sizeCheckDelta),
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
