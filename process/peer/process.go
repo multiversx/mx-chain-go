@@ -572,7 +572,8 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (*block.Header, error) {
 	blkHandler := cacheMap[string(hash)]
 	if check.IfNil(blkHandler) {
-		return nil, process.ErrMissingHeader
+		return nil, fmt.Errorf("%w : searchInMap hash = %s",
+			process.ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	blk, ok := blkHandler.(*block.Header)
