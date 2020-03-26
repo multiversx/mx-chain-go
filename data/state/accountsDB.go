@@ -372,9 +372,6 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 	if err != nil {
 		return err
 	}
-	if val == nil {
-		return ErrInvalidHash
-	}
 
 	accountHandler.SetCode(val)
 	return nil
