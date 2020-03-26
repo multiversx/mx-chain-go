@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"encoding/json"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -10,13 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-// HighestRoundFromBootStorage is the key for the highest round that is saved in storage
-const highestRoundFromBootStorage = "highestRoundFromBootStorage"
-
-const triggerRegistryKeyPrefix = "epochStartTrigger_"
-
-const nodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
@@ -49,7 +43,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
 ) ([]byte, error) {
-	key := append([]byte(nodesCoordinatorRegistryKeyPrefix), metaBlock.RandSeed...)
+	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.RandSeed...)
 
 	registryBytes, err := json.Marshal(nodesConfig)
 	if err != nil {

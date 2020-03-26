@@ -51,24 +51,24 @@ func (s *simpleEpochStartMetaBlockInterceptor) SetIsDataForCurrentShardVerifier(
 
 // ProcessReceivedMessage will receive the metablocks and will add them to the maps
 func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
-	var mb block.MetaBlock
-	err := s.marshalizer.Unmarshal(&mb, message.Data())
+	metaBlock := &block.MetaBlock{}
+	err := s.marshalizer.Unmarshal(metaBlock, message.Data())
 	if err != nil {
 		return err
 	}
 
-	if !mb.IsStartOfEpochBlock() {
+	if !metaBlock.IsStartOfEpochBlock() {
 		return epochStart.ErrNotEpochStartBlock
 	}
 
 	s.mutReceivedMetaBlocks.Lock()
-	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, &mb)
+	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, metaBlock)
 	if err != nil {
 		s.mutReceivedMetaBlocks.Unlock()
 		return err
 	}
 
-	s.mapReceivedMetaBlocks[string(mbHash)] = &mb
+	s.mapReceivedMetaBlocks[string(mbHash)] = metaBlock
 	s.addToPeerList(string(mbHash), message.Peer())
 	s.mutReceivedMetaBlocks.Unlock()
 

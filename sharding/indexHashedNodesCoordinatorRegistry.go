@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-)
 
-const keyPrefix = "indexHashed_"
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
@@ -28,7 +28,7 @@ type NodesCoordinatorRegistry struct {
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	ncInternalkey := append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
@@ -90,7 +90,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 		return err
 	}
 
-	ncInternalkey := append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 

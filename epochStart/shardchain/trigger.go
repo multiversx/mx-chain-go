@@ -144,10 +144,10 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilShardHeaderStorage
 	}
 
-	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+	trigggerStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
 
 	newTrigger := &trigger{
-		triggerStateKey:             []byte(trigStateKey),
+		triggerStateKey:             []byte(trigggerStateKey),
 		epoch:                       args.Epoch,
 		currentRoundIndex:           0,
 		epochStartRound:             0,

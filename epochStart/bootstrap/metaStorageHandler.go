@@ -108,7 +108,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = bootStorer.Put([]byte(highestRoundFromBootStorage), bootStrapDataBytes)
+	err = bootStorer.Put([]byte(core.HighestRoundFromBootStorage), bootStrapDataBytes)
 	if err != nil {
 		return err
 	}
@@ -177,15 +177,14 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		EpochStartMeta:              metaBlock,
 	}
 
-	trigStateKey := fmt.Sprintf("initial_value_epoch%d", metaBlock.Epoch)
-	key := []byte(triggerRegistryKeyPrefix + trigStateKey)
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), []byte(fmt.Sprint(metaBlock.Round))...)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {
 		return nil, err
 	}
 
-	errPut := msh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(key, triggerRegBytes)
+	errPut := msh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(trigInternalKey, triggerRegBytes)
 	if errPut != nil {
 		return nil, errPut
 	}
