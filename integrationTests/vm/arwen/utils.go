@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,6 +45,7 @@ type TestContext struct {
 	TxProcessor  process.TransactionProcessor
 	ScProcessor  process.SmartContractProcessor
 	QueryService external.SCQueryService
+	VMContainer  process.VirtualMachinesContainer
 }
 
 type testParticipant struct {
@@ -68,7 +68,7 @@ func SetupTestContext(t *testing.T) TestContext {
 	context.initAccounts()
 
 	gasSchedule, err := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
 	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
@@ -78,8 +78,14 @@ func SetupTestContext(t *testing.T) TestContext {
 			return uint64(math.MaxUint64)
 		},
 	})
+	context.VMContainer = vmContainer
 
 	return context
+}
+
+// Close closes the test context
+func (context *TestContext) Close() {
+	context.VMContainer.Close()
 }
 
 func (context *TestContext) initAccounts() {
@@ -114,13 +120,11 @@ func (context *TestContext) initAccounts() {
 
 func (context *TestContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
-	if err != nil {
-		assert.FailNow(context.T, err.Error())
-	}
+	require.Nil(context.T, err)
 }
 
 // DeploySC -
-func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
+func (context *TestContext) DeploySC(wasmPath string, parametersString string) error {
 	scCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
@@ -140,20 +144,30 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)
-	require.Nil(context.T, err)
-	require.Nil(context.T, context.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError())
+	if err != nil {
+		return err
+	}
+	if context.GetSilentSCProcessorError() != nil {
+		return err
+	}
 
 	owner.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 // GetSCCode -
 func GetSCCode(fileName string) string {
-	code, _ := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		panic("Could not get SC code.")
+	}
+
 	codeEncoded := hex.EncodeToString(code)
 
 	return codeEncoded
@@ -165,11 +179,11 @@ func CreateDeployTxData(scCode string) string {
 }
 
 // ExecuteSC -
-func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) {
-	context.executeSCWithValue(sender, txData, big.NewInt(0))
+func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) error {
+	return context.executeSCWithValue(sender, txData, big.NewInt(0))
 }
 
-func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
+func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
 		Value:    new(big.Int).Set(value),
@@ -182,15 +196,20 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		return err
+	}
+	if context.GetSilentSCProcessorError() != nil {
+		return err
 	}
 
 	sender.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 // QuerySCInt -
@@ -209,13 +228,15 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	}
 
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
-	if err != nil {
-		assert.FailNow(context.T, err.Error())
-		return []byte{}
-	}
+	require.Nil(context.T, err)
 
 	firstResult := vmOutput.ReturnData[0]
 	return firstResult
+}
+
+// GetSilentSCProcessorError -
+func (context *TestContext) GetSilentSCProcessorError() error {
+	return context.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError()
 }
 
 // FormatHexNumber -

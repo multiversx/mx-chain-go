@@ -64,7 +64,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 100
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [BootstrapStorage]
@@ -86,7 +86,7 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 100
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [TxStorage]
@@ -141,7 +141,7 @@
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 100
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [MetaHdrNonceHashStorage]
@@ -152,7 +152,7 @@
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 100
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [AccountsTrieStorage]
@@ -364,5 +364,12 @@
     PeerStatePruningEnabled = true
 
 [BlockSizeThrottleConfig]
-    MinSizeInBytes = 104857 # 10% from 1MB
-    MaxSizeInBytes = 943718 # 90% from 1MB
+    MinSizeInBytes = 943718 # 943718 is 90% from 1MB or 104857 is 10% from 1MB
+    MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+
+[VirtualMachineConfig]
+    OutOfProcessEnabled = true
+    [VirtualMachineConfig.OutOfProcessConfig]
+        LogsMarshalizer = "json"
+        MessagesMarshalizer = "json"
+        MaxLoopTime = 1000

@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -35,12 +36,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
+
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
 var testHasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 var log = logger.GetOrCreate("integrationtests")
+
+// VMTestContext -
+type VMTestContext struct {
+	TxProcessor    process.TransactionProcessor
+	ScProcessor    process.SmartContractProcessor
+	Accounts       state.AccountsAdapter
+	BlockchainHook vmcommon.BlockchainHook
+	VMContainer    process.VirtualMachinesContainer
+}
+
+// Close -
+func (vmTestContext *VMTestContext) Close() {
+	vmTestContext.VMContainer.Close()
+}
+
+// GetSilentSCProcessorError -
+func (vmTestContext *VMTestContext) GetSilentSCProcessorError() error {
+	return vmTestContext.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError()
+}
 
 type accountFactory struct {
 }
@@ -232,14 +254,22 @@ func CreateVMAndBlockchainHook(
 		FillGasMapInternal(actualGasSchedule, 1)
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
+	vmFactory, err := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
+		maxGasLimitPerBlock,
+		actualGasSchedule,
+		args,
+	)
 	if err != nil {
 		log.LogIfError(err)
 	}
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		log.LogIfError(err)
+		panic(err)
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -351,40 +381,31 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 
 // CreatePreparedTxProcessorAndAccountsWithVMs -
 func CreatePreparedTxProcessorAndAccountsWithVMs(
-	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+) VMTestContext {
+	accounts := CreateInMemoryShardAccountsDB()
+	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 
-	accnts := CreateInMemoryShardAccountsDB()
-	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
-
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
-
-	txProcessor, _ := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
-	assert.NotNil(tb, txProcessor)
-
-	return txProcessor, accnts, blockChainHook
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
 
 // CreateTxProcessorArwenVMWithGasSchedule -
 func CreateTxProcessorArwenVMWithGasSchedule(
-	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	gasSchedule map[string]map[string]uint64,
-) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+) VMTestContext {
+	accounts := CreateInMemoryShardAccountsDB()
+	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 
-	accnts := CreateInMemoryShardAccountsDB()
-	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
-
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	txProcessor, _ := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
-	assert.NotNil(tb, txProcessor)
-
-	return txProcessor, accnts, blockChainHook
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
 }
 
 // CreatePreparedTxProcessorAndAccountsWithMockedVM -
@@ -498,6 +519,8 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
+	defer vmContainer.Close()
+
 	feeHandler := &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
@@ -506,32 +529,18 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler)
 
-	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,
 	})
 
-	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-}
-
-// CreateTransferTx -
-func CreateTransferTx(
-	nonce uint64,
-	value *big.Int,
-	scAddrress []byte,
-	sndAddress []byte,
-	rcvAddress []byte,
-) *dataTransaction.Transaction {
-	return &dataTransaction.Transaction{
-		Nonce:    nonce,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddrress,
-		SndAddr:  sndAddress,
-		GasPrice: 0,
-		GasLimit: 5000000,
-		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
+	if err != nil {
+		fmt.Println("ERROR at GetIntValueFromSC()", err)
+		return big.NewInt(-1)
 	}
+
+	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
 // CreateTransferTokenTx -
@@ -549,7 +558,7 @@ func CreateTransferTokenTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
+		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
 	}
 }
 
