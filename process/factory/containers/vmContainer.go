@@ -3,10 +3,9 @@ package containers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
-
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/cornelk/hashmap"
 )
 
