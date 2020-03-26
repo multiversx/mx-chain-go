@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -40,9 +39,7 @@ type ArgsEpochStartInterceptorContainer struct {
 // components
 func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
 	nodesCoordinator := disabled.NewNodesCoordinator()
-	storer := disabled.ChainStorer{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return disabled.NewDisabledStorer()
-	}}
+	storer := disabled.NewChainStorer()
 	txSignMarshalizer := marshal.JsonMarshalizer{}
 	antiFloodHandler := disabled.NewAntiFloodHandler()
 	multiSigner := disabled.NewMultiSigner()
@@ -66,7 +63,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ShardCoordinator:       args.ShardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
 		Messenger:              args.Messenger,
-		Store:                  &storer,
+		Store:                  storer,
 		ProtoMarshalizer:       args.Marshalizer,
 		TxSignMarshalizer:      &txSignMarshalizer,
 		Hasher:                 args.Hasher,

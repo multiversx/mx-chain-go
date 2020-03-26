@@ -12,14 +12,17 @@ func NewValidityAttester() *validityAttester {
 	return &validityAttester{}
 }
 
-func (v *validityAttester) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
+// CheckBlockAgainstFinal -
+func (v *validityAttester) CheckBlockAgainstFinal(_ data.HeaderHandler) error {
 	return nil
 }
 
-func (v *validityAttester) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
+// CheckBlockAgainstRounder -
+func (v *validityAttester) CheckBlockAgainstRounder(_ data.HeaderHandler) error {
 	return nil
 }
 
+// IsInterfaceNil -
 func (v *validityAttester) IsInterfaceNil() bool {
 	return v == nil
 }

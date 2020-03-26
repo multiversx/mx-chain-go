@@ -61,13 +61,12 @@ func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2
 		return epochStart.ErrNotEpochStartBlock
 	}
 
-	s.mutReceivedMetaBlocks.Lock()
 	mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, metaBlock)
 	if err != nil {
-		s.mutReceivedMetaBlocks.Unlock()
 		return err
 	}
 
+	s.mutReceivedMetaBlocks.Lock()
 	s.mapReceivedMetaBlocks[string(mbHash)] = metaBlock
 	s.addToPeerList(string(mbHash), message.Peer())
 	s.mutReceivedMetaBlocks.Unlock()
@@ -76,20 +75,14 @@ func (s *simpleEpochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2
 }
 
 // this func should be called under mutex protection
-func (s *simpleEpochStartMetaBlockInterceptor) addToPeerList(hash string, id p2p.PeerID) {
-	peersListForHash, ok := s.mapMetaBlocksFromPeers[hash]
-	if !ok {
-		s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
-		return
-	}
-
-	for _, peer := range peersListForHash {
-		if peer == id {
+func (s *simpleEpochStartMetaBlockInterceptor) addToPeerList(hash string, peer p2p.PeerID) {
+	peersListForHash := s.mapMetaBlocksFromPeers[hash]
+	for _, pid := range peersListForHash {
+		if pid == peer {
 			return
 		}
 	}
-
-	s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], id)
+	s.mapMetaBlocksFromPeers[hash] = append(s.mapMetaBlocksFromPeers[hash], peer)
 }
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
@@ -102,8 +95,8 @@ func (s *simpleEpochStartMetaBlockInterceptor) GetEpochStartMetaBlock(target int
 			log.Debug("metablock from peers", "num peers", len(peersList), "target", target, "hash", []byte(hash))
 			isOk := s.isMapEntryOk(peersList, hash, target, epoch)
 			if isOk {
-				s.mutReceivedMetaBlocks.RUnlock()
 				metaBlockToReturn := s.mapReceivedMetaBlocks[hash]
+				s.mutReceivedMetaBlocks.RUnlock()
 				s.clearFields()
 				return metaBlockToReturn, nil
 			}

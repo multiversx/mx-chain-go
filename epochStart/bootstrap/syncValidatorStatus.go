@@ -42,7 +42,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		requestHandler: args.RequestHandler,
 	}
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        &disabled.Storer{},
+		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
@@ -121,9 +121,7 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	return nodesConfig, selfShardId, nil
 }
 
-func (s *syncValidatorStatus) processNodesConfigFor(
-	metaBlock *block.MetaBlock,
-) ([]*state.ValidatorInfo, error) {
+func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.ShardMiniBlockHeader {
 	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
 		if mbHeader.Type != block.PeerBlock {
@@ -138,6 +136,13 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 		}
 		shardMBHeaders = append(shardMBHeaders, shardMBHdr)
 	}
+	return shardMBHeaders
+}
+
+func (s *syncValidatorStatus) processNodesConfigFor(
+	metaBlock *block.MetaBlock,
+) ([]*state.ValidatorInfo, error) {
+	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
 
 	s.miniBlocksSyncer.ClearFields()
 	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, timeToWait)

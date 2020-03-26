@@ -72,7 +72,7 @@ const (
 	defaultStaticDbString        = "Static"
 	defaultShardString           = "Shard"
 	metachainShardName           = "metachain"
-	secondsToWaitForP2PBootstrap = 3
+	secondsToWaitForP2PBootstrap = 20
 )
 
 var (

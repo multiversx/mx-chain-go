@@ -12,53 +12,67 @@ func NewEpochStartTrigger() *epochStartTrigger {
 	return &epochStartTrigger{}
 }
 
-func (e *epochStartTrigger) Update(round uint64) {
+// Update -
+func (e *epochStartTrigger) Update(_ uint64) {
 }
 
-func (e *epochStartTrigger) ReceivedHeader(header data.HeaderHandler) {
+// ReceivedHeader -
+func (e *epochStartTrigger) ReceivedHeader(_ data.HeaderHandler) {
 }
 
+// IsEpochStart -
 func (e *epochStartTrigger) IsEpochStart() bool {
 	return false
 }
 
+// Epoch -
 func (e *epochStartTrigger) Epoch() uint32 {
 	return 0
 }
 
+// EpochStartRound -
 func (e *epochStartTrigger) EpochStartRound() uint64 {
 	return 0
 }
 
-func (e *epochStartTrigger) SetProcessed(header data.HeaderHandler) {
+// SetProcessed -
+func (e *epochStartTrigger) SetProcessed(_ data.HeaderHandler) {
 }
 
-func (e *epochStartTrigger) RevertStateToBlock(header data.HeaderHandler) error {
+// RevertStateToBlock -
+func (e *epochStartTrigger) RevertStateToBlock(_ data.HeaderHandler) error {
 	return nil
 }
 
+// EpochStartMetaHdrHash -
 func (e *epochStartTrigger) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
+// GetSavedStateKey -
 func (e *epochStartTrigger) GetSavedStateKey() []byte {
 	return nil
 }
 
-func (e *epochStartTrigger) LoadState(key []byte) error {
+// LoadState -
+func (e *epochStartTrigger) LoadState(_ []byte) error {
 	return nil
 }
 
-func (e *epochStartTrigger) SetFinalityAttestingRound(round uint64) {
+// SetFinalityAttestingRound -
+func (e *epochStartTrigger) SetFinalityAttestingRound(_ uint64) {
 }
 
+// EpochFinalityAttestingRound -
 func (e *epochStartTrigger) EpochFinalityAttestingRound() uint64 {
 	return 0
 }
 
-func (e *epochStartTrigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler) {
+// RequestEpochStartIfNeeded -
+func (e *epochStartTrigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
 }
 
+// IsInterfaceNil -
 func (e *epochStartTrigger) IsInterfaceNil() bool {
 	return e == nil
 }

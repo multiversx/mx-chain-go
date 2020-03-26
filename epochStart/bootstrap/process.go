@@ -296,7 +296,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        &disabled.Storer{},
+		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.marshalizer,
 		RequestHandler: e.requestHandler,
@@ -304,7 +304,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
 
 	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        &disabled.Storer{},
+		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.Headers(),
 		Marshalizer:    e.marshalizer,
 		RequestHandler: e.requestHandler,
@@ -656,11 +656,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	storageService := &disabled.ChainStorer{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return disabled.NewDisabledStorer()
-		},
-	}
+	storageService := disabled.NewChainStorer()
 
 	triesHolder := state.NewDataTriesHolder()
 	err = e.createTrieStorageManagers()

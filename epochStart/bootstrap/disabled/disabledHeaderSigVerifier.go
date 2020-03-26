@@ -12,14 +12,17 @@ func NewHeaderSigVerifier() *headerSigVerifier {
 	return &headerSigVerifier{}
 }
 
-func (h *headerSigVerifier) VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
+// VerifyRandSeedAndLeaderSignature -
+func (h *headerSigVerifier) VerifyRandSeedAndLeaderSignature(_ data.HeaderHandler) error {
 	return nil
 }
 
-func (h *headerSigVerifier) VerifySignature(header data.HeaderHandler) error {
+// VerifySignature -
+func (h *headerSigVerifier) VerifySignature(_ data.HeaderHandler) error {
 	return nil
 }
 
+// IsInterfaceNil -
 func (h *headerSigVerifier) IsInterfaceNil() bool {
 	return h == nil
 }

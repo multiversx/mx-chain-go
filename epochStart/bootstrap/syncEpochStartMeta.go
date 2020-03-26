@@ -51,7 +51,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
-func (e *epochStartMetaSyncer) SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error) {
+func (e *epochStartMetaSyncer) SyncEpochStartMeta(_ time.Duration) (*block.MetaBlock, error) {
 	err := e.initTopicForEpochStartMetaBlockInterceptor()
 	if err != nil {
 		return nil, err
@@ -66,20 +66,21 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(waitTime time.Duration) (*bloc
 	count := 0
 	for {
 		if count > maxNumTimesToRetry {
-			panic("can't sync with other peers")
+			return nil, epochStart.ErrNumTriesExceeded
 		}
+
 		count++
-		numConnectedPeers := len(e.messenger.Peers())
+		numConnectedPeers := len(e.messenger.ConnectedPeers())
 		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
+
 		mb, errConsensusNotReached := e.epochStartMetaBlockInterceptor.GetEpochStartMetaBlock(threshold, unknownEpoch)
 		if errConsensusNotReached == nil {
 			return mb, nil
 		}
+
 		log.Info("consensus not reached for meta block. re-requesting and trying again...")
 		e.requestEpochStartMetaBlock()
 	}
-
-	return nil, epochStart.ErrNumTriesExceeded
 }
 
 func (e *epochStartMetaSyncer) requestEpochStartMetaBlock() {

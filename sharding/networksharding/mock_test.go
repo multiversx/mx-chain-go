@@ -8,8 +8,8 @@ type nodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 }
 
-// SaveNodesCoordinatorRegistry -
-func (ncs *nodesCoordinatorStub) SaveNodesCoordinatorRegistry(_ *sharding.NodesCoordinatorRegistry) error {
+// SetConfig -
+func (ncs *nodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
 }
 

@@ -13,8 +13,8 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
-// SaveNodesCoordinatorRegistry -
-func (ncm *NodesCoordinatorStub) SaveNodesCoordinatorRegistry(_ *sharding.NodesCoordinatorRegistry) error {
+// SetConfig -
+func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
 }
 

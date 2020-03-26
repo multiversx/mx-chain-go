@@ -764,3 +764,11 @@ type InterceptedDataWhiteList interface {
 	Add(keys [][]byte)
 	IsInterfaceNil() bool
 }
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsForCurrentShard(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}

@@ -174,7 +174,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	err = ihgs.SaveNodesCoordinatorRegistry(config)
+	err = ihgs.SetConfig(config)
 	if err != nil {
 		return err
 	}

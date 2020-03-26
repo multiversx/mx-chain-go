@@ -24,6 +24,7 @@ type ArgsDataPool struct {
 	ShardCoordinator sharding.Coordinator
 }
 
+// TODO: unit tests
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
 func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")

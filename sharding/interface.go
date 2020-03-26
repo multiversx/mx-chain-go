@@ -29,7 +29,7 @@ type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
 	UpdatePeersListAndIndex() error
 	LoadState(key []byte) error
-	SaveNodesCoordinatorRegistry(config *NodesCoordinatorRegistry) error
+	SetConfig(config *NodesCoordinatorRegistry) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)

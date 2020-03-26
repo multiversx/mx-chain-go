@@ -11,8 +11,8 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 }
 
-// SaveNodesCoordinatorRegistry -
-func (ncm *NodesCoordinatorMock) SaveNodesCoordinatorRegistry(_ *sharding.NodesCoordinatorRegistry) error {
+// SetConfig -
+func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
 }
 

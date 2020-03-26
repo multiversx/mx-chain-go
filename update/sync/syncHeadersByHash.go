@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-type missingHeadersByHash struct {
+type syncHeadersByHash struct {
 	mutMissingHdrs sync.Mutex
 	mapHeaders     map[string]data.HeaderHandler
 	mapHashes      map[string]struct{}
@@ -38,7 +38,7 @@ type ArgsNewMissingHeadersByHashSyncer struct {
 }
 
 // NewMissingheadersByHashSyncer creates a syncer for all missing headers
-func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*missingHeadersByHash, error) {
+func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syncHeadersByHash, error) {
 	if check.IfNil(args.Storage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
@@ -52,7 +52,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*mis
 		return nil, process.ErrNilRequestHandler
 	}
 
-	p := &missingHeadersByHash{
+	p := &syncHeadersByHash{
 		mutMissingHdrs: sync.Mutex{},
 		mapHeaders:     make(map[string]data.HeaderHandler),
 		mapHashes:      make(map[string]struct{}),
@@ -71,7 +71,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*mis
 }
 
 // SyncMissingHeadersByHash syncs the missing headers
-func (m *missingHeadersByHash) SyncMissingHeadersByHash(
+func (m *syncHeadersByHash) SyncMissingHeadersByHash(
 	shardIDs []uint32,
 	headersHashes [][]byte,
 	waitTime time.Duration,
@@ -100,28 +100,23 @@ func (m *missingHeadersByHash) SyncMissingHeadersByHash(
 	m.mutMissingHdrs.Unlock()
 
 	var err error
-	defer func() {
-		m.mutMissingHdrs.Lock()
-		m.stopSyncing = true
-		if err == nil {
-			m.syncedAll = true
-		}
-		m.mutMissingHdrs.Unlock()
-	}()
-
 	if requestedMBs > 0 {
 		err = WaitFor(m.chReceivedAll, waitTime)
-		if err != nil {
-			return err
-		}
 	}
 
-	return nil
+	m.mutMissingHdrs.Lock()
+	m.stopSyncing = true
+	if err == nil {
+		m.syncedAll = true
+	}
+	m.mutMissingHdrs.Unlock()
+
+	return err
 }
 
 // receivedHeader is a callback function when a new header was received
 // it will further ask for missing transactions
-func (m *missingHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdrHash []byte) {
+func (m *syncHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdrHash []byte) {
 	m.mutMissingHdrs.Lock()
 	if m.stopSyncing {
 		m.mutMissingHdrs.Unlock()
@@ -146,7 +141,7 @@ func (m *missingHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdr
 	}
 }
 
-func (m *missingHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.HeaderHandler, bool) {
+func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.HeaderHandler, bool) {
 	header, ok := m.getHeaderFromPool(hash)
 	if ok {
 		return header, true
@@ -166,7 +161,7 @@ func (m *missingHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Hea
 	return &hdr, true
 }
 
-func (m *missingHeadersByHash) getHeaderFromPool(hash []byte) (data.HeaderHandler, bool) {
+func (m *syncHeadersByHash) getHeaderFromPool(hash []byte) (data.HeaderHandler, bool) {
 	val, err := m.pool.GetHeaderByHash(hash)
 	if err != nil {
 		return nil, false
@@ -176,7 +171,7 @@ func (m *missingHeadersByHash) getHeaderFromPool(hash []byte) (data.HeaderHandle
 }
 
 // GetHeaders returns the synced headers
-func (m *missingHeadersByHash) GetHeaders() (map[string]data.HeaderHandler, error) {
+func (m *syncHeadersByHash) GetHeaders() (map[string]data.HeaderHandler, error) {
 	m.mutMissingHdrs.Lock()
 	defer m.mutMissingHdrs.Unlock()
 	if !m.syncedAll {
@@ -187,7 +182,7 @@ func (m *missingHeadersByHash) GetHeaders() (map[string]data.HeaderHandler, erro
 }
 
 // ClearFields will clear all the maps
-func (m *missingHeadersByHash) ClearFields() {
+func (m *syncHeadersByHash) ClearFields() {
 	m.mutMissingHdrs.Lock()
 	m.mapHashes = make(map[string]struct{})
 	m.mapHeaders = make(map[string]data.HeaderHandler)
@@ -195,6 +190,6 @@ func (m *missingHeadersByHash) ClearFields() {
 }
 
 // IsInterfaceNil returns nil if underlying object is nil
-func (m *missingHeadersByHash) IsInterfaceNil() bool {
+func (m *syncHeadersByHash) IsInterfaceNil() bool {
 	return m == nil
 }

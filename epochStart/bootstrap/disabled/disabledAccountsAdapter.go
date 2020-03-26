@@ -13,86 +13,107 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
-func (a *accountsAdapter) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+// GetAccountWithJournal -
+func (a *accountsAdapter) GetAccountWithJournal(_ state.AddressContainer) (state.AccountHandler, error) {
 	return nil, nil
 }
 
-func (a *accountsAdapter) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+// GetExistingAccount -
+func (a *accountsAdapter) GetExistingAccount(_ state.AddressContainer) (state.AccountHandler, error) {
 	return nil, nil
 }
 
-func (a *accountsAdapter) HasAccount(addressContainer state.AddressContainer) (bool, error) {
+// HasAccount -
+func (a *accountsAdapter) HasAccount(_ state.AddressContainer) (bool, error) {
 	return false, nil
 }
 
-func (a *accountsAdapter) RemoveAccount(addressContainer state.AddressContainer) error {
+// RemoveAccount -
+func (a *accountsAdapter) RemoveAccount(_ state.AddressContainer) error {
 	return nil
 }
 
+// Commit -
 func (a *accountsAdapter) Commit() ([]byte, error) {
 	return nil, nil
 }
 
+// JournalLen -
 func (a *accountsAdapter) JournalLen() int {
 	return 0
 }
 
-func (a *accountsAdapter) RevertToSnapshot(snapshot int) error {
+// RevertToSnapshot -
+func (a *accountsAdapter) RevertToSnapshot(_ int) error {
 	return nil
 }
 
+// RootHash -
 func (a *accountsAdapter) RootHash() ([]byte, error) {
 	return nil, nil
 }
 
-func (a *accountsAdapter) RecreateTrie(rootHash []byte) error {
+// RecreateTrie -
+func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 	return nil
 }
 
-func (a *accountsAdapter) PutCode(accountHandler state.AccountHandler, code []byte) error {
+// PutCode -
+func (a *accountsAdapter) PutCode(_ state.AccountHandler, _ []byte) error {
 	return nil
 }
 
-func (a *accountsAdapter) RemoveCode(codeHash []byte) error {
+// RemoveCode -
+func (a *accountsAdapter) RemoveCode(_ []byte) error {
 	return nil
 }
 
-func (a *accountsAdapter) SaveDataTrie(accountHandler state.AccountHandler) error {
+// SaveDataTrie -
+func (a *accountsAdapter) SaveDataTrie(_ state.AccountHandler) error {
 	return nil
 }
 
-func (a *accountsAdapter) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) error {
+// PruneTrie -
+func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) error {
 	return nil
 }
 
-func (a *accountsAdapter) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
+// CancelPrune -
+func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
 	return
 }
 
-func (a *accountsAdapter) SnapshotState(rootHash []byte) {
+// SnapshotState -
+func (a *accountsAdapter) SnapshotState(_ []byte) {
 	return
 }
 
-func (a *accountsAdapter) SetStateCheckpoint(rootHash []byte) {
+// SetStateCheckpoint -
+func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
 	return
 }
 
+// IsPruningEnabled -
 func (a *accountsAdapter) IsPruningEnabled() bool {
 	return false
 }
 
+// ClosePersister -
 func (a *accountsAdapter) ClosePersister() error {
 	return nil
 }
 
-func (a *accountsAdapter) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+// GetAllLeaves -
+func (a *accountsAdapter) GetAllLeaves(_ []byte) (map[string][]byte, error) {
 	return nil, nil
 }
 
-func (a *accountsAdapter) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+// RecreateAllTries -
+func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
 	return nil, nil
 }
 
+// IsInterfaceNil -
 func (a *accountsAdapter) IsInterfaceNil() bool {
 	return a == nil
 }

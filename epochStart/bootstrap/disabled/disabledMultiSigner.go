@@ -12,42 +12,52 @@ func NewMultiSigner() *multiSigner {
 	return &multiSigner{}
 }
 
-func (m *multiSigner) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+// Create -
+func (m *multiSigner) Create(_ []string, _ uint16) (crypto.MultiSigner, error) {
 	return nil, nil
 }
 
+// SetAggregatedSig -
 func (m *multiSigner) SetAggregatedSig([]byte) error {
 	return nil
 }
 
-func (m *multiSigner) Verify(msg []byte, bitmap []byte) error {
+// Verify -
+func (m *multiSigner) Verify(_ []byte, _ []byte) error {
 	return nil
 }
 
-func (m *multiSigner) Reset(pubKeys []string, index uint16) error {
+// Reset -
+func (m *multiSigner) Reset(_ []string, _ uint16) error {
 	return nil
 }
 
-func (m *multiSigner) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
+// CreateSignatureShare -
+func (m *multiSigner) CreateSignatureShare(_ []byte, _ []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (m *multiSigner) StoreSignatureShare(index uint16, sig []byte) error {
+// StoreSignatureShare -
+func (m *multiSigner) StoreSignatureShare(_ uint16, _ []byte) error {
 	return nil
 }
 
-func (m *multiSigner) SignatureShare(index uint16) ([]byte, error) {
+// SignatureShare -
+func (m *multiSigner) SignatureShare(_ uint16) ([]byte, error) {
 	return nil, nil
 }
 
-func (m *multiSigner) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+// VerifySignatureShare -
+func (m *multiSigner) VerifySignatureShare(_ uint16, _ []byte, _ []byte, _ []byte) error {
 	return nil
 }
 
-func (m *multiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
+// AggregateSigs -
+func (m *multiSigner) AggregateSigs(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
+// IsInterfaceNil -
 func (m *multiSigner) IsInterfaceNil() bool {
 	return m == nil
 }

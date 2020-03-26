@@ -26,6 +26,7 @@ type NodesCoordinatorRegistry struct {
 	CurrentEpoch uint32                      `json:"currentEpoch"`
 }
 
+// TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
@@ -47,7 +48,7 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	err = ihgs.SaveNodesCoordinatorRegistry(config)
+	err = ihgs.SetConfig(config)
 	if err != nil {
 		return err
 	}
@@ -55,8 +56,8 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return nil
 }
 
-// SaveNodesCoordinatorRegistry saves a nodesCoordinator registry
-func (ihgs *indexHashedNodesCoordinator) SaveNodesCoordinatorRegistry(config *NodesCoordinatorRegistry) error {
+// SetConfig saves a nodesCoordinator registry
+func (ihgs *indexHashedNodesCoordinator) SetConfig(config *NodesCoordinatorRegistry) error {
 	ihgs.currentEpoch = config.CurrentEpoch
 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 

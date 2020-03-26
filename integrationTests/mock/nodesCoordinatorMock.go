@@ -14,8 +14,8 @@ type NodesCoordinatorMock struct {
 	GetAllWaitingValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 }
 
-// SaveNodesCoordinatorRegistry -
-func (ncm *NodesCoordinatorMock) SaveNodesCoordinatorRegistry(_ *sharding.NodesCoordinatorRegistry) error {
+// SetConfig -
+func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
 }
 
