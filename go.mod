@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-go-logger v1.0.1-0.20200326174651-809c7b1f909d
+	github.com/ElrondNetwork/elrond-go-logger v1.0.1
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.12
 	github.com/beevik/ntp v0.2.0
