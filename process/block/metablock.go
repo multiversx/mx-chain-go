@@ -995,7 +995,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 
-	go mp.saveMetaHeader(header, headerHash, marshalizedHeader)
+	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -1030,9 +1030,7 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
-			mp.saveShardHeader(header, headerHash, marshalizedHeader)
-		}(shardBlock, shardHeaderHash, marshalizedHeader)
+		mp.saveShardHeader(shardBlock, shardHeaderHash, marshalizedHeader)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 

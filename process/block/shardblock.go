@@ -765,7 +765,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
+	sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -1265,9 +1265,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 		headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
-			sp.saveMetaHeader(header, headerHash, marshalizedHeader)
-		}(hdr, headerHash, marshalizedHeader)
+		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
 		sp.dataPool.Headers().RemoveHeaderByHash(headerHash)
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
