@@ -54,7 +54,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(1 * time.Minute)
 	feeHandler := genesis.NewGenesisFeeHandler()
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	chainID := []byte("chain ID")
+	chainID := []byte("integration tests chain ID") // TODO: change this with the real Chain ID
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()

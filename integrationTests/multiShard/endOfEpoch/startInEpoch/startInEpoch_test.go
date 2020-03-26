@@ -82,7 +82,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	epoch := uint32(1)
+	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -112,8 +112,11 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
 	}
 
+	generalConfig := getGeneralConfig()
+	roundDurationMillis := 4000
+	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
 	nodesConfig := sharding.NodesSetup{
-		StartTime:     time.Now().Unix(),
+		StartTime:     time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
 		RoundDuration: 4000,
 		InitialNodes:  getInitialNodes(nodesMap),
 	}
@@ -231,7 +234,7 @@ func getGeneralConfig() config.Config {
 			Size: 10000, Type: "LRU", Shards: 1,
 		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
-			MaxHeadersPerShard:            10,
+			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
 		TxBlockBodyDataPool: config.CacheConfig{

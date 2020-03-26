@@ -91,7 +91,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.prepareComponentsToSyncFromNetwork()
+	err = e.createSyncers()
 	if err != nil {
 		return Parameters{}, err
 	}

@@ -42,7 +42,7 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const timeToWait = 5 * time.Second
+const timeToWait = 8 * time.Second
 
 // BootstrapParameters
 type Parameters struct {
@@ -149,6 +149,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		economicsData:      args.EconomicsData,
 		genesisNodesConfig: args.GenesisNodesConfig,
 		workingDir:         args.WorkingDir,
+		pathManager:        args.PathManager,
 		defaultEpochString: args.DefaultEpochString,
 		defaultDBPath:      args.DefaultEpochString,
 		defaultShardString: args.DefaultShardString,
@@ -226,6 +227,16 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	err = e.prepareComponentsToSyncFromNetwork()
 	if err != nil {
+		return Parameters{}, nil
+	}
+
+	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.createSyncers()
+	if err != nil {
 		return Parameters{}, err
 	}
 
@@ -233,8 +244,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	var err error
-
 	whiteListCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(e.generalConfig.WhiteListPool.Type),
 		e.generalConfig.WhiteListPool.Size,
@@ -265,6 +274,23 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
+		RequestHandler: e.requestHandler,
+		Messenger:      e.messenger,
+		Marshalizer:    e.marshalizer,
+		Hasher:         e.hasher,
+	}
+	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) createSyncers() error {
+	var err error
+
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		Config:            e.generalConfig,
 		ShardCoordinator:  e.shardCoordinator,
@@ -280,17 +306,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
-	if err != nil {
-		return err
-	}
-
-	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler: e.requestHandler,
-		Messenger:      e.messenger,
-		Marshalizer:    e.marshalizer,
-		Hasher:         e.hasher,
-	}
-	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err
 	}
@@ -328,7 +343,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait)
+	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait*5)
 	if err != nil {
 		return nil, err
 	}
@@ -348,11 +363,6 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
-	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
 	e.baseData.lastEpoch = e.epochStartMeta.Epoch
 
@@ -360,6 +370,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
@@ -388,6 +399,9 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	if e.baseData.shardId == core.AllShardId {
+		e.baseData.shardId = 0 // TODO: replace with preferred shard ID as observer
+	}
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, err
@@ -556,6 +570,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		PendingMiniBlocks:       pendingMiniBlocks,
 	}
 
+	log.Info("reached maximum tested point from integration test")
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,

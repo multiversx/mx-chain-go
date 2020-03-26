@@ -52,6 +52,7 @@ func NewStartInEpochNodesCoordinator(args ArgsNewStartInEpochNodesCoordinator) (
 		shardConsensusGroupSize: args.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  args.MetaConsensusGroupSize,
 		nodesConfig:             make(map[uint32]*epochNodesConfig),
+		numShards:               make(map[uint32]uint32),
 		validatorAccountsDB:     args.ValidatorAccountsDB,
 		adrConv:                 args.AdrConv,
 	}
