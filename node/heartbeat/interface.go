@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -49,5 +50,11 @@ type NetworkShardingCollector interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// PeerTypeProviderHandler defines what a component which computes the type of a peer should do
+type PeerTypeProviderHandler interface {
+	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
 	IsInterfaceNil() bool
 }
