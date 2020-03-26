@@ -30,14 +30,14 @@
 
 [ShardChain.RatingSteps]
     ProposerIncreaseRatingStep = 405
-    ProposerDecreaseRatingStep = 810
+    ProposerDecreaseRatingStep = -810
     ValidatorIncreaseRatingStep = 81
-    ValidatorDecreaseRatingStep = 162
+    ValidatorDecreaseRatingStep = -162
     ConsecutiveMissedBlocksPenalty = 1.12
 
 [MetaChain.RatingSteps]
     ProposerIncreaseRatingStep = 405
-    ProposerDecreaseRatingStep = 810
+    ProposerDecreaseRatingStep = -810
     ValidatorIncreaseRatingStep = 81
-    ValidatorDecreaseRatingStep = 162
+    ValidatorDecreaseRatingStep = -162
     ConsecutiveMissedBlocksPenalty = 1.12

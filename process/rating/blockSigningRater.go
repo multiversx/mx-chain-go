@@ -7,9 +7,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/rating")
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
@@ -90,6 +93,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 }
 
 func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint32) uint32 {
+	log.Debug("computing rating", "rating", currentRating, "step", ratingStep)
 	newVal := int64(currentRating) + int64(ratingStep)
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
@@ -130,6 +134,7 @@ func (bsr *BlockSigningRater) GetSignedBlocksThreshold() float32 {
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
 func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	log.Debug("ComputeIncreaseProposer", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ProposerIncreaseRatingStep()
@@ -142,6 +147,7 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
 func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+	log.Debug("RevertIncreaseValidator", "shardId", shardId, "currentRating", currentRating, "nrReverts", nrReverts)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ValidatorIncreaseRatingStep()
@@ -159,6 +165,7 @@ func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRat
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
 func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+	log.Debug("ComputeDecreaseProposer", "shardId", shardId, "currentRating", currentRating, "consecutiveMisses", consecutiveMisses)
 	var proposerDecreaseRatingStep int32
 
 	var consecutiveBlocksPenalty float32
@@ -182,6 +189,7 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator
 func (bsr *BlockSigningRater) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	log.Debug("ComputeIncreaseValidator", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ValidatorIncreaseRatingStep()
@@ -193,6 +201,7 @@ func (bsr *BlockSigningRater) ComputeIncreaseValidator(shardId uint32, currentRa
 
 // ComputeDecreaseValidator computes the new rating for the decreaseValidator
 func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	log.Debug("ComputeDecreaseValidator", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
 		ratingStep = bsr.metaRatingsStepHandler.ValidatorDecreaseRatingStep()

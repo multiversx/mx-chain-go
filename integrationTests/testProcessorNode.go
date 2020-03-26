@@ -472,18 +472,18 @@ func CreateRatingsData() *rating.RatingsData {
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
 				ProposerIncreaseRatingStep:     1929,
-				ProposerDecreaseRatingStep:     3858,
+				ProposerDecreaseRatingStep:     -3858,
 				ValidatorIncreaseRatingStep:    31,
-				ValidatorDecreaseRatingStep:    61,
+				ValidatorDecreaseRatingStep:    -61,
 				ConsecutiveMissedBlocksPenalty: 1.1,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
 				ProposerIncreaseRatingStep:     2500,
-				ProposerDecreaseRatingStep:     5000,
+				ProposerDecreaseRatingStep:     -5000,
 				ValidatorIncreaseRatingStep:    35,
-				ValidatorDecreaseRatingStep:    70,
+				ValidatorDecreaseRatingStep:    -70,
 				ConsecutiveMissedBlocksPenalty: 1.1,
 			},
 		},
