@@ -43,7 +43,7 @@ func TestGroupG2_CreatePoint(t *testing.T) {
 		G2: &bls.G2{},
 	}
 
-	baseG2Str := BaseG2()
+	baseG2Str := baseG2()
 	err := point.G2.SetString(baseG2Str, 10)
 	require.Nil(t, err)
 	require.False(t, point.G2.IsZero())
@@ -96,10 +96,10 @@ func TestGroupG2_CreatePointForScalar(t *testing.T) {
 	require.True(t, mclPointG2.IsValidOrder())
 	require.True(t, mclPointG2.IsValid())
 
-	baseG2 := NewPointG2().G2
+	bG2 := NewPointG2().G2
 	computedG2 := &bls.G2{}
 
-	bls.G2Mul(computedG2, baseG2, mclScalar)
+	bls.G2Mul(computedG2, bG2, mclScalar)
 	require.True(t, mclPointG2.IsEqual(computedG2))
 }
 
@@ -124,10 +124,10 @@ func TestGroupG2_CreatePointForScalarZero(t *testing.T) {
 	require.True(t, mclPointG2.IsValidOrder())
 	require.True(t, mclPointG2.IsValid())
 
-	baseG2 := NewPointG2().G2
+	bG2 := NewPointG2().G2
 	computedG2 := &bls.G2{}
 
-	bls.G2Mul(computedG2, baseG2, mclScalar)
+	bls.G2Mul(computedG2, bG2, mclScalar)
 	require.True(t, mclPointG2.IsEqual(computedG2))
 }
 
@@ -146,10 +146,10 @@ func TestGroupG2_CreatePointForScalarOne(t *testing.T) {
 	pG2 := grG2.CreatePointForScalar(scalar)
 	require.NotNil(t, pG2)
 
-	baseG2 := NewPointG2().G2
+	bG2 := NewPointG2().G2
 	mclPointG2, ok := pG2.GetUnderlyingObj().(*bls.G2)
 	require.True(t, ok)
-	require.True(t, mclPointG2.IsEqual(baseG2))
+	require.True(t, mclPointG2.IsEqual(bG2))
 	require.True(t, mclPointG2.IsValidOrder())
 	require.True(t, mclPointG2.IsValid())
 }

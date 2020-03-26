@@ -19,8 +19,8 @@ func getMetricsFromMetaHeader(
 	header *block.MetaBlock,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
-	headersCountInPool int,
-	totalHeadersProcessed uint64,
+	numShardHeadersFromPool int,
+	numShardHeadersProcessed uint64,
 ) {
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
@@ -37,8 +37,8 @@ func getMetricsFromMetaHeader(
 	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(header.TxCount))
 	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, totalHeadersProcessed)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(headersCountInPool))
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
 }
 
 func getMetricsFromBlockBody(

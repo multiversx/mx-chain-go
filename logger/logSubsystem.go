@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 )
 
 var logMut = &sync.RWMutex{}
@@ -13,6 +15,7 @@ var loggers map[string]*logger
 var defaultLogOut LogOutputHandler
 var defaultLogLevel = LogInfo
 var logPattern = ""
+var withLoggerName atomic.Flag
 
 var mutDisplayByteSlice = &sync.RWMutex{}
 var displayByteSlice func(slice []byte) string
@@ -77,6 +80,16 @@ func GetLogLevelPattern() string {
 	defer logMut.RUnlock()
 
 	return logPattern
+}
+
+// Toggle enables / disables logger name
+func ToggleLoggerName(enable bool) {
+	withLoggerName.Toggle(enable)
+}
+
+// IsEnabledLoggerName returns whether logger name is enabled
+func IsEnabledLoggerName() bool {
+	return withLoggerName.IsSet()
 }
 
 // AddLogObserver adds a new observer (writer + formatter) to the already built-in log observers queue
