@@ -28,6 +28,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 	if errNotCritical != nil {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	} else {
+		e.baseData.storageExists = true
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,

@@ -114,6 +114,7 @@ type baseDataInStorage struct {
 	numberOfShards uint32
 	lastRound      int64
 	lastEpoch      uint32
+	storageExists  bool
 }
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -145,6 +146,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		hasher:             args.Hasher,
 		messenger:          args.Messenger,
 		generalConfig:      args.GeneralConfig,
+		economicsData:      args.EconomicsData,
 		genesisNodesConfig: args.GenesisNodesConfig,
 		workingDir:         args.WorkingDir,
 		defaultEpochString: args.DefaultEpochString,
@@ -161,8 +163,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 }
 
 func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
-	return time.Duration(e.genesisNodesConfig.RoundDuration *
-		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch))
+	return time.Duration(e.genesisNodesConfig.RoundDuration*
+		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)) * time.Millisecond
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
@@ -200,6 +202,12 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 }
 
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
+	var err error
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	if e.isStartInEpochZero() {
 		return e.prepareEpochZero()
 	}
@@ -208,18 +216,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	e.initializeFromLocalStorage()
 
 	// TODO: make a better decision according to lastRound, lastEpoch
-	isCurrentEpochSaved := e.baseData.lastEpoch+1 >= e.computedEpoch
+	isCurrentEpochSaved := (e.baseData.lastEpoch+1 >= e.computedEpoch) && e.baseData.storageExists
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
 			return parameters, nil
 		}
-	}
-
-	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
-	if err != nil {
-		return Parameters{}, err
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -247,11 +249,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	err = e.createRequestHandler()
-	if err != nil {
-		return err
-	}
-
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
 			Config:           &e.generalConfig,
@@ -259,6 +256,14 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 			ShardCoordinator: e.shardCoordinator,
 		},
 	)
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
+	if err != nil {
+		return err
+	}
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		Config:            e.generalConfig,
@@ -676,15 +681,18 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:         e.shardCoordinator,
-		Messenger:                e.messenger,
-		Store:                    storageService,
-		Marshalizer:              e.marshalizer,
-		DataPools:                e.dataPool,
-		Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
-		DataPacker:               dataPacker,
-		TriesContainer:           triesHolder,
-		SizeCheckDelta:           0,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Store:                      storageService,
+		Marshalizer:                e.marshalizer,
+		DataPools:                  e.dataPool,
+		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs: 10,
+		DataPacker:                 dataPacker,
+		TriesContainer:             triesHolder,
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

@@ -155,7 +155,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
-	ncInternalkey := append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 

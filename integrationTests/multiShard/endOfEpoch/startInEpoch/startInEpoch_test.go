@@ -7,11 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
@@ -79,7 +82,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	epoch := uint32(2)
+	epoch := uint32(1)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -110,10 +113,42 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	}
 
 	nodesConfig := sharding.NodesSetup{
+		StartTime:     time.Now().Unix(),
 		RoundDuration: 4000,
 		InitialNodes:  getInitialNodes(nodesMap),
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
+
+	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
+	_ = messenger.Bootstrap()
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
+		PublicKey:          nodeToJoinLate.NodeKeys.Pk,
+		Marshalizer:        integrationTests.TestMarshalizer,
+		Hasher:             integrationTests.TestHasher,
+		Messenger:          messenger,
+		GeneralConfig:      getGeneralConfig(),
+		EconomicsData:      integrationTests.CreateEconomicsData(),
+		SingleSigner:       &mock.SignerMock{},
+		BlockSingleSigner:  &mock.SignerMock{},
+		KeyGen:             &mock.KeyGenMock{},
+		BlockKeyGen:        &mock.KeyGenMock{},
+		GenesisNodesConfig: &nodesConfig,
+		PathManager:        &mock.PathManagerStub{},
+		WorkingDir:         "test_directory",
+		DefaultDBPath:      "test_db",
+		DefaultEpochString: "test_epoch",
+		DefaultShardString: "test_shard",
+		Rater:              &mock.RaterMock{},
+	}
+	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
+	assert.Nil(t, err)
+
+	params, err := epochStartBootstrap.Bootstrap()
+	assert.NoError(t, err)
+	assert.Equal(t, epoch, params.Epoch)
+	assert.Equal(t, uint32(0), params.SelfShardId)
+	assert.Equal(t, uint32(2), params.NumOfShards)
 }
 
 func convertToSlice(originalMap map[uint32][]*integrationTests.TestProcessorNode) []*integrationTests.TestProcessorNode {
@@ -143,4 +178,70 @@ func getInitialNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) 
 	}
 
 	return sliceToRet
+}
+
+func getGeneralConfig() config.Config {
+	return config.Config{
+		EpochStartConfig: config.EpochStartConfig{
+			MinRoundsBetweenEpochs: 5,
+			RoundsPerEpoch:         10,
+		},
+		WhiteListPool: config.CacheConfig{
+			Size:   10000,
+			Type:   "LRU",
+			Shards: 1,
+		},
+		StoragePruning: config.StoragePruningConfig{
+			Enabled:             false,
+			FullArchive:         true,
+			NumEpochsToKeep:     3,
+			NumActivePersisters: 3,
+		},
+		AccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TxDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		UnsignedTransactionDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		RewardTransactionDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		HeadersPoolConfig: config.HeadersPoolConfig{
+			MaxHeadersPerShard:            10,
+			NumElementsToRemoveOnEviction: 1,
+		},
+		TxBlockBodyDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		PeerBlockBodyDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		TrieNodesDataPool: config.CacheConfig{
+			Size: 10000, Type: "LRU", Shards: 1,
+		},
+	}
 }

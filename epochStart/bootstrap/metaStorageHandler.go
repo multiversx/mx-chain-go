@@ -189,7 +189,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, errPut
 	}
 
-	return key, nil
+	return []byte(core.TriggerRegistryKeyPrefix), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

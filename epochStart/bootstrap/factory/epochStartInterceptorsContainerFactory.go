@@ -44,6 +44,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return disabled.NewDisabledStorer()
 	}}
 	txSignMarshalizer := marshal.JsonMarshalizer{}
+	antiFloodHandler := disabled.NewAntiFloodHandler()
 	multiSigner := disabled.NewMultiSigner()
 	accountsAdapter := disabled.NewAccountsAdapter()
 	addressConverter, err := addressConverters.NewPlainAddressConverter(
@@ -86,6 +87,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       args.WhiteListHandler,
+		AntifloodHandler:       antiFloodHandler,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
