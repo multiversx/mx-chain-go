@@ -912,6 +912,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartSubscriber)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
@@ -919,6 +924,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.internalMarshalizer,
 		core.HeartbeatTopic,
 		n.shardCoordinator,
+		peerTypeProvider,
+		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
 	)
@@ -948,13 +955,23 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
+
+	allValidators, _, err := n.getLatestValidators()
+	pubKeysMap := make(map[uint32][]string)
+	for shardID, valsInShard := range allValidators {
+		for _, val := range valsInShard {
+			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
+		}
+	}
+
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		netInputMarshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		n.initialNodesPubkeys,
+		pubKeysMap,
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
+		peerTypeProvider,
 		timer,
 		n.inputAntifloodHandler,
 	)
