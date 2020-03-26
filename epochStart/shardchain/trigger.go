@@ -627,6 +627,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.saveCurrentState(header.GetRound())
 
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
+
 	shardHdrBuff, errNotCritical := t.marshalizer.Marshal(shardHdr)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed marshal error", "error", errNotCritical)
@@ -666,6 +667,8 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		t.epochStartShardHeader = &block.Header{}
 		t.isEpochStart = true
 		t.newEpochHdrReceived = true
+		log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
+
 		return nil
 	}
 
@@ -692,6 +695,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.epochStartShardHeader = shardHdr
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
+	log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
 
 	return nil
 }

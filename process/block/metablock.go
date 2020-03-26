@@ -1012,7 +1012,8 @@ func (mp *metaProcessor) CommitBlock(
 		headerInfo, hashExists := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !hashExists {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : CommitBlock shardHeaderHash = %s",
+				process.ErrMissingHeader, display.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardBlock, isOk := headerInfo.hdr.(*block.Header)
@@ -1317,7 +1318,8 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
+				process.ErrMissingHeader, display.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardHeader, ok := headerInfo.hdr.(*block.Header)
