@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"

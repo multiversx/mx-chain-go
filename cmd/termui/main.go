@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/provider"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
 	"github.com/urfave/cli"

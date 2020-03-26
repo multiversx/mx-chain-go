@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -318,6 +318,8 @@ func createProcessorsForMetaGenesisBlock(
 	}
 
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
+		args.Hasher,
+		args.Marshalizer,
 		args.Accounts,
 		args.AddrConv,
 		args.ShardCoordinator,
@@ -479,15 +481,4 @@ func setBalanceToTrie(
 	}
 
 	return accounts.SaveAccount(account)
-}
-
-type NilMessageSignVerifier struct {
-}
-
-func (n *NilMessageSignVerifier) Verify(_ []byte, _ []byte, _ []byte) error {
-	return nil
-}
-
-func (n *NilMessageSignVerifier) IsInterfaceNil() bool {
-	return n == nil
 }

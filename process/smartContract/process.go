@@ -7,13 +7,13 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -225,7 +225,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(acntSnd, txHash, tx, err.Error())
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -379,7 +379,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	return true, sc.saveAccounts(acntSnd, acntDst)
 }
 
-func (sc *scProcessor) processIfError(
+// ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
+func (sc *scProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
@@ -460,7 +461,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(acntSnd, txHash, tx, err.Error())
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -964,7 +965,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.processIfError(nil, txHash, scr, err.Error())
+			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error())
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}

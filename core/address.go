@@ -15,7 +15,7 @@ const VMTypeLen = 2
 const ShardIdentiferLen = 2
 
 const metaChainShardIdentifier uint8 = 255
-const numInitCharactersForOnMetachainSC = 5
+const numInitCharactersForOnMetachainSC = 15
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {

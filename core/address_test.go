@@ -72,6 +72,6 @@ func TestIsSmartContractOnMetachain_ShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	identifier, _ := hex.DecodeString("ff")
-	scAddress, _ := hex.DecodeString("00000000000000000000000000000022cd8429ce92f8973bba2a9fb51e0eb3a1")
+	scAddress, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000b51e0eb3a1")
 	assert.True(t, IsSmartContractOnMetachain(identifier, scAddress))
 }
