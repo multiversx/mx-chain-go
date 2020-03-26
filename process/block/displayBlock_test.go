@@ -24,15 +24,6 @@ func createGenesisBlock(shardId uint32) *block.Header {
 	}
 }
 
-func TestDisplayBlock_GetNumTxFromPool_NilDataPoolReturnZero(t *testing.T) {
-	t.Parallel()
-
-	txCounter := NewTransactionCounter()
-	numTxs := txCounter.getNumTxsFromPool(0, nil, 1)
-
-	assert.Equal(t, 0, numTxs)
-}
-
 func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 	t.Parallel()
 
