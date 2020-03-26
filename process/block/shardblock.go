@@ -1152,7 +1152,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 		if !ok {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
-				process.ErrMissingHeader, display.DisplayByteSlice(metaBlockHash))
+				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
 		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
