@@ -127,7 +127,7 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(pkBuff),
 		)
 		n.node.Start()
-		_ = n.node.P2PBootstrap()
+		_ = n.mesenger.Bootstrap()
 	}
 }
 

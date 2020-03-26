@@ -55,9 +55,9 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	internalMarshalizer      marshal.Marshalizer
-	vmMarshalizer            marshal.Marshalizer
-	txSignMarshalizer                   marshal.Marshalizer
+	internalMarshalizer           marshal.Marshalizer
+	vmMarshalizer                 marshal.Marshalizer
+	txSignMarshalizer             marshal.Marshalizer
 	ctx                           context.Context
 	hasher                        hashing.Hasher
 	feeHandler                    process.FeeHandler
@@ -175,21 +175,8 @@ func (n *Node) Stop() error {
 	if !n.IsRunning() {
 		return nil
 	}
-	err := n.messenger.Close()
-	if err != nil {
-		return err
-	}
 
 	return nil
-}
-
-// P2PBootstrap will try to connect to many peers as possible
-func (n *Node) P2PBootstrap() error {
-	if n.messenger == nil {
-		return ErrNilMessenger
-	}
-
-	return n.messenger.Bootstrap()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -331,7 +318,7 @@ func (n *Node) StartConsensus() error {
 		NodesCoordinator:              n.nodesCoordinator,
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
-		AntifloodHandler:     		   n.inputAntifloodHandler,
+		AntifloodHandler:              n.inputAntifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

@@ -13,7 +13,6 @@ type NodeMock struct {
 	AddressHandler             func() (string, error)
 	StartHandler               func()
 	StopHandler                func() error
-	P2PBootstrapHandler        func() error
 	IsRunningHandler           func() bool
 	ConnectToAddressesHandler  func([]string) error
 	StartConsensusHandler      func() error
@@ -40,11 +39,6 @@ func (nm *NodeMock) Address() (string, error) {
 // Start -
 func (nm *NodeMock) Start() {
 	nm.StartHandler()
-}
-
-// P2PBootstrap -
-func (nm *NodeMock) P2PBootstrap() error {
-	return nm.P2PBootstrapHandler()
 }
 
 // IsRunning -

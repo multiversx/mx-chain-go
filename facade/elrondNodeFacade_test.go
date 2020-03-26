@@ -137,9 +137,6 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 		StartHandler: func() {
 			started = true
 		},
-		P2PBootstrapHandler: func() error {
-			return nil
-		},
 		IsRunningHandler: func() bool {
 			return started
 		},
@@ -162,9 +159,6 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 	node := &mock.NodeMock{
 		StartHandler: func() {
 			started = true
-		},
-		P2PBootstrapHandler: func() error {
-			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started

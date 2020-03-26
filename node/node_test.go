@@ -201,46 +201,16 @@ func TestStop_NotStartedYet(t *testing.T) {
 	assert.False(t, n.IsRunning())
 }
 
-func TestStop_MessengerCloseErrors(t *testing.T) {
-	errorString := "messenger close error"
-	messenger := getMessenger()
-	messenger.CloseCalled = func() error {
-		return errors.New(errorString)
-	}
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-	)
-
-	n.Start()
-
-	err := n.Stop()
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), errorString)
-}
-
 func TestStop(t *testing.T) {
-
-	messengerCloseWasCalled := false
-
-	messenger := getMessenger()
-	messenger.CloseCalled = func() error {
-		messengerCloseWasCalled = true
-		return nil
-	}
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
-		node.WithMessenger(messenger),
 	)
 	n.Start()
 
 	err := n.Stop()
 	assert.Nil(t, err)
-	assert.True(t, messengerCloseWasCalled)
 }
 
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {

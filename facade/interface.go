@@ -16,9 +16,6 @@ type NodeWrapper interface {
 	// Start will set up the Node state as running
 	Start()
 
-	// P2PBootstrap starts the peer discovery process and peer connection filtering
-	P2PBootstrap() error
-
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
 
