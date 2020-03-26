@@ -24,10 +24,11 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 
 func (sc *scProcessor) ProcessVMOutput(
 	vmOutput *vmcommon.VMOutput,
+	txHash []byte,
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
 ) ([]data.TransactionHandler, *big.Int, error) {
-	return sc.processVMOutput(vmOutput, tx, acntSnd, vmcommon.DirectCall)
+	return sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall)
 }
 
 func (sc *scProcessor) CreateSCRForSender(

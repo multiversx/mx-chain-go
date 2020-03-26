@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -196,6 +196,7 @@ func (t *trigger) Update(round uint64) {
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
+		logger.SetCorrelationEpoch(t.epoch)
 	}
 }
 
@@ -351,10 +352,6 @@ func (t *trigger) Epoch() uint32 {
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
 func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
-}
-
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
-func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch

@@ -135,6 +135,13 @@ func (b *Body) IntegrityAndValidity() error {
 	return nil
 }
 
+// Clone returns a clone of the object
+func (b *Body) Clone() data.BodyHandler {
+	bodyCopy := *b
+
+	return &bodyCopy
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *Body) IsInterfaceNil() bool {
 	return b == nil
@@ -148,17 +155,6 @@ func (h *Header) IsInterfaceNil() bool {
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (h *Header) IsStartOfEpochBlock() bool {
 	return len(h.EpochStartMetaHash) > 0
-}
-
-// ItemsInHeader gets the number of items(hashes) added in block header
-func (h *Header) ItemsInHeader() uint32 {
-	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
-	return uint32(itemsInHeader)
-}
-
-// ItemsInBody gets the number of items(hashes) added in block body
-func (h *Header) ItemsInBody() uint32 {
-	return h.TxCount
 }
 
 // CheckChainID returns nil if the header's chain ID matches the one provided

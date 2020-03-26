@@ -3,13 +3,12 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat/storage")
@@ -54,10 +53,7 @@ func (hs *HeartbeatDbStorer) LoadGenesisTime() (time.Time, error) {
 		return time.Time{}, heartbeat.ErrUnmarshalGenesisTime
 	}
 
-	genesisTimeFromDb, err := types.TimestampFromProto(dbts.TS)
-	if err != nil {
-		return time.Time{}, heartbeat.ErrUnmarshalGenesisTime
-	}
+	genesisTimeFromDb := time.Unix(0, dbts.Timestamp)
 
 	return genesisTimeFromDb, nil
 }
@@ -83,12 +79,8 @@ func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
 }
 
 func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
-	ts, err := types.TimestampProto(genesisTime)
-	if err != nil {
-		return heartbeat.ErrMarshalGenesisTime
-	}
 	dbts := &heartbeat.DbTimeStamp{
-		TS: ts,
+		Timestamp: genesisTime.UnixNano(),
 	}
 
 	genesisTimeBytes, err := hs.marshalizer.Marshal(dbts)
@@ -129,13 +121,13 @@ func (hs *HeartbeatDbStorer) LoadKeys() ([][]byte, error) {
 		return nil, err
 	}
 
-	batch := &batch.Batch{}
-	err = hs.marshalizer.Unmarshal(batch, allKeysBytes)
+	b := &batch.Batch{}
+	err = hs.marshalizer.Unmarshal(b, allKeysBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return batch.Data, nil
+	return b.Data, nil
 }
 
 // SaveKeys will update the keys for all connected peers

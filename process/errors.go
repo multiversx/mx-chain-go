@@ -320,6 +320,9 @@ var ErrNilSCDestAccount = errors.New("nil destination SC account")
 // ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
 var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
+// ErrWrongNonceInStakingData signals that nonce in staking data is wrong
+var ErrWrongNonceInStakingData = errors.New("nonce invalid ")
+
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
@@ -561,6 +564,15 @@ var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy
 // ErrNotEnoughGas signals that not enough gas has been provided
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")
+
+// ErrNilQuotaStatusHandler signals that a nil quota status handler has been provided
+var ErrNilQuotaStatusHandler = errors.New("nil quota status handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
@@ -608,6 +620,9 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrEmptyTopic signals that an empty topic has been provided
+var ErrEmptyTopic = errors.New("empty topic")
 
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
@@ -660,6 +675,12 @@ var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
 // ErrInvalidUnJailPrice signals that invalid unjail price was provided
 var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
 
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
 // ErrDuplicateThreshold signals that two thresholds are the same
 var ErrDuplicateThreshold = errors.New("two thresholds are the same")
 
@@ -695,3 +716,9 @@ var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
 // ErrAddressNotInThisShard signals that the provided address does not belong to current shard
 var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+
+// ErrNilBlockSizeThrottler signals that block size throttler si nil
+var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
+
+// ErrInvalidMetaTransaction signals that meta transaction is invalid
+var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")

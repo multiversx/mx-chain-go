@@ -3,12 +3,11 @@ package mcl
 import (
 	"crypto/cipher"
 	"fmt"
-	"sync/atomic"
-	"unsafe"
+	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/herumi/bls-go-binary/bls"
 )
 
@@ -22,37 +21,32 @@ type SuiteBLS12 struct {
 	strSuite string
 }
 
-// blsSwapG Is enabled if compiling mcl/bls/bls-go-binary with BLS_SWAP_G flag
+// Note: BLS_SWAP_G flag, (currently this flag is not set)
 // Compiling with the flag will give Public Keys on G1 (48 bytes) and Signatures on G2 (96 bytes)
 // Compiling without the flag will give Public Keys on G2 and Signatures on G1
 // For Elrond the public keys for the validators are known during an epoch and also are not set on blocks
 // BLS signatures are however set on every block header, so in order to optimise the header size flag will be false
 // to have smaller signatures, so on G1(48 bytes)
 
-const g2str = "1 352701069587466618187139116011060144890029952792775240219908644239793785735715026873347600343865175952761926303160 3059144344244213709971259814753781636986470325476647558659373206291635324768958432433509563104347017837885763365758 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582"
-const g1str = "1 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569"
+var (
+	g2str  = "1 352701069587466618187139116011060144890029952792775240219908644239793785735715026873347600343865175952761926303160 3059144344244213709971259814753781636986470325476647558659373206291635324768958432433509563104347017837885763365758 1985150602287291935568054521177171638300868978215655730859378665066344726373823718423869104263333984641494340347905 927553665492332455747201965776037880757740193453592970025027978793976877002675564980949289727957565575433344219582"
+	g1str  = "1 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569"
+	doInit sync.Once
+)
 
-var basePointG1Str atomic.Value
-var basePointG2Str atomic.Value
-
-func init() {
+func blsInit() {
 	if err := bls.Init(bls.BLS12_381); err != nil {
 		panic(fmt.Sprintf("could not initialize BLS12-381 curve %v", err))
 	}
 
 	pubKey := &bls.PublicKey{}
-	bls.BlsGetGeneratorForPublicKey(pubKey)
-	blsSwapG := bls.IsSwapG()
-	//TODO fix unsafe casts for generators G1 and G2, maybe remove calling the bls.IsSwapG()
-	if blsSwapG {
-		generatorG1 := (*bls.G1)(unsafe.Pointer(pubKey))
-		basePointG1Str.Store(generatorG1.GetString(10))
-		basePointG2Str.Store(g2str)
-	} else {
-		generatorG2 := (*bls.G2)(unsafe.Pointer(pubKey))
-		basePointG1Str.Store(g1str)
-		basePointG2Str.Store(generatorG2.GetString(10))
-	}
+	bls.BlsGetGeneratorOfPublicKey(pubKey)
+	generatorG2 := bls.CastFromPublicKey(pubKey)
+	g2str = generatorG2.GetString(10)
+}
+
+func init() {
+	doInit.Do(blsInit)
 }
 
 // NewSuiteBLS12 returns a wrapper over a BLS12 curve.
@@ -118,12 +112,12 @@ func (s *SuiteBLS12) PointLen() int {
 
 // CreateKeyPair returns a pair of private public BLS keys.
 // The private key is a scalarInt, while the public key is a Point on G2 curve
-func (s *SuiteBLS12) CreateKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+func (s *SuiteBLS12) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	var sc crypto.Scalar
 	var err error
 
 	sc = s.G2.CreateScalar()
-	sc, err = sc.Pick(stream)
+	sc, err = sc.Pick()
 	if err != nil {
 		log.Error("SuiteBLS12 CreateKeyPair", "error", err.Error())
 		return nil, nil
@@ -144,16 +138,12 @@ func (s *SuiteBLS12) IsInterfaceNil() bool {
 	return s == nil
 }
 
-// BaseG1 returns the generator point for G1
-func BaseG1() string {
-	v := basePointG1Str.Load()
-	vStr := v.(string)
-	return vStr
+// baseG1 returns the generator point for G1
+func baseG1() string {
+	return g1str
 }
 
-// BaseG2 returns the generator point for G2
-func BaseG2() string {
-	v := basePointG2Str.Load()
-	vStr := v.(string)
-	return vStr
+// baseG2 returns the generator point for G2
+func baseG2() string {
+	return g2str
 }

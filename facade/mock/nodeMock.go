@@ -20,11 +20,11 @@ type NodeMock struct {
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error)
+		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, amount string, txData []byte, signature []byte) (string, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GetAccountHandler                              func(address string) (*state.Account, error)
+	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -74,19 +74,19 @@ func (nm *NodeMock) GenerateTransaction(sender string, receiver string, amount s
 
 // CreateTransaction -
 func (nm *NodeMock) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-	gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error) {
+	gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
 
 	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
+}
+
+//ValidateTransaction --
+func (nm *NodeMock) ValidateTransaction(tx *transaction.Transaction) error {
+	return nm.ValidateTransactionHandler(tx)
 }
 
 // GetTransaction -
 func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nm.GetTransactionHandler(hash)
-}
-
-// SendTransaction -
-func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value string, _ uint64, _ uint64, transactionData []byte, signature []byte) (string, error) {
-	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
 }
 
 // SendBulkTransactions -
@@ -110,7 +110,7 @@ func (nm *NodeMock) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, 
 }
 
 // GetAccount -
-func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
+func (nm *NodeMock) GetAccount(address string) (state.UserAccountHandler, error) {
 	return nm.GetAccountHandler(address)
 }
 

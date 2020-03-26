@@ -99,7 +99,7 @@ type InterceptorProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptorThrottler can
+// InterceptorThrottler can monitor the number of the currently running interceptor go routines
 type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
@@ -140,6 +140,7 @@ type TransactionCoordinator interface {
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error
 	IsInterfaceNil() bool
 }
 
@@ -170,7 +171,8 @@ type TransactionVerifier interface {
 type TransactionFeeHandler interface {
 	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
-	ProcessTransactionFee(cost *big.Int)
+	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -360,7 +362,6 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64)
-	ReceivedHeader(header data.HeaderHandler)
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
@@ -385,8 +386,8 @@ type EpochBootstrapper interface {
 type PendingMiniBlocksHandler interface {
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocks(shardID uint32) uint32
-	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	GetPendingMiniBlocks(shardID uint32) [][]byte
+	SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -399,7 +400,7 @@ type BlockChainHookHandler interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -453,6 +454,16 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+	IsInterfaceNil() bool
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	GetCurrentMaxSize() uint32
+	Add(round uint64, size uint32)
+	Succeed(round uint64)
+	ComputeCurrentMaxSize()
 	IsInterfaceNil() bool
 }
 
@@ -617,6 +628,38 @@ type BlockTracker interface {
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type FloodPreventer interface {
+	AccumulateGlobal(identifier string, size uint64) bool
+	Accumulate(identifier string, size uint64) bool
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls, on a given topic
+type TopicFloodPreventer interface {
+	Accumulate(identifier string, topic string) bool
+	ResetForTopic(topic string)
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// SCQueryService defines how data should be get from a SC account
+type SCQueryService interface {
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

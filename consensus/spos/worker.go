@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -56,6 +56,8 @@ type Worker struct {
 
 	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
 	mutReceivedHeadersHandler sync.RWMutex
+
+	antifloodHandler consensus.P2PAntifloodHandler
 }
 
 // NewWorker creates a new Worker object
@@ -76,6 +78,7 @@ func NewWorker(
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
 	networkShardingCollector consensus.NetworkShardingCollector,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -94,6 +97,7 @@ func NewWorker(
 		headerSigVerifier,
 		chainID,
 		networkShardingCollector,
+		antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -117,6 +121,7 @@ func NewWorker(
 		chainID:                  chainID,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 		networkShardingCollector: networkShardingCollector,
+		antifloodHandler:         antifloodHandler,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -125,6 +130,11 @@ func NewWorker(
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
+
+	// set the limit for the antiflood handler
+	topic := GetConsensusTopicIDFromShardCoordinator(shardCoordinator)
+	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
+	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
 	go wrk.checkChannels()
 
@@ -150,6 +160,7 @@ func checkNewWorkerParams(
 	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
 	networkShardingCollector consensus.NetworkShardingCollector,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
@@ -198,6 +209,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(networkShardingCollector) {
 		return ErrNilNetworkShardingCollector
+	}
+	if check.IfNil(antifloodHandler) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -279,7 +293,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -287,11 +301,23 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return ErrNilDataToProcess
 	}
 
-	cnsDta := &consensus.Message{}
-	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	err := wrk.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
+
+	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
+	err = wrk.antifloodHandler.CanProcessMessageOnTopic(message.Peer(), topic)
+	if err != nil {
+		return err
+	}
+
+	cnsDta := &consensus.Message{}
+	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
 		return fmt.Errorf("%w : received: %s, wanted: %s",
 			ErrInvalidChainID,
@@ -313,7 +339,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	if !senderOK {
 		return fmt.Errorf("%w : node with public key %s is not in eligible list",
 			ErrSenderNotOk,
-			display.DisplayByteSlice(cnsDta.PubKey))
+			logger.DisplayByteSlice(cnsDta.PubKey))
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
@@ -544,7 +570,6 @@ func (wrk *Worker) Extend(subroundId int) {
 
 func (wrk *Worker) broadcastLastCommittedHeader() {
 	header := wrk.blockChain.GetCurrentBlockHeader()
-
 	if check.IfNil(header) {
 		return
 	}

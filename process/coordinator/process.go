@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -44,6 +44,7 @@ type transactionCoordinator struct {
 
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
 	gasHandler         process.GasHandler
+	feeHandler         process.TransactionFeeHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -57,6 +58,7 @@ func NewTransactionCoordinator(
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
+	feeHandler process.TransactionFeeHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -86,6 +88,9 @@ func NewTransactionCoordinator(
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(feeHandler) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
@@ -93,6 +98,7 @@ func NewTransactionCoordinator(
 		gasHandler:       gasHandler,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
+		feeHandler:       feeHandler,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -801,6 +807,7 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		}
 		interProc.RemoveProcessedResultsFor(txHashes)
 	}
+	tc.feeHandler.RevertFees(txHashes)
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed

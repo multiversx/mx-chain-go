@@ -7,8 +7,8 @@ import (
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
-var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+// ErrSendRequest signals that the connected peers list is empty or errors appeared when sending requests
+var ErrSendRequest = errors.New("cannot send request: peer list is empty or errors during the sending")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
@@ -107,9 +107,6 @@ var ErrNilPeerChangeBlockDataPool = errors.New("nil peer change block data pool"
 // ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
 var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 
-// ErrNilCacher signals that a nil cache has been provided
-var ErrNilCacher = errors.New("nil cacher")
-
 // ErrCacheConfigInvalidSizeInBytes signals that the cache parameter "sizeInBytes" is invalid
 var ErrCacheConfigInvalidSizeInBytes = errors.New("cache parameter [sizeInBytes] is not valid, it must be a positive, and large enough number")
 
@@ -124,9 +121,6 @@ var ErrCacheConfigInvalidEconomics = errors.New("cache-economics parameter is no
 
 // ErrCacheConfigInvalidSharding signals that a sharding parameter required by the cache is invalid
 var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not valid")
-
-// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
@@ -166,3 +160,18 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrBadRequest signals that the request should not have happened
 var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrSystemBusy signals that the system is busy and can not process more requests
+var ErrSystemBusy = errors.New("system busy")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrEmptyString signals that an empty string has been provided
+var ErrEmptyString = errors.New("empty string")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")

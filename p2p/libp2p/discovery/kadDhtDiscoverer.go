@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -206,13 +206,13 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 						err = kadDht.BootstrapOnce(ctx, cfg)
 					}
 					if err == kbucket.ErrLookupFailure {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 					}
 					i = 1
 				} else {
 					i++
 					if (i % initReconnectMul) == 0 {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 						i = 1
 					}
 				}

@@ -3,9 +3,9 @@ package networksharding
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -76,74 +76,139 @@ func NewPeerShardMapper(
 	}, nil
 }
 
-// GetShardID returns the corresponding shard ID of a given peer ID.
-// If the pid is unknown, it will return sharding.UnknownShardId
-func (psm *PeerShardMapper) GetShardID(pid p2p.PeerID) (shardId uint32) {
-	shardId, pk, ok := psm.getShardIDWithNodesCoordinator(pid)
+// GetPeerInfo returns the corresponding shard ID of a given peer ID.
+// It also returns the type of provided peer
+func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
+	pInfo, pk, ok := psm.getPeerInfoWithNodesCoordinator(pid)
 	if ok {
-		return shardId
+		return pInfo
 	}
 
-	shardId, ok = psm.getShardIDSearchingPkInFallbackCache(pk)
+	shardId, ok := psm.getShardIDSearchingPkInFallbackCache(pk)
 	if ok {
-		return shardId
+		return core.P2PPeerInfo{
+			PeerType: core.ObserverdPeer,
+			ShardID:  shardId,
+		}
 	}
 
-	return psm.getShardIDSearchingPidInFallbackCache(pid)
+	return psm.getPeerInfoSearchingPidInFallbackCache(pid)
 }
 
-func (psm *PeerShardMapper) getShardIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
+func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (core.P2PPeerInfo, []byte, bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
-		return core.UnknownShardId, nil, false
+		log.Trace("unknown peer",
+			"pid", p2p.PeerIdToShortString(pid),
+		)
+
+		return core.P2PPeerInfo{
+			PeerType: core.UnknownPeer,
+			ShardID:  0,
+		}, nil, false
 	}
 
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDWithNodesCoordinator: the contained element should have been of type []byte")
-		return core.UnknownShardId, nil, false
+
+		return core.P2PPeerInfo{
+			PeerType: core.UnknownPeer,
+			ShardID:  0,
+		}, nil, false
 	}
 
 	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, psm.epochHandler.Epoch())
 	if err != nil {
-		return core.UnknownShardId, pkBuff, false
+		log.Trace("unknown peer",
+			"pid", p2p.PeerIdToShortString(pid),
+			"pk", pkBuff,
+			"error", err,
+		)
+
+		return core.P2PPeerInfo{
+			PeerType: core.UnknownPeer,
+			ShardID:  0,
+		}, pkBuff, false
 	}
 
-	return shardId, pkBuff, true
+	log.Trace("peer",
+		"pid", p2p.PeerIdToShortString(pid),
+		"pk", pkBuff,
+		"shard ID", shardId,
+	)
+
+	return core.P2PPeerInfo{
+		PeerType: core.ValidatorPeer,
+		ShardID:  shardId,
+	}, pkBuff, true
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
+	defaultShardId := uint32(0)
+
 	if len(pkBuff) == 0 {
-		return core.UnknownShardId, false
+		log.Trace("unknown peer pk is nil")
+
+		return defaultShardId, false
 	}
 
 	shardObj, ok := psm.fallbackPkShard.Get(pkBuff)
 	if !ok {
-		return core.UnknownShardId, false
+		log.Trace("unknown peer",
+			"pk", pkBuff,
+		)
+
+		return defaultShardId, false
 	}
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDSearchingPkInFallbackCache: the contained element should have been of type uint32")
-		return core.UnknownShardId, false
+
+		return defaultShardId, false
 	}
+
+	log.Trace("peer",
+		"pk", pkBuff,
+		"shard ID", shardId,
+	)
 
 	return shard, true
 }
 
-func (psm *PeerShardMapper) getShardIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
+func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerID) core.P2PPeerInfo {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
-		return core.UnknownShardId
+		log.Trace("unknown peer",
+			"pid", pid,
+		)
+
+		return core.P2PPeerInfo{
+			PeerType: core.UnknownPeer,
+			ShardID:  0,
+		}
 	}
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
-		return core.UnknownShardId
+
+		return core.P2PPeerInfo{
+			PeerType: core.UnknownPeer,
+			ShardID:  0,
+		}
 	}
 
-	return shard
+	log.Trace("peer",
+		"pid", pid,
+		"shard ID", shard,
+	)
+
+	return core.P2PPeerInfo{
+		PeerType: core.ObserverdPeer,
+		ShardID:  shard,
+	}
 }
 
 // UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map

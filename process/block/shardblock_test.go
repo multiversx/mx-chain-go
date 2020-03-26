@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -96,18 +97,19 @@ func initAccountsMock() *mock.AccountsStub {
 	}
 }
 
-func initBasicTestData() (*mock.PoolsHolderMock, *blockchain.BlockChain, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
+func initBasicTestData() (*mock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Round:    1,
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -145,7 +147,7 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	arguments.DataPool = initDataPool([]byte("tx_hash1"))
 	arguments.AccountsDB[state.UserAccountsState] = initAccountsMock()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	arguments.BlockChain = &blockchain.BlockChain{}
+	arguments.BlockChain = blockchain.NewBlockChain()
 
 	return arguments
 }
@@ -185,7 +187,7 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilMarshalizerShouldWork(t *testing.T) {
+func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -255,7 +257,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
+func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -266,7 +268,7 @@ func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
-func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
+func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments()
@@ -274,6 +276,17 @@ func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilUint64Converter, err)
+	assert.Nil(t, sp)
+}
+
+func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	arguments.BlockSizeThrottler = nil
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
 	assert.Nil(t, sp)
 }
 
@@ -503,6 +516,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			InitCalled: func() {
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -575,12 +589,13 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	}
 
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
@@ -602,12 +617,13 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -722,6 +738,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -754,12 +771,13 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -837,12 +855,13 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -912,12 +931,13 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	randSeed := []byte("rand seed")
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1069,12 +1089,13 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	tdp := initDataPool(txHash)
 
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1209,12 +1230,13 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
 		},
-	}
+	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
 	txHashes := make([][]byte, 0)
@@ -1575,9 +1597,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -1651,9 +1671,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-	)
+	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
@@ -2239,6 +2257,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2348,6 +2367,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2429,6 +2449,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2503,6 +2524,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2546,7 +2568,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2623,7 +2645,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(haveTimeTrue)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -2751,6 +2773,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2932,6 +2955,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -3808,7 +3832,8 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	arguments.Marshalizer = marshalizer
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
-	sp, _ := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
@@ -4105,10 +4130,9 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) error {
+		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) {
 			pruneTrieWasCalled = true
 			assert.Equal(t, rootHash, rootHashParam)
-			return nil
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			cancelPruneWasCalled = true
