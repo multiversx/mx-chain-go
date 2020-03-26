@@ -23,6 +23,7 @@ var log = logger.GetOrCreate("node/heartbeat")
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	marshalizer                 marshal.Marshalizer
+	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutPubKeysMap               sync.RWMutex
@@ -45,11 +46,15 @@ func NewMonitor(
 	genesisTime time.Time,
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
+	peerTypeProvider PeerTypeProviderHandler,
 	timer Timer,
 	antifloodHandler P2PAntifloodHandler,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(peerTypeProvider) {
+		return nil, ErrNilPeerTypeProvider
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
@@ -70,6 +75,7 @@ func NewMonitor(
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
+		peerTypeProvider:            peerTypeProvider,
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 		genesisTime:                 genesisTime,
@@ -123,13 +129,14 @@ func (m *Monitor) initializeHeartBeatForPK(
 ) error {
 	hbmi, err := m.loadHbmiFromStorer(pubkey)
 	if err != nil { // if pubKey not found in DB, create a new instance
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+		peerType, shardID := m.computePeerTypeAndShardID([]byte(pubkey))
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			return err
 		}
 
 		hbmi.genesisTime = m.genesisTime
-		hbmi.computedShardID = shardId
+		hbmi.computedShardID = shardID
 		pubKeysToSave[pubkey] = hbmi
 	}
 	m.heartbeatMessages[pubkey] = hbmi
@@ -243,7 +250,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	hbmi, ok := m.heartbeatMessages[pubKeyStr]
 	if hbmi == nil || !ok {
 		var err error
-		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
+		peerType, _ := m.computePeerTypeAndShardID(hb.Pubkey)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
 			log.Debug("error creating hbmi", "error", err.Error())
 			m.mutHeartbeatMessages.Unlock()
@@ -253,9 +261,9 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	}
 	m.mutHeartbeatMessages.Unlock()
 
-	computedShardID := m.computeShardID(pubKeyStr)
+	peerType, computedShardID := m.computePeerTypeAndShardID(hb.Pubkey)
 
-	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, peerType)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
@@ -287,21 +295,14 @@ func (m *Monitor) isPeerInFullPeersSlice(pubKey []byte) bool {
 	return false
 }
 
-func (m *Monitor) computeShardID(pubkey string) uint32 {
-	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
-	//  For the moment, just find the shard ID from a copy of the initial pub keys map
-	m.mutPubKeysMap.RLock()
-	defer m.mutPubKeysMap.RUnlock()
-	for shardID, pubKeysSlice := range m.pubKeysMap {
-		for _, pKey := range pubKeysSlice {
-			if pKey == pubkey {
-				return shardID
-			}
-		}
+func (m *Monitor) computePeerTypeAndShardID(pubkey []byte) (string, uint32) {
+	peerType, shardID, err := m.peerTypeProvider.ComputeForPubKey(pubkey)
+	if err != nil {
+		log.Warn("monitor: compute peer type and shard", "error", err)
+		return string(core.ObserverList), 0
 	}
 
-	// if not found, return the latest known computed shard ID
-	return m.heartbeatMessages[pubkey].computedShardID
+	return string(peerType), shardID
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {
@@ -352,8 +353,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			TotalUpTime:     int64(v.totalUpTime.Seconds()),
 			TotalDownTime:   int64(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
-			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
+			PeerType:        v.peerType,
 		}
 		status[idx] = tmp
 		idx++
@@ -380,8 +381,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		ReceivedShardID: v.receivedShardID,
 		ComputedShardID: v.computedShardID,
 		VersionNumber:   v.versionNumber,
-		IsValidator:     v.isValidator,
 		NodeDisplayName: v.nodeDisplayName,
+		PeerType:        v.peerType,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -402,7 +403,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		computedShardID:             hbDTO.ComputedShardID,
 		versionNumber:               hbDTO.VersionNumber,
 		nodeDisplayName:             hbDTO.NodeDisplayName,
-		isValidator:                 hbDTO.IsValidator,
+		peerType:                    hbDTO.PeerType,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
