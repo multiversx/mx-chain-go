@@ -30,6 +30,7 @@ type EpochStartNodesCoordinator interface {
 		validatorInfos []*state.ValidatorInfo,
 		updateListInfo bool,
 	) (*sharding.EpochValidators, error)
+	ComputeNodesConfigForGenesis(genesis *sharding.NodesSetup) (*sharding.EpochValidators, error)
 	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) uint32
 	IsInterfaceNil() bool
 }

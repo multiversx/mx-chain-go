@@ -59,6 +59,26 @@ func NewStartInEpochNodesCoordinator(args ArgsNewStartInEpochNodesCoordinator) (
 	return n, nil
 }
 
+// ComputeNodesConfigForGenesis creates the actual node config for genesis
+func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.NodesSetup) (*sharding.EpochValidators, error) {
+	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
+
+	eligibleValidators, err := sharding.NodesInfoToValidators(eligibleNodesInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	waitingValidators, err := sharding.NodesInfoToValidators(waitingNodesInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = n.setNodesPerShards(eligibleValidators, waitingValidators, 0)
+	epochValidators := epochNodesConfigToEpochValidators(n.nodesConfig[0])
+
+	return epochValidators, nil
+}
+
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
 func (n *nodesCoordinator) ComputeNodesConfigFor(
 	metaBlock *block.MetaBlock,

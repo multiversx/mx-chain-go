@@ -53,15 +53,15 @@ type Parameters struct {
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
-	EpochStartMetaBlock         *block.MetaBlock
-	PreviousEpochStartMetaBlock *block.MetaBlock
-	ShardHeader                 *block.Header
-	NodesConfig                 *sharding.NodesCoordinatorRegistry
-	Headers                     map[string]data.HeaderHandler
-	ShardCoordinator            sharding.Coordinator
-	UserAccountTries            map[string]data.Trie
-	PeerAccountTries            map[string]data.Trie
-	PendingMiniBlocks           map[string]*block.MiniBlock
+	EpochStartMetaBlock     *block.MetaBlock
+	PreviousEpochStartRound uint64
+	ShardHeader             *block.Header
+	NodesConfig             *sharding.NodesCoordinatorRegistry
+	Headers                 map[string]data.HeaderHandler
+	ShardCoordinator        sharding.Coordinator
+	UserAccountTries        map[string]data.Trie
+	PeerAccountTries        map[string]data.Trie
+	PendingMiniBlocks       map[string]*block.MiniBlock
 }
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
@@ -323,15 +323,26 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, epochStartData.ShardID)
 	}
 
-	hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
-	shardIds = append(shardIds, core.MetachainShardId)
+	if meta.Epoch > 1 { // no need to request genesis block
+		hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
+		shardIds = append(shardIds, core.MetachainShardId)
+	}
 
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.headersSyncer.GetHeaders()
+	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	if meta.Epoch == 1 {
+		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
+	}
+
+	return syncedHeaders, nil
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
@@ -444,13 +455,13 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:         e.epochStartMeta,
-		PreviousEpochStartMetaBlock: e.prevEpochStartMeta,
-		NodesConfig:                 e.nodesConfig,
-		Headers:                     e.syncedHeaders,
-		ShardCoordinator:            e.shardCoordinator,
-		UserAccountTries:            e.userAccountTries,
-		PeerAccountTries:            e.peerAccountTries,
+		EpochStartMetaBlock:     e.epochStartMeta,
+		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
+		NodesConfig:             e.nodesConfig,
+		Headers:                 e.syncedHeaders,
+		ShardCoordinator:        e.shardCoordinator,
+		UserAccountTries:        e.userAccountTries,
+		PeerAccountTries:        e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -534,15 +545,15 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:         e.epochStartMeta,
-		PreviousEpochStartMetaBlock: e.prevEpochStartMeta,
-		ShardHeader:                 ownShardHdr,
-		NodesConfig:                 e.nodesConfig,
-		Headers:                     e.syncedHeaders,
-		ShardCoordinator:            e.shardCoordinator,
-		UserAccountTries:            e.userAccountTries,
-		PeerAccountTries:            e.peerAccountTries,
-		PendingMiniBlocks:           pendingMiniBlocks,
+		EpochStartMetaBlock:     e.epochStartMeta,
+		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
+		ShardHeader:             ownShardHdr,
+		NodesConfig:             e.nodesConfig,
+		Headers:                 e.syncedHeaders,
+		ShardCoordinator:        e.shardCoordinator,
+		UserAccountTries:        e.userAccountTries,
+		PeerAccountTries:        e.peerAccountTries,
+		PendingMiniBlocks:       pendingMiniBlocks,
 	}
 
 	storageHandlerComponent, err := NewShardStorageHandler(

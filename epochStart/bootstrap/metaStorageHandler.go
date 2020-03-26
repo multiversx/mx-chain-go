@@ -172,7 +172,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		CurrentRound:                metaBlock.Round,
 		EpochFinalityAttestingRound: metaBlock.Round,
 		CurrEpochStartRound:         metaBlock.Round,
-		PrevEpochStartRound:         components.PreviousEpochStartMetaBlock.Round,
+		PrevEpochStartRound:         components.PreviousEpochStartRound,
 		EpochStartMetaHash:          hash,
 		EpochStartMeta:              metaBlock,
 	}

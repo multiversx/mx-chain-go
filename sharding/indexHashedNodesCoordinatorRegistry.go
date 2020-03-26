@@ -232,3 +232,23 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 
 	return result, nil
 }
+
+// NodesInfoToValidators maps nodeInfo to validator interface
+func NodesInfoToValidators(nodesInfo map[uint32][]*NodeInfo) (map[uint32][]Validator, error) {
+	validatorsMap := make(map[uint32][]Validator)
+
+	for shId, nodeInfoList := range nodesInfo {
+		validators := make([]Validator, 0)
+		for _, nodeInfo := range nodeInfoList {
+			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		validatorsMap[shId] = validators
+	}
+
+	return validatorsMap, nil
+}

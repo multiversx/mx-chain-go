@@ -1224,12 +1224,12 @@ func createNodesCoordinator(
 	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
-	eligibleValidators, errEligibleValidators := nodesInfoToValidators(eligibleNodesInfo)
+	eligibleValidators, errEligibleValidators := sharding.NodesInfoToValidators(eligibleNodesInfo)
 	if errEligibleValidators != nil {
 		return nil, errEligibleValidators
 	}
 
-	waitingValidators, errWaitingValidators := nodesInfoToValidators(waitingNodesInfo)
+	waitingValidators, errWaitingValidators := sharding.NodesInfoToValidators(waitingNodesInfo)
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
@@ -1278,25 +1278,6 @@ func createNodesCoordinator(
 	}
 
 	return nodesCoordinator, nil
-}
-
-func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]sharding.Validator, 0)
-		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
-			}
-
-			validators = append(validators, validator)
-		}
-		validatorsMap[shId] = validators
-	}
-
-	return validatorsMap, nil
 }
 
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
