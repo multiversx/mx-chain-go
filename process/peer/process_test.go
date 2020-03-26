@@ -1624,8 +1624,8 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		}
 		return nil, expectedErr
 	}
-	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
-		if bytes.Equal(pa0.BLSPublicKey, addressContainer.Bytes()) {
+	peerAdapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+		if bytes.Equal(pa0.GetBLSPublicKey(), addressContainer.Bytes()) {
 			return pa0, nil
 		}
 		return nil, expectedErr
@@ -1635,18 +1635,18 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	validatorInfos, _ := validatorStatistics.GetValidatorInfoForRootHash(hash)
 
-	assert.NotEqual(t, pa0.TempRating, pa0.Rating)
+	assert.NotEqual(t, pa0.GetTempRating(), pa0.GetRating())
 
 	err := validatorStatistics.ResetValidatorStatisticsAtNewEpoch(validatorInfos)
 
 	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(0), pa0.AccumulatedFees)
-	assert.Equal(t, uint32(0), pa0.LeaderSuccessRate.NrSuccess)
-	assert.Equal(t, uint32(0), pa0.LeaderSuccessRate.NrFailure)
-	assert.Equal(t, uint32(0), pa0.ValidatorSuccessRate.NrSuccess)
-	assert.Equal(t, uint32(0), pa0.ValidatorSuccessRate.NrFailure)
-	assert.Equal(t, uint32(0), pa0.NumSelectedInSuccessBlocks)
-	assert.Equal(t, pa0.TempRating, pa0.Rating)
+	assert.Equal(t, big.NewInt(0), pa0.GetAccumulatedFees())
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrSuccess)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrFailure)
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrSuccess)
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrFailure)
+	assert.Equal(t, uint32(0), pa0.GetNumSelectedInSuccessBlocks())
+	assert.Equal(t, pa0.GetTempRating(), pa0.GetRating())
 }
 
 func TestValidatorStatistics_Process(t *testing.T) {
@@ -1673,8 +1673,8 @@ func TestValidatorStatistics_Process(t *testing.T) {
 		}
 		return nil, expectedErr
 	}
-	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
-		if bytes.Equal(pa0.BLSPublicKey, addressContainer.Bytes()) {
+	peerAdapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+		if bytes.Equal(pa0.GetBLSPublicKey(), addressContainer.Bytes()) {
 			return pa0, nil
 		}
 		return nil, expectedErr
@@ -1687,12 +1687,12 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	newTempRating := uint32(25)
 	vi0.TempRating = newTempRating
 
-	assert.NotEqual(t, newTempRating, pa0.Rating)
+	assert.NotEqual(t, newTempRating, pa0.GetRating())
 
 	err := validatorStatistics.Process(vi0)
 
 	assert.Nil(t, err)
-	assert.Equal(t, newTempRating, pa0.Rating)
+	assert.Equal(t, newTempRating, pa0.GetRating())
 }
 
 func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
@@ -1732,28 +1732,25 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	compare(t, paMeta, validatorInfos[core.MetachainShardId][0])
 }
 
-func compare(t *testing.T, peerAccount *state.PeerAccount, validatorInfo *state.ValidatorInfo) {
-	assert.Equal(t, peerAccount.CurrentShardId, validatorInfo.ShardId)
-	assert.Equal(t, peerAccount.Rating, validatorInfo.Rating)
-	assert.Equal(t, peerAccount.TempRating, validatorInfo.TempRating)
-	assert.Equal(t, peerAccount.BLSPublicKey, validatorInfo.PublicKey)
-	assert.Equal(t, peerAccount.ValidatorSuccessRate.NrFailure, validatorInfo.ValidatorFailure)
-	assert.Equal(t, peerAccount.ValidatorSuccessRate.NrSuccess, validatorInfo.ValidatorSuccess)
-	assert.Equal(t, peerAccount.LeaderSuccessRate.NrFailure, validatorInfo.LeaderFailure)
-	assert.Equal(t, peerAccount.LeaderSuccessRate.NrSuccess, validatorInfo.LeaderSuccess)
+func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
+	assert.Equal(t, peerAccount.GetCurrentShardId(), validatorInfo.ShardId)
+	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
+	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
+	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrFailure, validatorInfo.ValidatorFailure)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrSuccess, validatorInfo.ValidatorSuccess)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrFailure, validatorInfo.LeaderFailure)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrSuccess, validatorInfo.LeaderSuccess)
 	assert.Equal(t, "list", validatorInfo.List)
 	assert.Equal(t, uint32(0), validatorInfo.Index)
-	assert.Equal(t, peerAccount.RewardAddress, validatorInfo.RewardAddress)
-	assert.Equal(t, peerAccount.AccumulatedFees, validatorInfo.AccumulatedFees)
-	assert.Equal(t, peerAccount.NumSelectedInSuccessBlocks, validatorInfo.NumSelectedInSuccessBlocks)
+	assert.Equal(t, peerAccount.GetRewardAddress(), validatorInfo.RewardAddress)
+	assert.Equal(t, peerAccount.GetAccumulatedFees(), validatorInfo.AccumulatedFees)
+	assert.Equal(t, peerAccount.GetNumSelectedInSuccessBlocks(), validatorInfo.NumSelectedInSuccessBlocks)
 }
 
-func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (*state.PeerAccount, *state.PeerAccount) {
+func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAccountHandler, state.PeerAccountHandler) {
 	addr := mock.NewAddressMock(addrBytes0)
-	pa0, _ := state.NewPeerAccount(addr, &mock.AccountTrackerStub{
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error { return nil },
-		JournalizeCalled:  func(entry state.JournalEntry) {},
-	})
+	pa0, _ := state.NewPeerAccount(addr)
 	pa0.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:     []byte("bls0"),
 		SchnorrPublicKey: []byte("schnorr0"),
@@ -1783,18 +1780,13 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (*state.PeerAcc
 			NrFailure: 4,
 		},
 		NumSelectedInSuccessBlocks: 5,
-		CodeHash:                   []byte("CodeHash0"),
 		Rating:                     51,
 		TempRating:                 61,
-		RootHash:                   []byte("rootHash1"),
 		Nonce:                      7,
 	}
 
 	addr = mock.NewAddressMock(addrBytesMeta)
-	paMeta, _ := state.NewPeerAccount(addr, &mock.AccountTrackerStub{
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error { return nil },
-		JournalizeCalled:  func(entry state.JournalEntry) {},
-	})
+	paMeta, _ := state.NewPeerAccount(addr)
 	paMeta.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:     []byte("blsM"),
 		SchnorrPublicKey: []byte("schnorrM"),
@@ -1824,10 +1816,8 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (*state.PeerAcc
 			NrFailure: 41,
 		},
 		NumSelectedInSuccessBlocks: 3,
-		CodeHash:                   []byte("CodeHashM"),
 		Rating:                     511,
 		TempRating:                 611,
-		RootHash:                   []byte("rootHashM"),
 		Nonce:                      8,
 	}
 	return pa0, paMeta
