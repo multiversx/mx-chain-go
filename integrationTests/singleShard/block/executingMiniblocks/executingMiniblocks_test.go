@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/singleShard/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -235,7 +235,7 @@ func testTxIsInMiniblock(t *testing.T, proposer *integrationTests.TestProcessorN
 		}
 	}
 
-	assert.Fail(t, fmt.Sprintf("hash %s not found in miniblock type %s", display.DisplayByteSlice(hash), bt.String()))
+	assert.Fail(t, fmt.Sprintf("hash %s not found in miniblock type %s", logger.DisplayByteSlice(hash), bt.String()))
 }
 
 func testTxIsInNotInBody(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte) {
@@ -252,7 +252,7 @@ func testTxIsInNotInBody(t *testing.T, proposer *integrationTests.TestProcessorN
 		for _, txHash := range miniblock.TxHashes {
 			if bytes.Equal(hash, txHash) {
 				assert.Fail(t, fmt.Sprintf("hash %s should not have been not found in miniblock type %s",
-					display.DisplayByteSlice(hash), miniblock.Type.String()))
+					logger.DisplayByteSlice(hash), miniblock.Type.String()))
 			}
 		}
 	}

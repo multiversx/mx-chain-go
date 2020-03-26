@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -138,7 +138,7 @@ func saveMetachainCommitBlockMetrics(
 	nodesCoordinator sharding.NodesCoordinator,
 
 ) {
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
