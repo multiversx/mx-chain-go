@@ -36,8 +36,8 @@
     ConsecutiveMissedBlocksPenalty = 1.12
 
 [MetaChain.RatingSteps]
-    ProposerIncreaseRatingStep = 405
-    ProposerDecreaseRatingStep = -810
-    ValidatorIncreaseRatingStep = 81
-    ValidatorDecreaseRatingStep = -162
+    ProposerIncreaseRatingStep = 810
+    ProposerDecreaseRatingStep = -1620
+    ValidatorIncreaseRatingStep = 162
+    ValidatorDecreaseRatingStep = -324
     ConsecutiveMissedBlocksPenalty = 1.12
