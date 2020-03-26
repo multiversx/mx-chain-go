@@ -6,6 +6,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
@@ -185,7 +184,7 @@ func GetMarshalizedHeaderFromStorage(
 	buffHdr, err := hdrStore.Get(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%w : GetMarshalizedHeaderFromStorage hash = %s",
-			ErrMissingHeader, display.DisplayByteSlice(hash))
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return buffHdr, nil
@@ -514,7 +513,7 @@ func getHeaderFromPool(
 	obj, err := headersCacher.GetHeaderByHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%w : getHeaderFromPool hash = %s",
-			ErrMissingHeader, display.DisplayByteSlice(hash))
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return obj, nil

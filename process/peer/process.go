@@ -8,14 +8,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -574,7 +573,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 	blkHandler := cacheMap[string(hash)]
 	if check.IfNil(blkHandler) {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",
-			process.ErrMissingHeader, display.DisplayByteSlice(hash))
+			process.ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	blk, ok := blkHandler.(*block.Header)

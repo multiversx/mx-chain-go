@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
@@ -17,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -441,7 +441,7 @@ func (txs *transactions) processTxsFromMe(
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
 		txsFromMe,
-		)
+	)
 	if err != nil {
 		return err
 	}
@@ -753,7 +753,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
 		sortedTxs,
-		)
+	)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
 		"time [s]", elapsedTime,

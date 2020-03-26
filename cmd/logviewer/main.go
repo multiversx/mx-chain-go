@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -185,7 +185,8 @@ func startLogViewer(ctx *cli.Context) error {
 		WithLoggerName:   argsConfig.withLoggerName,
 	}
 
-	profile.Apply()
+	err = profile.Apply()
+	log.LogIfError(err)
 
 	go func() {
 		for {
