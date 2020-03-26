@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -129,6 +130,15 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithDataStore(tP2pNode.Storage),
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {{PublicKey: []byte("pk0")}},
+				}, nil
+			},
+		}),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -41,6 +42,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -60,6 +62,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -79,6 +82,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		nil,
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -98,12 +102,33 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		nil,
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilHeartbeatStorer, err)
+}
+
+func TestNewMonitor_NilPeerTypeProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := mock.NewMockTimer()
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		nil,
+		th,
+		createMockP2PAntifloodHandler(),
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 }
 
 func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
@@ -116,6 +141,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		nil,
 		createMockP2PAntifloodHandler(),
 	)
@@ -135,6 +161,7 @@ func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.PeerTypeProviderStub{},
 		th,
 		nil,
 	)
@@ -167,6 +194,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -206,6 +234,15 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 			},
 			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
 				return nil
+			},
+		},
+		&mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+				if string(pubKey) == "pk0" {
+					return "", 0, nil
+				}
+
+				return "", 1, nil
 			},
 		},
 		th,
@@ -262,6 +299,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -321,6 +359,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -384,6 +423,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
@@ -455,6 +495,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 			},
 		},
 		storer,
+		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
