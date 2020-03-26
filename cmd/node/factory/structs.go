@@ -35,7 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	factory2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
+	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -402,12 +402,12 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	dataPoolArgs := factory2.ArgsDataPool{
+	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
 		Config:           args.config,
 		EconomicsData:    args.economicsData,
 		ShardCoordinator: args.shardCoordinator,
 	}
-	datapool, err = factory2.NewDataPoolFromConfig(dataPoolArgs)
+	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -543,29 +543,29 @@ func NetworkComponentsFactory(
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents         *coreComponentsFactoryArgs
-	genesisConfig          *sharding.Genesis
-	economicsData          *economics.EconomicsData
-	nodesConfig            *sharding.NodesSetup
-	gasSchedule            map[string]map[string]uint64
-	syncer                 ntp.SyncTimer
-	shardCoordinator       sharding.Coordinator
-	nodesCoordinator       sharding.NodesCoordinator
-	data                   *Data
-	coreData               *Core
-	crypto                 *Crypto
-	state                  *State
-	network                *Network
-	coreServiceContainer   serviceContainer.Core
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	whiteListHandler       process.InterceptedDataWhiteList
-	epochStartNotifier     EpochStartNotifier
-	epochStart             *config.EpochStartConfig
-	rater                  sharding.PeerAccountListAndRatingHandler
-	startEpochNum          uint32
-	sizeCheckDelta         uint32
-	stateCheckpointModulus uint
-	maxComputableRounds    uint64
+	coreComponents            *coreComponentsFactoryArgs
+	genesisConfig             *sharding.Genesis
+	economicsData             *economics.EconomicsData
+	nodesConfig               *sharding.NodesSetup
+	gasSchedule               map[string]map[string]uint64
+	syncer                    ntp.SyncTimer
+	shardCoordinator          sharding.Coordinator
+	nodesCoordinator          sharding.NodesCoordinator
+	data                      *Data
+	coreData                  *Core
+	crypto                    *Crypto
+	state                     *State
+	network                   *Network
+	coreServiceContainer      serviceContainer.Core
+	requestedItemsHandler     dataRetriever.RequestedItemsHandler
+	whiteListHandler          process.InterceptedDataWhiteList
+	epochStartNotifier        EpochStartNotifier
+	epochStart                *config.EpochStartConfig
+	rater                     sharding.PeerAccountListAndRatingHandler
+	startEpochNum             uint32
+	sizeCheckDelta            uint32
+	stateCheckpointModulus    uint
+	maxComputableRounds       uint64
 	numConcurrentResolverJobs int32
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
@@ -601,29 +601,29 @@ func NewProcessComponentsFactoryArgs(
 	maxSizeInBytes uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:         coreComponents,
-		genesisConfig:          genesisConfig,
-		economicsData:          economicsData,
-		nodesConfig:            nodesConfig,
-		gasSchedule:            gasSchedule,
-		syncer:                 syncer,
-		shardCoordinator:       shardCoordinator,
-		nodesCoordinator:       nodesCoordinator,
-		data:                   data,
-		coreData:               coreData,
-		crypto:                 crypto,
-		state:                  state,
-		network:                network,
-		coreServiceContainer:   coreServiceContainer,
-		requestedItemsHandler:  requestedItemsHandler,
-		whiteListHandler:       whiteListHandler,
-		epochStartNotifier:     epochStartNotifier,
-		epochStart:             epochStart,
-		startEpochNum:          startEpochNum,
-		rater:                  rater,
-		sizeCheckDelta:         sizeCheckDelta,
-		stateCheckpointModulus: stateCheckpointModulus,
-		maxComputableRounds:    maxComputableRounds,
+		coreComponents:            coreComponents,
+		genesisConfig:             genesisConfig,
+		economicsData:             economicsData,
+		nodesConfig:               nodesConfig,
+		gasSchedule:               gasSchedule,
+		syncer:                    syncer,
+		shardCoordinator:          shardCoordinator,
+		nodesCoordinator:          nodesCoordinator,
+		data:                      data,
+		coreData:                  coreData,
+		crypto:                    crypto,
+		state:                     state,
+		network:                   network,
+		coreServiceContainer:      coreServiceContainer,
+		requestedItemsHandler:     requestedItemsHandler,
+		whiteListHandler:          whiteListHandler,
+		epochStartNotifier:        epochStartNotifier,
+		epochStart:                epochStart,
+		startEpochNum:             startEpochNum,
+		rater:                     rater,
+		sizeCheckDelta:            sizeCheckDelta,
+		stateCheckpointModulus:    stateCheckpointModulus,
+		maxComputableRounds:       maxComputableRounds,
 		numConcurrentResolverJobs: numConcurrentResolverJobs,
 		minSizeInBytes:            minSizeInBytes,
 		maxSizeInBytes:            maxSizeInBytes,
@@ -1434,14 +1434,14 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		if errNewCache != nil {
 			return nil, errNewCache
 		}
-		newBlkc, errNewMetachain := blockchain.NewMetaChain(cache)
+		newBlockChain, errNewMetachain := blockchain.NewMetaChain(cache)
 		if errNewMetachain != nil {
 			return nil, errNewMetachain
 		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Blkc = newBlkc
+		argsMetaGenesis.Blkc = newBlockChain
 	}
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(

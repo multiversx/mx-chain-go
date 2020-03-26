@@ -126,7 +126,7 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := emptyExcludePeersOnTopic
 
-		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx, numPeersToQuery)
+		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
 		if err != nil {
 			return err
 		}
@@ -138,12 +138,10 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	return mrcf.container.AddMultiple(keys, resolversSlice)
 }
 
-// createShardHeaderResolver will return a shard header resolver for the given shard ID
 func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	topic string,
 	excludedTopic string,
 	shardID uint32,
-	numPeersToQuery int,
 ) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
@@ -183,7 +181,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic
-	resolver, err := mrcf.createMetaChainHeaderResolver(identifierHeader, numPeersToQuery, core.MetachainShardId)
+	resolver, err := mrcf.createMetaChainHeaderResolver(identifierHeader, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -191,10 +189,8 @@ func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() er
 	return mrcf.container.Add(identifierHeader, resolver)
 }
 
-// createMetaChainHeaderResolver will return a resolver for metachain headers
 func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 	identifier string,
-	numPeersToQuery int,
 	shardId uint32,
 ) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)

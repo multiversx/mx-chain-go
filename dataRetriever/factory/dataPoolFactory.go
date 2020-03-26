@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	txpool2 "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
+	txPoolFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -30,7 +30,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	mainConfig := args.Config
 
-	txPool, err := txpool2.CreateTxPool(txpool.ArgShardedTxPool{
+	txPool, err := txPoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
 		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
 		MinGasPrice:    args.EconomicsData.MinGasPrice(),
 		NumberOfShards: args.ShardCoordinator.NumberOfShards(),

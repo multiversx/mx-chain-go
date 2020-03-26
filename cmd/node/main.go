@@ -391,7 +391,6 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
-	var networkComponents *factory.Network
 
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
@@ -530,27 +529,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	if ctx.IsSet(workingDirectory.Name) {
-		workingDir = ctx.GlobalString(workingDirectory.Name)
-	} else {
-		workingDir, err = os.Getwd()
-		if err != nil {
-			log.LogIfError(err)
-			workingDir = ""
-		}
-	}
-	log.Trace("working directory", "path", workingDir)
-
-	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanupFlagValue {
-		dbPath := filepath.Join(
-			workingDir,
-			defaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err = os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	err = cleanupStorageIfNecessary(workingDir, ctx, log)
+	if err != nil {
+		return err
 	}
 
 	pathTemplateForPruningStorer := filepath.Join(
@@ -604,7 +585,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	networkComponents, err = factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -625,7 +606,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	epochStartBootsrapArgs := bootstrap.ArgsEpochStartBootstrap{
+	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:          pubKey,
 		Marshalizer:        coreComponents.InternalMarshalizer,
 		Hasher:             coreComponents.Hasher,
@@ -644,24 +625,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultShardString: defaultShardString,
 		Rater:              rater,
 	}
-	bootsrapper, err := bootstrap.NewEpochStartBootstrapHandler(epochStartBootsrapArgs)
+	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
 		log.Error("could not create bootsrapper", "err", err)
 		return err
 	}
-	currentEpoch, currentShardId, numOfShards, err := bootsrapper.Bootstrap()
+	bootstrapParameters, err := bootstrapper.Bootstrap()
 	if err != nil {
 		log.Error("boostrap return error", "error", err)
 		return err
 	}
 
+	currentEpoch := bootstrapParameters.Epoch
 	if !generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
 		currentEpoch = 0
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, currentShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
 	if err != nil {
 		return err
 	}
@@ -997,6 +979,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
+	return nil
+}
+
+func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.Logger) error {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err := os.RemoveAll(dbPath)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

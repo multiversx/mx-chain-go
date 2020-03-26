@@ -32,7 +32,7 @@ func EmptyChannel(ch chan bool) int {
 	}
 }
 
-// GetMiniBlock gets the header, which is associated with the given hash, from pool or storage
+// GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,

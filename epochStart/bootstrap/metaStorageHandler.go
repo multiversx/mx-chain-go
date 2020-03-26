@@ -70,29 +70,31 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 
 	bootStorer := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
-	lastHeader, err := msh.getAndSaveLastHeader(components.EpochStartMetaBlock)
+	lastHeader, err := msh.saveLastHeader(components.EpochStartMetaBlock)
 	if err != nil {
 		return err
 	}
 
-	miniBlocks, err := msh.getAndSavePendingMiniBlocks(components.PendingMiniBlocks)
+	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	triggerConfigKey, err := msh.getAndSaveTriggerRegistry(components)
+	triggerConfigKey, err := msh.saveTriggerRegistry(components)
 	if err != nil {
 		return err
 	}
 
-	nodesCoordinatorConfigKey, err := msh.getAndSaveNodesCoordinatorKey(components.EpochStartMetaBlock, components.NodesConfig)
+	nodesCoordinatorConfigKey, err := msh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
 	}
+
+	lastCrossNotarizedHeader := msh.getLastCrossNotarizedHeaders(components.EpochStartMetaBlock)
 
 	bootStrapData := bootstrapStorage.BootstrapData{
-		LastHeader:                 lastHeader, // meta - epoch start metablock ; shard - shard header
-		LastCrossNotarizedHeaders:  nil,        // lastFinalizedMetaBlock + firstPendingMetaBlock
+		LastHeader:                 lastHeader,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
 		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
 		ProcessedMiniBlocks:        nil,
 		PendingMiniBlocks:          miniBlocks,
@@ -111,7 +113,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = msh.saveTries(components)
+	err = msh.commitTries(components)
 	if err != nil {
 		return err
 	}
@@ -120,13 +122,24 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	return nil
 }
 
-func (msh *metaStorageHandler) getAndSaveLastHeader(metaBlock *block.MetaBlock) (bootstrapStorage.BootstrapHeaderInfo, error) {
+func (msh *metaStorageHandler) getLastCrossNotarizedHeaders(meta *block.MetaBlock) []bootstrapStorage.BootstrapHeaderInfo {
+	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	for _, epochStartShardData := range meta.EpochStart.LastFinalizedHeaders {
+		crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: epochStartShardData.ShardID,
+			Nonce:   epochStartShardData.Nonce,
+			Hash:    epochStartShardData.HeaderHash,
+		})
+	}
+
+	return crossNotarizedHdrs
+}
+
+func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (bootstrapStorage.BootstrapHeaderInfo, error) {
 	lastHeaderHash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
 	}
-
-	//metaBlock.
 
 	lastHeaderBytes, err := msh.marshalizer.Marshal(metaBlock)
 	if err != nil {
@@ -147,7 +160,7 @@ func (msh *metaStorageHandler) getAndSaveLastHeader(metaBlock *block.MetaBlock) 
 	return bootstrapHdrInfo, nil
 }
 
-func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
+func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
 	metaBlock := components.EpochStartMetaBlock
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {
@@ -165,7 +178,7 @@ func (msh *metaStorageHandler) getAndSaveTriggerRegistry(components *ComponentsN
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", metaBlock.Epoch)
-	key := []byte(triggerRegistrykeyPrefix + trigStateKey)
+	key := []byte(triggerRegistryKeyPrefix + trigStateKey)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {

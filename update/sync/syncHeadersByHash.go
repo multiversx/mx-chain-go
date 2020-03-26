@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -89,6 +90,11 @@ func (m *missingHeadersByHash) SyncMissingHeadersByHash(
 		}
 
 		requestedMBs++
+		if shardIDs[index] == core.MetachainShardId {
+			m.requestHandler.RequestMetaHeader(hash)
+			continue
+		}
+
 		m.requestHandler.RequestShardHeader(shardIDs[index], hash)
 	}
 	m.mutMissingHdrs.Unlock()

@@ -61,7 +61,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
-	argsIntCont := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		ShardCoordinator:       args.ShardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
 		Messenger:              args.Messenger,
@@ -88,7 +88,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		WhiteListHandler:       args.WhiteListHandler,
 	}
 
-	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(argsIntCont)
+	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}

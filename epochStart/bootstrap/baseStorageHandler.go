@@ -14,9 +14,9 @@ import (
 // HighestRoundFromBootStorage is the key for the highest round that is saved in storage
 const highestRoundFromBootStorage = "highestRoundFromBootStorage"
 
-const triggerRegistrykeyPrefix = "epochStartTrigger_"
+const triggerRegistryKeyPrefix = "epochStartTrigger_"
 
-const nodesCoordinatorRegistrykeyPrefix = "indexHashed_"
+const nodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
@@ -27,13 +27,11 @@ type baseStorageHandler struct {
 	currentEpoch     uint32
 }
 
-func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
 	pendingMBsMap := make(map[uint32][][]byte)
 	for hash, miniBlock := range miniBlocks {
-		if _, ok := pendingMBsMap[miniBlock.SenderShardID]; !ok {
-			pendingMBsMap[miniBlock.SenderShardID] = make([][]byte, 0)
-		}
-		pendingMBsMap[miniBlock.SenderShardID] = append(pendingMBsMap[miniBlock.SenderShardID], []byte(hash))
+		senderShId := miniBlock.SenderShardID
+		pendingMBsMap[senderShId] = append(pendingMBsMap[senderShId], []byte(hash))
 	}
 
 	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
@@ -47,11 +45,11 @@ func (bsh *baseStorageHandler) getAndSavePendingMiniBlocks(miniBlocks map[string
 	return sliceToRet, nil
 }
 
-func (bsh *baseStorageHandler) getAndSaveNodesCoordinatorKey(
+func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
 ) ([]byte, error) {
-	key := append([]byte(nodesCoordinatorRegistrykeyPrefix), metaBlock.RandSeed...)
+	key := append([]byte(nodesCoordinatorRegistryKeyPrefix), metaBlock.RandSeed...)
 
 	registryBytes, err := json.Marshal(nodesConfig)
 	if err != nil {
@@ -66,7 +64,7 @@ func (bsh *baseStorageHandler) getAndSaveNodesCoordinatorKey(
 	return key, nil
 }
 
-func (bsh *baseStorageHandler) saveTries(components *ComponentsNeededForBootstrap) error {
+func (bsh *baseStorageHandler) commitTries(components *ComponentsNeededForBootstrap) error {
 	for _, trie := range components.UserAccountTries {
 		err := trie.Commit()
 		if err != nil {

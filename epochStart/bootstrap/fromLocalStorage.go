@@ -14,7 +14,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
-func (e *epochStartBootstrap) searchDataInLocalStorage() {
+func (e *epochStartBootstrap) initializeFromLocalStorage() {
 	var errNotCritical error
 	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
 		e.generalConfig,
@@ -35,7 +35,7 @@ func (e *epochStartBootstrap) searchDataInLocalStorage() {
 	}
 }
 
-func (e *epochStartBootstrap) prepareEpochFromStorage() (uint32, uint32, uint32, error) {
+func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	args := storageFactory.ArgsNewOpenStorageUnits{
 		GeneralConfig:      e.generalConfig,
 		Marshalizer:        e.marshalizer,
@@ -47,7 +47,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (uint32, uint32, uint32,
 	}
 	openStorageHandler, err := storageFactory.NewStorageUnitOpenHandler(args)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	unitsToOpen := make([]string, 0)
@@ -63,63 +63,73 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (uint32, uint32, uint32,
 	}()
 
 	if err != nil || len(storageUnits) != len(unitsToOpen) {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	_, e.nodesConfig, err = e.getLastBootstrapData(storageUnits[0])
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	pubKey, err := e.publicKey.ToByteArray()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	if !e.checkIfShuffledOut(pubKey, e.nodesConfig) {
-		return e.baseData.lastEpoch, e.baseData.shardId, e.baseData.numberOfShards, nil
+		parameters := Parameters{
+			Epoch:       e.baseData.lastEpoch,
+			SelfShardId: e.baseData.shardId,
+			NumOfShards: e.baseData.numberOfShards,
+		}
+		return parameters, nil
 	}
 
 	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
 	if !ok {
-		return 0, 0, 0, epochStart.ErrWrongTypeAssertion
+		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
 
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
 		err = e.requestAndProcessForShard()
 		if err != nil {
-			return 0, 0, 0, err
+			return Parameters{}, err
 		}
 	}
 
 	err = e.requestAndProcessForMeta()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
-	return e.baseData.lastEpoch, e.shardCoordinator.SelfId(), e.shardCoordinator.NumberOfShards(), nil
+	parameters := Parameters{
+		Epoch:       e.baseData.lastEpoch,
+		SelfShardId: e.shardCoordinator.SelfId(),
+		NumOfShards: e.shardCoordinator.NumberOfShards(),
+	}
+	return parameters, nil
 }
 
 func (e *epochStartBootstrap) checkIfShuffledOut(

@@ -73,7 +73,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 
 	bootStorer := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
-	lastHeader, err := ssh.getAndSaveLastHeader(components.ShardHeader)
+	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
 	if err != nil {
 		return err
 	}
@@ -83,22 +83,22 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	pendingMiniBlocks, err := ssh.getAndSavePendingMiniBlocks(components.PendingMiniBlocks)
+	pendingMiniBlocks, err := ssh.groupMiniBlocksByShard(components.PendingMiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	triggerConfigKey, err := ssh.getAndSaveTriggerRegistry(components)
+	triggerConfigKey, err := ssh.saveTriggerRegistry(components)
 	if err != nil {
 		return err
 	}
 
-	nodesCoordinatorConfigKey, err := ssh.getAndSaveNodesCoordinatorKey(components.EpochStartMetaBlock, components.NodesConfig)
+	nodesCoordinatorConfigKey, err := ssh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
 	}
 
-	lastCrossNotarizedHdrs, err := ssh.getLastCrossNotarzierHeaders(components.EpochStartMetaBlock, components.Headers)
+	lastCrossNotarizedHdrs, err := ssh.getLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	err = ssh.saveTries(components)
+	err = ssh.commitTries(components)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (ssh *shardStorageHandler) getProcessMiniBlocks(
 	return nil, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getLastCrossNotarzierHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+func (ssh *shardStorageHandler) getLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
 	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	for _, epochStartShardData := range meta.EpochStart.LastFinalizedHeaders {
 		if epochStartShardData.ShardID != ssh.shardCoordinator.SelfId() {
@@ -197,7 +197,7 @@ func (ssh *shardStorageHandler) getLastCrossNotarzierHeaders(meta *block.MetaBlo
 		}
 
 		crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: ssh.shardCoordinator.SelfId(),
+			ShardId: core.MetachainShardId,
 			Nonce:   neededMeta.GetNonce(),
 			Hash:    epochStartShardData.LastFinishedMetaBlock,
 		})
@@ -208,7 +208,7 @@ func (ssh *shardStorageHandler) getLastCrossNotarzierHeaders(meta *block.MetaBlo
 		}
 
 		crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: ssh.shardCoordinator.SelfId(),
+			ShardId: core.MetachainShardId,
 			Nonce:   neededMeta.GetNonce(),
 			Hash:    epochStartShardData.FirstPendingMetaBlock,
 		})
@@ -219,7 +219,7 @@ func (ssh *shardStorageHandler) getLastCrossNotarzierHeaders(meta *block.MetaBlo
 	return nil, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getAndSaveLastHeader(shardHeader *block.Header) (bootstrapStorage.BootstrapHeaderInfo, error) {
+func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (bootstrapStorage.BootstrapHeaderInfo, error) {
 	lastHeaderHash, err := core.CalculateHash(ssh.marshalizer, ssh.hasher, shardHeader)
 	if err != nil {
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
@@ -244,7 +244,7 @@ func (ssh *shardStorageHandler) getAndSaveLastHeader(shardHeader *block.Header) 
 	return bootstrapHdrInfo, nil
 }
 
-func (ssh *shardStorageHandler) getAndSaveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
+func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
 	shardHeader := components.ShardHeader
 
 	metaBlock := components.EpochStartMetaBlock
@@ -264,7 +264,7 @@ func (ssh *shardStorageHandler) getAndSaveTriggerRegistry(components *Components
 	}
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", metaBlock.Epoch)
-	key := []byte(triggerRegistrykeyPrefix + trigStateKey)
+	key := []byte(triggerRegistryKeyPrefix + trigStateKey)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {

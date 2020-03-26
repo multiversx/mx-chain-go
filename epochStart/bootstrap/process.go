@@ -44,6 +44,13 @@ var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const timeToWait = 5 * time.Second
 
+// BootstrapParameters
+type Parameters struct {
+	Epoch       uint32
+	SelfShardId uint32
+	NumOfShards uint32
+}
+
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
 	EpochStartMetaBlock         *block.MetaBlock
@@ -131,7 +138,7 @@ type ArgsEpochStartBootstrap struct {
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
-func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
+func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
 	epochStartProvider := &epochStartBootstrap{
 		publicKey:          args.PublicKey,
 		marshalizer:        args.Marshalizer,
@@ -153,6 +160,11 @@ func NewEpochStartBootstrapHandler(args ArgsEpochStartBootstrap) (*epochStartBoo
 	return epochStartProvider, nil
 }
 
+func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
+	return time.Duration(e.genesisNodesConfig.RoundDuration *
+		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch))
+}
+
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
 	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
 	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
@@ -160,24 +172,26 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	timeInFirstEpochAtRoundsPerEpoch := startTime.Add(time.Duration(e.genesisNodesConfig.RoundDuration *
-		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)))
-	isEpochZero := time.Now().Sub(timeInFirstEpochAtRoundsPerEpoch) < 0
+	configuredDurationOfEpoch := startTime.Add(e.computedDurationOfEpoch())
+	isEpochZero := time.Now().Sub(configuredDurationOfEpoch) < 0
 
 	return isEpochZero
 }
 
-func (e *epochStartBootstrap) prepareEpochZero() (uint32, uint32, uint32, error) {
-	currentEpoch := uint32(0)
-	return currentEpoch, e.shardCoordinator.SelfId(), e.shardCoordinator.NumberOfShards(), nil
+func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
+	parameters := Parameters{
+		Epoch:       0,
+		SelfShardId: e.shardCoordinator.SelfId(),
+		NumOfShards: e.shardCoordinator.NumberOfShards(),
+	}
+	return parameters, nil
 }
 
 func (e *epochStartBootstrap) computeMostProbableEpoch() {
 	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
 	elapsedTime := time.Since(startTime)
 
-	timeForOneEpoch := time.Duration(e.genesisNodesConfig.RoundDuration *
-		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch))
+	timeForOneEpoch := e.computedDurationOfEpoch()
 
 	elaspedTimeInSeconds := uint64(elapsedTime.Seconds())
 	timeForOneEpochInSeconds := uint64(timeForOneEpoch.Seconds())
@@ -185,32 +199,32 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 	e.computedEpoch = uint32(elaspedTimeInSeconds / timeForOneEpochInSeconds)
 }
 
-func (e *epochStartBootstrap) Bootstrap() (uint32, uint32, uint32, error) {
+func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if e.isStartInEpochZero() {
 		return e.prepareEpochZero()
 	}
 
 	e.computeMostProbableEpoch()
-	e.searchDataInLocalStorage()
+	e.initializeFromLocalStorage()
 
 	// TODO: make a better decision according to lastRound, lastEpoch
 	isCurrentEpochSaved := e.baseData.lastEpoch+1 >= e.computedEpoch
 	if isCurrentEpochSaved {
-		epoch, shardId, numOfShards, err := e.prepareEpochFromStorage()
+		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
-			return epoch, shardId, numOfShards, nil
+			return parameters, nil
 		}
 	}
 
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	return e.requestAndProcessing()
@@ -316,11 +330,11 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 }
 
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
-func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, error) {
+func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
@@ -328,54 +342,59 @@ func (e *epochStartBootstrap) requestAndProcessing() (uint32, uint32, uint32, er
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
 	if !ok {
-		return 0, 0, 0, epochStart.ErrWrongTypeAssertion
+		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
 
 	pubKeyBytes, err := e.publicKey.ToByteArray()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	err = e.createTrieStorageManagers()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	err = e.processNodesConfig(pubKeyBytes, e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
-	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+	if e.shardCoordinator.SelfId() != core.MetachainShardId {
 		err = e.requestAndProcessForShard()
 		if err != nil {
-			return 0, 0, 0, err
+			return Parameters{}, err
 		}
 	}
 
 	err = e.requestAndProcessForMeta()
 	if err != nil {
-		return 0, 0, 0, err
+		return Parameters{}, err
 	}
 
-	return e.baseData.shardId, e.baseData.numberOfShards, e.baseData.lastEpoch, nil
+	parameters := Parameters{
+		Epoch:       e.baseData.shardId,
+		SelfShardId: core.MetachainShardId,
+		NumOfShards: e.baseData.numberOfShards,
+	}
+	return parameters, nil
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte, rootHash []byte) error {
@@ -449,21 +468,23 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	return nil
 }
 
-func (e *epochStartBootstrap) requestAndProcessForShard() error {
+func (e *epochStartBootstrap) findSelfShardEpochStartData() (block.EpochStartShardData, error) {
 	var epochStartData block.EpochStartShardData
-	found := false
 	for _, shardData := range e.epochStartMeta.EpochStart.LastFinalizedHeaders {
 		if shardData.ShardID == e.shardCoordinator.SelfId() {
-			epochStartData = shardData
-			found = true
-			break
+			return shardData, nil
 		}
 	}
-	if !found {
-		return epochStart.ErrEpochStartDataForShardNotFound
+	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
+}
+
+func (e *epochStartBootstrap) requestAndProcessForShard() error {
+	epochStartData, err := e.findSelfShardEpochStartData()
+	if err != nil {
+		return err
 	}
 
-	err := e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, timeToWait)
+	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, timeToWait)
 	if err != nil {
 		return err
 	}
@@ -473,12 +494,14 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	shardIds := make([]uint32, 0, 2)
-	hashesToRequest := make([][]byte, 0, 2)
-	hashesToRequest = append(hashesToRequest, epochStartData.LastFinishedMetaBlock)
-	hashesToRequest = append(hashesToRequest, epochStartData.FirstPendingMetaBlock)
-	shardIds = append(shardIds, e.shardCoordinator.SelfId())
-	shardIds = append(shardIds, e.shardCoordinator.SelfId())
+	shardIds := []uint32{
+		core.MetachainShardId,
+		core.MetachainShardId,
+	}
+	hashesToRequest := [][]byte{
+		epochStartData.LastFinishedMetaBlock,
+		epochStartData.FirstPendingMetaBlock,
+	}
 
 	e.headersSyncer.ClearFields()
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait)

@@ -15,9 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// numPeersToQuery number of peers to send the message
-const numPeersToQuery = 2
-
 const emptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
 const numCrossShardPeers = 2
