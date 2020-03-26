@@ -224,11 +224,11 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
 	addrConverter := &mock.AddressConverterMock{}
-	vm := &mock.VMContainerMock{}
+
 	argParser := &mock.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AdrConv = addrConverter
-	arguments.VmContainer = vm
+	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -242,14 +242,13 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	called := false
-	tmpError := errors.New("error")
+	parseError := errors.New("fooError")
 	argParser.ParseDataCalled = func(data string) error {
-		called = true
-		return tmpError
+		return parseError
 	}
+
 	_ = sc.DeploySmartContract(tx, acntSrc)
-	require.True(t, called)
+	require.Equal(t, parseError, sc.GetLastSilentError())
 }
 
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
@@ -257,7 +256,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	addrConverter := &mock.AddressConverterMock{}
 	vmContainer := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := vmcommon.NewAtArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AdrConv = addrConverter
 	arguments.VmContainer = vmContainer
@@ -270,29 +269,23 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = []byte("abba@0005@0000")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	tmpError := errors.New("error")
 	vm := &mock.VMExecutionHandlerStub{}
-	called := false
+
+	createError := errors.New("fooError")
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
-		called = true
-		return nil, tmpError
+		return nil, createError
 	}
 
 	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 		return vm, nil
 	}
 
-	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([][]byte, error) {
-		return [][]byte{vmArg}, nil
-	}
-
 	_ = sc.DeploySmartContract(tx, acntSrc)
-	require.True(t, called)
+	require.Equal(t, createError, sc.GetLastSilentError())
 }
 
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
@@ -324,7 +317,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 
 	addrConverter := &mock.AddressConverterMock{}
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := vmcommon.NewAtArgumentParser()
 	accntState := &mock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AdrConv = addrConverter
@@ -339,7 +332,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = []byte("abba@0500@0000")
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
@@ -347,13 +340,8 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([][]byte, error) {
-		return [][]byte{vmArg}, nil
-	}
-
 	err = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, nil, err)
+	require.Nil(t, sc.GetLastSilentError())
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
@@ -535,7 +523,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	argParser.GetFunctionCalled = func() (s string, e error) {
 		return "", tmpError
 	}
-	vmInput, err := sc.CreateVMCallInput(tx)
+	vmInput, err := sc.createVMCallInput(tx)
 	require.Nil(t, vmInput)
 	require.Equal(t, tmpError, err)
 }
@@ -559,7 +547,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	vmInput, err := sc.CreateVMCallInput(tx)
+	vmInput, err := sc.createVMCallInput(tx)
 	require.NotNil(t, vmInput)
 	require.Nil(t, err)
 }
@@ -592,7 +580,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 		return [][]byte{vmArg}, nil
 	}
 
-	vmInput, vmType, _, err := sc.CreateVMDeployInput(tx)
+	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmInput)
 	require.Equal(t, tmpError, err)
 	require.Nil(t, vmType)
@@ -623,7 +611,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 		return [][]byte{vmTypeArg, codeMetadataArg}, nil
 	}
 
-	vmInput, vmType, codeMetadata, err := sc.CreateVMDeployInput(tx)
+	vmInput, vmType, codeMetadata, err := sc.createVMDeployInput(tx)
 	require.NotNil(t, vmInput)
 	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
 	require.True(t, bytes.Equal(vmTypeArg, vmType))
@@ -650,7 +638,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	tx.Data = []byte("data@0000")
 	tx.Value = big.NewInt(45)
 
-	vmInput, vmType, _, err := sc.CreateVMDeployInput(tx)
+	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmInput)
 	require.Nil(t, vmType)
 	require.Equal(t, ErrNotEnoughArgumentsToDeploy, err)
@@ -679,7 +667,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	argParser.GetArgumentsCalled = func() (ints [][]byte, e error) {
 		return nil, tmpError
 	}
-	vmInput, err := sc.CreateVMInput(tx)
+	vmInput, err := sc.createVMInput(tx)
 	require.Nil(t, vmInput)
 	require.Equal(t, tmpError, err)
 }
@@ -709,7 +697,7 @@ func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasLimit = 100
 
-	vmInput, err := sc.CreateVMInput(tx)
+	vmInput, err := sc.createVMInput(tx)
 	require.Nil(t, vmInput)
 	require.Equal(t, process.ErrNotEnoughGas, err)
 }
@@ -733,7 +721,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	vmInput, err := sc.CreateVMInput(tx)
+	vmInput, err := sc.createVMInput(tx)
 	require.NotNil(t, vmInput)
 	require.Equal(t, nil, err)
 }
@@ -869,7 +857,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.GetAccountFromAddress([]byte("SRC"))
+	acc, err := sc.getAccountFromAddress([]byte("SRC"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 }
@@ -904,7 +892,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.GetAccountFromAddress([]byte("DST"))
+	acc, err := sc.getAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.NotNil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -939,7 +927,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.GetAccountFromAddress([]byte("DST"))
+	acc, err := sc.getAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 1, getCalled)
@@ -974,7 +962,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.GetAccountFromAddress([]byte("DST"))
+	acc, err := sc.getAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -1010,7 +998,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.GetAccountFromAddress([]byte("DST"))
+	acc, err := sc.getAccountFromAddress([]byte("DST"))
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 1, getCalled)
@@ -1049,7 +1037,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 
 	deletedAccounts := make([][]byte, 0)
 	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
-	err = sc.DeleteAccounts(deletedAccounts)
+	err = sc.deleteAccounts(deletedAccounts)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 0, removeCalled)
 }
@@ -1086,7 +1074,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 
 	deletedAccounts := make([][]byte, 0)
 	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
-	err = sc.DeleteAccounts(deletedAccounts)
+	err = sc.deleteAccounts(deletedAccounts)
 	require.Nil(t, err)
 	require.Equal(t, 0, removeCalled)
 	require.Equal(t, len(deletedAccounts), computeIdCalled)
@@ -1128,7 +1116,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 
 	deletedAccounts := make([][]byte, 0)
 	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
-	err = sc.DeleteAccounts(deletedAccounts)
+	err = sc.deleteAccounts(deletedAccounts)
 	require.Nil(t, err)
 	require.Equal(t, len(deletedAccounts), removeCalled)
 	require.Equal(t, len(deletedAccounts), computeIdCalled)
@@ -1152,7 +1140,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	err = sc.ProcessSCPayment(tx, nil)
+	err = sc.processSCPayment(tx, nil)
 	require.Nil(t, err)
 }
 
@@ -1179,7 +1167,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	currBalance := acntSrc.GetBalance().Uint64()
 
-	err = sc.ProcessSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc)
 	require.Equal(t, process.ErrInsufficientFunds, err)
 	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
 }
@@ -1206,7 +1194,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
-	err = sc.ProcessSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
@@ -1349,7 +1337,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.ProcessVMOutput(nil, txHash, tx, acntSrc)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
 
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1365,7 +1353,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	require.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.ProcessVMOutput(vmOutput, nil, nil, acntSrc)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
 
 	require.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1393,7 +1381,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.ProcessVMOutput(vmOutput, txHash, tx, acntSrc)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall)
 	require.Nil(t, err)
 }
 
@@ -1412,7 +1400,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1438,13 +1426,13 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(int64(5))
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
 	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.Nonce++
@@ -1458,7 +1446,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 	require.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
@@ -1479,7 +1467,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1493,7 +1481,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 }
 

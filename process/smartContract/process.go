@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -46,6 +46,9 @@ type scProcessor struct {
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
 	gasCost       GasCost
+	// This is set when the deployment or execution fails for some reason,
+	// but the originating transaction isn't supposed to be treated as erroneous
+	lastSilentError error
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -470,42 +473,49 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("Transaction error", "error", err.Error())
 		return nil
 	}
 
 	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("Transaction error", "error", err.Error())
 		return nil
 	}
 
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("VM error", "error", err.Error())
 		return nil
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("VM error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.accounts.SaveAccount(acntSnd)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("Save account error", "error", err.Error())
 		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Trace("Processing error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return nil
 	}
@@ -1026,6 +1036,17 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	return nil
+}
+
+// [NotConcurrentSafe]
+func (sc *scProcessor) setSilentError(err error) {
+	sc.lastSilentError = err
+}
+
+// GetLastSilentError returns the last silent error encountered when processing a smart contract transaction
+// [NotConcurrentSafe]
+func (sc *scProcessor) GetLastSilentError() error {
+	return sc.lastSilentError
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
