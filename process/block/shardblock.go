@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -765,7 +765,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
+	sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -859,10 +859,12 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	saveMetricsForACommittedBlock(
+		sp.nodesCoordinator,
 		sp.appStatusHandler,
-		display.DisplayByteSlice(headerHash),
+		logger.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
+		header,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1151,7 +1153,8 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if !ok {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
+				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
 		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
@@ -1264,9 +1267,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 		headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
-			sp.saveMetaHeader(header, headerHash, marshalizedHeader)
-		}(hdr, headerHash, marshalizedHeader)
+		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
 		sp.dataPool.Headers().RemoveHeaderByHash(headerHash)
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))

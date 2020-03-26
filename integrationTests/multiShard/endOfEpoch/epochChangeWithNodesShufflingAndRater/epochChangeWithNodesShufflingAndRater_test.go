@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/display"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
@@ -17,7 +17,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = display.SetDisplayByteSlice(display.ToHexShort)
+	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 
 	nodesPerShard := 1
 	nbMetaNodes := 1

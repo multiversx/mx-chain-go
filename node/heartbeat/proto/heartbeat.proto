@@ -26,7 +26,7 @@ message HeartbeatDTO {
 	uint32  ComputedShardID              = 8 ;
 	string  VersionNumber                = 9 ;
 	string  NodeDisplayName              = 10;
-	bool    IsValidator                  = 11;
+	string  PeerType                     = 11;
 	int64	LastUptimeDowntime           = 12;
 	int64   GenesisTime                  = 13;
 }
