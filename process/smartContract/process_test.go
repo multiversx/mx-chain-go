@@ -269,7 +269,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("abba@0005@0000")
+	tx.Data = []byte("abba@0500@0000")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
@@ -552,7 +552,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
+func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
@@ -565,25 +565,23 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	require.Nil(t, err)
 
 	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
-	tx.Value = big.NewInt(45)
+	tx.Data = nil
+	tx.Value = big.NewInt(0)
 
-	tmpError := errors.New("error")
+	badCodeError := errors.New("fooError")
 	argParser.GetCodeCalled = func() (code []byte, e error) {
-		return nil, tmpError
-	}
-	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([][]byte, error) {
-		return [][]byte{vmArg}, nil
+		return nil, badCodeError
 	}
 
-	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
-	require.Nil(t, vmInput)
-	require.Equal(t, tmpError, err)
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{[]byte("05"), []byte("00")}, nil
+	}
+
+	vmInput, vmType, codeMetadata, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmType)
+	require.Nil(t, vmInput)
+	require.Equal(t, codeMetadata, CodeMetadata{})
+	require.Equal(t, badCodeError, err)
 }
 
 func TestScProcessor_CreateVMDeployInput(t *testing.T) {

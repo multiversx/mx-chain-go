@@ -1,7 +1,6 @@
 package wasmer
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -9,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,13 +89,10 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
-	scCode, err := arwen.GetBytecode(wasmFilename)
-	assert.Nil(t, err)
-
 	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
 	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	scCodeString := hex.EncodeToString(scCode)
+	scCode := arwen.GetSCCode(wasmFilename)
 
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
@@ -104,9 +100,9 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
+		arwen.CreateDeployTxData(scCode),
 	)
-	err = txProc.ProcessTransaction(tx)
+	err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(accnts, nil)

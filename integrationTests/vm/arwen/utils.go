@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,7 +19,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// TODO: Rename this file to "utils_test.go", otherwise is production code.
+
+// VMTypeHex -
+const VMTypeHex = "0500"
+
+// DummyCodeMetadataHex -
+const DummyCodeMetadataHex = "0000"
 
 // TestContext -
 type TestContext struct {
@@ -34,6 +44,7 @@ type TestContext struct {
 	ScAddress    []byte
 	Accounts     *state.AccountsDB
 	TxProcessor  process.TransactionProcessor
+	ScProcessor  process.SmartContractProcessor
 	QueryService external.SCQueryService
 }
 
@@ -60,7 +71,7 @@ func SetupTestContext(t *testing.T) TestContext {
 	assert.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
-	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
+	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
@@ -110,10 +121,10 @@ func (context *TestContext) createAccount(participant *testParticipant) {
 
 // DeploySC -
 func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
-	smartContractCode := getSCCode(wasmPath)
+	scCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
-	txData := smartContractCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)
+	txData := CreateDeployTxData(scCode)
 	if parametersString != "" {
 		txData = txData + "@" + parametersString
 	}
@@ -129,9 +140,8 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)
-	if err != nil {
-		assert.FailNow(context.T, err.Error())
-	}
+	require.Nil(context.T, err)
+	require.Nil(context.T, context.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError())
 
 	owner.Nonce++
 
@@ -141,11 +151,17 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 	}
 }
 
-func getSCCode(fileName string) string {
+// GetSCCode -
+func GetSCCode(fileName string) string {
 	code, _ := ioutil.ReadFile(filepath.Clean(fileName))
 	codeEncoded := hex.EncodeToString(code)
 
 	return codeEncoded
+}
+
+// CreateDeployTxData -
+func CreateDeployTxData(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
 }
 
 // ExecuteSC -

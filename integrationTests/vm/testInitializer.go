@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -253,7 +253,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
-) process.TransactionProcessor {
+) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
 		addrConv,
@@ -284,6 +284,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		},
 		GasMap: gasSchedule,
 	}
+
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
 	txProcessor, _ := transaction.NewTxProcessor(
@@ -300,7 +301,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
-	return txProcessor
+	return txProcessor, scProcessor
 }
 
 // TestDeployedContractContents -
@@ -361,7 +362,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
 
-	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
+	txProcessor, _ := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
 	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockChainHook
@@ -380,7 +381,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
+	txProcessor, _ := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
 	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockChainHook
@@ -438,7 +439,7 @@ func CreateDeployTx(
 	value *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
-	scCodeAndVMType []byte,
+	scCodeAndVMType string,
 ) *dataTransaction.Transaction {
 
 	return &dataTransaction.Transaction{
@@ -446,7 +447,7 @@ func CreateDeployTx(
 		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  CreateEmptyAddress().Bytes(),
-		Data:     scCodeAndVMType,
+		Data:     []byte(scCodeAndVMType),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
