@@ -406,9 +406,11 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 
 				pa.SetTempRating(newTempRating)
 
-				log.Trace("below signed blocks threshold",
+				log.Debug("below signed blocks threshold",
 					"pk", validator.PublicKey,
 					"signed %", computedThreshold,
+					"validatorSuccess", validator.ValidatorSuccess,
+					"validatorFailure", validator.ValidatorFailure,
 					"new tempRating", newTempRating,
 					"old tempRating", validator.TempRating,
 				)

@@ -13,14 +13,14 @@ import (
 
 const (
 	shardValidatorIncreaseRatingStep = int32(2)
-	shardValidatorDecreaseRatingStep = int32(4)
+	shardValidatorDecreaseRatingStep = int32(-4)
 	shardProposerIncreaseRatingStep  = int32(1)
-	shardProposerDecreaseRatingStep  = int32(2)
+	shardProposerDecreaseRatingStep  = int32(-2)
 
 	metaValidatorIncreaseRatingStep = int32(2)
-	metaValidatorDecreaseRatingStep = int32(4)
+	metaValidatorDecreaseRatingStep = int32(-4)
 	metaProposerIncreaseRatingStep  = int32(1)
-	metaProposerDecreaseRatingStep  = int32(2)
+	metaProposerDecreaseRatingStep  = int32(-2)
 
 	signedBlocksThreshold          = 0.025
 	consecutiveMissedBlocksPenalty = 1.1
@@ -146,6 +146,43 @@ func TestRatingsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(
 	require.Nil(t, ratingsData)
 	require.True(t, errors.Is(err, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne))
 	require.True(t, strings.Contains(err.Error(), "shard"))
+}
+
+func TestRatingsData_PositiveDecreaseRatingsStepsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ratingsConfig := createDummyRatingsConfig()
+	ratingsConfig.MetaChain.ProposerDecreaseRatingStep = 7
+	ratingsData, err := NewRatingsData(ratingsConfig)
+
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "meta"))
+
+	ratingsConfig = createDummyRatingsConfig()
+	ratingsConfig.MetaChain.ValidatorDecreaseRatingStep = 7
+	ratingsData, err = NewRatingsData(ratingsConfig)
+
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "meta"))
+
+	ratingsConfig = createDummyRatingsConfig()
+	ratingsConfig.ShardChain.ProposerDecreaseRatingStep = 7
+	ratingsData, err = NewRatingsData(ratingsConfig)
+
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "shard"))
+
+	ratingsConfig = createDummyRatingsConfig()
+	ratingsConfig.ShardChain.ValidatorDecreaseRatingStep = 7
+	ratingsData, err = NewRatingsData(ratingsConfig)
+
+	require.Nil(t, ratingsData)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "shard"))
+
 }
 
 func TestRatingsData_RatingsCorrectValues(t *testing.T) {

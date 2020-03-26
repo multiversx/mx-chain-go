@@ -51,6 +51,20 @@ func NewRatingsData(settings config.RatingsConfig) (*RatingsData, error) {
 			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
 			settings.ShardChain.ConsecutiveMissedBlocksPenalty)
 	}
+	if settings.ShardChain.ProposerDecreaseRatingStep > 0 || settings.ShardChain.ValidatorDecreaseRatingStep > 0 {
+		return nil, fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			settings.ShardChain.ProposerDecreaseRatingStep,
+			settings.ShardChain.ValidatorDecreaseRatingStep)
+	}
+
+	if settings.MetaChain.ProposerDecreaseRatingStep > 0 || settings.MetaChain.ValidatorDecreaseRatingStep > 0 {
+		return nil, fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			settings.MetaChain.ProposerDecreaseRatingStep,
+			settings.MetaChain.ValidatorDecreaseRatingStep)
+	}
+
 	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.General.SelectionChances {
 		chances = append(chances, &SelectionChance{

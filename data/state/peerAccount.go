@@ -163,6 +163,7 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 	pa.ValidatorSuccessRate.NrSuccess = 0
 	pa.ValidatorSuccessRate.NrFailure = 0
 	pa.NumSelectedInSuccessBlocks = 0
+	pa.ConsecutiveProposerMisses = 0
 
 	return nil
 }
