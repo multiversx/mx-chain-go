@@ -207,7 +207,7 @@ func getGeneralConfig() config.Config {
 				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "AccountsDB",
+				FilePath:          "AccountsTrie/MainDB",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -219,7 +219,7 @@ func getGeneralConfig() config.Config {
 				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "AccountsDB",
+				FilePath:          "PeerAccountsTrie/MainDB",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -247,6 +247,164 @@ func getGeneralConfig() config.Config {
 		},
 		TrieNodesDataPool: config.CacheConfig{
 			Size: 10000, Type: "LRU", Shards: 1,
+		},
+		TxStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "Transactions",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		MiniBlocksStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "MiniBlocks",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		MiniBlockHeadersStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "MiniBlocks",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		ShardHdrNonceHashStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "ShardHdrHashNonce",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		MetaBlockStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "MetaBlock",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		MetaHdrNonceHashStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "MetaHdrHashNonce",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		UnsignedTransactionStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "UnsignedTransactions",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		RewardTxStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "RewardTransactions",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		BlockHeaderStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "BlockHeaders",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		Heartbeat: config.HeartbeatConfig{
+			HeartbeatStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Size: 10000, Type: "LRU", Shards: 1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "HeartbeatStorage",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+		},
+		StatusMetricsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "StatusMetricsStorageDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerBlockBodyStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerBlocks",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		BootstrapStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 10000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "BootstrapData",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
 		},
 	}
 }

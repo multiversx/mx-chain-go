@@ -375,7 +375,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
+	log.Info("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
@@ -393,16 +393,20 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Info("start in epoch bootstrap: createTrieStorageManagers")
 
+	log.Info("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Info("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
 
 	err = e.processNodesConfig(pubKeyBytes, e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Info("start in epoch bootstrap: processNodesConfig")
 
 	if e.baseData.shardId == core.AllShardId {
 		destShardID := core.MetachainShardId
@@ -421,6 +425,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Info("start in epoch bootstrap: shardCoordinator")
 
 	if e.shardCoordinator.SelfId() != core.MetachainShardId {
 		err = e.requestAndProcessForShard()
@@ -538,6 +543,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	if err != nil {
 		return err
 	}
+	log.Info("start in epoch bootstrap: GetMiniBlocks")
 
 	shardIds := []uint32{
 		core.MetachainShardId,
@@ -558,6 +564,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	if err != nil {
 		return err
 	}
+	log.Info("start in epoch bootstrap: SyncMissingHeadersByHash")
 
 	for hash, hdr := range neededHeaders {
 		e.syncedHeaders[hash] = hdr
@@ -568,10 +575,12 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
+	log.Info("start in epoch bootstrap: started syncUserAccountsState")
 	err = e.syncUserAccountsState(ownShardHdr.RootHash)
 	if err != nil {
 		return err
 	}
+	log.Info("start in epoch bootstrap: syncUserAccountsState")
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock:     e.epochStartMeta,
@@ -649,7 +658,7 @@ func (e *epochStartBootstrap) createTrieStorageManagers() error {
 	}
 
 	dbConfig = storageFactory.GetDBFromConfig(e.generalConfig.PeerAccountsTrieStorage.DB)
-	trieStorage, err = storageUnit.NewStorageUnitFromConf(
+	peerTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(e.generalConfig.PeerAccountsTrieStorage.Cache),
 		dbConfig,
 		storageFactory.GetBloomFromConfig(e.generalConfig.PeerAccountsTrieStorage.Bloom),
@@ -658,7 +667,7 @@ func (e *epochStartBootstrap) createTrieStorageManagers() error {
 		return err
 	}
 
-	e.peerTrieStorageManager, err = trie.NewTrieStorageManagerWithoutPruning(trieStorage)
+	e.peerTrieStorageManager, err = trie.NewTrieStorageManagerWithoutPruning(peerTrieStorage)
 	if err != nil {
 		return err
 	}
@@ -673,7 +682,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.peerTrieStorageManager,
 			RequestHandler:     e.requestHandler,
-			WaitTime:           timeToWait,
+			WaitTime:           timeToWait * 10,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 	}
