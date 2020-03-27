@@ -670,7 +670,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
-			peerAcc.SetAccumulatedFees(big.NewInt(0).Add(peerAcc.GetAccumulatedFees(), leaderAccumulatedFees))
+			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())

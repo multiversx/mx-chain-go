@@ -68,7 +68,7 @@ type PeerAccountHandler interface {
 	GetStake() *big.Int
 	SetStake(*big.Int) error
 	GetAccumulatedFees() *big.Int
-	SetAccumulatedFees(*big.Int)
+	AddToAccumulatedFees(*big.Int)
 	GetJailTime() TimePeriod
 	SetJailTime(TimePeriod)
 	GetCurrentShardId() uint32

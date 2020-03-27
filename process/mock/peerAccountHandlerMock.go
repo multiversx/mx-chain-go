@@ -68,8 +68,8 @@ func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
-// SetAccumulatedFees -
-func (p *PeerAccountHandlerMock) SetAccumulatedFees(val *big.Int) {
+// AddToAccumulatedFees -
+func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
 	if p.SetAccumulatedFeesCalled != nil {
 		p.SetAccumulatedFeesCalled(val)
 	}

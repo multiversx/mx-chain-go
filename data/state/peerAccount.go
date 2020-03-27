@@ -80,9 +80,9 @@ func (pa *peerAccount) SetStake(stake *big.Int) error {
 	return nil
 }
 
-// SetAccumulatedFees sets the account's accumulated fees
-func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
-	pa.AccumulatedFees = big.NewInt(0).Set(fees)
+// AddToAccumulatedFees sets the account's accumulated fees
+func (pa *peerAccount) AddToAccumulatedFees(fees *big.Int) {
+	pa.AccumulatedFees.Add(pa.AccumulatedFees, fees)
 }
 
 // SetJailTime sets the account's jail time
