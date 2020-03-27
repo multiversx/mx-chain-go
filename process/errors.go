@@ -720,6 +720,9 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
+// ErrMaxRatingZero signals that maxrating with a value of zero has been provided
+var ErrMaxRatingZero = errors.New("max rating is zero")
+
 // ErrNilValidatorInfos signals that a nil validator infos has been provided
 var ErrNilValidatorInfos = errors.New("nil validator infos")
 

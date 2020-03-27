@@ -23,6 +23,9 @@ func NewValidatorsProvider(validatorStatisticsProcessor process.ValidatorStatist
 	if check.IfNil(validatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics
 	}
+	if maxRating == 0 {
+		return nil, process.ErrMaxRatingZero
+	}
 
 	validatorsProvider := &validatorsProvider{
 		mutCachedMap:        sync.Mutex{},
@@ -34,6 +37,7 @@ func NewValidatorsProvider(validatorStatisticsProcessor process.ValidatorStatist
 	return validatorsProvider, nil
 }
 
+// GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
 	vp.mutCachedMap.Lock()
 	defer vp.mutCachedMap.Unlock()
