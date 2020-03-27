@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"crypto/ed25519"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("crypto/signing/ed25519")

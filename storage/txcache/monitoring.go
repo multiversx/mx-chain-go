@@ -1,8 +1,8 @@
 package txcache
 
 import (
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("txcache")
