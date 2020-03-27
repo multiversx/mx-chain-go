@@ -19,6 +19,11 @@ func (psh *PresenterStatusHandler) GetNodeType() string {
 	return psh.getFromCacheAsString(core.MetricNodeType)
 }
 
+// GetPeerType will return type of peer (eligible, waiting, and so on)
+func (psh *PresenterStatusHandler) GetPeerType() string {
+	return psh.getFromCacheAsString(core.MetricPeerType)
+}
+
 // GetPublicKeyBlockSign will return node public key for sign blocks
 func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 	return psh.getFromCacheAsString(core.MetricPublicKeyBlockSign)

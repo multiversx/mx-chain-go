@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"crypto/cipher"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -10,10 +8,9 @@ import (
 type ScalarMock struct {
 	X int
 
-	MarshalBinaryStub   func(x int) ([]byte, error)
-	UnmarshalBinaryStub func([]byte) (int, error)
+	MarshalBinaryStub    func(x int) ([]byte, error)
+	UnmarshalBinaryStub  func([]byte) (int, error)
 	GetUnderlyingObjStub func() interface{}
-
 }
 
 // Equal tests if receiver is equal with the scalar s given as parameter.
@@ -79,11 +76,7 @@ func (sm *ScalarMock) Inv(_ crypto.Scalar) (crypto.Scalar, error) {
 
 // Pick returns a fresh random or pseudo-random scalar
 // For the mock set X to the original scalar.X *2
-func (sm *ScalarMock) Pick(rand cipher.Stream) (crypto.Scalar, error) {
-	if rand == nil {
-		return nil, crypto.ErrInvalidParam
-	}
-
+func (sm *ScalarMock) Pick() (crypto.Scalar, error) {
 	ss := &ScalarMock{
 		X:                   sm.X * 2,
 		MarshalBinaryStub:   sm.MarshalBinaryStub,
