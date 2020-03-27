@@ -392,31 +392,39 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
-			computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
-			if computedThreshold <= signedThreshold {
-				newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
-				pa, err := vs.GetPeerAccount(validator.PublicKey)
-				if err != nil {
-					return err
-				}
-
-				pa.SetTempRating(newTempRating)
-
-				log.Debug("below signed blocks threshold",
-					"pk", validator.PublicKey,
-					"signed %", computedThreshold,
-					"validatorSuccess", validator.ValidatorSuccess,
-					"validatorFailure", validator.ValidatorFailure,
-					"new tempRating", newTempRating,
-					"old tempRating", validator.TempRating,
-				)
-
-				validator.TempRating = newTempRating
+			err := vs.updateRatingIfSignedBelowThreshold(validator, signedThreshold, shardId)
+			if err != nil {
+				return err
 			}
 		}
 	}
 
+	return nil
+}
+
+func (vs *validatorStatistics) updateRatingIfSignedBelowThreshold(validator *state.ValidatorInfo, signedThreshold float32, shardId uint32) error {
+	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
+	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+	if computedThreshold <= signedThreshold {
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
+		pa, err := vs.GetPeerAccount(validator.PublicKey)
+		if err != nil {
+			return err
+		}
+
+		pa.SetTempRating(newTempRating)
+
+		log.Debug("below signed blocks threshold",
+			"pk", validator.PublicKey,
+			"signed %", computedThreshold,
+			"validatorSuccess", validator.ValidatorSuccess,
+			"validatorFailure", validator.ValidatorFailure,
+			"new tempRating", newTempRating,
+			"old tempRating", validator.TempRating,
+		)
+
+		validator.TempRating = newTempRating
+	}
 	return nil
 }
 

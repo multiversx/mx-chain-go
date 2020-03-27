@@ -1052,16 +1052,16 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 		for _, validatorInfo := range validatorInfosInShard {
 			strKey := hex.EncodeToString(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
-				NrLeaderSuccess:         validatorInfo.LeaderSuccess,
-				NrLeaderFailure:         validatorInfo.LeaderFailure,
-				NrValidatorSuccess:      validatorInfo.ValidatorSuccess,
-				NrValidatorFailure:      validatorInfo.ValidatorFailure,
-				TotalNrLeaderSuccess:    validatorInfo.TotalLeaderSuccess,
-				TotalNrLeaderFailure:    validatorInfo.TotalLeaderFailure,
-				TotalNrValidatorSuccess: validatorInfo.TotalValidatorSuccess,
-				TotalNrValidatorFailure: validatorInfo.TotalValidatorFailure,
-				Rating:                  float32(validatorInfo.Rating) * 100 / 1000000,
-				TempRating:              float32(validatorInfo.TempRating) * 100 / 1000000,
+				NumLeaderSuccess:         validatorInfo.LeaderSuccess,
+				NumLeaderFailure:         validatorInfo.LeaderFailure,
+				NumValidatorSuccess:      validatorInfo.ValidatorSuccess,
+				NumValidatorFailure:      validatorInfo.ValidatorFailure,
+				TotalNumLeaderSuccess:    validatorInfo.TotalLeaderSuccess,
+				TotalNumLeaderFailure:    validatorInfo.TotalLeaderFailure,
+				TotalNumValidatorSuccess: validatorInfo.TotalValidatorSuccess,
+				TotalNumValidatorFailure: validatorInfo.TotalValidatorFailure,
+				Rating:                   float32(validatorInfo.Rating) * 100 / 1000000,
+				TempRating:               float32(validatorInfo.TempRating) * 100 / 1000000,
 			}
 		}
 	}
