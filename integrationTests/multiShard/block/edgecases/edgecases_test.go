@@ -163,6 +163,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 			hdr := node.BlockChain.GetCurrentBlockHeader()
 			require.NotNil(t, hdr)
 			assert.Equal(t, uint64(1), hdr.GetNonce())
+			assert.Equal(t, uint32(0), hdr.GetEpoch())
 		}
 	}
 }

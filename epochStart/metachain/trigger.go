@@ -22,6 +22,8 @@ import (
 
 var log = logger.GetOrCreate("epochStart/metachain")
 
+const minimumNonceToStartEpoch = 4
+
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
 	GenesisTime        time.Time
@@ -179,7 +181,7 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 }
 
 // Update processes changes in the trigger
-func (t *trigger) Update(round uint64) {
+func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -189,7 +191,10 @@ func (t *trigger) Update(round uint64) {
 		return
 	}
 
-	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
+	isStartEdgeCase := nonce < minimumNonceToStartEpoch
+	isEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
+	shouldTriggerEpochStart := isEpochStart && !isStartEdgeCase
+	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
 		t.prevEpochStartRound = t.currEpochStartRound
