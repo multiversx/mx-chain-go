@@ -1,10 +1,10 @@
 package syncer
 
 import (
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -102,7 +102,7 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie) ([][]b
 
 	rootHashes := make([][]byte, 0)
 	for _, leaf := range leafs {
-		account := &state.Account{}
+		account := state.NewEmptyUserAccount()
 		err = u.marshalizer.Unmarshal(account, leaf)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)

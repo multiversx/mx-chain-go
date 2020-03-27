@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -236,7 +236,7 @@ func (ef *ElrondNodeFacade) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // GetAccount returns an accountResponse containing information
 // about the account correlated with provided address
-func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
+func (ef *ElrondNodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ef.node.GetAccount(address)
 }
 

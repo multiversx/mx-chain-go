@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -164,4 +165,11 @@ type RatingChance interface {
 	GetChancePercentage() uint32
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
+}
+
+// EpochStartActionHandler defines the action taken on epoch start event
+type EpochStartActionHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler)
+	NotifyOrder() uint32
 }

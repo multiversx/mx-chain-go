@@ -105,7 +105,6 @@ func (rtp *validatorInfoPreprocessor) CreateMarshalizedData(_ [][]byte) ([][]byt
 // GetAllCurrentUsedTxs does nothing
 func (rtp *validatorInfoPreprocessor) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	validatorInfoTxPool := make(map[string]data.TransactionHandler)
-
 	return validatorInfoTxPool
 }
 

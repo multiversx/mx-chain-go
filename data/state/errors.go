@@ -161,3 +161,6 @@ var ErrInvalidWaitTime = errors.New("invalid wait time")
 
 // ErrNilCacher signals that nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
+var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -119,7 +118,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 	if err != nil {
 		return err
 	}
-	trieId := genesis.CreateTrieIdentifier(shardId, state.UserAccount)
+	trieId := genesis.CreateTrieIdentifier(shardId, genesis.UserAccount)
 
 	return a.container.Add(trieId, accountSyncer)
 }
@@ -139,7 +138,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 	if err != nil {
 		return err
 	}
-	trieId := genesis.CreateTrieIdentifier(shardId, state.ValidatorAccount)
+	trieId := genesis.CreateTrieIdentifier(shardId, genesis.ValidatorAccount)
 
 	return a.container.Add(trieId, accountSyncer)
 }

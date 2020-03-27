@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-
-	"github.com/ElrondNetwork/elrond-go/core"
 )
+
+const keyPrefix = "indexHashed_"
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
 	PubKey  []byte `json:"pubKey"`
-	Address []byte `json:"address"` //TODO: address is not needed here - delete on refactor
+	Address []byte `json:"address"`
 }
 
 // EpochValidators holds one epoch configuration for a nodes coordinator
@@ -29,7 +29,26 @@ type NodesCoordinatorRegistry struct {
 // TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
+	return ihgs.baseLoadState(key)
+}
+
+// LoadState loads the nodes coordinator state from the used boot storage
+func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	err := ihgs.baseLoadState(key)
+	if err != nil {
+		return err
+	}
+
+	err = ihgs.expandAllLists(ihgs.currentEpoch)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
+	ncInternalkey := append([]byte(keyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
@@ -48,16 +67,6 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	err = ihgs.SetConfig(config)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SetConfig saves a nodesCoordinator registry
-func (ihgs *indexHashedNodesCoordinator) SetConfig(config *NodesCoordinatorRegistry) error {
 	ihgs.currentEpoch = config.CurrentEpoch
 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 
@@ -180,6 +189,8 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	if err != nil {
 		return nil, err
 	}
+
+	result.expandedEligibleMap = result.eligibleMap
 
 	return result, nil
 }

@@ -85,18 +85,18 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
-		err := d.createAndAddOneTrie(i, state.UserAccount, container)
+		err := d.createAndAddOneTrie(i, genesis.UserAccount, container)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := d.createAndAddOneTrie(core.MetachainShardId, state.UserAccount, container)
+	err := d.createAndAddOneTrie(core.MetachainShardId, genesis.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.createAndAddOneTrie(core.MetachainShardId, state.ValidatorAccount, container)
+	err = d.createAndAddOneTrie(core.MetachainShardId, genesis.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	return container, nil
 }
 
-func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType state.Type, container state.TriesHolder) error {
+func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container state.TriesHolder) error {
 	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher)
 	if err != nil {
 		return err

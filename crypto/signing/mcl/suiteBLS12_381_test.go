@@ -1,7 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -79,7 +78,7 @@ func TestSuiteBLS12_CreatePointForScalar(t *testing.T) {
 func TestSuiteBLS12_CreateKeyPair(t *testing.T) {
 	suite := NewSuiteBLS12()
 
-	scalar, point := suite.CreateKeyPair(nil)
+	scalar, point := suite.CreateKeyPair()
 	mclScalar := scalar.GetUnderlyingObj().(*bls.Fr)
 
 	secretKey := bls.CastToSecretKey(mclScalar)
@@ -105,10 +104,7 @@ func TestSuiteBLS12_PointLen(t *testing.T) {
 
 func TestSuiteBLS12_CreateKey(t *testing.T) {
 	suite := NewSuiteBLS12()
-
-	var stream cipher.Stream
-	private, public := suite.CreateKeyPair(stream)
-
+	private, public := suite.CreateKeyPair()
 	assert.NotNil(t, private)
 	assert.NotNil(t, public)
 }

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -76,12 +76,14 @@ func (cns *ConsensusState) initReceivedHeaders() {
 	cns.mutReceivedHeaders.Unlock()
 }
 
+// AddReceivedHeader append the provided header to the inner received headers list
 func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
 	cns.mutReceivedHeaders.Lock()
 	cns.receivedHeaders = append(cns.receivedHeaders, headerHandler)
 	cns.mutReceivedHeaders.Unlock()
 }
 
+// GetReceivedHeaders returns the received headers list
 func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	cns.mutReceivedHeaders.RLock()
 	receivedHeaders := cns.receivedHeaders

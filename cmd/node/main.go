@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -31,14 +33,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -247,6 +246,16 @@ VERSION:
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
+	//logWithCorrelation is used to enable log correlation elements
+	logWithCorrelation = cli.BoolFlag{
+		Name:  "log-correlation",
+		Usage: "Boolean option for enabling log correlation elements.",
+	}
+	//logWithLoggerName is used to enable log correlation elements
+	logWithLoggerName = cli.BoolFlag{
+		Name:  "log-logger-name",
+		Usage: "Boolean option for logger name in the logs.",
+	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
 		Name:  "disable-ansi-color",
@@ -322,7 +331,7 @@ var coreServiceContainer serviceContainer.Core
 var appVersion = core.UnVersionedAppString
 
 func main() {
-	_ = display.SetDisplayByteSlice(display.ToHexShort)
+	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
 	app := cli.NewApp()
@@ -352,6 +361,8 @@ func main() {
 		disableAnsiColor,
 		logLevel,
 		logSaveFile,
+		logWithCorrelation,
+		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -406,6 +417,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}()
 	}
 
+	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
+	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
@@ -648,6 +661,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
+	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
 	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)

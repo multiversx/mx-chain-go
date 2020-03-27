@@ -73,26 +73,14 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
-func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
+func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
+	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
-	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
+	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
 
 	return acntSrc, acntDst
 }
@@ -200,9 +188,10 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tth, err := NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
+		&mock.AccountsStub{
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			}},
 	)
 
 	assert.NotNil(t, tth)
@@ -230,9 +219,10 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tth, err := NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
+		&mock.AccountsStub{
+			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			}},
 	)
 
 	assert.NotNil(t, tth)

@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -47,7 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -316,11 +316,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create bls address converter: " + err.Error())
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(state.UserAccount)
-	if err != nil {
-		return nil, errors.New("could not create account factory: " + err.Error())
-	}
-
+	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := args.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
 	accountsAdapter, err := state.NewAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
 	if err != nil {
@@ -332,11 +328,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	accountFactory, err = factoryState.NewAccountFactoryCreator(state.ValidatorAccount)
-	if err != nil {
-		return nil, errors.New("could not create peer account factory: " + err.Error())
-	}
-
+	accountFactory = factoryState.NewPeerAccountCreator()
 	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
 	if err != nil {
@@ -386,7 +378,7 @@ func NewDataComponentsFactoryArgs(
 // DataComponentsFactory creates the data components
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
+	blkc, err := createBlockChainFromConfig(args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -949,27 +941,27 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	return softwareVersionChecker, nil
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
-	badBlockCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size,
-		config.BadBlocksCache.Shards)
-	if err != nil {
-		return nil, err
+func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	switch cfg.Hasher.Type {
+	case "sha256":
+		return sha256.Sha256{}, nil
+	case "blake2b":
+		return &blake2b.Blake2b{}, nil
 	}
+
+	return nil, errors.New("no hasher provided in config file")
+}
+
+func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 
 	if coordinator == nil {
 		return nil, state.ErrNilShardCoordinator
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		var blockChain *blockchain.BlockChain
-		blockChain, err = blockchain.NewBlockChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewBlockChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -977,13 +969,9 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == core.MetachainShardId {
-		var blockChain *blockchain.MetaChain
-		blockChain, err = blockchain.NewMetaChain(badBlockCache)
-		if err != nil {
-			return nil, err
-		}
+		blockChain := blockchain.NewMetaChain()
 
-		err = blockChain.SetAppStatusHandler(ash)
+		err := blockChain.SetAppStatusHandler(ash)
 		if err != nil {
 			return nil, err
 		}
@@ -1496,13 +1484,8 @@ func createInMemoryShardCoordinatorAndAccount(
 		return nil, nil, err
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(state.UserAccount)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	accounts, err := generateInMemoryAccountsAdapter(
-		accountFactory,
+		factoryState.NewAccountCreator(),
 		coreComponents.Hasher,
 		coreComponents.InternalMarshalizer,
 	)
@@ -1985,6 +1968,8 @@ func newMetaBlockProcessor(
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(
+		core.Hasher,
+		core.InternalMarshalizer,
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 		shardCoordinator,

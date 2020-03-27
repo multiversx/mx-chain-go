@@ -2,19 +2,19 @@ package containers
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/cornelk/hashmap"
 )
 
 type trieSyncers struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewTrieSyncersContainer will create a new instance of a container
 func NewTrieSyncersContainer() *trieSyncers {
 	return &trieSyncers{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -78,7 +78,7 @@ func (t *trieSyncers) Replace(key string, val update.TrieSyncer) error {
 
 // Remove will remove an object at a given key
 func (t *trieSyncers) Remove(key string) {
-	t.objects.Del(key)
+	t.objects.Remove(key)
 }
 
 // Len returns the length of the added objects

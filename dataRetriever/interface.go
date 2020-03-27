@@ -226,6 +226,7 @@ type HeadersPool interface {
 	Len() int
 	MaxSize() int
 	IsInterfaceNil() bool
+	GetNumHeaders(shardId uint32) int
 }
 
 // TransactionCacher defines the methods for the local cacher, info for current round
