@@ -825,6 +825,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Antiflood.NumConcurrentResolverJobs,
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
+		ratingsConfig.General.MaxRating,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -837,7 +838,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
 	}
-
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1435,6 +1435,7 @@ func createNode(
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),

@@ -1840,7 +1840,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	rater.MaxRating = 10000
 	arguments.Rater = rater
 
-	updateArgumetsWithNeeded(arguments)
+	updateArgumentsWithNeeded(arguments)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -1877,7 +1877,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	arguments.Rater = rater
 	rater.MetaIncreaseValidator = 100
 	rater.IncreaseValidator = 99
-	updateArgumetsWithNeeded(arguments)
+	updateArgumentsWithNeeded(arguments)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)
@@ -2022,7 +2022,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	return pa0, paMeta
 }
 
-func updateArgumetsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
+func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	addrBytes0 := []byte("addr1")
 	addrBytesMeta := []byte("addrMeta")
 
