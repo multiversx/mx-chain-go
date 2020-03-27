@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -300,6 +301,8 @@ func (r *rewardsCreator) SaveTxBlockToStorage(
 			}
 
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
+			strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+			dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 			dataPool.MiniBlocks().Remove(mbHeader.Hash)
 		}
 	}
