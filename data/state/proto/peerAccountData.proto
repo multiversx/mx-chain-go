@@ -27,12 +27,12 @@ message SignRate {
 
 // ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
 message ValidatorApiResponse {
-	uint32 NumLeaderSuccess = 1 [(gogoproto.jsontag) = "NumLeaderSuccess"];
-	uint32 NumLeaderFailure = 2 [(gogoproto.jsontag) = "NumLeaderFailure"];
-	uint32 NumValidatorSuccess = 3 [(gogoproto.jsontag) = "NumValidatorSuccess"];
-	uint32 NumValidatorFailure = 4 [(gogoproto.jsontag) = "NumValidatorFailure"];
-	float Rating = 5 [(gogoproto.jsontag) = "rating"];
-	float TempRating = 6 [(gogoproto.jsontag) = "tempRating"];
+    float TempRating = 1 [(gogoproto.jsontag) = "tempRating"];
+	uint32 NumLeaderSuccess = 2 [(gogoproto.jsontag) = "NumLeaderSuccess"];
+	uint32 NumLeaderFailure = 3 [(gogoproto.jsontag) = "NumLeaderFailure"];
+	uint32 NumValidatorSuccess = 4 [(gogoproto.jsontag) = "NumValidatorSuccess"];
+	uint32 NumValidatorFailure = 5 [(gogoproto.jsontag) = "NumValidatorFailure"];
+	float Rating = 6 [(gogoproto.jsontag) = "rating"];
     uint32 TotalNumLeaderSuccess = 7 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
     uint32 TotalNumLeaderFailure = 8 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
     uint32 TotalNumValidatorSuccess = 9 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
