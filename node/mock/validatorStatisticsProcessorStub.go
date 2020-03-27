@@ -15,6 +15,7 @@ type ValidatorStatisticsProcessorStub struct {
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
 	ProcessCalled                            func(vid data.ValidatorInfoHandler) error
+	CommitCalled                             func() ([]byte, error)
 }
 
 // Process -
@@ -24,6 +25,15 @@ func (vsp *ValidatorStatisticsProcessorStub) Process(vid data.ValidatorInfoHandl
 	}
 
 	return nil
+}
+
+// Commit -
+func (pm *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
+	if pm.CommitCalled != nil {
+		return pm.CommitCalled()
+	}
+
+	return nil, nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch -

@@ -158,7 +158,9 @@ func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.Met
 		}
 	}
 
-	return nil
+	_, err := vip.validatorStatisticsProcessor.Commit()
+
+	return err
 }
 
 func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {

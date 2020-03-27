@@ -7,6 +7,7 @@ import (
 // ValidatorStatisticsProcessorStub -
 type ValidatorStatisticsProcessorStub struct {
 	ProcessCalled        func(info data.ValidatorInfoHandler) error
+	CommitCalled         func() ([]byte, error)
 	IsInterfaceNilCalled func() bool
 }
 
@@ -17,6 +18,15 @@ func (pm *ValidatorStatisticsProcessorStub) Process(info data.ValidatorInfoHandl
 	}
 
 	return nil
+}
+
+// Commit -
+func (pm *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
+	if pm.CommitCalled != nil {
+		return pm.CommitCalled()
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -

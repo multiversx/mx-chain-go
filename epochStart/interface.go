@@ -75,5 +75,6 @@ type EpochStartNotifier interface {
 // needed in the epoch events
 type ValidatorStatisticsProcessorHandler interface {
 	Process(info data.ValidatorInfoHandler) error
+	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }

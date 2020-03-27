@@ -225,6 +225,7 @@ type ValidatorStatisticsProcessor interface {
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	Commit() ([]byte, error)
 }
 
 // ValidatorsProvider is the main interface for validators' provider
