@@ -2205,6 +2205,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -2216,6 +2217,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

@@ -97,6 +97,13 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		MiniBlockStorage: createMemUnit(),
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
+		DataPool: &mock.PoolsHolderStub{
+			MiniBlocksCalled: func() storage.Cacher {
+				return &mock.CacherStub{
+					RemoveCalled: func(key []byte) {},
+				}
+			},
+		},
 	}
 	return argsNewEpochEconomics
 }
@@ -169,6 +176,17 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilShardCoordinator(t 
 
 	require.Nil(t, vic)
 	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
+}
+
+func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilDataPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.DataPool = nil
+	vic, err := NewValidatorInfoCreator(arguments)
+
+	require.Nil(t, vic)
+	require.Equal(t, epochStart.ErrNilDataPoolsHolder, err)
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
@@ -389,14 +407,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 
 	body := &block.Body{MiniBlocks: miniblocks}
-	vic.SaveValidatorInfoBlocksToStorage(meta, body, &mock.PoolsHolderStub{
-		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				RemoveCalled: func(key []byte) {
-				},
-			}
-		},
-	})
+	vic.SaveValidatorInfoBlocksToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := miniBlockStorage.Get(mbHeader.Hash)

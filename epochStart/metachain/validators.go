@@ -22,6 +22,7 @@ type ArgsNewValidatorInfoCreator struct {
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
+	DataPool         dataRetriever.PoolsHolder
 }
 
 type validatorInfoCreator struct {
@@ -29,6 +30,7 @@ type validatorInfoCreator struct {
 	miniBlockStorage storage.Storer
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
+	dataPool         dataRetriever.PoolsHolder
 }
 
 // NewValidatorInfoCreator creates a new validatorInfo creator object
@@ -45,12 +47,16 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.MiniBlockStorage) {
 		return nil, epochStart.ErrNilStorage
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
 
 	vic := &validatorInfoCreator{
 		shardCoordinator: args.ShardCoordinator,
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		miniBlockStorage: args.MiniBlockStorage,
+		dataPool:         args.DataPool,
 	}
 
 	return vic, nil
@@ -172,11 +178,7 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 }
 
 // SaveValidatorInfoBlocksToStorage saves created data to storage
-func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(
-	metaBlock *block.MetaBlock,
-	body *block.Body,
-	dataPool dataRetriever.PoolsHolder,
-) {
+func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.PeerBlock {
 			continue
@@ -198,7 +200,7 @@ func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(
 			}
 
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
-			dataPool.MiniBlocks().Remove(mbHeader.Hash)
+			r.dataPool.MiniBlocks().Remove(mbHeader.Hash)
 			break
 		}
 	}

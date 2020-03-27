@@ -29,6 +29,7 @@ type ArgsNewRewardsCreator struct {
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
+	DataPool         dataRetriever.PoolsHolder
 }
 
 type rewardsCreator struct {
@@ -40,6 +41,7 @@ type rewardsCreator struct {
 
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
+	dataPool    dataRetriever.PoolsHolder
 }
 
 type rewardInfoData struct {
@@ -71,6 +73,9 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.MiniBlockStorage) {
 		return nil, epochStart.ErrNilStorage
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
 
 	currTxsCache, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
@@ -85,6 +90,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		miniBlockStorage: args.MiniBlockStorage,
+		dataPool:         args.DataPool,
 	}
 
 	return r, nil
@@ -263,11 +269,7 @@ func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (r *rewardsCreator) SaveTxBlockToStorage(
-	metaBlock *block.MetaBlock,
-	body *block.Body,
-	dataPool dataRetriever.PoolsHolder,
-) {
+func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
@@ -302,8 +304,8 @@ func (r *rewardsCreator) SaveTxBlockToStorage(
 
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
 			strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
-			dataPool.MiniBlocks().Remove(mbHeader.Hash)
+			r.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
+			r.dataPool.MiniBlocks().Remove(mbHeader.Hash)
 		}
 	}
 	r.clean()

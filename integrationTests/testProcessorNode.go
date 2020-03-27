@@ -1027,6 +1027,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			MiniBlockStorage: miniBlockStorage,
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
+			DataPool:         tpn.DataPool,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1035,6 +1036,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			MiniBlockStorage: miniBlockStorage,
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
+			DataPool:         tpn.DataPool,
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
