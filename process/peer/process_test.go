@@ -1667,15 +1667,15 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), pa0.GetAccumulatedFees())
 
-	assert.Equal(t, uint32(11), pa0.GetTotalValidatorSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(22), pa0.GetTotalValidatorSuccessRate().NrFailure)
-	assert.Equal(t, uint32(33), pa0.GetTotalLeaderSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(44), pa0.GetTotalLeaderSuccessRate().NrFailure)
+	assert.Equal(t, uint32(11), pa0.GetTotalValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(22), pa0.GetTotalValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(33), pa0.GetTotalLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(44), pa0.GetTotalLeaderSuccessRate().NumFailure)
 
-	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrFailure)
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrFailure)
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumFailure)
 
 	assert.Equal(t, uint32(0), pa0.GetNumSelectedInSuccessBlocks())
 	assert.Equal(t, pa0.GetTempRating(), pa0.GetRating())
@@ -1924,14 +1924,14 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
-	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrFailure, validatorInfo.ValidatorFailure)
-	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrSuccess, validatorInfo.ValidatorSuccess)
-	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrFailure, validatorInfo.LeaderFailure)
-	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrSuccess, validatorInfo.LeaderSuccess)
-	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NrFailure, validatorInfo.TotalValidatorFailure)
-	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NrSuccess, validatorInfo.TotalValidatorSuccess)
-	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NrFailure, validatorInfo.TotalLeaderFailure)
-	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NrSuccess, validatorInfo.TotalLeaderSuccess)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumFailure, validatorInfo.ValidatorFailure)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumSuccess, validatorInfo.ValidatorSuccess)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumFailure, validatorInfo.LeaderFailure)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumSuccess, validatorInfo.LeaderSuccess)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumFailure, validatorInfo.TotalValidatorFailure)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumSuccess, validatorInfo.TotalValidatorSuccess)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumFailure, validatorInfo.TotalLeaderFailure)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumSuccess, validatorInfo.TotalLeaderSuccess)
 	assert.Equal(t, "list", validatorInfo.List)
 	assert.Equal(t, uint32(0), validatorInfo.Index)
 	assert.Equal(t, peerAccount.GetRewardAddress(), validatorInfo.RewardAddress)
@@ -1963,20 +1963,20 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		NodeInWaitingList: false,
 		UnStakedNonce:     7,
 		ValidatorSuccessRate: state.SignRate{
-			NrSuccess: 1,
-			NrFailure: 2,
+			NumSuccess: 1,
+			NumFailure: 2,
 		},
 		LeaderSuccessRate: state.SignRate{
-			NrSuccess: 3,
-			NrFailure: 4,
+			NumSuccess: 3,
+			NumFailure: 4,
 		},
 		TotalValidatorSuccessRate: state.SignRate{
-			NrSuccess: 10,
-			NrFailure: 20,
+			NumSuccess: 10,
+			NumFailure: 20,
 		},
 		TotalLeaderSuccessRate: state.SignRate{
-			NrSuccess: 30,
-			NrFailure: 40,
+			NumSuccess: 30,
+			NumFailure: 40,
 		},
 		NumSelectedInSuccessBlocks: 5,
 		Rating:                     51,
@@ -2007,12 +2007,12 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		NodeInWaitingList: true,
 		UnStakedNonce:     2,
 		ValidatorSuccessRate: state.SignRate{
-			NrSuccess: 11,
-			NrFailure: 21,
+			NumSuccess: 11,
+			NumFailure: 21,
 		},
 		LeaderSuccessRate: state.SignRate{
-			NrSuccess: 31,
-			NrFailure: 41,
+			NumSuccess: 31,
+			NumFailure: 41,
 		},
 		NumSelectedInSuccessBlocks: 3,
 		Rating:                     511,

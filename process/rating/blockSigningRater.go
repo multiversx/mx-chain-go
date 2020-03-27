@@ -3,6 +3,7 @@ package rating
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -13,6 +14,10 @@ import (
 )
 
 var log = logger.GetOrCreate("process/rating")
+
+const (
+	maxDecreaseValue = math.MinInt32
+)
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
@@ -93,7 +98,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 }
 
 func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint32) uint32 {
-	log.Debug("computing rating", "rating", currentRating, "step", ratingStep)
+	log.Trace("computing rating", "rating", currentRating, "step", ratingStep)
 	newVal := int64(currentRating) + int64(ratingStep)
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
@@ -145,7 +150,7 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
-// ComputeIncreaseProposer computes the new rating for the increaseLeader
+// RevertIncreaseValidator computes the new rating based on how many reverts have to be done for the validator
 func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
 	log.Trace("RevertIncreaseValidator", "shardId", shardId, "currentRating", currentRating, "nrReverts", nrReverts)
 	var ratingStep int32
@@ -155,12 +160,14 @@ func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRat
 		ratingStep = bsr.shardRatingsStepHandler.ValidatorIncreaseRatingStep()
 	}
 
-	decreaseValue := -int64(ratingStep) * int64(nrReverts)
-	// overflow
-	if decreaseValue > 0 || decreaseValue < math.MinInt32 {
-		decreaseValue = math.MinInt32
+	var decreaseValue int32
+	decreaseValueBigInt := big.NewInt(0).Mul(big.NewInt(int64(-ratingStep)), big.NewInt(int64(nrReverts)))
+	if decreaseValueBigInt.Cmp(big.NewInt(maxDecreaseValue)) < 0 || decreaseValueBigInt.Cmp(big.NewInt(0)) > 0 {
+		decreaseValue = maxDecreaseValue
+	} else {
+		decreaseValue = int32(decreaseValueBigInt.Uint64())
 	}
-	return bsr.computeRating(int32(decreaseValue), currentRating)
+	return bsr.computeRating(decreaseValue, currentRating)
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
@@ -176,10 +183,14 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 		proposerDecreaseRatingStep = bsr.shardRatingsStepHandler.ProposerDecreaseRatingStep()
 		consecutiveBlocksPenalty = bsr.shardRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	}
-	computedIncrease := float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses))
+
+	computedIncreaseBigFloat := big.NewFloat(0).Mul(big.NewFloat(float64(proposerDecreaseRatingStep)),
+		core.Pow(big.NewFloat(float64(consecutiveBlocksPenalty)), uint64(consecutiveMisses)))
+	computedIncrease, _ := computedIncreaseBigFloat.Int64()
+
 	var consecutiveMissesIncrease int32
-	if computedIncrease < math.MinInt32 || computedIncrease >= 0 {
-		consecutiveMissesIncrease = math.MinInt32
+	if computedIncrease < maxDecreaseValue || computedIncrease >= 0 {
+		consecutiveMissesIncrease = maxDecreaseValue
 	} else {
 		consecutiveMissesIncrease = int32(computedIncrease)
 	}
@@ -211,7 +222,7 @@ func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRa
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
-// GetChance returns the chances modifier for the pk
+// GetChance returns the chances modifier for the current rating
 func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
 	chance := bsr.ratingChances[0].GetChancePercentage()
 	for i := 0; i < len(bsr.ratingChances); i++ {

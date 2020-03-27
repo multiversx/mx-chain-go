@@ -112,22 +112,22 @@ func (pa *peerAccount) SetUnStakedNonce(nonce uint64) {
 
 // IncreaseLeaderSuccessRate increases the account's number of successful signing
 func (pa *peerAccount) IncreaseLeaderSuccessRate(value uint32) {
-	pa.LeaderSuccessRate.NrSuccess += value
+	pa.LeaderSuccessRate.NumSuccess += value
 }
 
 // DecreaseLeaderSuccessRate increases the account's number of missing signing
 func (pa *peerAccount) DecreaseLeaderSuccessRate(value uint32) {
-	pa.LeaderSuccessRate.NrFailure += value
+	pa.LeaderSuccessRate.NumFailure += value
 }
 
 // IncreaseValidatorSuccessRate increases the account's number of successful signing
 func (pa *peerAccount) IncreaseValidatorSuccessRate(value uint32) {
-	pa.ValidatorSuccessRate.NrSuccess += value
+	pa.ValidatorSuccessRate.NumSuccess += value
 }
 
 // DecreaseValidatorSuccessRate increases the account's number of missed signing
 func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
-	pa.ValidatorSuccessRate.NrFailure += value
+	pa.ValidatorSuccessRate.NumFailure += value
 }
 
 // IncreaseNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
@@ -154,14 +154,14 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 func (pa *peerAccount) ResetAtNewEpoch() error {
 	pa.AccumulatedFees = big.NewInt(0)
 	pa.SetRating(pa.GetTempRating())
-	pa.TotalLeaderSuccessRate.NrFailure += pa.LeaderSuccessRate.NrFailure
-	pa.TotalLeaderSuccessRate.NrSuccess += pa.LeaderSuccessRate.NrSuccess
-	pa.TotalValidatorSuccessRate.NrSuccess += pa.ValidatorSuccessRate.NrSuccess
-	pa.TotalValidatorSuccessRate.NrFailure += pa.ValidatorSuccessRate.NrFailure
-	pa.LeaderSuccessRate.NrFailure = 0
-	pa.LeaderSuccessRate.NrSuccess = 0
-	pa.ValidatorSuccessRate.NrSuccess = 0
-	pa.ValidatorSuccessRate.NrFailure = 0
+	pa.TotalLeaderSuccessRate.NumFailure += pa.LeaderSuccessRate.NumFailure
+	pa.TotalLeaderSuccessRate.NumSuccess += pa.LeaderSuccessRate.NumSuccess
+	pa.TotalValidatorSuccessRate.NumSuccess += pa.ValidatorSuccessRate.NumSuccess
+	pa.TotalValidatorSuccessRate.NumFailure += pa.ValidatorSuccessRate.NumFailure
+	pa.LeaderSuccessRate.NumFailure = 0
+	pa.LeaderSuccessRate.NumSuccess = 0
+	pa.ValidatorSuccessRate.NumSuccess = 0
+	pa.ValidatorSuccessRate.NumFailure = 0
 	pa.NumSelectedInSuccessBlocks = 0
 	pa.ConsecutiveProposerMisses = 0
 

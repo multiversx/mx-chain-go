@@ -11,9 +11,9 @@ func TestRatingStepData_NewRatingStepDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	proposerIncreaseRatingStep := int32(1)
-	proposerDecreaseRatingStep := int32(2)
+	proposerDecreaseRatingStep := int32(-2)
 	validatorIncreaseRatingStep := int32(3)
-	validatorDecreaseRatingStep := int32(4)
+	validatorDecreaseRatingStep := int32(-4)
 
 	steps := config.RatingSteps{
 		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,

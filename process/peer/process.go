@@ -328,14 +328,14 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
-		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NrSuccess,
-		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NrFailure,
-		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NrSuccess,
-		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NrFailure,
-		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NrSuccess,
-		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NrFailure,
-		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NrSuccess,
-		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NrFailure,
+		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
+		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
+		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NumSuccess,
+		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NumFailure,
+		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
+		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NumFailure,
+		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
+		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NumFailure,
 		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
@@ -389,15 +389,12 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 		return process.ErrNilValidatorInfos
 	}
 
+	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			validatorAppereances := validator.ValidatorSuccess + validator.ValidatorFailure
-			if validatorAppereances == 0 {
-				validatorAppereances = 1
-			}
+			validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
 			computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
-			if computedThreshold <= vs.rater.GetSignedBlocksThreshold() {
-
+			if computedThreshold <= signedThreshold {
 				newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
 				pa, err := vs.GetPeerAccount(validator.PublicKey)
 				if err != nil {
@@ -842,10 +839,10 @@ func (vs *validatorStatistics) display(validatorKey string) {
 
 	log.Trace("validator statistics",
 		"pk", acc.GetBLSPublicKey(),
-		"leader fail", acc.GetLeaderSuccessRate().NrFailure,
-		"leader success", acc.GetLeaderSuccessRate().NrSuccess,
-		"val fail", acc.GetValidatorSuccessRate().NrFailure,
-		"val success", acc.GetValidatorSuccessRate().NrSuccess,
+		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
+		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
+		"val fail", acc.GetValidatorSuccessRate().NumFailure,
+		"val success", acc.GetValidatorSuccessRate().NumSuccess,
 		"temp rating", acc.GetTempRating(),
 		"rating", acc.GetRating(),
 	)
