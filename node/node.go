@@ -55,9 +55,9 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	internalMarshalizer      marshal.Marshalizer
-	vmMarshalizer            marshal.Marshalizer
-	txSignMarshalizer                   marshal.Marshalizer
+	internalMarshalizer           marshal.Marshalizer
+	vmMarshalizer                 marshal.Marshalizer
+	txSignMarshalizer             marshal.Marshalizer
 	ctx                           context.Context
 	hasher                        hashing.Hasher
 	feeHandler                    process.FeeHandler
@@ -335,7 +335,7 @@ func (n *Node) StartConsensus() error {
 		NodesCoordinator:              n.nodesCoordinator,
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
-		AntifloodHandler:     		   n.inputAntifloodHandler,
+		AntifloodHandler:              n.inputAntifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -912,7 +912,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartSubscriber)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
 	if err != nil {
 		return err
 	}

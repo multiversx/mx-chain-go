@@ -18,11 +18,6 @@ func (pac *PeerAccountCreator) CreateAccount(address state.AddressContainer) (st
 	return state.NewPeerAccount(address)
 }
 
-// GetType returns the account factory type
-func (ac *PeerAccountCreator) GetType() state.Type {
-	return state.ValidatorAccount
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (pac *PeerAccountCreator) IsInterfaceNil() bool {
 	return pac == nil

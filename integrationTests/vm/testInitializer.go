@@ -49,10 +49,6 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.A
 	return state.NewUserAccount(address)
 }
 
-func (af *accountFactory) GetType() state.Type {
-	return state.UserAccount
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *accountFactory) IsInterfaceNil() bool {
 	return af == nil

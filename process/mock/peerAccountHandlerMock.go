@@ -17,7 +17,7 @@ type PeerAccountHandlerMock struct {
 	GetTempRatingCalled                func() uint32
 	SetAccumulatedFeesCalled           func(*big.Int)
 	GetAccumulatedFeesCalled           func() *big.Int
-	SetListAndIndexWithJournalCalled   func(list string, index int32) error
+	SetListAndIndexCalled              func(shardID uint32, list string, index int32)
 }
 
 // GetBLSPublicKey -
@@ -262,13 +262,11 @@ func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
 }
 
-// SetListAndIndexWithJournal -
-func (pahm *PeerAccountHandlerMock) SetListAndIndexWithJournal(shardID uint32, list string, index int32) error {
-	if pahm.SetListAndIndexWithJournalCalled != nil {
-		return pahm.SetListAndIndexWithJournalCalled(list, index)
+// SetListAndIndex -
+func (pahm *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index int32) {
+	if pahm.SetListAndIndexCalled != nil {
+		pahm.SetListAndIndexCalled(shardID, list, index)
 	}
-
-	return nil
 }
 
 // IsInterfaceNil -

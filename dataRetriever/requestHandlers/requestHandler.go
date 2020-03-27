@@ -323,7 +323,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []b
 	}
 
 	log.Debug("requesting trie from network",
-		"topic", baseTopic,
+		"topic", topic,
 		"shard", destShardID,
 		"hash", hash,
 	)

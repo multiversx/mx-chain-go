@@ -87,7 +87,7 @@ type PeerAccountHandler interface {
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
-	SetListAndIndexWithJournal(shardID uint32, list string, index int32) error
+	SetListAndIndex(shardID uint32, list string, index int32)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32

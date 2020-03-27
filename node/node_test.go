@@ -1255,7 +1255,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 				return map[uint32][]*state.ValidatorInfo{

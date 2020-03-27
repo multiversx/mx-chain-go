@@ -519,7 +519,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, 
 	allTries[string(rootHash)] = recreatedTrie
 
 	for _, leaf := range leafs {
-		account := &Account{}
+		account := &userAccount{}
 		err = adb.marshalizer.Unmarshal(account, leaf)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
@@ -538,7 +538,6 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, 
 
 	return allTries, nil
 }
-
 
 // Journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
@@ -593,7 +592,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
 	}
 
 	for _, leaf := range leafs {
-		account := &Account{}
+		account := &userAccount{}
 		err = adb.marshalizer.Unmarshal(account, leaf)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)

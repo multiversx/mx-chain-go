@@ -98,20 +98,23 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 		return
 	}
 
-	for keyVal := range ic.objects.Iter() {
-		key, ok := keyVal.Key.(string)
+	for _, keyVal := range ic.objects.Keys() {
+		key, ok := keyVal.(string)
 		if !ok {
-			ic.objects.Del(keyVal.Key)
 			continue
 		}
 
-		val, ok := keyVal.Value.(process.Interceptor)
+		val, ok := ic.objects.Get(key)
 		if !ok {
-			ic.objects.Del(keyVal.Key)
 			continue
 		}
 
-		shouldContinue := handler(key, val)
+		interceptor, ok := val.(process.Interceptor)
+		if !ok {
+			continue
+		}
+
+		shouldContinue := handler(key, interceptor)
 		if !shouldContinue {
 			return
 		}

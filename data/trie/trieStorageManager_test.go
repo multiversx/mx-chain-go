@@ -248,7 +248,6 @@ func TestPruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
 	tr.CancelPrune(rootHash, data.NewRoot)
-	rootHashes = append(rootHashes, rootHash)
 	tr.EnterSnapshotMode()
 	tr.TakeSnapshot(rootHash)
 	tr.Prune(rootHash, data.NewRoot)
@@ -391,75 +390,4 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	trieStorage.storageOperationMutex.Unlock()
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
-}
-
-func TestRemoveFromPruningBufferWhenCancelingPrune(t *testing.T) {
-	t.Parallel()
-
-	tr, trieStorage, _ := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
-	rootHash1, _ := tr.Root()
-	trieStorage.snapshotsBuffer.add(rootHash1, false)
-
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
-	_ = tr.Commit()
-	rootHash2, _ := tr.Root()
-	trieStorage.snapshotsBuffer.add(rootHash2, false)
-
-	_ = tr.Prune(rootHash2, data.NewRoot)
-	rootHash2NewRoot := append(rootHash2, byte(data.NewRoot))
-
-	present := false
-	for i := range trieStorage.pruningBuffer {
-		if bytes.Equal(trieStorage.pruningBuffer[i], rootHash2NewRoot) {
-			present = true
-		}
-	}
-	require.True(t, present)
-
-	tr.CancelPrune(rootHash2, data.NewRoot)
-
-	for i := range trieStorage.pruningBuffer {
-		assert.NotEqual(t, trieStorage.pruningBuffer[i], rootHash2NewRoot)
-	}
-}
-
-func TestCheckpointWithErrWillNotGeneratePruningDeadlock(t *testing.T) {
-	t.Parallel()
-
-	tr, trieStorage, _ := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
-	rootHash1, _ := tr.Root()
-	trieStorage.snapshotsBuffer.add(rootHash1, false)
-
-	trieStorage.snapshotsBuffer.add([]byte("rootHash"), false)
-
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
-	_ = tr.Commit()
-	rootHash2, _ := tr.Root()
-	trieStorage.snapshotsBuffer.add(rootHash2, false)
-
-	tr.CancelPrune(rootHash1, data.NewRoot)
-	_ = tr.Prune(rootHash2, data.NewRoot)
-	_ = tr.Prune(rootHash1, data.OldRoot)
-
-	tr.EnterSnapshotMode()
-	trieStorage.snapshot(tr.marshalizer, tr.hasher)
-	tr.ExitSnapshotMode()
-	time.Sleep(snapshotDelay)
-
-	trieStorage.snapshots = make([]storage.Persister, 0)
-	newTr, err := tr.Recreate(rootHash1)
-	assert.Nil(t, newTr)
-	assert.True(t, errors.Is(err, ErrHashNotFound))
-
-	newTr, err = tr.Recreate(rootHash2)
-	assert.Nil(t, newTr)
-	assert.True(t, errors.Is(err, ErrHashNotFound))
 }

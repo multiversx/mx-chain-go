@@ -198,14 +198,13 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
-	receivedHbmi.peerType = m.computePeerType([]byte(pubKey), receivedHbmi.computedShardID)
 
 	return receivedHbmi, nil
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler
 	}
 
@@ -304,16 +303,6 @@ func (m *Monitor) computePeerTypeAndShardID(pubkey []byte) (string, uint32) {
 	}
 
 	return string(peerType), shardID
-}
-
-func (m *Monitor) computePeerType(pubkey []byte, shardID uint32) string {
-	peerType, err := m.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
-	if err != nil {
-		log.Warn("monitor: compute peer type", "error", err)
-		return string(core.ObserverList)
-	}
-
-	return string(peerType)
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {

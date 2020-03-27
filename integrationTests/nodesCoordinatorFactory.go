@@ -88,6 +88,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     arg.consensusGroupCache,
 		BootStorer:              arg.bootStorer,
+		ListIndexUpdater:        arg.listIndexUpdater,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

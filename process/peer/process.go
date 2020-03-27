@@ -835,7 +835,8 @@ func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32,
 		return err
 	}
 
-	return peer.SetListAndIndexWithJournal(shardID, list, index)
+	peer.SetListAndIndex(shardID, list, index)
+	return nil
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {

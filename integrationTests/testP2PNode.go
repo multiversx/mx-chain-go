@@ -127,7 +127,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
 			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
 				return map[uint32][]*state.ValidatorInfo{
@@ -260,6 +260,7 @@ func CreateNodesWithTestP2PNodes(
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			Epoch:                   0,
 			EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -299,6 +300,7 @@ func CreateNodesWithTestP2PNodes(
 				WaitingNodes:            make(map[uint32][]sharding.Validator),
 				Epoch:                   0,
 				EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+				ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

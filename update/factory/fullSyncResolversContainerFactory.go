@@ -105,7 +105,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 			continue
 		}
 
-		trieId := genesis.CreateTrieIdentifier(i, state.UserAccount)
+		trieId := genesis.CreateTrieIdentifier(i, genesis.UserAccount)
 		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
 		if err != nil {
 			return err
@@ -117,7 +117,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
-		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, state.UserAccount)
+		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.UserAccount)
 		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
 		if err != nil {
 			return err
@@ -129,7 +129,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
-		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, state.ValidatorAccount)
+		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.ValidatorAccount)
 		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID)
 		if err != nil {
 			return err

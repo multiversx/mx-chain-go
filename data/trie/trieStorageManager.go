@@ -27,11 +27,11 @@ type trieStorageManager struct {
 	db       data.DBWriteCacher
 	pruneReq chan []byte
 
-	snapshots       []storage.Persister
-	snapshotId      int
-	snapshotDbCfg   config.DBConfig
-	snapshotReq     chan snapshotsQueueEntry
-	snapshotsBuffer atomicBuffer
+	snapshots          []storage.Persister
+	snapshotId         int
+	snapshotDbCfg      config.DBConfig
+	snapshotReq        chan snapshotsQueueEntry
+	snapshotsBuffer    atomicBuffer
 	snapshotInProgress uint32
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -180,21 +180,14 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	if tsm.snapshotInProgress > 0 {
 		tsm.snapshotInProgress--
 	}
-
-	if tsm.snapshotsBuffer.len() == 0 {
-		keys := tsm.pruningBuffer
-		go tsm.removeKeysFromDb(keys)
-		tsm.pruningBuffer = tsm.pruningBuffer[:0]
-	}
 }
 
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) {
 	log.Trace("trie storage manager prune", "root", rootHash)
 
-	if tsm.snapshotInProgress > 0 || tsm.snapshotsBuffer.len() > 0 {
-		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
-		return nil
+	if tsm.snapshotInProgress > 0 {
+		return
 	}
 
 	if tsm.snapshotsBuffer.contains(rootHash[:len(rootHash)-1]) {
