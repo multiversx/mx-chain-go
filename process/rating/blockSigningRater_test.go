@@ -432,22 +432,22 @@ func TestBlockSigningRater_RevertIncreaseValidator(t *testing.T) {
 
 	for shardId := range validatorIncrease {
 		zeroReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 0)
-		assert.Equal(t, startRating, zeroReverts)
+		require.Equal(t, startRating, zeroReverts)
 
 		oneRevert := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 1)
-		assert.Equal(t, uint32(int32(startRating)-validatorIncrease[shardId]), oneRevert)
+		require.Equal(t, uint32(int32(startRating)-validatorIncrease[shardId]), oneRevert)
 
 		tenReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 10)
-		assert.Equal(t, uint32(int32(startRating)-10*validatorIncrease[shardId]), tenReverts)
+		require.Equal(t, uint32(int32(startRating)-10*validatorIncrease[shardId]), tenReverts)
 
 		hundredReverts := bsr.RevertIncreaseValidator(shardId, ratingsData.StartRating(), 100)
-		assert.Equal(t, ratingsData.MinRating(), hundredReverts)
+		require.Equal(t, ratingsData.MinRating(), hundredReverts)
 
 		ratingBelowMinRating := bsr.RevertIncreaseValidator(shardId, ratingsData.MinRating()-1, 0)
-		assert.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
 
 		ratingBelowMinRating = bsr.RevertIncreaseValidator(shardId, ratingsData.MinRating()-1, 1)
-		assert.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
+		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
 	}
 }
 

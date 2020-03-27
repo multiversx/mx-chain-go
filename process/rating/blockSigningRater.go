@@ -160,12 +160,14 @@ func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRat
 		ratingStep = bsr.shardRatingsStepHandler.ValidatorIncreaseRatingStep()
 	}
 
-	var decreaseValue int32
 	decreaseValueBigInt := big.NewInt(0).Mul(big.NewInt(int64(-ratingStep)), big.NewInt(int64(nrReverts)))
-	if decreaseValueBigInt.Cmp(big.NewInt(maxDecreaseValue)) < 0 || decreaseValueBigInt.Cmp(big.NewInt(0)) > 0 {
+	decreaseInt := decreaseValueBigInt.Int64()
+
+	var decreaseValue int32
+	if decreaseInt < maxDecreaseValue || decreaseInt > 0 {
 		decreaseValue = maxDecreaseValue
 	} else {
-		decreaseValue = int32(decreaseValueBigInt.Uint64())
+		decreaseValue = int32(decreaseValueBigInt.Int64())
 	}
 	return bsr.computeRating(decreaseValue, currentRating)
 }
