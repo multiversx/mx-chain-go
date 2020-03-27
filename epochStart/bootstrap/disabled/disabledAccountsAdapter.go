@@ -13,19 +13,23 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
-// GetAccountWithJournal -
-func (a *accountsAdapter) GetAccountWithJournal(_ state.AddressContainer) (state.AccountHandler, error) {
+// LoadAccount -
+func (a *accountsAdapter) LoadAccount(_ state.AddressContainer) (state.AccountHandler, error) {
 	return nil, nil
+}
+
+// SaveAccount -
+func (a *accountsAdapter) SaveAccount(_ state.AccountHandler) error {
+	return nil
+}
+
+// PruneTrie -
+func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
 }
 
 // GetExistingAccount -
 func (a *accountsAdapter) GetExistingAccount(_ state.AddressContainer) (state.AccountHandler, error) {
 	return nil, nil
-}
-
-// HasAccount -
-func (a *accountsAdapter) HasAccount(_ state.AddressContainer) (bool, error) {
-	return false, nil
 }
 
 // RemoveAccount -
@@ -55,26 +59,6 @@ func (a *accountsAdapter) RootHash() ([]byte, error) {
 
 // RecreateTrie -
 func (a *accountsAdapter) RecreateTrie(_ []byte) error {
-	return nil
-}
-
-// PutCode -
-func (a *accountsAdapter) PutCode(_ state.AccountHandler, _ []byte) error {
-	return nil
-}
-
-// RemoveCode -
-func (a *accountsAdapter) RemoveCode(_ []byte) error {
-	return nil
-}
-
-// SaveDataTrie -
-func (a *accountsAdapter) SaveDataTrie(_ state.AccountHandler) error {
-	return nil
-}
-
-// PruneTrie -
-func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) error {
 	return nil
 }
 

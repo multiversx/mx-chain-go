@@ -58,6 +58,6 @@ message PeerAccountData {
     uint32 TempRating                 = 15;
     bytes  AccumulatedFees            = 16 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     uint32 NumSelectedInSuccessBlocks = 17;
-	int32  IndexInList = 18;
+	uint32 IndexInList = 18;
 	string List        = 19;
 }

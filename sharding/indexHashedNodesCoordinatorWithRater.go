@@ -1,8 +1,6 @@
 package sharding
 
 import (
-	"encoding/json"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
@@ -151,38 +149,4 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 	}
 
 	return validatorList, nil
-}
-
-// LoadState loads the nodes coordinator state from the used boot storage
-func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
-
-	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
-
-	data, err := ihgs.bootStorer.Get(ncInternalkey)
-	if err != nil {
-		return err
-	}
-
-	config := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(data, config)
-	if err != nil {
-		return err
-	}
-
-	ihgs.mutSavedStateKey.Lock()
-	ihgs.savedStateKey = key
-	ihgs.mutSavedStateKey.Unlock()
-
-	err = ihgs.SetConfig(config)
-	if err != nil {
-		return err
-	}
-
-	err = ihgs.expandAllLists(config.CurrentEpoch)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

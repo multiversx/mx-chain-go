@@ -330,7 +330,7 @@ func (n *nodesCoordinator) updateAccountsForGivenMap(
 				string(account.PubKey()),
 				shardId,
 				string(list),
-				int32(index))
+				uint32(index))
 			if err != nil {
 				log.Warn("error while updating list and index for peer",
 					"error", err,
@@ -342,14 +342,15 @@ func (n *nodesCoordinator) updateAccountsForGivenMap(
 	return nil
 }
 
-func (n *nodesCoordinator) updateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+func (n *nodesCoordinator) updateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
 	peer, err := n.getPeerAccount([]byte(pubKey))
 	if err != nil {
 		log.Debug("error getting peer account", "error", err, "key", pubKey)
 		return err
 	}
 
-	return peer.SetListAndIndexWithJournal(shardID, list, index)
+	peer.SetListAndIndex(shardID, list, index)
+	return nil
 }
 
 func (n *nodesCoordinator) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
@@ -358,7 +359,7 @@ func (n *nodesCoordinator) getPeerAccount(address []byte) (state.PeerAccountHand
 		return nil, err
 	}
 
-	account, err := n.validatorAccountsDB.GetAccountWithJournal(addressContainer)
+	account, err := n.validatorAccountsDB.LoadAccount(addressContainer)
 	if err != nil {
 		return nil, err
 	}

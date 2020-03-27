@@ -21,7 +21,7 @@ type RaterMock struct {
 	ComputeIncreaseValidatorCalled   func(val uint32) uint32
 	ComputeDecreaseValidatorCalled   func(val uint32) uint32
 	GetChancesCalled                 func(val uint32) uint32
-	UpdateListAndIndexCalled       	 func(pubKey string, list string, index int32) error
+	UpdateListAndIndexCalled         func(pubKey string, shardID uint32, list string, index uint32) error
 	RatingReader                     sharding.RatingReader
 }
 
@@ -116,13 +116,13 @@ func (rm *RaterMock) GetChance(rating uint32) uint32 {
 }
 
 // SetListIndexUpdater -
-func (rm *RaterMock) SetListIndexUpdater(updater sharding.ListIndexUpdaterHandler) {
+func (rm *RaterMock) SetListIndexUpdater(_ sharding.ListIndexUpdaterHandler) {
 }
 
 // UpdateListAndIndex -
-func (rm *RaterMock) UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+func (rm *RaterMock) UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
 	if rm.UpdateListAndIndexCalled != nil {
-		return rm.UpdateListAndIndexCalled(pubKey, list, index)
+		return rm.UpdateListAndIndexCalled(pubKey, shardID, list, index)
 	}
 
 	return nil

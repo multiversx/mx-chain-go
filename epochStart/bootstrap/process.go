@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -26,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -448,10 +448,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte, rootHash []byte) error {
-	accountFactory, err := factory.NewAccountFactoryCreator(state.ValidatorAccount)
-	if err != nil {
-		return err
-	}
+	accountFactory := factory.NewAccountCreator()
 	peerAccountsDB, err := state.NewPeerAccountsDB(e.peerAccountTries[string(rootHash)], e.hasher, e.marshalizer, accountFactory)
 	if err != nil {
 		return err

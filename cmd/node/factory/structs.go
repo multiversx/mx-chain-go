@@ -941,17 +941,6 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	return softwareVersionChecker, nil
 }
 
-func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	switch cfg.Hasher.Type {
-	case "sha256":
-		return sha256.Sha256{}, nil
-	case "blake2b":
-		return &blake2b.Blake2b{}, nil
-	}
-
-	return nil, errors.New("no hasher provided in config file")
-}
-
 func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 
 	if coordinator == nil {
@@ -1418,15 +1407,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 			return nil, err
 		}
 
-		cache, errNewCache := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-		if errNewCache != nil {
-			return nil, errNewCache
-		}
-		newBlockChain, errNewMetachain := blockchain.NewMetaChain(cache)
-		if errNewMetachain != nil {
-			return nil, errNewMetachain
-		}
-
+		newBlockChain := blockchain.NewMetaChain()
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Blkc = newBlockChain

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 const keyPrefix = "indexHashed_"
