@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -257,7 +257,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
-			display.DisplayByteSlice(headerHandler.GetChainID())}),
+			logger.DisplayByteSlice(headerHandler.GetChainID())}),
 		display.NewLineData(false, []string{
 			"",
 			"Epoch",
@@ -277,15 +277,15 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Prev hash",
-			display.DisplayByteSlice(headerHandler.GetPrevHash())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Prev rand seed",
-			display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Rand seed",
-			display.DisplayByteSlice(headerHandler.GetRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Pub keys bitmap",
@@ -293,27 +293,27 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Signature",
-			display.DisplayByteSlice(headerHandler.GetSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Leader's Signature",
-			display.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Root hash",
-			display.DisplayByteSlice(headerHandler.GetRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
-			display.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
+			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			display.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
 	}
 }
 

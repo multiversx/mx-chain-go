@@ -4224,7 +4224,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(header.Nonce), key)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Block(t *testing.T) {

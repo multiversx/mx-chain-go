@@ -51,12 +51,11 @@ func logError(err error) {
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{
-			AccountData: state.AccountData{
-				Nonce:   1,
-				Balance: new(big.Int).Set(balance),
-			},
-		}, nil
+		acc, _ := state.NewUserAccount(addressContainer)
+		_ = acc.AddToBalance(balance)
+		acc.IncreaseNonce(1)
+
+		return acc, nil
 	}
 	return accDB
 }
@@ -446,7 +445,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return &state.Account{}, nil
+			return state.NewUserAccount(addrContainer)
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -557,12 +556,11 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return &state.Account{
-				AccountData: state.AccountData{
-					Nonce:   nonce,
-					Balance: big.NewInt(0),
-				},
-			}, nil
+			acc, _ := state.NewUserAccount(addrContainer)
+			_ = acc.AddToBalance(big.NewInt(0))
+			acc.IncreaseNonce(nonce)
+
+			return acc, nil
 		},
 	}
 
@@ -1106,6 +1104,18 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
+			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
+				switch {
+				case bytes.Equal(address, []byte(keys[0][0])):
+					return nil, errors.New("error")
+				case bytes.Equal(address, []byte(keys[1][0])):
+					return state.NewPeerAccount(mock.NewAddressMock())
+				default:
+					return state.NewPeerAccount(mock.NewAddressMock())
+				}
+			},
+		}),
 		node.WithValidatorStatistics(vsp),
 	)
 
@@ -1136,11 +1146,23 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 			},
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1186,6 +1208,18 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1218,6 +1252,17 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1258,6 +1303,18 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1304,11 +1361,23 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1372,6 +1441,9 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
@@ -1379,6 +1451,15 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
+			},
+		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -1408,7 +1489,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 
 	elements := getHeartbeats(t)
 	for _, status := range elements {
-		assert.True(t, status.IsValidator)
+		assert.Equal(t, string(core.EligibleList), status.PeerType)
 	}
 }
 
@@ -1454,11 +1535,48 @@ func getHeartbeats(t *testing.T) []heartbeat.PubKeyHeartbeat {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+				return map[uint32][][]byte{
+					0: {[]byte("pk1"), []byte("pk2")},
+					1: {[]byte("pk3")},
+				}, nil
+			},
+		}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+					1: {
+						{PublicKey: []byte("pk3")},
+					},
+				}, nil
+			},
+		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+					1: {
+						{PublicKey: []byte("pk3")},
+					},
+				}, nil
+			},
+		}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1521,6 +1639,9 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
@@ -1531,6 +1652,15 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 			},
 			CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
 				return nil
+			},
+		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+				}, nil
 			},
 		}),
 	)
@@ -2212,10 +2342,10 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, uint64(0), recovAccnt.Balance.Uint64())
-	assert.Nil(t, recovAccnt.CodeHash)
-	assert.Nil(t, recovAccnt.RootHash)
+	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
+	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
+	assert.Nil(t, recovAccnt.GetCodeHash())
+	assert.Nil(t, recovAccnt.GetRootHash())
 }
 
 func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
@@ -2243,14 +2373,11 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		AccountData: state.AccountData{
-			Balance:  big.NewInt(1),
-			Nonce:    2,
-			RootHash: []byte("root hash"),
-			CodeHash: []byte("code hash"),
-		},
-	}
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	_ = accnt.AddToBalance(big.NewInt(1))
+	accnt.IncreaseNonce(2)
+	accnt.SetRootHash([]byte("root hash"))
+	accnt.SetCodeHash([]byte("code hash"))
 
 	accDB := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
