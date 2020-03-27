@@ -145,3 +145,9 @@ type EpochHandler interface {
 	Epoch() uint32
 	IsInterfaceNil() bool
 }
+
+// RandomSelector selects randomly a subset of elements from a set of data
+type RandomSelector interface {
+	Select(randSeed []byte, sampleSize uint32) ([]uint32, error)
+	IsInterfaceNil() bool
+}

@@ -33,7 +33,7 @@ type epochNodesConfig struct {
 	shardID                 uint32
 	eligibleMap             map[uint32][]Validator
 	waitingMap              map[uint32][]Validator
-	expandedEligibleMap     map[uint32][]Validator
+	selectors               map[uint32]RandomSelector
 	publicKeyToValidatorMap map[string]*validatorWithShardID
 	mutNodesMaps            sync.RWMutex
 }
@@ -183,25 +183,13 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
-	nodesConfig.publicKeyToValidatorMap = make(map[string]*validatorWithShardID)
-	for shardId, shardEligible := range nodesConfig.eligibleMap {
-		for i := 0; i < len(shardEligible); i++ {
-			nodesConfig.publicKeyToValidatorMap[string(shardEligible[i].PubKey())] = &validatorWithShardID{
-				validator: shardEligible[i],
-				shardID:   shardId,
-			}
-		}
-	}
-	for shardId, shardWaiting := range nodesConfig.waitingMap {
-		for i := 0; i < len(shardWaiting); i++ {
-			nodesConfig.publicKeyToValidatorMap[string(shardWaiting[i].PubKey())] = &validatorWithShardID{
-				validator: shardWaiting[i],
-				shardID:   shardId,
-			}
-		}
+	nodesConfig.publicKeyToValidatorMap = ihgs.createPublicKeyToValidatorMap(eligible, waiting)
+	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
+	err := ihgs.createSelectors(nodesConfig)
+	if err != nil {
+		return err
 	}
 
-	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
@@ -213,22 +201,16 @@ func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator
 	return make([]Validator, 0)
 }
 
-// ComputeConsensusGroup will generate a list of validators based on the the eligible list,
-// consensus group size and a randomness source
-// Steps:
-// 1. generate expanded eligible list by multiplying entries from shards' eligible list according to stake and rating -> TODO
-// 2. for each value in [0, consensusGroupSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % len(eligible list)
-// 3. if proposed index is already in the temp validator list, then proposedIndex++ (and then % len(eligible list) as to not
-//    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
-//    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
-// 4. the item at the checked index is appended in the temp validator list
+// ComputeConsensusGroup will generate a list of validators based on the the eligible list
+// by weighted random sampling
 func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness []byte,
 	round uint64,
 	shardID uint32,
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
-	var expandedList []Validator
+	var selector RandomSelector
+	var eligibleList []Validator
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
@@ -246,7 +228,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			return nil, ErrInvalidShardId
 		}
-		expandedList = nodesConfig.eligibleMap[shardID]
+		selector = nodesConfig.selectors[shardID]
+		eligibleList = nodesConfig.eligibleMap[shardID]
 	}
 	ihgs.mutNodesConfig.RUnlock()
 
@@ -266,10 +249,9 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	log.Debug("ComputeValidatorsGroup",
 		"randomness", randomness,
 		"consensus size", consensusSize,
-		"eligible list length", len(expandedList))
+		"eligible list length", len(eligibleList))
 
-	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
-	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
+	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 	if err != nil {
 		return nil, err
 	}
@@ -614,6 +596,31 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
+func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+) map[string]*validatorWithShardID {
+	publicKeyToValidatorMap := make(map[string]*validatorWithShardID)
+	for shardId, shardEligible := range eligible {
+		for i := 0; i < len(shardEligible); i++ {
+			publicKeyToValidatorMap[string(shardEligible[i].PubKey())] = &validatorWithShardID{
+				validator: shardEligible[i],
+				shardID:   shardId,
+			}
+		}
+	}
+	for shardId, shardWaiting := range waiting {
+		for i := 0; i < len(shardWaiting); i++ {
+			publicKeyToValidatorMap[string(shardWaiting[i].PubKey())] = &validatorWithShardID{
+				validator: shardWaiting[i],
+				shardID:   shardId,
+			}
+		}
+	}
+
+	return publicKeyToValidatorMap
+}
+
 func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
 	selfShard := ihgs.shardIDAsObserver
@@ -681,6 +688,52 @@ func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
+}
+
+// not concurrent safe, needs to be called under mutex
+func (ihgs *indexHashedNodesCoordinator) createSelectors(nodesConfig *epochNodesConfig) error {
+	var err error
+
+	// all validators have the same weight for indexHashedNodesCoordinator
+	for epoch, vList := range nodesConfig.eligibleMap {
+		weights := make([]uint32, len(vList))
+		for i := range vList {
+			weights[i] = 1
+		}
+		nodesConfig.selectors[epoch], err = NewSelectorWRS(weights, ihgs.hasher)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func selectValidators(
+	selector RandomSelector,
+	randomness []byte,
+	consensusSize uint32,
+	eligibleList []Validator,
+) ([]Validator, error) {
+	if check.IfNil(selector) {
+		return nil, ErrNilRandomSelector
+	}
+	if len(randomness) == 0 {
+		return nil, ErrNilRandomness
+	}
+
+	// todo: checks for indexes
+	selectedIndexes, err := selector.Select(randomness, consensusSize)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusGroup := make([]Validator, consensusSize)
+	for i := range consensusGroup {
+		consensusGroup[i] = eligibleList[selectedIndexes[i]]
+	}
+
+	return consensusGroup, nil
 }
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
