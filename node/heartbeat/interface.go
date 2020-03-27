@@ -65,3 +65,9 @@ type P2PAntifloodHandler interface {
 	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
 	IsInterfaceNil() bool
 }
+
+// PeerTypeProviderHandler defines what a component which computes the type of a peer should do
+type PeerTypeProviderHandler interface {
+	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
+	IsInterfaceNil() bool
+}

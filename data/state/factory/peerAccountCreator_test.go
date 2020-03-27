@@ -13,44 +13,27 @@ import (
 func TestPeerAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(state.ValidatorAccount)
-	assert.Nil(t, err)
+	accF := factory.NewPeerAccountCreator()
 
 	_, ok := accF.(*factory.PeerAccountCreator)
 	assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(nil, &mock.AccountTrackerStub{})
+	acc, err := accF.CreateAccount(nil)
 
 	assert.Nil(t, acc)
 	assert.Equal(t, err, state.ErrNilAddressContainer)
 }
 
-func TestPeerAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
-	t.Parallel()
-
-	accF, err := factory.NewAccountFactoryCreator(state.ValidatorAccount)
-	assert.Nil(t, err)
-
-	_, ok := accF.(*factory.PeerAccountCreator)
-	assert.Equal(t, true, ok)
-
-	acc, err := accF.CreateAccount(&mock.AddressMock{}, nil)
-
-	assert.Nil(t, acc)
-	assert.Equal(t, err, state.ErrNilAccountTracker)
-}
-
 func TestPeerAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(state.ValidatorAccount)
-	assert.Nil(t, err)
+	accF := factory.NewPeerAccountCreator()
 	assert.False(t, check.IfNil(accF))
 
 	_, ok := accF.(*factory.PeerAccountCreator)
 	assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	acc, err := accF.CreateAccount(&mock.AddressMock{})
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)

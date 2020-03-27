@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -25,6 +26,10 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
+	}
+
+	if !bytes.Equal(tx.GetSndAddr(), acntDst.GetOwnerAddress()) {
+		return nil, process.ErrOperationNotPermitted
 	}
 
 	value, err := acntDst.ClaimDeveloperRewards(tx.GetSndAddr())

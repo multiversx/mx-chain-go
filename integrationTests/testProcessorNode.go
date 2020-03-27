@@ -325,12 +325,33 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(state.UserAccount)
-	tpn.TrieContainer.Put([]byte(factory2.UserAccountTrie), stateTrie)
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
+	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(state.ValidatorAccount)
-	tpn.TrieContainer.Put([]byte(factory2.PeerAccountTrie), peerTrie)
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
+	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+}
+
+func (tpn *TestProcessorNode) initValidatorStatistics() {
+	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
+		RewardsHandler:      tpn.EconomicsData,
+		StartEpoch:          0,
+	}
+
+	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
@@ -850,6 +871,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
+		TestHasher,
+		TestMarshalizer,
 		tpn.AccntState,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
@@ -1461,8 +1484,10 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
-	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.OwnAccount.Address)
-	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
+	nodeAccount, _ := tpn.AccntState.LoadAccount(tpn.OwnAccount.Address)
+	nodeAccount.(state.UserAccountHandler).IncreaseNonce(nonce)
+
+	err := tpn.AccntState.SaveAccount(nodeAccount)
 	if err != nil {
 		return err
 	}

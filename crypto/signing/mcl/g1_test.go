@@ -37,7 +37,7 @@ func TestGroupG1_PointLen(t *testing.T) {
 func TestGroupG1_CreatePoint(t *testing.T) {
 	t.Parallel()
 
-	baseG1Str := BaseG1()
+	baseG1Str := baseG1()
 
 	grG1 := &groupG1{}
 	point := &PointG1{
@@ -152,6 +152,14 @@ func TestGroupG1_CreatePointForScalarOne(t *testing.T) {
 	require.True(t, mclPointG1.IsEqual(baseG1))
 	require.True(t, mclPointG1.IsValidOrder())
 	require.True(t, mclPointG1.IsValid())
+}
+
+func TestGroupG1_CreatePointForScalarNil(t *testing.T) {
+	t.Parallel()
+
+	grG1 := &groupG1{}
+	pG1 := grG1.CreatePointForScalar(nil)
+	require.Equal(t, nil, pG1)
 }
 
 func TestGroupG1_IsInterfaceNil(t *testing.T) {

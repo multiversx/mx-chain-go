@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -30,44 +32,14 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-// getNumTxsFromPool returns the number of transactions from pool for a given shard
-func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
-	if dataPool == nil {
-		return 0
-	}
-
+func (txc *transactionCounter) getTxPoolCounts(dataPool dataRetriever.PoolsHolder) counting.Counts {
 	txPool := dataPool.Transactions()
-	if txPool == nil {
-		return 0
+	asCountable, ok := txPool.(counting.Countable)
+	if !ok {
+		return &counting.NullCounts{}
 	}
 
-	sumTxs := 0
-
-	strCache := process.ShardCacherIdentifier(shardId, shardId)
-	txStore := txPool.ShardDataStore(strCache)
-	if txStore != nil {
-		sumTxs += txStore.Len()
-	}
-
-	for i := uint32(0); i < nrShards; i++ {
-		if i == shardId {
-			continue
-		}
-
-		strCache = process.ShardCacherIdentifier(i, shardId)
-		txStore = txPool.ShardDataStore(strCache)
-		if txStore != nil {
-			sumTxs += txStore.Len()
-		}
-
-		strCache = process.ShardCacherIdentifier(shardId, i)
-		txStore = txPool.ShardDataStore(strCache)
-		if txStore != nil {
-			sumTxs += txStore.Len()
-		}
-	}
-
-	return sumTxs
+	return asCountable.GetCounts()
 }
 
 // subtractRestoredTxs updated the total processed txs in case of restore
@@ -106,11 +78,11 @@ func (txc *transactionCounter) displayLogInfo(
 	}
 
 	txc.mutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", logger.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
-		"txs in pool", txc.getNumTxsFromPool(selfId, dataPool, numShards),
+		"txs in pool", txc.getTxPoolCounts(dataPool).String(),
 		"num shards", numShards,
 		"shard", selfId,
 	}
@@ -172,7 +144,7 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
 				fmt.Sprintf("MetaBlockHash_%d", i+1),
-				display.DisplayByteSlice(header.MetaBlockHashes[i])}))
+				logger.DisplayByteSlice(header.MetaBlockHashes[i])}))
 
 			part = ""
 		} else if i == 1 {
@@ -213,7 +185,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
+					logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

@@ -4,19 +4,19 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/cornelk/hashmap"
 )
 
 // interceptorsContainer is an interceptors holder organized by type
 type interceptorsContainer struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewInterceptorsContainer will create a new instance of a container
 func NewInterceptorsContainer() *interceptorsContainer {
 	return &interceptorsContainer{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -84,7 +84,7 @@ func (ic *interceptorsContainer) Replace(key string, interceptor process.Interce
 
 // Remove will remove an object at a given key
 func (ic *interceptorsContainer) Remove(key string) {
-	ic.objects.Del(key)
+	ic.objects.Remove(key)
 }
 
 // Len returns the length of the added objects

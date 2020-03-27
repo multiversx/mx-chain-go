@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -189,6 +189,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
+	nodesConfig.expandedEligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.publicKeyToValidatorMap = make(map[string]*validatorWithShardID)
 	for shardId, shardEligible := range nodesConfig.eligibleMap {
@@ -260,6 +261,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			return nil, ErrInvalidShardId
 		}
+		// TODO: Replace next line with this line after fix: expandedList = nodesConfig.expandedEligibleMap[shardID]
 		expandedList = nodesConfig.eligibleMap[shardID]
 	}
 	ihgs.mutNodesConfig.RUnlock()
@@ -474,12 +476,12 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	if len(publicKeys) != len(signersIndexes) {
 		strHaving := "having the following keys: \n"
 		for index, value := range validatorsPubKeys[nodesConfig.shardID] {
-			strHaving += fmt.Sprintf(" index %d  key %s\n", index, display.DisplayByteSlice(value))
+			strHaving += fmt.Sprintf(" index %d  key %s\n", index, logger.DisplayByteSlice(value))
 		}
 
 		strNeeded := "needed the following keys: \n"
 		for _, pubKey := range publicKeys {
-			strNeeded += fmt.Sprintf(" key %s\n", display.DisplayByteSlice([]byte(pubKey)))
+			strNeeded += fmt.Sprintf(" key %s\n", logger.DisplayByteSlice([]byte(pubKey)))
 		}
 
 		log.Error("public keys not found\n"+strHaving+"\n"+strNeeded+"\n",

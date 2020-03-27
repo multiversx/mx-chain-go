@@ -236,11 +236,11 @@ func (m *HeartbeatDTO) GetPeerType() string {
 	return ""
 }
 
-func (m *HeartbeatDTO) GetIsValidator() bool {
+func (m *HeartbeatDTO) GetPeerType() string {
 	if m != nil {
-		return m.IsValidator
+		return m.PeerType
 	}
-	return false
+	return ""
 }
 
 func (m *HeartbeatDTO) GetLastUptimeDowntime() int64 {
@@ -618,7 +618,10 @@ func (m *HeartbeatDTO) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x68
 	}
-	if m.IsValidator {
+	if len(m.PeerType) > 0 {
+		i -= len(m.PeerType)
+		copy(dAtA[i:], m.PeerType)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.PeerType)))
 		i--
 		if m.IsValidator {
 			dAtA[i] = 1
@@ -810,8 +813,9 @@ func (m *HeartbeatDTO) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovHeartbeat(uint64(l))
 	}
-	if m.IsValidator {
-		n += 2
+	l = len(m.PeerType)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
 	}
 	if m.LastUptimeDowntime != 0 {
 		n += 1 + sovHeartbeat(uint64(m.LastUptimeDowntime))
@@ -1416,7 +1420,7 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsValidator", wireType)
 			}
-			var v int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHeartbeat
@@ -1426,7 +1430,7 @@ func (m *HeartbeatDTO) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

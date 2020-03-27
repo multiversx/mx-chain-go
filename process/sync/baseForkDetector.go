@@ -427,9 +427,14 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		return forkInfoObject
 	}
 
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+
 	bfd.mutHeaders.Lock()
 	for nonce, hdrsInfo := range bfd.headers {
 		if len(hdrsInfo) == 1 {
+			continue
+		}
+		if nonce <= finalCheckpointNonce {
 			continue
 		}
 

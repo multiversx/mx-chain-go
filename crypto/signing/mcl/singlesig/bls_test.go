@@ -3,6 +3,7 @@ package singlesig_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -232,4 +233,14 @@ func TestBLSSigner_VerifyInvalidSignatureShouldErr(t *testing.T) {
 
 	err = signer.Verify(pubKey, msg, signature)
 	require.Equal(t, crypto.ErrSigNotValid, err)
+}
+
+func TestBLSSigner_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var llSig *singlesig.BlsSingleSigner
+	require.True(t, check.IfNil(llSig))
+	llSig = &singlesig.BlsSingleSigner{}
+
+	require.False(t, check.IfNil(llSig))
 }

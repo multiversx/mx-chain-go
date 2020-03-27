@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -235,7 +236,15 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.PeerTypeProviderStub{},
+		&mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+				if string(pubKey) == "pk0" {
+					return "", 0, nil
+				}
+
+				return "", 1, nil
+			},
+		},
 		th,
 		createMockP2PAntifloodHandler(),
 	)
