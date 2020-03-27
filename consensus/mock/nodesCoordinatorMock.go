@@ -107,6 +107,16 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
+}
+
 // LoadState -
 func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil

@@ -169,6 +169,16 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
 
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	return ncm == nil

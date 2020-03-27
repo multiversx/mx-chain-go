@@ -58,7 +58,7 @@ type indexHashedNodesCoordinator struct {
 	numTotalEligible        uint64
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
-	nodesPerShardSetter     NodesPerShardSetter
+	nodesPerShardSetter     NodesCoordinatorHelper
 	consensusGroupCacher    Cacher
 	shardIDAsObserver       uint32
 }
@@ -77,6 +77,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardID:      arguments.ShardIDAsObserver,
 		eligibleMap:  make(map[uint32][]Validator),
 		waitingMap:   make(map[uint32][]Validator),
+		selectors:    make(map[uint32]RandomSelector),
 		mutNodesMaps: sync.RWMutex{},
 	}
 
@@ -98,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
-	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
+	err = ihgs.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +145,11 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 }
 
 // SetNodesPerShards loads the distribution of nodes per shard into the nodes management component
-func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
+func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	epoch uint32,
 ) error {
-
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
 
@@ -179,13 +179,14 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		numTotalEligible += uint64(nbNodesShard)
 	}
 
+	var err error
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.publicKeyToValidatorMap = ihgs.createPublicKeyToValidatorMap(eligible, waiting)
 	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
-	err := ihgs.createSelectors(nodesConfig)
+	nodesConfig.selectors, err = ihgs.createSelectors(nodesConfig)
 	if err != nil {
 		return err
 	}
@@ -480,7 +481,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 
 	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	err := ihgs.setNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -690,23 +691,39 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
-// not concurrent safe, needs to be called under mutex
-func (ihgs *indexHashedNodesCoordinator) createSelectors(nodesConfig *epochNodesConfig) error {
+// createSelectors creates the consensus group selectors for each shard
+// Not concurrent safe, needs to be called under mutex
+func (ihgs *indexHashedNodesCoordinator) createSelectors(
+	nodesConfig *epochNodesConfig,
+) (map[uint32]RandomSelector, error) {
 	var err error
+	var weights []uint32
 
-	// all validators have the same weight for indexHashedNodesCoordinator
-	for epoch, vList := range nodesConfig.eligibleMap {
-		weights := make([]uint32, len(vList))
-		for i := range vList {
-			weights[i] = 1
-		}
-		nodesConfig.selectors[epoch], err = NewSelectorWRS(weights, ihgs.hasher)
+	selectors := make(map[uint32]RandomSelector)
+	// weights for validators are computed according to each validator rating
+	for shard, vList := range nodesConfig.eligibleMap {
+		weights, err = ihgs.nodesPerShardSetter.ValidatorsWeights(vList)
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		selectors[shard], err = NewSelectorWRS(weights, ihgs.hasher)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	return selectors, nil
+}
+
+// ValidatorsWeights returns the
+func (ihgs *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
 }
 
 func selectValidators(

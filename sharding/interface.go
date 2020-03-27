@@ -23,7 +23,7 @@ type Validator interface {
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
-	NodesPerShardSetter
+	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
@@ -63,13 +63,9 @@ type NodesShuffler interface {
 	IsInterfaceNil() bool
 }
 
-// NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
-type NodesPerShardSetter interface {
-	SetNodesPerShards(
-		eligible map[uint32][]Validator,
-		waiting map[uint32][]Validator,
-		epoch uint32,
-	) error
+// NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
+type NodesCoordinatorHelper interface {
+	ValidatorsWeights(validators []Validator) ([]uint32, error)
 	ComputeLeaving(allValidators []Validator) []Validator
 }
 
