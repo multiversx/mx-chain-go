@@ -650,7 +650,7 @@ func TestBlockSigningRater_ComputeDecreaseProposerWithOverFlow(t *testing.T) {
 	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
 	assert.Equal(t, ratingsData.MinRating(), tenMisses)
 
-	consecutiveMisses = math.MaxUint32
+	consecutiveMisses = 100
 	maxMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
 	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
 	assert.Equal(t, ratingsData.MinRating(), maxMisses)
