@@ -79,16 +79,56 @@ func getMetricsFromHeader(
 }
 
 func saveMetricsForACommittedBlock(
+	nodesCoordinator sharding.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
-	headerMeta data.HeaderHandler,
+	metaBlock data.HeaderHandler,
+	shardHeader *block.Header,
 ) {
-	// TODO: add consensus metrics from CONSENSUS
-	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(headerMeta.GetEpoch()))
+	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
+	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(metaBlock.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+}
+
+func incrementCountAcceptedBlocks(
+	nodesCoordinator sharding.NodesCoordinator,
+	appStatusHandler core.AppStatusHandler,
+	header *block.Header,
+) {
+	consensusGroup, err := nodesCoordinator.ComputeConsensusGroup(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		header.GetShardID(),
+		header.GetEpoch(),
+	)
+	if err != nil {
+		return
+	}
+
+	ownPubKey := nodesCoordinator.GetOwnPublicKey()
+	myIndex := 0
+	found := false
+	for idx, val := range consensusGroup {
+		if bytes.Equal(ownPubKey, val.PubKey()) {
+			myIndex = idx
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return
+	}
+
+	bitMap := header.GetPubKeysBitmap()
+
+	indexInBitmap := bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
+	if indexInBitmap {
+		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+	}
 }
 
 func saveMetachainCommitBlockMetrics(

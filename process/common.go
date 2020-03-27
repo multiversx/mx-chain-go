@@ -2,6 +2,7 @@ package process
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"sort"
 
@@ -182,7 +183,8 @@ func GetMarshalizedHeaderFromStorage(
 
 	buffHdr, err := hdrStore.Get(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : GetMarshalizedHeaderFromStorage hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return buffHdr, nil
@@ -510,7 +512,8 @@ func getHeaderFromPool(
 
 	obj, err := headersCacher.GetHeaderByHash(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : getHeaderFromPool hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return obj, nil
@@ -528,7 +531,8 @@ func getHeaderFromPoolWithNonce(
 
 	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
-		return nil, nil, ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w : getHeaderFromPoolWithNonce shard = %d nonce = %d",
+			ErrMissingHeader, shardId, nonce)
 	}
 
 	//TODO what should we do when we get from pool more than one header with same nonce and shardId

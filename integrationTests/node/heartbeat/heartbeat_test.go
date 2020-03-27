@@ -205,6 +205,8 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		integrationTests.TestMarshalizer,
 		topic,
 		&sharding.OneShardCoordinator{},
+		&mock.PeerTypeProviderStub{},
+		&mock.AppStatusHandlerStub{},
 		version,
 		nodeName,
 	)
@@ -249,6 +251,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
+		&mock.PeerTypeProviderStub{},
 		&heartbeat.RealTimer{},
 		&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {

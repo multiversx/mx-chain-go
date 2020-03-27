@@ -7,6 +7,7 @@ type Presenter interface {
 	GetPublicKeyBlockSign() string
 	GetShardId() uint64
 	GetNodeType() string
+	GetPeerType() string
 	GetCountConsensus() uint64
 	GetCountConsensusAcceptedBlocks() uint64
 	GetCountLeader() uint64
