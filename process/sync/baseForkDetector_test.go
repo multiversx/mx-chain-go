@@ -614,6 +614,42 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	assert.Equal(t, 3, len(hInfos))
 }
 
+func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpointNonce(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
+	rounderMock.RoundIndex = 1
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Epoch: 0, Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil)
+	rounderMock.RoundIndex = 4
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Epoch: 1, Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
+		[]byte("hash2"),
+		process.BHReceived,
+		nil,
+		nil)
+	rounderMock.RoundIndex = 5
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Epoch: 1, Nonce: 2, Round: 5, PubKeysBitmap: []byte("X")},
+		[]byte("hash3"),
+		process.BHProcessed,
+		nil,
+		nil)
+
+	forkInfo := bfd.CheckFork()
+	assert.False(t, forkInfo.IsDetected)
+}
+
 func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	t.Parallel()
 

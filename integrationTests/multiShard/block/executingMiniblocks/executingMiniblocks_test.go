@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
@@ -222,8 +223,8 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 				continue
 			}
 
-			account, _ := accWrp.(*state.Account)
-			assert.Equal(t, expectedBalance, account.Balance)
+			account, _ := accWrp.(state.UserAccountHandler)
+			assert.Equal(t, expectedBalance, account.GetBalance())
 		}
 	}
 }
@@ -300,11 +301,10 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		bodyHandler := node.BlockChain.GetCurrentBlockBody()
 		body, ok := bodyHandler.(*block.Body)
 		numInvalid := 0
-		if ok {
-			for _, mb := range body.MiniBlocks {
-				if mb.Type == block.InvalidBlock {
-					numInvalid++
-				}
+		require.True(t, ok)
+		for _, mb := range body.MiniBlocks {
+			if mb.Type == block.InvalidBlock {
+				numInvalid++
 			}
 		}
 		assert.Equal(t, 1, numInvalid)
@@ -332,8 +332,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 				continue
 			}
 
-			account, _ := accWrp.(*state.Account)
-			assert.Equal(t, big.NewInt(0), account.Balance)
+			account, _ := accWrp.(state.UserAccountHandler)
+			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
 		receiver, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(receiverAddress)
@@ -342,8 +342,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			continue
 		}
 
-		account, _ := accWrp.(*state.Account)
-		assert.Equal(t, expectedReceiverValue, account.Balance)
+		account, _ := accWrp.(state.UserAccountHandler)
+		assert.Equal(t, expectedReceiverValue, account.GetBalance())
 	}
 }
 

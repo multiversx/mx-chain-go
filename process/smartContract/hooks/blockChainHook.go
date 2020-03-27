@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -116,7 +116,7 @@ func (bh *BlockChainHookImpl) GetBalance(address []byte) (*big.Int, error) {
 		return nil, err
 	}
 
-	return shardAccount.Balance, nil
+	return shardAccount.GetBalance(), nil
 }
 
 // GetNonce returns the nonce of a shard account
@@ -134,7 +134,7 @@ func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
 		return 0, err
 	}
 
-	return shardAccount.Nonce, nil
+	return shardAccount.GetNonce(), nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
@@ -152,7 +152,12 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	value, err := account.DataTrieTracker().RetrieveValue(index)
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	value, err := userAcc.DataTrieTracker().RetrieveValue(index)
 	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
 	return value, err
 }
@@ -172,7 +177,12 @@ func (bh *BlockChainHookImpl) IsCodeEmpty(address []byte) (bool, error) {
 		return false, err
 	}
 
-	isCodeEmpty := len(account.GetCode()) == 0
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return false, process.ErrWrongTypeAssertion
+	}
+
+	isCodeEmpty := len(userAcc.GetCode()) == 0
 	return isCodeEmpty, nil
 }
 
@@ -183,7 +193,12 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	code := account.GetCode()
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	code := userAcc.GetCode()
 	if len(code) == 0 {
 		return nil, ErrEmptyCode
 	}
@@ -362,13 +377,13 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 	return bh.accounts.GetExistingAccount(addr)
 }
 
-func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (*state.Account, error) {
+func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (state.UserAccountHandler, error) {
 	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	shardAccount, ok := account.(*state.Account)
+	shardAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, state.ErrWrongTypeAssertion
 	}
@@ -392,9 +407,8 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 	bh.mutTempAccounts.Lock()
 	defer bh.mutTempAccounts.Unlock()
 
-	accTracker := &TempAccountTracker{}
 	addrContainer := state.NewAddress(address)
-	account, err := state.NewAccount(addrContainer, accTracker)
+	account, err := state.NewUserAccount(addrContainer)
 	if err != nil {
 		return
 	}

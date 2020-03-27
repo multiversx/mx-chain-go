@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -179,11 +179,16 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	numShardHeadersFromPool := 0
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+	}
+
 	go getMetricsFromMetaHeader(
 		header,
 		mp.marshalizer,
 		mp.appStatusHandler,
-		mp.dataPool.Headers().Len(),
+		numShardHeadersFromPool,
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
@@ -831,10 +836,10 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	lastShardHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if err != nil {
+		lastCrossNotarizedHeaderForShard, hash, errBlockTracker := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		if errBlockTracker != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-			return nil, 0, 0, err
+			return nil, 0, 0, errBlockTracker
 		}
 
 		lastShardHdr[shardID] = lastCrossNotarizedHeaderForShard
@@ -990,7 +995,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 
-	go mp.saveMetaHeader(header, headerHash, marshalizedHeader)
+	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -1007,7 +1012,8 @@ func (mp *metaProcessor) CommitBlock(
 		headerInfo, hashExists := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !hashExists {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : CommitBlock shardHeaderHash = %s",
+				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardBlock, isOk := headerInfo.hdr.(*block.Header)
@@ -1024,9 +1030,7 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
-			mp.saveShardHeader(header, headerHash, marshalizedHeader)
-		}(shardBlock, shardHeaderHash, marshalizedHeader)
+		mp.saveShardHeader(shardBlock, shardHeaderHash, marshalizedHeader)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -1109,11 +1113,16 @@ func (mp *metaProcessor) CommitBlock(
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
+	numShardHeadersFromPool := 0
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+	}
+
 	go mp.headersCounter.displayLogInfo(
 		header,
 		body,
 		headerHash,
-		mp.dataPool.Headers().Len(),
+		numShardHeadersFromPool,
 		mp.blockTracker,
 	)
 
@@ -1133,7 +1142,6 @@ func (mp *metaProcessor) CommitBlock(
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
-		processedMiniBlocks:        nil,
 		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
 	}
 
@@ -1141,15 +1149,34 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Debug("pools info",
-		"headers pool", mp.dataPool.Headers().Len(),
-		"headers pool capacity", mp.dataPool.Headers().MaxSize(),
-	)
+	mp.displayPoolsInfo()
 
 	mp.cleanupBlockTrackerPools(headerHandler)
+
 	go mp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (mp *metaProcessor) displayPoolsInfo() {
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		log.Trace("pools info",
+			"shard", shardID,
+			"num headers", mp.dataPool.Headers().GetNumHeaders(shardID))
+	}
+
+	log.Trace("pools info",
+		"shard", core.MetachainShardId,
+		"num headers", mp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+
+	// numShardsToKeepHeaders represents the total number of shards for which meta node would keep tracking headers
+	// (in this case this number is equal with: number of shards + metachain (self shard))
+	numShardsToKeepHeaders := int(mp.shardCoordinator.NumberOfShards()) + 1
+	capacity := mp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
+	log.Debug("pools info",
+		"total headers", mp.dataPool.Headers().Len(),
+		"headers pool capacity", capacity,
+	)
 }
 
 func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
@@ -1290,7 +1317,8 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
+				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardHeader, ok := headerInfo.hdr.(*block.Header)
@@ -1749,8 +1777,8 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 		)
 		return fmt.Errorf("%s, metachain, computed: %s, received: %s, meta header nonce: %d",
 			process.ErrValidatorStatsRootHashDoesNotMatch,
-			display.DisplayByteSlice(validatorStatsRH),
-			display.DisplayByteSlice(header.GetValidatorStatsRootHash()),
+			logger.DisplayByteSlice(validatorStatsRH),
+			logger.DisplayByteSlice(header.GetValidatorStatsRootHash()),
 			header.Nonce,
 		)
 	}
@@ -1878,10 +1906,6 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 			MiniBlocksHashes: mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID),
 			ShardID:          shardID,
 		}
-	}
-
-	if len(pendingMiniBlocksInfo) == 0 {
-		return nil
 	}
 
 	return pendingMiniBlocksInfo

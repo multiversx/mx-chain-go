@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
@@ -182,89 +182,6 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	return tr.root.getHash(), nil
 }
 
-// Prove returns the Merkle proof for the given key
-func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	if tr.root == nil {
-		return nil, ErrNilNode
-	}
-
-	var proof [][]byte
-	hexKey := keyBytesToHex(key)
-	n := tr.root
-
-	err := n.setRootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	var encNode []byte
-	for {
-		encNode, err = n.getEncodedNode()
-		if err != nil {
-			return nil, err
-		}
-		proof = append(proof, encNode)
-
-		n, hexKey, err = n.getNext(hexKey, tr.trieStorage.Database())
-		if err != nil {
-			return nil, err
-		}
-		if n == nil {
-			return proof, nil
-		}
-	}
-}
-
-// VerifyProof checks Merkle proofs.
-func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
-	wantHash, err := tr.Root()
-	if err != nil {
-		return false, err
-	}
-
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	key = keyBytesToHex(key)
-	for i := range proofs {
-		encNode := proofs[i]
-		if encNode == nil {
-			return false, nil
-		}
-
-		hash := tr.hasher.Compute(string(encNode))
-		if !bytes.Equal(wantHash, hash) {
-			return false, nil
-		}
-
-		var n node
-		n, err = decodeNode(encNode, tr.marshalizer, tr.hasher)
-		if err != nil {
-			return false, err
-		}
-
-		switch n := n.(type) {
-		case nil:
-			return false, nil
-		case *extensionNode:
-			key = key[len(n.Key):]
-			wantHash = n.EncodedChild
-		case *branchNode:
-			wantHash = n.EncodedChildren[key[0]]
-			key = key[1:]
-		case *leafNode:
-			if bytes.Equal(key, n.Key) {
-				return true, nil
-			}
-			return false, nil
-		}
-	}
-	return false, nil
-}
-
 // Commit adds all the dirty nodes to the database
 func (tr *patriciaMerkleTrie) Commit() error {
 	tr.mutOperation.Lock()
@@ -362,30 +279,6 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	return newTr, nil
 }
 
-// DeepClone returns a new trie with all nodes deeply copied
-func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	clonedTrieStorage := tr.trieStorage.Clone()
-	clonedTrie, err := NewTrie(
-		clonedTrieStorage,
-		tr.marshalizer,
-		tr.hasher,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if tr.root == nil {
-		return clonedTrie, nil
-	}
-
-	clonedTrie.root = tr.root.deepClone()
-
-	return clonedTrie, nil
-}
-
 // String outputs a graphical view of the trie. Mainly used in tests/debugging
 func (tr *patriciaMerkleTrie) String() string {
 	writer := bytes.NewBuffer(make([]byte, 0))
@@ -410,7 +303,7 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 }
 
 func emptyTrie(root []byte) bool {
-	if bytes.Equal(root, make([]byte, 0)) {
+	if len(root) == 0 {
 		return true
 	}
 	if bytes.Equal(root, emptyTrieHash) {
@@ -420,12 +313,12 @@ func emptyTrie(root []byte) bool {
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash
-func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruningIdentifier) error {
+func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	rootHash = append(rootHash, byte(identifier))
-	return tr.trieStorage.Prune(rootHash)
+	tr.trieStorage.Prune(rootHash)
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
@@ -456,13 +349,13 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
-	tr.trieStorage.SetCheckpoint(rootHash, tr.marshalizer, tr.hasher)
+	tr.trieStorage.SetCheckpoint(rootHash)
 }
 
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
 func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
-	tr.trieStorage.TakeSnapshot(rootHash, tr.marshalizer, tr.hasher)
+	tr.trieStorage.TakeSnapshot(rootHash)
 }
 
 // Database returns the trie database

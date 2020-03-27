@@ -110,12 +110,12 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 }
 
 func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
-	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
+	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return err
 	}
 
-	err = st.syncAccountsOfType(state.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
+	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -124,14 +124,14 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncAccountsOfType(state.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
+	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (st *syncAccountsDBs) syncAccountsOfType(accountType state.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
+func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
 	success := st.tryRecreateTrie(shardId, accAdapterIdentifier, trieID, rootHash)
@@ -162,7 +162,7 @@ func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []by
 			continue
 		}
 
-		dataTrieIdentifier := genesis.CreateTrieIdentifier(shId, state.DataTrie)
+		dataTrieIdentifier := genesis.CreateTrieIdentifier(shId, genesis.DataTrie)
 		identifier := genesis.AddRootHashToIdentifier(dataTrieIdentifier, hash)
 		st.tries.setTrie(identifier, currentTrie)
 	}

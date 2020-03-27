@@ -1,9 +1,9 @@
 package signing
 
 import (
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("crypto/signing")
@@ -95,7 +95,7 @@ func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point,
 		return nil, nil, crypto.ErrNilSuite
 	}
 
-	private, public = suite.CreateKeyPair(suite.RandomStream())
+	private, public = suite.CreateKeyPair()
 
 	return private, public, nil
 }

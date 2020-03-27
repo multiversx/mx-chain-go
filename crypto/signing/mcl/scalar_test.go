@@ -1,7 +1,6 @@
 package mcl
 
 import (
-	"crypto/cipher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -369,11 +368,9 @@ func TestMclScalar_InvOK(t *testing.T) {
 func TestMclScalar_PickOK(t *testing.T) {
 	t.Parallel()
 
-	var stream cipher.Stream
 	suite := NewSuiteBLS12()
-
 	scalar1 := suite.CreateScalar()
-	scalar2, err := scalar1.Pick(stream)
+	scalar2, err := scalar1.Pick()
 	require.Nil(t, err)
 	require.NotNil(t, scalar1, scalar2)
 
@@ -438,10 +435,8 @@ func TestMclScalar_MarshalBinary(t *testing.T) {
 }
 
 func TestMclScalar_UnmarshalBinary(t *testing.T) {
-	var randStream cipher.Stream
-
 	suite := NewSuiteBLS12()
-	scalar1, _ := suite.CreateScalar().Pick(randStream)
+	scalar1, _ := suite.CreateScalar().Pick()
 	scalarBytes, err := scalar1.MarshalBinary()
 	require.Nil(t, err)
 	scalar2 := suite.CreateScalar().Zero()

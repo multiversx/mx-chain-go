@@ -249,7 +249,6 @@ func TestInterceptorsContainer_IterateNotAValidKeyShouldWorkAndNotPanic(t *testi
 	c := containers.NewInterceptorsContainer()
 
 	_ = c.Add("key1", &mock.InterceptorStub{})
-	c.Objects().Set([]byte("not a string"), &mock.InterceptorStub{})
 
 	runs := uint32(0)
 	c.Iterate(func(key string, interceptor process.Interceptor) bool {

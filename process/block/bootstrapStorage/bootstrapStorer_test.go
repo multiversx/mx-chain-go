@@ -110,19 +110,3 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
 }
-
-func TestTrimHeaderInfoSlice(t *testing.T) {
-	t.Parallel()
-
-	input := make([]bootstrapStorage.BootstrapHeaderInfo, 0, 5)
-	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
-	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
-
-	assert.Equal(t, 2, len(input))
-	assert.Equal(t, 5, cap(input))
-
-	input = bootstrapStorage.TrimHeaderInfoSlice(input)
-
-	assert.Equal(t, 2, len(input))
-	assert.Equal(t, 2, cap(input))
-}

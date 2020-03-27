@@ -3,14 +3,13 @@ package genesis
 import (
 	"encoding/json"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -198,14 +197,14 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	if accType == state.DataTrie {
+	if accType == DataTrie {
 		return se.exportDataTries(leaves, accType, shId, fileName)
 	}
 
 	return se.exportAccountLeafs(leaves, accType, shId, fileName)
 }
 
-func (se *stateExport) exportDataTries(leafs map[string][]byte, accType state.Type, shId uint32, fileName string) error {
+func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
 		err := se.writer.Write(fileName, keyToExport, buff)
@@ -217,7 +216,7 @@ func (se *stateExport) exportDataTries(leafs map[string][]byte, accType state.Ty
 	return nil
 }
 
-func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType state.Type, shId uint32, fileName string) error {
+func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
 		account, err := NewEmptyAccount(accType)

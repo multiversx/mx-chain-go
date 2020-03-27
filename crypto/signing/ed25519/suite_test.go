@@ -16,15 +16,15 @@ func TestNewEd25519(t *testing.T) {
 
 func TestNewEd25519CreateKeyPair(t *testing.T) {
 	suite := ed25519.NewEd25519()
-	privateKey, publicKey := suite.CreateKeyPair(nil)
+	privateKey, publicKey := suite.CreateKeyPair()
 	assert.NotNil(t, privateKey)
 	assert.NotNil(t, publicKey)
 }
 
 func TestNewEd25519CreateKeyPair_GeneratesDifferentKeys(t *testing.T) {
 	suite := ed25519.NewEd25519()
-	privateKey, publicKey := suite.CreateKeyPair(nil)
-	privateKey2, publicKey2 := suite.CreateKeyPair(nil)
+	privateKey, publicKey := suite.CreateKeyPair()
+	privateKey2, publicKey2 := suite.CreateKeyPair()
 
 	assert.NotEqual(t, privateKey, privateKey2)
 	assert.NotEqual(t, publicKey, publicKey2)

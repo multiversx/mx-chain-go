@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -58,7 +59,7 @@ func (hc *headersCounter) displayLogInfo(
 	header *block.MetaBlock,
 	body *block.Body,
 	headerHash []byte,
-	numHeadersFromPool int,
+	numShardHeadersFromPool int,
 	blockTracker process.BlockTracker,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
@@ -73,11 +74,11 @@ func (hc *headersCounter) displayLogInfo(
 	}
 
 	hc.shardMBHeaderCounterMutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", logger.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total MB processed", hc.shardMBHeadersTotalProcessed,
 		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
-		"shard headers in pool", numHeadersFromPool,
+		"shard headers in pool", numShardHeadersFromPool,
 	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
@@ -117,7 +118,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		lines = append(lines, display.NewLineData(false, []string{
 			fmt.Sprintf("ShardData_%d", shardData.ShardID),
 			"Header hash",
-			display.DisplayByteSlice(shardData.HeaderHash)}))
+			logger.DisplayByteSlice(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -132,7 +133,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					display.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					logger.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
@@ -170,7 +171,7 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
+					logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

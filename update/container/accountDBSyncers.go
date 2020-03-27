@@ -2,19 +2,19 @@ package containers
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/cornelk/hashmap"
 )
 
 type accountDBSyncers struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewAccountsDBSyncersContainer will create a new instance of a container
 func NewAccountsDBSyncersContainer() *accountDBSyncers {
 	return &accountDBSyncers{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -78,7 +78,7 @@ func (a *accountDBSyncers) Replace(key string, val update.AccountsDBSyncer) erro
 
 // Remove will remove an object at a given key
 func (a *accountDBSyncers) Remove(key string) {
-	a.objects.Del(key)
+	a.objects.Remove(key)
 }
 
 // Len returns the length of the added objects
