@@ -1095,12 +1095,20 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 						ValidatorFailure:           0,
 						NumSelectedInSuccessBlocks: 0,
 						AccumulatedFees:            nil,
+						TotalLeaderSuccess:         0,
+						TotalLeaderFailure:         0,
+						TotalValidatorSuccess:      0,
+						TotalValidatorFailure:      0,
 					})
 				}
 			}
 			return validatorInfos, nil
 		},
 	}
+
+	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
+		return nil
+	}}
 
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
@@ -1117,6 +1125,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 			},
 		}),
 		node.WithValidatorStatistics(vsp),
+		node.WithValidatorsProvider(validatorProvider),
 	)
 
 	expectedData := &state.ValidatorApiResponse{}

@@ -392,7 +392,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			err := vs.updateRatingIfSignedBelowThreshold(validator, signedThreshold, shardId)
+			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId)
 			if err != nil {
 				return err
 			}
@@ -402,7 +402,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 	return nil
 }
 
-func (vs *validatorStatistics) updateRatingIfSignedBelowThreshold(validator *state.ValidatorInfo, signedThreshold float32, shardId uint32) error {
+func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *state.ValidatorInfo, signedThreshold float32, shardId uint32) error {
 	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
 	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
 	if computedThreshold <= signedThreshold {
@@ -425,6 +425,7 @@ func (vs *validatorStatistics) updateRatingIfSignedBelowThreshold(validator *sta
 
 		validator.TempRating = newTempRating
 	}
+
 	return nil
 }
 

@@ -227,6 +227,12 @@ type ValidatorStatisticsProcessor interface {
 	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
 }
 
+// ValidatorsProvider is the main interface for validators' provider
+type ValidatorsProvider interface {
+	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	IsInterfaceNil() bool
+}
+
 // Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
 	// IntegrityAndValidity does both validity and integrity checks on the data structure
