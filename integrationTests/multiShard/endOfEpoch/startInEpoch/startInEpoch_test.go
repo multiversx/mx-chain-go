@@ -4,16 +4,22 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -123,6 +129,11 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
 
+	defer func() {
+		errRemoveDir := os.RemoveAll("Epoch_0")
+		assert.NoError(t, errRemoveDir)
+	}()
+
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -149,11 +160,45 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
-	params, err := epochStartBootstrap.Bootstrap()
+	_, err = epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
-	assert.Equal(t, epoch, params.Epoch)
-	assert.Equal(t, uint32(0), params.SelfShardId)
-	assert.Equal(t, uint32(2), params.NumOfShards)
+	//assert.Equal(t, epoch, params.Epoch)
+	//assert.Equal(t, uint32(0), params.SelfShardId)
+	//assert.Equal(t, uint32(2), params.NumOfShards)
+
+	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+
+	storageFactory, err := factory.NewStorageServiceFactory(
+		&generalConfig,
+		shardC,
+		&mock.PathManagerStub{},
+		&mock.EpochStartNotifierStub{},
+		epoch)
+	assert.NoError(t, err)
+	storageServiceShard, err := storageFactory.CreateForShard()
+	assert.NoError(t, err)
+	assert.NotNil(t, storageServiceShard)
+
+	bootstrapUnit := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
+	assert.NotNil(t, bootstrapUnit)
+
+	highestRound, err := bootstrapUnit.Get([]byte(core.HighestRoundFromBootStorage))
+	assert.NoError(t, err)
+	var roundFromStorage bootstrapStorage.RoundNum
+	err = integrationTests.TestMarshalizer.Unmarshal(&roundFromStorage, highestRound)
+	assert.NoError(t, err)
+
+	roundInt64 := roundFromStorage.Num
+	assert.Equal(t, int64(22), roundInt64)
+
+	key := []byte(strconv.FormatInt(roundInt64, 10))
+	bootstrapDataBytes, err := bootstrapUnit.Get(key)
+	assert.NoError(t, err)
+
+	var bd bootstrapStorage.BootstrapData
+	err = integrationTests.TestMarshalizer.Unmarshal(&bd, bootstrapDataBytes)
+	assert.NoError(t, err)
+	assert.Equal(t, epoch, bd.LastHeader.Epoch)
 }
 
 func convertToSlice(originalMap map[uint32][]*integrationTests.TestProcessorNode) []*integrationTests.TestProcessorNode {
@@ -400,7 +445,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,

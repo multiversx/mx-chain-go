@@ -249,6 +249,7 @@ func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (boots
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
+		Epoch:   shardHeader.Epoch,
 		Nonce:   shardHeader.Nonce,
 		Hash:    lastHeaderHash,
 	}

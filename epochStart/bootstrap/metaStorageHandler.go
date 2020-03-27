@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -108,7 +109,19 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = bootStorer.Put([]byte(core.HighestRoundFromBootStorage), bootStrapDataBytes)
+	round := int64(components.EpochStartMetaBlock.Round)
+	roundNum := bootstrapStorage.RoundNum{Num: round}
+	roundNumBytes, err := msh.marshalizer.Marshal(&roundNum)
+	if err != nil {
+		return err
+	}
+
+	err = bootStorer.Put([]byte(core.HighestRoundFromBootStorage), roundNumBytes)
+	if err != nil {
+		return err
+	}
+	key := []byte(strconv.FormatInt(round, 10))
+	err = bootStorer.Put(key, bootStrapDataBytes)
 	if err != nil {
 		return err
 	}
@@ -153,6 +166,7 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (boots
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
+		Epoch:   metaBlock.Epoch,
 		Nonce:   metaBlock.Nonce,
 		Hash:    lastHeaderHash,
 	}
