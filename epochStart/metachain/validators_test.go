@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -349,7 +350,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 
 	hasher := arguments.Hasher
 	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
+	miniBlockStorage := arguments.MiniBlockStorage
 
 	for _, mb := range miniblocks {
 		mMb, _ := marshalizer.Marshal(mb)
@@ -388,10 +389,17 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 
 	body := &block.Body{MiniBlocks: miniblocks}
-	vic.SaveValidatorInfoBlocksToStorage(meta, body)
+	vic.SaveValidatorInfoBlocksToStorage(meta, body, &mock.PoolsHolderStub{
+		MiniBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				RemoveCalled: func(key []byte) {
+				},
+			}
+		},
+	})
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
+		mb, err := miniBlockStorage.Get(mbHeader.Hash)
 		require.Nil(t, err)
 
 		unmarshaledMiniblock := &block.MiniBlock{}

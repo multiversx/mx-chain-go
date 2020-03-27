@@ -38,6 +38,7 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+	txCounter                    *transactionCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -106,6 +107,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		core:                         arguments.Core,
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
+		txCounter:                    NewTransactionCounter(),
 		scDataGetter:                 arguments.SCDataGetter,
 		scToProtocol:                 arguments.SCToProtocol,
 		pendingMiniBlocksHandler:     arguments.PendingMiniBlocksHandler,
@@ -183,6 +185,9 @@ func (mp *metaProcessor) ProcessBlock(
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
 	}
+
+	counts := mp.txCounter.getTxPoolCounts(mp.dataPool)
+	log.Debug("total txs in pool", "counts", counts.String())
 
 	go getMetricsFromMetaHeader(
 		header,
@@ -1175,6 +1180,8 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	log.Debug("pools info",
 		"total headers", mp.dataPool.Headers().Len(),
 		"headers pool capacity", capacity,
+		"total miniblocks", mp.dataPool.MiniBlocks().Len(),
+		"miniblocks pool capacity", mp.dataPool.MiniBlocks().MaxSize(),
 	)
 }
 
@@ -1218,8 +1225,8 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header)
 
-		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
-		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
+		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body, mp.dataPool)
+		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body, mp.dataPool)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -1869,19 +1876,15 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 
 // GetBlockBodyFromPool returns block body from pool for a given header
 func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	miniBlockPool := mp.dataPool.MiniBlocks()
-	if miniBlockPool == nil {
-		return nil, process.ErrNilMiniBlockPool
-	}
-
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
 	var miniBlocks block.MiniBlockSlice
-	for i := 0; i < len(metaBlock.MiniBlockHeaders); i++ {
-		obj, hashInPool := miniBlockPool.Get(metaBlock.MiniBlockHeaders[i].Hash)
+
+	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		obj, hashInPool := mp.dataPool.MiniBlocks().Get(mbHeader.Hash)
 		if !hashInPool {
 			continue
 		}

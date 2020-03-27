@@ -262,7 +262,11 @@ func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (r *rewardsCreator) SaveTxBlockToStorage(
+	metaBlock *block.MetaBlock,
+	body *block.Body,
+	dataPool dataRetriever.PoolsHolder,
+) {
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
@@ -296,6 +300,7 @@ func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *
 			}
 
 			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
+			dataPool.MiniBlocks().Remove(mbHeader.Hash)
 		}
 	}
 	r.clean()

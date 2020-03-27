@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -675,7 +676,7 @@ type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body, dataPool dataRetriever.PoolsHolder)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
@@ -684,7 +685,7 @@ type EpochStartRewardsCreator interface {
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body, dataPool dataRetriever.PoolsHolder)
 	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
 }

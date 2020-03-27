@@ -161,9 +161,9 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	counts := sp.txCounter.getTxPoolCounts(sp.dataPool)
-	go getMetricsFromHeader(header, uint64(counts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
-
 	log.Debug("total txs in pool", "counts", counts.String())
+
+	go getMetricsFromHeader(header, uint64(counts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
@@ -1772,19 +1772,15 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 
 // GetBlockBodyFromPool returns block body from pool for a given header
 func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	miniBlockPool := sp.dataPool.MiniBlocks()
-	if miniBlockPool == nil {
-		return nil, process.ErrNilMiniBlockPool
-	}
-
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		obj, hashInPool := miniBlockPool.Get(header.MiniBlockHeaders[i].Hash)
+	var miniBlocks block.MiniBlockSlice
+
+	for _, mbHeader := range header.MiniBlockHeaders {
+		obj, hashInPool := sp.dataPool.MiniBlocks().Get(mbHeader.Hash)
 		if !hashInPool {
 			continue
 		}

@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 // EpochValidatorInfoCreatorStub -
@@ -10,7 +11,7 @@ type EpochValidatorInfoCreatorStub struct {
 	CreateValidatorInfoMiniBlocksCalled func(validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocksCalled func(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedDataCalled         func(body block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled          func(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorageCalled          func(metaBlock *block.MetaBlock, body *block.Body, dataPool dataRetriever.PoolsHolder)
 	DeleteTxsFromStorageCalled          func(metaBlock *block.MetaBlock)
 }
 
@@ -31,9 +32,9 @@ func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks
 }
 
 // SaveValidatorInfoBlocksToStorage -
-func (e *EpochValidatorInfoCreatorStub) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (e *EpochValidatorInfoCreatorStub) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body, dataPool dataRetriever.PoolsHolder) {
 	if e.SaveTxBlockToStorageCalled != nil {
-		e.SaveTxBlockToStorageCalled(metaBlock, body)
+		e.SaveTxBlockToStorageCalled(metaBlock, body, dataPool)
 	}
 }
 
