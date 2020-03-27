@@ -45,7 +45,7 @@ func (vip *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 // RemoveTxBlockFromPools removes the peerMiniBlock from pool
 func (vip *validatorInfoPreprocessor) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
-		return process.ErrNilTxBlockBody
+		return process.ErrNilBlockBody
 	}
 	if check.IfNil(miniBlockPool) {
 		return process.ErrNilMiniBlockPool
