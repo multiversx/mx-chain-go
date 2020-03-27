@@ -774,7 +774,6 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 }
 
 func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
-	journalizeCalled := 0
 	saveAccountCalled := 0
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 

@@ -1545,9 +1545,6 @@ func getHeartbeats(t *testing.T) []heartbeat.PubKeyHeartbeat {
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithNetworkShardingCollector(
 			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
