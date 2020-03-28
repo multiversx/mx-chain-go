@@ -3,10 +3,11 @@ package containers
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
@@ -111,8 +112,8 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 func (vmc *virtualMachinesContainer) Close() error {
 	var withError bool
 
-	for item := range vmc.objects.Iter() {
-		asCloser, ok := item.Value.(interface{ Close() error })
+	for _, item := range vmc.objects.Values() {
+		asCloser, ok := item.(interface{ Close() error })
 		if !ok {
 			continue
 		}
