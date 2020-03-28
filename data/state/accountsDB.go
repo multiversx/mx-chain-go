@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -110,14 +110,6 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	}
 
 	codeHash := adb.hasher.Compute(string(code))
-	val, err := adb.mainTrie.Get(codeHash)
-	if err != nil {
-		return err
-	}
-	if val != nil {
-		accountHandler.SetCodeHash(codeHash)
-		return nil
-	}
 
 	//append a journal entry as the code needs to be inserted in the trie
 	entry, err := NewJournalEntryCode(codeHash, adb.mainTrie)
@@ -126,8 +118,7 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	log.Trace("accountsDB.saveCode", "codeHash", codeHash)
-
+	log.Trace("accountsDB.saveCode: mainTrie.Update()", "codeHash", codeHash, "len(code)", len(code))
 	err = adb.mainTrie.Update(codeHash, code)
 	if err != nil {
 		return err

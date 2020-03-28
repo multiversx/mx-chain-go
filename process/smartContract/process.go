@@ -893,24 +893,25 @@ func (sc *scProcessor) updateSmartContractCode(
 
 	isDeployment := len(scAccount.GetCode()) == 0
 	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
-	isUpgrade := !isDeployment && isSenderOwner && true
+	codeMetadata := vmcommon.CodeMetadataFromBytes(scAccount.GetCodeMetadata())
+	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
 
 	if isDeployment {
 		scAccount.SetOwnerAddress(tx.GetSndAddr())
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-
 		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
 		return nil
 	}
 
 	if isUpgrade {
-		scAccount.SetCode(outputAccount.Code)
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
 		log.Trace("updateSmartContractCode(): updated", "address", outputAccount.Address)
 		return nil
 	}
 
+	log.Trace("updateSmartContractCode() nothing changed", "address", outputAccount.Address)
 	// TODO: change to return some error when IELE is updated. Currently IELE sends the code in output account even for normal SC RUN
 	return nil
 }
@@ -936,6 +937,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	return nil
 }
 
+// TODO: Check - do we still need this?
 func (sc *scProcessor) processTouchedAccounts(_ [][]byte) error {
 	//TODO: implement
 	return nil

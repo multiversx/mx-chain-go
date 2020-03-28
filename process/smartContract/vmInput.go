@@ -74,6 +74,7 @@ func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
 	return vmcommon.DirectCall
 }
 
+// TODO: Check if this is still needed (and if needed, it does not seem entirely correct: "callBack" + "@")
 func prependCallbackToTxDataIfAsyncCall(txData []byte, callType vmcommon.CallType) []byte {
 	if callType == vmcommon.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
@@ -91,6 +92,7 @@ func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, e
 	return tx.GetGasLimit() - gasForTxData, nil
 }
 
+// TODO: move to argsParser
 func (sc *scProcessor) getContractCode() ([]byte, error) {
 	codeHex, err := sc.argsParser.GetCode()
 	if err != nil {

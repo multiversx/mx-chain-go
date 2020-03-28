@@ -2,6 +2,7 @@ package arwen
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -40,12 +41,13 @@ type TestContext struct {
 	Bob   testParticipant
 	Carol testParticipant
 
-	ScAddress    []byte
-	Accounts     *state.AccountsDB
-	TxProcessor  process.TransactionProcessor
-	ScProcessor  process.SmartContractProcessor
-	QueryService external.SCQueryService
-	VMContainer  process.VirtualMachinesContainer
+	ScAddress      []byte
+	ScCodeMetadata vmcommon.CodeMetadata
+	Accounts       *state.AccountsDB
+	TxProcessor    process.TransactionProcessor
+	ScProcessor    process.SmartContractProcessor
+	QueryService   external.SCQueryService
+	VMContainer    process.VirtualMachinesContainer
 }
 
 type testParticipant struct {
@@ -128,7 +130,8 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	scCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
-	txData := CreateDeployTxData(scCode)
+	codeMetadataHex := hex.EncodeToString(context.ScCodeMetadata.ToBytes())
+	txData := strings.Join([]string{scCode, VMTypeHex, codeMetadataHex}, "@")
 	if parametersString != "" {
 		txData = txData + "@" + parametersString
 	}
@@ -168,7 +171,8 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 	scCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
-	txData := strings.Join([]string{"upgradeContract", scCode, DummyCodeMetadataHex}, "@")
+	codeMetadataHex := hex.EncodeToString(context.ScCodeMetadata.ToBytes())
+	txData := strings.Join([]string{"upgradeContract", scCode, codeMetadataHex}, "@")
 	if parametersString != "" {
 		txData = txData + "@" + parametersString
 	}
