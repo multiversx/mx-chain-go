@@ -27,7 +27,7 @@ import (
 const VMTypeHex = "0500"
 
 // DummyCodeMetadataHex -
-const DummyCodeMetadataHex = "0000"
+const DummyCodeMetadataHex = "0100"
 
 // TestContext -
 type TestContext struct {
@@ -163,6 +163,46 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	return nil
 }
 
+// UpgradeSC -
+func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) error {
+	scCode := GetSCCode(wasmPath)
+	owner := &context.Owner
+
+	txData := strings.Join([]string{"upgradeContract", scCode, DummyCodeMetadataHex}, "@")
+	if parametersString != "" {
+		txData = txData + "@" + parametersString
+	}
+
+	tx := &transaction.Transaction{
+		Nonce:    owner.Nonce,
+		Value:    big.NewInt(0),
+		RcvAddr:  context.ScAddress,
+		SndAddr:  owner.Address,
+		GasPrice: 1,
+		GasLimit: math.MaxInt32,
+		Data:     []byte(txData),
+	}
+
+	err := context.TxProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return err
+	}
+
+	err = context.GetSilentSCProcessorError()
+	if err != nil {
+		return err
+	}
+
+	owner.Nonce++
+
+	_, err = context.Accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetSCCode -
 func GetSCCode(fileName string) string {
 	code, err := ioutil.ReadFile(filepath.Clean(fileName))
@@ -221,6 +261,12 @@ func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
 	result := big.NewInt(0).SetBytes(bytes).Uint64()
 
 	return result
+}
+
+// QuerySCString -
+func (context *TestContext) QuerySCString(function string, args [][]byte) string {
+	bytes := context.querySC(function, args)
+	return string(bytes)
 }
 
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
