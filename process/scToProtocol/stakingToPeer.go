@@ -3,7 +3,7 @@ package scToProtocol
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -247,6 +247,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 				return nil, process.ErrWrongTypeAssertion
 			}
 
+			// TODO: Check this implementation
 			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
 				continue

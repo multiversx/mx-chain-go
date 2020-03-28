@@ -147,7 +147,9 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	if err != nil {
 		return err
 	}
-	if context.GetSilentSCProcessorError() != nil {
+
+	err = context.GetSilentSCProcessorError()
+	if err != nil {
 		return err
 	}
 
@@ -198,7 +200,8 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 	if err != nil {
 		return err
 	}
-	if context.GetSilentSCProcessorError() != nil {
+	err = context.GetSilentSCProcessorError()
+	if err != nil {
 		return err
 	}
 

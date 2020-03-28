@@ -573,14 +573,13 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 		return nil, badCodeError
 	}
 
-	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+	argParser.GetConstructorArgumentsCalled = func() ([][]byte, error) {
 		return [][]byte{[]byte("05"), []byte("00")}, nil
 	}
 
-	vmInput, vmType, codeMetadata, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmType)
 	require.Nil(t, vmInput)
-	require.Equal(t, codeMetadata, CodeMetadata{})
 	require.Equal(t, badCodeError, err)
 }
 
@@ -603,17 +602,20 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Data = []byte("foobar")
 	tx.Value = big.NewInt(45)
 
-	vmTypeArg := []byte{0, 0}
-	codeMetadataArg := []byte{1, 0}
-	argParser.GetArgumentsCalled = func() ([][]byte, error) {
-		return [][]byte{vmTypeArg, codeMetadataArg}, nil
+	expectedVMType := []byte{5, 6}
+	expectedCodeMetadata := vmcommon.CodeMetadata{Upgradeable: true}
+	argParser.GetVMTypeCalled = func() ([]byte, error) {
+		return expectedVMType, nil
+	}
+	argParser.GetCodeMetadataCalled = func() (vmcommon.CodeMetadata, error) {
+		return expectedCodeMetadata, nil
 	}
 
-	vmInput, vmType, codeMetadata, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	require.NotNil(t, vmInput)
 	require.Equal(t, vmcommon.DirectCall, vmInput.CallType)
-	require.True(t, bytes.Equal(vmTypeArg, vmType))
-	require.True(t, bytes.Equal(codeMetadataArg, codeMetadata.ToBytes()))
+	require.True(t, bytes.Equal(expectedVMType, vmType))
+	require.Equal(t, expectedCodeMetadata.ToBytes(), vmInput.ContractCodeMetadata)
 	require.Nil(t, err)
 }
 
@@ -621,7 +623,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := vmcommon.NewAtArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -636,38 +638,10 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	tx.Data = []byte("data@0000")
 	tx.Value = big.NewInt(45)
 
-	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmInput)
 	require.Nil(t, vmType)
-	require.Equal(t, ErrNotEnoughArgumentsToDeploy, err)
-}
-
-func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
-	t.Parallel()
-
-	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.VmContainer = vm
-	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
-	tx.Value = big.NewInt(45)
-
-	tmpError := errors.New("error")
-	argParser.GetArgumentsCalled = func() (ints [][]byte, e error) {
-		return nil, tmpError
-	}
-	vmInput, err := sc.createVMInput(tx)
-	require.Nil(t, vmInput)
-	require.Equal(t, tmpError, err)
+	require.Equal(t, vmcommon.ErrBadDeployArguments, err)
 }
 
 func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {

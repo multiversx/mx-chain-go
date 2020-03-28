@@ -10,27 +10,37 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommon.ContractCreateInput, []byte, CodeMetadata, error) {
+func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommon.ContractCreateInput, []byte, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
-		return nil, nil, CodeMetadata{}, err
+		return nil, nil, err
 	}
 
-	vmType, codeMetadata, err := extractMetadataArgumentsFromVMInput(vmInput)
+	vmType, err := sc.argsParser.GetVMType()
 	if err != nil {
-		return nil, nil, CodeMetadata{}, err
+		return nil, nil, err
+	}
+
+	codeMetadata, err := sc.argsParser.GetCodeMetadata()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vmInput.Arguments, err = sc.argsParser.GetConstructorArguments()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
-
+	vmCreateInput.VMInput = *vmInput
 	vmCreateInput.ContractCode, err = sc.getContractCode()
 	if err != nil {
-		return nil, nil, CodeMetadata{}, err
+		return nil, nil, err
 	}
 
-	vmCreateInput.VMInput = *vmInput
+	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
 
-	return vmCreateInput, vmType, codeMetadata, nil
+	return vmCreateInput, vmType, nil
 }
 
 func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
@@ -43,11 +53,6 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	txData := prependCallbackToTxDataIfAsyncCall(tx.GetData(), vmInput.CallType)
 
 	err := sc.argsParser.ParseData(string(txData))
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.Arguments, err = sc.argsParser.GetArguments()
 	if err != nil {
 		return nil, err
 	}
@@ -86,27 +91,6 @@ func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, e
 	return tx.GetGasLimit() - gasForTxData, nil
 }
 
-func extractMetadataArgumentsFromVMInput(vmInput *vmcommon.VMInput) ([]byte, CodeMetadata, error) {
-	if len(vmInput.Arguments) < numOfDeployMetadataArguments {
-		return nil, CodeMetadata{}, ErrNotEnoughArgumentsToDeploy
-	}
-
-	vmType, err := parseVMTypeFromVMInput(vmInput)
-	if err != nil {
-		return nil, CodeMetadata{}, err
-	}
-
-	codeMetadata, err := parseCodeMetadataFromVMInput(vmInput)
-	if err != nil {
-		return nil, CodeMetadata{}, err
-	}
-
-	// Now remove the arguments
-	vmInput.Arguments = vmInput.Arguments[numOfDeployMetadataArguments:]
-
-	return vmType, codeMetadata, nil
-}
-
 func (sc *scProcessor) getContractCode() ([]byte, error) {
 	codeHex, err := sc.argsParser.GetCode()
 	if err != nil {
@@ -123,6 +107,10 @@ func (sc *scProcessor) getContractCode() ([]byte, error) {
 
 func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
 	vmInput, err := sc.createVMInput(tx)
+	if err != nil {
+		return nil, err
+	}
+	vmInput.Arguments, err = sc.argsParser.GetFunctionArguments()
 	if err != nil {
 		return nil, err
 	}

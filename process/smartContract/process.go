@@ -482,7 +482,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	vmInput, vmType, _, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		sc.setSilentError(err)
 		log.Debug("Transaction error", "error", err.Error())
@@ -883,7 +883,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 }
 
 func (sc *scProcessor) updateSmartContractCode(
-	account state.UserAccountHandler,
+	scAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 ) error {
@@ -891,22 +891,22 @@ func (sc *scProcessor) updateSmartContractCode(
 		return nil
 	}
 
-	isDeployment := len(account.GetCode()) == 0
-	isSenderOwner := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
+	isDeployment := len(scAccount.GetCode()) == 0
+	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
 	isUpgrade := !isDeployment && isSenderOwner && true
 
 	if isDeployment {
-		account.SetOwnerAddress(tx.GetSndAddr())
-		// TODO: from outputAccount.CodeMetadata.
-		account.SetCodeMetadata([]byte{})
-		account.SetCode(outputAccount.Code)
+		scAccount.SetOwnerAddress(tx.GetSndAddr())
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
 
 		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
 		return nil
 	}
 
 	if isUpgrade {
-		account.SetCode(outputAccount.Code)
+		scAccount.SetCode(outputAccount.Code)
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		log.Trace("updateSmartContractCode(): updated", "address", outputAccount.Address)
 		return nil
 	}
@@ -1023,27 +1023,28 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 }
 
 func (sc *scProcessor) processSimpleSCR(
-	scr *smartContractResult.SmartContractResult,
-	dstAcc state.UserAccountHandler,
+	scResult *smartContractResult.SmartContractResult,
+	destinationScAccount state.UserAccountHandler,
 ) error {
 	outputAccount := &vmcommon.OutputAccount{
-		Code: scr.Code,
-		// TODO: CodeMetaData: scr.CodeMetadata?
+		Code:         scResult.Code,
+		CodeMetadata: scResult.CodeMetadata,
 		// TODO: Where is VMType in OutputAccount though? Is it in the data field?
-		Address: scr.RcvAddr,
+		Address: scResult.RcvAddr,
 	}
-	err := sc.updateSmartContractCode(dstAcc, outputAccount, scr)
+
+	err := sc.updateSmartContractCode(destinationScAccount, outputAccount, scResult)
 	if err != nil {
 		return err
 	}
 
-	if scr.Value != nil {
-		err = dstAcc.AddToBalance(scr.Value)
+	if scResult.Value != nil {
+		err = destinationScAccount.AddToBalance(scResult.Value)
 		if err != nil {
 			return err
 		}
 
-		err = sc.accounts.SaveAccount(dstAcc)
+		err = sc.accounts.SaveAccount(destinationScAccount)
 		if err != nil {
 			return err
 		}

@@ -329,7 +329,7 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 		return nil, ErrAddressLengthNotCorrect
 	}
 
-	if len(vmType) != core.VMTypeLen {
+	if len(vmType) != vmcommon.VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
@@ -353,7 +353,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 }
 
 func createPrefixMask(vmType []byte) []byte {
-	prefixMask := make([]byte, core.NumInitCharactersForScAddress-core.VMTypeLen)
+	prefixMask := make([]byte, core.NumInitCharactersForScAddress-vmcommon.VMTypeLen)
 	prefixMask = append(prefixMask, vmType...)
 
 	return prefixMask

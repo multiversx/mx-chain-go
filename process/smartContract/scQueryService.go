@@ -113,7 +113,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	arguments, err := argumentParser.GetArguments()
+	arguments, err := argumentParser.GetFunctionArguments()
 	if err != nil {
 		return 0, err
 	}
