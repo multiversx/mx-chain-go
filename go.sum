@@ -3,6 +3,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOv
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20200328211537-e79a813767da h1:zEc2/04W/DfLofcaSG2EpbtSfx9TfV6zxLPicokpQdA=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20200328211537-e79a813767da/go.mod h1:oJ3GfKQ3+MLVzGH4MSco0Cmb0QACywHQoEddR8FJGzs=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200319123654-ac771e0f976f h1:AsugcIeViRg8su4kW3h4dVS6QSASfQi6hp2dyOkUrtU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200319123654-ac771e0f976f/go.mod h1:u5uieR4W885dDe58kHKPo+mei6QwWvZmfW/Fp2KRIwg=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.11-0.20200322202342-e83dc053b616 h1:sXFFL6/PDzMdWTGTQBTlph8vlmFue1BTHfv/EZcL8Xg=
@@ -20,6 +22,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.1/go.mod h1:e5D+c97lKUfFdAzFX7rrI
 github.com/ElrondNetwork/elrond-vm v0.0.25 h1:FIALKEneTS6BsGgdKDUx16w81S1MvwYnLcaH4o5BMtw=
 github.com/ElrondNetwork/elrond-vm v0.0.25/go.mod h1:w0jMH4xA506twG5Gkki5MN54eQ0jPCg06XuHvCQg44g=
 github.com/ElrondNetwork/elrond-vm-common v0.0.0-20191203115206-691b00a6e76a/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.0.0-20200328210946-2a91696a2876 h1:2Ym5NAEYXYErknaLYiu7Jio1KGPzTwJi/cP2vyM5cCI=
+github.com/ElrondNetwork/elrond-vm-common v0.0.0-20200328210946-2a91696a2876/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.1.9/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.1.12 h1:hvbz6OicB20ioW1j7AKYT485R78GHGAtIMIidE9EwCs=
 github.com/ElrondNetwork/elrond-vm-common v0.1.12/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=

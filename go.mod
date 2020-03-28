@@ -46,3 +46,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/ElrondNetwork/elrond-vm-common => github.com/ElrondNetwork/elrond-vm-common v0.0.0-20200328210946-2a91696a2876
+
+replace github.com/ElrondNetwork/arwen-wasm-vm => github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20200328211537-e79a813767da
