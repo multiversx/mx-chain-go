@@ -4,29 +4,30 @@ import (
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/cornelk/hashmap"
 )
 
 var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
 
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewVirtualMachinesContainer will create a new instance of a container
 func NewVirtualMachinesContainer() *virtualMachinesContainer {
 	return &virtualMachinesContainer{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (vmc *virtualMachinesContainer) Get(key []byte) (vmcommon.VMExecutionHandler, error) {
-	value, ok := vmc.objects.Get(key)
+	value, ok := vmc.objects.Get(string(key))
 	if !ok {
 		return nil, fmt.Errorf("%w in vm container for key %v", process.ErrInvalidContainerKey, key)
 	}
@@ -42,11 +43,11 @@ func (vmc *virtualMachinesContainer) Get(key []byte) (vmcommon.VMExecutionHandle
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (vmc *virtualMachinesContainer) Add(key []byte, vm vmcommon.VMExecutionHandler) error {
-	if vm == nil {
+	if check.IfNilReflect(vm) {
 		return process.ErrNilContainerElement
 	}
 
-	ok := vmc.objects.Insert(key, vm)
+	ok := vmc.objects.Insert(string(key), vm)
 
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
@@ -74,17 +75,17 @@ func (vmc *virtualMachinesContainer) AddMultiple(keys [][]byte, vms []vmcommon.V
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (vmc *virtualMachinesContainer) Replace(key []byte, vm vmcommon.VMExecutionHandler) error {
-	if vm == nil {
+	if check.IfNilReflect(vm) {
 		return process.ErrNilContainerElement
 	}
 
-	vmc.objects.Set(key, vm)
+	vmc.objects.Set(string(key), vm)
 	return nil
 }
 
 // Remove will remove an object at a given key
 func (vmc *virtualMachinesContainer) Remove(key []byte) {
-	vmc.objects.Del(key)
+	vmc.objects.Remove(string(key))
 }
 
 // Len returns the length of the added objects
@@ -94,24 +95,25 @@ func (vmc *virtualMachinesContainer) Len() int {
 
 // Keys returns all the keys from the container
 func (vmc *virtualMachinesContainer) Keys() [][]byte {
-	keys := make([][]byte, 0)
-	for obj := range vmc.objects.Iter() {
-		byteKey, ok := obj.Key.([]byte)
+	keys := vmc.objects.Keys()
+	keysBytes := make([][]byte, 0, len(keys))
+	for _, k := range keys {
+		key, ok := k.(string)
 		if !ok {
 			continue
 		}
-
-		keys = append(keys, byteKey)
+		keysBytes = append(keysBytes, []byte(key))
 	}
-	return keys
+
+	return keysBytes
 }
 
 // Close closes the items in the container (meaningful for Arwen out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
 	var withError bool
 
-	for item := range vmc.objects.Iter() {
-		asCloser, ok := item.Value.(interface{ Close() error })
+	for _, item := range vmc.objects.Values() {
+		asCloser, ok := item.(interface{ Close() error })
 		if !ok {
 			continue
 		}

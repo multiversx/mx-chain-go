@@ -3,19 +3,20 @@ package containers
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/cornelk/hashmap"
 )
 
 // interceptorsContainer is an interceptors holder organized by type
 type interceptorsContainer struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewInterceptorsContainer will create a new instance of a container
 func NewInterceptorsContainer() *interceptorsContainer {
 	return &interceptorsContainer{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -38,7 +39,7 @@ func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 
@@ -70,7 +71,7 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ic *interceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
-	if interceptor == nil || interceptor.IsInterfaceNil() {
+	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
 
@@ -80,7 +81,7 @@ func (ic *interceptorsContainer) Replace(key string, interceptor process.Interce
 
 // Remove will remove an object at a given key
 func (ic *interceptorsContainer) Remove(key string) {
-	ic.objects.Del(key)
+	ic.objects.Remove(key)
 }
 
 // Len returns the length of the added objects
