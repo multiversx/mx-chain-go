@@ -236,10 +236,8 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (u
 
 // GetAccount returns an accountResponse containing information
 // about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string) (*state.Account, error) {
+func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return nf.node.GetAccount(address)
-func (ef *ElrondNodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
-	return ef.node.GetAccount(address)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

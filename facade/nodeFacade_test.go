@@ -341,7 +341,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	called := 0
 	node := &mock.NodeStub{}
-	node.GetAccountHandler = func(address string) (account *state.Account, e error) {
+	node.GetAccountHandler = func(address string) (state.UserAccountHandler, error) {
 		called++
 		return nil, nil
 	}

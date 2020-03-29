@@ -57,10 +57,18 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 		GenesisTime:                 time.Now(),
 		MessageHandler:              &mock.MessageHandlerStub{},
 		Storer:                      createMockStorer(),
-		PeerTypeProvider:            &mock.PeerTypeProviderStub{},
-		Timer:                       mock.NewMockTimer(),
-		AntifloodHandler:            createMockP2PAntifloodHandler(),
-		HardforkTrigger:             &mock.HardforkTriggerStub{},
+		PeerTypeProvider: &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+				if string(pubKey) == "pk0" {
+					return "", 0, nil
+				}
+
+				return "", 1, nil
+			},
+		},
+		Timer:            mock.NewMockTimer(),
+		AntifloodHandler: createMockP2PAntifloodHandler(),
+		HardforkTrigger:  &mock.HardforkTriggerStub{},
 	}
 }
 
@@ -180,16 +188,6 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Millisecond
 	arg.PubKeysMap = pksPerShards
 	mon, err := heartbeat.NewMonitor(arg)
-
-	&mock.PeerTypeProviderStub{
-		ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
-			if string(pubKey) == "pk0" {
-				return "", 0, nil
-			}
-
-			return "", 1, nil
-		},
-	},
 
 	assert.NotNil(t, mon)
 	assert.Nil(t, err)

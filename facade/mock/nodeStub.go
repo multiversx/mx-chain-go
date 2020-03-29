@@ -112,10 +112,8 @@ func (ns *NodeStub) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, 
 }
 
 // GetAccount -
-func (ns *NodeStub) GetAccount(address string) (*state.Account, error) {
+func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ns.GetAccountHandler(address)
-func (nm *NodeMock) GetAccount(address string) (state.UserAccountHandler, error) {
-	return nm.GetAccountHandler(address)
 }
 
 // GetHeartbeats -
