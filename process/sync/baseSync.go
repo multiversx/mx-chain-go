@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -263,7 +263,8 @@ func (boot *baseBootstrap) computeNodeState() {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
@@ -557,13 +558,15 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
+	startTime := time.Now()
+	waitTime := boot.rounder.TimeDuration()
 	haveTime := func() time.Duration {
-		return boot.rounder.TimeDuration()
+		return waitTime - time.Since(startTime)
 	}
 
-	startTime := time.Now()
+	startProcessBlockTime := time.Now()
 	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
-	elapsedTime := time.Since(startTime)
+	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
 	)
@@ -571,9 +574,9 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
-	startTime = time.Now()
+	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
-	elapsedTime = time.Since(startTime)
+	elapsedTime = time.Since(startCommitBlockTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
 	)

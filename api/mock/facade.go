@@ -21,7 +21,7 @@ type Facade struct {
 	TpsBenchmarkHandler               func() *statistics.TpsBenchmark
 	GetHeartbeatsHandler              func() ([]heartbeat.PubKeyHeartbeat, error)
 	BalanceHandler                    func(string) (*big.Int, error)
-	GetAccountHandler                 func(address string) (*state.Account, error)
+	GetAccountHandler                 func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler             func(hash string) (*transaction.Transaction, error)
 	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
@@ -89,7 +89,7 @@ func (f *Facade) GetBalance(address string) (*big.Int, error) {
 }
 
 // GetAccount is the mock implementation of a handler's GetAccount method
-func (f *Facade) GetAccount(address string) (*state.Account, error) {
+func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
 }
 

@@ -142,14 +142,14 @@ func (s *Sender) SendHeartbeat() error {
 }
 
 func (s *Sender) updateMetrics(hb *Heartbeat) {
-	result := s.computePeerList(hb.Pubkey, hb.ShardID)
+	result := s.computePeerList(hb.Pubkey)
 	s.statusHandler.SetStringValue(core.MetricPeerType, result)
 }
 
-func (s *Sender) computePeerList(pubkey []byte, shardID uint32) string {
-	peerType, err := s.peerTypeProvider.ComputeForPubKey(pubkey, shardID)
+func (s *Sender) computePeerList(pubkey []byte) string {
+	peerType, _, err := s.peerTypeProvider.ComputeForPubKey(pubkey)
 	if err != nil {
-		log.Warn("monitor: compute peer type", "error", err)
+		log.Warn("sender: compute peer type", "error", err)
 		return string(core.ObserverList)
 	}
 

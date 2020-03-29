@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -160,12 +160,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool, sp.shardCoordinator.NumberOfShards())
-	go getMetricsFromHeader(header, uint64(numTxWithDst), sp.marshalizer, sp.appStatusHandler)
+	counts := sp.txCounter.getTxPoolCounts(sp.dataPool)
+	go getMetricsFromHeader(header, uint64(counts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
-	log.Debug("total txs in pool",
-		"num txs", numTxWithDst,
-	)
+	log.Debug("total txs in pool", "counts", counts.String())
 
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
@@ -284,6 +282,8 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 	if !haveMissingMetaHeaders {
 		return nil
 	}
+
+	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 
 	for {
 		time.Sleep(time.Millisecond)
@@ -545,7 +545,8 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		log.Error("error indexing block header",
-			"header", header.GetRound(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
 			"error", err.Error(),
 		)
 		return
@@ -672,7 +673,6 @@ func (sp *shardProcessor) CreateBlock(
 
 	shardHdr.SetEpoch(sp.epochStartTrigger.Epoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
-
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err
@@ -765,7 +765,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
+	sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -859,10 +859,12 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	saveMetricsForACommittedBlock(
+		sp.nodesCoordinator,
 		sp.appStatusHandler,
-		display.DisplayByteSlice(headerHash),
+		logger.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
+		header,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -907,17 +909,34 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Debug("pools info",
-		"headers", sp.dataPool.Headers().Len(),
-		"headers capacity", sp.dataPool.Headers().MaxSize(),
-		"miniblocks", sp.dataPool.MiniBlocks().Len(),
-		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
-	)
+	sp.displayPoolsInfo()
 
 	sp.cleanupBlockTrackerPools(headerHandler)
+
 	go sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) displayPoolsInfo() {
+	log.Trace("pools info",
+		"shard", sp.shardCoordinator.SelfId(),
+		"num headers", sp.dataPool.Headers().GetNumHeaders(sp.shardCoordinator.SelfId()))
+
+	log.Trace("pools info",
+		"shard", core.MetachainShardId,
+		"num headers", sp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+
+	// numShardsToKeepHeaders represents the total number of shards for which shard node would keep tracking headers
+	// (in this case this number is equal with: self shard + metachain)
+	numShardsToKeepHeaders := 2
+	capacity := sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
+	log.Debug("pools info",
+		"total headers", sp.dataPool.Headers().Len(),
+		"headers pool capacity", capacity,
+		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
+		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
+	)
 }
 
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
@@ -1169,7 +1188,8 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if !ok {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
+				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
 		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
@@ -1282,9 +1302,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 		headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
-			sp.saveMetaHeader(header, headerHash, marshalizedHeader)
-		}(hdr, headerHash, marshalizedHeader)
+		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
 		sp.dataPool.Headers().RemoveHeaderByHash(headerHash)
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
@@ -1821,6 +1839,10 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
+
+	if len(selfNotarizedHeaders) == 0 {
+		return nil
+	}
 
 	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
 

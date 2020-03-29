@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -238,6 +238,8 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (u
 // about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string) (*state.Account, error) {
 	return nf.node.GetAccount(address)
+func (ef *ElrondNodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
+	return ef.node.GetAccount(address)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

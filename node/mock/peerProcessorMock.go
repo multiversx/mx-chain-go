@@ -15,13 +15,21 @@ type ValidatorStatisticsProcessorMock struct {
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessCalled                            func(vid state.ValidatorInfo) error
+	ProcessCalled                            func(validatorInfo data.ValidatorInfoHandler) error
+}
+
+// UpdatePeerState -
+func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+	if vsp.UpdatePeerStateCalled != nil {
+		return vsp.UpdatePeerStateCalled(header)
+	}
+	return nil, nil
 }
 
 // Process -
-func (vsp *ValidatorStatisticsProcessorMock) Process(vid state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorMock) Process(validatorInfo data.ValidatorInfoHandler) error {
 	if vsp.ProcessCalled != nil {
-		return vsp.ProcessCalled(vid)
+		return vsp.ProcessCalled(validatorInfo)
 	}
 
 	return nil
@@ -39,14 +47,6 @@ func (vsp *ValidatorStatisticsProcessorMock) ResetValidatorStatisticsAtNewEpoch(
 func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
-	}
-	return nil, nil
-}
-
-// UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
-	if vsp.UpdatePeerStateCalled != nil {
-		return vsp.UpdatePeerStateCalled(header)
 	}
 	return nil, nil
 }

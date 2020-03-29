@@ -201,13 +201,23 @@ func (si *stateImport) importMiniBlocks() error {
 	return nil
 }
 
+func newAccountCreator(accType Type) (state.AccountFactory, error) {
+	switch accType {
+	case UserAccount:
+		return factory.NewAccountCreator(), nil
+	case ValidatorAccount:
+		return factory.NewPeerAccountCreator(), nil
+	}
+	return nil, update.ErrUnknownType
+}
+
 func (si *stateImport) importState(fileName string, trieKey string) error {
 	accType, _, err := GetTrieTypeAndShId(trieKey)
 	if err != nil {
 		return err
 	}
 
-	accountFactory, err := factory.NewAccountFactoryCreator(accType)
+	accountFactory, err := newAccountCreator(accType)
 	if err != nil {
 		return err
 	}

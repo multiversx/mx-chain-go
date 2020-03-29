@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -339,7 +339,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if !senderOK {
 		return fmt.Errorf("%w : node with public key %s is not in eligible list",
 			ErrSenderNotOk,
-			display.DisplayByteSlice(cnsDta.PubKey))
+			logger.DisplayByteSlice(cnsDta.PubKey))
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
@@ -570,7 +570,6 @@ func (wrk *Worker) Extend(subroundId int) {
 
 func (wrk *Worker) broadcastLastCommittedHeader() {
 	header := wrk.blockChain.GetCurrentBlockHeader()
-
 	if check.IfNil(header) {
 		return
 	}

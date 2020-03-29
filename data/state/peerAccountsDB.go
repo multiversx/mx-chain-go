@@ -42,7 +42,7 @@ func NewPeerAccountsDB(
 			accountFactory: accountFactory,
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
-			mutEntries:     sync.RWMutex{},
+			mutOp:          sync.RWMutex{},
 		},
 	}, nil
 }

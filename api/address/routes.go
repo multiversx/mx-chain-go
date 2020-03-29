@@ -14,7 +14,7 @@ import (
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
-	GetAccount(address string) (*state.Account, error)
+	GetAccount(address string) (state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -74,13 +74,13 @@ func GetBalance(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"balance": balance.String()})
 }
 
-func accountResponseFromBaseAccount(address string, account *state.Account) accountResponse {
+func accountResponseFromBaseAccount(address string, account state.UserAccountHandler) accountResponse {
 	return accountResponse{
 		Address:  address,
-		Nonce:    account.Nonce,
-		Balance:  account.Balance.String(),
+		Nonce:    account.GetNonce(),
+		Balance:  account.GetBalance().String(),
 		Code:     hex.EncodeToString(account.GetCode()),
-		CodeHash: account.CodeHash,
-		RootHash: account.RootHash,
+		CodeHash: account.GetCodeHash(),
+		RootHash: account.GetRootHash(),
 	}
 }

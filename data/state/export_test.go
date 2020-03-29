@@ -1,10 +1,10 @@
 package state
 
-func (adb *AccountsDB) LoadCode(accountHandler AccountHandler) error {
+func (adb *AccountsDB) LoadCode(accountHandler UserAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
-func (adb *AccountsDB) LoadDataTrie(accountHandler AccountHandler) error {
+func (adb *AccountsDB) LoadDataTrie(accountHandler UserAccountHandler) error {
 	return adb.loadDataTrie(accountHandler)
 }
 

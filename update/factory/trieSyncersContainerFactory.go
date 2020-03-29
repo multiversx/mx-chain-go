@@ -64,18 +64,18 @@ func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error)
 	container := containers.NewTrieSyncersContainer()
 
 	for i := uint32(0); i < t.shardCoordinator.NumberOfShards(); i++ {
-		err := t.createOneTrieSyncer(i, state.UserAccount, container)
+		err := t.createOneTrieSyncer(i, genesis.UserAccount, container)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := t.createOneTrieSyncer(core.MetachainShardId, state.UserAccount, container)
+	err := t.createOneTrieSyncer(core.MetachainShardId, genesis.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.createOneTrieSyncer(core.MetachainShardId, state.ValidatorAccount, container)
+	err = t.createOneTrieSyncer(core.MetachainShardId, genesis.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error)
 
 func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	shId uint32,
-	accType state.Type,
+	accType genesis.Type,
 	container update.TrieSyncContainer,
 ) error {
 	trieId := genesis.CreateTrieIdentifier(shId, accType)
@@ -108,11 +108,11 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	return nil
 }
 
-func trieTopicFromAccountType(accType state.Type) string {
+func trieTopicFromAccountType(accType genesis.Type) string {
 	switch accType {
-	case state.UserAccount:
+	case genesis.UserAccount:
 		return factoryTrie.AccountTrieNodesTopic
-	case state.ValidatorAccount:
+	case genesis.ValidatorAccount:
 		return factoryTrie.ValidatorTrieNodesTopic
 	}
 	return ""

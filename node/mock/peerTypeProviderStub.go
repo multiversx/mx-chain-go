@@ -6,16 +6,16 @@ import (
 
 // PeerTypeProviderStub -
 type PeerTypeProviderStub struct {
-	ComputeForPubKeyCalled func(pubKey []byte, shardID uint32) (core.PeerType, error)
+	ComputeForPubKeyCalled func(pubKey []byte) (core.PeerType, uint32, error)
 }
 
 // ComputeForPubKey -
-func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte, shardID uint32) (core.PeerType, error) {
+func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error) {
 	if p.ComputeForPubKeyCalled != nil {
-		return p.ComputeForPubKeyCalled(pubKey, shardID)
+		return p.ComputeForPubKeyCalled(pubKey)
 	}
 
-	return "", nil
+	return "", 0, nil
 }
 
 // IsInterfaceNil -

@@ -45,15 +45,18 @@ const (
 	Header
 	// MetaHeader is the export/import type for pending meta headers
 	MetaHeader
-	// AccountsTrie is the export/import type for saved accounts trie
-	AccountsTrie
 	// RootHash is the export/import type for byte array which has to be treated as rootHash
 	RootHash
 	// UserAccount is the export/import type for an account of type user account
 	UserAccount
 	// PeerAccount is the export/import type for peer account
-	PeerAccount
+	ValidatorAccount
+	// DataTrie identifies the data trie kept under a specific account
+	DataTrie
 )
+
+// SupportedAccountTypes is the list to describe the possible account types in the accounts DB
+var SupportedAccountTypes = []Type{UserAccount, ValidatorAccount, DataTrie}
 
 // atSep is a separator used for export and import to decipher needed types
 const atSep = "@"
@@ -80,34 +83,34 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType state.Type) (state.AccountHandler, error) {
+func NewEmptyAccount(accType Type) (state.AccountHandler, error) {
 	switch accType {
-	case state.UserAccount:
-		return &state.Account{}, nil
-	case state.ValidatorAccount:
-		return &state.PeerAccount{}, nil
-	case state.DataTrie:
+	case UserAccount:
+		return state.NewEmptyUserAccount(), nil
+	case ValidatorAccount:
+		return state.NewEmptyPeerAccount(), nil
+	case DataTrie:
 		return nil, nil
 	}
 	return nil, update.ErrUnknownType
 }
 
 // GetTrieTypeAndShId returns the type and shard Id for a given account according to the saved key
-func GetTrieTypeAndShId(key string) (state.Type, uint32, error) {
+func GetTrieTypeAndShId(key string) (Type, uint32, error) {
 	splitString := strings.Split(key, atSep)
 	if len(splitString) < 3 {
-		return state.UserAccount, 0, update.ErrUnknownType
+		return UserAccount, 0, update.ErrUnknownType
 	}
 
 	accTypeInt64, err := strconv.ParseInt(splitString[1], 10, 0)
 	if err != nil {
-		return state.UserAccount, 0, err
+		return UserAccount, 0, err
 	}
 	accType := getAccountType(int(accTypeInt64))
 
 	shId, err := strconv.ParseInt(splitString[1], 10, 0)
 	if err != nil {
-		return state.UserAccount, 0, err
+		return UserAccount, 0, err
 	}
 	return accType, uint32(shId), nil
 }
@@ -129,11 +132,11 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
-func getAccountType(intType int) state.Type {
-	accType := state.UserAccount
-	for currType := range state.SupportedAccountTypes {
+func getAccountType(intType int) Type {
+	accType := UserAccount
+	for currType := range SupportedAccountTypes {
 		if currType == intType {
-			accType = state.Type(currType)
+			accType = Type(currType)
 			break
 		}
 	}
@@ -151,17 +154,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	}
 	accType := getAccountType(int(accTypeInt64))
 
-	convertedType := Unknown
-	switch accType {
-	case state.UserAccount:
-		convertedType = UserAccount
-	case state.ValidatorAccount:
-		convertedType = PeerAccount
-	default:
-		return convertedType, nil, update.ErrUnknownType
-	}
-
-	return convertedType, []byte(splitString[2]), nil
+	return accType, []byte(splitString[2]), nil
 }
 
 // GetKeyTypeAndHash returns the type of the key by splitting it up and deciphering it
@@ -216,7 +209,7 @@ func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
 }
 
 // CreateAccountKey creates a key for an account according to its type, shard ID and address
-func CreateAccountKey(accType state.Type, shId uint32, address string) string {
+func CreateAccountKey(accType Type, shId uint32, address string) string {
 	key := CreateTrieIdentifier(shId, accType)
 	return key + atSep + address
 }
@@ -227,7 +220,7 @@ func CreateRootHashKey(trieIdentifier string) string {
 }
 
 // CreateTrieIdentifier creates a trie identifier according to trie type and shard id
-func CreateTrieIdentifier(shID uint32, accountType state.Type) string {
+func CreateTrieIdentifier(shID uint32, accountType Type) string {
 	return fmt.Sprint("tr", atSep, shID, atSep, accountType)
 }
 

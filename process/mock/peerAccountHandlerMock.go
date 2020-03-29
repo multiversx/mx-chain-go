@@ -9,245 +9,267 @@ import (
 
 // PeerAccountHandlerMock -
 type PeerAccountHandlerMock struct {
-	MockValue         int
-	dataTrie          data.Trie
-	nonce             uint64
-	code              []byte
-	codeHash          []byte
-	rootHash          []byte
-	address           state.AddressContainer
-	trackableDataTrie state.DataTrieTracker
-
-	SetNonceWithJournalCalled      func(nonce uint64) error
-	SetCodeHashWithJournalCalled   func(codeHash []byte) error
-	SetRootHashWithJournalCalled   func([]byte) error
-	RatingCalled                   func() uint32
-	SetCodeWithJournalCalled       func(codeHash []byte) error
-	SetRatingWithJournalCalled     func(rating uint32) error
-	GetTempRatingCalled            func() uint32
-	SetTempRatingWithJournalCalled func(rating uint32) error
-
-	SetListAndIndexWithJournalCalled func(list string, index int32) error
-
-	IncreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
-	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
-	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
-	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
-	AddToAccumulatedFeesCalled                    func(value *big.Int) error
-	IncreaseNumSelectedInSuccessBlocksCalled      func() error
-	ResetAtNewEpochCalled                         func() error
-	SetRewardAddressWithJournalCalled             func(address []byte) error
-	SetSchnorrPublicKeyWithJournalCalled          func(address []byte) error
-	SetBLSPublicKeyWithJournalCalled              func(address []byte) error
-	SetStakeWithJournalCalled                     func(stake *big.Int) error
+	IncreaseLeaderSuccessRateCalled    func(uint32)
+	DecreaseLeaderSuccessRateCalled    func(uint32)
+	IncreaseValidatorSuccessRateCalled func(uint32)
+	DecreaseValidatorSuccessRateCalled func(uint32)
+	SetTempRatingCalled                func(uint32)
+	GetTempRatingCalled                func() uint32
+	SetAccumulatedFeesCalled           func(*big.Int)
+	GetAccumulatedFeesCalled           func() *big.Int
+	SetListAndIndexCalled              func(shardID uint32, list string, index int32)
 }
 
-// ResetAtNewEpoch -
-func (pahm *PeerAccountHandlerMock) ResetAtNewEpoch() error {
-	if pahm.ResetAtNewEpochCalled != nil {
-		return pahm.ResetAtNewEpochCalled()
-	}
+// GetBLSPublicKey -
+func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
 	return nil
 }
 
-// SetRewardAddressWithJournal -
-func (pahm *PeerAccountHandlerMock) SetRewardAddressWithJournal(address []byte) error {
-	if pahm.SetRewardAddressWithJournalCalled != nil {
-		return pahm.SetRewardAddressWithJournalCalled(address)
-	}
+// SetBLSPublicKey -
+func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
 	return nil
 }
 
-// SetSchnorrPublicKeyWithJournal -
-func (pahm *PeerAccountHandlerMock) SetSchnorrPublicKeyWithJournal(address []byte) error {
-	if pahm.SetSchnorrPublicKeyWithJournalCalled != nil {
-		return pahm.SetSchnorrPublicKeyWithJournalCalled(address)
-	}
+// GetSchnorrPublicKey -
+func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
 	return nil
 }
 
-// SetBLSPublicKeyWithJournal -
-func (pahm *PeerAccountHandlerMock) SetBLSPublicKeyWithJournal(address []byte) error {
-	if pahm.SetBLSPublicKeyWithJournalCalled != nil {
-		return pahm.SetBLSPublicKeyWithJournalCalled(address)
-	}
+// SetSchnorrPublicKey -
+func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) error {
 	return nil
 }
 
-// SetStakeWithJournal -
-func (pahm *PeerAccountHandlerMock) SetStakeWithJournal(stake *big.Int) error {
-	if pahm.SetStakeWithJournalCalled != nil {
-		return pahm.SetStakeWithJournalCalled(stake)
-	}
+// GetRewardAddress -
+func (p *PeerAccountHandlerMock) GetRewardAddress() []byte {
 	return nil
 }
 
-// IncreaseNumSelectedInSuccessBlocks -
-func (pahm *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() error {
-	if pahm.IncreaseNumSelectedInSuccessBlocksCalled != nil {
-		return pahm.IncreaseNumSelectedInSuccessBlocks()
-	}
+// SetRewardAddress -
+func (p *PeerAccountHandlerMock) SetRewardAddress([]byte) error {
 	return nil
+}
+
+// GetStake -
+func (p *PeerAccountHandlerMock) GetStake() *big.Int {
+	return nil
+}
+
+// SetStake -
+func (p *PeerAccountHandlerMock) SetStake(*big.Int) error {
+	return nil
+}
+
+// GetAccumulatedFees -
+func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
+	if p.GetAccumulatedFeesCalled != nil {
+		p.GetAccumulatedFeesCalled()
+	}
+	return big.NewInt(0)
 }
 
 // AddToAccumulatedFees -
-func (pahm *PeerAccountHandlerMock) AddToAccumulatedFees(value *big.Int) error {
-	if pahm.AddToAccumulatedFeesCalled != nil {
-		return pahm.AddToAccumulatedFeesCalled(value)
+func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
+	if p.SetAccumulatedFeesCalled != nil {
+		p.SetAccumulatedFeesCalled(val)
 	}
-	return nil
 }
 
-// GetCodeHash -
-func (pahm *PeerAccountHandlerMock) GetCodeHash() []byte {
-	return pahm.codeHash
+// GetJailTime -
+func (p *PeerAccountHandlerMock) GetJailTime() state.TimePeriod {
+	return state.TimePeriod{}
 }
 
-// SetCodeHash -
-func (pahm *PeerAccountHandlerMock) SetCodeHash(codeHash []byte) {
-	pahm.codeHash = codeHash
+// SetJailTime -
+func (p *PeerAccountHandlerMock) SetJailTime(state.TimePeriod) {
+
 }
 
-// SetCodeHashWithJournal -
-func (pahm *PeerAccountHandlerMock) SetCodeHashWithJournal(codeHash []byte) error {
-	return pahm.SetCodeHashWithJournalCalled(codeHash)
+// GetCurrentShardId -
+func (p *PeerAccountHandlerMock) GetCurrentShardId() uint32 {
+	return 0
 }
 
-// GetCode -
-func (pahm *PeerAccountHandlerMock) GetCode() []byte {
-	return pahm.code
+// SetCurrentShardId -
+func (p *PeerAccountHandlerMock) SetCurrentShardId(uint32) {
+
 }
 
-// GetRootHash -
-func (pahm *PeerAccountHandlerMock) GetRootHash() []byte {
-	return pahm.rootHash
+// GetNextShardId -
+func (p *PeerAccountHandlerMock) GetNextShardId() uint32 {
+	return 0
 }
 
-// SetRootHash -
-func (pahm *PeerAccountHandlerMock) SetRootHash(rootHash []byte) {
-	pahm.rootHash = rootHash
+// SetNextShardId -
+func (p *PeerAccountHandlerMock) SetNextShardId(uint32) {
+
 }
 
-// SetNonceWithJournal -
-func (pahm *PeerAccountHandlerMock) SetNonceWithJournal(nonce uint64) error {
-	return pahm.SetNonceWithJournalCalled(nonce)
+// GetNodeInWaitingList -
+func (p *PeerAccountHandlerMock) GetNodeInWaitingList() bool {
+	return false
 }
 
-// AddressContainer -
-func (pahm *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
-	return pahm.address
+// SetNodeInWaitingList -
+func (p *PeerAccountHandlerMock) SetNodeInWaitingList(bool) {
+
 }
 
-// SetCode -
-func (pahm *PeerAccountHandlerMock) SetCode(code []byte) {
-	pahm.code = code
+// GetUnStakedNonce -
+func (p *PeerAccountHandlerMock) GetUnStakedNonce() uint64 {
+	return 0
 }
 
-// DataTrie -
-func (pahm *PeerAccountHandlerMock) DataTrie() data.Trie {
-	return pahm.dataTrie
+// SetUnStakedNonce -
+func (p *PeerAccountHandlerMock) SetUnStakedNonce(uint64) {
+
 }
 
-// SetDataTrie -
-func (pahm *PeerAccountHandlerMock) SetDataTrie(trie data.Trie) {
-	pahm.dataTrie = trie
-	pahm.trackableDataTrie.SetDataTrie(trie)
-}
-
-// DataTrieTracker -
-func (pahm *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
-	return pahm.trackableDataTrie
-}
-
-// SetDataTrieTracker -
-func (pahm *PeerAccountHandlerMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
-	pahm.trackableDataTrie = tracker
-}
-
-// SetNonce -
-func (pahm *PeerAccountHandlerMock) SetNonce(nonce uint64) {
-	pahm.nonce = nonce
-}
-
-// GetNonce -
-func (pahm *PeerAccountHandlerMock) GetNonce() uint64 {
-	return pahm.nonce
-}
-
-// IncreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
-	if pahm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseLeaderSuccessRateWithJournalCalled(value)
+// IncreaseLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) IncreaseLeaderSuccessRate(val uint32) {
+	if p.IncreaseLeaderSuccessRateCalled != nil {
+		p.IncreaseLeaderSuccessRateCalled(val)
 	}
-	return nil
 }
 
-// DecreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
-	if pahm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseLeaderSuccessRateWithJournalCalled(value)
+// DecreaseLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
+	if p.DecreaseLeaderSuccessRateCalled != nil {
+		p.DecreaseLeaderSuccessRateCalled(val)
 	}
-	return nil
 }
 
-// IncreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
-	if pahm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseValidatorSuccessRateWithJournalCalled(value)
+// IncreaseValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
+	if p.IncreaseValidatorSuccessRateCalled != nil {
+		p.IncreaseValidatorSuccessRateCalled(val)
 	}
-	return nil
 }
 
-// DecreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
-	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseValidatorSuccessRateWithJournalCalled(value)
+// DecreaseValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
+	if p.DecreaseValidatorSuccessRateCalled != nil {
+		p.DecreaseValidatorSuccessRateCalled(val)
 	}
-	return nil
+}
+
+// GetNumSelectedInSuccessBlocks -
+func (p *PeerAccountHandlerMock) GetNumSelectedInSuccessBlocks() uint32 {
+	return 0
+}
+
+// IncreaseNumSelectedInSuccessBlocks -
+func (p *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() {
+
+}
+
+// GetLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
+// GetValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
+	return state.SignRate{}
 }
 
 // GetRating -
-func (pahm *PeerAccountHandlerMock) GetRating() uint32 {
-	if pahm.SetRatingWithJournalCalled != nil {
-		return pahm.RatingCalled()
-	}
-	return 10
+func (p *PeerAccountHandlerMock) GetRating() uint32 {
+	return 0
 }
 
-// SetRatingWithJournal -
-func (pahm *PeerAccountHandlerMock) SetRatingWithJournal(rating uint32) error {
-	if pahm.SetRatingWithJournalCalled != nil {
-		return pahm.SetRatingWithJournalCalled(rating)
-	}
-	return nil
+// SetRating -
+func (p *PeerAccountHandlerMock) SetRating(uint32) {
+
 }
 
 // GetTempRating -
-func (pahm *PeerAccountHandlerMock) GetTempRating() uint32 {
-	if pahm.GetTempRatingCalled != nil {
-		return pahm.GetTempRatingCalled()
+func (p *PeerAccountHandlerMock) GetTempRating() uint32 {
+	if p.GetTempRatingCalled != nil {
+		return p.GetTempRatingCalled()
 	}
-	return 10
+	return 0
 }
 
-// SetTempRatingWithJournal -
-func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) error {
-	if pahm.SetTempRatingWithJournalCalled != nil {
-		return pahm.SetTempRatingWithJournalCalled(rating)
+// SetTempRating -
+func (p *PeerAccountHandlerMock) SetTempRating(val uint32) {
+	if p.SetTempRatingCalled != nil {
+		p.SetTempRatingCalled(val)
 	}
+}
+
+// ResetAtNewEpoch -
+func (p *PeerAccountHandlerMock) ResetAtNewEpoch() error {
 	return nil
 }
 
-// SetListAndIndexWithJournal -
-func (pahm *PeerAccountHandlerMock) SetListAndIndexWithJournal(shardID uint32, list string, index int32) error {
-	if pahm.SetListAndIndexWithJournalCalled != nil {
-		return pahm.SetListAndIndexWithJournalCalled(list, index)
-	}
-
+// AddressContainer -
+func (p *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
 	return nil
+}
+
+// IncreaseNonce -
+func (p *PeerAccountHandlerMock) IncreaseNonce(_ uint64) {
+}
+
+// GetNonce -
+func (p *PeerAccountHandlerMock) GetNonce() uint64 {
+	return 0
+}
+
+// SetCode -
+func (p *PeerAccountHandlerMock) SetCode(_ []byte) {
+
+}
+
+// GetCode -
+func (p *PeerAccountHandlerMock) GetCode() []byte {
+	return nil
+}
+
+// SetCodeHash -
+func (p *PeerAccountHandlerMock) SetCodeHash([]byte) {
+
+}
+
+// GetCodeHash -
+func (p *PeerAccountHandlerMock) GetCodeHash() []byte {
+	return nil
+}
+
+// SetRootHash -
+func (p *PeerAccountHandlerMock) SetRootHash([]byte) {
+
+}
+
+// GetRootHash -
+func (p *PeerAccountHandlerMock) GetRootHash() []byte {
+	return nil
+}
+
+// SetDataTrie -
+func (p *PeerAccountHandlerMock) SetDataTrie(_ data.Trie) {
+
+}
+
+// DataTrie -
+func (p *PeerAccountHandlerMock) DataTrie() data.Trie {
+	return nil
+}
+
+// DataTrieTracker -
+func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
+	return nil
+}
+
+// SetListAndIndex -
+func (pahm *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index int32) {
+	if pahm.SetListAndIndexCalled != nil {
+		pahm.SetListAndIndexCalled(shardID, list, index)
+	}
 }
 
 // IsInterfaceNil -
-func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	return pahm == nil
+func (p *PeerAccountHandlerMock) IsInterfaceNil() bool {
+	return false
 }

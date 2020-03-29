@@ -15,7 +15,7 @@ type SuiteMock struct {
 	CreatePointStub          func() crypto.Point
 	CreatePointForScalarStub func(scalar crypto.Scalar) (crypto.Point, error)
 	RandomStreamStub         func() cipher.Stream
-	CreateKeyPairStub        func(cipher.Stream) (crypto.Scalar, crypto.Point)
+	CreateKeyPairStub        func() (crypto.Scalar, crypto.Point)
 	GetUnderlyingSuiteStub   func() interface{}
 }
 
@@ -82,9 +82,9 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 }
 
 // CreateKeyPair -
-func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
+func (s *SuiteMock) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	if s.CreateKeyPairStub != nil {
-		return s.CreateKeyPairStub(c)
+		return s.CreateKeyPairStub()
 	}
 	return nil, nil
 }

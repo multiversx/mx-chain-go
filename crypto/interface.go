@@ -6,7 +6,6 @@ import (
 
 // A Scalar represents a scalar value by which
 // a Point (group element) may be encrypted to produce another Point.
-// adapted from kyber
 type Scalar interface {
 	// MarshalBinary transforms the Scalar into a byte array
 	MarshalBinary() ([]byte, error)
@@ -38,7 +37,7 @@ type Scalar interface {
 	// Inv returns the modular inverse of scalar s given as parameter
 	Inv(s Scalar) (Scalar, error)
 	// Pick returns a fresh random or pseudo-random scalar
-	Pick(rand cipher.Stream) (Scalar, error)
+	Pick() (Scalar, error)
 	// SetBytes sets the scalar from a byte-slice,
 	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) (Scalar, error)
@@ -49,7 +48,6 @@ type Scalar interface {
 }
 
 // Point represents an element of a public-key cryptographic Group.
-// adapted from kyber
 type Point interface {
 	// MarshalBinary transforms the Point into a byte array
 	MarshalBinary() ([]byte, error)
@@ -75,7 +73,7 @@ type Point interface {
 	// Mul returns the result of multiplying receiver by the scalar s.
 	Mul(s Scalar) (Point, error)
 	// Pick returns a fresh random or pseudo-random Point.
-	Pick(rand cipher.Stream) (Point, error)
+	Pick() (Point, error)
 	// GetUnderlyingObj returns the object the implementation wraps
 	GetUnderlyingObj() interface{}
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -83,7 +81,6 @@ type Point interface {
 }
 
 // Group defines a mathematical group used for Diffie-Hellmann operations
-// adapted from kyber
 type Group interface {
 	// String returns the string for the group
 	String() string
@@ -102,7 +99,6 @@ type Group interface {
 }
 
 // Random is an interface that can be mixed in to local suite definitions.
-// adapted from kyber
 type Random interface {
 	// RandomStream returns a cipher.Stream that produces a
 	// cryptographically random key stream. The stream must
@@ -111,12 +107,11 @@ type Random interface {
 }
 
 // Suite represents the list of functionalities needed by this package.
-// adapted from kyber
 type Suite interface {
 	Group
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
-	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	CreateKeyPair() (Scalar, Point)
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }

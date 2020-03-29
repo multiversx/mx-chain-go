@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -77,7 +77,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting transactions from network",
+	log.Debug("requesting transactions from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -145,7 +145,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	log.Trace("requesting miniblock from network",
+	log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"hash", miniblockHash,
@@ -180,7 +180,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting miniblocks from network",
+	log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -322,7 +322,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []b
 		return
 	}
 
-	log.Trace("requesting trie from network",
+	log.Debug("requesting trie from network",
 		"topic", topic,
 		"shard", destShardID,
 		"hash", hash,
@@ -470,7 +470,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	}
 
 	baseTopic := factory.MetachainBlocksTopic
-	log.Trace("requesting header by epoch",
+	log.Debug("requesting header by epoch",
 		"topic", baseTopic,
 		"epoch", epoch,
 		"hash", epochStartIdentifier,

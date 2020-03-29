@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -179,6 +180,16 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Millisecond
 	arg.PubKeysMap = pksPerShards
 	mon, err := heartbeat.NewMonitor(arg)
+
+	&mock.PeerTypeProviderStub{
+		ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+			if string(pubKey) == "pk0" {
+				return "", 0, nil
+			}
+
+			return "", 1, nil
+		},
+	},
 
 	assert.NotNil(t, mon)
 	assert.Nil(t, err)
