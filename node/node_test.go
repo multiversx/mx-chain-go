@@ -1192,6 +1192,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1323,6 +1324,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1398,6 +1400,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1464,6 +1467,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1539,6 +1543,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1619,6 +1624,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				return nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2609,4 +2615,46 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	assert.Equal(t, len(txsToSend), recTxsSize)
 	mutRecoveredTransactions.RUnlock()
+}
+
+func TestNode_DirectTrigger(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	hardforkTrigger := &mock.HardforkTriggerStub{
+		TriggerCalled: func() error {
+			wasCalled = true
+
+			return nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithHardforkTrigger(hardforkTrigger),
+	)
+
+	err := n.DirectTrigger()
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestNode_IsSelfTrigger(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	hardforkTrigger := &mock.HardforkTriggerStub{
+		IsSelfTriggerCalled: func() bool {
+			wasCalled = true
+
+			return true
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithHardforkTrigger(hardforkTrigger),
+	)
+
+	isSelf := n.IsSelfTrigger()
+
+	assert.True(t, isSelf)
+	assert.True(t, wasCalled)
 }

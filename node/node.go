@@ -55,9 +55,9 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	internalMarshalizer      marshal.Marshalizer
-	vmMarshalizer            marshal.Marshalizer
-	txSignMarshalizer                   marshal.Marshalizer
+	internalMarshalizer           marshal.Marshalizer
+	vmMarshalizer                 marshal.Marshalizer
+	txSignMarshalizer             marshal.Marshalizer
 	ctx                           context.Context
 	hasher                        hashing.Hasher
 	feeHandler                    process.FeeHandler
@@ -80,6 +80,7 @@ type Node struct {
 	heartbeatSender               *heartbeat.Sender
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
+	hardforkTrigger               HardforkTrigger
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -335,7 +336,7 @@ func (n *Node) StartConsensus() error {
 		NodesCoordinator:              n.nodesCoordinator,
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
-		AntifloodHandler:     		   n.inputAntifloodHandler,
+		AntifloodHandler:              n.inputAntifloodHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -924,18 +925,21 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	n.heartbeatSender, err = heartbeat.NewSender(
-		n.messenger,
-		n.singleSigner,
-		n.privKey,
-		n.internalMarshalizer,
-		core.HeartbeatTopic,
-		n.shardCoordinator,
-		peerTypeProvider,
-		n.appStatusHandler,
-		versionNumber,
-		nodeDisplayName,
-	)
+	argSender := heartbeat.ArgHeartbeatSender{
+		PeerMessenger:    n.messenger,
+		SingleSigner:     n.singleSigner,
+		PrivKey:          n.privKey,
+		Marshalizer:      n.internalMarshalizer,
+		Topic:            core.HeartbeatTopic,
+		ShardCoordinator: n.shardCoordinator,
+		PeerTypeProvider: peerTypeProvider,
+		StatusHandler:    n.appStatusHandler,
+		VersionNumber:    versionNumber,
+		NodeDisplayName:  nodeDisplayName,
+		HardforkTrigger:  n.hardforkTrigger,
+	}
+
+	n.heartbeatSender, err = heartbeat.NewSender(argSender)
 	if err != nil {
 		return err
 	}
@@ -962,17 +966,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(
-		netInputMarshalizer,
-		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		n.initialNodesPubkeys,
-		n.genesisTime,
-		heartBeatMsgProcessor,
-		heartbeatStorer,
-		peerTypeProvider,
-		timer,
-		n.inputAntifloodHandler,
-	)
+
+	argMonitor := heartbeat.ArgHeartbeatMonitor{
+		Marshalizer:                 netInputMarshalizer,
+		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                  n.initialNodesPubkeys,
+		GenesisTime:                 n.genesisTime,
+		MessageHandler:              heartBeatMsgProcessor,
+		Storer:                      heartbeatStorer,
+		PeerTypeProvider:            peerTypeProvider,
+		Timer:                       timer,
+		AntifloodHandler:            n.inputAntifloodHandler,
+		HardforkTrigger:             n.hardforkTrigger,
+	}
+	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {
 		return err
 	}
@@ -1048,7 +1055,7 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 	for _, validatorInfosInShard := range validators {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
+			strKey := hex.EncodeToString(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
 				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
 				NrLeaderFailure:    validatorInfo.LeaderFailure,
@@ -1075,6 +1082,16 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 	}
 
 	return validators, nil, nil
+}
+
+// DirectTrigger will start the hardfork trigger
+func (n *Node) DirectTrigger() error {
+	return n.hardforkTrigger.Trigger()
+}
+
+// IsSelfTrigger returns true if the trigger's registered public key matches the self public key
+func (n *Node) IsSelfTrigger() bool {
+	return n.hardforkTrigger.IsSelfTrigger()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

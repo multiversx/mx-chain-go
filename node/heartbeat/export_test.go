@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+const HardforkTriggerString = hardforkTriggerString
+
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages
 }
@@ -12,7 +14,7 @@ func (m *Monitor) SetMessages(messages map[string]*heartbeatMessageInfo) {
 	m.heartbeatMessages = messages
 }
 
-func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
+func (m *Monitor) GetHbmi(_ time.Time) *heartbeatMessageInfo {
 	return &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: 0,
 		maxInactiveTime:             time.Duration(0),
