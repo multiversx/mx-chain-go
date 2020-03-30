@@ -94,8 +94,8 @@ func (s *Sender) SendHeartbeat() error {
 		NodeDisplayName: s.nodeDisplayName,
 	}
 
-	triggerMessage, isHardforkTrigger := s.hardforkTrigger.RecordedTriggerMessage()
-	if isHardforkTrigger {
+	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
+	if isHardforkTriggered {
 		isPayloadRecorder := len(triggerMessage) != 0
 		if isPayloadRecorder {
 			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message

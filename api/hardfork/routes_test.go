@@ -35,7 +35,7 @@ type TriggerResponse struct {
 	Status string `json:"status"`
 }
 
-func startNodeServer(handler hardfork.HardforkHandler) *gin.Engine {
+func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	hardforkRoute := ws.Group("/hardfork")
@@ -69,7 +69,7 @@ func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {
 	ws := startNodeServerWrongFacade()
 
 	trig := &hardfork.TriggerHardforkRequest{
-		Trigger: false,
+		Triggered: false,
 	}
 	jsonBytes, _ := json.Marshal(trig)
 	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
@@ -113,7 +113,7 @@ func TestTrigger_TriggerNotReallyExecutedShouldReturnOk(t *testing.T) {
 	})
 
 	trig := &hardfork.TriggerHardforkRequest{
-		Trigger: false,
+		Triggered: false,
 	}
 	jsonBytes, _ := json.Marshal(trig)
 	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
@@ -138,7 +138,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 	})
 
 	trig := &hardfork.TriggerHardforkRequest{
-		Trigger: true,
+		Triggered: true,
 	}
 	jsonBytes, _ := json.Marshal(trig)
 	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
@@ -165,7 +165,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	})
 
 	trig := &hardfork.TriggerHardforkRequest{
-		Trigger: true,
+		Triggered: true,
 	}
 	jsonBytes, _ := json.Marshal(trig)
 	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
@@ -192,7 +192,7 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	})
 
 	trig := &hardfork.TriggerHardforkRequest{
-		Trigger: true,
+		Triggered: true,
 	}
 	jsonBytes, _ := json.Marshal(trig)
 	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))

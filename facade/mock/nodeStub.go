@@ -34,11 +34,6 @@ type NodeStub struct {
 	IsSelfTriggerCalled                            func() bool
 }
 
-// Address -
-func (ns *NodeStub) Address() (string, error) {
-	return ns.AddressHandler()
-}
-
 // Start -
 func (ns *NodeStub) Start() error {
 	return ns.StartHandler()
@@ -54,11 +49,6 @@ func (ns *NodeStub) IsRunning() bool {
 	return ns.IsRunningHandler()
 }
 
-// ConnectToAddresses -
-func (ns *NodeStub) ConnectToAddresses(addresses []string) error {
-	return ns.ConnectToAddressesHandler(addresses)
-}
-
 // StartConsensus -
 func (ns *NodeStub) StartConsensus() error {
 	return ns.StartConsensusHandler()
@@ -67,11 +57,6 @@ func (ns *NodeStub) StartConsensus() error {
 // GetBalance -
 func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 	return ns.GetBalanceHandler(address)
-}
-
-// GenerateTransaction -
-func (ns *NodeStub) GenerateTransaction(sender string, receiver string, amount string, code string) (*transaction.Transaction, error) {
-	return ns.GenerateTransactionHandler(sender, receiver, amount, code)
 }
 
 // CreateTransaction -
@@ -94,21 +79,6 @@ func (ns *NodeStub) GetTransaction(hash string) (*transaction.Transaction, error
 // SendBulkTransactions -
 func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return ns.SendBulkTransactionsHandler(txs)
-}
-
-// GetCurrentPublicKey -
-func (ns *NodeStub) GetCurrentPublicKey() string {
-	return ns.GetCurrentPublicKeyHandler()
-}
-
-// GenerateAndSendBulkTransactions -
-func (ns *NodeStub) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
-	return ns.GenerateAndSendBulkTransactionsHandler(receiverHex, value, noOfTx)
-}
-
-// GenerateAndSendBulkTransactionsOneByOne -
-func (ns *NodeStub) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value *big.Int, noOfTx uint64) error {
-	return ns.GenerateAndSendBulkTransactionsOneByOneHandler(receiverHex, value, noOfTx)
 }
 
 // GetAccount -

@@ -227,7 +227,7 @@ type AntifloodConfig struct {
 	TxAccumulator             TxAccumulatorConfig
 }
 
-// HardforkConfig hardfork configuration
+// HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
 	EnableTrigger         bool
 	EnableTriggerFromP2P  bool
