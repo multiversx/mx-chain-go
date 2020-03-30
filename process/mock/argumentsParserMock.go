@@ -10,6 +10,7 @@ type ArgumentParserMock struct {
 	GetConstructorArgumentsCalled     func() ([][]byte, error)
 	GetFunctionArgumentsCalled        func() ([][]byte, error)
 	GetCodeCalled                     func() ([]byte, error)
+	GetCodeDecodedCalled              func() ([]byte, error)
 	GetCodeMetadataCalled             func() (vmcommon.CodeMetadata, error)
 	GetVMTypeCalled                   func() ([]byte, error)
 	GetFunctionCalled                 func() (string, error)
@@ -48,6 +49,14 @@ func (ap *ArgumentParserMock) GetCode() ([]byte, error) {
 		return []byte(""), nil
 	}
 	return ap.GetCodeCalled()
+}
+
+// GetCodeDecoded -
+func (ap *ArgumentParserMock) GetCodeDecoded() ([]byte, error) {
+	if ap.GetCodeDecodedCalled == nil {
+		return []byte(""), nil
+	}
+	return ap.GetCodeDecodedCalled()
 }
 
 // GetCodeMetadata -

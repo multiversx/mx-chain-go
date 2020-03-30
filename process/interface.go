@@ -441,6 +441,7 @@ type ArgumentsParser interface {
 	GetFunctionArguments() ([][]byte, error)
 	GetConstructorArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
+	GetCodeDecoded() ([]byte, error)
 	GetVMType() ([]byte, error)
 	GetCodeMetadata() (vmcommon.CodeMetadata, error)
 	GetFunction() (string, error)

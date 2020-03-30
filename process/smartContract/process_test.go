@@ -569,7 +569,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	tx.Value = big.NewInt(0)
 
 	badCodeError := errors.New("fooError")
-	argParser.GetCodeCalled = func() (code []byte, e error) {
+	argParser.GetCodeDecodedCalled = func() (code []byte, e error) {
 		return nil, badCodeError
 	}
 
@@ -641,7 +641,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	require.Nil(t, vmInput)
 	require.Nil(t, vmType)
-	require.Equal(t, vmcommon.ErrBadDeployArguments, err)
+	require.Equal(t, vmcommon.ErrInvalidDeployArguments, err)
 }
 
 func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {

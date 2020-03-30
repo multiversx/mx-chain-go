@@ -1,7 +1,6 @@
 package smartContract
 
 import (
-	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -33,7 +32,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	vmCreateInput.VMInput = *vmInput
-	vmCreateInput.ContractCode, err = sc.getContractCode()
+	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeDecoded()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -74,7 +73,6 @@ func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
 	return vmcommon.DirectCall
 }
 
-// TODO: Check if this is still needed (and if needed, it does not seem entirely correct: "callBack" + "@")
 func prependCallbackToTxDataIfAsyncCall(txData []byte, callType vmcommon.CallType) []byte {
 	if callType == vmcommon.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
@@ -90,21 +88,6 @@ func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, e
 	}
 
 	return tx.GetGasLimit() - gasForTxData, nil
-}
-
-// TODO: move to argsParser
-func (sc *scProcessor) getContractCode() ([]byte, error) {
-	codeHex, err := sc.argsParser.GetCode()
-	if err != nil {
-		return nil, err
-	}
-
-	code, err := hex.DecodeString(string(codeHex))
-	if err != nil {
-		return nil, err
-	}
-
-	return code, err
 }
 
 func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
