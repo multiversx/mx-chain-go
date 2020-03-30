@@ -115,3 +115,6 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil app status handler")

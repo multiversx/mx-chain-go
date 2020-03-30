@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -81,6 +82,8 @@ type trigger struct {
 	isEpochStart        bool
 
 	validatorInfoProcessor process.ValidatorInfoProcessorHandler
+
+	appStatusHandler core.AppStatusHandler
 }
 
 type metaInfo struct {
@@ -175,6 +178,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartMeta:              &block.MetaBlock{},
 		epochStartShardHeader:       &block.Header{},
 		validatorInfoProcessor:      args.ValidatorInfoProcessor,
+		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
 	newTrigger.headersPool.RegisterHandler(newTrigger.receivedMetaBlock)
@@ -254,6 +258,16 @@ func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler
 	if !found {
 		t.requestHandler.RequestStartOfEpochMetaBlock(interceptedHeader.GetEpoch())
 	}
+}
+
+// SetAppStatusHandler will set the satus handler for the trigger
+func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
+	if check.IfNil(handler) {
+		return epochStart.ErrNilStatusHandler
+	}
+
+	t.appStatusHandler = handler
+	return nil
 }
 
 func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.MetaBlock) {
@@ -611,6 +625,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	if !shardHdr.IsStartOfEpochBlock() {
 		return
 	}
+
+	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, shardHdr.Round)
 
 	t.epoch = shardHdr.Epoch
 	t.isEpochStart = false
