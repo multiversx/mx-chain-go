@@ -600,7 +600,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
 		}
 
 		if len(account.RootHash) > 0 {
-			adb.mainTrie.TakeSnapshot(account.RootHash)
+			adb.mainTrie.SetCheckpoint(account.RootHash)
 		}
 	}
 }
@@ -612,8 +612,12 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	adb.mainTrie.EnterSnapshotMode()
-	adb.mainTrie.SetCheckpoint(rootHash)
-	adb.mainTrie.ExitSnapshotMode()
+
+	go func() {
+		adb.mainTrie.SetCheckpoint(rootHash)
+		adb.snapshotUserAccountDataTrie(rootHash)
+		adb.mainTrie.ExitSnapshotMode()
+	}()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

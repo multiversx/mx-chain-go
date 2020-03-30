@@ -635,6 +635,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 	adb.SetStateCheckpoint([]byte("roothash"))
+	time.Sleep(time.Second)
 
 	assert.True(t, setCheckPointWasCalled)
 }

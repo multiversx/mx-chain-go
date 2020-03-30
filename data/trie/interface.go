@@ -46,7 +46,6 @@ type node interface {
 }
 
 type atomicBuffer interface {
-	len() int
 	add(rootHash []byte)
 	removeAll() [][]byte
 }
