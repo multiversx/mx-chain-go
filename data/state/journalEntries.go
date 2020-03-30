@@ -5,23 +5,21 @@ import (
 )
 
 type journalEntryCode struct {
-	newCodeHash []byte
-	oldCode     []byte
-	updater     Updater
+	codeHash []byte
+	updater  Updater
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
-func NewJournalEntryCode(newCodeHash []byte, oldCode []byte, updater Updater) (*journalEntryCode, error) {
+func NewJournalEntryCode(codeHash []byte, updater Updater) (*journalEntryCode, error) {
 	return &journalEntryCode{
-		newCodeHash: newCodeHash,
-		oldCode:     oldCode,
-		updater:     updater,
+		codeHash: codeHash,
+		updater:  updater,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jea *journalEntryCode) Revert() (AccountHandler, error) {
-	return nil, jea.updater.Update(jea.newCodeHash, jea.oldCode)
+	return nil, jea.updater.Update(jea.codeHash, nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
