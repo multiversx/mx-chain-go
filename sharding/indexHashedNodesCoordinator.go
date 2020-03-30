@@ -269,7 +269,6 @@ func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Val
 		if typeOk {
 			return consensusGroup
 		}
-
 	}
 	return nil
 }
@@ -750,7 +749,19 @@ func selectValidators(
 		consensusGroup[i] = eligibleList[selectedIndexes[i]]
 	}
 
+	displayValidatorsForRandomness(consensusGroup, randomness)
+
 	return consensusGroup, nil
+}
+
+func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
+	strValidators := ""
+
+	for _, v := range validators {
+		strValidators += "\n" + core.ToHex(v.PubKey())
+	}
+
+	log.Trace("selectValidators", "randomness", randomness, "validators", strValidators)
 }
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {

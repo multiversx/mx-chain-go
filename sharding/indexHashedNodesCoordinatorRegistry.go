@@ -33,17 +33,7 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
-	err := ihgs.baseLoadState(key)
-	if err != nil {
-		return err
-	}
-
-	err = ihgs.expandAllLists(ihgs.currentEpoch)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ihgs.baseLoadState(key)
 }
 
 func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
@@ -75,7 +65,6 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	}
 
 	displayNodesConfigInfo(nodesConfig)
-
 	ihgs.mutNodesConfig.Lock()
 	ihgs.nodesConfig = nodesConfig
 	ihgs.mutNodesConfig.Unlock()
@@ -152,6 +141,10 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
+		result[epoch32].selectors, err = ihgs.createSelectors(nodesConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil
@@ -187,8 +180,6 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	if err != nil {
 		return nil, err
 	}
-
-	result.expandedEligibleMap = result.eligibleMap
 
 	return result, nil
 }
