@@ -20,16 +20,6 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 		return nil, nil, err
 	}
 
-	codeMetadata, err := sc.argsParser.GetCodeMetadata()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmInput.Arguments, err = sc.argsParser.GetConstructorArguments()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	vmCreateInput.VMInput = *vmInput
 	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeDecoded()
@@ -37,7 +27,17 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 		return nil, nil, err
 	}
 
+	codeMetadata, err := sc.argsParser.GetCodeMetadata()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
+
+	vmCreateInput.VMInput.Arguments, err = sc.argsParser.GetConstructorArguments()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return vmCreateInput, vmType, nil
 }
@@ -95,10 +95,6 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 	if err != nil {
 		return nil, err
 	}
-	vmInput.Arguments, err = sc.argsParser.GetFunctionArguments()
-	if err != nil {
-		return nil, err
-	}
 
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = *vmInput
@@ -108,6 +104,11 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 	}
 
 	vmCallInput.RecipientAddr = tx.GetRcvAddr()
+
+	vmCallInput.VMInput.Arguments, err = sc.argsParser.GetFunctionArguments()
+	if err != nil {
+		return nil, err
+	}
 
 	return vmCallInput, nil
 }
