@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -348,7 +349,9 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	cancel()
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +534,9 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, ctx)
+	cancel()
 	if err != nil {
 		return err
 	}
@@ -552,7 +557,9 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	e.headersSyncer.ClearFields()
-	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, timeToWait)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	cancel()
 	if err != nil {
 		return err
 	}

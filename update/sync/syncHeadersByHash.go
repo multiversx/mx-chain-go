@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -16,17 +17,18 @@ import (
 )
 
 type syncHeadersByHash struct {
-	mutMissingHdrs sync.Mutex
-	mapHeaders     map[string]data.HeaderHandler
-	mapHashes      map[string]struct{}
-	pool           dataRetriever.HeadersPool
-	storage        update.HistoryStorer
-	chReceivedAll  chan bool
-	marshalizer    marshal.Marshalizer
-	stopSyncing    bool
-	epochToSync    uint32
-	syncedAll      bool
-	requestHandler process.RequestHandler
+	mutMissingHdrs          sync.Mutex
+	mapHeaders              map[string]data.HeaderHandler
+	mapHashes               map[string]struct{}
+	pool                    dataRetriever.HeadersPool
+	storage                 update.HistoryStorer
+	chReceivedAll           chan bool
+	marshalizer             marshal.Marshalizer
+	stopSyncing             bool
+	epochToSync             uint32
+	syncedAll               bool
+	requestHandler          process.RequestHandler
+	waitTimeBetweenRequests time.Duration
 }
 
 // ArgsNewMissingHeadersByHashSyncer defines the arguments needed for the sycner
@@ -53,16 +55,17 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syn
 	}
 
 	p := &syncHeadersByHash{
-		mutMissingHdrs: sync.Mutex{},
-		mapHeaders:     make(map[string]data.HeaderHandler),
-		mapHashes:      make(map[string]struct{}),
-		pool:           args.Cache,
-		storage:        args.Storage,
-		chReceivedAll:  make(chan bool),
-		requestHandler: args.RequestHandler,
-		stopSyncing:    true,
-		syncedAll:      false,
-		marshalizer:    args.Marshalizer,
+		mutMissingHdrs:          sync.Mutex{},
+		mapHeaders:              make(map[string]data.HeaderHandler),
+		mapHashes:               make(map[string]struct{}),
+		pool:                    args.Cache,
+		storage:                 args.Storage,
+		chReceivedAll:           make(chan bool),
+		requestHandler:          args.RequestHandler,
+		stopSyncing:             true,
+		syncedAll:               false,
+		marshalizer:             args.Marshalizer,
+		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
 	p.pool.RegisterHandler(p.receivedHeader)
@@ -71,47 +74,66 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syn
 }
 
 // SyncMissingHeadersByHash syncs the missing headers
-func (m *syncHeadersByHash) SyncMissingHeadersByHash(
-	shardIDs []uint32,
-	headersHashes [][]byte,
-	waitTime time.Duration,
-) error {
+func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 	_ = core.EmptyChannel(m.chReceivedAll)
 
-	requestedMBs := 0
-	m.mutMissingHdrs.Lock()
-	m.stopSyncing = false
+	mapHashesToRequest := make(map[string]uint32)
 	for index, hash := range headersHashes {
-		m.mapHashes[string(hash)] = struct{}{}
-		header, ok := m.getHeaderFromPoolOrStorage(hash)
-		if ok {
-			m.mapHeaders[string(hash)] = header
-			continue
+		mapHashesToRequest[string(hash)] = shardIDs[index]
+	}
+
+	for {
+		requestedHdrs := 0
+
+		m.mutMissingHdrs.Lock()
+		m.stopSyncing = false
+		for hash, shardId := range mapHashesToRequest {
+			if _, ok := m.mapHeaders[hash]; ok {
+				delete(mapHashesToRequest, hash)
+			}
+
+			m.mapHashes[hash] = struct{}{}
+			header, ok := m.getHeaderFromPoolOrStorage([]byte(hash))
+			if ok {
+				m.mapHeaders[hash] = header
+				delete(mapHashesToRequest, hash)
+				continue
+			}
+
+			requestedHdrs++
+			if shardId == core.MetachainShardId {
+				m.requestHandler.RequestMetaHeader([]byte(hash))
+				continue
+			}
+
+			m.requestHandler.RequestShardHeader(shardId, []byte(hash))
+		}
+		m.mutMissingHdrs.Unlock()
+
+		if requestedHdrs == 0 {
+			m.mutMissingHdrs.Lock()
+			m.stopSyncing = true
+			m.syncedAll = true
+			m.mutMissingHdrs.Unlock()
+			return nil
 		}
 
-		requestedMBs++
-		if shardIDs[index] == core.MetachainShardId {
-			m.requestHandler.RequestMetaHeader(hash)
+		select {
+		case <-m.chReceivedAll:
+			m.mutMissingHdrs.Lock()
+			m.stopSyncing = true
+			m.syncedAll = true
+			m.mutMissingHdrs.Unlock()
+			return nil
+		case <-time.After(m.waitTimeBetweenRequests):
 			continue
+		case <-ctx.Done():
+			m.mutMissingHdrs.Lock()
+			m.stopSyncing = true
+			m.mutMissingHdrs.Unlock()
+			return update.ErrTimeIsOut
 		}
-
-		m.requestHandler.RequestShardHeader(shardIDs[index], hash)
 	}
-	m.mutMissingHdrs.Unlock()
-
-	var err error
-	if requestedMBs > 0 {
-		err = WaitFor(m.chReceivedAll, waitTime)
-	}
-
-	m.mutMissingHdrs.Lock()
-	m.stopSyncing = true
-	if err == nil {
-		m.syncedAll = true
-	}
-	m.mutMissingHdrs.Unlock()
-
-	return err
 }
 
 // receivedHeader is a callback function when a new header was received

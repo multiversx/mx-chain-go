@@ -153,6 +153,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 
 // SyncUnFinishedMetaHeaders syncs and validates all the unfinished metaHeaders for each shard
 func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
+	// TODO: do this with context.Context
 	err := h.syncEpochStartMetaHeader(epoch, waitTimeForHeaders)
 	if err != nil {
 		return err

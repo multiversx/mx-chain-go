@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -150,7 +152,9 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
 
 	s.miniBlocksSyncer.ClearFields()
-	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
+	cancel()
 	if err != nil {
 		return nil, err
 	}

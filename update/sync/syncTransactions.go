@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -18,17 +19,18 @@ import (
 )
 
 type pendingTransactions struct {
-	mutPendingTx    sync.Mutex
-	mapTransactions map[string]data.TransactionHandler
-	mapHashes       map[string]*block.MiniBlock
-	txPools         map[block.Type]dataRetriever.ShardedDataCacherNotifier
-	storage         map[block.Type]update.HistoryStorer
-	chReceivedAll   chan bool
-	requestHandler  process.RequestHandler
-	marshalizer     marshal.Marshalizer
-	epochToSync     uint32
-	stopSync        bool
-	syncedAll       bool
+	mutPendingTx            sync.Mutex
+	mapTransactions         map[string]data.TransactionHandler
+	mapHashes               map[string]*block.MiniBlock
+	txPools                 map[block.Type]dataRetriever.ShardedDataCacherNotifier
+	storage                 map[block.Type]update.HistoryStorer
+	chReceivedAll           chan bool
+	requestHandler          process.RequestHandler
+	marshalizer             marshal.Marshalizer
+	epochToSync             uint32
+	stopSync                bool
+	syncedAll               bool
+	waitTimeBetweenRequests time.Duration
 }
 
 // ArgsNewPendingTransactionsSyncer defines the arguments needed for a new transactions syncer
@@ -55,14 +57,15 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 	}
 
 	p := &pendingTransactions{
-		mutPendingTx:    sync.Mutex{},
-		mapTransactions: make(map[string]data.TransactionHandler),
-		mapHashes:       make(map[string]*block.MiniBlock),
-		chReceivedAll:   make(chan bool),
-		requestHandler:  args.RequestHandler,
-		marshalizer:     args.Marshalizer,
-		stopSync:        true,
-		syncedAll:       true,
+		mutPendingTx:            sync.Mutex{},
+		mapTransactions:         make(map[string]data.TransactionHandler),
+		mapHashes:               make(map[string]*block.MiniBlock),
+		chReceivedAll:           make(chan bool),
+		requestHandler:          args.RequestHandler,
+		marshalizer:             args.Marshalizer,
+		stopSync:                true,
+		syncedAll:               true,
+		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
 	p.txPools = make(map[block.Type]dataRetriever.ShardedDataCacherNotifier)
@@ -83,42 +86,48 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 }
 
 // SyncPendingTransactionsFor syncs pending transactions for a list of miniblocks
-func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error {
+func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
 
-	p.mutPendingTx.Lock()
-	p.epochToSync = epoch
-	p.syncedAll = false
-	p.stopSync = false
-
-	requestedTxs := 0
-	for _, miniBlock := range miniBlocks {
-		for _, txHash := range miniBlock.TxHashes {
-			p.mapHashes[string(txHash)] = miniBlock
-		}
-		requestedTxs += p.requestTransactionsFor(miniBlock)
-	}
-	p.mutPendingTx.Unlock()
-
-	var err error
-	defer func() {
+	for {
 		p.mutPendingTx.Lock()
-		p.stopSync = true
-		if err == nil {
-			p.syncedAll = true
+		p.epochToSync = epoch
+		p.syncedAll = false
+		p.stopSync = false
+
+		requestedTxs := 0
+		for _, miniBlock := range miniBlocks {
+			for _, txHash := range miniBlock.TxHashes {
+				p.mapHashes[string(txHash)] = miniBlock
+			}
+			requestedTxs += p.requestTransactionsFor(miniBlock)
 		}
 		p.mutPendingTx.Unlock()
-	}()
 
-	if requestedTxs > 0 {
-		err = WaitFor(p.chReceivedAll, waitTime)
-		if err != nil {
-			log.Warn("could not finish syncing", "error", err)
-			return err
+		if requestedTxs == 0 {
+			p.mutPendingTx.Lock()
+			p.stopSync = true
+			p.syncedAll = true
+			p.mutPendingTx.Unlock()
+			return nil
+		}
+
+		select {
+		case <-p.chReceivedAll:
+			p.mutPendingTx.Lock()
+			p.stopSync = true
+			p.syncedAll = true
+			p.mutPendingTx.Unlock()
+			return nil
+		case <-time.After(p.waitTimeBetweenRequests):
+			continue
+		case <-ctx.Done():
+			p.mutPendingTx.Lock()
+			p.stopSync = true
+			p.mutPendingTx.Unlock()
+			return update.ErrTimeIsOut
 		}
 	}
-
-	return nil
 }
 
 func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock) int {

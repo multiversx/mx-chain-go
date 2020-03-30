@@ -1,6 +1,7 @@
 package epochStart
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -82,7 +83,7 @@ type ValidatorStatisticsProcessorHandler interface {
 
 // HeadersByHashSyncer defines the methods to sync all missing headers by hash
 type HeadersByHashSyncer interface {
-	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, waitTime time.Duration) error
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error
 	GetHeaders() (map[string]data.HeaderHandler, error)
 	ClearFields()
 	IsInterfaceNil() bool
@@ -90,7 +91,7 @@ type HeadersByHashSyncer interface {
 
 // PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type PendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, waitTime time.Duration) error
+	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	ClearFields()
 	IsInterfaceNil() bool
