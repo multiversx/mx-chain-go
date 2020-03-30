@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestNodes_NewGenesisConfigWrongDataInFile(t *testing.T) {
 	genesis, err := NewGenesisConfig("mock/invalidGenesisMock.json", createMockPubkeyConverter())
 
 	assert.Nil(t, genesis)
-	assert.Equal(t, ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestNodes_NewGenesisShouldWork(t *testing.T) {
@@ -126,7 +127,7 @@ func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
 	err := genesis.processConfig()
 
 	assert.NotNil(t, genesis)
-	assert.Equal(t, ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
