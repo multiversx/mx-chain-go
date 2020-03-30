@@ -3,11 +3,11 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.12-0.20200330154202-1a3dcee654dc
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-go-logger v1.0.1
 	github.com/ElrondNetwork/elrond-vm v0.0.25
-	github.com/ElrondNetwork/elrond-vm-common v0.1.12
+	github.com/ElrondNetwork/elrond-vm-common v0.1.13-0.20200330153553-33c09ed65cf8
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
@@ -47,6 +47,6 @@ require (
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
-replace github.com/ElrondNetwork/elrond-vm-common => github.com/ElrondNetwork/elrond-vm-common v0.0.0-20200328210946-2a91696a2876
+replace github.com/ElrondNetwork/elrond-vm-common => github.com/ElrondNetwork/elrond-vm-common v0.1.13-0.20200330153553-33c09ed65cf8
 
-replace github.com/ElrondNetwork/arwen-wasm-vm => github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20200328211537-e79a813767da
+replace github.com/ElrondNetwork/arwen-wasm-vm => github.com/ElrondNetwork/arwen-wasm-vm v0.3.12-0.20200330154202-1a3dcee654dc
