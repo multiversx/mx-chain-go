@@ -182,7 +182,6 @@ func TestRatingsData_PositiveDecreaseRatingsStepsShouldErr(t *testing.T) {
 	require.Nil(t, ratingsData)
 	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
 	require.True(t, strings.Contains(err.Error(), "shard"))
-
 }
 
 func TestRatingsData_RatingsCorrectValues(t *testing.T) {

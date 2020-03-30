@@ -33,29 +33,9 @@ type BlockSigningRater struct {
 
 // NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
 func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigningRater, error) {
-	if ratingsData.MinRating() < 1 {
-		return nil, process.ErrMinRatingSmallerThanOne
-	}
-	if ratingsData.MinRating() > ratingsData.MaxRating() {
-		return nil, fmt.Errorf("%w: minRating: %v, maxRating: %v",
-			process.ErrMaxRatingIsSmallerThanMinRating,
-			ratingsData.MinRating(),
-			ratingsData.MaxRating())
-	}
-	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
-		return nil, fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
-			process.ErrStartRatingNotBetweenMinAndMax,
-			ratingsData.MinRating(),
-			ratingsData.StartRating(),
-			ratingsData.MaxRating())
-	}
-	if len(ratingsData.SelectionChances()) == 0 {
-		return nil, process.ErrNoChancesProvided
-	}
-	if ratingsData.SignedBlocksThreshold() < 0 || ratingsData.SignedBlocksThreshold() > 1 {
-		return nil, fmt.Errorf("%w signedBlocksThreshold: %v",
-			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
-			ratingsData.SignedBlocksThreshold())
+	err := verifyRatingsData(ratingsData)
+	if err != nil {
+		return nil, err
 	}
 
 	ratingChances := make([]process.RatingChanceHandler, len(ratingsData.SelectionChances()))
@@ -95,6 +75,56 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
 		ratingChances:           ratingChances,
 	}, nil
+}
+
+func verifyRatingsData(ratingsData process.RatingsInfoHandler) error {
+	if ratingsData.MinRating() < 1 {
+		return process.ErrMinRatingSmallerThanOne
+	}
+	if ratingsData.MinRating() > ratingsData.MaxRating() {
+		return fmt.Errorf("%w: minRating: %v, maxRating: %v",
+			process.ErrMaxRatingIsSmallerThanMinRating,
+			ratingsData.MinRating(),
+			ratingsData.MaxRating())
+	}
+	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
+		return fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
+			process.ErrStartRatingNotBetweenMinAndMax,
+			ratingsData.MinRating(),
+			ratingsData.StartRating(),
+			ratingsData.MaxRating())
+	}
+	if len(ratingsData.SelectionChances()) == 0 {
+		return process.ErrNoChancesProvided
+	}
+	if ratingsData.SignedBlocksThreshold() < 0 || ratingsData.SignedBlocksThreshold() > 1 {
+		return fmt.Errorf("%w signedBlocksThreshold: %v",
+			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
+			ratingsData.SignedBlocksThreshold())
+	}
+	if ratingsData.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty() < 1 {
+		return fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			ratingsData.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
+	}
+	if ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty() < 1 {
+		return fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
+	}
+	if ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep() > 0 || ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep() > 0 {
+		return fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep(),
+			ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
+	}
+	if ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep() > 0 || ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep() > 0 {
+		return fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep(),
+			ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
+	}
+	return nil
 }
 
 func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint32) uint32 {
@@ -191,7 +221,7 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 
 	for i := uint32(0); i < consecutiveMisses; i++ {
 		computedFloat *= float64(consecutiveBlocksPenalty)
-		if computedFloat < maxDecreaseValue || computedFloat >= 0 {
+		if computedFloat < maxDecreaseValue {
 			computedFloat = maxDecreaseValue
 			break
 		}

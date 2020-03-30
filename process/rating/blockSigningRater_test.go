@@ -3,6 +3,7 @@ package rating_test
 import (
 	"errors"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -540,6 +541,64 @@ func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *te
 	assert.Equal(t, chancesFor80, chances)
 }
 
+func TestBlockSigningRater_PositiveDecreaseRatingStep(t *testing.T) {
+	rd := createDefaultRatingsData()
+	ratingStep := createRatingStepMock()
+	ratingStep.ProposerDecreaseRatingStepProperty = 7
+	rd.MetaRatingsStepDataProperty = ratingStep
+	bsr, err := rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "meta"))
+
+	rd = createDefaultRatingsData()
+	ratingStep = createRatingStepMock()
+	ratingStep.ValidatorDecreaseRatingStepProperty = 7
+	rd.MetaRatingsStepDataProperty = ratingStep
+	bsr, err = rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "meta"))
+
+	rd = createDefaultRatingsData()
+	ratingStep = createRatingStepMock()
+	ratingStep.ProposerDecreaseRatingStepProperty = 7
+	rd.ShardRatingsStepDataProperty = ratingStep
+	bsr, err = rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "shard"))
+
+	rd = createDefaultRatingsData()
+	ratingStep = createRatingStepMock()
+	ratingStep.ValidatorDecreaseRatingStepProperty = 7
+	rd.ShardRatingsStepDataProperty = ratingStep
+	bsr, err = rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, strings.Contains(err.Error(), "shard"))
+}
+
+func TestBlockSigningRater_ConsecutiveBlocksPenaltyLessThanOne(t *testing.T) {
+	rd := createDefaultRatingsData()
+	ratingStep := createRatingStepMock()
+	ratingStep.ConsecutiveMissedBlocksPenaltyProperty = 0.5
+	rd.MetaRatingsStepDataProperty = ratingStep
+	bsr, err := rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne))
+	require.True(t, strings.Contains(err.Error(), "meta"))
+
+	rd = createDefaultRatingsData()
+	ratingStep = createRatingStepMock()
+	ratingStep.ConsecutiveMissedBlocksPenaltyProperty = 0.5
+	rd.ShardRatingsStepDataProperty = ratingStep
+	bsr, err = rating.NewBlockSigningRater(rd)
+	require.Nil(t, bsr)
+	require.True(t, errors.Is(err, process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne))
+	require.True(t, strings.Contains(err.Error(), "shard"))
+}
+
 func TestBlockSigningRater_ComputeDecreaseProposer(t *testing.T) {
 	ratingsData := &mock.RatingsInfoMock{
 		StartRatingProperty: startRating * 100,
@@ -654,4 +713,14 @@ func TestBlockSigningRater_ComputeDecreaseProposerWithOverFlow(t *testing.T) {
 	maxMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
 	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
 	assert.Equal(t, ratingsData.MinRating(), maxMisses)
+}
+
+func createRatingStepMock() *mock.RatingStepMock {
+	return &mock.RatingStepMock{
+		ProposerIncreaseRatingStepProperty:     metaProposerIncreaseRatingStep,
+		ProposerDecreaseRatingStepProperty:     metaProposerDecreaseRatingStep,
+		ValidatorIncreaseRatingStepProperty:    metaValidatorIncreaseRatingStep,
+		ValidatorDecreaseRatingStepProperty:    metaValidatorDecreaseRatingStep,
+		ConsecutiveMissedBlocksPenaltyProperty: consecutiveMissedBlocksPenaltyMeta,
+	}
 }
