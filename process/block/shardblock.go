@@ -936,6 +936,27 @@ func (sp *shardProcessor) displayPoolsInfo() {
 		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
 		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
+
+	for _, hash := range sp.dataPool.MiniBlocks().Keys() {
+		value, ok := sp.dataPool.MiniBlocks().Get(hash)
+		if !ok {
+			log.Debug("displayPoolsInfo: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("displayPoolsInfo: wrong type assertion to *block.MiniBlock")
+			continue
+		}
+
+		log.Debug("mini block",
+			"hash", logger.DisplayByteSlice(hash),
+			"type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes))
+	}
 }
 
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
