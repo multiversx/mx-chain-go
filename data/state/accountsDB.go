@@ -1,6 +1,7 @@
 package state
 
 import (
+	bytes "bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -104,27 +105,72 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 
 func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	//TODO enable code pruning
-	code := accountHandler.GetCode()
-	if len(code) == 0 {
+	actualCode := accountHandler.GetCode()
+	if len(actualCode) == 0 {
 		return nil
 	}
 
-	codeHash := adb.hasher.Compute(string(code))
+	fmt.Println("current code hash", accountHandler.GetCodeHash())
+
+	actualCodeHash := adb.hasher.Compute(string(actualCode))
+	//currentCodeHash := accountHandler.GetCodeHash()
+	currentCode, err := adb.mainTrie.Get(actualCodeHash)
+	if err != nil {
+		return err
+	}
+
+	if len(currentCode) > 0 {
+		if bytes.Equal(actualCode, currentCode) {
+			fmt.Println("SAME CODE")
+			// TODO: Explain why?
+			accountHandler.SetCodeHash(actualCodeHash)
+			return nil
+		} else {
+			fmt.Println("NOT SAME CODE")
+			// // Update
+
+			// // First delete current code
+			// entry, err := NewJournalEntryCode(currentCodeHash, currentCode, adb.mainTrie)
+			// if err != nil {
+			// 	return err
+			// }
+			// adb.journalize(entry)
+
+			// err = adb.mainTrie.Update(currentCodeHash, nil)
+			// if err != nil {
+			// 	return err
+			// }
+
+			// // Then set new code
+			// entry, err = NewJournalEntryCode(actualCodeHash, nil, adb.mainTrie)
+			// if err != nil {
+			// 	return err
+			// }
+			// adb.journalize(entry)
+
+			// err = adb.mainTrie.Update(actualCodeHash, actualCode)
+			// if err != nil {
+			// 	return err
+			// }
+
+			return nil
+		}
+	}
 
 	//append a journal entry as the code needs to be inserted in the trie
-	entry, err := NewJournalEntryCode(codeHash, adb.mainTrie)
+	entry, err := NewJournalEntryCode(actualCodeHash, nil, adb.mainTrie)
 	if err != nil {
 		return err
 	}
 	adb.journalize(entry)
 
-	log.Trace("accountsDB.saveCode: mainTrie.Update()", "codeHash", codeHash, "len(code)", len(code))
-	err = adb.mainTrie.Update(codeHash, code)
+	//log.Trace("accountsDB.saveCode: mainTrie.Update()", "codeHash", actualCodeHash, "len(code)", len(actualCode))
+	err = adb.mainTrie.Update(actualCodeHash, actualCode)
 	if err != nil {
 		return err
 	}
 
-	accountHandler.SetCodeHash(codeHash)
+	accountHandler.SetCodeHash(actualCodeHash)
 	return nil
 }
 
