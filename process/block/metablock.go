@@ -528,7 +528,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	if check.IfNil(headerHandler) {
 		return process.ErrNilMetaBlockHeader
 	}
-	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+	if check.IfNil(bodyHandler) {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -540,11 +540,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-
-	headerPool := mp.dataPool.Headers()
-	if check.IfNil(headerPool) {
-		return process.ErrNilHeadersDataPool
 	}
 
 	hdrHashes := make([][]byte, len(metaBlock.ShardInfo))
@@ -566,7 +561,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		headerPool.AddHeader(hdrHash, shardHeader)
+		mp.dataPool.Headers().AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
@@ -579,18 +574,18 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
 	}
 
-	mp.blockTracker.RemoveLastNotarizedHeaders()
-
-	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
-		mp.validatorInfoCreator.DeleteValidatorInfoBlocksFromStorage(metaBlock)
-		return nil
-	}
+	//if metaBlock.IsStartOfEpochBlock() {
+	//	mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
+	//	mp.validatorInfoCreator.DeleteValidatorInfoBlocksFromStorage(metaBlock)
+	//	return nil
+	//}
 
 	_, errNotCritical := mp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
 		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
 	}
+
+	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	return nil
 }
@@ -1111,7 +1106,7 @@ func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) error 
 		shardHeaderHash := metaBlock.ShardInfo[i].HeaderHash
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
-			return fmt.Errorf("%w : CommitBlock shardHeaderHash = %s",
+			return fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
@@ -1157,26 +1152,7 @@ func (mp *metaProcessor) displayPoolsInfo() {
 		"miniblocks pool capacity", mp.dataPool.MiniBlocks().MaxSize(),
 	)
 
-	for _, hash := range mp.dataPool.MiniBlocks().Keys() {
-		value, ok := mp.dataPool.MiniBlocks().Get(hash)
-		if !ok {
-			log.Debug("displayPoolsInfo: mini block not found", "hash", logger.DisplayByteSlice(hash))
-			continue
-		}
-
-		miniBlock, ok := value.(*block.MiniBlock)
-		if !ok {
-			log.Debug("displayPoolsInfo: wrong type assertion to *block.MiniBlock")
-			continue
-		}
-
-		log.Debug("mini block in pool",
-			"hash", logger.DisplayByteSlice(hash),
-			"type", miniBlock.Type,
-			"sender", miniBlock.SenderShardID,
-			"receiver", miniBlock.ReceiverShardID,
-			"num txs", len(miniBlock.TxHashes))
-	}
+	mp.displayMiniBlocksPool()
 }
 
 func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
@@ -1912,14 +1888,6 @@ func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-
-	log.Debug("removeStartOfEpochBlockDataFromPools",
-		"IsStartOfEpochBlock", headerHandler.IsStartOfEpochBlock(),
-		"shard", headerHandler.GetShardID(),
-		"epoch", headerHandler.GetEpoch(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce(),
-	)
 
 	if !headerHandler.IsStartOfEpochBlock() {
 		return nil

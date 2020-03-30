@@ -1006,3 +1006,26 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 		return []byte{}, []byte{}
 	}
 }
+
+func (bp *baseProcessor) displayMiniBlocksPool() {
+	for _, hash := range bp.dataPool.MiniBlocks().Keys() {
+		value, ok := bp.dataPool.MiniBlocks().Get(hash)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: wrong type assertion", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		log.Debug("mini block in pool",
+			"hash", logger.DisplayByteSlice(hash),
+			"type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes))
+	}
+}

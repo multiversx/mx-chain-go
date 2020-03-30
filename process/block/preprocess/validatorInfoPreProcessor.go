@@ -87,12 +87,13 @@ func (vip *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
 			continue
 		}
 
-		miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, miniBlock)
-		if err != nil {
-			return validatorsInfoRestored, err
-		}
-
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+		//TODO: Should be analyzed if not restoring into pool peers miniblocks would create problems or not
+		//miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, miniBlock)
+		//if err != nil {
+		//	return validatorsInfoRestored, err
+		//}
+		//
+		//miniBlockPool.Put(miniBlockHash, miniBlock)
 
 		validatorsInfoRestored += len(miniBlock.TxHashes)
 	}

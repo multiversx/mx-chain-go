@@ -379,7 +379,7 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 			rc.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 			rc.dataPool.MiniBlocks().Remove(mbHeader.Hash)
 
-			log.Debug("RemoveBlockDataFromPools",
+			log.Trace("RemoveBlockDataFromPools",
 				"hash", mbHeader.Hash,
 				"type", mbHeader.Type,
 				"sender", mbHeader.SenderShardID,

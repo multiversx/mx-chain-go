@@ -256,7 +256,7 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaB
 
 			vic.dataPool.MiniBlocks().Remove(mbHeader.Hash)
 
-			log.Debug("RemoveBlockDataFromPools",
+			log.Trace("RemoveBlockDataFromPools",
 				"hash", mbHeader.Hash,
 				"type", mbHeader.Type,
 				"sender", mbHeader.SenderShardID,

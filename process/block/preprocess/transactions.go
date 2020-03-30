@@ -217,16 +217,15 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		//TODO: Should be analyzed if restoring into pool only the corss-shard miniblocks with destination in self shard
-		//would create problems or not
-		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
-			miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
-			if err != nil {
-				return txsRestored, err
-			}
-
-			miniBlockPool.Put(miniBlockHash, miniBlock)
-		}
+		//TODO: Should be analyzed if not restoring into pool txs miniblocks would create problems or not
+		//if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
+		//	miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+		//	if err != nil {
+		//		return txsRestored, err
+		//	}
+		//
+		//	miniBlockPool.Put(miniBlockHash, miniBlock)
+		//}
 
 		txsRestored += len(miniBlock.TxHashes)
 	}
