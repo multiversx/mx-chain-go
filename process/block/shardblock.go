@@ -552,7 +552,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
 
 	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }

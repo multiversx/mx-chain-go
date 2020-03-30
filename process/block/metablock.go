@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -483,6 +484,7 @@ func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
+	notarizedHeadersHashes []string,
 ) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
@@ -512,7 +514,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes)
+	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
@@ -1006,6 +1008,7 @@ func (mp *metaProcessor) CommitBlock(
 	//TODO: Analyze if this could be called on go routine but keep the txsForCurrBlock unchanged until save is done
 	mp.saveBody(body)
 
+	notarizedHeadersHashes := make([]string, 0)
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardHeaderHash := header.ShardInfo[i].HeaderHash
@@ -1029,6 +1032,8 @@ func (mp *metaProcessor) CommitBlock(
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return err
 		}
+
+		notarizedHeadersHashes = append(notarizedHeadersHashes, hex.EncodeToString(shardHeaderHash))
 
 		mp.saveShardHeader(shardBlock, shardHeaderHash, marshalizedHeader)
 	}
@@ -1109,7 +1114,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock(header, body, lastMetaBlock)
+	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 

@@ -74,6 +74,7 @@ func (ei *elasticIndexer) SaveBlock(
 	headerHandler data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	signersIndexes []uint64,
+	notarizedHeadersHashes []string,
 ) {
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -86,7 +87,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.database.SaveHeader(headerHandler, signersIndexes)
+	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes)
 
 	if len(body.MiniBlocks) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
@@ -96,16 +97,6 @@ func (ei *elasticIndexer) SaveBlock(
 	if ei.options.TxIndexingEnabled {
 		go ei.database.SaveTransactions(body, headerHandler, txPool, ei.shardCoordinator.SelfId())
 	}
-}
-
-// SaveMetaBlock will index a meta block in elastic search
-func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
-	if check.IfNil(header) {
-		log.Debug("indexer: nil header", "error", ErrNoHeader.Error())
-		return
-	}
-
-	go ei.database.SaveHeader(header, signersIndexes)
 }
 
 // SaveRoundInfo will save data about a round on elastic search

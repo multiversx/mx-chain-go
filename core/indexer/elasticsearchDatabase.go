@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -89,10 +90,10 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 }
 
 // SaveHeader will prepare and save information about a header in elasticsearch server
-func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersIndexes []uint64) {
+func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string) {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
+	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes)
 
 	buff.Grow(len(serializedBlock))
 	_, err := buff.Write(serializedBlock)
@@ -114,27 +115,45 @@ func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersI
 	}
 }
 
-func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
+func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+) ([]byte, []byte) {
 	h, err := esd.marshalizer.Marshal(header)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal header")
 		return nil, nil
 	}
 
+	miniblocksHashes := make([]string, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if err != nil {
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
+	}
+
 	headerHash := esd.hasher.Compute(string(h))
 	elasticBlock := Block{
-		Nonce:         header.GetNonce(),
-		Round:         header.GetRound(),
-		ShardID:       header.GetShardID(),
-		Hash:          hex.EncodeToString(headerHash),
-		Proposer:      signersIndexes[0],
-		Validators:    signersIndexes,
-		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		TxCount:       header.GetTxCount(),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
-		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
+		Nonce:                 header.GetNonce(),
+		Round:                 header.GetRound(),
+		ShardID:               header.GetShardID(),
+		Hash:                  hex.EncodeToString(headerHash),
+		MiniBlocksHashes:      miniblocksHashes,
+		NotarizedBlocksHashes: notarizedHeadersHashes,
+		Proposer:              signersIndexes[0],
+		Validators:            signersIndexes,
+		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
+		Size:                  int64(len(h)),
+		Timestamp:             time.Duration(header.GetTimeStamp()),
+		TxCount:               header.GetTxCount(),
+		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
+		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)

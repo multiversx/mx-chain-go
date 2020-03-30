@@ -15,7 +15,7 @@ func NewNilIndexer() *NilIndexer {
 }
 
 // SaveBlock will do nothing
-func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64) {
+func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
 }
 
 // SaveMetaBlock will do nothing
