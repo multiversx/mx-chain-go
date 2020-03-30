@@ -631,6 +631,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		KeyGen:                     cryptoComponents.TxSignKeyGen,
 		BlockKeyGen:                cryptoComponents.BlockSignKeyGen,
 		GenesisNodesConfig:         genesisNodesConfig,
+		GenesisShardCoordinator:    genesisShardCoordinator,
 		PathManager:                pathManager,
 		WorkingDir:                 workingDir,
 		DefaultDBPath:              defaultDBPath,
@@ -1192,8 +1193,7 @@ func createShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
-	// TODO: after start in epoch is merged, this needs to be refactored as the shardID cannot always be taken
-	// from initial configuration but needs to be determined by nodes coordinator
+
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
@@ -1271,7 +1271,6 @@ func createNodesCoordinator(
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		ListIndexUpdater:        ratingAndListIndexHandler,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartNotifier,

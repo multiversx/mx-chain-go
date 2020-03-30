@@ -28,7 +28,6 @@ type EpochStartNodesCoordinator interface {
 	ComputeNodesConfigFor(
 		metaBlock *block.MetaBlock,
 		validatorInfos []*state.ValidatorInfo,
-		updateListInfo bool,
 	) (*sharding.EpochValidators, error)
 	ComputeNodesConfigForGenesis(genesis *sharding.NodesSetup) (*sharding.EpochValidators, error)
 	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) uint32

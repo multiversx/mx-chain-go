@@ -28,13 +28,11 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus
 type ArgsNewSyncValidatorStatus struct {
-	DataPool            dataRetriever.PoolsHolder
-	Marshalizer         marshal.Marshalizer
-	RequestHandler      process.RequestHandler
-	Rater               sharding.ChanceComputer
-	GenesisNodesConfig  *sharding.NodesSetup
-	ValidatorAccountsDB state.AccountsAdapter
-	AdrConv             state.AddressConverter
+	DataPool           dataRetriever.PoolsHolder
+	Marshalizer        marshal.Marshalizer
+	RequestHandler     process.RequestHandler
+	Rater              sharding.ChanceComputer
+	GenesisNodesConfig *sharding.NodesSetup
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -69,8 +67,6 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		Chance:                  args.Rater,
 		ShardConsensusGroupSize: args.GenesisNodesConfig.ConsensusGroupSize,
 		MetaConsensusGroupSize:  args.GenesisNodesConfig.MetaChainConsensusGroupSize,
-		AdrConv:                 args.AdrConv,
-		ValidatorAccountsDB:     args.ValidatorAccountsDB,
 	}
 	s.nodeCoordinator, err = NewStartInEpochNodesCoordinator(argsNodesCoordinator)
 
@@ -90,12 +86,12 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
 
-	prevEpochsValidators, err := s.computeNodesConfigFor(prevMetaBlock, false)
+	prevEpochsValidators, err := s.computeNodesConfigFor(prevMetaBlock)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	currEpochsValidators, err := s.computeNodesConfigFor(currMetaBlock, true)
+	currEpochsValidators, err := s.computeNodesConfigFor(currMetaBlock)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -115,7 +111,7 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	return nodesConfig, selfShardId, nil
 }
 
-func (s *syncValidatorStatus) computeNodesConfigFor(metaBlock *block.MetaBlock, updateValidatorInfo bool) (*sharding.EpochValidators, error) {
+func (s *syncValidatorStatus) computeNodesConfigFor(metaBlock *block.MetaBlock) (*sharding.EpochValidators, error) {
 	if metaBlock.Epoch == 0 {
 		return s.nodeCoordinator.ComputeNodesConfigForGenesis(s.genesisNodesConfig)
 	}
@@ -125,7 +121,7 @@ func (s *syncValidatorStatus) computeNodesConfigFor(metaBlock *block.MetaBlock, 
 		return nil, err
 	}
 
-	return s.nodeCoordinator.ComputeNodesConfigFor(metaBlock, epochValidatorsInfo, updateValidatorInfo)
+	return s.nodeCoordinator.ComputeNodesConfigFor(metaBlock, epochValidatorsInfo)
 }
 
 func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.ShardMiniBlockHeader {

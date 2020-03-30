@@ -33,11 +33,6 @@ func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 	return nil, nil
 }
 
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
-	return nil
-}
-
 // GetAllWaitingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
@@ -99,7 +94,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
 }
 

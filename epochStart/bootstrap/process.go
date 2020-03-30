@@ -13,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -81,6 +79,7 @@ type epochStartBootstrap struct {
 	blockKeyGen                crypto.KeyGenerator
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         *sharding.NodesSetup
+	genesisShardCoordinator    sharding.Coordinator
 	pathManager                storage.PathManagerHandler
 	workingDir                 string
 	defaultDBPath              string
@@ -133,6 +132,7 @@ type ArgsEpochStartBootstrap struct {
 	KeyGen                     crypto.KeyGenerator
 	BlockKeyGen                crypto.KeyGenerator
 	GenesisNodesConfig         *sharding.NodesSetup
+	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
 	WorkingDir                 string
 	DefaultDBPath              string
@@ -152,6 +152,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		generalConfig:              args.GeneralConfig,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
+		genesisShardCoordinator:    args.GenesisShardCoordinator,
 		workingDir:                 args.WorkingDir,
 		pathManager:                args.PathManager,
 		defaultEpochString:         args.DefaultEpochString,
@@ -189,8 +190,8 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 	parameters := Parameters{
 		Epoch:       0,
-		SelfShardId: e.shardCoordinator.SelfId(),
-		NumOfShards: e.shardCoordinator.NumberOfShards(),
+		SelfShardId: e.genesisShardCoordinator.SelfId(),
+		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
 }
@@ -405,7 +406,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Info("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
 
-	err = e.processNodesConfig(pubKeyBytes, e.epochStartMeta.ValidatorStatsRootHash)
+	err = e.processNodesConfig(pubKeyBytes)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -450,28 +451,14 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	return parameters, nil
 }
 
-func (e *epochStartBootstrap) processNodesConfig(pubKey []byte, rootHash []byte) error {
-	accountFactory := factory.NewAccountCreator()
-	peerAccountsDB, err := state.NewPeerAccountsDB(e.peerAccountTries[string(rootHash)], e.hasher, e.marshalizer, accountFactory)
-	if err != nil {
-		return err
-	}
-
-	blsAddressConverter, err := addressConverters.NewPlainAddressConverter(
-		e.generalConfig.BLSPublicKey.Length,
-		e.generalConfig.BLSPublicKey.Prefix,
-	)
-	if err != nil {
-		return err
-	}
+func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
+	var err error
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:            e.dataPool,
-		Marshalizer:         e.marshalizer,
-		RequestHandler:      e.requestHandler,
-		Rater:               e.rater,
-		GenesisNodesConfig:  e.genesisNodesConfig,
-		ValidatorAccountsDB: peerAccountsDB,
-		AdrConv:             blsAddressConverter,
+		DataPool:           e.dataPool,
+		Marshalizer:        e.marshalizer,
+		RequestHandler:     e.requestHandler,
+		Rater:              e.rater,
+		GenesisNodesConfig: e.genesisNodesConfig,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

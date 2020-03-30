@@ -12,7 +12,6 @@ type ArgNodesCoordinator struct {
 	Hasher                  hashing.Hasher
 	Shuffler                NodesShuffler
 	EpochStartNotifier      EpochStartEventNotifier
-	ListIndexUpdater        ListIndexUpdaterHandler
 	BootStorer              storage.Storer
 	ShardIDAsObserver       uint32
 	NbShards                uint32

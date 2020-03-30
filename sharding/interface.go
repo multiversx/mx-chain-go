@@ -28,7 +28,6 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
-	UpdatePeersListAndIndex() error
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
@@ -76,7 +75,6 @@ type NodesPerShardSetter interface {
 		eligible map[uint32][]Validator,
 		waiting map[uint32][]Validator,
 		epoch uint32,
-		updateList bool,
 	) error
 	ComputeLeaving(allValidators []Validator) []Validator
 }

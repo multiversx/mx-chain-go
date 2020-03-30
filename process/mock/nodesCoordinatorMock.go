@@ -143,7 +143,6 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	epoch uint32,
-	_ bool,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, epoch)

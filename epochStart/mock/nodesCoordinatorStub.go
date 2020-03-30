@@ -33,11 +33,6 @@ func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 	return nil, nil
 }
 
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorStub) UpdatePeersListAndIndex() error {
-	return nil
-}
-
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorStub) GetNumTotalEligible() uint64 {
 	return 1
@@ -94,7 +89,7 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
+func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
 }
 

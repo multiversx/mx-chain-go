@@ -18,7 +18,6 @@ func (n *nodesCoordinator) SetNodesPerShards(
 	_ map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	_ uint32,
-	_ bool,
 ) error {
 	return nil
 }
@@ -66,11 +65,6 @@ func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _
 // GetValidatorWithPublicKey -
 func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte, _ uint32) (validator sharding.Validator, shardId uint32, err error) {
 	return nil, 0, nil
-}
-
-// UpdatePeersListAndIndex -
-func (n *nodesCoordinator) UpdatePeersListAndIndex() error {
-	return nil
 }
 
 // LoadState -

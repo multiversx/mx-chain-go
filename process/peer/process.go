@@ -129,24 +129,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	listIndexUpdaterSetter, ok := rater.(sharding.ListIndexUpdaterSetter)
-	if !ok {
-		return nil, process.ErrNilListIndexUpdaterSetter
-	}
-	log.Debug("setting list index updater")
-
-	liu := &ListIndexUpdater{
-		updateListAndIndex: vs.updateListAndIndex,
-	}
-
-	listIndexUpdaterSetter.SetListIndexUpdater(liu)
-
-	err := vs.nodesCoordinator.UpdatePeersListAndIndex()
-	if err != nil {
-		return nil, err
-	}
-
-	err = vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}

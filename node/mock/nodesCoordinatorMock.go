@@ -12,16 +12,6 @@ type NodesCoordinatorMock struct {
 	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 }
 
-// SetConfig -
-func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
-	return nil
-}
-
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
-	return nil
-}
-
 // GetAllEligibleValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
@@ -102,7 +92,6 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	_ map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	_ uint32,
-	_ bool,
 ) error {
 	return nil
 }
