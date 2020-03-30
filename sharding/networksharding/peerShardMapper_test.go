@@ -525,7 +525,7 @@ func TestPeerShardMapper_NotifyOrder(t *testing.T) {
 
 	psm := createPeerShardMapper()
 
-	assert.Equal(t, core.NetworkShardingOrder, psm.NotifyOrder())
+	assert.Equal(t, uint32(core.NetworkShardingOrder), psm.NotifyOrder())
 }
 
 func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
