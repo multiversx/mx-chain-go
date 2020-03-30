@@ -30,7 +30,7 @@ type txProcessor struct {
 func NewTxProcessor(
 	accounts state.AccountsAdapter,
 	hasher hashing.Hasher,
-	addressConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
@@ -47,8 +47,8 @@ func NewTxProcessor(
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(addressConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -78,7 +78,7 @@ func NewTxProcessor(
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
-		adrConv:          addressConv,
+		pubkeyConv:       pubkeyConv,
 		economicsFee:     economicsFee,
 		hasher:           hasher,
 		marshalizer:      marshalizer,

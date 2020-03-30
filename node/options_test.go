@@ -170,29 +170,29 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
+func TestWithPubkeyConverter_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithAddressConverter(nil)
+	opt := WithPubkeyConverter(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.addrConverter)
-	assert.Equal(t, ErrNilAddressConverter, err)
+	assert.Nil(t, node.pubkeyConverter)
+	assert.Equal(t, ErrNilPubkeyConverter, err)
 }
 
-func TestWithAddressConverter_ShouldWork(t *testing.T) {
+func TestWithPubkeyConverter_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	converter := &mock.AddressConverterStub{}
+	converter := &mock.PubkeyConverterStub{}
 
-	opt := WithAddressConverter(converter)
+	opt := WithPubkeyConverter(converter)
 	err := opt(node)
 
-	assert.True(t, node.addrConverter == converter)
+	assert.True(t, node.pubkeyConverter == converter)
 	assert.Nil(t, err)
 }
 

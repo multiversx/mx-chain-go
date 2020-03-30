@@ -23,7 +23,7 @@ import (
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	ShardCoordinator sharding.Coordinator
-	AddrConverter    state.AddressConverter
+	PubkeyConverter  state.PubkeyConverter
 	RewardsStorage   storage.Storer
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
@@ -33,7 +33,7 @@ type ArgsNewRewardsCreator struct {
 type rewardsCreator struct {
 	currTxs          dataRetriever.TransactionCacher
 	shardCoordinator sharding.Coordinator
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	rewardsStorage   storage.Storer
 	miniBlockStorage storage.Storer
 
@@ -55,8 +55,8 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, epochStart.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, epochStart.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.RewardsStorage) {
 		return nil, epochStart.ErrNilStorage
@@ -79,7 +79,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	r := &rewardsCreator{
 		currTxs:          currTxsCache,
 		shardCoordinator: args.ShardCoordinator,
-		addrConverter:    args.AddrConverter,
+		pubkeyConverter:  args.PubkeyConverter,
 		rewardsStorage:   args.RewardsStorage,
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
@@ -110,7 +110,7 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	rwdAddrValidatorInfo := r.computeValidatorInfoPerRewardAddress(validatorInfos)
 
 	for address, rwdInfo := range rwdAddrValidatorInfo {
-		addrContainer, err := r.addrConverter.CreateAddressFromPublicKeyBytes([]byte(address))
+		addrContainer, err := r.pubkeyConverter.CreateAddressFromBytes([]byte(address))
 		if err != nil {
 			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
 			continue

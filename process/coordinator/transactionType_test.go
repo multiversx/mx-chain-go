@@ -13,6 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
@@ -23,14 +27,14 @@ func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	)
 
 	assert.Nil(t, tth)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		&mock.AccountsStub{},
 	)
@@ -43,7 +47,7 @@ func TestNewTxTypeHandler_NilAccounts(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 	)
@@ -56,7 +60,7 @@ func TestNewTxTypeHandler_ValsOk(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -89,7 +93,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -105,7 +109,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -128,7 +132,7 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -149,9 +153,8 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	t.Parallel()
 
-	addressConverter := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
-		addressConverter,
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -162,7 +165,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
+	tx.RcvAddr = make([]byte, createMockPubkeyConverter().AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
@@ -184,9 +187,8 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	_, acntDst := createAccounts(tx)
 	acntDst.SetCode([]byte("code"))
 
-	addressConverter := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
-		addressConverter,
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{
 			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -205,19 +207,17 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
 
-	addressConverter := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
-		addressConverter,
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{
 			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -236,9 +236,8 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
 	t.Parallel()
 
-	addrConv := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
-		addrConv,
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -251,7 +250,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTransaction, err)
 	assert.Equal(t, process.InvalidTransaction, txType)
 
-	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(addrConv.AddressLen())}
+	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(createMockPubkeyConverter().AddressLen())}
 	txType, err = tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.RewardTx, txType)

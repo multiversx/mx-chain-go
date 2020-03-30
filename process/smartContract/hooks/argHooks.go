@@ -12,7 +12,7 @@ import (
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts         state.AccountsAdapter
-	AddrConv         state.AddressConverter
+	PubkeyConv       state.PubkeyConverter
 	StorageService   dataRetriever.StorageService
 	BlockChain       data.ChainHandler
 	ShardCoordinator sharding.Coordinator

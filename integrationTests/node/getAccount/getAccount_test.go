@@ -17,7 +17,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithAddressConverter(integrationTests.TestAddressConverter),
+		node.WithPubkeyConverter(integrationTests.TestPubkeyConverter),
 	)
 
 	recovAccnt, err := n.GetAccount(integrationTests.CreateRandomHexString(64))
@@ -36,7 +36,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	addressHex := integrationTests.CreateRandomHexString(64)
 	addressBytes, _ := hex.DecodeString(addressHex)
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
+	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(addressBytes)
 
 	nonce := uint64(2233)
 	account, _ := accDB.LoadAccount(address)
@@ -46,7 +46,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithAddressConverter(integrationTests.TestAddressConverter),
+		node.WithPubkeyConverter(integrationTests.TestPubkeyConverter),
 	)
 
 	recovAccnt, err := n.GetAccount(addressHex)

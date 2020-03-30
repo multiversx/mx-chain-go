@@ -100,13 +100,13 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
-// WithAddressConverter sets up the address converter adapter option for the Node
-func WithAddressConverter(addrConverter state.AddressConverter) Option {
+// WithPubkeyConverter sets up the public key converter adapter option for the Node
+func WithPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
 	return func(n *Node) error {
-		if check.IfNil(addrConverter) {
-			return ErrNilAddressConverter
+		if check.IfNil(pubkeyConverter) {
+			return ErrNilPubkeyConverter
 		}
-		n.addrConverter = addrConverter
+		n.pubkeyConverter = pubkeyConverter
 		return nil
 	}
 }

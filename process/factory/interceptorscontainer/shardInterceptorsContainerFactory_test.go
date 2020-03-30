@@ -217,11 +217,11 @@ func TestNewShardInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testi
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.AddrConverter = nil
+	args.PubkeyConverter = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) {
@@ -503,7 +503,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		BlockSingleSigner:      &mock.SignerMock{},
 		MultiSigner:            mock.NewMultiSigner(),
 		DataPool:               createShardDataPools(),
-		AddrConverter:          &mock.AddressConverterMock{},
+		PubkeyConverter:        mock.NewPubkeyConverterMock(32),
 		MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		TxFeeHandler:           &mock.FeeHandlerStub{},
 		BlackList:              &mock.BlackListHandlerStub{},

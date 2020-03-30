@@ -19,6 +19,10 @@ var val2 = big.NewInt(20)
 var rootHash = []byte("root hash")
 var validatorStatsRootHash = []byte("validator stats root hash")
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst state.UserAccountHandler,
 ) *mock.AccountsStub {
@@ -72,7 +76,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		nil,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
 		validatorStatsRootHash,
@@ -88,7 +92,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
 		validatorStatsRootHash,
@@ -111,7 +115,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *t
 	)
 
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing.T) {
@@ -120,7 +124,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		0,
 		validatorStatsRootHash,
@@ -142,7 +146,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *tes
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		adb,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
 		validatorStatsRootHash,
@@ -173,7 +177,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		adb,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		balances,
 		0,
 		validatorStatsRootHash,
@@ -198,7 +202,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		adb,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		balances,
 		0,
 		validatorStatsRootHash,
@@ -216,7 +220,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		adb,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		balances,
 		0,
 		validatorStatsRootHash,

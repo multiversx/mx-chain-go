@@ -121,8 +121,8 @@ func checkTransactionsInPoolAreForTheNode(t *testing.T, n *integrationTests.Test
 		senderBuff := tx.SndAddr
 		recvBuff := tx.RcvAddr
 
-		sender, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(senderBuff)
-		recv, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(recvBuff)
+		sender, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(senderBuff)
+		recv, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(recvBuff)
 
 		senderShardId := n.ShardCoordinator.ComputeId(sender)
 		recvShardId := n.ShardCoordinator.ComputeId(recv)

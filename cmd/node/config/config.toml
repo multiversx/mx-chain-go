@@ -285,13 +285,21 @@
     Path = "logs"
     StackTraceDepth = 2
 
-[Address]
+[ProcessPubkeyConverter]
     Length = 32
-    Prefix = "0x"
+    Type = "hex"
 
-[BLSPublicKey]
+[BLSPubkeyConverter]
     Length = 96
-    Prefix = "0x"
+    Type = "hex"
+
+[IndexerPubkeyConverter]
+    Length = 32
+    Type = "hex"
+
+[GenesisPubkeyConverter]
+    Length = 32
+    Type = "hex"
 
 [Hasher]
    Type = "blake2b"

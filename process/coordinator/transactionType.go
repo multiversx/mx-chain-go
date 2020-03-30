@@ -13,19 +13,19 @@ import (
 )
 
 type txTypeHandler struct {
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
 }
 
 // NewTxTypeHandler creates a transaction type handler
 func NewTxTypeHandler(
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*txTypeHandler, error) {
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -35,7 +35,7 @@ func NewTxTypeHandler(
 	}
 
 	tc := &txTypeHandler{
-		adrConv:          adrConv,
+		pubkeyConv:       pubkeyConv,
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
 	}
@@ -80,12 +80,12 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.pubkeyConv.AddressLen()))
 	return isEmptyAddress
 }
 
 func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
-	adrSrc, err := tth.adrConv.CreateAddressFromPublicKeyBytes(address)
+	adrSrc, err := tth.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := tth.pubkeyConv.AddressLen() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}

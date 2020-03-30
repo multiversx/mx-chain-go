@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -19,15 +20,17 @@ import (
 
 // elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
 type elasticSearchDatabaseArgs struct {
-	url         string
-	userName    string
-	password    string
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	url             string
+	userName        string
+	password        string
+	marshalizer     marshal.Marshalizer
+	hasher          hashing.Hasher
+	pubkeyConverter state.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
+	*commonProcessor
 	dbWriter    databaseWriterHandler
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -50,6 +53,9 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
 	}
+	esdb.commonProcessor = &commonProcessor{
+		pubkeyConverter: arguments.pubkeyConverter,
+	}
 
 	err = esdb.createIndexes()
 	if err != nil {
@@ -60,12 +66,12 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 }
 
 func (esd *elasticSearchDatabase) createIndexes() error {
-	err := esd.dbWriter.CheckAndCreateIndex(blockIndex, timestampMapping())
+	err := esd.dbWriter.CheckAndCreateIndex(blockIndex, esd.commonProcessor.timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(txIndex, timestampMapping())
+	err = esd.dbWriter.CheckAndCreateIndex(txIndex, esd.commonProcessor.timestampMapping())
 	if err != nil {
 		return err
 	}
@@ -80,7 +86,7 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(roundIndex, timestampMapping())
+	err = esd.dbWriter.CheckAndCreateIndex(roundIndex, esd.commonProcessor.timestampMapping())
 	if err != nil {
 		return err
 	}
@@ -200,9 +206,9 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 				continue
 			}
 
-			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
-			if currentTx == nil {
-				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
+			currentTx, err := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if err != nil {
+				log.Debug("indexer: elasticsearch found tx in pool but of wrong type", "error", err)
 				continue
 			}
 
@@ -305,10 +311,10 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
 func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) {
-	buff := prepareGeneralInfo(tpsBenchmark)
+	buff := esd.commonProcessor.prepareGeneralInfo(tpsBenchmark)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedShardInfo, serializedMetaInfo := serializeShardInfo(shardInfo)
+		serializedShardInfo, serializedMetaInfo := esd.commonProcessor.serializeShardInfo(shardInfo)
 		if serializedShardInfo == nil {
 			continue
 		}

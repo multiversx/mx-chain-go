@@ -41,6 +41,10 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
@@ -468,7 +472,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		marshalizer,
 		hasher,
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -689,7 +693,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		marshalizer,
 		hasher,
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		tpm,
@@ -2233,7 +2237,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		marshalizer,
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -2343,7 +2347,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -2728,7 +2732,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		marshalizer,
 		hasher,
 		datapool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accntAdapter,
 		&mock.RequestHandlerStub{},
 		txProcessorMock,
@@ -2931,7 +2935,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		marshalizerMock,
 		hasherMock,
 		datapool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},

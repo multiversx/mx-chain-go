@@ -46,8 +46,8 @@ func NewMetaInterceptorsContainerFactory(
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
@@ -88,7 +88,7 @@ func NewMetaInterceptorsContainerFactory(
 		BlockKeyGen:       args.BlockKeyGen,
 		Signer:            args.SingleSigner,
 		BlockSigner:       args.BlockSingleSigner,
-		AddrConv:          args.AddrConverter,
+		PubkeyConv:        args.PubkeyConverter,
 		FeeHandler:        args.TxFeeHandler,
 		HeaderSigVerifier: args.HeaderSigVerifier,
 		ChainID:           args.ChainID,

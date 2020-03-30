@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,6 +30,7 @@ type ElasticIndexerArgs struct {
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
 	Options          *Options
+	PubkeyConverter  state.PubkeyConverter
 }
 
 type elasticIndexer struct {
@@ -47,11 +49,12 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 
 	databaseArguments := elasticSearchDatabaseArgs{
-		url:         arguments.Url,
-		userName:    arguments.UserName,
-		password:    arguments.Password,
-		marshalizer: arguments.Marshalizer,
-		hasher:      arguments.Hasher,
+		pubkeyConverter: arguments.PubkeyConverter,
+		url:             arguments.Url,
+		userName:        arguments.UserName,
+		password:        arguments.Password,
+		marshalizer:     arguments.Marshalizer,
+		hasher:          arguments.Hasher,
 	}
 	client, err := newElasticSearchDatabase(databaseArguments)
 	if err != nil {

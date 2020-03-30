@@ -22,6 +22,9 @@ import (
 
 func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arguments elasticSearchDatabaseArgs) *elasticSearchDatabase {
 	return &elasticSearchDatabase{
+		commonProcessor: &commonProcessor{
+			pubkeyConverter: mock.NewPubkeyConverterMock(32),
+		},
 		dbWriter:    elasticsearchWriter,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
@@ -30,11 +33,12 @@ func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arg
 
 func createMockElasticsearchDatabaseArgs() elasticSearchDatabaseArgs {
 	return elasticSearchDatabaseArgs{
-		url:         "url",
-		userName:    "username",
-		password:    "password",
-		hasher:      &mock.HasherMock{},
-		marshalizer: &mock.MarshalizerMock{},
+		pubkeyConverter: mock.NewPubkeyConverterMock(32),
+		url:             "url",
+		userName:        "username",
+		password:        "password",
+		hasher:          &mock.HasherMock{},
+		marshalizer:     &mock.MarshalizerMock{},
 	}
 }
 

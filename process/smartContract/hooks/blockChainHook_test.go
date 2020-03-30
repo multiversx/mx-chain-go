@@ -24,7 +24,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		AddrConv:         mock.NewAddressConverterFake(32, ""),
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
@@ -49,11 +49,11 @@ func TestNewBlockChainHookImpl_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	args.AddrConv = nil
+	args.PubkeyConv = nil
 	bh, err := hooks.NewBlockChainHookImpl(args)
 
 	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewBlockChainHookImpl_NilStorageServiceShouldErr(t *testing.T) {
@@ -135,7 +135,6 @@ func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T
 			return nil, errExpected
 		},
 	}
-	args.AddrConv = mock.NewAddressConverterFake(32, "")
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	accountsExists, err := bh.AccountExists(make([]byte, 0))
@@ -153,7 +152,6 @@ func TestBlockChainHookImpl_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.
 			return nil, state.ErrAccNotFound
 		},
 	}
-	args.AddrConv = mock.NewAddressConverterFake(32, "")
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	accountsExists, err := bh.AccountExists(make([]byte, 0))
@@ -445,13 +443,11 @@ func TestBlockChainHookImpl_GetNonceFromFakeAccount(t *testing.T) {
 func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -471,13 +467,11 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -493,13 +487,11 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -529,9 +521,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -565,9 +555,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -600,10 +588,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
-
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	bh.SetCurrentHeader(hdr)

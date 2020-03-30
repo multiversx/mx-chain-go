@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -636,10 +636,10 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testMarshalizer := &marshal.JsonMarshalizer{}
 	testHasher := sha256.Sha256{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	accnts := vm.CreateInMemoryShardAccountsDB()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
+		pubkeyConv,
 		shardCoordinator,
 		accnts)
 	feeHandler := &mock.FeeHandlerStub{
@@ -657,7 +657,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	txProc, _ := transaction2.NewTxProcessor(
 		accnts,
 		testHasher,
-		addrConv,
+		pubkeyConv,
 		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},

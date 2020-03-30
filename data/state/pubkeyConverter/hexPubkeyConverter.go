@@ -1,0 +1,79 @@
+package pubkeyConverter
+
+import (
+	"encoding/hex"
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/data/state"
+)
+
+// hexPubkeyConverter encodes or decodes provided public key as/from hex
+type hexPubkeyConverter struct {
+	addressLen int
+}
+
+// NewHexPubkeyConverter returns a hexPubkeyConverter instance
+func NewHexPubkeyConverter(addressLen int) (*hexPubkeyConverter, error) {
+	if addressLen < 1 {
+		return nil, fmt.Errorf("%w when creating hex address converter, addressLen should have been greater than 0",
+			state.ErrInvalidAddressLength)
+	}
+	if addressLen%2 == 1 {
+		return nil, fmt.Errorf("%w when creating hex address converter, addressLen should have been an even number",
+			state.ErrInvalidAddressLength)
+	}
+
+	return &hexPubkeyConverter{
+		addressLen: addressLen,
+	}, nil
+}
+
+// Bytes converts the provided public key string as hex decoded bytes
+func (ppc *hexPubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
+	buff, err := hex.DecodeString(humanReadable)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(buff) != ppc.addressLen {
+		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
+			state.ErrWrongSize, ppc.addressLen, len(buff))
+	}
+
+	return buff, nil
+}
+
+// String converts the provided bytes in a form that this converter can decode. In this case it will encode to hex
+func (ppc *hexPubkeyConverter) String(pkBytes []byte) (string, error) {
+	return hex.EncodeToString(pkBytes), nil
+}
+
+// CreateAddressFromString creates an address container based on the provided string
+func (ppc *hexPubkeyConverter) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
+	buff, err := ppc.Bytes(humanReadable)
+	if err != nil {
+		return nil, err
+	}
+
+	return state.NewAddress(buff), nil
+}
+
+// CreateAddressFromBytes creates an address container based on the provided public key bytes
+func (ppc *hexPubkeyConverter) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
+	if len(pkBytes) != ppc.addressLen {
+		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
+			state.ErrWrongSize, ppc.addressLen, len(pkBytes))
+	}
+
+	return state.NewAddress(pkBytes), nil
+}
+
+// AddressLen returns the decoded address length
+func (ppc *hexPubkeyConverter) AddressLen() int {
+	return ppc.addressLen
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ppc *hexPubkeyConverter) IsInterfaceNil() bool {
+	return ppc == nil
+}

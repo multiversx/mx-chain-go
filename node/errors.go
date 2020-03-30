@@ -16,8 +16,8 @@ var ErrNilHasher = errors.New("trying to set nil hasher")
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
 var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
@@ -66,9 +66,6 @@ var ErrNilNodesCoordinator = errors.New("trying to set nil nodes coordinator")
 
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
-
-// ErrNilBalances signals that a nil list of initial balances has been provided
-var ErrNilBalances = errors.New("trying to set nil balances")
 
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
@@ -138,9 +135,6 @@ var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
-
-// ErrCannotConvertToPeerAccount signals that the given account cannot be converted to a peer account
-var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in Node")

@@ -23,7 +23,7 @@ func NewMetaTxProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
-	addressConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
@@ -33,8 +33,8 @@ func NewMetaTxProcessor(
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(addressConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -52,7 +52,7 @@ func NewMetaTxProcessor(
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
-		adrConv:          addressConv,
+		pubkeyConv:       pubkeyConv,
 		economicsFee:     economicsFee,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
