@@ -186,14 +186,18 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 		consecutiveBlocksPenalty = bsr.shardRatingsStepHandler.ConsecutiveMissedBlocksPenalty()
 	}
 
-	computedFloat := float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveBlocksPenalty), float64(consecutiveMisses))
 	var consecutiveMissesIncrease int32
-	if computedFloat < maxDecreaseValue || computedFloat >= 0 {
-		consecutiveMissesIncrease = maxDecreaseValue
-	} else {
-		consecutiveMissesIncrease = int32(computedFloat)
+	computedFloat := float64(proposerDecreaseRatingStep)
+
+	for i := uint32(0); i < consecutiveMisses; i++ {
+		computedFloat *= float64(consecutiveBlocksPenalty)
+		if computedFloat < maxDecreaseValue || computedFloat >= 0 {
+			computedFloat = maxDecreaseValue
+			break
+		}
 	}
 
+	consecutiveMissesIncrease = int32(computedFloat)
 	return bsr.computeRating(consecutiveMissesIncrease, currentRating)
 }
 
