@@ -672,20 +672,22 @@ type EpochStartDataCreator interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
 
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
 	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
 

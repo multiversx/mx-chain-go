@@ -1076,12 +1076,12 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 			return []byte("hash"), nil
 		},
 		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
-			validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+			validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
 
 			for shardId, pubkeysPerShard := range initialPubKeys {
-				validatorInfos[shardId] = make([]*state.ValidatorInfo, 0)
+				validatorsInfo[shardId] = make([]*state.ValidatorInfo, 0)
 				for _, pubKey := range pubkeysPerShard {
-					validatorInfos[shardId] = append(validatorInfos[shardId], &state.ValidatorInfo{
+					validatorsInfo[shardId] = append(validatorsInfo[shardId], &state.ValidatorInfo{
 						PublicKey:                  []byte(pubKey),
 						ShardId:                    shardId,
 						List:                       "",
@@ -1098,7 +1098,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 					})
 				}
 			}
-			return validatorInfos, nil
+			return validatorsInfo, nil
 		},
 	}
 

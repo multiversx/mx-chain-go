@@ -65,6 +65,7 @@ type baseProcessor struct {
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
+	blockProcessor         blockProcessor
 }
 
 type bootStorerDataArgs struct {
@@ -666,6 +667,11 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	}
 
 	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	err = bp.blockProcessor.removeStartOfEpochBlockDataFromPools(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}

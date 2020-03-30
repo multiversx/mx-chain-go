@@ -100,9 +100,9 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool:     tdp,
-			BlockChain:   blockChain,
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			DataPool:           tdp,
+			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 
@@ -116,8 +116,8 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, u
 	return mp.requestShardHeaders(header)
 }
 
-func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
-	return mp.removeBlockInfoFromPool(header)
+func (mp *metaProcessor) RemoveBlockDataFromPool(header *block.MetaBlock) error {
+	return mp.removeBlockDataFromPool(header)
 }
 
 func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHeaderHash []byte) {

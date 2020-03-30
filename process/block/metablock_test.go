@@ -824,7 +824,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
-func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
+func TestMetaProcessor_RemoveBlockDataFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -832,12 +832,12 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.RemoveBlockInfoFromPool(nil)
+	err := mp.RemoveBlockDataFromPool(nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMetaBlockHeader)
 }
 
-func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
+func TestMetaProcessor_RemoveBlockDataFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -847,7 +847,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 
 	header := createMetaBlockHeader()
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.RemoveBlockInfoFromPool(header)
+	err := mp.RemoveBlockDataFromPool(header)
 	assert.Nil(t, err)
 }
 

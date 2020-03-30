@@ -1048,8 +1048,8 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 		return m, err
 	}
 
-	for _, validatorInfosInShard := range validators {
-		for _, validatorInfo := range validatorInfosInShard {
+	for _, validatorsInfoInShard := range validators {
+		for _, validatorInfo := range validatorsInfoInShard {
 			strKey := hex.EncodeToString(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
 				NrLeaderSuccess:    validatorInfo.LeaderSuccess,

@@ -63,20 +63,20 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 }
 
 // CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the provided validatorInfo map
-func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-	if validatorInfo == nil {
+func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+	if validatorsInfo == nil {
 		return nil, epochStart.ErrNilValidatorInfo
 	}
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	for shardId := uint32(0); shardId < r.shardCoordinator.NumberOfShards(); shardId++ {
-		validators := validatorInfo[shardId]
+	for shardId := uint32(0); shardId < vic.shardCoordinator.NumberOfShards(); shardId++ {
+		validators := validatorsInfo[shardId]
 		if len(validators) == 0 {
 			continue
 		}
 
-		miniBlock, err := r.createMiniBlock(validators)
+		miniBlock, err := vic.createMiniBlock(validators)
 		if err != nil {
 			return nil, err
 		}
@@ -84,12 +84,12 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[u
 		miniblocks = append(miniblocks, miniBlock)
 	}
 
-	validators := validatorInfo[core.MetachainShardId]
+	validators := validatorsInfo[core.MetachainShardId]
 	if len(validators) == 0 {
 		return miniblocks, nil
 	}
 
-	miniBlock, err := r.createMiniBlock(validators)
+	miniBlock, err := vic.createMiniBlock(validators)
 	if err != nil {
 		return nil, err
 	}
@@ -99,49 +99,52 @@ func (r *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorInfo map[u
 	return miniblocks, nil
 }
 
-func (r *validatorInfoCreator) createMiniBlock(validators []*state.ValidatorInfo) (*block.MiniBlock, error) {
+func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.ValidatorInfo) (*block.MiniBlock, error) {
 	miniBlock := &block.MiniBlock{}
-	miniBlock.SenderShardID = r.shardCoordinator.SelfId()
+	miniBlock.SenderShardID = vic.shardCoordinator.SelfId()
 	miniBlock.ReceiverShardID = core.AllShardId
-	miniBlock.TxHashes = make([][]byte, len(validators))
+	miniBlock.TxHashes = make([][]byte, len(validatorsInfo))
 	miniBlock.Type = block.PeerBlock
 
-	validatorCopy := make([]*state.ValidatorInfo, len(validators))
-	copy(validatorCopy, validators)
+	validatorCopy := make([]*state.ValidatorInfo, len(validatorsInfo))
+	copy(validatorCopy, validatorsInfo)
 	sort.Slice(validatorCopy, func(a, b int) bool {
 		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
 	})
 
 	for index, validator := range validatorCopy {
-		marshalizedValidator, err := r.marshalizer.Marshal(validator)
+		marshalizedValidator, err := vic.marshalizer.Marshal(validator)
 		if err != nil {
 			return nil, err
 		}
+
 		miniBlock.TxHashes[index] = marshalizedValidator
 	}
+
 	return miniBlock, nil
 }
 
 // VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct
-func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
+func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	miniblocks []*block.MiniBlock,
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) error {
 	if len(miniblocks) == 0 {
 		return epochStart.ErrNilMiniblocks
 	}
 
-	createdMiniBlocks, err := r.CreateValidatorInfoMiniBlocks(validatorInfos)
+	createdMiniBlocks, err := vic.CreateValidatorInfoMiniBlocks(validatorsInfo)
 	if err != nil {
 		return err
 	}
 
 	hashesToMiniBlocks := make(map[string]*block.MiniBlock)
 	for _, mb := range createdMiniBlocks {
-		hash, hashError := core.CalculateHash(r.marshalizer, r.hasher, mb)
+		hash, hashError := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
 		if hashError != nil {
 			return hashError
 		}
+
 		hashesToMiniBlocks[string(hash)] = mb
 	}
 
@@ -157,13 +160,12 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 		}
 
 		numReceivedValidatorInfoMBs++
-		receivedMbHash, err = core.CalculateHash(r.marshalizer, r.hasher, receivedMb)
+		receivedMbHash, err = core.CalculateHash(vic.marshalizer, vic.hasher, receivedMb)
 		if err != nil {
 			return err
 		}
 
 		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
-
 		if !ok {
 			// TODO: add display debug prints of miniblocks contents
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
@@ -178,7 +180,11 @@ func (r *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 }
 
 // SaveValidatorInfoBlocksToStorage saves created data to storage
-func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	if check.IfNil(metaBlock) || check.IfNil(body) {
+		return
+	}
+
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.PeerBlock {
 			continue
@@ -189,33 +195,67 @@ func (r *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block
 				continue
 			}
 
-			marshaledData, err := r.marshalizer.Marshal(miniBlock)
+			marshalizedMb, err := vic.marshalizer.Marshal(miniBlock)
 			if err != nil {
 				continue
 			}
 
-			mbHash := r.hasher.Compute(string(marshaledData))
+			mbHash := vic.hasher.Compute(string(marshalizedMb))
 			if !bytes.Equal(mbHeader.Hash, mbHash) {
 				continue
 			}
 
-			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
-			r.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+			_ = vic.miniBlockStorage.Put(mbHeader.Hash, marshalizedMb)
 			break
 		}
 	}
 }
 
 // DeleteValidatorInfoBlocksFromStorage deletes data from storage
-func (r *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock) {
+func (vic *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock) {
+	if check.IfNil(metaBlock) {
+		return
+	}
+
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
 		if mbHeader.Type == block.PeerBlock {
-			_ = r.miniBlockStorage.Remove(mbHeader.Hash)
+			_ = vic.miniBlockStorage.Remove(mbHeader.Hash)
 		}
 	}
 }
 
 // IsInterfaceNil return true if underlying object is nil
-func (r *validatorInfoCreator) IsInterfaceNil() bool {
-	return r == nil
+func (vic *validatorInfoCreator) IsInterfaceNil() bool {
+	return vic == nil
+}
+
+// RemoveBlockDataFromPools removes block info from pools
+func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
+	if check.IfNil(metaBlock) || check.IfNil(body) {
+		return
+	}
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		for _, mbHeader := range metaBlock.MiniBlockHeaders {
+			if mbHeader.Type != block.PeerBlock {
+				continue
+			}
+
+			mbHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, miniBlock)
+			if err != nil {
+				continue
+			}
+
+			if !bytes.Equal(mbHeader.Hash, mbHash) {
+				continue
+			}
+
+			vic.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+			break
+		}
+	}
 }

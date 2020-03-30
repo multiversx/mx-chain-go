@@ -119,6 +119,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
+	mp.baseProcessor.blockProcessor = &mp
 
 	mp.hdrsForCurrBlock = newHdrForBlock()
 
@@ -337,22 +338,22 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
+	allValidatorsInfo, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
 	if err != nil {
 		return err
 	}
 
-	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorInfos)
+	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
 	if err != nil {
 		return err
 	}
 
-	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorInfos)
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
 	if err != nil {
 		return err
 	}
 
-	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorInfos)
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -522,8 +523,8 @@ func (mp *metaProcessor) indexBlock(
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 
-// removeBlockInfoFromPool removes the block info from associated pools
-func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error {
+// removeBlockDataFromPool removes the block data from associated pools
+func (mp *metaProcessor) removeBlockDataFromPool(header *block.MetaBlock) error {
 	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
@@ -713,22 +714,22 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	allValidatorInfos, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
+	allValidatorsInfo, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorInfos)
+	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorInfos)
+	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorInfos)
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -1064,14 +1065,19 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", header.Nonce,
 		"hash", headerHash)
 
-	errNotCritical := mp.removeBlockInfoFromPool(header)
+	errNotCritical := mp.removeBlockDataFromPool(header)
 	if errNotCritical != nil {
-		log.Debug("removeBlockInfoFromPool", "error", errNotCritical.Error())
+		log.Debug("removeBlockDataFromPool", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = mp.txCoordinator.RemoveBlockDataFromPool(body)
 	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+		log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = mp.removeStartOfEpochBlockDataFromPools(headerHandler, bodyHandler)
+	if errNotCritical != nil {
+		log.Debug("removeStartOfEpochBlockDataFromPools", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
@@ -1932,4 +1938,29 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 	}
 
 	return pendingMiniBlocksInfo
+}
+
+func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+
+	if !headerHandler.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	mp.epochRewardsCreator.RemoveBlockDataFromPools(metaBlock, body)
+	mp.validatorInfoCreator.RemoveBlockDataFromPools(metaBlock, body)
+
+	return nil
 }

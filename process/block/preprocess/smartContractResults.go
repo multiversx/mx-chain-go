@@ -178,12 +178,16 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
-		if err != nil {
-			return scrRestored, err
-		}
+		//TODO: Should be analyzed if restoring into pool only the corss-shard miniblocks with destination in self shard
+		//would create problems or not
+		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
+			miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+			if err != nil {
+				return scrRestored, err
+			}
 
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+			miniBlockPool.Put(miniBlockHash, miniBlock)
+		}
 
 		scrRestored += len(miniBlock.TxHashes)
 	}

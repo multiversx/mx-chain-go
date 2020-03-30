@@ -157,6 +157,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 300
 			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
 			return cs
 		},
 		HeadersCalled: func() dataRetriever.HeadersPool {

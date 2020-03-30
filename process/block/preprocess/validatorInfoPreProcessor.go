@@ -80,7 +80,7 @@ func (vip *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
 		return 0, process.ErrNilMiniBlockPool
 	}
 
-	validatorInfosRestored := 0
+	validatorsInfoRestored := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.PeerBlock {
@@ -89,15 +89,15 @@ func (vip *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
 
 		miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, miniBlock)
 		if err != nil {
-			return validatorInfosRestored, err
+			return validatorsInfoRestored, err
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
 
-		validatorInfosRestored += len(miniBlock.TxHashes)
+		validatorsInfoRestored += len(miniBlock.TxHashes)
 	}
 
-	return validatorInfosRestored, nil
+	return validatorsInfoRestored, nil
 }
 
 // ProcessBlockTransactions does nothing
@@ -129,7 +129,7 @@ func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.M
 
 // CreateAndProcessMiniBlocks does nothing
 func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
-	// validatorInfos are created only by meta
+	// validatorsInfo are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
 }
 

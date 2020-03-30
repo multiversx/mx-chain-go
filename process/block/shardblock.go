@@ -88,6 +88,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
+	sp.baseProcessor.blockProcessor = &sp
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -1839,4 +1840,11 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	}
 
 	return lastSelfNotarizedHeaders
+}
+
+func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+	return nil
 }
