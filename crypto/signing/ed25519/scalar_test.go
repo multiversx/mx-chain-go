@@ -1,6 +1,7 @@
 package ed25519_test
 
 import (
+	goEd25519 "crypto/ed25519"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -93,6 +94,13 @@ func TestEd25519ScalarClone_CopiesValue(t *testing.T) {
 	assert.False(t, eq)
 }
 
+func TestEd25519MarshalBinary_WrongKeyType(t *testing.T) {
+	scalar := ed25519.NewScalar([]byte("wrong key"))
+	_, err := scalar.MarshalBinary()
+
+	assert.Equal(t, crypto.ErrWrongPrivateKeySize, err)
+}
+
 func TestEd25519ScalarMarshalUnmarshal(t *testing.T) {
 	suite := ed25519.NewEd25519()
 	scalar := suite.CreateScalar()
@@ -123,6 +131,38 @@ func TestEd25519ScalarUnmarshal_ErrorOnWrongSize(t *testing.T) {
 
 	err := scalar.UnmarshalBinary([]byte("wrong size"))
 
-
 	assert.Equal(t, crypto.ErrInvalidPrivateKey, err)
+}
+
+func TestEd255192IsKeyValid_ErrOnWrongSize(t *testing.T) {
+	privateKey := []byte("wrong size")
+	err := ed25519.IsKeyValid(privateKey)
+
+	assert.Equal(t, crypto.ErrWrongPrivateKeySize, err)
+}
+
+func TestEd255192IsKeyValid_ErrOnWrongStructure(t *testing.T) {
+	suite := ed25519.NewEd25519()
+	privateKey, _ := suite.CreateKeyPair()
+	privateKeyBytes, _ := (privateKey.GetUnderlyingObj()).(goEd25519.PrivateKey)
+	privateKeyBytes[len(privateKeyBytes) -1]++
+
+	err := ed25519.IsKeyValid(privateKeyBytes)
+	assert.Equal(t, crypto.ErrWrongPrivateKeyStructure, err)
+}
+
+func TestEd255192IsKeyValid_CorrectKey(t *testing.T) {
+	suite := ed25519.NewEd25519()
+	privateKey, _ := suite.CreateKeyPair()
+	privateKeyBytes, _ := (privateKey.GetUnderlyingObj()).(goEd25519.PrivateKey)
+
+	err := ed25519.IsKeyValid(privateKeyBytes)
+	assert.Nil(t, err)
+}
+
+func TestEd25519GetUnderlyingObj_InvalidKey(t *testing.T) {
+	scalar := ed25519.NewScalar([]byte("wrong size"))
+	privateKey := scalar.GetUnderlyingObj()
+
+	assert.Nil(t, privateKey)
 }
