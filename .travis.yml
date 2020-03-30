@@ -1,6 +1,6 @@
 language: go
 
-go: 1.13
+go: "1.13"
 
 os:
 - linux
@@ -23,6 +23,12 @@ script:
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
 - ERD_PACKAGE=keygenerator
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=logviewer
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=termui
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
 
