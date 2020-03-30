@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"context"
 	"io/ioutil"
 	"math/rand"
 	"strconv"
@@ -73,10 +74,14 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	}
 
 	rootHash, _ := syncTrie.Root()
-	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, 10*time.Second, 0, "trie")
+	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, time.Second, 0, "trie")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	_ = sync.StartSyncing(rootHash)
+	err := sync.StartSyncing(rootHash, ctx)
+
+	cancel()
 	newTrieRootHash, _ := tr.Root()
+	assert.Nil(t, err)
 	assert.Equal(t, rootHash, newTrieRootHash)
 	assert.Equal(t, expectedRequests, nrRequests)
 }

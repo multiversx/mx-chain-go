@@ -1,6 +1,8 @@
 package syncer
 
 import (
+	"context"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -52,6 +54,10 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), u.waitTime)
+	defer cancel()
+	u.ctx = ctx
+
 	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic)
 	if err != nil {
 		return nil
@@ -85,7 +91,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
 		}
 		u.trieSyncers[string(rootHash)] = trieSyncer
 
-		err = trieSyncer.StartSyncing(rootHash)
+		err = trieSyncer.StartSyncing(rootHash, u.ctx)
 		if err != nil {
 			return err
 		}

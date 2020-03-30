@@ -1,6 +1,7 @@
 package update
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -21,7 +22,7 @@ type StateSyncer interface {
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
 	Trie() data.Trie
 	IsInterfaceNil() bool
 }

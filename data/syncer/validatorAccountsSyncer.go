@@ -1,6 +1,8 @@
 package syncer
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -46,6 +48,10 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), v.waitTime)
+	defer cancel()
+	v.ctx = ctx
 
 	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic)
 }

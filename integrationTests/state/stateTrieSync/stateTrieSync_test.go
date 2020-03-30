@@ -1,6 +1,7 @@
 package stateTrieSync
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -65,9 +66,12 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		nRequester.ShardCoordinator.SelfId(),
 	)
 
-	waitTime := 5 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime, core.MetachainShardId, factory.AccountTrieNodesTopic)
-	err = trieSyncer.StartSyncing(rootHash)
+	waitTime := 10 * time.Second
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, time.Second, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
+	defer cancel()
+
+	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.Root()

@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ type baseAccountsSyncer struct {
 	shardId            uint32
 	cacher             storage.Cacher
 	rootHash           []byte
+	ctx                context.Context
 }
 
 const minWaitTime = time.Second
@@ -78,7 +80,7 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) err
 	}
 	b.trieSyncers[string(rootHash)] = trieSyncer
 
-	err = trieSyncer.StartSyncing(rootHash)
+	err = trieSyncer.StartSyncing(rootHash, b.ctx)
 	if err != nil {
 		return err
 	}
