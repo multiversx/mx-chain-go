@@ -310,7 +310,7 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
 			return &dataBlock.Header{}
 		},
 	}
