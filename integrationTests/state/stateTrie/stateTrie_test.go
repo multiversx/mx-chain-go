@@ -1483,7 +1483,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		)
 	}
 
-	numDelayRounds := uint32(4)
+	numDelayRounds := uint32(6)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		time.Sleep(integrationTests.StepDelay)

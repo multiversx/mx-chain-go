@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"sync"
 )
 
@@ -26,6 +27,17 @@ func (sb *pruningBuffer) add(rootHash []byte) {
 
 	sb.buffer = append(sb.buffer, rootHash)
 	log.Trace("pruning buffer add", "rootHash", rootHash)
+}
+
+func (sb *pruningBuffer) remove(rootHash []byte) {
+	sb.mutOp.Lock()
+	defer sb.mutOp.Unlock()
+
+	for i := 0; i < len(sb.buffer); i++ {
+		if bytes.Equal(sb.buffer[i], rootHash) {
+			sb.buffer = append(sb.buffer[:i], sb.buffer[i+1:]...)
+		}
+	}
 }
 
 func (sb *pruningBuffer) removeAll() [][]byte {

@@ -24,6 +24,13 @@ func TestSnapshotsBuffer_Add(t *testing.T) {
 	assert.Equal(t, 2, len(sb.buffer))
 }
 
+func TestSnapshotsBuffer_Remove(t *testing.T) {
+	sb := defaultPruningBuffer()
+
+	sb.remove([]byte("0"))
+	assert.Equal(t, 1, len(sb.buffer))
+}
+
 func TestSnapshotsBuffer_RemoveAll(t *testing.T) {
 	sb := defaultPruningBuffer()
 

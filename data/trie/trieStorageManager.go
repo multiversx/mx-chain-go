@@ -184,6 +184,9 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	log.Trace("trie storage manager prune", "root", rootHash)
 
 	if tsm.snapshotInProgress > 0 {
@@ -197,19 +200,21 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) {
 	for i := range oldHashes {
 		select {
 		case tsm.pruneReq <- oldHashes[i]:
-			log.Trace("added root hash to pruning buffer", "rootHash", rootHash)
-			return
+			log.Trace("root hash will be pruned", "rootHash", rootHash)
 		default:
 			log.Trace("pruning buffer is full, hash won't be removed", "hash", oldHashes[i])
-			return
 		}
 	}
 }
 
 // CancelPrune removes the given hash from the eviction waiting list
 func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
+	tsm.pruningBuffer.remove(rootHash)
 }
 
 func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
