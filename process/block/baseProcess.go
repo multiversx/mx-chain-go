@@ -573,27 +573,26 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
-	headersPool := bp.dataPool.Headers()
+	bp.cleanupBlockTrackerPools(headerHandler)
+
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
 	bp.removeHeadersBehindNonceFromPools(
 		true,
-		headersPool,
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
+			bp.cleanupPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
 func (bp *baseProcessor) cleanupPoolsForShard(
 	shardID uint32,
-	headersPool dataRetriever.HeadersPool,
 	noncesToFinal uint64,
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
@@ -607,7 +606,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
-		headersPool,
 		shardID,
 		crossNotarizedHeader.GetNonce(),
 	)
@@ -615,7 +613,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	shouldRemoveBlockBody bool,
-	headersPool dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) {
@@ -623,26 +620,22 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	if check.IfNil(headersPool) {
-		return
-	}
-
-	nonces := headersPool.Nonces(shardId)
+	nonces := bp.dataPool.Headers().Nonces(shardId)
 	for _, nonceFromCache := range nonces {
 		if nonceFromCache >= nonce {
 			continue
 		}
 
 		if shouldRemoveBlockBody {
-			bp.removeBlocksBody(nonceFromCache, shardId, headersPool)
+			bp.removeBlocksBody(nonceFromCache, shardId)
 		}
 
-		headersPool.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
+		bp.dataPool.Headers().RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
 	}
 }
 
-func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32, headersPool dataRetriever.HeadersPool) {
-	headers, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardId)
+func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
+	headers, _, err := bp.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		return
 	}

@@ -268,12 +268,12 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 				continue
 			}
 
-			marshaledData, err := rc.marshalizer.Marshal(rwdTx)
+			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
 			if err != nil {
 				continue
 			}
 
-			txs[broadCastTopic] = append(txs[broadCastTopic], marshaledData)
+			txs[broadCastTopic] = append(txs[broadCastTopic], marshalizedData)
 		}
 	}
 
@@ -297,12 +297,12 @@ func (rc *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body 
 				continue
 			}
 
-			marshaledData, err := rc.marshalizer.Marshal(rwdTx)
+			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
 			if err != nil {
 				continue
 			}
 
-			_ = rc.rewardsStorage.Put(txHash, marshaledData)
+			_ = rc.rewardsStorage.Put(txHash, marshalizedData)
 		}
 
 		for _, mbHeader := range metaBlock.MiniBlockHeaders {
@@ -313,12 +313,12 @@ func (rc *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body 
 				continue
 			}
 
-			marshaledData, err := rc.marshalizer.Marshal(miniBlock)
+			marshalizedData, err := rc.marshalizer.Marshal(miniBlock)
 			if err != nil {
 				continue
 			}
 
-			_ = rc.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
+			_ = rc.miniBlockStorage.Put(mbHeader.Hash, marshalizedData)
 		}
 	}
 	rc.clean()
@@ -378,6 +378,13 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 			strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 			rc.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 			rc.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+
+			log.Debug("RemoveBlockDataFromPools",
+				"hash", mbHeader.Hash,
+				"type", mbHeader.Type,
+				"sender", mbHeader.SenderShardID,
+				"receiver", mbHeader.ReceiverShardID,
+				"num txs", mbHeader.TxCount)
 		}
 	}
 }

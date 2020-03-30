@@ -756,6 +756,7 @@ func (sp *shardProcessor) CommitBlock(
 		if err != nil {
 			return err
 		}
+
 		sp.epochStartTrigger.SetProcessed(header)
 	}
 
@@ -774,7 +775,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	//TODO: Analyze if this could be called on go routine but keep the txsForCurrBlock unchanged until save is done
 	sp.saveBody(body)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
@@ -810,14 +810,9 @@ func (sp *shardProcessor) CommitBlock(
 		"hash", headerHash,
 	)
 
-	errNotCritical := sp.txCoordinator.RemoveBlockDataFromPool(body)
+	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {
-		log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
-	}
-
-	errNotCritical = sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
-	if errNotCritical != nil {
-		log.Debug("removeProcessedMetaBlocksFromPool", "error", errNotCritical.Error())
+		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
@@ -911,9 +906,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	sp.cleanupBlockTrackerPools(headerHandler)
-
-	go sp.cleanupPools(headerHandler)
+	sp.cleanupPools(headerHandler)
 
 	return nil
 }
@@ -951,7 +944,7 @@ func (sp *shardProcessor) displayPoolsInfo() {
 			continue
 		}
 
-		log.Debug("mini block from pool",
+		log.Debug("mini block in pool",
 			"hash", logger.DisplayByteSlice(hash),
 			"type", miniBlock.Type,
 			"sender", miniBlock.SenderShardID,
@@ -1264,13 +1257,12 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 	return processedMetaHdrs, nil
 }
 
-func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
+func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
 	}
 
-	processed := 0
 	// processedMetaHdrs is also sorted
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
@@ -1283,7 +1275,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		// metablock was processed and finalized
 		marshalizedHeader, errMarshal := sp.marshalizer.Marshal(hdr)
 		if errMarshal != nil {
-			log.Debug("marshalizer.Marshal", "error", errMarshal.Error())
+			log.Debug("updateCrossShardInfo.Marshal", "error", errMarshal.Error())
 			continue
 		}
 
@@ -1291,22 +1283,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
-		sp.dataPool.Headers().RemoveHeaderByHash(headerHash)
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
-
-		log.Trace("metaBlock has been processed completely and removed from pool",
-			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce(),
-			"hash", headerHash,
-		)
-
-		processed++
-	}
-
-	if processed > 0 {
-		log.Trace("metablocks completely processed and removed from pool",
-			"num metablocks", processed,
-		)
 	}
 
 	return nil
@@ -1754,7 +1731,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
-	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+	if check.IfNil(bodyHandler) {
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 
@@ -1768,7 +1745,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
 	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
 			continue
 		}
 		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
