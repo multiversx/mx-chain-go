@@ -576,9 +576,9 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	adb.mainTrie.EnterSnapshotMode()
-	adb.mainTrie.TakeSnapshot(rootHash)
 
 	go func() {
+		adb.mainTrie.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
 	}()

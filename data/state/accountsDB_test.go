@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 
@@ -618,6 +619,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
 
 	assert.True(t, takeSnapshotWasCalled)
 }
