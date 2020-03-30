@@ -1183,6 +1183,27 @@ func (mp *metaProcessor) displayPoolsInfo() {
 		"total miniblocks", mp.dataPool.MiniBlocks().Len(),
 		"miniblocks pool capacity", mp.dataPool.MiniBlocks().MaxSize(),
 	)
+
+	for _, hash := range mp.dataPool.MiniBlocks().Keys() {
+		value, ok := mp.dataPool.MiniBlocks().Get(hash)
+		if !ok {
+			log.Debug("displayPoolsInfo: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("displayPoolsInfo: wrong type assertion to *block.MiniBlock")
+			continue
+		}
+
+		log.Debug("mini block from pool",
+			"hash", logger.DisplayByteSlice(hash),
+			"type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes))
+	}
 }
 
 func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
