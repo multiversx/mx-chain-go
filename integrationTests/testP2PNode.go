@@ -75,7 +75,6 @@ func NewTestP2PNode(
 		pkShardId,
 		pidShardId,
 		coordinator,
-		&mock.EpochStartTriggerStub{},
 	)
 	if err != nil {
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())

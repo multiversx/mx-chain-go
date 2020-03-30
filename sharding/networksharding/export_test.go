@@ -52,3 +52,10 @@ func (psm *PeerShardMapper) FallbackPkShard() storage.Cacher {
 func (psm *PeerShardMapper) FallbackPidShard() storage.Cacher {
 	return psm.fallbackPidShard
 }
+
+func (psm *PeerShardMapper) Epoch() uint32 {
+	psm.mutEpoch.RLock()
+	defer psm.mutEpoch.RUnlock()
+
+	return psm.epoch
+}
