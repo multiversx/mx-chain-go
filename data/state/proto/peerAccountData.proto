@@ -39,7 +39,7 @@ message ValidatorApiResponse {
     uint32 TotalNumValidatorFailure = 10 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
 }
 
-
+// PeerAccountData represents the data that defines the PeerAccount
 message PeerAccountData {
     bytes BLSPublicKey = 1;
     bytes SchnorrPublicKey = 2;
