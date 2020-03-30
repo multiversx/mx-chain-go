@@ -291,6 +291,9 @@ func (e *epochStartData) computePendingMiniBlockList(
 			//shard has only the genesis block
 			continue
 		}
+		if len(shardData.FirstPendingMetaBlock) == 0 {
+			continue
+		}
 
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
