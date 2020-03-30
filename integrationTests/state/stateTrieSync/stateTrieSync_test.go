@@ -64,10 +64,11 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		whiteListHandler,
 		10000,
 		nRequester.ShardCoordinator.SelfId(),
+		time.Second,
 	)
 
 	waitTime := 10 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, time.Second, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, core.MetachainShardId, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 

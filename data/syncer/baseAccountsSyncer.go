@@ -74,7 +74,7 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) err
 	}
 
 	b.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.waitTime, b.shardId, trieTopic)
+	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.shardId, trieTopic)
 	if err != nil {
 		return err
 	}

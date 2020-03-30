@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -83,7 +84,7 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 
 // SyncPendingTransactionsFor syncs pending transactions for a list of miniblocks
 func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error {
-	_ = process.EmptyChannel(p.chReceivedAll)
+	_ = core.EmptyChannel(p.chReceivedAll)
 
 	p.mutPendingTx.Lock()
 	p.epochToSync = epoch

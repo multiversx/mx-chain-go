@@ -674,6 +674,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.whiteListHandler,
 		MaxTxsToRequest,
 		args.shardCoordinator.SelfId(),
+		time.Second,
 	)
 	if err != nil {
 		return nil, err

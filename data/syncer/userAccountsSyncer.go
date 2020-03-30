@@ -85,7 +85,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
 		}
 
 		u.dataTries[string(rootHash)] = dataTrie
-		trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.waitTime, u.shardId, factory.AccountTrieNodesTopic)
+		trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
 		if err != nil {
 			return err
 		}

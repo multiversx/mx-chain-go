@@ -434,6 +434,7 @@ type RequestHandler interface {
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestInterval() time.Duration
 	IsInterfaceNil() bool
 }
 

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -105,7 +106,7 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocks(
 }
 
 func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.ShardMiniBlockHeader, waitTime time.Duration) error {
-	_ = process.EmptyChannel(p.chReceivedAll)
+	_ = core.EmptyChannel(p.chReceivedAll)
 
 	requestedMBs := 0
 	p.mutPendingMb.Lock()

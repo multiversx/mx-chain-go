@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -16,17 +17,19 @@ type trieSyncer struct {
 	rootFound bool
 	rootHash  []byte
 
-	requestHandler   RequestHandler
-	interceptedNodes storage.Cacher
-	shardId          uint32
-	topic            string
-	waitTime         time.Duration
+	requestHandler          RequestHandler
+	interceptedNodes        storage.Cacher
+	shardId                 uint32
+	topic                   string
+	waitTimeBetweenRequests time.Duration
 
 	nodeHashes      map[string]struct{}
 	nodeHashesMutex sync.Mutex
 
 	receivedNodes      map[string]node
 	receivedNodesMutex sync.Mutex
+
+	chanReceivedNew chan bool
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -34,7 +37,6 @@ func NewTrieSyncer(
 	requestHandler RequestHandler,
 	interceptedNodes storage.Cacher,
 	trie data.Trie,
-	waitTime time.Duration,
 	shardId uint32,
 	topic string,
 ) (*trieSyncer, error) {
@@ -57,14 +59,15 @@ func NewTrieSyncer(
 	}
 
 	ts := &trieSyncer{
-		requestHandler:   requestHandler,
-		interceptedNodes: interceptedNodes,
-		trie:             pmt,
-		nodeHashes:       make(map[string]struct{}),
-		receivedNodes:    make(map[string]node),
-		topic:            topic,
-		shardId:          shardId,
-		waitTime:         waitTime,
+		requestHandler:          requestHandler,
+		interceptedNodes:        interceptedNodes,
+		trie:                    pmt,
+		nodeHashes:              make(map[string]struct{}),
+		receivedNodes:           make(map[string]node),
+		topic:                   topic,
+		shardId:                 shardId,
+		waitTimeBetweenRequests: requestHandler.RequestInterval(),
+		chanReceivedNew:         make(chan bool),
 	}
 	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted)
 
@@ -94,6 +97,8 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 			return err
 		}
 
+		_ = core.EmptyChannel(ts.chanReceivedNew)
+
 		numRequested := ts.requestNodes()
 		if numRequested == 0 {
 			err := ts.trie.Commit()
@@ -105,7 +110,9 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		}
 
 		select {
-		case <-time.After(ts.waitTime):
+		case <-ts.chanReceivedNew:
+			continue
+		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
 			return ErrTimeIsOut
@@ -248,9 +255,10 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte) {
 	}
 
 	ts.receivedNodesMutex.Lock()
-	defer ts.receivedNodesMutex.Unlock()
-
 	ts.receivedNodes[string(hash)] = node
+	ts.receivedNodesMutex.Unlock()
+
+	ts.chanReceivedNew <- true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

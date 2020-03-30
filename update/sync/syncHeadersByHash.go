@@ -76,7 +76,7 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(
 	headersHashes [][]byte,
 	waitTime time.Duration,
 ) error {
-	_ = process.EmptyChannel(m.chReceivedAll)
+	_ = core.EmptyChannel(m.chReceivedAll)
 
 	requestedMBs := 0
 	m.mutMissingHdrs.Lock()

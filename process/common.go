@@ -20,19 +20,6 @@ import (
 
 var log = logger.GetOrCreate("process")
 
-// EmptyChannel empties the given channel
-func EmptyChannel(ch chan bool) int {
-	readsCnt := 0
-	for {
-		select {
-		case <-ch:
-			readsCnt++
-		default:
-			return readsCnt
-		}
-	}
-}
-
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
 	hash []byte,

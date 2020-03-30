@@ -146,9 +146,6 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
-// ErrInvalidNumberOfPeersToQuery signals that an invalid number of peers to query has been provided
-var ErrInvalidNumberOfPeersToQuery = errors.New("invalid number of peers to query provided")
-
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
@@ -181,3 +178,6 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrRequestIntervalTooSmall signals that request interval is too small
+var ErrRequestIntervalTooSmall = errors.New("request interval is too small")

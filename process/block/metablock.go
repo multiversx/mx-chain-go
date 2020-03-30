@@ -1547,7 +1547,7 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
-	_ = process.EmptyChannel(mp.chRcvAllHdrs)
+	_ = core.EmptyChannel(mp.chRcvAllHdrs)
 
 	if len(metaBlock.ShardInfo) == 0 {
 		return 0, 0

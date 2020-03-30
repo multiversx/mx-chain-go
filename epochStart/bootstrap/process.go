@@ -619,7 +619,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.userTrieStorageManager,
 			RequestHandler:     e.requestHandler,
-			WaitTime:           timeToWait,
+			WaitTime:           time.Minute,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 		ShardId: e.shardCoordinator.SelfId(),
@@ -679,7 +679,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.peerTrieStorageManager,
 			RequestHandler:     e.requestHandler,
-			WaitTime:           timeToWait * 10,
+			WaitTime:           time.Minute,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 	}
@@ -754,7 +754,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	requestedItemsHandler := timecache.NewTimeCache(100)
 	maxToRequest := 100
-	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(finder, requestedItemsHandler, e.whiteListHandler, maxToRequest, core.MetachainShardId)
+	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
+		finder,
+		requestedItemsHandler,
+		e.whiteListHandler,
+		maxToRequest,
+		core.MetachainShardId,
+		100*time.Millisecond,
+	)
 	return err
 }
 
