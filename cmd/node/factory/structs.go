@@ -2316,9 +2316,10 @@ func PrepareNetworkShardingCollector(
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochSubscriber sharding.EpochStartSubscriber,
+	epochHandler sharding.EpochHandler,
 ) (*networksharding.PeerShardMapper, error) {
 
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochSubscriber)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochSubscriber, epochHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -2338,6 +2339,7 @@ func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	epochSubscriber sharding.EpochStartSubscriber,
+	epochHandler sharding.EpochHandler,
 ) (*networksharding.PeerShardMapper, error) {
 
 	cacheConfig := config.PublicKeyPeerId
@@ -2363,6 +2365,7 @@ func createNetworkShardingCollector(
 		cachePkShardId,
 		cachePidShardId,
 		nodesCoordinator,
+		epochHandler.Epoch(),
 	)
 	if err != nil {
 		return nil, err

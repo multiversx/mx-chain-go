@@ -44,6 +44,7 @@ func NewPeerShardMapper(
 	fallbackPkShard storage.Cacher,
 	fallbackPidShard storage.Cacher,
 	nodesCoordinator sharding.NodesCoordinator,
+	epochStart uint32,
 ) (*PeerShardMapper, error) {
 
 	if check.IfNil(nodesCoordinator) {
@@ -70,7 +71,7 @@ func NewPeerShardMapper(
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
 		nodesCoordinator: nodesCoordinator,
-		epoch:            uint32(0),
+		epoch:            epochStart,
 	}, nil
 }
 

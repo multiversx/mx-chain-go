@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const epochZero = uint32(0)
+
 //------- NewPeerShardMapper
 
 func createPeerShardMapper() *networksharding.PeerShardMapper {
@@ -24,6 +26,7 @@ func createPeerShardMapper() *networksharding.PeerShardMapper {
 		mock.NewCacherMock(),
 		mock.NewCacherMock(),
 		&nodesCoordinatorStub{},
+		epochZero,
 	)
 	return psm
 }
@@ -36,6 +39,7 @@ func TestNewPeerShardMapper_NilNodesCoordinatorShouldErr(t *testing.T) {
 		&mock.CacherMock{},
 		&mock.CacherMock{},
 		nil,
+		epochZero,
 	)
 
 	assert.True(t, check.IfNil(psm))
@@ -50,6 +54,7 @@ func TestNewPeerShardMapper_NilCacherForPeerIdPkShouldErr(t *testing.T) {
 		&mock.CacherMock{},
 		&mock.CacherMock{},
 		&nodesCoordinatorStub{},
+		epochZero,
 	)
 
 	assert.True(t, check.IfNil(psm))
@@ -64,6 +69,7 @@ func TestNewPeerShardMapper_NilCacherForPkShardIdShouldErr(t *testing.T) {
 		nil,
 		&mock.CacherMock{},
 		&nodesCoordinatorStub{},
+		epochZero,
 	)
 
 	assert.True(t, check.IfNil(psm))
@@ -78,6 +84,7 @@ func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
 		&mock.CacherMock{},
 		nil,
 		&nodesCoordinatorStub{},
+		epochZero,
 	)
 
 	assert.True(t, check.IfNil(psm))
@@ -87,15 +94,18 @@ func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	epoch := uint32(8843)
 	psm, err := networksharding.NewPeerShardMapper(
 		&mock.CacherMock{},
 		&mock.CacherMock{},
 		&mock.CacherMock{},
 		&nodesCoordinatorStub{},
+		epoch,
 	)
 
 	assert.False(t, check.IfNil(psm))
 	assert.Nil(t, err)
+	assert.Equal(t, epoch, psm.Epoch())
 }
 
 //------- UpdatePeerIdPublicKey
@@ -311,6 +321,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 				return nil, 0, nil
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
@@ -333,6 +344,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorWrongTypeInCacheShouldReturn
 		mock.NewCacherMock(),
 		mock.NewCacherMock(),
 		&nodesCoordinatorStub{},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.PeerIdPk().Put([]byte(pid), wrongTypePk)
@@ -360,6 +372,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
@@ -387,6 +400,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
@@ -416,6 +430,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
@@ -443,6 +458,7 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
@@ -468,6 +484,7 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	wrongTypeShardId := "shard 4"
@@ -496,6 +513,7 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 				return nil, 0, errors.New("not found")
 			},
 		},
+		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
