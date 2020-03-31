@@ -118,6 +118,10 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		return
 	}
 
+	for _, txHash := range hashes {
+		log.Trace("requesting", "hash", txHash)
+	}
+
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
 		var sliceBatches [][][]byte
