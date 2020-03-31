@@ -2,50 +2,164 @@ package state_test
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-//------- JournalEntryBalance
-
-func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
+func TestNewJournalEntryCode_InvalidCodeHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryBalance(nil, nil)
-
-	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountHandler, err)
+	entry, err := state.NewJournalEntryCode([]byte{}, &mock.TrieStub{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrInvalidHash, err)
 }
 
-func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
+func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, err := state.NewJournalEntryBalance(accnt, big.NewInt(0))
+	entry, err := state.NewJournalEntryCode([]byte("code hash"), nil)
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilUpdater, err)
+}
 
+func TestNewJournalEntryCode_OkParams(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode([]byte("code hash"), &mock.TrieStub{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
 
-func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryCode_RevertErr(t *testing.T) {
 	t.Parallel()
 
-	balance := big.NewInt(34)
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-	entry, _ := state.NewJournalEntryBalance(accnt, balance)
-	_, err := entry.Revert()
+	updateErr := errors.New("update error")
+	codeHash := []byte("code hash")
+	ts := &mock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
+			return updateErr
+		},
+	}
+	entry, _ := state.NewJournalEntryCode(codeHash, ts)
 
-	assert.Nil(t, err)
-	assert.Equal(t, balance, accnt.Balance)
+	acc, err := entry.Revert()
+	assert.Equal(t, updateErr, err)
+	assert.Nil(t, acc)
 }
 
-// ---- JournalEntryDataTrieUpdates
+func TestJournalEntryCode_RevertUpdatesTheTrie(t *testing.T) {
+	t.Parallel()
+
+	updateCalled := false
+	codeHash := []byte("code hash")
+	ts := &mock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
+			assert.Equal(t, codeHash, key)
+			assert.Nil(t, value)
+			updateCalled = true
+			return nil
+		},
+	}
+	entry, _ := state.NewJournalEntryCode(codeHash, ts)
+
+	acc, err := entry.Revert()
+	assert.Nil(t, err)
+	assert.Nil(t, acc)
+	assert.True(t, updateCalled)
+}
+
+func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryAccount(nil)
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestNewJournalEntryAccount_OkParams(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryAccount(&mock.AccountWrapMock{})
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
+}
+
+func TestJournalEntryAccount_Revert(t *testing.T) {
+	t.Parallel()
+
+	expectedAcc := &mock.AccountWrapMock{}
+	entry, _ := state.NewJournalEntryAccount(expectedAcc)
+
+	acc, err := entry.Revert()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedAcc, acc)
+}
+
+func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &mock.TrieStub{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrInvalidAddressLength, err)
+}
+
+func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), nil)
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilUpdater, err)
+}
+
+func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &mock.TrieStub{})
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
+}
+
+func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
+	t.Parallel()
+
+	updateErr := errors.New("update error")
+	address := []byte("address")
+	ts := &mock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
+			return updateErr
+		},
+	}
+	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
+
+	acc, err := entry.Revert()
+	assert.Equal(t, updateErr, err)
+	assert.Nil(t, acc)
+}
+
+func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
+	t.Parallel()
+
+	updateCalled := false
+	address := []byte("address")
+	ts := &mock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
+			assert.Equal(t, address, key)
+			assert.Nil(t, value)
+			updateCalled = true
+			return nil
+		},
+	}
+	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
+
+	acc, err := entry.Revert()
+	assert.Nil(t, err)
+	assert.Nil(t, acc)
+	assert.True(t, updateCalled)
+}
 
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
@@ -54,7 +168,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	trieUpdates["a"] = []byte("b")
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, nil)
 
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
@@ -62,10 +176,10 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	accnt, _ := state.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilOrEmptyDataTrieUpdates, err)
 }
 
@@ -74,7 +188,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	accnt, _ := state.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)
@@ -88,7 +202,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -112,7 +226,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -139,7 +253,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	trie := &mock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
@@ -160,26 +274,4 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, updateWasCalled)
 	assert.True(t, rootWasCalled)
-}
-
-func TestNewJournalEntryDeveloperReward(t *testing.T) {
-	t.Parallel()
-
-	jed, err := state.NewJournalEntryDeveloperReward(nil, big.NewInt(1000))
-	require.Nil(t, jed)
-	require.Equal(t, state.ErrNilAccountHandler, err)
-
-	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
-
-	oldDevReward := big.NewInt(1000)
-	jed, err = state.NewJournalEntryDeveloperReward(accnt, oldDevReward)
-	require.Nil(t, err)
-	require.False(t, check.IfNil(jed))
-
-	accHandler, err := jed.Revert()
-	require.Nil(t, err)
-
-	acc, ok := accHandler.(*state.Account)
-	require.True(t, ok)
-	require.Equal(t, oldDevReward, acc.DeveloperReward)
 }

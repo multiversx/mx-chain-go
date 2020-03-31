@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -17,6 +19,8 @@ type baseTxProcessor struct {
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
 	economicsFee     process.FeeHandler
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -38,7 +42,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if bytes.Equal(adrSrc.Bytes(), adrDst.Bytes()) {
-		acntWrp, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+		acntWrp, err := txProc.accounts.LoadAccount(adrSrc)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -52,7 +56,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if srcInShard {
-		acntSrcWrp, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+		acntSrcWrp, err := txProc.accounts.LoadAccount(adrSrc)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -66,7 +70,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if dstInShard {
-		acntDstWrp, err := txProc.accounts.GetAccountWithJournal(adrDst)
+		acntDstWrp, err := txProc.accounts.LoadAccount(adrDst)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -89,7 +93,7 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContain
 		return nil, nil
 	}
 
-	acnt, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := txProc.accounts.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -136,16 +140,16 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return err
 	}
 
-	stAcc, ok := acntSnd.(*state.Account)
+	stAcc, ok := acntSnd.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	txFee := txProc.economicsFee.ComputeFee(tx)
-	if stAcc.Balance.Cmp(txFee) < 0 {
+	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
-			stAcc.Balance.String(),
+			stAcc.GetBalance().String(),
 			txFee.String(),
 		)
 	}
@@ -154,7 +158,7 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	cost.Add(cost, tx.Value)
 
-	if stAcc.Balance.Cmp(cost) < 0 {
+	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 

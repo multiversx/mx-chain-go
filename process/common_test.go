@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -16,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -247,7 +247,7 @@ func TestGetShardHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 
 	header, err := process.GetShardHeaderFromPool(hash, cacher)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
@@ -298,7 +298,7 @@ func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 
 	header, err := process.GetMetaHeaderFromPool(hash, cacher)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
@@ -380,7 +380,7 @@ func TestGetShardHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 
 	header, err := process.GetShardHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) {
@@ -476,7 +476,7 @@ func TestGetMetaHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 
 	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) {
@@ -572,7 +572,7 @@ func TestGetMarshalizedHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 
 	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	assert.Nil(t, headerMarsh)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
@@ -927,7 +927,7 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSh
 	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
@@ -939,7 +939,7 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLo
 	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
@@ -955,7 +955,7 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
@@ -971,7 +971,7 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T
 	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
@@ -1009,7 +1009,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSha
 	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
@@ -1020,7 +1020,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
@@ -1035,7 +1035,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
@@ -1217,7 +1217,7 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) 
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *testing.T) {
@@ -1487,7 +1487,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) {
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *testing.T) {

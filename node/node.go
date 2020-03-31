@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -389,12 +389,12 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 		return big.NewInt(0), nil
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return big.NewInt(0), nil
 	}
 
-	return account.Balance, nil
+	return account.GetBalance(), nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -634,29 +634,9 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 		return 0, ErrNoTxToProcess
 	}
 
-	filteredTransactions := n.filterTransactions(txs)
-	if len(filteredTransactions) == 0 {
-		return 0, fmt.Errorf("%w after validating", ErrNoTxToProcess)
-	}
+	n.addTransactionsToSendPipe(txs)
 
-	n.addTransactionsToSendPipe(filteredTransactions)
-
-	return uint64(len(filteredTransactions)), nil
-}
-
-func (n *Node) filterTransactions(txs []*transaction.Transaction) []*transaction.Transaction {
-	filteredTransactions := make([]*transaction.Transaction, 0, len(txs))
-	var err error
-	for _, tx := range txs {
-		err = n.validateTx(tx)
-		if err != nil {
-			continue
-		}
-
-		filteredTransactions = append(filteredTransactions, tx)
-	}
-
-	return filteredTransactions
+	return uint64(len(txs)), nil
 }
 
 func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
@@ -744,7 +724,8 @@ func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
 	return n.shardCoordinator.ComputeId(recvBytes), nil
 }
 
-func (n *Node) validateTx(tx *transaction.Transaction) error {
+// ValidateTransaction will validate a transaction
+func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, core.MaxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil
@@ -867,11 +848,6 @@ func (n *Node) CreateTransaction(
 		Signature: signatureBytes,
 	}
 
-	err = n.validateTx(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var txHash []byte
 	txHash, err = core.CalculateHash(n.internalMarshalizer, n.hasher, tx)
 	if err != nil {
@@ -887,7 +863,7 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (*state.Account, error) {
+func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
@@ -903,19 +879,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return &state.Account{
-				AccountData: state.AccountData{
-					Nonce:    0,
-					Balance:  big.NewInt(0),
-					RootHash: nil,
-					CodeHash: nil,
-				},
-			}, nil
+			return state.NewUserAccount(addr)
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	account, ok := accWrp.(*state.Account)
+	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
 		return nil, errors.New("account is not of type with balance and nonce")
 	}
@@ -945,6 +914,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartSubscriber)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
@@ -952,6 +926,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.internalMarshalizer,
 		core.HeartbeatTopic,
 		n.shardCoordinator,
+		peerTypeProvider,
+		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
 	)
@@ -981,13 +957,23 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
+
+	allValidators, _, err := n.getLatestValidators()
+	pubKeysMap := make(map[uint32][]string)
+	for shardID, valsInShard := range allValidators {
+		for _, val := range valsInShard {
+			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
+		}
+	}
+
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		netInputMarshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		n.initialNodesPubkeys,
+		pubKeysMap,
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
+		peerTypeProvider,
 		timer,
 		n.inputAntifloodHandler,
 	)
@@ -1066,7 +1052,7 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 	for _, validatorInfosInShard := range validators {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
+			strKey := hex.EncodeToString(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
 				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
 				NrLeaderFailure:    validatorInfo.LeaderFailure,

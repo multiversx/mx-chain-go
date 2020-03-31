@@ -1,8 +1,8 @@
 package txcache
 
 import (
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("txcache")
@@ -117,7 +117,7 @@ func (cache *TxCache) diagnose() {
 
 	logFunc := log.Trace
 	if !fine {
-		logFunc = log.Warn
+		logFunc = log.Debug
 	}
 
 	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)

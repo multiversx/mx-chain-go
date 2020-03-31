@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -257,7 +257,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
-			display.DisplayByteSlice(headerHandler.GetChainID())}),
+			logger.DisplayByteSlice(headerHandler.GetChainID())}),
 		display.NewLineData(false, []string{
 			"",
 			"Epoch",
@@ -277,15 +277,15 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Prev hash",
-			display.DisplayByteSlice(headerHandler.GetPrevHash())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Prev rand seed",
-			display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Rand seed",
-			display.DisplayByteSlice(headerHandler.GetRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Pub keys bitmap",
@@ -293,27 +293,27 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Signature",
-			display.DisplayByteSlice(headerHandler.GetSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Leader's Signature",
-			display.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Root hash",
-			display.DisplayByteSlice(headerHandler.GetRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
-			display.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
+			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			display.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
 	}
 }
 
@@ -756,7 +756,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
+	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 		bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(shardID)
@@ -770,7 +770,11 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
 
-	return bootstrapStorage.TrimHeaderInfoSlice(lastCrossNotarizedHeaders)
+	if len(lastCrossNotarizedHeaders) == 0 {
+		return nil
+	}
+
+	return lastCrossNotarizedHeaders
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
@@ -864,8 +868,9 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
 
+	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue
@@ -911,11 +916,14 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
-	if check.IfNil(chainHandler.GetCurrentBlockHeader()) {
+	currentHeader := chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
 		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
 	}
 
-	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
+	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
+
+	return currentHeader, currentBlockHash
 }
 
 func (bp *baseProcessor) updateStateStorage(
@@ -947,10 +955,7 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	errNotCritical := accounts.PruneTrie(prevRootHash, data.OldRoot)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
+	accounts.PruneTrie(prevRootHash, data.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -988,11 +993,7 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
-
-		errNotCritical := bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
+		bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
 	}
 }
 

@@ -4,13 +4,17 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
+
+var _ counting.Countable = (*shardedTxPool)(nil)
+var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
 
@@ -265,7 +269,7 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 }
 
 // CreateShardStore is not implemented for this pool, since shard creations is managed internally
-func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
+func (txPool *shardedTxPool) CreateShardStore(_ string) {
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added
@@ -278,6 +282,21 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	txPool.mutexAddCallbacks.Lock()
 	txPool.onAddCallbacks = append(txPool.onAddCallbacks, handler)
 	txPool.mutexAddCallbacks.Unlock()
+}
+
+// TotalCount returns the total number of transactions in the pool
+func (txPool *shardedTxPool) GetCounts() counting.Counts {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	counts := counting.NewShardedCounts()
+
+	for cacheID, shard := range txPool.backingMap {
+		cache := shard.Cache
+		counts.PutCounts(cacheID, cache.CountTx())
+	}
+
+	return counts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

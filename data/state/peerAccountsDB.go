@@ -42,7 +42,12 @@ func NewPeerAccountsDB(
 			accountFactory: accountFactory,
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
-			mutEntries:     sync.RWMutex{},
+			mutOp:          sync.RWMutex{},
 		},
 	}, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (adb *PeerAccountsDB) IsInterfaceNil() bool {
+	return adb == nil
 }

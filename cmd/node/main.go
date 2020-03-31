@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -32,13 +34,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -245,6 +244,16 @@ VERSION:
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
+	//logWithCorrelation is used to enable log correlation elements
+	logWithCorrelation = cli.BoolFlag{
+		Name:  "log-correlation",
+		Usage: "Boolean option for enabling log correlation elements.",
+	}
+	//logWithLoggerName is used to enable log correlation elements
+	logWithLoggerName = cli.BoolFlag{
+		Name:  "log-logger-name",
+		Usage: "Boolean option for logger name in the logs.",
+	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
 		Name:  "disable-ansi-color",
@@ -320,7 +329,7 @@ var coreServiceContainer serviceContainer.Core
 var appVersion = core.UnVersionedAppString
 
 func main() {
-	_ = display.SetDisplayByteSlice(display.ToHexShort)
+	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
 	app := cli.NewApp()
@@ -350,6 +359,8 @@ func main() {
 		disableAnsiColor,
 		logLevel,
 		logSaveFile,
+		logWithCorrelation,
+		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -404,6 +415,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}()
 	}
 
+	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
+	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
@@ -533,6 +546,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
+	logger.SetCorrelationShard(shardId)
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
@@ -1122,6 +1136,8 @@ func createShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
+	// TODO: after start in epoch is merged, this needs to be refactored as the shardID cannot always be taken
+	// from initial configuration but needs to be determined by nodes coordinator
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
@@ -1161,11 +1177,7 @@ func createNodesCoordinator(
 	roundsPerEpoch int64,
 	chanStopNodeProcess chan bool,
 ) (sharding.NodesCoordinator, error) {
-
-	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
-	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		shardId, err = processDestinationShardAsObserver(prefsConfig)
-	}
+	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1231,7 +1243,7 @@ func createNodesCoordinator(
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
 		BootStorer:              bootStorer,
-		ShardId:                 shardId,
+		ShardIDAsObserver:       shardIDAsObserver,
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleValidators,
 		WaitingNodes:            waitingValidators,

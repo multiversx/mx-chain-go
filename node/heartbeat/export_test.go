@@ -25,7 +25,6 @@ func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
 		computedShardID:             0,
 		versionNumber:               "",
 		nodeDisplayName:             "",
-		isValidator:                 false,
 		lastUptimeDowntime:          time.Time{},
 		genesisTime:                 time.Time{},
 	}
@@ -41,13 +40,13 @@ func (m *Monitor) AddHeartbeatMessageToMap(hb *Heartbeat) {
 
 func NewHeartbeatMessageInfo(
 	maxDurationPeerUnresponsive time.Duration,
-	isValidator bool,
+	peerType string,
 	genesisTime time.Time,
 	timer Timer,
 ) (*heartbeatMessageInfo, error) {
 	return newHeartbeatMessageInfo(
 		maxDurationPeerUnresponsive,
-		isValidator,
+		peerType,
 		genesisTime,
 		timer,
 	)

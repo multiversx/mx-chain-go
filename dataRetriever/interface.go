@@ -147,7 +147,7 @@ type TopicMessageHandler interface {
 
 // IntRandomizer interface provides functionality over generating integer numbers
 type IntRandomizer interface {
-	Intn(n int) (int, error)
+	Intn(n int) int
 	IsInterfaceNil() bool
 }
 
@@ -183,6 +183,7 @@ type Notifier interface {
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
 	PeerList() []p2p.PeerID
+	IntraShardPeerList() []p2p.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -224,6 +225,7 @@ type HeadersPool interface {
 	Len() int
 	MaxSize() int
 	IsInterfaceNil() bool
+	GetNumHeaders(shardId uint32) int
 }
 
 // TransactionCacher defines the methods for the local cacher, info for current round
