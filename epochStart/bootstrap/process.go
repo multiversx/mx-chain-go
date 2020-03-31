@@ -513,6 +513,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.marshalizer,
 		e.hasher,
 		e.epochStartMeta.Epoch,
+		e.uint64Converter,
 	)
 	if err != nil {
 		return err
@@ -614,6 +615,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.marshalizer,
 		e.hasher,
 		e.baseData.lastEpoch,
+		e.uint64Converter,
 	)
 	if err != nil {
 		return err

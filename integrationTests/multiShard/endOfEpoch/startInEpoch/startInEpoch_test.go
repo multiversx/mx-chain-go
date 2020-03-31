@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -152,7 +153,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	_ = logger.SetLogLevel("*:DEBUG")
-
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
@@ -174,20 +175,18 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		DefaultEpochString:         "test_epoch",
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
-		DestinationShardAsObserver: "0",
+		DestinationShardAsObserver: "metachain",
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
+		Uint64Converter:            uint64Converter,
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
 	_, err = epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
-	//assert.Equal(t, epoch, params.Epoch)
-	//assert.Equal(t, uint32(0), params.SelfShardId)
-	//assert.Equal(t, uint32(2), params.NumOfShards)
 
-	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	shardC, _ := sharding.NewMultiShardCoordinator(2, core.MetachainShardId)
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
@@ -196,7 +195,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		&mock.EpochStartNotifierStub{},
 		0)
 	assert.NoError(t, err)
-	storageServiceShard, err := storageFactory.CreateForShard()
+	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)
 	assert.NotNil(t, storageServiceShard)
 
@@ -209,15 +208,13 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 
 	bootstrapperArgs := storageBootstrap.ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: storageBootstrap.ArgsBaseStorageBootstrapper{
-			BootStorer: bootstrapStorer,
-			ForkDetector: &mock.ForkDetectorMock{
-				RestoreToGenesisCalled: func() {},
-			},
+			BootStorer:          bootstrapStorer,
+			ForkDetector:        &mock.ForkDetectorStub{},
 			BlockProcessor:      &mock.BlockProcessorMock{},
 			ChainHandler:        &mock.BlockChainMock{},
 			Marshalizer:         integrationTests.TestMarshalizer,
 			Store:               storageServiceShard,
-			Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+			Uint64Converter:     uint64Converter,
 			BootstrapRoundIndex: round,
 			ShardCoordinator:    shardC,
 			NodesCoordinator:    &mock.NodesCoordinatorMock{},
@@ -244,7 +241,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	err = bootstrapper.LoadFromStorage()
 	assert.NoError(t, err)
 	highestNonce := bootstrapper.GetHighestBlockNonce()
-	assert.Equal(t, uint64(22), highestNonce)
+	assert.Equal(t, uint64(19), highestNonce)
 }
 
 func createTries(

@@ -121,10 +121,10 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock *block.MetaBlock) 
 	return headerHash, nil
 }
 
-func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) error {
+func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]byte, error) {
 	headerBytes, err := bsh.marshalizer.Marshal(hdr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	headerHash := bsh.hasher.Compute(string(headerBytes))
@@ -132,17 +132,17 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) err
 	shardHdrStorage := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
 	err = shardHdrStorage.Put(headerHash, headerBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(hdr.GetNonce())
 	shardHdrNonceStorage := bsh.storageService.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(hdr.GetShardID()))
 	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return headerHash, nil
 }
 
 func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock *block.MetaBlock) error {

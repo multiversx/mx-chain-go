@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -34,6 +35,7 @@ func NewShardStorageHandler(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	currentEpoch uint32,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -58,6 +60,7 @@ func NewShardStorageHandler(
 		marshalizer:      marshalizer,
 		hasher:           hasher,
 		currentEpoch:     currentEpoch,
+		uint64Converter:  uint64Converter,
 	}
 
 	return &shardStorageHandler{baseStorageHandler: base}, nil
@@ -277,17 +280,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBl
 }
 
 func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (bootstrapStorage.BootstrapHeaderInfo, error) {
-	lastHeaderHash, err := core.CalculateHash(ssh.marshalizer, ssh.hasher, shardHeader)
-	if err != nil {
-		return bootstrapStorage.BootstrapHeaderInfo{}, err
-	}
-
-	lastHeaderBytes, err := ssh.marshalizer.Marshal(shardHeader)
-	if err != nil {
-		return bootstrapStorage.BootstrapHeaderInfo{}, err
-	}
-
-	err = ssh.storageService.GetStorer(dataRetriever.BlockHeaderUnit).Put(lastHeaderHash, lastHeaderBytes)
+	lastHeaderHash, err := ssh.saveShardHdrToStorage(shardHeader)
 	if err != nil {
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
 	}

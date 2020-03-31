@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -33,6 +34,7 @@ func NewMetaStorageHandler(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	currentEpoch uint32,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -57,6 +59,7 @@ func NewMetaStorageHandler(
 		marshalizer:      marshalizer,
 		hasher:           hasher,
 		currentEpoch:     currentEpoch,
+		uint64Converter:  uint64Converter,
 	}
 
 	return &metaStorageHandler{baseStorageHandler: base}, nil
@@ -172,7 +175,7 @@ func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
 			return nil, epochStart.ErrMissingHeader
 		}
 
-		err := msh.saveShardHdrToStorage(hdr)
+		_, err := msh.saveShardHdrToStorage(hdr)
 		if err != nil {
 			return nil, err
 		}

@@ -244,11 +244,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsResolvers := ArgsNewResolversContainerFactory{
-		ShardCoordinator:  e.shardCoordinator,
-		Messenger:         e.messenger,
-		Marshalizer:       e.marshalizer,
-		DataTrieContainer: dataTries,
-		ExistingResolvers: e.existingResolvers,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Marshalizer:                e.marshalizer,
+		DataTrieContainer:          dataTries,
+		ExistingResolvers:          e.existingResolvers,
+		NumConcurrentResolvingJobs: 100,
 	}
 	resolversContainerFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
