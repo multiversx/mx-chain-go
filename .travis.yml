@@ -37,13 +37,13 @@ script:
 - GOARCH=$(go env GOARCH)
 - cd $TRAVIS_BUILD_DIR
 - ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
-- if [ $GOOS == "linux" && $GOARCH == "amd64" ]; then
+- if [ "$GOOS" == "linux" && "$GOARCH" == "amd64" ]; then
     cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_amd64.so $TRAVIS_BUILD_DIR/build/$ERD_PACKAGE;
   fi
-- if [ $GOOS == "linux" && $GOARCH == "arm64" ]; then
+- if [ "$GOOS" == "linux" && "$GOARCH" == "arm64" ]; then
     cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_arm64.so $TRAVIS_BUILD_DIR/build/$ERD_PACKAGE;
   fi
-- if [ $GOOS == "darwin" && $GOARCH == "amd64" ]; then
+- if [ "$GOOS" == "darwin" && "$GOARCH" == "amd64" ]; then
     cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_darwin_amd64.dylib $TRAVIS_BUILD_DIR/build/$ERD_PACKAGE;
   fi
 
