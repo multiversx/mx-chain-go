@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -152,7 +153,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
-			blockBytes := make([]byte, 343)
+			blockBytes := make([]byte, 353)
 			_, _ = req.Body.Read(blockBytes)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)
@@ -199,6 +200,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	shardId := uint32(0)
+	epoch := uint32(0)
 	valPubKeys := []string{"key1", "key2"}
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
@@ -208,7 +210,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 		},
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, epoch, valPubKeys)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -220,17 +222,18 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardId := uint32(0)
+	epoch := uint32(0)
 	valPubKeys := []string{"key1", "key2"}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
-			require.Equal(t, strconv.FormatUint(uint64(shardId), 10), req.DocumentID)
+			require.Equal(t, fmt.Sprintf("%d_%d", shardId, epoch), req.DocumentID)
 			return nil
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, epoch, valPubKeys)
 }
 
 func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {

@@ -33,6 +33,7 @@ type Transaction struct {
 type Block struct {
 	Nonce                 uint64        `json:"nonce"`
 	Round                 uint64        `json:"round"`
+	Epoch                 uint32        `json:"epoch"`
 	Hash                  string        `json:"hash"`
 	MiniBlocksHashes      []string      `json:"miniBlocksHashes"`
 	NotarizedBlocksHashes []string      `json:"notarizedBlocksHashes"`
@@ -59,6 +60,18 @@ type RoundInfo struct {
 	BlockWasProposed bool          `json:"blockWasProposed"`
 	ShardId          uint32        `json:"shardId"`
 	Timestamp        time.Duration `json:"timestamp"`
+}
+
+// ValidatorsRatingInfo is a structure containing validators information
+type ValidatorsRatingInfo struct {
+	ValidatorsInfos []ValidatorRatingInfo `json:"validatorsRating"`
+}
+
+// ValidatorRatingInfo is a structure containing validator rating information
+type ValidatorRatingInfo struct {
+	PubKeyIndex uint64  `json:"pubKeyIndex"`
+	Rating      float32 `json:"rating"`
+	TempRating  float32 `json:"tempRating"`
 }
 
 // TPS is a structure containing all the fields that need to

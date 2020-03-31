@@ -31,14 +31,14 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if arguments.Password == "" {
 		return ErrEmptyPassword
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return core.ErrNilCoordinator
-	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.Hasher) {
 		return core.ErrNilHasher
+	}
+	if check.IfNil(arguments.NodesCoordinator) {
+		return core.ErrNilNodesCoordinator
 	}
 
 	return nil

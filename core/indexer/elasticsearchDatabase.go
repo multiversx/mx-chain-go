@@ -85,6 +85,10 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 	if err != nil {
 		return err
 	}
+	err = esd.dbWriter.CheckAndCreateIndex(ratingIndex, nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -142,6 +146,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 	elasticBlock := Block{
 		Nonce:                 header.GetNonce(),
 		Round:                 header.GetRound(),
+		Epoch:                 header.GetEpoch(),
 		ShardID:               header.GetShardID(),
 		Hash:                  hex.EncodeToString(headerHash),
 		MiniBlocksHashes:      miniblocksHashes,
@@ -292,7 +297,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId, epoch uint32, shardValidatorsPubKeys []string) {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
@@ -310,7 +315,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 
 	req := &esapi.IndexRequest{
 		Index:      validatorsIndex,
-		DocumentID: strconv.FormatUint(uint64(shardId), 10),
+		DocumentID: fmt.Sprintf("%d_%d", epoch, shardId),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
@@ -318,6 +323,38 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 	err = esd.dbWriter.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index validators pubkey", "error", err.Error())
+		return
+	}
+}
+
+// SaveValidatorsRating will save validators rating
+func (esd *elasticSearchDatabase) SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo) {
+	var buff bytes.Buffer
+
+	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
+
+	marshalizedInfoRating, err := json.Marshal(&infosRating)
+	if err != nil {
+		log.Debug("indexer: marshal", "error", "could not marshal validators rating")
+		return
+	}
+
+	buff.Grow(len(marshalizedInfoRating))
+	_, err = buff.Write(marshalizedInfoRating)
+	if err != nil {
+		log.Warn("elastic search: save validators rating, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      ratingIndex,
+		DocumentID: Index,
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	err = esd.dbWriter.DoRequest(req)
+	if err != nil {
+		log.Warn("indexer: can not index validators rating", "error", err.Error())
 		return
 	}
 }

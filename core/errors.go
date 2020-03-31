@@ -10,8 +10,8 @@ var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher provided")
 
-// ErrNilCoordinator signals that a nil shardCoordinator has been provided
-var ErrNilCoordinator = errors.New("nil coordinator provided")
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
 // ErrInvalidValue signals that a nil value has been provided
 var ErrInvalidValue = errors.New("invalid value provided")

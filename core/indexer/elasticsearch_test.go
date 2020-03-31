@@ -36,10 +36,10 @@ func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 		Url:              "url",
 		UserName:         "user",
 		Password:         "password",
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &mock.HasherMock{},
 		Options:          &indexer.Options{},
+		NodesCoordinator: &mock.NodesCoordinatorMock{},
 	}
 }
 
@@ -51,15 +51,6 @@ func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilUrl, err)
-}
-
-func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.T) {
-	arguments := NewElasticIndexerArguments()
-	arguments.ShardCoordinator = nil
-	ei, err := indexer.NewElasticIndexer(arguments)
-
-	require.Nil(t, ei)
-	require.Equal(t, core.ErrNilCoordinator, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
@@ -250,7 +241,8 @@ func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
 
 	keys := [][]byte{[]byte("key")}
 	valPubKey[0] = keys
-	ei.SaveValidatorsPubKeys(valPubKey)
+	epoch := uint32(0)
+	ei.SaveValidatorsPubKeys(valPubKey, epoch)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)

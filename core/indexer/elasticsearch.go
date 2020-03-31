@@ -4,10 +4,13 @@ import (
 	"encoding/hex"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,20 +25,22 @@ type Options struct {
 
 //ElasticIndexerArgs is struct that is used to store all components that are needed to create a indexer
 type ElasticIndexerArgs struct {
-	Url              string
-	UserName         string
-	Password         string
-	ShardCoordinator sharding.Coordinator
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	Options          *Options
+	ShardId            uint32
+	Url                string
+	UserName           string
+	Password           string
+	Marshalizer        marshal.Marshalizer
+	Hasher             hashing.Hasher
+	EpochStartNotifier sharding.EpochStartSubscriber
+	NodesCoordinator   sharding.NodesCoordinator
+	Options            *Options
 }
 
 type elasticIndexer struct {
-	database         databaseHandler
-	shardCoordinator sharding.Coordinator
-	options          *Options
-	isNilIndexer     bool
+	database     databaseHandler
+	options      *Options
+	coordinator  sharding.NodesCoordinator
+	isNilIndexer bool
 }
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
@@ -59,10 +64,14 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 
 	indexer := &elasticIndexer{
-		database:         client,
-		shardCoordinator: arguments.ShardCoordinator,
-		options:          arguments.Options,
-		isNilIndexer:     false,
+		database:     client,
+		options:      arguments.Options,
+		coordinator:  arguments.NodesCoordinator,
+		isNilIndexer: false,
+	}
+
+	if arguments.ShardId == core.MetachainShardId {
+		arguments.EpochStartNotifier.RegisterHandler(indexer.epochStartEventHandler())
 	}
 
 	return indexer, nil
@@ -95,7 +104,7 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 
 	if ei.options.TxIndexingEnabled {
-		go ei.database.SaveTransactions(body, headerHandler, txPool, ei.shardCoordinator.SelfId())
+		go ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
 	}
 }
 
@@ -104,16 +113,38 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	ei.database.SaveRoundInfo(roundInfo)
 }
 
-//SaveValidatorsPubKeys will send all validators public keys to elastic search
-func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	valPubKeys := make(map[uint32][]string)
-	for shardId, shardPubKeys := range validatorsPubKeys {
-		for _, pubKey := range shardPubKeys {
-			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
+func (ei *elasticIndexer) epochStartEventHandler() epochStart.EpochStartHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		currentEpoch := hdr.GetEpoch()
+		validatorsPubKeys, err := ei.coordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)
+		if err != nil {
+			log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
 		}
-		go func(id uint32, publicKeys []string) {
-			ei.database.SaveShardValidatorsPubKeys(id, publicKeys)
-		}(shardId, valPubKeys[shardId])
+
+		ei.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+
+	}, func(_ data.HeaderHandler) {}, core.IndexerOrder)
+
+	return subscribeHandler
+}
+
+// SaveValidatorsRating will send all validators rating info to elasticsearch
+func (ei *elasticIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []ValidatorRatingInfo) {
+	if validatorsRatingInfo != nil && indexID != "" {
+		ei.database.SaveValidatorsRating(indexID, validatorsRatingInfo)
+	}
+}
+
+//SaveValidatorsPubKeys will send all validators public keys to elasticsearch
+func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
+	valPubKeys := make(map[uint32][]string)
+	for shardID, shardPubKeys := range validatorsPubKeys {
+		for _, pubKey := range shardPubKeys {
+			valPubKeys[shardID] = append(valPubKeys[shardID], hex.EncodeToString(pubKey))
+		}
+		go func(id, epochNumber uint32, publicKeys []string) {
+			ei.database.SaveShardValidatorsPubKeys(id, epochNumber, publicKeys)
+		}(shardID, epoch, valPubKeys[shardID])
 	}
 }
 

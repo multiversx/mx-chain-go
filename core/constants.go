@@ -259,6 +259,8 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
 )
 
 // NodeState specifies what type of state a node could have

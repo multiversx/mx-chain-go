@@ -16,7 +16,8 @@ type Indexer interface {
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
 	SaveRoundInfo(roundInfo RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
-	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte)
+	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
+	SaveValidatorsRating(indexID string, infoRating []ValidatorRatingInfo)
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
 }
@@ -26,7 +27,8 @@ type databaseHandler interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
 	SaveRoundInfo(info RoundInfo)
-	SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string)
+	SaveShardValidatorsPubKeys(shardId, epoch uint32, shardValidatorsPubKeys []string)
+	SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo)
 	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark)
 }
 

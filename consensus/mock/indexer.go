@@ -17,6 +17,11 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 	panic("implement me")
 }
 
+// SaveValidatorsRating --
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+
+}
+
 // UpdateTPS -
 func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 	panic("implement me")
@@ -28,7 +33,7 @@ func (im *IndexerMock) SaveRoundInfo(_ indexer.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -
-func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte) {
+func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
 }
 

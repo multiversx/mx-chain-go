@@ -11,6 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -517,6 +518,52 @@ func (mp *metaProcessor) indexBlock(
 	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+
+	mp.indexValidatorsRating(publicKeys, metaBlock)
+}
+
+func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock data.HeaderHandler) {
+	latestHash, err := mp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return
+	}
+
+	validators, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(latestHash)
+	if err != nil {
+		return
+	}
+
+	for shardID, validatorInfosInShard := range validators {
+		pKeys := make([]string, 0)
+		rating := make([]float32, 0)
+		tempRating := make([]float32, 0)
+		for _, validatorInfo := range validatorInfosInShard {
+			pKeys = append(pKeys, string(validatorInfo.PublicKey))
+			rating = append(rating, float32(validatorInfo.Rating)*100/1000000)
+			tempRating = append(tempRating, float32(validatorInfo.TempRating)*100/1000000)
+		}
+
+		validatorsIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+		if err != nil {
+			continue
+		}
+
+		if len(rating) == 0 || len(tempRating) == 0 {
+			continue
+		}
+
+		validatorsInfos := make([]indexer.ValidatorRatingInfo, 0)
+		for idx, index := range validatorsIndexes {
+			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
+				PubKeyIndex: index,
+				Rating:      rating[idx],
+				TempRating:  tempRating[idx],
+			})
+		}
+
+		indexID := fmt.Sprintf("%d_%d_%d", shardID, metaBlock.GetEpoch(), metaBlock.GetNonce())
+		mp.core.Indexer().SaveValidatorsRating(indexID, validatorsInfos)
+	}
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
