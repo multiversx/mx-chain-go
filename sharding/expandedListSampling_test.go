@@ -48,12 +48,22 @@ func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
 
 func TestNewSelectorExpandedListOK(t *testing.T) {
 	validators := createDummyNodesList(10, "shard_0")
-	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
+	weights := createDummyWeights(10, 32, 2, nextWeightArithmeticProgression)
 	hasher := &sha256.Sha256{}
 
 	selector, err := NewSelectorExpandedList(validators, weights, hasher)
 	require.Nil(t, err)
 	require.NotNil(t, selector)
+
+	for i := uint32(0); i < uint32(len(validators)); i++ {
+		offset := uint32(0)
+		if i > 0 {
+			offset = weights[i-1]
+		}
+		for j := i + offset; j < weights[i]; j++ {
+			require.Equal(t, selector.expandedList[j], i)
+		}
+	}
 }
 
 func TestSelectorExpandedList_IsInterfaceNil(t *testing.T) {

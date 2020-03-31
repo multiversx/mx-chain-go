@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
+var _ RandomSelector = (*selectorExpandedList)(nil)
+
 type selectorExpandedList struct {
 	validator         []Validator
 	expandedList      []uint32
@@ -17,7 +19,7 @@ const minWeight = 1
 
 // NewSelectorExpandedList creates a new selector initializing selection set to the given lists of validators
 // and expanding it according to each validator weight.
-func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher hashing.Hasher) (RandomSelector, error) {
+func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher hashing.Hasher) (*selectorExpandedList, error) {
 	if len(validators) == 0 {
 		return nil, ErrNilValidators
 	}

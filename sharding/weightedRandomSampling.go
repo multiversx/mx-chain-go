@@ -11,6 +11,8 @@ import (
 
 const maxUint64 = 0xFFFFFFFFFFFFFFFF
 
+var _ RandomSelector = (*selectorWRS)(nil)
+
 type keyIndex struct {
 	key   float64
 	index uint32
@@ -23,7 +25,7 @@ type selectorWRS struct {
 }
 
 // NewSelectorWRS creates a new selector initializing selection set to the given lists of weights
-func NewSelectorWRS(weightList []uint32, hasher hashing.Hasher) (RandomSelector, error) {
+func NewSelectorWRS(weightList []uint32, hasher hashing.Hasher) (*selectorWRS, error) {
 	if len(weightList) == 0 {
 		return nil, ErrNilWeights
 	}

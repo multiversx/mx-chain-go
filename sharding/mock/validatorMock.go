@@ -11,8 +11,8 @@ type ValidatorMock struct {
 }
 
 // NewValidatorMock -
-func NewValidatorMock(pubKey []byte, address []byte) *ValidatorMock {
-	return &ValidatorMock{pubKey: pubKey, address: address}
+func NewValidatorMock(pubKey []byte, address []byte, chances uint32) *ValidatorMock {
+	return &ValidatorMock{pubKey: pubKey, address: address, chances: chances}
 }
 
 // PubKey -
