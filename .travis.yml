@@ -33,6 +33,8 @@ script:
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
 
+- GOOS=$(go env GOOS)
+- GOARCH=$(go env GOARCH)
 - cd $TRAVIS_BUILD_DIR
 - ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
 - if [ $GOOS == "linux" && $GOARCH == "amd64" ]; then
