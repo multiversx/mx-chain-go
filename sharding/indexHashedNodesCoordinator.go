@@ -208,7 +208,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	}
 
 	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
-	nodesConfig.shardId = shardIDForSelfPublicKey
+	nodesConfig.shardID = shardIDForSelfPublicKey
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 

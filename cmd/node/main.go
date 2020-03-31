@@ -664,6 +664,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
+		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1175,6 +1176,7 @@ func createNodesCoordinator(
 	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
 	roundsPerEpoch int64,
+	currentShardID uint32,
 	chanStopNodeProcess chan bool,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
@@ -1218,10 +1220,7 @@ func createNodesCoordinator(
 	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * roundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
 	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
-	randDurationBeforeStop, err := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
-	if err != nil {
-		return nil, err
-	}
+	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
 	endOfProcessingHandler := func() error {
 		go func() {
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
@@ -1231,7 +1230,7 @@ func createNodesCoordinator(
 		}()
 		return nil
 	}
-	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, shardId, endOfProcessingHandler)
+	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, endOfProcessingHandler)
 	if err != nil {
 		return nil, err
 	}
