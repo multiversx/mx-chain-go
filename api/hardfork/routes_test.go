@@ -68,11 +68,7 @@ func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {
 
 	ws := startNodeServerWrongFacade()
 
-	trig := &hardfork.TriggerHardforkRequest{
-		Triggered: false,
-	}
-	jsonBytes, _ := json.Marshal(trig)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -81,50 +77,6 @@ func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, triggerResponse.Error, apiErrors.ErrInvalidAppContext.Error())
-}
-
-func TestTrigger_BindErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(&mock.HardforkFacade{})
-
-	badTrigObj := "bad trigger object"
-	jsonBytes, _ := json.Marshal(&badTrigObj)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
-
-	assert.Equal(t, resp.Code, http.StatusBadRequest)
-	assert.Contains(t, triggerResponse.Error, "cannot unmarshal string into Go value")
-}
-
-func TestTrigger_TriggerNotReallyExecutedShouldReturnOk(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func() error {
-			assert.Fail(t, "should not have called trigger")
-
-			return nil
-		},
-	})
-
-	trig := &hardfork.TriggerHardforkRequest{
-		Triggered: false,
-	}
-	jsonBytes, _ := json.Marshal(trig)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
-
-	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, hardfork.NotExecuted, triggerResponse.Status)
 }
 
 func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
@@ -137,11 +89,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 		},
 	})
 
-	trig := &hardfork.TriggerHardforkRequest{
-		Triggered: true,
-	}
-	jsonBytes, _ := json.Marshal(trig)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -164,11 +112,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 		},
 	})
 
-	trig := &hardfork.TriggerHardforkRequest{
-		Triggered: true,
-	}
-	jsonBytes, _ := json.Marshal(trig)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -191,11 +135,7 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 		},
 	})
 
-	trig := &hardfork.TriggerHardforkRequest{
-		Triggered: true,
-	}
-	jsonBytes, _ := json.Marshal(trig)
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 

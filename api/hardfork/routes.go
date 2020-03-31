@@ -1,14 +1,12 @@
 package hardfork
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/gin-gonic/gin"
 )
 
-const notExecuted = "not executed, trigger is not requested"
 const execManualTrigger = "executed, trigger is affecting only the current node"
 const execBroadcastTrigger = "executed, trigger is affecting current node and will get broadcast to other peers"
 
@@ -16,11 +14,6 @@ const execBroadcastTrigger = "executed, trigger is affecting current node and wi
 type TriggerHardforkHandler interface {
 	Trigger() error
 	IsSelfTrigger() bool
-}
-
-// TriggerHardforkRequest represents the structure that is posted by the client, requesting a trigger
-type TriggerHardforkRequest struct {
-	Triggered bool
 }
 
 // Routes defines node related routes
@@ -36,19 +29,7 @@ func Trigger(c *gin.Context) {
 		return
 	}
 
-	var gthr = TriggerHardforkRequest{}
-	err := c.ShouldBindJSON(&gthr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
-		return
-	}
-
-	if !gthr.Triggered {
-		c.JSON(http.StatusOK, gin.H{"status": notExecuted})
-		return
-	}
-
-	err = ef.Trigger()
+	err := ef.Trigger()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
