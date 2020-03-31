@@ -35,6 +35,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilMarshalizer signals that nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
+// ErrNilTxSignMarshalizer signals that nil tx sign marshalizer has been provided
+var ErrNilTxSignMarshalizer = errors.New("nil tx sign marshalizer")
+
 // ErrNilStorage signals that nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
@@ -139,3 +142,54 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")
+
+// ErrNilMessenger signals that a nil messenger has been provided
+var ErrNilMessenger = errors.New("nil messenger")
+
+// ErrNilEconomicsData signals that a nil economics data handler has been provided
+var ErrNilEconomicsData = errors.New("nil economics data")
+
+// ErrNilPubKey signals that a nil public key has been provided
+var ErrNilPubKey = errors.New("nil public key")
+
+// ErrNilBlockKeyGen signals that a nil block key generator has been provided
+var ErrNilBlockKeyGen = errors.New("nil block key generator")
+
+// ErrNilKeyGen signals that a nil key generator has been provided
+var ErrNilKeyGen = errors.New("nil key generator")
+
+// ErrNilSingleSigner signals that a nil single signer has been provided
+var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrNilBlockSingleSigner signals that a nil block single signer has been provided
+var ErrNilBlockSingleSigner = errors.New("nil block single signer")
+
+// ErrNilGenesisNodesConfig signals that a nil genesis nodes config has been provided
+var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
+
+// ErrNilRater signals that a nil rater has been provided
+var ErrNilRater = errors.New("nil rater")
+
+// ErrNilTriesContainer signals that a nil tries container has been provided
+var ErrNilTriesContainer = errors.New("nil tries container")
+
+// ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
+
+// ErrInvalidDestinationShardAsObserver signals that an invalid destination shard as observer has been provided
+var ErrInvalidDestinationShardAsObserver = errors.New("invalid destination shard as observer")
+
+// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
+var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
+
+// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
+var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
+
+// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
+var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
+
+// ErrInvalidWorkingDir signals that an invalid working directory has been provided
+var ErrInvalidWorkingDir = errors.New("invalid working directory")

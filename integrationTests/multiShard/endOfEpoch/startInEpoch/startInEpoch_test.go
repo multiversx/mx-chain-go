@@ -218,7 +218,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 			Marshalizer:         integrationTests.TestMarshalizer,
 			Store:               storageServiceShard,
 			Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
-			BootstrapRoundIndex: round + 3,
+			BootstrapRoundIndex: round,
 			ShardCoordinator:    shardC,
 			NodesCoordinator:    &mock.NodesCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
@@ -332,6 +332,23 @@ func getGeneralConfig() config.Config {
 			FullArchive:         true,
 			NumEpochsToKeep:     3,
 			NumActivePersisters: 3,
+		},
+		EvictionWaitingList: config.EvictionWaitingListConfig{
+			Size: 100,
+			DB: config.DBConfig{
+				FilePath:          "EvictionWaitingList",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TrieSnapshotDB: config.DBConfig{
+			FilePath:          "TrieSnapshot",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 30,
+			MaxBatchSize:      6,
+			MaxOpenFiles:      10,
 		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{

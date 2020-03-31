@@ -151,6 +151,11 @@ type ArgsEpochStartBootstrap struct {
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
 func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
+	err := checkArguments(args)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartProvider := &epochStartBootstrap{
 		publicKey:                  args.PublicKey,
 		marshalizer:                args.Marshalizer,
