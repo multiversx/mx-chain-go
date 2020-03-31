@@ -34,8 +34,8 @@ type NodeStub struct {
 }
 
 // Start -
-func (ns *NodeStub) Start() error {
-	return ns.StartHandler()
+func (ns *NodeStub) Start() {
+	ns.StartHandler()
 }
 
 // IsRunning -

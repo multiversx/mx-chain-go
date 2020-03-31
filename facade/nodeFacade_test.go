@@ -113,12 +113,8 @@ func TestNodeFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 
 	started := false
 	node := &mock.NodeStub{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
-		},
-		P2PBootstrapHandler: func() error {
-			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started
@@ -139,41 +135,13 @@ func TestNodeFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 	assert.True(t, isRunning)
 }
 
-func TestNodeFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.T) {
-	t.Parallel()
-
-	started := false
-	node := &mock.NodeStub{
-		StartHandler: func() error {
-			return fmt.Errorf("error on start node")
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-	}
-
-	arg := createMockArguments()
-	arg.Node = node
-	nf, _ := NewNodeFacade(arg)
-
-	err := nf.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := nf.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
 func TestNodeFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
 	t.Parallel()
 
 	started := false
 	node := &mock.NodeStub{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
-		},
-		P2PBootstrapHandler: func() error {
-			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started

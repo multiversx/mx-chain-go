@@ -98,7 +98,7 @@ func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 
 // StartNode starts the underlying node
 func (nf *nodeFacade) StartNode() error {
-	ef.node.Start()
+	nf.node.Start()
 	return nf.node.StartConsensus()
 }
 
