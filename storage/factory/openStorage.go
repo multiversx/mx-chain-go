@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-// ArgsNewOpenStorageUnits -
+// ArgsNewOpenStorageUnits defines the arguments in order to open a set of storage units from disk
 type ArgsNewOpenStorageUnits struct {
 	GeneralConfig      config.Config
 	Marshalizer        marshal.Marshalizer
@@ -38,7 +38,8 @@ type openStorageUnits struct {
 	defaultShardString string
 }
 
-// NewStorageUnitOpenHandler -
+// TODO refactor this and unit tests
+// NewStorageUnitOpenHandler creates an openStorageUnits component
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
 		generalConfig:      args.GeneralConfig,
@@ -53,7 +54,7 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 	return o, nil
 }
 
-// OpenStorageUnits -
+// OpenStorageUnits opens the defined storage units from the disk if they exists
 func (o *openStorageUnits) OpenStorageUnits(
 	storageUnits []string,
 ) ([]storage.Storer, error) {
@@ -149,6 +150,8 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 
 	return mostRecentShard, nil
 }
+
+// TODO refactor this and test it
 
 // FindLatestDataFromStorage finds the last data (such as last epoch, shard ID or round) by searching over the
 // storage folders and opening older databases

@@ -622,6 +622,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  pubKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
+		TxSignMarshalizer:          coreComponents.TxSignMarshalizer,
 		Hasher:                     coreComponents.Hasher,
 		Messenger:                  networkComponents.NetMessenger,
 		GeneralConfig:              *generalConfig,

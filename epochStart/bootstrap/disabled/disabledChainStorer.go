@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ChainStorer is a mock implementation of the ChianStorer interface
+// ChainStorer is a mock implementation of the ChainStorer interface
 type chainStorer struct {
 	mapStorages map[dataRetriever.UnitType]storage.Storer
 	mutex       sync.Mutex

@@ -8,7 +8,7 @@ import (
 type accountsAdapter struct {
 }
 
-// NewAccountsAdapter returns a new instance of accountsAdapter
+// NewAccountsAdapter returns a nil implementation of accountsAdapter
 func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }

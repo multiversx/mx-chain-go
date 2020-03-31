@@ -45,6 +45,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 ) ([]byte, error) {
 	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.RandSeed...)
 
+	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
 	registryBytes, err := json.Marshal(nodesConfig)
 	if err != nil {
 		return nil, err

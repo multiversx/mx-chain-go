@@ -55,8 +55,10 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 
 	nodes := convertToSlice(nodesMap)
 
+	// TODO: refactor test - node to join late should be created late.
 	nodeToJoinLate := nodes[numNodesPerShardOnline] // will return the last node in shard 0 which was not used in consensus
 	_ = nodeToJoinLate.Messenger.Close()            // set not offline
+	// TODO: call nodeToJoinLate.Messenger.Bootstrap() later in the test and followed by a time.sleep as to allow it to bootstrap its peers.
 
 	nodes = append(nodes[:numNodesPerShardOnline], nodes[numNodesPerShardOnline+1:]...)
 	nodes = append(nodes[:2*numNodesPerShardOnline], nodes[2*numNodesPerShardOnline+1:]...)
@@ -124,6 +126,8 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
 	}
 
+	// TODO: refactor this test in another PR
+
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
@@ -149,6 +153,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
 		Marshalizer:                integrationTests.TestMarshalizer,
+		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
 		Hasher:                     integrationTests.TestHasher,
 		Messenger:                  messenger,
 		GeneralConfig:              getGeneralConfig(),
@@ -201,7 +206,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	assert.NoError(t, err)
 
 	roundInt64 := roundFromStorage.Num
-	assert.Equal(t, int64(22), roundInt64)
+	assert.Equal(t, int64(21), roundInt64)
 
 	key := []byte(strconv.FormatInt(roundInt64, 10))
 	bootstrapDataBytes, err := bootstrapUnit.Get(key)
@@ -210,7 +215,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	var bd bootstrapStorage.BootstrapData
 	err = integrationTests.TestMarshalizer.Unmarshal(&bd, bootstrapDataBytes)
 	assert.NoError(t, err)
-	assert.Equal(t, epoch, bd.LastHeader.Epoch)
+	assert.Equal(t, epoch-1, bd.LastHeader.Epoch)
 }
 
 func createTries(

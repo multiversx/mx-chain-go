@@ -151,11 +151,9 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 
 func getEpochStartShardData(metaBlock *block.MetaBlock, shardId uint32) (block.EpochStartShardData, error) {
 	for _, epochStartShardData := range metaBlock.EpochStart.LastFinalizedHeaders {
-		if epochStartShardData.ShardID != shardId {
-			continue
+		if epochStartShardData.ShardID == shardId {
+			return epochStartShardData, nil
 		}
-
-		return epochStartShardData, nil
 	}
 
 	return block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
@@ -177,7 +175,7 @@ func (ssh *shardStorageHandler) getProcessedMiniBlocks(
 	}
 
 	if check.IfNil(neededMeta) {
-		return nil, epochStart.ErrEpochStartDataForShardNotFound
+		return nil, epochStart.ErrMissingHeader
 	}
 
 	processedMbHashes := make([][]byte, 0)

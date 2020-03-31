@@ -44,14 +44,13 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	return u, nil
 }
 
-// SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts
+// SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), v.waitTime)
 	defer cancel()
-	v.ctx = ctx
 
-	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic)
+	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
 }

@@ -49,16 +49,15 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	return u, nil
 }
 
-// SyncAccounts will launch the syncing method to gather all the data needed for userAccounts
+// SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), u.waitTime)
 	defer cancel()
-	u.ctx = ctx
 
-	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic)
+	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
 	if err != nil {
 		return nil
 	}
@@ -69,7 +68,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = u.syncAccountDataTries(rootHashes)
+	err = u.syncAccountDataTries(rootHashes, ctx)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	return nil
 }
 
-func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
+func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
 	for _, rootHash := range rootHashes {
 		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher)
 		if err != nil {
@@ -91,7 +90,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
 		}
 		u.trieSyncers[string(rootHash)] = trieSyncer
 
-		err = trieSyncer.StartSyncing(rootHash, u.ctx)
+		err = trieSyncer.StartSyncing(rootHash, ctx)
 		if err != nil {
 			return err
 		}

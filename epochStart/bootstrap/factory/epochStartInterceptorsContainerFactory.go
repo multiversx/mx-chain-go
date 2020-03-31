@@ -19,12 +19,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+const timeSpanForBadHeaders = time.Minute
+
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
 	Config            config.Config
 	ShardCoordinator  sharding.Coordinator
-	Marshalizer       marshal.Marshalizer
+	TxSignMarshalizer marshal.Marshalizer
+	ProtoMarshalizer  marshal.Marshalizer
 	Hasher            hashing.Hasher
 	Messenger         process.TopicHandler
 	DataPool          dataRetriever.PoolsHolder
@@ -41,7 +44,6 @@ type ArgsEpochStartInterceptorContainer struct {
 func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
 	nodesCoordinator := disabled.NewNodesCoordinator()
 	storer := disabled.NewChainStorer()
-	txSignMarshalizer := marshal.JsonMarshalizer{}
 	antiFloodHandler := disabled.NewAntiFloodHandler()
 	multiSigner := disabled.NewMultiSigner()
 	accountsAdapter := disabled.NewAccountsAdapter()
@@ -52,7 +54,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	if err != nil {
 		return nil, err
 	}
-	blackListHandler := timecache.NewTimeCache(1 * time.Minute)
+	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := genesis.NewGenesisFeeHandler()
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
 	sizeCheckDelta := 0
@@ -64,8 +66,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		NodesCoordinator:       nodesCoordinator,
 		Messenger:              args.Messenger,
 		Store:                  storer,
-		ProtoMarshalizer:       args.Marshalizer,
-		TxSignMarshalizer:      &txSignMarshalizer,
+		ProtoMarshalizer:       args.ProtoMarshalizer,
+		TxSignMarshalizer:      args.TxSignMarshalizer,
 		Hasher:                 args.Hasher,
 		MultiSigner:            multiSigner,
 		DataPool:               args.DataPool,
