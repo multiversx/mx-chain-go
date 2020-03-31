@@ -109,8 +109,8 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	round := int64(components.EpochStartMetaBlock.Round)
-	roundNum := bootstrapStorage.RoundNum{Num: round}
+	roundToUseAsKey := int64(components.EpochStartMetaBlock.Round + 2)
+	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
 	roundNumBytes, err := msh.marshalizer.Marshal(&roundNum)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	if err != nil {
 		return err
 	}
-	key := []byte(strconv.FormatInt(round, 10))
+	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
 	err = bootStorer.Put(key, bootStrapDataBytes)
 	if err != nil {
 		return err

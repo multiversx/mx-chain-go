@@ -140,6 +140,11 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	if err != nil {
 		return err
 	}
+	key = []byte(strconv.FormatInt(roundToUseAsKey-2, 10))
+	err = bootStorer.Put(key, bootStrapDataBytes)
+	if err != nil {
+		return err
+	}
 
 	err = ssh.commitTries(components)
 	if err != nil {
