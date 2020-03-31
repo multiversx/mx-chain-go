@@ -47,10 +47,9 @@ type node interface {
 }
 
 type atomicBuffer interface {
-	len() int
 	add(rootHash []byte)
-	contains(rootHash []byte) bool
 	remove(rootHash []byte)
+	removeAll() map[string]struct{}
 }
 
 type snapshotNode interface {
