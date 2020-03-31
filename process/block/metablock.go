@@ -519,10 +519,20 @@ func (mp *metaProcessor) indexBlock(
 
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
+	if metaBlock.GetNonce() == 1 {
+		mp.indexValidatorsRating(publicKeys, metaBlock)
+		return
+	}
+
+	if !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
 	mp.indexValidatorsRating(publicKeys, metaBlock)
 }
 
 func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock data.HeaderHandler) {
+
 	latestHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return
@@ -536,11 +546,9 @@ func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock da
 	for shardID, validatorInfosInShard := range validators {
 		pKeys := make([]string, 0)
 		rating := make([]float32, 0)
-		tempRating := make([]float32, 0)
 		for _, validatorInfo := range validatorInfosInShard {
 			pKeys = append(pKeys, string(validatorInfo.PublicKey))
 			rating = append(rating, float32(validatorInfo.Rating)*100/1000000)
-			tempRating = append(tempRating, float32(validatorInfo.TempRating)*100/1000000)
 		}
 
 		validatorsIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
@@ -548,7 +556,7 @@ func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock da
 			continue
 		}
 
-		if len(rating) == 0 || len(tempRating) == 0 {
+		if len(rating) == 0 {
 			continue
 		}
 
@@ -557,11 +565,10 @@ func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock da
 			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
 				PubKeyIndex: index,
 				Rating:      rating[idx],
-				TempRating:  tempRating[idx],
 			})
 		}
 
-		indexID := fmt.Sprintf("%d_%d_%d", shardID, metaBlock.GetEpoch(), metaBlock.GetNonce())
+		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
 		mp.core.Indexer().SaveValidatorsRating(indexID, validatorsInfos)
 	}
 }

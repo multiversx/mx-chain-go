@@ -71,7 +71,6 @@ type ValidatorsRatingInfo struct {
 type ValidatorRatingInfo struct {
 	PubKeyIndex uint64  `json:"pubKeyIndex"`
 	Rating      float32 `json:"rating"`
-	TempRating  float32 `json:"tempRating"`
 }
 
 // TPS is a structure containing all the fields that need to
