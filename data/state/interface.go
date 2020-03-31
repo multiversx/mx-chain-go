@@ -95,7 +95,7 @@ type PeerAccountHandler interface {
 	SetTempRating(uint32)
 	GetConsecutiveProposerMisses() uint32
 	SetConsecutiveProposerMisses(uint322 uint32)
-	ResetAtNewEpoch() error
+	ResetAtNewEpoch()
 	AccountHandler
 }
 

@@ -453,11 +453,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
-
-			err = peerAccount.ResetAtNewEpoch()
-			if err != nil {
-				return err
-			}
+			peerAccount.ResetAtNewEpoch()
 
 			err = vs.peerAdapter.SaveAccount(peerAccount)
 			if err != nil {
