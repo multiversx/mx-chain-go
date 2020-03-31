@@ -26,3 +26,8 @@ message ValidatorInfo {
     uint32 TotalValidatorSuccess = 16;
     uint32 TotalValidatorFailure = 17;
 }
+
+message ShardValidatorInfo {
+    bytes PublicKey = 1;
+    uint32 TempRating = 5;
+}

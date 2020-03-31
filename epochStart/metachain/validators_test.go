@@ -131,8 +131,8 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 	})
 
 	for i, txHash := range bl.TxHashes {
-		vi := validatorCopy[i]
-		unmarshaledVi := &state.ValidatorInfo{}
+		vi := createShardValidatorInfo(validatorCopy[i])
+		unmarshaledVi := &state.ShardValidatorInfo{}
 		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
@@ -345,7 +345,8 @@ func createValidatorInfoMiniBlocks(
 		})
 
 		for index, validator := range validatorCopy {
-			marshalizedValidator, _ := arguments.Marshalizer.Marshal(validator)
+			shardValidator := createShardValidatorInfo(validator)
+			marshalizedValidator, _ := arguments.Marshalizer.Marshal(shardValidator)
 			miniBlock.TxHashes[index] = marshalizedValidator
 		}
 

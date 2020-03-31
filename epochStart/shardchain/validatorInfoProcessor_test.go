@@ -181,7 +181,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork
 
 	processCalled := false
 	args.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		ProcessCalled: func(info data.ValidatorInfoHandler) error {
+		ProcessCalled: func(info data.ShardValidatorInfoHandler) error {
 			processCalled = true
 
 			return nil
@@ -255,11 +255,10 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 
 	processCalled := false
 	args.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		ProcessCalled: func(info data.ValidatorInfoHandler) error {
+		ProcessCalled: func(info data.ShardValidatorInfoHandler) error {
 			processCalled = true
 
 			require.Equal(t, pk, info.GetPublicKey())
-			require.Equal(t, rating, info.GetRating())
 			require.Equal(t, tempRating, info.GetTempRating())
 
 			return nil
@@ -344,11 +343,10 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 
 	processCalled := false
 	args.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		ProcessCalled: func(info data.ValidatorInfoHandler) error {
+		ProcessCalled: func(info data.ShardValidatorInfoHandler) error {
 			processCalled = true
 
 			require.Equal(t, pk, info.GetPublicKey())
-			require.Equal(t, rating, info.GetRating())
 			require.Equal(t, tempRating, info.GetTempRating())
 
 			return nil
@@ -423,7 +421,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 	}
 
 	args.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		ProcessCalled: func(info data.ValidatorInfoHandler) error {
+		ProcessCalled: func(info data.ShardValidatorInfoHandler) error {
 			return nil
 		},
 	}

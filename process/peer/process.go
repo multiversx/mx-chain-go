@@ -908,14 +908,14 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 }
 
 // Process - processes a validatorInfo and updates fields
-func (vs *validatorStatistics) Process(vid data.ValidatorInfoHandler) error {
-	log.Trace("ValidatorInfoData", "pk", vid.GetPublicKey(), "rating", vid.GetRating(), "tempRating", vid.GetTempRating())
+func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error {
+	log.Trace("ValidatorInfoData", "pk", svi.GetPublicKey(), "tempRating", svi.GetTempRating())
 
-	pa, err := vs.GetPeerAccount(vid.GetPublicKey())
+	pa, err := vs.GetPeerAccount(svi.GetPublicKey())
 	if err != nil {
 		return err
 	}
 
-	pa.SetRating(vid.GetTempRating())
+	pa.SetRating(svi.GetTempRating())
 	return vs.peerAdapter.SaveAccount(pa)
 }

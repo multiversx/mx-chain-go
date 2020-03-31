@@ -14,14 +14,14 @@ type ValidatorStatisticsProcessorStub struct {
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
-	ProcessCalled                            func(vid data.ValidatorInfoHandler) error
+	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 }
 
 // Process -
-func (vsp *ValidatorStatisticsProcessorStub) Process(vid data.ValidatorInfoHandler) error {
+func (vsp *ValidatorStatisticsProcessorStub) Process(validatorInfo data.ShardValidatorInfoHandler) error {
 	if vsp.ProcessCalled != nil {
-		return vsp.ProcessCalled(vid)
+		return vsp.ProcessCalled(validatorInfo)
 	}
 
 	return nil

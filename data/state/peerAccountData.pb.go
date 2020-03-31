@@ -285,6 +285,7 @@ func (m *ValidatorApiResponse) GetTotalNumValidatorFailure() uint32 {
 	return 0
 }
 
+// PeerAccountData represents the data that defines the PeerAccount
 type PeerAccountData struct {
 	BLSPublicKey               []byte        `protobuf:"bytes,1,opt,name=BLSPublicKey,proto3" json:"BLSPublicKey,omitempty"`
 	SchnorrPublicKey           []byte        `protobuf:"bytes,2,opt,name=SchnorrPublicKey,proto3" json:"SchnorrPublicKey,omitempty"`

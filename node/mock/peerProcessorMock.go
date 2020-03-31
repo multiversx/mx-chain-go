@@ -15,7 +15,7 @@ type ValidatorStatisticsProcessorMock struct {
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessCalled                            func(validatorInfo data.ValidatorInfoHandler) error
+	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
 }
@@ -29,7 +29,7 @@ func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderH
 }
 
 // Process -
-func (vsp *ValidatorStatisticsProcessorMock) Process(validatorInfo data.ValidatorInfoHandler) error {
+func (vsp *ValidatorStatisticsProcessorMock) Process(validatorInfo data.ShardValidatorInfoHandler) error {
 	if vsp.ProcessCalled != nil {
 		return vsp.ProcessCalled(validatorInfo)
 	}

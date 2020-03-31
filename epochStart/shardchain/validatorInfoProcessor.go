@@ -145,7 +145,7 @@ func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.Met
 
 		mb := vip.allPeerMiniblocks[string(peerMiniBlock.Hash)].mb
 		for _, txHash := range mb.TxHashes {
-			vid := &state.ValidatorInfo{}
+			vid := &state.ShardValidatorInfo{}
 			err := vip.marshalizer.Unmarshal(vid, txHash)
 			if err != nil {
 				return err
