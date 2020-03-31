@@ -12,6 +12,7 @@ const keyPrefix = "indexHashed_"
 type SerializableValidator struct {
 	PubKey  []byte `json:"pubKey"`
 	Address []byte `json:"address"`
+	Chances uint32 `json:"chances"`
 }
 
 // EpochValidators holds one epoch configuration for a nodes coordinator
@@ -41,6 +42,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
+	ihgs.loadingFromDisk.Store(true)
 	data, err := ihgs.bootStorer.Get(ncInternalkey)
 	if err != nil {
 		return err
@@ -68,6 +70,8 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihgs.mutNodesConfig.Lock()
 	ihgs.nodesConfig = nodesConfig
 	ihgs.mutNodesConfig.Unlock()
+
+	ihgs.loadingFromDisk.Store(false)
 
 	return nil
 }
@@ -212,6 +216,7 @@ func validatorArrayToSerializableValidatorArray(validators []Validator) []*Seria
 		result[i] = &SerializableValidator{
 			PubKey:  v.PubKey(),
 			Address: v.Address(),
+			Chances: v.Chances(),
 		}
 	}
 
@@ -223,7 +228,7 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 	var err error
 
 	for i, v := range sValidators {
-		result[i], err = NewValidator(v.PubKey, v.Address)
+		result[i], err = NewValidator(v.PubKey, v.Address, v.Chances)
 		if err != nil {
 			return nil, err
 		}

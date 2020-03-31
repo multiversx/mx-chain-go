@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -80,6 +80,8 @@ const (
 	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
 	ValidatorAccount Type = 1
 )
+
+const defaultChancesSelection = 1
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -1717,7 +1719,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 			if err != nil {
 				return nil
 			}
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address)
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address, defaultChancesSelection)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators

@@ -19,6 +19,8 @@ type Coordinator interface {
 type Validator interface {
 	PubKey() []byte
 	Address() []byte
+	Chances() uint32
+	SetChances(chances uint32)
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection

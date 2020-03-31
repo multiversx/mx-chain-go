@@ -4,6 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const defaultSelectionChances = 1
+
 // NodesCoordinatorMock -
 type NodesCoordinatorMock struct {
 	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
@@ -24,15 +26,15 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	}
 
 	list := []sharding.Validator{
-		NewValidatorMock([]byte("A"), []byte("AA")),
-		NewValidatorMock([]byte("B"), []byte("BB")),
-		NewValidatorMock([]byte("C"), []byte("CC")),
-		NewValidatorMock([]byte("D"), []byte("DD")),
-		NewValidatorMock([]byte("E"), []byte("EE")),
-		NewValidatorMock([]byte("F"), []byte("FF")),
-		NewValidatorMock([]byte("G"), []byte("GG")),
-		NewValidatorMock([]byte("H"), []byte("HH")),
-		NewValidatorMock([]byte("I"), []byte("II")),
+		NewValidatorMock([]byte("A"), []byte("AA"), defaultSelectionChances),
+		NewValidatorMock([]byte("B"), []byte("BB"), defaultSelectionChances),
+		NewValidatorMock([]byte("C"), []byte("CC"), defaultSelectionChances),
+		NewValidatorMock([]byte("D"), []byte("DD"), defaultSelectionChances),
+		NewValidatorMock([]byte("E"), []byte("EE"), defaultSelectionChances),
+		NewValidatorMock([]byte("F"), []byte("FF"), defaultSelectionChances),
+		NewValidatorMock([]byte("G"), []byte("GG"), defaultSelectionChances),
+		NewValidatorMock([]byte("H"), []byte("HH"), defaultSelectionChances),
+		NewValidatorMock([]byte("I"), []byte("II"), defaultSelectionChances),
 	}
 
 	return list, nil
@@ -140,24 +142,9 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	panic("not implemented")
 }
 
-// SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
-	return nil
-}
-
 // ComputeLeaving -
 func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
 	return make([]sharding.Validator, 0)
-}
-
-// SetConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
-	panic("implement me")
-}
-
-// GetSelectedPublicKeys -
-func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uint32) (publicKeys []string, err error) {
-	panic("implement me")
 }
 
 // GetValidatorWithPublicKey -

@@ -77,15 +77,21 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators [
 	minChance := ihgs.GetChance(0)
 	weights := make([]uint32, len(validators))
 
+	loadingFromDisk := ihgs.loadingFromDisk.Load().(bool)
 	for i, validatorInShard := range validators {
 		pk := validatorInShard.PubKey()
-		rating := ihgs.GetRating(string(pk))
-		weights[i] = ihgs.GetChance(rating)
-		if weights[i] < minChance {
-			//default weight if all validators need to be selected
-			weights[i] = minChance
+		if !loadingFromDisk {
+			rating := ihgs.GetRating(string(pk))
+			weights[i] = ihgs.GetChance(rating)
+			if weights[i] < minChance {
+				//default weight if all validators need to be selected
+				weights[i] = minChance
+			}
+			log.Debug("Computing chances for validator", "pk", pk, "rating", rating, "chances", weights[i])
+		} else {
+			weights[i] = validatorInShard.Chances()
 		}
-		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", weights[i])
+		log.Debug("Loading chances for validator", "pk", pk, "chances", weights[i])
 	}
 
 	return weights, nil

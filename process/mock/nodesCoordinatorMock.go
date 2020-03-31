@@ -38,6 +38,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 			validatorsList[v], _ = sharding.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+				1,
 			)
 		}
 		validatorsMap[sh] = validatorsList
@@ -48,6 +49,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList[v], _ = sharding.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
 			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
+			1,
 		)
 	}
 

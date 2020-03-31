@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -61,6 +62,7 @@ type indexHashedNodesCoordinator struct {
 	nodesPerShardSetter     NodesCoordinatorHelper
 	consensusGroupCacher    Cacher
 	shardIDAsObserver       uint32
+	loadingFromDisk         atomic.Value
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -73,12 +75,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	nodesConfig := make(map[uint32]*epochNodesConfig, nodeCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
-		nbShards:     arguments.NbShards,
-		shardID:      arguments.ShardIDAsObserver,
-		eligibleMap:  make(map[uint32][]Validator),
-		waitingMap:   make(map[uint32][]Validator),
-		selectors:    make(map[uint32]RandomSelector),
-		mutNodesMaps: sync.RWMutex{},
+		nbShards:    arguments.NbShards,
+		shardID:     arguments.ShardIDAsObserver,
+		eligibleMap: make(map[uint32][]Validator),
+		waitingMap:  make(map[uint32][]Validator),
+		selectors:   make(map[uint32]RandomSelector),
 	}
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
@@ -97,6 +98,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
 		shardIDAsObserver:       arguments.ShardIDAsObserver,
 	}
+
+	ihgs.loadingFromDisk.Store(false)
 
 	ihgs.nodesPerShardSetter = ihgs
 	err = ihgs.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
@@ -761,7 +764,7 @@ func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
 		strValidators += "\n" + core.ToHex(v.PubKey())
 	}
 
-	log.Trace("selectValidators", "randomness", randomness, "validators", strValidators)
+	log.Debug("selectValidators", "randomness", randomness, "validators", strValidators)
 }
 
 func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
