@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -12,13 +14,13 @@ type TrieSyncersStub struct {
 	ReplaceCalled      func(key string, val update.TrieSyncer) error
 	RemoveCalled       func(key string)
 	LenCalled          func() int
-	StartSyncingCalled func(rootHash []byte) error
+	StartSyncingCalled func(rootHash []byte, ctx context.Context) error
 	TrieCalled         func() data.Trie
 }
 
-func (tss *TrieSyncersStub) StartSyncing(rootHash []byte) error {
+func (tss *TrieSyncersStub) StartSyncing(rootHash []byte, ctx context.Context) error {
 	if tss.StartSyncingCalled != nil {
-		return tss.StartSyncingCalled(rootHash)
+		return tss.StartSyncingCalled(rootHash, ctx)
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package trie
 import (
 	"io"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -36,7 +37,7 @@ type node interface {
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)
-	loadChildren(*trieSyncer) error
+	loadChildren(func([]byte) (node, error)) ([][]byte, error)
 	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 
 	getMarshalizer() marshal.Marshalizer
@@ -59,5 +60,6 @@ type snapshotNode interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestInterval() time.Duration
 	IsInterfaceNil() bool
 }

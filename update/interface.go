@@ -1,6 +1,7 @@
 package update
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -21,7 +22,7 @@ type StateSyncer interface {
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
 	Trie() data.Trie
 	IsInterfaceNil() bool
 }
@@ -88,6 +89,7 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestInterval() time.Duration
 	IsInterfaceNil() bool
 }
 
@@ -121,15 +123,23 @@ type EpochStartTriesSyncHandler interface {
 
 // EpochStartPendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type EpochStartPendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error
+	SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
 
 // PendingTransactionsSyncHandler defines the methods to sync all transactions from a set of miniblocks
 type PendingTransactionsSyncHandler interface {
-	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error
+	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// MissingHeadersByHashSyncer defines the methods to sync all missing headers by hash
+type MissingHeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
 	IsInterfaceNil() bool
 }
 

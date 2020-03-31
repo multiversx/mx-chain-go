@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -63,7 +64,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	return nil
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) error {
+func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ctx context.Context) error {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher)
@@ -72,13 +73,13 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) err
 	}
 
 	b.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.waitTime, b.shardId, trieTopic)
+	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.shardId, trieTopic)
 	if err != nil {
 		return err
 	}
 	b.trieSyncers[string(rootHash)] = trieSyncer
 
-	err = trieSyncer.StartSyncing(rootHash)
+	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
 		return err
 	}

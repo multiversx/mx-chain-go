@@ -666,6 +666,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.WhiteListHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
+			time.Second,
 		)
 	} else {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
@@ -680,6 +681,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.WhiteListHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
+			time.Second,
 		)
 	}
 }

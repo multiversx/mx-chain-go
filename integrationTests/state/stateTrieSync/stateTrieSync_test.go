@@ -1,6 +1,7 @@
 package stateTrieSync
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -32,8 +33,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -63,11 +64,15 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		whiteListHandler,
 		10000,
 		nRequester.ShardCoordinator.SelfId(),
+		time.Second,
 	)
 
-	waitTime := 5 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime, core.MetachainShardId, factory.AccountTrieNodesTopic)
-	err = trieSyncer.StartSyncing(rootHash)
+	waitTime := 10 * time.Second
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
+	defer cancel()
+
+	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.Root()

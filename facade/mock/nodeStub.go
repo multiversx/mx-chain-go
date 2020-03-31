@@ -11,9 +11,8 @@ import (
 // NodeStub -
 type NodeStub struct {
 	AddressHandler             func() (string, error)
-	StartHandler               func() error
+	StartHandler               func()
 	StopHandler                func() error
-	P2PBootstrapHandler        func() error
 	IsRunningHandler           func() bool
 	ConnectToAddressesHandler  func([]string) error
 	StartConsensusHandler      func() error
@@ -37,11 +36,6 @@ type NodeStub struct {
 // Start -
 func (ns *NodeStub) Start() error {
 	return ns.StartHandler()
-}
-
-// P2PBootstrap -
-func (ns *NodeStub) P2PBootstrap() error {
-	return ns.P2PBootstrapHandler()
 }
 
 // IsRunning -

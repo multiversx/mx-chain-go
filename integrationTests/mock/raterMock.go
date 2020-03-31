@@ -60,7 +60,11 @@ func (rm *RaterMock) ComputeDecreaseValidator(rating uint32) uint32 {
 
 // GetChance -
 func (rm *RaterMock) GetChance(rating uint32) uint32 {
-	return rm.GetChanceCalled(rating)
+	if rm.GetChanceCalled != nil {
+		return rm.GetChanceCalled(rating)
+	}
+
+	return 80
 }
 
 // SetRatingReader -

@@ -126,8 +126,8 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-		_ = n.node.Start()
-		_ = n.node.P2PBootstrap()
+		n.node.Start()
+		_ = n.mesenger.Bootstrap()
 	}
 }
 
@@ -495,7 +495,6 @@ func createNodes(
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
-			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

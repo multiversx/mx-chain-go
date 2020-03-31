@@ -154,7 +154,7 @@ func TestIndexHashedNodesCoordinator_validatorArrayToSerializableValidatorArray(
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		assert.True(t, validatorsEqualSerializableValidators(validatorsArray, sValidators))
 	}
 }
@@ -164,7 +164,7 @@ func TestIndexHashedNodesCoordinator_serializableValidatorsMapToValidatorsMap(t 
 	sValidatorsMap := make(map[string][]*SerializableValidator)
 
 	for k, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		sValidatorsMap[fmt.Sprint(k)] = sValidators
 	}
 
@@ -175,7 +175,7 @@ func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		valArray, err := serializableValidatorArrayToValidatorArray(sValidators)
 		assert.Nil(t, err)
 		assert.True(t, sameValidators(validatorsArray, valArray))

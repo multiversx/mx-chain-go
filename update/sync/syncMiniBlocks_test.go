@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -116,7 +117,9 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	}
 	unFinished := make(map[string]*block.MetaBlock)
 	unFinished["firstPending"] = metaBlock
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
 	require.Nil(t, err)
 	require.True(t, miniBlockInPool)
 
@@ -167,7 +170,9 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 	}
 	unFinished := make(map[string]*block.MetaBlock)
 	unFinished["firstPending"] = metaBlock
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -215,6 +220,8 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		_ = pendingMiniBlocksSyncer.pool.Put(mbHash, mb)
 	}()
 
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
 	require.Nil(t, err)
 }

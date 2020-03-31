@@ -1,6 +1,8 @@
 package syncer
 
 import (
+	"context"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -47,12 +49,15 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	return u, nil
 }
 
-// SyncAccounts will launch the syncing method to gather all the data needed for userAccounts
+// SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic)
+	ctx, cancel := context.WithTimeout(context.Background(), u.waitTime)
+	defer cancel()
+
+	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
 	if err != nil {
 		return nil
 	}
@@ -63,7 +68,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = u.syncAccountDataTries(rootHashes)
+	err = u.syncAccountDataTries(rootHashes, ctx)
 	if err != nil {
 		return err
 	}
@@ -71,7 +76,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	return nil
 }
 
-func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
+func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
 	for _, rootHash := range rootHashes {
 		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher)
 		if err != nil {
@@ -79,13 +84,13 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte) error {
 		}
 
 		u.dataTries[string(rootHash)] = dataTrie
-		trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.waitTime, u.shardId, factory.AccountTrieNodesTopic)
+		trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
 		if err != nil {
 			return err
 		}
 		u.trieSyncers[string(rootHash)] = trieSyncer
 
-		err = trieSyncer.StartSyncing(rootHash)
+		err = trieSyncer.StartSyncing(rootHash, ctx)
 		if err != nil {
 			return err
 		}

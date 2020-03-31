@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -152,7 +153,7 @@ type DBRemoveCacher interface {
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
 	Trie() Trie
 	IsInterfaceNil() bool
 }
@@ -174,7 +175,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (Trie, error)
+	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

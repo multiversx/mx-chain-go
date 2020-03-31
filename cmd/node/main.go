@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -53,7 +54,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -65,13 +65,14 @@ import (
 )
 
 const (
-	defaultStatsPath      = "stats"
-	defaultLogsPath       = "logs"
-	defaultDBPath         = "db"
-	defaultEpochString    = "Epoch"
-	defaultStaticDbString = "Static"
-	defaultShardString    = "Shard"
-	metachainShardName    = "metachain"
+	defaultStatsPath             = "stats"
+	defaultLogsPath              = "logs"
+	defaultDBPath                = "db"
+	defaultEpochString           = "Epoch"
+	defaultStaticDbString        = "Static"
+	defaultShardString           = "Shard"
+	metachainShardName           = "metachain"
+	secondsToWaitForP2PBootstrap = 20
 )
 
 var (
@@ -492,7 +493,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	genesisNodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
 	if err != nil {
 		return err
 	}
@@ -504,13 +505,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
-	if nodesConfig.StartTime == 0 {
+	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
-		nodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+		genesisNodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
-	startTime := time.Unix(nodesConfig.StartTime, 0)
+	startTime := time.Unix(genesisNodesConfig.StartTime, 0)
 
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
@@ -542,18 +543,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
+	err = cleanupStorageIfNecessary(workingDir, ctx, log)
 	if err != nil {
 		return err
 	}
 
-	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
-	logger.SetCorrelationShard(shardId)
-
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		nodesConfig.ChainID,
+		genesisNodesConfig.ChainID,
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -561,7 +559,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		nodesConfig.ChainID,
+		genesisNodesConfig.ChainID,
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -572,52 +570,44 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var currentEpoch uint32
-	var lastRound int64
-	var lastShardId uint32
-	var errNotCritical error
-	currentEpoch, lastShardId, lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage( // TODO: use last round and shard ID
-		*generalConfig,
-		&marshal.GogoProtoMarshalizer{}, // TODO: remove hardcoded marshalizer when start in epoch is merged.
-		workingDir,
-		nodesConfig.ChainID,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
-	)
-	if errNotCritical != nil {
-		currentEpoch = 0
-		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
-	} else {
-		log.Debug("got last data from storage",
-			"epoch", currentEpoch,
-			"last round", lastRound,
-			"last shard ID", lastShardId)
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, pubKey, preferencesConfig.Preferences, log)
+	if err != nil {
+		return err
 	}
-	if !generalConfig.StoragePruning.Enabled {
-		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
-		// and it should be Epoch_ALL or something similar
-		currentEpoch = 0
-	}
+	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
 
-	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanupFlagValue {
-		dbPath := filepath.Join(
-			workingDir,
-			defaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err = os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	log.Trace("creating crypto components")
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
+		ctx,
+		generalConfig,
+		genesisNodesConfig,
+		genesisShardCoordinator,
+		keyGen,
+		privKey,
+		log,
+	)
+	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
+	if err != nil {
+		return err
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(genesisNodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
+
+	log.Trace("creating network components")
+	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	if err != nil {
+		return err
+	}
+	err = networkComponents.NetMessenger.Bootstrap()
+	if err != nil {
+		return err
+	}
+	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
@@ -629,6 +619,56 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
+		PublicKey:                  pubKey,
+		Marshalizer:                coreComponents.InternalMarshalizer,
+		TxSignMarshalizer:          coreComponents.TxSignMarshalizer,
+		Hasher:                     coreComponents.Hasher,
+		Messenger:                  networkComponents.NetMessenger,
+		GeneralConfig:              *generalConfig,
+		EconomicsData:              economicsData,
+		SingleSigner:               cryptoComponents.TxSingleSigner,
+		BlockSingleSigner:          cryptoComponents.SingleSigner,
+		KeyGen:                     cryptoComponents.TxSignKeyGen,
+		BlockKeyGen:                cryptoComponents.BlockSignKeyGen,
+		GenesisNodesConfig:         genesisNodesConfig,
+		GenesisShardCoordinator:    genesisShardCoordinator,
+		PathManager:                pathManager,
+		WorkingDir:                 workingDir,
+		DefaultDBPath:              defaultDBPath,
+		DefaultEpochString:         defaultEpochString,
+		DefaultShardString:         defaultShardString,
+		Rater:                      rater,
+		DestinationShardAsObserver: ctx.GlobalString(destinationShardAsObserver.Name),
+		TrieContainer:              coreComponents.TriesContainer,
+		TrieStorageManagers:        coreComponents.TrieStorageManagers,
+	}
+	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+	if err != nil {
+		log.Error("could not create bootsrapper", "err", err)
+		return err
+	}
+	bootstrapParameters, err := bootstrapper.Bootstrap()
+	if err != nil {
+		log.Error("boostrap return error", "error", err)
+		return err
+	}
+
+	currentEpoch := bootstrapParameters.Epoch
+	if !generalConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		currentEpoch = 0
+	}
+
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
+	if err != nil {
+		return err
+	}
+
+	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
+	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
 	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
@@ -653,7 +693,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
+	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, genesisNodesConfig, version, economicsConfig)
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -672,7 +712,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	nodesCoordinator, err := createNodesCoordinator(
-		nodesConfig,
+		genesisNodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
 		pubKey,
@@ -702,23 +742,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	log.Trace("creating crypto components")
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
-		ctx,
-		generalConfig,
-		nodesConfig,
-		shardCoordinator,
-		keyGen,
-		privKey,
-		log,
-	)
-	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
-	if err != nil {
-		return err
-	}
-
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, nodesConfig.ChainID)
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, genesisNodesConfig.ChainID)
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
@@ -754,14 +779,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
-	if err != nil {
-		return err
-	}
-
 	log.Trace("creating tps benchmark components")
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisNodesConfig.RoundDuration/1000)
 	if err != nil {
 		return err
 	}
@@ -793,7 +812,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating time cache for requested items components")
-	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
 	whiteListCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
@@ -813,7 +832,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreArgs,
 		genesisConfig,
 		economicsData,
-		nodesConfig,
+		genesisNodesConfig,
 		gasSchedule,
 		syncer,
 		shardCoordinator,
@@ -828,7 +847,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListHandler,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
-		0,
+		currentEpoch,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
@@ -853,7 +872,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	currentNode, err := createNode(
 		generalConfig,
 		preferencesConfig,
-		nodesConfig,
+		genesisNodesConfig,
 		economicsData,
 		syncer,
 		keyGen,
@@ -951,7 +970,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("starting background services")
 	ef.StartBackgroundServices()
 
-	log.Debug("bootstrapping node...")
+	log.Debug("starting node...")
 	err = ef.StartNode()
 	if err != nil {
 		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
@@ -979,10 +998,28 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
+	err = networkComponents.NetMessenger.Close()
+	log.LogIfError(err)
+
 	log.Info("closing network connections...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
+	return nil
+}
+
+func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.Logger) error {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err := os.RemoveAll(dbPath)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -1161,8 +1198,7 @@ func createShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
-	// TODO: after start in epoch is merged, this needs to be refactored as the shardID cannot always be taken
-	// from initial configuration but needs to be determined by nodes coordinator
+
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
@@ -1210,12 +1246,12 @@ func createNodesCoordinator(
 	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
-	eligibleValidators, errEligibleValidators := nodesInfoToValidators(eligibleNodesInfo)
+	eligibleValidators, errEligibleValidators := sharding.NodesInfoToValidators(eligibleNodesInfo)
 	if errEligibleValidators != nil {
 		return nil, errEligibleValidators
 	}
 
-	waitingValidators, errWaitingValidators := nodesInfoToValidators(waitingNodesInfo)
+	waitingValidators, errWaitingValidators := sharding.NodesInfoToValidators(waitingNodesInfo)
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
@@ -1240,7 +1276,6 @@ func createNodesCoordinator(
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		ListIndexUpdater:        ratingAndListIndexHandler,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartNotifier,
@@ -1264,25 +1299,6 @@ func createNodesCoordinator(
 	}
 
 	return nodesCoordinator, nil
-}
-
-func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]sharding.Validator, 0)
-		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
-			}
-
-			validators = append(validators, validator)
-		}
-		validatorsMap[shId] = validators
-	}
-
-	return validatorsMap, nil
 }
 
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {

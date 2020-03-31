@@ -98,13 +98,8 @@ func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 
 // StartNode starts the underlying node
 func (nf *nodeFacade) StartNode() error {
-	err := nf.node.Start()
-	if err != nil {
-		return err
-	}
-
-	err = nf.node.StartConsensus()
-	return err
+	ef.node.Start()
+	return nf.node.StartConsensus()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node

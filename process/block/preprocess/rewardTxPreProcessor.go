@@ -260,7 +260,7 @@ func (rtp *rewardTxPreprocessor) receivedRewardTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created reward transactions at this round
 func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
-	_ = process.EmptyChannel(rtp.chReceivedAllRewardTxs)
+	_ = core.EmptyChannel(rtp.chReceivedAllRewardTxs)
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	rtp.rewardTxsForBlock.missingTxs = 0

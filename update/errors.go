@@ -158,6 +158,9 @@ var ErrNilAccountsDBSyncContainer = errors.New("nil accounts db sync container")
 // ErrNilValidatorInfoProcessor signals that nil validator info was provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")
+
 // ErrTriggerNotEnabled signals that the trigger is not enabled
 var ErrTriggerNotEnabled = errors.New("trigger is not enabled")
 

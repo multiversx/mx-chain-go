@@ -84,7 +84,6 @@ func createArguments() ArgNodesCoordinator {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	return arguments
 }
@@ -187,7 +186,7 @@ func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap, 0, false))
+	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap, 0))
 }
 
 func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
@@ -197,7 +196,7 @@ func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil, 0, false))
+	require.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil, 0))
 }
 
 func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
@@ -221,7 +220,6 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -265,7 +263,6 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -323,7 +320,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -372,7 +368,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2Validators(t *te
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -434,7 +429,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsRevert
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -485,7 +479,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest2ValidatorsSameIn
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -586,7 +579,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupTest6From10Validators
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           selfPubKey,
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
@@ -639,7 +631,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     cache,
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -711,7 +702,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     cache,
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -814,7 +804,6 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     consensusGroupCache,
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -938,7 +927,6 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -1016,7 +1004,6 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		WaitingNodes:            make(map[uint32][]Validator),
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1078,7 +1065,6 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1149,33 +1135,6 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpo
 	require.Nil(t, err)
 	require.True(t, len(pKeys) > 0)
 	require.True(t, isStringSubgroup(pKeys, shard0PubKeys))
-}
-
-func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesInvalidRandomness(t *testing.T) {
-	t.Parallel()
-
-	args := createArguments()
-	ihgs, err := NewIndexHashedNodesCoordinator(args)
-	require.Nil(t, err)
-
-	var addresses []string
-	addresses, err = ihgs.GetConsensusValidatorsRewardsAddresses(nil, 0, 0, 0)
-	require.Equal(t, ErrNilRandomness, err)
-	require.Nil(t, addresses)
-}
-
-func TestIndexHashedNodesCoordinator_GetConsensusValidatorsRewardsAddressesOK(t *testing.T) {
-	t.Parallel()
-
-	args := createArguments()
-	ihgs, err := NewIndexHashedNodesCoordinator(args)
-	require.Nil(t, err)
-
-	var addresses []string
-	randomness := []byte("randomness")
-	addresses, err = ihgs.GetConsensusValidatorsRewardsAddresses(randomness, 0, 0, 0)
-	require.Nil(t, err)
-	require.True(t, len(addresses) > 0)
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {

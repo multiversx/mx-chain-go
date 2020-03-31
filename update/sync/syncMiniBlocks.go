@@ -1,9 +1,11 @@
 package sync
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,17 +16,18 @@ import (
 )
 
 type pendingMiniBlocks struct {
-	mutPendingMb   sync.Mutex
-	mapMiniBlocks  map[string]*block.MiniBlock
-	mapHashes      map[string]struct{}
-	pool           storage.Cacher
-	storage        update.HistoryStorer
-	chReceivedAll  chan bool
-	marshalizer    marshal.Marshalizer
-	stopSyncing    bool
-	epochToSync    uint32
-	syncedAll      bool
-	requestHandler process.RequestHandler
+	mutPendingMb            sync.Mutex
+	mapMiniBlocks           map[string]*block.MiniBlock
+	mapHashes               map[string]struct{}
+	pool                    storage.Cacher
+	storage                 update.HistoryStorer
+	chReceivedAll           chan bool
+	marshalizer             marshal.Marshalizer
+	stopSyncing             bool
+	epochToSync             uint32
+	syncedAll               bool
+	requestHandler          process.RequestHandler
+	waitTimeBetweenRequests time.Duration
 }
 
 // ArgsNewPendingMiniBlocksSyncer defines the arguments needed for the sycner
@@ -51,16 +54,17 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 	}
 
 	p := &pendingMiniBlocks{
-		mutPendingMb:   sync.Mutex{},
-		mapMiniBlocks:  make(map[string]*block.MiniBlock),
-		mapHashes:      make(map[string]struct{}),
-		pool:           args.Cache,
-		storage:        args.Storage,
-		chReceivedAll:  make(chan bool),
-		requestHandler: args.RequestHandler,
-		stopSyncing:    true,
-		syncedAll:      false,
-		marshalizer:    args.Marshalizer,
+		mutPendingMb:            sync.Mutex{},
+		mapMiniBlocks:           make(map[string]*block.MiniBlock),
+		mapHashes:               make(map[string]struct{}),
+		pool:                    args.Cache,
+		storage:                 args.Storage,
+		chReceivedAll:           make(chan bool),
+		requestHandler:          args.RequestHandler,
+		stopSyncing:             true,
+		syncedAll:               false,
+		marshalizer:             args.Marshalizer,
+		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
 	p.pool.RegisterHandler(p.receivedMiniBlock)
@@ -69,11 +73,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 }
 
 // SyncPendingMiniBlocksFromMeta syncs the pending miniblocks from an epoch start metaBlock
-func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(
-	epochStart *block.MetaBlock,
-	unFinished map[string]*block.MetaBlock,
-	waitTime time.Duration,
-) error {
+func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
 	if !epochStart.IsStartOfEpochBlock() {
 		return update.ErrNotEpochStartBlock
 	}
@@ -93,42 +93,72 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(
 		listPendingMiniBlocks = append(listPendingMiniBlocks, computedPending...)
 	}
 
-	_ = process.EmptyChannel(p.chReceivedAll)
+	return p.syncMiniBlocks(listPendingMiniBlocks, ctx)
+}
 
-	requestedMBs := 0
+// SyncPendingMiniBlocks will sync the miniblocks for the given epoch start meta block
+func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, ctx context.Context) error {
+	return p.syncMiniBlocks(miniBlockHeaders, ctx)
+}
+
+func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.ShardMiniBlockHeader, ctx context.Context) error {
+	_ = core.EmptyChannel(p.chReceivedAll)
+
+	mapHashesToRequest := make(map[string]uint32)
+	for _, mbHeader := range listPendingMiniBlocks {
+		mapHashesToRequest[string(mbHeader.Hash)] = mbHeader.SenderShardID
+	}
+
 	p.mutPendingMb.Lock()
 	p.stopSyncing = false
-	for _, mbHeader := range listPendingMiniBlocks {
-		p.mapHashes[string(mbHeader.Hash)] = struct{}{}
-		miniBlock, ok := p.getMiniBlockFromPoolOrStorage(mbHeader.Hash)
-		if ok {
-			p.mapMiniBlocks[string(mbHeader.Hash)] = miniBlock
-			continue
-		}
-
-		requestedMBs++
-		p.requestHandler.RequestMiniBlock(mbHeader.SenderShardID, mbHeader.Hash)
-	}
 	p.mutPendingMb.Unlock()
 
-	var err error
-	defer func() {
+	for {
+		requestedMBs := 0
 		p.mutPendingMb.Lock()
-		p.stopSyncing = true
-		if err == nil {
-			p.syncedAll = true
+		p.stopSyncing = false
+		for hash, shardId := range mapHashesToRequest {
+			if _, ok := p.mapMiniBlocks[hash]; ok {
+				delete(mapHashesToRequest, hash)
+			}
+
+			p.mapHashes[hash] = struct{}{}
+			miniBlock, ok := p.getMiniBlockFromPoolOrStorage([]byte(hash))
+			if ok {
+				p.mapMiniBlocks[hash] = miniBlock
+				delete(mapHashesToRequest, hash)
+				continue
+			}
+
+			p.requestHandler.RequestMiniBlock(shardId, []byte(hash))
+			requestedMBs++
 		}
 		p.mutPendingMb.Unlock()
-	}()
 
-	if requestedMBs > 0 {
-		err = WaitFor(p.chReceivedAll, waitTime)
-		if err != nil {
-			return err
+		if requestedMBs == 0 {
+			p.mutPendingMb.Lock()
+			p.stopSyncing = true
+			p.syncedAll = true
+			p.mutPendingMb.Unlock()
+			return nil
+		}
+
+		select {
+		case <-p.chReceivedAll:
+			p.mutPendingMb.Lock()
+			p.stopSyncing = true
+			p.syncedAll = true
+			p.mutPendingMb.Unlock()
+			return nil
+		case <-time.After(p.waitTimeBetweenRequests):
+			continue
+		case <-ctx.Done():
+			p.mutPendingMb.Lock()
+			p.stopSyncing = true
+			p.mutPendingMb.Unlock()
+			return update.ErrTimeIsOut
 		}
 	}
-
-	return nil
 }
 
 func (p *pendingMiniBlocks) createNonceToHashMap(unFinished map[string]*block.MetaBlock) map[uint64]string {
@@ -281,6 +311,14 @@ func (p *pendingMiniBlocks) GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	}
 
 	return p.mapMiniBlocks, nil
+}
+
+// ClearFields will clear all the maps
+func (p *pendingMiniBlocks) ClearFields() {
+	p.mutPendingMb.Lock()
+	p.mapHashes = make(map[string]struct{})
+	p.mapMiniBlocks = make(map[string]*block.MiniBlock)
+	p.mutPendingMb.Unlock()
 }
 
 // IsInterfaceNil returns nil if underlying object is nil

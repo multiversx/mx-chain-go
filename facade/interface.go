@@ -16,9 +16,6 @@ type NodeHandler interface {
 	// Start will create a new messenger and and set up the Node state as running
 	Start() error
 
-	// P2PBootstrap starts the peer discovery process and peer connection filtering
-	P2PBootstrap() error
-
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
 

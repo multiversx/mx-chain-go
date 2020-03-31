@@ -151,7 +151,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 		return nil, err
 	}
 
-	_, _, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator, 0)
+	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator, 0)
 	assert.Equal(t, err, err2)
 }
 
@@ -162,10 +162,9 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
-	nextConsensusGroup, rewardAddresses, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator, 0)
+	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator, 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
-	assert.NotNil(t, rewardAddresses)
 }
 
 func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
