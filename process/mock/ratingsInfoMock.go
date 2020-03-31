@@ -1,56 +1,49 @@
 package mock
 
-import (
-	"github.com/ElrondNetwork/elrond-go/process"
-)
+import "github.com/ElrondNetwork/elrond-go/process"
 
+// RatingsInfoMock -
 type RatingsInfoMock struct {
-	StartRatingVal                 uint32
-	MaxRatingVal                   uint32
-	MinRatingVal                   uint32
-	ProposerIncreaseRatingStepVal  uint32
-	ProposerDecreaseRatingStepVal  uint32
-	ValidatorIncreaseRatingStepVal uint32
-	ValidatorDecreaseRatingStepVal uint32
-	SelectionChancesVal            []process.SelectionChance
+	StartRatingProperty           uint32
+	MaxRatingProperty             uint32
+	MinRatingProperty             uint32
+	SignedBlocksThresholdProperty float32
+	MetaRatingsStepDataProperty   process.RatingsStepHandler
+	ShardRatingsStepDataProperty  process.RatingsStepHandler
+	SelectionChancesProperty      []process.SelectionChance
 }
 
-// StartRating will return the start rating
+// StartRating -
 func (rd *RatingsInfoMock) StartRating() uint32 {
-	return rd.StartRatingVal
+	return rd.StartRatingProperty
 }
 
-// MaxRating will return the max rating
+// MaxRating -
 func (rd *RatingsInfoMock) MaxRating() uint32 {
-	return rd.MaxRatingVal
+	return rd.MaxRatingProperty
 }
 
-// MinRating will return the min rating
+// MinRating -
 func (rd *RatingsInfoMock) MinRating() uint32 {
-	return rd.MinRatingVal
+	return rd.MinRatingProperty
 }
 
-// ProposerIncreaseRatingStep will return the rating step increase for validator
-func (rd *RatingsInfoMock) ProposerIncreaseRatingStep() uint32 {
-	return rd.ProposerIncreaseRatingStepVal
+// SignedBlocksThreshold -
+func (rd *RatingsInfoMock) SignedBlocksThreshold() float32 {
+	return rd.SignedBlocksThresholdProperty
 }
 
-// ProposerDecreaseRatingStep will return the rating step decrease for proposer
-func (rd *RatingsInfoMock) ProposerDecreaseRatingStep() uint32 {
-	return rd.ProposerDecreaseRatingStepVal
-}
-
-// ValidatorIncreaseRatingStep will return the rating step increase for validator
-func (rd *RatingsInfoMock) ValidatorIncreaseRatingStep() uint32 {
-	return rd.ValidatorIncreaseRatingStepVal
-}
-
-// ValidatorDecreaseRatingStep will return the rating step decrease for validator
-func (rd *RatingsInfoMock) ValidatorDecreaseRatingStep() uint32 {
-	return rd.ValidatorDecreaseRatingStepVal
-}
-
-// SelectionChances will return the array of selectionChances and thresholds
+// SelectionChances -
 func (rd *RatingsInfoMock) SelectionChances() []process.SelectionChance {
-	return rd.SelectionChancesVal
+	return rd.SelectionChancesProperty
+}
+
+// MetaChainRatingsStepHandler -
+func (rd *RatingsInfoMock) MetaChainRatingsStepHandler() process.RatingsStepHandler {
+	return rd.MetaRatingsStepDataProperty
+}
+
+// ShardChainRatingsStepHandler -
+func (rd *RatingsInfoMock) ShardChainRatingsStepHandler() process.RatingsStepHandler {
+	return rd.ShardRatingsStepDataProperty
 }

@@ -113,15 +113,23 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	})
 
 	for index, validator := range validatorCopy {
-		marshalizedValidator, err := vic.marshalizer.Marshal(validator)
+		shardValidatorInfo := createShardValidatorInfo(validator)
+		marshalizedShardValidatorInfo, err := vic.marshalizer.Marshal(shardValidatorInfo)
 		if err != nil {
 			return nil, err
 		}
 
-		miniBlock.TxHashes[index] = marshalizedValidator
+		miniBlock.TxHashes[index] = marshalizedShardValidatorInfo
 	}
 
 	return miniBlock, nil
+}
+
+func createShardValidatorInfo(validator *state.ValidatorInfo) *state.ShardValidatorInfo {
+	return &state.ShardValidatorInfo{
+		PublicKey:  validator.PublicKey,
+		TempRating: validator.TempRating,
+	}
 }
 
 // VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct

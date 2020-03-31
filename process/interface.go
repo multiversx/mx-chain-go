@@ -219,11 +219,19 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
-	Process(validatorInfo data.ValidatorInfoHandler) error
+	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	Commit() ([]byte, error)
+}
+
+// ValidatorsProvider is the main interface for validators' provider
+type ValidatorsProvider interface {
+	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	IsInterfaceNil() bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -735,20 +743,38 @@ type SelectionChance interface {
 	GetChancePercent() uint32
 }
 
-// RatingsInfo defines the information needed for the rating computation
-type RatingsInfo interface {
+// RatingsInfoHandler defines the information needed for the rating computation
+type RatingsInfoHandler interface {
 	StartRating() uint32
 	MaxRating() uint32
 	MinRating() uint32
-	ProposerIncreaseRatingStep() uint32
-	ProposerDecreaseRatingStep() uint32
-	ValidatorIncreaseRatingStep() uint32
-	ValidatorDecreaseRatingStep() uint32
+	SignedBlocksThreshold() float32
+	MetaChainRatingsStepHandler() RatingsStepHandler
+	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+}
+
+// RatingsStepHandler defines the information needed for the rating computation on shards or meta
+type RatingsStepHandler interface {
+	ProposerIncreaseRatingStep() int32
+	ProposerDecreaseRatingStep() int32
+	ValidatorIncreaseRatingStep() int32
+	ValidatorDecreaseRatingStep() int32
+	ConsecutiveMissedBlocksPenalty() float32
 }
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
 type ValidatorInfoProcessorHandler interface {
 	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	IsInterfaceNil() bool
+}
+
+//RatingChanceHandler provides the methods needed for the computation of chances from the Rating
+type RatingChanceHandler interface {
+	//GetMaxThreshold returns the threshold until this ChancePercentage holds
+	GetMaxThreshold() uint32
+	//GetChancePercentage returns the percentage for the RatingChanceHandler
+	GetChancePercentage() uint32
+	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

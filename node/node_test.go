@@ -1071,35 +1071,53 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	initialPubKeys[1] = keys[1]
 	initialPubKeys[2] = keys[2]
 
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+
+	for shardId, pubkeysPerShard := range initialPubKeys {
+		validatorsInfo[shardId] = make([]*state.ValidatorInfo, 0)
+		for _, pubKey := range pubkeysPerShard {
+			validatorsInfo[shardId] = append(validatorsInfo[shardId], &state.ValidatorInfo{
+				PublicKey:                  []byte(pubKey),
+				ShardId:                    shardId,
+				List:                       "",
+				Index:                      0,
+				TempRating:                 0,
+				Rating:                     0,
+				RewardAddress:              nil,
+				LeaderSuccess:              0,
+				LeaderFailure:              0,
+				ValidatorSuccess:           0,
+				ValidatorFailure:           0,
+				NumSelectedInSuccessBlocks: 0,
+				AccumulatedFees:            nil,
+				TotalLeaderSuccess:         0,
+				TotalLeaderFailure:         0,
+				TotalValidatorSuccess:      0,
+				TotalValidatorFailure:      0,
+			})
+		}
+	}
+
 	vsp := &mock.ValidatorStatisticsProcessorStub{
 		RootHashCalled: func() (i []byte, err error) {
 			return []byte("hash"), nil
 		},
 		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
-			validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
-
-			for shardId, pubkeysPerShard := range initialPubKeys {
-				validatorsInfo[shardId] = make([]*state.ValidatorInfo, 0)
-				for _, pubKey := range pubkeysPerShard {
-					validatorsInfo[shardId] = append(validatorsInfo[shardId], &state.ValidatorInfo{
-						PublicKey:                  []byte(pubKey),
-						ShardId:                    shardId,
-						List:                       "",
-						Index:                      0,
-						TempRating:                 0,
-						Rating:                     0,
-						RewardAddress:              nil,
-						LeaderSuccess:              0,
-						LeaderFailure:              0,
-						ValidatorSuccess:           0,
-						ValidatorFailure:           0,
-						NumSelectedInSuccessBlocks: 0,
-						AccumulatedFees:            nil,
-					})
-				}
-			}
 			return validatorsInfo, nil
 		},
+	}
+
+	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
+		apiResponses := make(map[string]*state.ValidatorApiResponse)
+
+		for _, validatorsInfo := range validatorsInfo {
+			for _, vi := range validatorsInfo {
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
+			}
+		}
+
+		return apiResponses
+	},
 	}
 
 	n, _ := node.NewNode(
@@ -1117,6 +1135,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 			},
 		}),
 		node.WithValidatorStatistics(vsp),
+		node.WithValidatorsProvider(validatorProvider),
 	)
 
 	expectedData := &state.ValidatorApiResponse{}

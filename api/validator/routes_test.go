@@ -63,10 +63,10 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
 	mapToReturn["test"] = &state.ValidatorApiResponse{
-		NrLeaderSuccess:    5,
-		NrLeaderFailure:    2,
-		NrValidatorSuccess: 7,
-		NrValidatorFailure: 3,
+		NumLeaderSuccess:    5,
+		NumLeaderFailure:    2,
+		NumValidatorSuccess: 7,
+		NumValidatorFailure: 3,
 	}
 
 	facade := mock.Facade{
