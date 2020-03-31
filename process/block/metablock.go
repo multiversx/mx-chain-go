@@ -691,7 +691,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorInfos)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo)
 	if err != nil {
 		return nil, err
 	}
