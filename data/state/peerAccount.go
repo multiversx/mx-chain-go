@@ -151,7 +151,7 @@ func (pa *peerAccount) IsInterfaceNil() bool {
 }
 
 // ResetAtNewEpoch will reset a set of values after changing epoch
-func (pa *peerAccount) ResetAtNewEpoch() error {
+func (pa *peerAccount) ResetAtNewEpoch() {
 	pa.AccumulatedFees = big.NewInt(0)
 	pa.SetRating(pa.GetTempRating())
 	pa.TotalLeaderSuccessRate.NumFailure += pa.LeaderSuccessRate.NumFailure
@@ -164,8 +164,6 @@ func (pa *peerAccount) ResetAtNewEpoch() error {
 	pa.ValidatorSuccessRate.NumFailure = 0
 	pa.NumSelectedInSuccessBlocks = 0
 	pa.ConsecutiveProposerMisses = 0
-
-	return nil
 }
 
 //IncreaseNonce adds the given value to the current nonce
