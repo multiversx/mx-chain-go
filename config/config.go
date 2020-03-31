@@ -133,6 +133,8 @@ type Config struct {
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
+
+	Hardfork HardforkConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -223,4 +225,11 @@ type AntifloodConfig struct {
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
+}
+
+// HardforkConfig holds the configuration for the hardfork trigger
+type HardforkConfig struct {
+	EnableTrigger         bool
+	EnableTriggerFromP2P  bool
+	PublicKeyToListenFrom string
 }

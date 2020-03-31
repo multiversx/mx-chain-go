@@ -65,3 +65,10 @@ type PeerTypeProviderHandler interface {
 	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
 	IsInterfaceNil() bool
 }
+
+// HardforkTrigger defines the behavior of a hardfork trigger
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, pkBytes []byte) error
+	RecordedTriggerMessage() ([]byte, bool)
+	IsInterfaceNil() bool
+}

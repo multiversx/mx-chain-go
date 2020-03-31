@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -947,24 +948,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
-	ef, err := facade.NewElrondNodeFacade(
-		currentNode,
-		apiResolver,
-		restAPIServerDebugMode,
-		generalConfig.Antiflood.WebServer,
-	)
+
+	argNodeFacade := facade.ArgNodeFacade{
+		Node:                   currentNode,
+		ApiResolver:            apiResolver,
+		RestAPIServerDebugMode: restAPIServerDebugMode,
+		WsAntifloodConfig:      generalConfig.Antiflood.WebServer,
+		FacadeConfig: config.FacadeConfig{
+			RestApiInterface: ctx.GlobalString(restApiInterface.Name),
+			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
+		},
+	}
+
+	ef, err := facade.NewNodeFacade(argNodeFacade)
 	if err != nil {
 		return fmt.Errorf("%w while creating NodeFacade", err)
 	}
 
-	efConfig := &config.FacadeConfig{
-		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
-		PprofEnabled:     ctx.GlobalBool(profileMode.Name),
-	}
-
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
-	ef.SetConfig(efConfig)
 
 	log.Trace("starting background services")
 	ef.StartBackgroundServices()
@@ -1408,6 +1410,26 @@ func createNode(
 		return nil, err
 	}
 
+	selfPubKeyBytes, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	triggerPubKeyBytes, err := hex.DecodeString(config.Hardfork.PublicKeyToListenFrom)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
+	argTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:   triggerPubKeyBytes,
+		SelfPubKeyBytes:      selfPubKeyBytes,
+		Enabled:              config.Hardfork.EnableTrigger,
+		EnabledAuthenticated: config.Hardfork.EnableTriggerFromP2P,
+	}
+	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -1458,6 +1480,7 @@ func createNode(
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
+		node.WithHardforkTrigger(hardforkTrigger),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

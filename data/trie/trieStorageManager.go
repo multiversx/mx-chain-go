@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	snapshotBufferLen = 10
-	pruningBufferLen  = 100
+	snapshotBufferLen = 100
+	pruningBufferLen  = 1000
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -31,7 +31,7 @@ type trieStorageManager struct {
 	snapshotId         int
 	snapshotDbCfg      config.DBConfig
 	snapshotReq        chan snapshotsQueueEntry
-	snapshotsBuffer    atomicBuffer
+	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -74,7 +74,7 @@ func NewTrieStorageManager(
 		snapshots:             snapshots,
 		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
-		snapshotsBuffer:       newSnapshotsBuffer(),
+		pruningBuffer:         newPruningBuffer(),
 		dbEvictionWaitingList: ewl,
 		snapshotReq:           make(chan snapshotsQueueEntry, snapshotBufferLen),
 		pruneReq:              make(chan []byte, pruningBufferLen),
@@ -180,37 +180,48 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	if tsm.snapshotInProgress > 0 {
 		tsm.snapshotInProgress--
 	}
+
+	if tsm.snapshotInProgress == 0 {
+		tsm.prune(tsm.pruningBuffer.removeAll())
+	}
 }
 
 // Prune removes the given hash from db
 func (tsm *trieStorageManager) Prune(rootHash []byte) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	log.Trace("trie storage manager prune", "root", rootHash)
 
 	if tsm.snapshotInProgress > 0 {
+		tsm.pruningBuffer.add(rootHash)
 		return
 	}
 
-	if tsm.snapshotsBuffer.contains(rootHash[:len(rootHash)-1]) {
-		select {
-		case tsm.pruneReq <- rootHash:
-			log.Trace("added root hash to pruning buffer", "rootHash", rootHash)
-			return
-		default:
-			log.Trace("pruning buffer is full")
-			return
-		}
-	}
+	oldHashes := tsm.pruningBuffer.removeAll()
+	oldHashes[string(rootHash)] = struct{}{}
+	tsm.prune(oldHashes)
+}
 
-	err := tsm.removeFromDb(rootHash)
-	if err != nil {
-		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
+func (tsm *trieStorageManager) prune(oldHashes map[string]struct{}) {
+	for key := range oldHashes {
+		select {
+		case tsm.pruneReq <- []byte(key):
+			log.Trace("root hash will be pruned", "rootHash", []byte(key))
+		default:
+			log.Trace("pruning buffer is full, hash won't be removed", "hash", []byte(key))
+		}
 	}
 }
 
 // CancelPrune removes the given hash from the eviction waiting list
 func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
+	tsm.pruningBuffer.remove(rootHash)
 }
 
 func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
@@ -298,7 +309,6 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 	select {
 	case tsm.snapshotReq <- entry:
-		tsm.snapshotsBuffer.add(entry.rootHash)
 		return
 	default:
 		log.Debug("snapshots buffer is full")
@@ -309,7 +319,6 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
-		tsm.snapshotsBuffer.remove(snapshot.rootHash)
 		return
 	}
 
@@ -330,8 +339,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh ma
 		log.Error("trie storage manager: commit", "error", err.Error())
 		return
 	}
-
-	tsm.snapshotsBuffer.remove(snapshot.rootHash)
 
 	log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
 }

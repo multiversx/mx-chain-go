@@ -181,3 +181,9 @@ type AccountsDBSyncContainer interface {
 	Len() int
 	IsInterfaceNil() bool
 }
+
+// SigVerifier is used to verify the signature on a provided message
+type SigVerifier interface {
+	Verify(message []byte, sig []byte, pk []byte) error
+	IsInterfaceNil() bool
+}
