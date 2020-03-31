@@ -41,7 +41,11 @@ func (sb *pruningBuffer) removeAll() map[string]struct{} {
 
 	log.Trace("pruning buffer", "len", len(sb.buffer))
 
-	buffer := sb.buffer
+	buffer := make(map[string]struct{})
+	for key := range sb.buffer {
+		buffer[key] = struct{}{}
+	}
+
 	sb.buffer = make(map[string]struct{})
 
 	return buffer
