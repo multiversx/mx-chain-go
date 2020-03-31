@@ -30,8 +30,8 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()

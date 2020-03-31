@@ -14,6 +14,11 @@ type NodesCoordinatorMock struct {
 	GetAllWaitingValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 }
 
+// SetConfig -
+func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
+	return nil
+}
+
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 	return 1
@@ -26,11 +31,6 @@ func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 	}
 
 	return nil, nil
-}
-
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
-	return nil
 }
 
 // GetAllWaitingValidatorsPublicKeys -
@@ -93,32 +93,8 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	return pubKeys, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
-}
-
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
 }
 
@@ -169,7 +145,7 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 }
 
 // GetNodesPerShard -
-func (ncm *NodesCoordinatorMock) GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error) {
+func (ncm *NodesCoordinatorMock) GetNodesPerShard(_ uint32) (map[uint32][]sharding.Validator, error) {
 	return nil, nil
 }
 

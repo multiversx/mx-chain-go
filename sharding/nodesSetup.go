@@ -253,6 +253,11 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, []*
 	return ns.eligible[shardId], ns.waiting[shardId], nil
 }
 
+// SetNumberOfShards will update the number of shards. Should be used only when testing
+func (ns *NodesSetup) SetNumberOfShards(numShards uint32) {
+	ns.nrOfShards = numShards
+}
+
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
 	return ns.nrOfShards

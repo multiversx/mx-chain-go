@@ -134,12 +134,8 @@ func TestNewElrondFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
 func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
-		},
-		P2PBootstrapHandler: func() error {
-			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started
@@ -158,35 +154,11 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 	assert.True(t, isRunning)
 }
 
-func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.T) {
-	started := false
-	node := &mock.NodeMock{
-		StartHandler: func() error {
-			return fmt.Errorf("error on start node")
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-	}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-
-	err := ef.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
 func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartHandler: func() error {
+		StartHandler: func() {
 			started = true
-			return nil
-		},
-		P2PBootstrapHandler: func() error {
-			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started

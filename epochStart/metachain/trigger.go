@@ -95,10 +95,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilMetaBlockStorage
 	}
 
-	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	trigger := &trigger{
-		triggerStateKey:             []byte(trigStateKey),
+		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
 		currEpochStartRound:         args.EpochStartRound,

@@ -66,3 +66,6 @@ var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrInvalidTrieTopic signals that invalid trie topic has been provided
 var ErrInvalidTrieTopic = errors.New("invalid trie topic")
+
+// ErrNilContext signals that nil context has been provided
+var ErrNilContext = errors.New("nil context")

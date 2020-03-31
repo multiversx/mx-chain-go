@@ -48,7 +48,6 @@ type indexHashedNodesCoordinator struct {
 	hasher                        hashing.Hasher
 	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
-	listIndexUpdater              ListIndexUpdaterHandler
 	bootStorer                    storage.Storer
 	selfPubKey                    []byte
 	nodesConfig                   map[uint32]*epochNodesConfig
@@ -61,7 +60,7 @@ type indexHashedNodesCoordinator struct {
 	metaConsensusGroupSize        int
 	nodesPerShardSetter           NodesPerShardSetter
 	consensusGroupCacher          Cacher
-	shardIDAsObserver       uint32
+	shardIDAsObserver             uint32
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -88,7 +87,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffler:                      arguments.Shuffler,
 		epochStartRegistrationHandler: arguments.EpochStartNotifier,
 		bootStorer:                    arguments.BootStorer,
-		listIndexUpdater:              arguments.ListIndexUpdater,
 		selfPubKey:                    arguments.SelfPublicKey,
 		nodesConfig:                   nodesConfig,
 		currentEpoch:                  arguments.Epoch,
@@ -96,13 +94,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:       	   arguments.ShardIDAsObserver,
+		shardIDAsObserver:             arguments.ShardIDAsObserver,
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
-	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch, false)
-
-	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch, false)
+	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +133,6 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.Shuffler) {
 		return ErrNilShuffler
 	}
-	if check.IfNil(arguments.ListIndexUpdater) {
-		return ErrNilListIndexUpdater
-	}
 	if check.IfNil(arguments.BootStorer) {
 		return ErrNilBootStorer
 	}
@@ -155,7 +148,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	epoch uint32,
-	updatePeersListAndIndex bool,
 ) error {
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
@@ -212,13 +204,6 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
-
-	if updatePeersListAndIndex {
-		err := ihgs.updatePeersListAndIndex(nodesConfig)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -354,27 +339,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	}
 
 	return pubKeys, nil
-}
-
-// GetConsensusValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
-// number, returning their staking/rewards addresses
-func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardID uint32,
-	epoch uint32,
-) ([]string, error) {
-	consensusNodes, err := ihgs.ComputeConsensusGroup(randomness, round, shardID, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, len(consensusNodes))
-	for i, v := range consensusNodes {
-		addresses[i] = string(v.Address())
-	}
-
-	return addresses, nil
 }
 
 // GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
@@ -538,7 +502,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 
 	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch, true)
+	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -652,60 +616,6 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	}
 
 	return shardEligible, nil
-}
-
-// UpdatePeersListAndIndex will update the list and the index for all peers
-func (ihgs *indexHashedNodesCoordinator) UpdatePeersListAndIndex() error {
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		return ErrEpochNodesConfigDoesNotExist
-	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-
-	return ihgs.updatePeersListAndIndex(nodesConfig)
-}
-
-// updatePeersListAndIndex will update the list and the index for all peers
-// should be called with mutex locked
-func (ihgs *indexHashedNodesCoordinator) updatePeersListAndIndex(nodesConfig *epochNodesConfig) error {
-	err := ihgs.updatePeerAccountsForGivenMap(nodesConfig.eligibleMap, core.EligibleList)
-	if err != nil {
-		return err
-	}
-
-	err = ihgs.updatePeerAccountsForGivenMap(nodesConfig.waitingMap, core.WaitingList)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ihgs *indexHashedNodesCoordinator) updatePeerAccountsForGivenMap(
-	peers map[uint32][]Validator,
-	list core.PeerType,
-) error {
-	for shardId, accountsPerShard := range peers {
-		for index, account := range accountsPerShard {
-			err := ihgs.listIndexUpdater.UpdateListAndIndex(
-				string(account.PubKey()),
-				shardId,
-				string(list),
-				int32(index))
-			if err != nil {
-				log.Warn("error while updating list and index for peer",
-					"error", err,
-					"public key", account.PubKey())
-			}
-		}
-	}
-
-	return nil
 }
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) uint32 {

@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -95,7 +93,7 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 		return update.ErrNilDataTrieContainer
 	}
 
-	trieSyncer, err := trie.NewTrieSyncer(t.requestHandler, t.trieCacher, dataTrie, time.Minute, shId, trieTopicFromAccountType(accType))
+	trieSyncer, err := trie.NewTrieSyncer(t.requestHandler, t.trieCacher, dataTrie, shId, trieTopicFromAccountType(accType))
 	if err != nil {
 		return err
 	}

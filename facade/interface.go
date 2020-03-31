@@ -13,11 +13,8 @@ import (
 
 //NodeWrapper contains all functions that a node should contain.
 type NodeWrapper interface {
-	// Start will create a new messenger and and set up the Node state as running
-	Start() error
-
-	// P2PBootstrap starts the peer discovery process and peer connection filtering
-	P2PBootstrap() error
+	// Start will set up the Node state as running
+	Start()
 
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool

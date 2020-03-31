@@ -462,3 +462,19 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
+
+// SetWhiteListHandlerToInterceptors will set the white list handler to all given interceptors
+func SetWhiteListHandlerToInterceptors(containter process.InterceptorsContainer, handler process.WhiteListHandler) error {
+	var err error
+
+	containter.Iterate(func(key string, interceptor process.Interceptor) bool {
+		errFound := interceptor.SetIsDataForCurrentShardVerifier(handler)
+		if errFound != nil {
+			err = errFound
+			return false
+		}
+		return true
+	})
+
+	return err
+}

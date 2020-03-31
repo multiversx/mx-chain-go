@@ -1,11 +1,11 @@
 package sync
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -216,7 +216,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
-			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error {
+			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
 				return localErr
 			},
 		},
@@ -275,7 +275,7 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 		Tries:      &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{},
 		Transactions: &mock.PendingTransactionsSyncHandlerMock{
-			SyncPendingTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error {
+			SyncPendingTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 				return localErr
 			},
 		},

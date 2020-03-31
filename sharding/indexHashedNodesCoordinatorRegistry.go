@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 const keyPrefix = "indexHashed_"
@@ -26,6 +28,7 @@ type NodesCoordinatorRegistry struct {
 	CurrentEpoch uint32                      `json:"currentEpoch"`
 }
 
+// TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihgs.baseLoadState(key)
@@ -99,7 +102,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 		return err
 	}
 
-	ncInternalkey := append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 
@@ -136,7 +139,6 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		}
 
 		var nodesConfig *epochNodesConfig
-
 		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
 		if err != nil {
 			return nil, err
@@ -146,6 +148,8 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		if nbShards < 2 {
 			return nil, ErrInvalidNumberOfShards
 		}
+
+		nodesConfig.expandedEligibleMap = nodesConfig.eligibleMap
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
@@ -164,11 +168,11 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	}
 
 	for k, v := range config.eligibleMap {
-		result.EligibleValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.EligibleValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	for k, v := range config.waitingMap {
-		result.WaitingValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	return result
@@ -214,7 +218,8 @@ func serializableValidatorsMapToValidatorsMap(
 	return result, nil
 }
 
-func validatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
+// ValidatorArrayToSerializableValidatorArray -
+func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
@@ -239,4 +244,24 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 	}
 
 	return result, nil
+}
+
+// NodesInfoToValidators maps nodeInfo to validator interface
+func NodesInfoToValidators(nodesInfo map[uint32][]*NodeInfo) (map[uint32][]Validator, error) {
+	validatorsMap := make(map[uint32][]Validator)
+
+	for shId, nodeInfoList := range nodesInfo {
+		validators := make([]Validator, 0, len(nodeInfoList))
+		for _, nodeInfo := range nodeInfoList {
+			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		validatorsMap[shId] = validators
+	}
+
+	return validatorsMap, nil
 }

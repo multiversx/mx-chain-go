@@ -296,3 +296,15 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HighestRoundFromBootStorage is the key for the highest round that is saved in storage
+const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
+
+// TriggerRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const TriggerRegistryKeyPrefix = "epochStartTrigger_"
+
+// TriggerRegistryInitialKeyPrefix is the key prefix to save initial data to storage
+const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
+
+// NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"

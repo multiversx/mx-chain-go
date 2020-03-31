@@ -40,6 +40,7 @@ func TestNewResolverRequestHandlerNilFinder(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	assert.Nil(t, rrh)
@@ -55,6 +56,7 @@ func TestNewResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	assert.Nil(t, rrh)
@@ -70,6 +72,7 @@ func TestNewResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		0,
 		0,
+		time.Second,
 	)
 
 	assert.Nil(t, rrh)
@@ -85,6 +88,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	assert.Nil(t, err)
@@ -114,6 +118,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTransaction(0, make([][]byte, 0))
@@ -141,6 +146,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTransaction(0, make([][]byte, 0))
@@ -167,6 +173,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -209,6 +216,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -245,6 +253,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMiniBlock(0, make([]byte, 0))
@@ -277,6 +286,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -303,6 +313,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -331,6 +342,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.SetEpoch(expectedEpoch)
@@ -353,6 +365,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeader(0, make([]byte, 0))
@@ -367,6 +380,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeader(1, make([]byte, 0))
@@ -393,6 +407,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeader(0, []byte("hdrHash"))
@@ -415,6 +430,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotR
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMetaHeader(make([]byte, 0))
@@ -441,6 +457,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -469,6 +486,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -493,6 +511,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
@@ -515,6 +534,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 		&mock.WhiteListHandlerStub{},
 		1,
 		core.MetachainShardId,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(1, 0)
@@ -543,6 +563,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
@@ -575,6 +596,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
@@ -607,6 +629,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
@@ -633,6 +656,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
@@ -655,6 +679,7 @@ func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRe
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMetaHeaderByNonce(0)
@@ -681,6 +706,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 		&mock.WhiteListHandlerStub{},
 		100,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestMetaHeaderByNonce(0)
@@ -711,6 +737,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -738,6 +765,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -764,6 +792,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -806,6 +835,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -842,6 +872,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestRewardTransactions(0, [][]byte{[]byte("txHash")})
@@ -876,6 +907,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
@@ -898,6 +930,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTrieNodes(core.MetachainShardId, []byte("hash"), "topic")
@@ -926,6 +959,7 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
@@ -948,6 +982,7 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestStartOfEpochMetaBlock(0)
@@ -971,6 +1006,7 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestStartOfEpochMetaBlock(0)
@@ -999,6 +1035,7 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestStartOfEpochMetaBlock(0)
@@ -1031,6 +1068,7 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,
+		time.Second,
 	)
 
 	rrh.RequestStartOfEpochMetaBlock(0)

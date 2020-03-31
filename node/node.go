@@ -165,13 +165,11 @@ func (n *Node) IsRunning() bool {
 	return n.isRunning
 }
 
-// Start will create a new messenger and and set up the Node state as running
-func (n *Node) Start() error {
-	err := n.P2PBootstrap()
-	if err == nil {
-		n.isRunning = true
-	}
-	return err
+// TODO: delete useles IsRunning, Start and Stop - too many usages in tests for this PR.
+
+// Start will set up the Node state as running
+func (n *Node) Start() {
+	n.isRunning = true
 }
 
 // Stop closes the messenger and undos everything done in Start
@@ -179,21 +177,8 @@ func (n *Node) Stop() error {
 	if !n.IsRunning() {
 		return nil
 	}
-	err := n.messenger.Close()
-	if err != nil {
-		return err
-	}
 
 	return nil
-}
-
-// P2PBootstrap will try to connect to many peers as possible
-func (n *Node) P2PBootstrap() error {
-	if n.messenger == nil {
-		return ErrNilMessenger
-	}
-
-	return n.messenger.Bootstrap()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
