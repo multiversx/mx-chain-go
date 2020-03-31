@@ -115,16 +115,23 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.shardCoordinator.SelfId() == core.MetachainShardId {
-		err = e.requestAndProcessForShard()
+	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
+		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
 		if err != nil {
 			return Parameters{}, err
 		}
 	}
 
-	err = e.requestAndProcessForMeta()
-	if err != nil {
-		return Parameters{}, err
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		err = e.requestAndProcessForMeta()
+		if err != nil {
+			return Parameters{}, err
+		}
+	} else {
+		err = e.requestAndProcessForShard()
+		if err != nil {
+			return Parameters{}, err
+		}
 	}
 
 	parameters := Parameters{

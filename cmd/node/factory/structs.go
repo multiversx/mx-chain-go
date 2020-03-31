@@ -127,6 +127,7 @@ type Core struct {
 	VmMarshalizer            marshal.Marshalizer
 	TxSignMarshalizer        marshal.Marshalizer
 	TriesContainer           state.TriesHolder
+	TrieStorageManagers      map[string]data.StorageManager
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
@@ -217,7 +218,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	trieContainer, err := createTries(args, internalMarshalizer, hasher)
+	trieStorageManagers, trieContainer, err := createTries(args, internalMarshalizer, hasher)
 
 	if err != nil {
 		return nil, err
@@ -229,6 +230,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		VmMarshalizer:            vmMarshalizer,
 		TxSignMarshalizer:        txSignMarshalizer,
 		TriesContainer:           trieContainer,
+		TrieStorageManagers:      trieStorageManagers,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
 		ChainID:                  args.chainID,
@@ -239,10 +241,9 @@ func createTries(
 	args *coreComponentsFactoryArgs,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-) (state.TriesHolder, error) {
+) (map[string]data.StorageManager, state.TriesHolder, error) {
 
 	trieContainer := state.NewDataTriesHolder()
-
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
 		SnapshotDbCfg:          args.config.TrieSnapshotDB,
@@ -253,24 +254,25 @@ func createTries(
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	merkleTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
+	trieStorageManagers := make(map[string]data.StorageManager)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
+	trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
-	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
-
-	peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
+	trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
 
-	return trieContainer, nil
+	return trieStorageManagers, trieContainer, nil
 }
 
 type stateComponentsFactoryArgs struct {

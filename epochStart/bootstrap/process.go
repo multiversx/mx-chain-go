@@ -2,8 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -16,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -35,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -89,6 +85,8 @@ type epochStartBootstrap struct {
 	defaultShardString         string
 	destinationShardAsObserver string
 	rater                      sharding.ChanceComputer
+	trieContainer              state.TriesHolder
+	trieStorageManagers        map[string]data.StorageManager
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -98,8 +96,6 @@ type epochStartBootstrap struct {
 	headersSyncer             epochStart.HeadersByHashSyncer
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	userTrieStorageManager    data.StorageManager
-	peerTrieStorageManager    data.StorageManager
 	whiteListHandler          update.WhiteListHandler
 
 	// gathered data
@@ -142,6 +138,8 @@ type ArgsEpochStartBootstrap struct {
 	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
 	DestinationShardAsObserver string
+	TrieContainer              state.TriesHolder
+	TrieStorageManagers        map[string]data.StorageManager
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -166,6 +164,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		blockSingleSigner:          args.BlockSingleSigner,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
+		trieContainer:              args.TrieContainer,
+		trieStorageManagers:        args.TrieStorageManagers,
 	}
 
 	return epochStartProvider, nil
@@ -229,7 +229,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
-			return parameters, err
+			return parameters, nil
 		}
 	}
 
@@ -429,16 +429,23 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Info("start in epoch bootstrap: shardCoordinator")
 
-	if e.shardCoordinator.SelfId() != core.MetachainShardId {
-		err = e.requestAndProcessForShard()
+	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
+		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
 		if err != nil {
 			return Parameters{}, err
 		}
 	}
 
-	err = e.requestAndProcessForMeta()
-	if err != nil {
-		return Parameters{}, err
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		err = e.requestAndProcessForMeta()
+		if err != nil {
+			return Parameters{}, err
+		}
+	} else {
+		err = e.requestAndProcessForShard()
+		if err != nil {
+			return Parameters{}, err
+		}
 	}
 
 	parameters := Parameters{
@@ -468,7 +475,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 }
 
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
-	err := e.syncUserAccountsState(e.epochStartMeta.RootHash)
+	var err error
+	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
 		return err
 	}
@@ -609,7 +617,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:             e.hasher,
 			Marshalizer:        e.marshalizer,
-			TrieStorageManager: e.userTrieStorageManager,
+			TrieStorageManager: e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:     e.requestHandler,
 			WaitTime:           time.Minute,
 			Cacher:             e.dataPool.TrieNodes(),
@@ -630,47 +638,35 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createTrieStorageManagers() error {
-	// TODO: this func should be removed as tries storers are already created in coreComponents
-	dbConfig := storageFactory.GetDBFromConfig(e.generalConfig.AccountsTrieStorage.DB)
-	shardIdStr := fmt.Sprintf("%d", e.shardCoordinator.SelfId())
-	if e.shardCoordinator.SelfId() > e.shardCoordinator.NumberOfShards() {
-		shardIdStr = "metachain"
+func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
+	trieFactoryArgs := factory.TrieFactoryArgs{
+		EvictionWaitingListCfg: e.generalConfig.EvictionWaitingList,
+		SnapshotDbCfg:          e.generalConfig.TrieSnapshotDB,
+		Marshalizer:            e.marshalizer,
+		Hasher:                 e.hasher,
+		PathManager:            e.pathManager,
+		ShardId:                core.GetShardIdString(shardId),
 	}
-	trieStoragePath := e.pathManager.PathForStatic(shardIdStr, dbConfig.FilePath)
-	trieStoragePath = filepath.Join(trieStoragePath, e.generalConfig.AccountsTrieStorage.DB.FilePath) + "_temp"
-	dbConfig.FilePath = trieStoragePath
-	trieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(e.generalConfig.AccountsTrieStorage.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(e.generalConfig.AccountsTrieStorage.Bloom),
-	)
+	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
 		return err
 	}
 
-	e.userTrieStorageManager, err = trie.NewTrieStorageManagerWithoutPruning(trieStorage)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(e.generalConfig.AccountsTrieStorage, e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled)
 	if err != nil {
 		return err
 	}
 
-	dbConfig = storageFactory.GetDBFromConfig(e.generalConfig.PeerAccountsTrieStorage.DB)
-	peerTrieStoragePath := e.pathManager.PathForStatic(shardIdStr, dbConfig.FilePath)
-	peerTrieStoragePath = filepath.Join(peerTrieStoragePath, e.generalConfig.PeerAccountsTrieStorage.DB.FilePath) + "_temp"
-	dbConfig.FilePath = peerTrieStoragePath
-	peerTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(e.generalConfig.PeerAccountsTrieStorage.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(e.generalConfig.PeerAccountsTrieStorage.Bloom),
-	)
+	e.trieContainer.Replace([]byte(factory.UserAccountTrie), userAccountTrie)
+	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
+
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(e.generalConfig.PeerAccountsTrieStorage, e.generalConfig.StateTriesConfig.PeerStatePruningEnabled)
 	if err != nil {
 		return err
 	}
 
-	e.peerTrieStorageManager, err = trie.NewTrieStorageManagerWithoutPruning(peerTrieStorage)
-	if err != nil {
-		return err
-	}
+	e.trieContainer.Replace([]byte(factory.PeerAccountTrie), peerAccountsTrie)
+	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
 
 	return nil
 }
@@ -680,7 +676,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:             e.hasher,
 			Marshalizer:        e.marshalizer,
-			TrieStorageManager: e.peerTrieStorageManager,
+			TrieStorageManager: e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:     e.requestHandler,
 			WaitTime:           time.Minute,
 			Cacher:             e.dataPool.TrieNodes(),
@@ -708,24 +704,6 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	storageService := disabled.NewChainStorer()
 
-	triesHolder := state.NewDataTriesHolder()
-	err = e.createTrieStorageManagers()
-	if err != nil {
-		return err
-	}
-
-	stateTrie, err := trie.NewTrie(e.userTrieStorageManager, e.marshalizer, e.hasher)
-	if err != nil {
-		return err
-	}
-	triesHolder.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
-
-	peerTrie, err := trie.NewTrie(e.peerTrieStorageManager, e.marshalizer, e.hasher)
-	if err != nil {
-		return err
-	}
-	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
-
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           e.shardCoordinator,
 		Messenger:                  e.messenger,
@@ -735,7 +713,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
 		NumConcurrentResolvingJobs: 10,
 		DataPacker:                 dataPacker,
-		TriesContainer:             triesHolder,
+		TriesContainer:             e.trieContainer,
 		SizeCheckDelta:             0,
 		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),

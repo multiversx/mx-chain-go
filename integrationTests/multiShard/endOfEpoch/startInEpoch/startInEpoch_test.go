@@ -11,13 +11,19 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -138,6 +144,8 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
 		Marshalizer:                integrationTests.TestMarshalizer,
@@ -158,6 +166,8 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: "0",
+		TrieContainer:              triesHolder,
+		TrieStorageManagers:        trieStorageManager,
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -201,6 +211,46 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	err = integrationTests.TestMarshalizer.Unmarshal(&bd, bootstrapDataBytes)
 	assert.NoError(t, err)
 	assert.Equal(t, epoch, bd.LastHeader.Epoch)
+}
+
+func createTries(
+	config config.Config,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	shardId uint32,
+	pathManager storage.PathManagerHandler,
+) (map[string]data.StorageManager, state.TriesHolder, error) {
+
+	trieContainer := state.NewDataTriesHolder()
+	trieFactoryArgs := triesFactory.TrieFactoryArgs{
+		EvictionWaitingListCfg: config.EvictionWaitingList,
+		SnapshotDbCfg:          config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            pathManager,
+		ShardId:                core.GetShardIdString(shardId),
+	}
+	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieStorageManagers := make(map[string]data.StorageManager)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(config.AccountsTrieStorage, config.StateTriesConfig.AccountsStatePruningEnabled)
+	if err != nil {
+		return nil, nil, err
+	}
+	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
+	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
+
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(config.PeerAccountsTrieStorage, config.StateTriesConfig.PeerStatePruningEnabled)
+	if err != nil {
+		return nil, nil, err
+	}
+	trieContainer.Put([]byte(triesFactory.PeerAccountTrie), peerAccountsTrie)
+	trieStorageManagers[triesFactory.PeerAccountTrie] = peerStorageManager
+
+	return trieStorageManagers, trieContainer, nil
 }
 
 func convertToSlice(originalMap map[uint32][]*integrationTests.TestProcessorNode) []*integrationTests.TestProcessorNode {

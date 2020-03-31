@@ -166,6 +166,7 @@ type JournalEntry interface {
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
 	Put([]byte, data.Trie)
+	Replace(key []byte, tr data.Trie)
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()
