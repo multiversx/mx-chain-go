@@ -456,6 +456,9 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
@@ -527,6 +530,9 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
