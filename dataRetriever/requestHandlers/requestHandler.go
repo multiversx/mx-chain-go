@@ -119,7 +119,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}
 
 	for _, txHash := range hashes {
-		log.Trace("requesting", "hash", txHash)
+		log.Trace("requestByHashes", "hash", txHash)
 	}
 
 	go func() {
