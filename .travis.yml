@@ -17,7 +17,7 @@ before_script:
 - APP_VER_SHORT=$(git describe --tags)
 - GOOS=$(go env GOOS)
 - GOARCH=$(go env GOARCH)
-- ARCHIVE="elrond_""APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+- ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
 
 script:
 - ERD_PACKAGE=node
