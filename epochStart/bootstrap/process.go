@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -53,15 +54,15 @@ type Parameters struct {
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
-	EpochStartMetaBlock     *block.MetaBlock
-	PreviousEpochStartRound uint64
-	ShardHeader             *block.Header
-	NodesConfig             *sharding.NodesCoordinatorRegistry
-	Headers                 map[string]data.HeaderHandler
-	ShardCoordinator        sharding.Coordinator
-	UserAccountTries        map[string]data.Trie
-	PeerAccountTries        map[string]data.Trie
-	PendingMiniBlocks       map[string]*block.MiniBlock
+	EpochStartMetaBlock *block.MetaBlock
+	PreviousEpochStart  *block.MetaBlock
+	ShardHeader         *block.Header
+	NodesConfig         *sharding.NodesCoordinatorRegistry
+	Headers             map[string]data.HeaderHandler
+	ShardCoordinator    sharding.Coordinator
+	UserAccountTries    map[string]data.Trie
+	PeerAccountTries    map[string]data.Trie
+	PendingMiniBlocks   map[string]*block.MiniBlock
 }
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
@@ -90,6 +91,7 @@ type epochStartBootstrap struct {
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
+	uint64Converter            typeConverters.Uint64ByteSliceConverter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -144,6 +146,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver string
 	TrieContainer              state.TriesHolder
 	TrieStorageManagers        map[string]data.StorageManager
+	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -171,6 +174,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
 		trieContainer:              args.TrieContainer,
 		trieStorageManagers:        args.TrieStorageManagers,
+		uint64Converter:            args.Uint64Converter,
 	}
 
 	return epochStartProvider, nil
@@ -488,13 +492,13 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:     e.epochStartMeta,
-		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
-		NodesConfig:             e.nodesConfig,
-		Headers:                 e.syncedHeaders,
-		ShardCoordinator:        e.shardCoordinator,
-		UserAccountTries:        e.userAccountTries,
-		PeerAccountTries:        e.peerAccountTries,
+		EpochStartMetaBlock: e.epochStartMeta,
+		PreviousEpochStart:  e.prevEpochStartMeta,
+		NodesConfig:         e.nodesConfig,
+		Headers:             e.syncedHeaders,
+		ShardCoordinator:    e.shardCoordinator,
+		UserAccountTries:    e.userAccountTries,
+		PeerAccountTries:    e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -586,15 +590,15 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:     e.epochStartMeta,
-		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
-		ShardHeader:             ownShardHdr,
-		NodesConfig:             e.nodesConfig,
-		Headers:                 e.syncedHeaders,
-		ShardCoordinator:        e.shardCoordinator,
-		UserAccountTries:        e.userAccountTries,
-		PeerAccountTries:        e.peerAccountTries,
-		PendingMiniBlocks:       pendingMiniBlocks,
+		EpochStartMetaBlock: e.epochStartMeta,
+		PreviousEpochStart:  e.prevEpochStartMeta,
+		ShardHeader:         ownShardHdr,
+		NodesConfig:         e.nodesConfig,
+		Headers:             e.syncedHeaders,
+		ShardCoordinator:    e.shardCoordinator,
+		UserAccountTries:    e.userAccountTries,
+		PeerAccountTries:    e.peerAccountTries,
+		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
 	log.Debug("reached maximum tested point from integration test")

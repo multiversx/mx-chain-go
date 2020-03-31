@@ -79,6 +79,11 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	err = ssh.saveEpochStartMetaHdrs(components)
+	if err != nil {
+		return err
+	}
+
 	processedMiniBlocks, err := ssh.getProcessedMiniBlocks(components.PendingMiniBlocks, components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
@@ -99,7 +104,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	lastCrossNotarizedHdrs, err := ssh.getLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
+	lastCrossNotarizedHdrs, err := ssh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
@@ -140,6 +145,30 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	}
 
 	err = ssh.commitTries(components)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
+	_, err := ssh.saveMetaHdrToStorage(components.EpochStartMetaBlock)
+	if err != nil {
+		return nil
+	}
+
+	err = ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	if err != nil {
+		return err
+	}
+
+	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	if err != nil {
+		return err
+	}
+
+	_, err = ssh.saveMetaHdrToStorage(components.PreviousEpochStart)
 	if err != nil {
 		return err
 	}
@@ -195,27 +224,47 @@ func (ssh *shardStorageHandler) getProcessedMiniBlocks(
 	return processedMiniBlocks, nil
 }
 
-func (ssh *shardStorageHandler) getLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
 	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, err
 	}
 
-	neededMeta, ok := headers[string(shardData.LastFinishedMetaBlock)]
+	neededHdr, ok := headers[string(shardData.LastFinishedMetaBlock)]
 	if !ok {
 		return nil, epochStart.ErrMissingHeader
+	}
+
+	neededMeta, ok := neededHdr.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	_, err = ssh.saveMetaHdrToStorage(neededMeta)
+	if err != nil {
+		return nil, err
 	}
 
 	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
-		Nonce:   neededMeta.GetNonce(),
+		Nonce:   neededHdr.GetNonce(),
 		Hash:    shardData.LastFinishedMetaBlock,
 	})
 
-	neededMeta, ok = headers[string(shardData.FirstPendingMetaBlock)]
+	neededHdr, ok = headers[string(shardData.FirstPendingMetaBlock)]
 	if !ok {
 		return nil, epochStart.ErrMissingHeader
+	}
+
+	neededMeta, ok = neededHdr.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	_, err = ssh.saveMetaHdrToStorage(neededMeta)
+	if err != nil {
+		return nil, err
 	}
 
 	crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{

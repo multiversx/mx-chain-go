@@ -188,6 +188,10 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		"highest final block nonce", highestFinalBlockNonce,
 		"last round", lastRound)
 
+	if highestFinalBlockNonce == highestBlockNonce {
+		return bootInfos, nil
+	}
+
 	lowestNonce := core.MaxUint64(highestFinalBlockNonce-1, 1)
 	for highestBlockNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)

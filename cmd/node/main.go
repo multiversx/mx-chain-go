@@ -642,6 +642,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DestinationShardAsObserver: ctx.GlobalString(destinationShardAsObserver.Name),
 		TrieContainer:              coreComponents.TriesContainer,
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
+		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
