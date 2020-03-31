@@ -468,13 +468,24 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
-// WithValidatorStatistics sets up the validator statistics fro the node
+// WithValidatorStatistics sets up the validator statistics for the node
 func WithValidatorStatistics(validatorStatistics process.ValidatorStatisticsProcessor) Option {
 	return func(n *Node) error {
 		if check.IfNil(validatorStatistics) {
 			return ErrNilValidatorStatistics
 		}
 		n.validatorStatistics = validatorStatistics
+		return nil
+	}
+}
+
+// WithValidatorsProvider sets up the validators provider for the node
+func WithValidatorsProvider(validatorsProvider process.ValidatorsProvider) Option {
+	return func(n *Node) error {
+		if check.IfNil(validatorsProvider) {
+			return ErrNilValidatorStatistics
+		}
+		n.validatorsProvider = validatorsProvider
 		return nil
 	}
 }
