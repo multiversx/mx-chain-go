@@ -43,6 +43,8 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
 	ihgs.loadingFromDisk.Store(true)
+	defer ihgs.loadingFromDisk.Store(false)
+
 	data, err := ihgs.bootStorer.Get(ncInternalkey)
 	if err != nil {
 		return err
@@ -70,8 +72,6 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihgs.mutNodesConfig.Lock()
 	ihgs.nodesConfig = nodesConfig
 	ihgs.mutNodesConfig.Unlock()
-
-	ihgs.loadingFromDisk.Store(false)
 
 	return nil
 }

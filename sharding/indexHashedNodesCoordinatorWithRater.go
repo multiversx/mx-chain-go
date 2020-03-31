@@ -73,6 +73,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
+// ValidatorsWeights returns the weights/chances for each given validator
 func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
 	minChance := ihgs.GetChance(0)
 	weights := make([]uint32, len(validators))
