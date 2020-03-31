@@ -2,6 +2,8 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -227,13 +229,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
-			return parameters, nil
+			return parameters, err
 		}
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
 	if err != nil {
-		return Parameters{}, nil
+		return Parameters{}, err
 	}
 
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
@@ -393,10 +395,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.createTrieStorageManagers()
-	if err != nil {
-		return Parameters{}, err
-	}
 	log.Info("start in epoch bootstrap: createTrieStorageManagers")
 
 	log.Info("start in epoch bootstrap: started syncPeerAccountsState")
@@ -633,7 +631,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTrieStorageManagers() error {
+	// TODO: this func should be removed as tries storers are already created in coreComponents
 	dbConfig := storageFactory.GetDBFromConfig(e.generalConfig.AccountsTrieStorage.DB)
+	shardIdStr := fmt.Sprintf("%d", e.shardCoordinator.SelfId())
+	if e.shardCoordinator.SelfId() > e.shardCoordinator.NumberOfShards() {
+		shardIdStr = "metachain"
+	}
+	trieStoragePath := e.pathManager.PathForStatic(shardIdStr, dbConfig.FilePath)
+	trieStoragePath = filepath.Join(trieStoragePath, e.generalConfig.AccountsTrieStorage.DB.FilePath) + "_temp"
+	dbConfig.FilePath = trieStoragePath
 	trieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(e.generalConfig.AccountsTrieStorage.Cache),
 		dbConfig,
@@ -649,6 +655,9 @@ func (e *epochStartBootstrap) createTrieStorageManagers() error {
 	}
 
 	dbConfig = storageFactory.GetDBFromConfig(e.generalConfig.PeerAccountsTrieStorage.DB)
+	peerTrieStoragePath := e.pathManager.PathForStatic(shardIdStr, dbConfig.FilePath)
+	peerTrieStoragePath = filepath.Join(peerTrieStoragePath, e.generalConfig.PeerAccountsTrieStorage.DB.FilePath) + "_temp"
+	dbConfig.FilePath = peerTrieStoragePath
 	peerTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(e.generalConfig.PeerAccountsTrieStorage.Cache),
 		dbConfig,
