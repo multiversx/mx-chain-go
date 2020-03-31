@@ -3,6 +3,7 @@ package preprocess
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -177,15 +178,16 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		//TODO: Should be analyzed if not restoring into pool smart contract results miniblocks would create problems or not
-		//if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
-		//	miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
-		//	if err != nil {
-		//		return scrRestored, err
-		//	}
-		//
-		//	miniBlockPool.Put(miniBlockHash, miniBlock)
-		//}
+		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		//would create problems or not
+		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
+			miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+			if err != nil {
+				return scrRestored, err
+			}
+
+			miniBlockPool.Put(miniBlockHash, miniBlock)
+		}
 
 		scrRestored += len(miniBlock.TxHashes)
 	}

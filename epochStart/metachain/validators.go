@@ -180,8 +180,8 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 }
 
 // SaveValidatorInfoBlocksToStorage saves created data to storage
-func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body) {
-	if check.IfNil(metaBlock) || check.IfNil(body) {
+func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ *block.MetaBlock, body *block.Body) {
+	if check.IfNil(body) {
 		return
 	}
 
@@ -190,24 +190,15 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(metaBlock *blo
 			continue
 		}
 
-		for _, mbHeader := range metaBlock.MiniBlockHeaders {
-			if mbHeader.Type != block.PeerBlock {
-				continue
-			}
-
-			marshalizedMb, err := vic.marshalizer.Marshal(miniBlock)
-			if err != nil {
-				continue
-			}
-
-			mbHash := vic.hasher.Compute(string(marshalizedMb))
-			if !bytes.Equal(mbHeader.Hash, mbHash) {
-				continue
-			}
-
-			_ = vic.miniBlockStorage.Put(mbHeader.Hash, marshalizedMb)
-			break
+		marshalizedData, err := vic.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
 		}
+
+		mbHash := vic.hasher.Compute(string(marshalizedData))
+		_ = vic.miniBlockStorage.Put(mbHash, marshalizedData)
+
+		break
 	}
 }
 
@@ -230,40 +221,25 @@ func (vic *validatorInfoCreator) IsInterfaceNil() bool {
 }
 
 // RemoveBlockDataFromPools removes block info from pools
-func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
-	if check.IfNil(metaBlock) || check.IfNil(body) {
+func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, _ *block.Body) {
+	if check.IfNil(metaBlock) {
 		return
 	}
 
-	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.Type != block.PeerBlock {
+	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		if mbHeader.Type != block.PeerBlock {
 			continue
 		}
 
-		for _, mbHeader := range metaBlock.MiniBlockHeaders {
-			if mbHeader.Type != block.PeerBlock {
-				continue
-			}
+		vic.dataPool.MiniBlocks().Remove(mbHeader.Hash)
 
-			mbHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, miniBlock)
-			if err != nil {
-				continue
-			}
+		log.Trace("RemoveBlockDataFromPools",
+			"hash", mbHeader.Hash,
+			"type", mbHeader.Type,
+			"sender", mbHeader.SenderShardID,
+			"receiver", mbHeader.ReceiverShardID,
+			"num txs", mbHeader.TxCount)
 
-			if !bytes.Equal(mbHeader.Hash, mbHash) {
-				continue
-			}
-
-			vic.dataPool.MiniBlocks().Remove(mbHeader.Hash)
-
-			log.Trace("RemoveBlockDataFromPools",
-				"hash", mbHeader.Hash,
-				"type", mbHeader.Type,
-				"sender", mbHeader.SenderShardID,
-				"receiver", mbHeader.ReceiverShardID,
-				"num txs", mbHeader.TxCount)
-
-			break
-		}
+		break
 	}
 }

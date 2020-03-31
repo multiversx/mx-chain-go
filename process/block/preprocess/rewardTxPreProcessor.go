@@ -166,13 +166,12 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		//TODO: Should be analyzed if not restoring into pool rewards miniblocks would create problems or not
-		//miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
-		//if err != nil {
-		//	return rewardTxsRestored, err
-		//}
-		//
-		//miniBlockPool.Put(miniBlockHash, miniBlock)
+		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
+		if err != nil {
+			return rewardTxsRestored, err
+		}
+
+		miniBlockPool.Put(miniBlockHash, miniBlock)
 
 		rewardTxsRestored += len(miniBlock.TxHashes)
 	}

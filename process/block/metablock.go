@@ -574,12 +574,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
 	}
 
-	//if metaBlock.IsStartOfEpochBlock() {
-	//	mp.epochRewardsCreator.DeleteTxsFromStorage(metaBlock, body)
-	//	mp.validatorInfoCreator.DeleteValidatorInfoBlocksFromStorage(metaBlock)
-	//	return nil
-	//}
-
 	_, errNotCritical := mp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
 		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())

@@ -281,8 +281,8 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (rc *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
-	if check.IfNil(metaBlock) || check.IfNil(body) {
+func (rc *rewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *block.Body) {
+	if check.IfNil(body) {
 		return
 	}
 
@@ -305,21 +305,13 @@ func (rc *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body 
 			_ = rc.rewardsStorage.Put(txHash, marshalizedData)
 		}
 
-		for _, mbHeader := range metaBlock.MiniBlockHeaders {
-			if mbHeader.Type != block.RewardsBlock {
-				continue
-			}
-			if mbHeader.ReceiverShardID != miniBlock.ReceiverShardID {
-				continue
-			}
-
-			marshalizedData, err := rc.marshalizer.Marshal(miniBlock)
-			if err != nil {
-				continue
-			}
-
-			_ = rc.miniBlockStorage.Put(mbHeader.Hash, marshalizedData)
+		marshalizedData, err := rc.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
 		}
+
+		mbHash := rc.hasher.Compute(string(marshalizedData))
+		_ = rc.miniBlockStorage.Put(mbHash, marshalizedData)
 	}
 	rc.clean()
 }
@@ -367,24 +359,22 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 			continue
 		}
 
-		for _, mbHeader := range metaBlock.MiniBlockHeaders {
-			if mbHeader.Type != block.RewardsBlock {
-				continue
-			}
-			if mbHeader.ReceiverShardID != miniBlock.ReceiverShardID {
-				continue
-			}
+		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		rc.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
+	}
 
-			strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			rc.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
-			rc.dataPool.MiniBlocks().Remove(mbHeader.Hash)
-
-			log.Trace("RemoveBlockDataFromPools",
-				"hash", mbHeader.Hash,
-				"type", mbHeader.Type,
-				"sender", mbHeader.SenderShardID,
-				"receiver", mbHeader.ReceiverShardID,
-				"num txs", mbHeader.TxCount)
+	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		if mbHeader.Type != block.RewardsBlock {
+			continue
 		}
+
+		rc.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+
+		log.Trace("RemoveBlockDataFromPools",
+			"hash", mbHeader.Hash,
+			"type", mbHeader.Type,
+			"sender", mbHeader.SenderShardID,
+			"receiver", mbHeader.ReceiverShardID,
+			"num txs", mbHeader.TxCount)
 	}
 }
