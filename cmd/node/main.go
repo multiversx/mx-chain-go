@@ -894,7 +894,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
-		stateComponents.ProcessPubkeyConverter,
+		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
@@ -1413,7 +1413,7 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
-		node.WithPubkeyConverter(state.ProcessPubkeyConverter),
+		node.WithPubkeyConverter(state.AddressPubkeyConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),

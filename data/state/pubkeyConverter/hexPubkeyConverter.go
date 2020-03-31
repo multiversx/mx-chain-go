@@ -9,7 +9,7 @@ import (
 
 // hexPubkeyConverter encodes or decodes provided public key as/from hex
 type hexPubkeyConverter struct {
-	addressLen int
+	len int
 }
 
 // NewHexPubkeyConverter returns a hexPubkeyConverter instance
@@ -24,7 +24,7 @@ func NewHexPubkeyConverter(addressLen int) (*hexPubkeyConverter, error) {
 	}
 
 	return &hexPubkeyConverter{
-		addressLen: addressLen,
+		len: addressLen,
 	}, nil
 }
 
@@ -35,9 +35,9 @@ func (ppc *hexPubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(buff) != ppc.addressLen {
+	if len(buff) != ppc.len {
 		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, ppc.addressLen, len(buff))
+			state.ErrWrongSize, ppc.len, len(buff))
 	}
 
 	return buff, nil
@@ -60,17 +60,17 @@ func (ppc *hexPubkeyConverter) CreateAddressFromString(humanReadable string) (st
 
 // CreateAddressFromBytes creates an address container based on the provided public key bytes
 func (ppc *hexPubkeyConverter) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
-	if len(pkBytes) != ppc.addressLen {
+	if len(pkBytes) != ppc.len {
 		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, ppc.addressLen, len(pkBytes))
+			state.ErrWrongSize, ppc.len, len(pkBytes))
 	}
 
 	return state.NewAddress(pkBytes), nil
 }
 
-// AddressLen returns the decoded address length
-func (ppc *hexPubkeyConverter) AddressLen() int {
-	return ppc.addressLen
+// Len returns the decoded address length
+func (ppc *hexPubkeyConverter) Len() int {
+	return ppc.len
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

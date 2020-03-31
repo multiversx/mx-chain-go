@@ -183,7 +183,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.pubkeyConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := sc.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -192,7 +192,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.pubkeyConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 

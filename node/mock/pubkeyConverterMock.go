@@ -8,13 +8,13 @@ import (
 
 // PubkeyConverterMock -
 type PubkeyConverterMock struct {
-	addressLen int
+	len int
 }
 
 // NewPubkeyConverterMock -
 func NewPubkeyConverterMock(addressLen int) *PubkeyConverterMock {
 	return &PubkeyConverterMock{
-		addressLen: addressLen,
+		len: addressLen,
 	}
 }
 
@@ -43,9 +43,9 @@ func (pcm *PubkeyConverterMock) CreateAddressFromBytes(pkBytes []byte) (state.Ad
 	return state.NewAddress(pkBytes), nil
 }
 
-// AddressLen -
-func (pcm *PubkeyConverterMock) AddressLen() int {
-	return pcm.addressLen
+// Len -
+func (pcm *PubkeyConverterMock) Len() int {
+	return pcm.len
 }
 
 // IsInterfaceNil -

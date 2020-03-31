@@ -4,17 +4,17 @@ import "github.com/ElrondNetwork/elrond-go/data/state"
 
 // PubkeyConverterStub -
 type PubkeyConverterStub struct {
-	AddressLenCalled              func() int
+	LenCalled                     func() int
 	BytesCalled                   func(humanReadable string) ([]byte, error)
 	StringCalled                  func(pkBytes []byte) (string, error)
 	CreateAddressFromStringCalled func(humanReadable string) (state.AddressContainer, error)
 	CreateAddressFromBytesCalled  func(pkBytes []byte) (state.AddressContainer, error)
 }
 
-// AddressLen -
-func (pcs *PubkeyConverterStub) AddressLen() int {
-	if pcs.AddressLenCalled != nil {
-		return pcs.AddressLenCalled()
+// Len -
+func (pcs *PubkeyConverterStub) Len() int {
+	if pcs.LenCalled != nil {
+		return pcs.LenCalled()
 	}
 
 	return 0

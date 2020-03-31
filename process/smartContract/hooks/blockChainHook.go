@@ -324,7 +324,7 @@ func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
 // Prefix mask is applied for first 8 bytes 0, and for bytes 9-10 - VM type
 // Suffix mask is applied - last 2 bytes are for the shard ID - mask is applied as suffix mask
 func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-	addressLength := bh.pubkeyConv.AddressLen()
+	addressLength := bh.pubkeyConv.Len()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
 	}

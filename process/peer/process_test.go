@@ -1558,7 +1558,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		return nil, expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = mock.NewAddressConverterFake(4, "")
+	arguments.PubkeyConv = mock.NewPubkeyConverterMock(4)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	validatorInfos, _ := validatorStatistics.GetValidatorInfoForRootHash(hash)
 

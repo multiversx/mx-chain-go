@@ -36,7 +36,7 @@ func TestNewBech32PubkeyConverter_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(bpc))
-	assert.Equal(t, addressLen, bpc.AddressLen())
+	assert.Equal(t, addressLen, bpc.Len())
 }
 
 func TestBech32PubkeyConverter_BytesInvalidStringShouldErr(t *testing.T) {

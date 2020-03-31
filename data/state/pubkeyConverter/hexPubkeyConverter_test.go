@@ -34,7 +34,7 @@ func TestNewHexPubkeyConverter_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(hpc))
-	assert.Equal(t, addressLen, hpc.AddressLen())
+	assert.Equal(t, addressLen, hpc.Len())
 }
 
 func TestHexPubkeyConverter_BytesShouldErr(t *testing.T) {

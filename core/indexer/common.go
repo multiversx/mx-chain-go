@@ -52,7 +52,7 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	return nil
 }
 
-func (cm *commonProcessor) timestampMapping() io.Reader {
+func timestampMapping() io.Reader {
 	return strings.NewReader(
 		`{
 				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
@@ -61,7 +61,7 @@ func (cm *commonProcessor) timestampMapping() io.Reader {
 	)
 }
 
-func (cm *commonProcessor) prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
+func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
 	var buff bytes.Buffer
 
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, metachainTpsDocID, tpsIndex, "\n"))
@@ -98,7 +98,7 @@ func (cm *commonProcessor) prepareGeneralInfo(tpsBenchmark statistics.TPSBenchma
 	return buff
 }
 
-func (cm *commonProcessor) serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
+func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s%d", "_type" : "%s" } }%s`,
 		shardTpsDocIDPrefix, shardInfo.ShardID(), tpsIndex, "\n"))
 

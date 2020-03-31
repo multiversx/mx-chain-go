@@ -66,12 +66,12 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 }
 
 func (esd *elasticSearchDatabase) createIndexes() error {
-	err := esd.dbWriter.CheckAndCreateIndex(blockIndex, esd.commonProcessor.timestampMapping())
+	err := esd.dbWriter.CheckAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(txIndex, esd.commonProcessor.timestampMapping())
+	err = esd.dbWriter.CheckAndCreateIndex(txIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(roundIndex, esd.commonProcessor.timestampMapping())
+	err = esd.dbWriter.CheckAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
@@ -311,10 +311,10 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
 func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) {
-	buff := esd.commonProcessor.prepareGeneralInfo(tpsBenchmark)
+	buff := prepareGeneralInfo(tpsBenchmark)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedShardInfo, serializedMetaInfo := esd.commonProcessor.serializeShardInfo(shardInfo)
+		serializedShardInfo, serializedMetaInfo := serializeShardInfo(shardInfo)
 		if serializedShardInfo == nil {
 			continue
 		}

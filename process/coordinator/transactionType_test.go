@@ -165,7 +165,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = make([]byte, createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = make([]byte, createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
@@ -210,7 +210,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
@@ -250,7 +250,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTransaction, err)
 	assert.Equal(t, process.InvalidTransaction, txType)
 
-	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(createMockPubkeyConverter().AddressLen())}
+	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(createMockPubkeyConverter().Len())}
 	txType, err = tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.RewardTx, txType)

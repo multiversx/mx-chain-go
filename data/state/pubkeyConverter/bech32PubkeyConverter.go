@@ -15,7 +15,7 @@ const invertedPad = false
 
 // bech32PubkeyConverter encodes or decodes provided public key as/from bech32 format
 type bech32PubkeyConverter struct {
-	addressLen int
+	len int
 }
 
 // NewBech32PubkeyConverter returns a bech32PubkeyConverter instance
@@ -30,13 +30,13 @@ func NewBech32PubkeyConverter(addressLen int) (*bech32PubkeyConverter, error) {
 	}
 
 	return &bech32PubkeyConverter{
-		addressLen: addressLen,
+		len: addressLen,
 	}, nil
 }
 
-// AddressLen returns the decoded address length
-func (bpc *bech32PubkeyConverter) AddressLen() int {
-	return bpc.addressLen
+// Len returns the decoded address length
+func (bpc *bech32PubkeyConverter) Len() int {
+	return bpc.len
 }
 
 // Bytes converts the provided public key string as bech32 decoded bytes
@@ -55,9 +55,9 @@ func (bpc *bech32PubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 		return nil, state.ErrBech32ConvertError
 	}
 
-	if len(decodedBytes) != bpc.addressLen {
+	if len(decodedBytes) != bpc.len {
 		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, bpc.addressLen, len(decodedBytes))
+			state.ErrWrongSize, bpc.len, len(decodedBytes))
 	}
 
 	return decodedBytes, nil
@@ -85,9 +85,9 @@ func (bpc *bech32PubkeyConverter) CreateAddressFromString(humanReadable string) 
 
 // CreateAddressFromBytes creates an address container based on the provided public key bytes
 func (bpc *bech32PubkeyConverter) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
-	if len(pkBytes) != bpc.addressLen {
+	if len(pkBytes) != bpc.len {
 		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, bpc.addressLen, len(pkBytes))
+			state.ErrWrongSize, bpc.len, len(pkBytes))
 	}
 
 	return state.NewAddress(pkBytes), nil

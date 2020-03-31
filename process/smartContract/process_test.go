@@ -240,7 +240,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -270,7 +270,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -337,7 +337,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)

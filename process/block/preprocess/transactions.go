@@ -136,7 +136,7 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountsInfo = make(map[string]*txShardInfo)
 
-	txs.emptyAddress = make([]byte, txs.pubkeyConverter.AddressLen())
+	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
 	return &txs, nil
 }

@@ -1067,7 +1067,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -1127,7 +1127,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
@@ -1182,7 +1182,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {

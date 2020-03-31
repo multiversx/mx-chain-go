@@ -344,7 +344,7 @@ func deploySystemSmartContracts(
 	tx := &transaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(0),
-		RcvAddr:   make([]byte, pukeyConv.AddressLen()),
+		RcvAddr:   make([]byte, pukeyConv.Len()),
 		GasPrice:  0,
 		GasLimit:  math.MaxUint64,
 		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),

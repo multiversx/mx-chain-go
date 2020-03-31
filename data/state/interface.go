@@ -21,7 +21,7 @@ const HashLength = 32
 
 // PubkeyConverter can convert public key bytes to/from a human readable form
 type PubkeyConverter interface {
-	AddressLen() int
+	Len() int
 	Bytes(humanReadable string) ([]byte, error)
 	String(pkBytes []byte) (string, error)
 	CreateAddressFromString(humanReadable string) (AddressContainer, error)

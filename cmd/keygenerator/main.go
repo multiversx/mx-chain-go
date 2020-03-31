@@ -25,6 +25,10 @@ type cfg struct {
 	keyFormat string
 }
 
+const keysFolderPattern = "node-%d"
+const blsPubkeyLen = 96
+const txSignPubkeyLen = 32
+
 var (
 	fileGenHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
@@ -109,7 +113,7 @@ func generateFolder(index int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	absPath := filepath.Join(workingDir, fmt.Sprintf("node-%d", index))
+	absPath := filepath.Join(workingDir, fmt.Sprintf(keysFolderPattern, index))
 
 	log.Info("generating files in", "folder", absPath)
 
@@ -178,7 +182,7 @@ func generateOneSetOfFiles(index int) error {
 func generateBlockKey(index int) error {
 	pubkeyConverter, err := factory.NewPubkeyConverter(
 		config.PubkeyConfig{
-			Length: 96,
+			Length: blsPubkeyLen,
 			Type:   argsConfig.keyFormat,
 		},
 	)
@@ -194,7 +198,7 @@ func generateBlockKey(index int) error {
 func generateTxKey(index int) error {
 	pubkeyConverter, err := factory.NewPubkeyConverter(
 		config.PubkeyConfig{
-			Length: 32,
+			Length: txSignPubkeyLen,
 			Type:   argsConfig.keyFormat,
 		},
 	)
@@ -222,6 +226,10 @@ func generateAndSave(index int, baseFilename string, genForBlockSigningSk crypto
 	}
 
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
+	if err != nil {
+		return err
+	}
+
 	defer func() {
 		_ = file.Close()
 	}()

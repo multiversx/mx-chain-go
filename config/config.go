@@ -110,7 +110,7 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	EpochStartConfig            EpochStartConfig
-	ProcessPubkeyConverter      PubkeyConfig
+	AddressPubkeyConverter      PubkeyConfig
 	BLSPubkeyConverter          PubkeyConfig
 	IndexerPubkeyConverter      PubkeyConfig
 	GenesisPubkeyConverter      PubkeyConfig

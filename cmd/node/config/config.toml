@@ -285,7 +285,7 @@
     Path = "logs"
     StackTraceDepth = 2
 
-[ProcessPubkeyConverter]
+[AddressPubkeyConverter]
     Length = 32
     Type = "hex"
 
