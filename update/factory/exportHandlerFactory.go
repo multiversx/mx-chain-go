@@ -409,6 +409,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		EpochStartTrigger:      e.epochStartTrigger,
 		WhiteListHandler:       e.whiteListHandler,
 		InterceptorsContainer:  e.interceptorsContainer,
+		AntifloodHandler:       e.inputAntifloodHandler,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
