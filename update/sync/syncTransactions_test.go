@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"testing"
@@ -106,7 +107,9 @@ func TestSyncPendingTransactionsFor(t *testing.T) {
 	miniBlocks := make(map[string]*block.MiniBlock)
 	mb := &block.MiniBlock{TxHashes: [][]byte{[]byte("txHash")}}
 	miniBlocks["key"] = mb
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	cancel()
 	require.Nil(t, err)
 }
 
@@ -132,7 +135,9 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	mb := &block.MiniBlock{TxHashes: [][]byte{[]byte("txHash")}}
 	miniBlocks["key"] = mb
 
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -170,6 +175,8 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 		pendingTxsSyncer.receivedTransaction(txHash)
 	}()
 
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	cancel()
 	require.Nil(t, err)
 }

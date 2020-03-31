@@ -25,6 +25,11 @@ func (dth *dataTriesHolder) Put(key []byte, tr data.Trie) {
 	dth.mutex.Unlock()
 }
 
+// Replace changes a trie pointer to the tries map
+func (dth *dataTriesHolder) Replace(key []byte, tr data.Trie) {
+	dth.Put(key, tr)
+}
+
 // Get returns the trie pointer that is stored in the map at the given key
 func (dth *dataTriesHolder) Get(key []byte) data.Trie {
 	dth.mutex.Lock()

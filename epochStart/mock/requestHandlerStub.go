@@ -1,5 +1,7 @@
 package mock
 
+import "time"
+
 // RequestHandlerStub -
 type RequestHandlerStub struct {
 	RequestShardHeaderCalled           func(shardId uint32, hash []byte)
@@ -11,6 +13,11 @@ type RequestHandlerStub struct {
 	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblockHashes [][]byte)
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
+}
+
+// RequestInterval -
+func (rhs *RequestHandlerStub) RequestInterval() time.Duration {
+	return time.Second
 }
 
 // RequestStartOfEpochMetaBlock -

@@ -28,7 +28,6 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
-	UpdatePeersListAndIndex() error
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
@@ -44,7 +43,6 @@ type PublicKeysSelector interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
 
@@ -77,7 +75,6 @@ type NodesPerShardSetter interface {
 		eligible map[uint32][]Validator,
 		waiting map[uint32][]Validator,
 		epoch uint32,
-		updateList bool,
 	) error
 	ComputeLeaving(allValidators []Validator) []Validator
 }
@@ -88,7 +85,7 @@ type PeerAccountListAndRatingHandler interface {
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
@@ -104,7 +101,7 @@ type PeerAccountListAndRatingHandler interface {
 // ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
 type ListIndexUpdaterHandler interface {
 	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, shardID uint32, list string, index int32) error
+	UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }

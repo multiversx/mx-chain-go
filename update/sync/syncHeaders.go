@@ -153,6 +153,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 
 // SyncUnFinishedMetaHeaders syncs and validates all the unfinished metaHeaders for each shard
 func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
+	// TODO: do this with context.Context
 	err := h.syncEpochStartMetaHeader(epoch, waitTimeForHeaders)
 	if err != nil {
 		return err
@@ -259,7 +260,7 @@ func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error
 		h.firstPendingMetaBlocks[metaHash] = metaHdr
 	}
 
-	_ = process.EmptyChannel(h.chReceivedAll)
+	_ = core.EmptyChannel(h.chReceivedAll)
 	for metaHash := range h.missingMetaBlocks {
 		h.stopSyncing = false
 		h.requestHandler.RequestMetaHeader([]byte(metaHash))
@@ -290,7 +291,7 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 	lowestPendingNonce := h.lowestPendingNonceFrom(h.firstPendingMetaBlocks)
 	h.computeMissingNonce(lowestPendingNonce, h.epochStartMetaBlock.Nonce)
 
-	_ = process.EmptyChannel(h.chReceivedAll)
+	_ = core.EmptyChannel(h.chReceivedAll)
 	for nonce := range h.missingMetaNonces {
 		h.stopSyncing = false
 		h.requestHandler.RequestMetaHeaderByNonce(nonce)

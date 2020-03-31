@@ -34,8 +34,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -126,8 +126,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()

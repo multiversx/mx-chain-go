@@ -1006,8 +1006,8 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-		_ = n.Node.Start()
-		_ = n.Node.P2PBootstrap()
+		n.Node.Start()
+		_ = n.Messenger.Bootstrap()
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")

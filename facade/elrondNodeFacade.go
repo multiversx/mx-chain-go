@@ -100,13 +100,8 @@ func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 
 // StartNode starts the underlying node
 func (ef *ElrondNodeFacade) StartNode() error {
-	err := ef.node.Start()
-	if err != nil {
-		return err
-	}
-
-	err = ef.node.StartConsensus()
-	return err
+	ef.node.Start()
+	return ef.node.StartConsensus()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node

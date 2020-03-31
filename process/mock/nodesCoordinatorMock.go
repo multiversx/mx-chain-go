@@ -63,6 +63,11 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+// SetConfig -
+func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
+	return nil
+}
+
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 	return 1
@@ -133,36 +138,11 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	return valGrStr, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
-}
-
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	_ map[uint32][]sharding.Validator,
 	epoch uint32,
-	_ bool,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, epoch)
@@ -272,7 +252,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 }
 
 // GetNodesPerShard -
-func (ncm *NodesCoordinatorMock) GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error) {
+func (ncm *NodesCoordinatorMock) GetNodesPerShard(_ uint32) (map[uint32][]sharding.Validator, error) {
 	return nil, nil
 }
 

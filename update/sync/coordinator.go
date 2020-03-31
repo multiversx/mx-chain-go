@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -96,7 +97,9 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	go func() {
 		defer wg.Done()
 
-		err := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, time.Hour)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+		err := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
+		cancel()
 		if err != nil {
 			mutErr.Lock()
 			errFound = err
@@ -112,7 +115,9 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 			return
 		}
 
-		err = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, time.Hour)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
+		err = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
+		cancel()
 		if err != nil {
 			mutErr.Lock()
 			errFound = err

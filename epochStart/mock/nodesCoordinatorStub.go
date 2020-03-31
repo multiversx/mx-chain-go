@@ -13,6 +13,11 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
+// SetConfig -
+func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
+	return nil
+}
+
 // ComputeLeaving -
 func (ncm *NodesCoordinatorStub) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
 	return nil
@@ -26,11 +31,6 @@ func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 // GetAllWaitingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
-}
-
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorStub) UpdatePeersListAndIndex() error {
-	return nil
 }
 
 // GetNumTotalEligible -
@@ -88,22 +88,8 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 	return nil, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorStub) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	return nil, nil
-}
-
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32, _ bool) error {
+func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
 	return nil
 }
 

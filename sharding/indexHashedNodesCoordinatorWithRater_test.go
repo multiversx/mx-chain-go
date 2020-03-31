@@ -47,7 +47,7 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waiting, 0, true))
+	assert.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waiting, 0))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
@@ -71,7 +71,6 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -151,7 +150,6 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	ratingPk0 := uint32(5)
@@ -217,7 +215,6 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
@@ -258,7 +255,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -294,7 +290,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -344,7 +339,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -415,7 +409,6 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)

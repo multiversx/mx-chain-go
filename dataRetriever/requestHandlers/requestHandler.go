@@ -21,6 +21,7 @@ type resolverRequestHandler struct {
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
+	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
 }
 
@@ -33,6 +34,7 @@ func NewResolverRequestHandler(
 	whiteList dataRetriever.WhiteListHandler,
 	maxTxsToRequest int,
 	shardID uint32,
+	requestInterval time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -47,6 +49,9 @@ func NewResolverRequestHandler(
 	if check.IfNil(whiteList) {
 		return nil, dataRetriever.ErrNilWhiteListHandler
 	}
+	if requestInterval < time.Millisecond {
+		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
+	}
 
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
@@ -55,6 +60,7 @@ func NewResolverRequestHandler(
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
 		whiteList:             whiteList,
+		requestInterval:       requestInterval,
 	}
 
 	rrh.sweepTime = time.Now()
@@ -503,6 +509,11 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	rrh.addRequestedItem([]byte(epochStartIdentifier))
 }
 
+// RequestInterval returns the request interval between sending the same request
+func (rrh *resolverRequestHandler) RequestInterval() time.Duration {
+	return rrh.requestInterval
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 	return rrh == nil
@@ -526,7 +537,7 @@ func (rrh *resolverRequestHandler) sweepIfNeeded() {
 	rrh.mutSweepTime.Lock()
 	defer rrh.mutSweepTime.Unlock()
 
-	if time.Since(rrh.sweepTime) <= time.Second {
+	if time.Since(rrh.sweepTime) <= rrh.requestInterval {
 		return
 	}
 

@@ -1403,7 +1403,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
-	_ = process.EmptyChannel(sp.chRcvAllMetaHdrs)
+	_ = core.EmptyChannel(sp.chRcvAllMetaHdrs)
 
 	if len(shardHeader.MetaBlockHashes) == 0 {
 		return 0, 0

@@ -146,10 +146,20 @@ func (pa *peerAccount) SetTempRating(rating uint32) {
 }
 
 // SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it with journal
-func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index int32) {
+func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32) {
 	pa.CurrentShardId = shardID
 	pa.List = list
 	pa.IndexInList = index
+}
+
+// GetList returns the list the peer is in
+func (pa *peerAccount) GetList() string {
+	return pa.List
+}
+
+// GetIndex returns the index in list
+func (pa *peerAccount) GetIndex() uint32 {
+	return pa.IndexInList
 }
 
 // IsInterfaceNil return if there is no value under the interface

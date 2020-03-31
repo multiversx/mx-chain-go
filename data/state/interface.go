@@ -71,6 +71,8 @@ type PeerAccountHandler interface {
 	AddToAccumulatedFees(*big.Int)
 	GetJailTime() TimePeriod
 	SetJailTime(TimePeriod)
+	GetList() string
+	GetIndex() uint32
 	GetCurrentShardId() uint32
 	SetCurrentShardId(uint32)
 	GetNextShardId() uint32
@@ -87,7 +89,7 @@ type PeerAccountHandler interface {
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
-	SetListAndIndex(shardID uint32, list string, index int32)
+	SetListAndIndex(shardID uint32, list string, index uint32)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
@@ -164,6 +166,7 @@ type JournalEntry interface {
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
 	Put([]byte, data.Trie)
+	Replace(key []byte, tr data.Trie)
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()

@@ -129,24 +129,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
-	listIndexUpdaterSetter, ok := rater.(sharding.ListIndexUpdaterSetter)
-	if !ok {
-		return nil, process.ErrNilListIndexUpdaterSetter
-	}
-	log.Debug("setting list index updater")
-
-	liu := &ListIndexUpdater{
-		updateListAndIndex: vs.updateListAndIndex,
-	}
-
-	listIndexUpdaterSetter.SetListIndexUpdater(liu)
-
-	err := vs.nodesCoordinator.UpdatePeersListAndIndex()
-	if err != nil {
-		return nil, err
-	}
-
-	err = vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -341,8 +324,8 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
 		ShardId:                    peerAccount.GetCurrentShardId(),
-		List:                       "list",
-		Index:                      0,
+		List:                       peerAccount.GetList(),
+		Index:                      peerAccount.GetIndex(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
@@ -828,7 +811,7 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 }
 
 // updateListAndIndex updates the list and the index for a given public key
-func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index int32) error {
+func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
 	peer, err := vs.GetPeerAccount([]byte(pubKey))
 	if err != nil {
 		log.Debug("error getting peer account", "error", err, "key", pubKey)
