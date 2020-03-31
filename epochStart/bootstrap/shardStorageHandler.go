@@ -113,16 +113,14 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: triggerConfigKey,
 		HighestFinalBlockNonce:     lastHeader.Nonce,
-		LastRound:                  int64(components.ShardHeader.Round),
+		LastRound:                  0,
 	}
 	bootStrapDataBytes, err := ssh.marshalizer.Marshal(&bootStrapData)
 	if err != nil {
 		return err
 	}
 
-	roundToUseAsKey := int64(components.ShardHeader.Round + 2)
-	// TODO: change this. added 2 in order to skip
-	// equality check between round and LastRound from bootstrap from storage component
+	roundToUseAsKey := int64(components.ShardHeader.Round)
 	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
 	roundNumBytes, err := ssh.marshalizer.Marshal(&roundNum)
 	if err != nil {

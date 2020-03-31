@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -149,6 +150,8 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{

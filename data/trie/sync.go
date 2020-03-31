@@ -161,7 +161,7 @@ func (ts *trieSyncer) getNextNodes() error {
 
 			nextNodes, err = currentNode.getChildren(ts.trie.Database())
 			if err != nil {
-				ts.nodeHashesMutex.Lock()
+				ts.nodeHashesMutex.Unlock()
 				return err
 			}
 
