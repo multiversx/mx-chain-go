@@ -88,11 +88,12 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators [
 				//default weight if all validators need to be selected
 				weights[i] = minChance
 			}
+			validators[i].SetChances(weights[i])
 			log.Debug("Computing chances for validator", "pk", pk, "rating", rating, "chances", weights[i])
 		} else {
 			weights[i] = validatorInShard.Chances()
+			log.Debug("Loading chances for validator", "pk", pk, "chances", weights[i])
 		}
-		log.Debug("Loading chances for validator", "pk", pk, "chances", weights[i])
 	}
 
 	return weights, nil

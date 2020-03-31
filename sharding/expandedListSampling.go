@@ -13,6 +13,8 @@ type selectorExpandedList struct {
 	selectorConsensus *SelectionBasedProvider
 }
 
+const minWeight = 1
+
 // NewSelectorExpandedList creates a new selector initializing selection set to the given lists of validators
 // and expanding it according to each validator weight.
 func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher hashing.Hasher) (RandomSelector, error) {
@@ -20,7 +22,7 @@ func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher
 		return nil, ErrNilValidators
 	}
 	if len(weightList) == 0 {
-		return nil, ErrNilParam
+		return nil, ErrNilWeights
 	}
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
@@ -37,8 +39,11 @@ func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher
 
 	var err error
 	selector.expandedList, err = selector.expandList(validators, weightList)
+	if err != nil {
+		return nil, err
+	}
 
-	return selector, err
+	return selector, nil
 }
 
 // Select selects from the preconfigured selection set sampleSize elements, returning the selected indexes from the set
@@ -46,7 +51,7 @@ func (s *selectorExpandedList) Select(randSeed []byte, sampleSize uint32) ([]uin
 	if len(randSeed) == 0 {
 		return nil, ErrNilRandomness
 	}
-	if sampleSize > s.uniqueItems {
+	if sampleSize == 0 || sampleSize > s.uniqueItems {
 		return nil, ErrInvalidSampleSize
 	}
 
@@ -58,6 +63,10 @@ func (s *selectorExpandedList) expandList(validators []Validator, weightList []u
 	validatorList := make([]uint32, 0, minSize)
 
 	for i := 0; i < len(validators); i++ {
+		if weightList[i] < minWeight {
+			return nil, ErrInvalidWeight
+		}
+
 		for j := uint32(0); j < weightList[i]; j++ {
 			validatorList = append(validatorList, uint32(i))
 		}

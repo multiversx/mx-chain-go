@@ -25,7 +25,7 @@ type selectorWRS struct {
 // NewSelectorWRS creates a new selector initializing selection set to the given lists of weights
 func NewSelectorWRS(weightList []uint32, hasher hashing.Hasher) (RandomSelector, error) {
 	if len(weightList) == 0 {
-		return nil, ErrNilParam
+		return nil, ErrNilWeights
 	}
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
@@ -51,7 +51,7 @@ func (s *selectorWRS) Select(randSeed []byte, sampleSize uint32) ([]uint32, erro
 	keyIndexList := make([]*keyIndex, len(s.weights))
 	buffIndex := make([]byte, 8)
 	for i, w := range s.weights {
-		if w < 1 {
+		if w < minWeight {
 			return nil, ErrInvalidWeight
 		}
 		binary.BigEndian.PutUint64(buffIndex, uint64(i))

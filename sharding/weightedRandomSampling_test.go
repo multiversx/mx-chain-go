@@ -130,7 +130,7 @@ func TestNewSelectorWRSNilWeightsShouldErr(t *testing.T) {
 
 	hasher := &sha256.Sha256{}
 	selector, err := NewSelectorWRS(nil, hasher)
-	require.Equal(t, ErrNilParam, err)
+	require.Equal(t, ErrNilWeights, err)
 	require.Nil(t, selector)
 }
 

@@ -25,23 +25,30 @@ func uint64ToBytes(value uint64) []byte {
 	return buff
 }
 
-func createDummyNodesMap(nodesPerShard uint32, nbShards uint32, suffix string) map[uint32][]Validator {
-	nodesMap := make(map[uint32][]Validator)
+func createDummyNodesList(nbNodes uint32, suffix string) []Validator {
+	list := make([]Validator, 0)
 	hasher := sha256.Sha256{}
 
+	for j := uint32(0); j < nbNodes; j++ {
+		pk := hasher.Compute(fmt.Sprintf("pk%s_%d", suffix, j))
+		addr := []byte(fmt.Sprintf("addr%s_%d", suffix, j))
+		list = append(list, mock.NewValidatorMock(pk, addr))
+	}
+
+	return list
+}
+
+func createDummyNodesMap(nodesPerShard uint32, nbShards uint32, suffix string) map[uint32][]Validator {
+	nodesMap := make(map[uint32][]Validator)
+
+	var shard uint32
+
 	for i := uint32(0); i <= nbShards; i++ {
-		shard := i
-		list := make([]Validator, 0)
+		shard = i
 		if i == nbShards {
 			shard = core.MetachainShardId
 		}
-
-		for j := uint32(0); j < nodesPerShard; j++ {
-			pk := hasher.Compute(fmt.Sprintf("pk%s_%d_%d", suffix, i, j))
-			addr := []byte(fmt.Sprintf("addr%s_%d_%d", suffix, i, j))
-			list = append(list, mock.NewValidatorMock(pk, addr))
-		}
-
+		list := createDummyNodesList(nodesPerShard, suffix+"_i")
 		nodesMap[shard] = list
 	}
 
