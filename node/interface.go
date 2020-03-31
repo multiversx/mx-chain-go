@@ -47,3 +47,12 @@ type Accumulator interface {
 	OutputChannel() <-chan []interface{}
 	IsInterfaceNil() bool
 }
+
+// HardforkTrigger defines the behavior of a hardfork trigger
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, pkBytes []byte) error
+	RecordedTriggerMessage() ([]byte, bool)
+	Trigger() error
+	IsSelfTrigger() bool
+	IsInterfaceNil() bool
+}

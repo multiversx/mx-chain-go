@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
 // ShardTopic is the topic string generator for sharded topics
@@ -112,6 +113,14 @@ func (tP2pNode *TestP2PNode) initNode() {
 
 	pubkeys := tP2pNode.getPubkeys()
 
+	argHardforkTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:   []byte("invalid trigger public key"),
+		Enabled:              false,
+		EnabledAuthenticated: false,
+	}
+	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
+	hardforkTrigger, _ := trigger.NewTrigger(argHardforkTrigger)
+
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
@@ -135,6 +144,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(hardforkTrigger),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

@@ -160,3 +160,15 @@ var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
+
+// ErrTriggerNotEnabled signals that the trigger is not enabled
+var ErrTriggerNotEnabled = errors.New("trigger is not enabled")
+
+// ErrNilHandler signals that a nil trigger handler was provided
+var ErrNilHandler = errors.New("nil handler")
+
+// ErrInvalidValue signals that the value provided is invalid
+var ErrInvalidValue = errors.New("invalid value")
+
+// ErrTriggerPubKeyMismatch signals that there is a mismatch between the public key received and the one read from the config
+var ErrTriggerPubKeyMismatch = errors.New("trigger public key mismatch")

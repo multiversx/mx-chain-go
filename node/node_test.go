@@ -1181,6 +1181,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1339,6 +1340,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1423,6 +1425,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1501,6 +1504,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1588,6 +1592,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1677,6 +1682,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				}, nil
 			},
 		}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2664,4 +2670,46 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	assert.Equal(t, len(txsToSend), recTxsSize)
 	mutRecoveredTransactions.RUnlock()
+}
+
+func TestNode_DirectTrigger(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	hardforkTrigger := &mock.HardforkTriggerStub{
+		TriggerCalled: func() error {
+			wasCalled = true
+
+			return nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithHardforkTrigger(hardforkTrigger),
+	)
+
+	err := n.DirectTrigger()
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestNode_IsSelfTrigger(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	hardforkTrigger := &mock.HardforkTriggerStub{
+		IsSelfTriggerCalled: func() bool {
+			wasCalled = true
+
+			return true
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithHardforkTrigger(hardforkTrigger),
+	)
+
+	isSelf := n.IsSelfTrigger()
+
+	assert.True(t, isSelf)
+	assert.True(t, wasCalled)
 }

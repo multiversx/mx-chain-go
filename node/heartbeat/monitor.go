@@ -19,6 +19,22 @@ import (
 
 var log = logger.GetOrCreate("node/heartbeat")
 
+const hardforkTriggerString = "hardfork trigger"
+
+// ArgHeartbeatMonitor represents the arguments for the heartbeat monitor
+type ArgHeartbeatMonitor struct {
+	Marshalizer                 marshal.Marshalizer
+	MaxDurationPeerUnresponsive time.Duration
+	PubKeysMap                  map[uint32][]string
+	GenesisTime                 time.Time
+	MessageHandler              MessageHandler
+	Storer                      HeartbeatStorageHandler
+	PeerTypeProvider            PeerTypeProviderHandler
+	Timer                       Timer
+	AntifloodHandler            P2PAntifloodHandler
+	HardforkTrigger             HardforkTrigger
+}
+
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
@@ -36,61 +52,56 @@ type Monitor struct {
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
 	antifloodHandler            P2PAntifloodHandler
+	hardforkTrigger             HardforkTrigger
 }
 
 // NewMonitor returns a new monitor instance
-func NewMonitor(
-	marshalizer marshal.Marshalizer,
-	maxDurationPeerUnresponsive time.Duration,
-	pubKeysMap map[uint32][]string,
-	genesisTime time.Time,
-	messageHandler MessageHandler,
-	storer HeartbeatStorageHandler,
-	peerTypeProvider PeerTypeProviderHandler,
-	timer Timer,
-	antifloodHandler P2PAntifloodHandler,
-) (*Monitor, error) {
-	if check.IfNil(marshalizer) {
+func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(peerTypeProvider) {
+	if check.IfNil(arg.PeerTypeProvider) {
 		return nil, ErrNilPeerTypeProvider
 	}
-	if len(pubKeysMap) == 0 {
+	if len(arg.PubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if check.IfNil(messageHandler) {
+	if check.IfNil(arg.MessageHandler) {
 		return nil, ErrNilMessageHandler
 	}
-	if check.IfNil(storer) {
+	if check.IfNil(arg.Storer) {
 		return nil, ErrNilHeartbeatStorer
 	}
-	if check.IfNil(timer) {
+	if check.IfNil(arg.Timer) {
 		return nil, ErrNilTimer
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.HardforkTrigger) {
+		return nil, ErrNilHardforkTrigger
 	}
 
 	mon := &Monitor{
-		marshalizer:                 marshalizer,
+		marshalizer:                 arg.Marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
-		peerTypeProvider:            peerTypeProvider,
-		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		peerTypeProvider:            arg.PeerTypeProvider,
+		maxDurationPeerUnresponsive: arg.MaxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
-		genesisTime:                 genesisTime,
-		messageHandler:              messageHandler,
-		storer:                      storer,
-		timer:                       timer,
-		antifloodHandler:            antifloodHandler,
+		genesisTime:                 arg.GenesisTime,
+		messageHandler:              arg.MessageHandler,
+		storer:                      arg.Storer,
+		timer:                       arg.Timer,
+		antifloodHandler:            arg.AntifloodHandler,
+		hardforkTrigger:             arg.HardforkTrigger,
 	}
 
-	err := mon.storer.UpdateGenesisTime(genesisTime)
+	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mon.initializeHeartbeatMessagesInfo(pubKeysMap)
+	err = mon.initializeHeartbeatMessagesInfo(arg.PubKeysMap)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +226,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
 	if message.Data() == nil {
@@ -234,6 +245,14 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
 		return err
+	}
+
+	isHardforkTrigger := bytes.Equal(hbRecv.Payload, []byte(hardforkTriggerString))
+	if isHardforkTrigger {
+		errHardforkTrigger := m.hardforkTrigger.TriggerReceived(hbRecv.Pubkey, hbRecv.Payload)
+		if errHardforkTrigger != nil {
+			return errHardforkTrigger
+		}
 	}
 
 	//message is validated, process should be done async, method can return nil
