@@ -46,6 +46,9 @@ var ErrNegativeValue = errors.New("negative values are not permited")
 // ErrNilAccountFactory signals that a nil account factory was provided
 var ErrNilAccountFactory = errors.New("account factory is nil")
 
+// ErrNilUpdater signals that a nil updater has been provided
+var ErrNilUpdater = errors.New("updater is nil")
+
 // ErrNilAccountHandler signals that a nil account wrapper was provided
 var ErrNilAccountHandler = errors.New("account wrapper is nil")
 
@@ -100,3 +103,6 @@ var ErrInvalidErdAddress = errors.New("invalid ERD address")
 
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
+
+// ErrInvalidHash signals that the given hash is invalid
+var ErrInvalidHash = errors.New("invalid hash provided")

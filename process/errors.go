@@ -555,6 +555,15 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
 
+// ErrSignedBlocksThresholdNotBetweenZeroAndOne signals that the signed blocks threshold is not between 0 and 1
+var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks threshold is not between 0 and 1")
+
+// ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
+var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
+
+// ErrDecreaseRatingsStepPositive signals that the decrease rating step has a positive value
+var ErrDecreaseRatingsStepPositive = errors.New("decrease rating step has a positive value")
+
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
 
@@ -710,6 +719,12 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+
+// ErrMaxRatingZero signals that maxrating with a value of zero has been provided
+var ErrMaxRatingZero = errors.New("max rating is zero")
+
+// ErrNilValidatorInfos signals that a nil validator infos has been provided
+var ErrNilValidatorInfos = errors.New("nil validator infos")
 
 // ErrAddressNotInThisShard signals that the provided address does not belong to current shard
 var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")

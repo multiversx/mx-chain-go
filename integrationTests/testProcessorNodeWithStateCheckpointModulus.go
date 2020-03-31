@@ -65,6 +65,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
+	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
