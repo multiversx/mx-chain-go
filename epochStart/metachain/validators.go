@@ -197,8 +197,6 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ *block.MetaB
 
 		mbHash := vic.hasher.Compute(string(marshalizedData))
 		_ = vic.miniBlockStorage.Put(mbHash, marshalizedData)
-
-		break
 	}
 }
 
@@ -239,7 +237,5 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaB
 			"sender", mbHeader.SenderShardID,
 			"receiver", mbHeader.ReceiverShardID,
 			"num txs", mbHeader.TxCount)
-
-		break
 	}
 }
