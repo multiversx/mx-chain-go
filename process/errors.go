@@ -320,9 +320,6 @@ var ErrNilSCDestAccount = errors.New("nil destination SC account")
 // ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
 var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
-// ErrWrongNonceInStakingData signals that nonce in staking data is wrong
-var ErrWrongNonceInStakingData = errors.New("nonce invalid ")
-
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
@@ -714,8 +711,8 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
-// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
-var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+// ErrAccountNotFound signals that the account was not found for the provided address
+var ErrAccountNotFound = errors.New("account not found")
 
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
