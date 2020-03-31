@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 
@@ -611,30 +613,42 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	t.Parallel()
 
 	takeSnapshotWasCalled := false
+	snapshotMut := sync.Mutex{}
 	trieStub := &mock.TrieStub{
 		TakeSnapshotCalled: func(rootHash []byte) {
+			snapshotMut.Lock()
 			takeSnapshotWasCalled = true
+			snapshotMut.Unlock()
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
 
+	snapshotMut.Lock()
 	assert.True(t, takeSnapshotWasCalled)
+	snapshotMut.Unlock()
 }
 
 func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	setCheckPointWasCalled := false
+	snapshotMut := sync.Mutex{}
 	trieStub := &mock.TrieStub{
 		SetCheckpointCalled: func(rootHash []byte) {
+			snapshotMut.Lock()
 			setCheckPointWasCalled = true
+			snapshotMut.Unlock()
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 	adb.SetStateCheckpoint([]byte("roothash"))
+	time.Sleep(time.Second)
 
+	snapshotMut.Lock()
 	assert.True(t, setCheckPointWasCalled)
+	snapshotMut.Unlock()
 }
 
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
