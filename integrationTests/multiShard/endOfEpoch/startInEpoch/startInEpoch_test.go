@@ -134,6 +134,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		assert.NoError(t, errRemoveDir)
 	}()
 
+	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -143,6 +144,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		Hasher:                     integrationTests.TestHasher,
 		Messenger:                  messenger,
 		GeneralConfig:              getGeneralConfig(),
+		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
 		SingleSigner:               &mock.SignerMock{},
 		BlockSingleSigner:          &mock.SignerMock{},

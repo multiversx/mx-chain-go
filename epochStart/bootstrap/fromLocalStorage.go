@@ -26,6 +26,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		e.defaultShardString,
 	)
 	if errNotCritical != nil {
+		e.baseData.storageExists = false
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	} else {
 		e.baseData.storageExists = true
@@ -77,6 +78,12 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
+	if err != nil {
+		return Parameters{}, err
+	}
+	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
+
 	if !e.checkIfShuffledOut(pubKey, e.nodesConfig) {
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
@@ -84,11 +91,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			NumOfShards: e.baseData.numberOfShards,
 		}
 		return parameters, nil
-	}
-
-	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
-	if err != nil {
-		return Parameters{}, err
 	}
 
 	err = e.createSyncers()

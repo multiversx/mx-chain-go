@@ -210,7 +210,7 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisNodesConfig.NumberOfShards(), core.MetachainShardId)
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
