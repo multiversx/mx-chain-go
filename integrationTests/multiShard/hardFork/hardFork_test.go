@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -251,6 +252,8 @@ func createHardForkExporter(
 			ChainID:                node.ChainID,
 			ValidityAttester:       node.BlockTracker,
 			ValidatorInfoProcessor: node.ValidatorInfoProcessor,
+			OutputAntifloodHandler: &mock.NilAntifloodHandler{},
+			InputAntifloodHandler:  &mock.NilAntifloodHandler{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
