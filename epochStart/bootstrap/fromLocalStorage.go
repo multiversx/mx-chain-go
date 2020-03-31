@@ -52,9 +52,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	unitsToOpen := make([]string, 0)
-	unitsToOpen = append(unitsToOpen, e.generalConfig.BootstrapStorage.DB.FilePath)
-	unitsToOpen = append(unitsToOpen, e.generalConfig.MetaBlockStorage.DB.FilePath)
+	unitsToOpen := []string{e.generalConfig.BootstrapStorage.DB.FilePath, e.generalConfig.MetaBlockStorage.DB.FilePath}
 
 	storageUnits, err := openStorageHandler.OpenStorageUnits(unitsToOpen)
 	defer func() {

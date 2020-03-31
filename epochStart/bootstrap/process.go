@@ -40,9 +40,11 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const timeToWait = 8 * time.Second
+const timeToWait = 10 * time.Second
+const timeBetweenRequests = 100 * time.Millisecond
+const maxToRequest = 100
 
-// BootstrapParameters
+// Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
@@ -67,6 +69,7 @@ type epochStartBootstrap struct {
 	// should come via arguments
 	publicKey                  crypto.PublicKey
 	marshalizer                marshal.Marshalizer
+	txSignMarshalizer          marshal.Marshalizer
 	hasher                     hashing.Hasher
 	messenger                  p2p.Messenger
 	generalConfig              config.Config
@@ -121,6 +124,7 @@ type baseDataInStorage struct {
 type ArgsEpochStartBootstrap struct {
 	PublicKey                  crypto.PublicKey
 	Marshalizer                marshal.Marshalizer
+	TxSignMarshalizer          marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	Messenger                  p2p.Messenger
 	GeneralConfig              config.Config
@@ -147,6 +151,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider := &epochStartBootstrap{
 		publicKey:                  args.PublicKey,
 		marshalizer:                args.Marshalizer,
+		txSignMarshalizer:          args.TxSignMarshalizer,
 		hasher:                     args.Hasher,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
@@ -302,7 +307,8 @@ func (e *epochStartBootstrap) createSyncers() error {
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		Config:            e.generalConfig,
 		ShardCoordinator:  e.shardCoordinator,
-		Marshalizer:       e.marshalizer,
+		ProtoMarshalizer:  e.marshalizer,
+		TxSignMarshalizer: e.txSignMarshalizer,
 		Hasher:            e.hasher,
 		Messenger:         e.messenger,
 		DataPool:          e.dataPool,
@@ -381,7 +387,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Info("start in epoch bootstrap: got shard headers and previous epoch start meta block")
+	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
@@ -395,20 +401,20 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	log.Info("start in epoch bootstrap: createTrieStorageManagers")
+	log.Debug("start in epoch bootstrap: createTrieStorageManagers")
 
-	log.Info("start in epoch bootstrap: started syncPeerAccountsState")
+	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Info("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
+	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
 
 	err = e.processNodesConfig(pubKeyBytes)
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Info("start in epoch bootstrap: processNodesConfig")
+	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	if e.baseData.shardId == core.AllShardId {
 		destShardID := core.MetachainShardId
@@ -427,7 +433,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Info("start in epoch bootstrap: shardCoordinator")
+	log.Debug("start in epoch bootstrap: shardCoordinator")
 
 	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
 		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
@@ -538,7 +544,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	if err != nil {
 		return err
 	}
-	log.Info("start in epoch bootstrap: GetMiniBlocks")
+	log.Debug("start in epoch bootstrap: GetMiniBlocks")
 
 	shardIds := []uint32{
 		core.MetachainShardId,
@@ -561,7 +567,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	if err != nil {
 		return err
 	}
-	log.Info("start in epoch bootstrap: SyncMissingHeadersByHash")
+	log.Debug("start in epoch bootstrap: SyncMissingHeadersByHash")
 
 	for hash, hdr := range neededHeaders {
 		e.syncedHeaders[hash] = hdr
@@ -572,12 +578,12 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	log.Info("start in epoch bootstrap: started syncUserAccountsState")
+	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
 	err = e.syncUserAccountsState(ownShardHdr.RootHash)
 	if err != nil {
 		return err
 	}
-	log.Info("start in epoch bootstrap: syncUserAccountsState")
+	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock:     e.epochStartMeta,
@@ -591,7 +597,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		PendingMiniBlocks:       pendingMiniBlocks,
 	}
 
-	log.Info("reached maximum tested point from integration test")
+	log.Debug("reached maximum tested point from integration test")
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
@@ -733,15 +739,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(100)
-	maxToRequest := 100
+	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
 		e.whiteListHandler,
 		maxToRequest,
 		core.MetachainShardId,
-		100*time.Millisecond,
+		timeBetweenRequests,
 	)
 	return err
 }

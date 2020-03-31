@@ -251,7 +251,7 @@ func NodesInfoToValidators(nodesInfo map[uint32][]*NodeInfo) (map[uint32][]Valid
 	validatorsMap := make(map[uint32][]Validator)
 
 	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]Validator, 0)
+		validators := make([]Validator, 0, len(nodeInfoList))
 		for _, nodeInfo := range nodeInfoList {
 			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
 			if err != nil {

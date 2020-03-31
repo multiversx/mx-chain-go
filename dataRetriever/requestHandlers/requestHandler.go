@@ -50,7 +50,7 @@ func NewResolverRequestHandler(
 		return nil, dataRetriever.ErrNilWhiteListHandler
 	}
 	if requestInterval < time.Millisecond {
-		return nil, dataRetriever.ErrRequestIntervalTooSmall
+		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
 	}
 
 	rrh := &resolverRequestHandler{

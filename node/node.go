@@ -165,6 +165,8 @@ func (n *Node) IsRunning() bool {
 	return n.isRunning
 }
 
+// TODO: delete useles IsRunning, Start and Stop - too many usages in tests for this PR.
+
 // Start will set up the Node state as running
 func (n *Node) Start() {
 	n.isRunning = true

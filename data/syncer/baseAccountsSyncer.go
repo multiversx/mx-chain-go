@@ -27,7 +27,6 @@ type baseAccountsSyncer struct {
 	shardId            uint32
 	cacher             storage.Cacher
 	rootHash           []byte
-	ctx                context.Context
 }
 
 const minWaitTime = time.Second
@@ -65,7 +64,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	return nil
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) error {
+func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ctx context.Context) error {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher)
@@ -80,7 +79,7 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string) err
 	}
 	b.trieSyncers[string(rootHash)] = trieSyncer
 
-	err = trieSyncer.StartSyncing(rootHash, b.ctx)
+	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
 		return err
 	}

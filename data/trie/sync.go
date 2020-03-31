@@ -125,7 +125,7 @@ func (ts *trieSyncer) getNextNodes() error {
 	var err error
 	nextNodes := make([]node, 0)
 	missingNodes := make([][]byte, 0)
-	currMissingNodes := make([][]byte, 0)
+	currentMissingNodes := make([][]byte, 0)
 
 	newElement := true
 
@@ -134,7 +134,7 @@ func (ts *trieSyncer) getNextNodes() error {
 
 		ts.nodeHashesMutex.Lock()
 		for nodeHash := range ts.nodeHashes {
-			currMissingNodes = currMissingNodes[:0]
+			currentMissingNodes = currentMissingNodes[:0]
 
 			currentNode, err = ts.getNode([]byte(nodeHash))
 			if err != nil {
@@ -145,23 +145,23 @@ func (ts *trieSyncer) getNextNodes() error {
 				ts.trie.root = currentNode
 			}
 
-			currMissingNodes, err = currentNode.loadChildren(ts.getNode)
+			currentMissingNodes, err = currentNode.loadChildren(ts.getNode)
 			if err != nil {
+				ts.nodeHashesMutex.Unlock()
 				return err
 			}
 
-			if len(currMissingNodes) > 0 {
-				missingNodes = append(missingNodes, currMissingNodes...)
+			if len(currentMissingNodes) > 0 {
+				missingNodes = append(missingNodes, currentMissingNodes...)
 				continue
 			}
 
 			delete(ts.nodeHashes, nodeHash)
-			ts.receivedNodesMutex.Lock()
-			delete(ts.receivedNodes, nodeHash)
-			ts.receivedNodesMutex.Unlock()
+			ts.deleteFromReceived(nodeHash)
 
 			nextNodes, err = currentNode.getChildren(ts.trie.Database())
 			if err != nil {
+				ts.nodeHashesMutex.Lock()
 				return err
 			}
 
@@ -178,6 +178,12 @@ func (ts *trieSyncer) getNextNodes() error {
 	ts.nodeHashesMutex.Unlock()
 
 	return nil
+}
+
+func (ts *trieSyncer) deleteFromReceived(nodeHash string) {
+	ts.receivedNodesMutex.Lock()
+	delete(ts.receivedNodes, nodeHash)
+	ts.receivedNodesMutex.Unlock()
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling

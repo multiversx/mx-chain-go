@@ -144,7 +144,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilShardHeaderStorage
 	}
 
-	trigggerStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	newTrigger := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),

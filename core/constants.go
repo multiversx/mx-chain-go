@@ -303,5 +303,8 @@ const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
 // TriggerRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const TriggerRegistryKeyPrefix = "epochStartTrigger_"
 
+// TriggerRegistryInitialKeyPrefix is the key prefix to save initial data to storage
+const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
+
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
