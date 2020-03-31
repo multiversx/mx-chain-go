@@ -19,7 +19,7 @@ func TestNewPeerAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilTrie, err)
 }
 
@@ -33,7 +33,7 @@ func TestNewPeerAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilHasher, err)
 }
 
@@ -47,7 +47,7 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
 
@@ -61,7 +61,7 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		nil,
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilAccountFactory, err)
 }
 

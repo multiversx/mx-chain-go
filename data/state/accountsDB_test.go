@@ -52,7 +52,7 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilTrie, err)
 }
 
@@ -66,7 +66,7 @@ func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilHasher, err)
 }
 
@@ -80,7 +80,7 @@ func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
 
@@ -94,7 +94,7 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		nil,
 	)
 
-	assert.Nil(t, adb)
+	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilAccountFactory, err)
 }
 
@@ -175,6 +175,18 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	t.Parallel()
 
 	updateCalled := 0
+	trieStub := &mock.TrieStub{
+		GetCalled: func(key []byte) (i []byte, err error) {
+			return nil, nil
+		},
+		UpdateCalled: func(key, value []byte) error {
+			return nil
+		},
+		RootCalled: func() (i []byte, err error) {
+			return []byte("rootHash"), nil
+		},
+	}
+
 	adb := generateAccountDBFromTrie(&mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
@@ -184,17 +196,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 			return nil
 		},
 		RecreateCalled: func(root []byte) (d data.Trie, err error) {
-			return &mock.TrieStub{
-				GetCalled: func(key []byte) (i []byte, err error) {
-					return nil, nil
-				},
-				UpdateCalled: func(key, value []byte) error {
-					return nil
-				},
-				RootCalled: func() (i []byte, err error) {
-					return []byte("rootHash"), nil
-				},
-			}, nil
+			return trieStub, nil
 		},
 	})
 
@@ -279,9 +281,9 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieMock := &mock.TrieStub{}
+	trieStub := &mock.TrieStub{}
 	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 
 	_, err := adb.LoadAccount(adr)
 	assert.NotNil(t, err)
@@ -290,7 +292,7 @@ func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	t.Parallel()
 
-	trieMock := &mock.TrieStub{
+	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
@@ -300,7 +302,7 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	}
 
 	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 
 	accountExpected := mock.NewAccountWrapMock(adr)
 	accountRecovered, err := adb.LoadAccount(adr)
@@ -319,7 +321,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 	code := []byte("code")
 	dataTrie := &mock.TrieStub{}
 
-	trieMock := &mock.TrieStub{
+	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressContainer().Bytes()) {
 				return (&mock.MarshalizerMock{}).Marshal(acc)
@@ -334,7 +336,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 		},
 	}
 
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 	retrievedAccount, err := adb.LoadAccount(acc.AddressContainer())
 	assert.Nil(t, err)
 
@@ -348,9 +350,9 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieMock := &mock.TrieStub{}
+	trieStub := &mock.TrieStub{}
 	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 
 	_, err := adb.GetExistingAccount(adr)
 	assert.NotNil(t, err)
@@ -359,14 +361,14 @@ func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	trieMock := &mock.TrieStub{
+	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
 	}
 
 	adr := mock.NewAddressMock()
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 
 	account, err := adb.GetExistingAccount(adr)
 	assert.Equal(t, state.ErrAccNotFound, err)
@@ -385,7 +387,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	code := []byte("code")
 	dataTrie := &mock.TrieStub{}
 
-	trieMock := &mock.TrieStub{
+	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressContainer().Bytes()) {
 				return (&mock.MarshalizerMock{}).Marshal(acc)
@@ -400,7 +402,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 		},
 	}
 
-	adb := generateAccountDBFromTrie(trieMock)
+	adb := generateAccountDBFromTrie(trieStub)
 	retrievedAccount, err := adb.GetExistingAccount(acc.AddressContainer())
 	assert.Nil(t, err)
 
@@ -826,7 +828,7 @@ func TestAccountsDB_RootHash(t *testing.T) {
 	adb := generateAccountDBFromTrie(trieStub)
 	res, err := adb.RootHash()
 	assert.Nil(t, err)
-	assert.Equal(t, true, rootHashCalled)
+	assert.True(t, rootHashCalled)
 	assert.Equal(t, rootHash, res)
 }
 

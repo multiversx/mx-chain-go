@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -13,8 +14,7 @@ func TestNewUserAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewUserAccount(nil)
-
-	assert.Nil(t, acc)
+	assert.True(t, check.IfNil(acc))
 	assert.Equal(t, state.ErrNilAddressContainer, err)
 }
 
@@ -22,9 +22,8 @@ func TestNewUserAccount_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewUserAccount(&mock.AddressMock{})
-
 	assert.Nil(t, err)
-	assert.NotNil(t, acc)
+	assert.False(t, check.IfNil(acc))
 }
 
 func TestUserAccount_AddToBalanceInsufficientFundsShouldErr(t *testing.T) {
@@ -65,8 +64,8 @@ func TestUserAccount_AddToDeveloperReward(t *testing.T) {
 
 	acc, _ := state.NewUserAccount(&mock.AddressMock{})
 	reward := big.NewInt(10)
-	acc.AddToDeveloperReward(reward)
 
+	acc.AddToDeveloperReward(reward)
 	assert.Equal(t, reward, acc.GetDeveloperReward())
 }
 
@@ -134,8 +133,8 @@ func TestUserAccount_SetAndGetNonce(t *testing.T) {
 
 	acc, _ := state.NewUserAccount(&mock.AddressMock{})
 	nonce := uint64(5)
-	acc.IncreaseNonce(nonce)
 
+	acc.IncreaseNonce(nonce)
 	assert.Equal(t, nonce, acc.GetNonce())
 }
 
@@ -144,8 +143,8 @@ func TestUserAccount_SetAndGetCodeHash(t *testing.T) {
 
 	acc, _ := state.NewUserAccount(&mock.AddressMock{})
 	codeHash := []byte("code hash")
-	acc.SetCodeHash(codeHash)
 
+	acc.SetCodeHash(codeHash)
 	assert.Equal(t, codeHash, acc.GetCodeHash())
 }
 
@@ -154,7 +153,7 @@ func TestUserAccount_SetAndGetRootHash(t *testing.T) {
 
 	acc, _ := state.NewUserAccount(&mock.AddressMock{})
 	rootHash := []byte("root hash")
-	acc.SetRootHash(rootHash)
 
+	acc.SetRootHash(rootHash)
 	assert.Equal(t, rootHash, acc.GetRootHash())
 }

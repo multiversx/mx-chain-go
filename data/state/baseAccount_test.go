@@ -14,8 +14,8 @@ func TestBaseAccount_AddressContainer(t *testing.T) {
 	t.Parallel()
 
 	addressContainter := &mock.AddressMock{}
-	ba := state.NewEmptyBaseAccount(addressContainter, nil)
 
+	ba := state.NewEmptyBaseAccount(addressContainter, nil)
 	assert.Equal(t, addressContainter, ba.AddressContainer())
 }
 
@@ -24,8 +24,8 @@ func TestBaseAccount_SetAndGetCode(t *testing.T) {
 
 	code := []byte("code")
 	ba := state.NewEmptyBaseAccount(nil, nil)
-	ba.SetCode(code)
 
+	ba.SetCode(code)
 	assert.Equal(t, code, ba.GetCode())
 }
 
@@ -33,8 +33,8 @@ func TestBaseAccount_DataTrieTracker(t *testing.T) {
 	t.Parallel()
 
 	tracker := &mock.DataTrieTrackerStub{}
-	ba := state.NewEmptyBaseAccount(nil, tracker)
 
+	ba := state.NewEmptyBaseAccount(nil, tracker)
 	assert.Equal(t, tracker, ba.DataTrieTracker())
 }
 

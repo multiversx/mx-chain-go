@@ -14,7 +14,7 @@ func TestNewJournalEntryCode_InvalidCodeHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	entry, err := state.NewJournalEntryCode([]byte{}, &mock.TrieStub{})
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidHash, err)
 }
 
@@ -22,7 +22,7 @@ func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	entry, err := state.NewJournalEntryCode([]byte("code hash"), nil)
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
 }
 
@@ -31,7 +31,7 @@ func TestNewJournalEntryCode_OkParams(t *testing.T) {
 
 	entry, err := state.NewJournalEntryCode([]byte("code hash"), &mock.TrieStub{})
 	assert.Nil(t, err)
-	assert.NotNil(t, entry)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestJournalEntryCode_RevertErr(t *testing.T) {
@@ -72,20 +72,11 @@ func TestJournalEntryCode_RevertUpdatesTheTrie(t *testing.T) {
 	assert.True(t, updateCalled)
 }
 
-func TestJournalEntryCode_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	entry, _ := state.NewJournalEntryCode([]byte("code hash"), &mock.TrieStub{})
-	assert.False(t, check.IfNil(entry))
-	entry = nil
-	assert.True(t, check.IfNil(entry))
-}
-
 func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	entry, err := state.NewJournalEntryAccount(nil)
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
@@ -94,7 +85,7 @@ func TestNewJournalEntryAccount_OkParams(t *testing.T) {
 
 	entry, err := state.NewJournalEntryAccount(&mock.AccountWrapMock{})
 	assert.Nil(t, err)
-	assert.NotNil(t, entry)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestJournalEntryAccount_Revert(t *testing.T) {
@@ -108,20 +99,11 @@ func TestJournalEntryAccount_Revert(t *testing.T) {
 	assert.Equal(t, expectedAcc, acc)
 }
 
-func TestJournalEntryAccount_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	entry, _ := state.NewJournalEntryAccount(&mock.AccountWrapMock{})
-	assert.False(t, check.IfNil(entry))
-	entry = nil
-	assert.True(t, check.IfNil(entry))
-}
-
 func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &mock.TrieStub{})
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
 
@@ -129,7 +111,7 @@ func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), nil)
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
 }
 
@@ -138,7 +120,7 @@ func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 
 	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &mock.TrieStub{})
 	assert.Nil(t, err)
-	assert.NotNil(t, entry)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
@@ -179,15 +161,6 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 	assert.True(t, updateCalled)
 }
 
-func TestJournalEntryAccountCreation_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	entry, _ := state.NewJournalEntryAccountCreation([]byte("address"), &mock.TrieStub{})
-	assert.False(t, check.IfNil(entry))
-	entry = nil
-	assert.True(t, check.IfNil(entry))
-}
-
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -195,7 +168,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	trieUpdates["a"] = []byte("b")
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, nil)
 
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
@@ -206,7 +179,7 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	accnt, _ := state.NewUserAccount(mock.NewAddressMock())
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
-	assert.Nil(t, entry)
+	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilOrEmptyDataTrieUpdates, err)
 }
 
@@ -301,17 +274,4 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, updateWasCalled)
 	assert.True(t, rootWasCalled)
-}
-
-func TestJournalEntryDataTrieUpdates_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
-	accnt := mock.NewAccountWrapMock(nil)
-
-	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
-	assert.False(t, check.IfNil(entry))
-	entry = nil
-	assert.True(t, check.IfNil(entry))
 }
