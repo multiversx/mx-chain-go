@@ -102,14 +102,14 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: triggerConfigKey,
 		HighestFinalBlockNonce:     lastHeader.Nonce,
-		LastRound:                  int64(components.EpochStartMetaBlock.Round),
+		LastRound:                  0,
 	}
 	bootStrapDataBytes, err := msh.marshalizer.Marshal(&bootStrapData)
 	if err != nil {
 		return err
 	}
 
-	roundToUseAsKey := int64(components.EpochStartMetaBlock.Round + 2)
+	roundToUseAsKey := int64(components.EpochStartMetaBlock.Round)
 	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
 	roundNumBytes, err := msh.marshalizer.Marshal(&roundNum)
 	if err != nil {
