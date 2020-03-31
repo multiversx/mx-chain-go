@@ -180,6 +180,10 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	if tsm.snapshotInProgress > 0 {
 		tsm.snapshotInProgress--
 	}
+
+	if tsm.snapshotInProgress == 0 {
+		tsm.prune(tsm.pruningBuffer.removeAll())
+	}
 }
 
 // Prune removes the given hash from db
@@ -195,14 +199,17 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) {
 	}
 
 	oldHashes := tsm.pruningBuffer.removeAll()
-	oldHashes = append(oldHashes, rootHash)
+	oldHashes[string(rootHash)] = struct{}{}
+	tsm.prune(oldHashes)
+}
 
-	for i := range oldHashes {
+func (tsm *trieStorageManager) prune(oldHashes map[string]struct{}) {
+	for key := range oldHashes {
 		select {
-		case tsm.pruneReq <- oldHashes[i]:
-			log.Trace("root hash will be pruned", "rootHash", rootHash)
+		case tsm.pruneReq <- []byte(key):
+			log.Trace("root hash will be pruned", "rootHash", []byte(key))
 		default:
-			log.Trace("pruning buffer is full, hash won't be removed", "hash", oldHashes[i])
+			log.Trace("pruning buffer is full, hash won't be removed", "hash", []byte(key))
 		}
 	}
 }

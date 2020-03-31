@@ -1,18 +1,17 @@
 package trie
 
 import (
-	"bytes"
 	"sync"
 )
 
 type pruningBuffer struct {
 	mutOp  sync.RWMutex
-	buffer [][]byte
+	buffer map[string]struct{}
 }
 
 func newPruningBuffer() *pruningBuffer {
 	return &pruningBuffer{
-		buffer: make([][]byte, 0),
+		buffer: make(map[string]struct{}),
 	}
 }
 
@@ -25,7 +24,7 @@ func (sb *pruningBuffer) add(rootHash []byte) {
 		return
 	}
 
-	sb.buffer = append(sb.buffer, rootHash)
+	sb.buffer[string(rootHash)] = struct{}{}
 	log.Trace("pruning buffer add", "rootHash", rootHash)
 }
 
@@ -33,21 +32,17 @@ func (sb *pruningBuffer) remove(rootHash []byte) {
 	sb.mutOp.Lock()
 	defer sb.mutOp.Unlock()
 
-	for i := 0; i < len(sb.buffer); i++ {
-		if bytes.Equal(sb.buffer[i], rootHash) {
-			sb.buffer = append(sb.buffer[:i], sb.buffer[i+1:]...)
-		}
-	}
+	delete(sb.buffer, string(rootHash))
 }
 
-func (sb *pruningBuffer) removeAll() [][]byte {
+func (sb *pruningBuffer) removeAll() map[string]struct{} {
 	sb.mutOp.Lock()
 	defer sb.mutOp.Unlock()
 
 	log.Trace("pruning buffer", "len", len(sb.buffer))
 
 	buffer := sb.buffer
-	sb.buffer = make([][]byte, 0)
+	sb.buffer = make(map[string]struct{})
 
 	return buffer
 }
