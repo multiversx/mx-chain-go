@@ -11,6 +11,13 @@ type journalEntryCode struct {
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
 func NewJournalEntryCode(codeHash []byte, updater Updater) (*journalEntryCode, error) {
+	if check.IfNil(updater) {
+		return nil, ErrNilUpdater
+	}
+	if len(codeHash) == 0 {
+		return nil, ErrInvalidHash
+	}
+
 	return &journalEntryCode{
 		codeHash: codeHash,
 		updater:  updater,
@@ -61,6 +68,13 @@ type journalEntryAccountCreation struct {
 
 // NewJournalEntryAccountCreation creates a new instance of JournalEntryAccountCreation
 func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEntryAccountCreation, error) {
+	if check.IfNil(updater) {
+		return nil, ErrNilUpdater
+	}
+	if len(address) == 0 {
+		return nil, ErrInvalidAddressLength
+	}
+
 	return &journalEntryAccountCreation{
 		address: address,
 		updater: updater,
