@@ -7,19 +7,21 @@ import (
 
 // RatingsData will store information about ratingsComputation specific for a shard or metachain
 type RatingStep struct {
-	proposerIncreaseRatingStep  int32
-	proposerDecreaseRatingStep  int32
-	validatorIncreaseRatingStep int32
-	validatorDecreaseRatingStep int32
+	proposerIncreaseRatingStep     int32
+	proposerDecreaseRatingStep     int32
+	validatorIncreaseRatingStep    int32
+	validatorDecreaseRatingStep    int32
+	consecutiveMissedBlocksPenalty float32
 }
 
 // NewRatingsData creates a new RatingsData instance
 func NewRatingStepData(steps config.RatingSteps) process.RatingsStepHandler {
 	return &RatingStep{
-		proposerIncreaseRatingStep:  steps.ProposerIncreaseRatingStep,
-		proposerDecreaseRatingStep:  steps.ProposerDecreaseRatingStep,
-		validatorIncreaseRatingStep: steps.ValidatorIncreaseRatingStep,
-		validatorDecreaseRatingStep: steps.ValidatorDecreaseRatingStep,
+		proposerIncreaseRatingStep:     steps.ProposerIncreaseRatingStep,
+		proposerDecreaseRatingStep:     steps.ProposerDecreaseRatingStep,
+		validatorIncreaseRatingStep:    steps.ValidatorIncreaseRatingStep,
+		validatorDecreaseRatingStep:    steps.ValidatorDecreaseRatingStep,
+		consecutiveMissedBlocksPenalty: steps.ConsecutiveMissedBlocksPenalty,
 	}
 }
 
@@ -41,4 +43,9 @@ func (rd *RatingStep) ValidatorIncreaseRatingStep() int32 {
 // ValidatorDecreaseRatingStep will return the rating step decrease for validator
 func (rd *RatingStep) ValidatorDecreaseRatingStep() int32 {
 	return rd.validatorDecreaseRatingStep
+}
+
+// ConsecutiveMissedBlocksPenalty will return the penalty increase for consecutive block misses
+func (rd *RatingStep) ConsecutiveMissedBlocksPenalty() float32 {
+	return rd.consecutiveMissedBlocksPenalty
 }

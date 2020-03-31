@@ -328,10 +328,14 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
-		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NrSuccess,
-		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NrFailure,
-		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NrSuccess,
-		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NrFailure,
+		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
+		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
+		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NumSuccess,
+		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NumFailure,
+		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
+		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NumFailure,
+		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
+		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NumFailure,
 		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
@@ -377,6 +381,52 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 	}
 
 	return vInfos, err
+}
+
+// ProcessRatingsEndOfEpoch makes end of epoch process on the rating
+func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	if len(validatorInfos) == 0 {
+		return process.ErrNilValidatorInfos
+	}
+
+	signedThreshold := vs.rater.GetSignedBlocksThreshold()
+	for shardId, validators := range validatorInfos {
+		for _, validator := range validators {
+			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *state.ValidatorInfo, signedThreshold float32, shardId uint32) error {
+	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
+	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+	if computedThreshold <= signedThreshold {
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
+		pa, err := vs.GetPeerAccount(validator.PublicKey)
+		if err != nil {
+			return err
+		}
+
+		pa.SetTempRating(newTempRating)
+
+		log.Debug("below signed blocks threshold",
+			"pk", validator.PublicKey,
+			"signed %", computedThreshold,
+			"validatorSuccess", validator.ValidatorSuccess,
+			"validatorFailure", validator.ValidatorFailure,
+			"new tempRating", newTempRating,
+			"old tempRating", validator.TempRating,
+		)
+
+		validator.TempRating = newTempRating
+	}
+
+	return nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
@@ -469,8 +519,12 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		vs.mutMissedBlocksCounters.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses())
 		swInner.Stop("ComputeDecreaseProposer")
+
+		swInner.Start("SetConsecutiveProposerMisses")
+		leaderPeerAcc.SetConsecutiveProposerMisses(leaderPeerAcc.GetConsecutiveProposerMisses() + 1)
+		swInner.Stop("SetConsecutiveProposerMisses")
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
@@ -649,6 +703,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		switch actionType {
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)
+			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			peerAcc.SetAccumulatedFees(big.NewInt(0).Add(peerAcc.GetAccumulatedFees(), leaderAccumulatedFees))
@@ -657,7 +712,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
 			peerAcc.DecreaseValidatorSuccessRate(1)
-			newRating = vs.rater.ComputeDecreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
 		peerAcc.SetTempRating(newRating)
@@ -793,10 +848,10 @@ func (vs *validatorStatistics) display(validatorKey string) {
 
 	log.Trace("validator statistics",
 		"pk", acc.GetBLSPublicKey(),
-		"leader fail", acc.GetLeaderSuccessRate().NrFailure,
-		"leader success", acc.GetLeaderSuccessRate().NrSuccess,
-		"val fail", acc.GetValidatorSuccessRate().NrFailure,
-		"val success", acc.GetValidatorSuccessRate().NrSuccess,
+		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
+		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
+		"val fail", acc.GetValidatorSuccessRate().NumFailure,
+		"val success", acc.GetValidatorSuccessRate().NumSuccess,
 		"temp rating", acc.GetTempRating(),
 		"rating", acc.GetRating(),
 	)
@@ -827,7 +882,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating, 0)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
@@ -853,14 +908,14 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 }
 
 // Process - processes a validatorInfo and updates fields
-func (vs *validatorStatistics) Process(vid data.ValidatorInfoHandler) error {
-	log.Trace("ValidatorInfoData", "pk", vid.GetPublicKey(), "rating", vid.GetRating(), "tempRating", vid.GetTempRating())
+func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error {
+	log.Trace("ValidatorInfoData", "pk", svi.GetPublicKey(), "tempRating", svi.GetTempRating())
 
-	pa, err := vs.GetPeerAccount(vid.GetPublicKey())
+	pa, err := vs.GetPeerAccount(svi.GetPublicKey())
 	if err != nil {
 		return err
 	}
 
-	pa.SetRating(vid.GetTempRating())
+	pa.SetRating(svi.GetTempRating())
 	return vs.peerAdapter.SaveAccount(pa)
 }

@@ -219,11 +219,19 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
-	Process(validatorInfo data.ValidatorInfoHandler) error
+	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	Commit() ([]byte, error)
+}
+
+// ValidatorsProvider is the main interface for validators' provider
+type ValidatorsProvider interface {
+	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	IsInterfaceNil() bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -737,6 +745,7 @@ type RatingsInfoHandler interface {
 	StartRating() uint32
 	MaxRating() uint32
 	MinRating() uint32
+	SignedBlocksThreshold() float32
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
@@ -748,6 +757,7 @@ type RatingsStepHandler interface {
 	ProposerDecreaseRatingStep() int32
 	ValidatorIncreaseRatingStep() int32
 	ValidatorDecreaseRatingStep() int32
+	ConsecutiveMissedBlocksPenalty() float32
 }
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing

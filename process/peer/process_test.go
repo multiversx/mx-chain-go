@@ -23,6 +23,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	validatorIncreaseRatingStep     = int32(1)
+	validatorDecreaseRatingStep     = int32(-2)
+	proposerIncreaseRatingStep      = int32(2)
+	proposerDecreaseRatingStep      = int32(-4)
+	metaValidatorIncreaseRatingStep = int32(3)
+	metaValidatorDecreaseRatingStep = int32(-4)
+	metaProposerIncreaseRatingStep  = int32(5)
+	metaProposerDecreaseRatingStep  = int32(-10)
+	minRating                       = uint32(1)
+	maxRating                       = uint32(100)
+	startRating                     = uint32(50)
+)
+
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
@@ -80,6 +94,17 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 
 func createMockRater() *mock.RaterMock {
 	rater := mock.GetNewMockRater()
+	rater.MinRating = minRating
+	rater.MaxRating = maxRating
+	rater.StartRating = startRating
+	rater.IncreaseProposer = proposerIncreaseRatingStep
+	rater.DecreaseProposer = proposerDecreaseRatingStep
+	rater.IncreaseValidator = validatorIncreaseRatingStep
+	rater.DecreaseValidator = validatorDecreaseRatingStep
+	rater.MetaIncreaseProposer = metaProposerIncreaseRatingStep
+	rater.MetaDecreaseProposer = metaProposerDecreaseRatingStep
+	rater.MetaIncreaseValidator = metaValidatorIncreaseRatingStep
+	rater.MetaDecreaseValidator = metaValidatorDecreaseRatingStep
 	return rater
 }
 
@@ -1486,7 +1511,7 @@ func getAccountsMock() *mock.AccountsStub {
 			return make([]byte, 0), nil
 		},
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
 }
@@ -1641,10 +1666,17 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), pa0.GetAccumulatedFees())
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NrFailure)
-	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NrFailure)
+
+	assert.Equal(t, uint32(11), pa0.GetTotalValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(22), pa0.GetTotalValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(33), pa0.GetTotalLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(44), pa0.GetTotalLeaderSuccessRate().NumFailure)
+
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumFailure)
+
 	assert.Equal(t, uint32(0), pa0.GetNumSelectedInSuccessBlocks())
 	assert.Equal(t, pa0.GetTempRating(), pa0.GetRating())
 }
@@ -1732,15 +1764,174 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	compare(t, paMeta, validatorInfos[core.MetachainShardId][0])
 }
 
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNilMapShouldErr(t *testing.T) {
+	arguments := createMockArguments()
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(nil)
+	assert.Equal(t, process.ErrNilValidatorInfos, err)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	err = validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	assert.Equal(t, process.ErrNilValidatorInfos, err)
+}
+
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNoValidatorFailureShouldNotChangeTempRating(t *testing.T) {
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025
+	}
+	arguments.Rater = rater
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	tempRating1 := uint32(75)
+	tempRating2 := uint32(80)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
+	vi[core.MetachainShardId][0] = &state.ValidatorInfo{
+		PublicKey:                  nil,
+		ShardId:                    core.MetachainShardId,
+		List:                       "",
+		Index:                      0,
+		TempRating:                 tempRating1,
+		Rating:                     0,
+		RewardAddress:              nil,
+		LeaderSuccess:              10,
+		LeaderFailure:              0,
+		ValidatorSuccess:           10,
+		ValidatorFailure:           0,
+		NumSelectedInSuccessBlocks: 20,
+		AccumulatedFees:            nil,
+	}
+
+	vi[0] = make([]*state.ValidatorInfo, 1)
+	vi[0][0] = &state.ValidatorInfo{
+		PublicKey:                  nil,
+		ShardId:                    core.MetachainShardId,
+		List:                       "",
+		Index:                      0,
+		TempRating:                 tempRating2,
+		Rating:                     0,
+		RewardAddress:              nil,
+		LeaderSuccess:              10,
+		LeaderFailure:              0,
+		ValidatorSuccess:           10,
+		ValidatorFailure:           0,
+		NumSelectedInSuccessBlocks: 20,
+		AccumulatedFees:            nil,
+	}
+
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	assert.Nil(t, err)
+	assert.Equal(t, tempRating1, vi[core.MetachainShardId][0].TempRating)
+	assert.Equal(t, tempRating2, vi[0][0].TempRating)
+}
+
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFailureShouldWork(t *testing.T) {
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025
+	}
+	rater.MinRating = 1000
+	rater.MaxRating = 10000
+	arguments.Rater = rater
+
+	updateArgumentsWithNeeded(arguments)
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	tempRating1 := uint32(5000)
+	tempRating2 := uint32(8000)
+
+	validatorSuccess1 := uint32(2)
+	validatorFailure1 := uint32(98)
+	validatorSuccess2 := uint32(1)
+	validatorFailure2 := uint32(99)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[0] = make([]*state.ValidatorInfo, 1)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	assert.Nil(t, err)
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
+	expectedTempRating2 := tempRating2 - uint32(rater.IncreaseValidator)*validatorFailure2
+	assert.Equal(t, expectedTempRating2, vi[0][0].TempRating)
+}
+
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFailureBelowMinRatingShouldWork(t *testing.T) {
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025
+	}
+	rater.MinRating = 1000
+	rater.MaxRating = 10000
+	arguments.Rater = rater
+	rater.MetaIncreaseValidator = 100
+	rater.IncreaseValidator = 99
+	updateArgumentsWithNeeded(arguments)
+
+	tempRating1 := uint32(5000)
+	tempRating2 := uint32(8000)
+
+	validatorSuccess1 := uint32(2)
+	validatorSuccess2 := uint32(1)
+	validatorFailure1 := uint32(98)
+	validatorFailure2 := uint32(99)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[0] = make([]*state.ValidatorInfo, 1)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+
+	assert.Nil(t, err)
+	assert.Equal(t, rater.MinRating, vi[core.MetachainShardId][0].TempRating)
+	assert.Equal(t, rater.MinRating, vi[0][0].TempRating)
+}
+
+func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
+	return &state.ValidatorInfo{
+		PublicKey:                  nil,
+		ShardId:                    shardId,
+		List:                       "",
+		Index:                      0,
+		TempRating:                 tempRating,
+		Rating:                     0,
+		RewardAddress:              nil,
+		LeaderSuccess:              0,
+		LeaderFailure:              0,
+		ValidatorSuccess:           validatorSuccess,
+		ValidatorFailure:           validatorFailure,
+		NumSelectedInSuccessBlocks: validatorSuccess + validatorFailure,
+		AccumulatedFees:            nil,
+	}
+}
+
 func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
 	assert.Equal(t, peerAccount.GetCurrentShardId(), validatorInfo.ShardId)
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
-	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrFailure, validatorInfo.ValidatorFailure)
-	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NrSuccess, validatorInfo.ValidatorSuccess)
-	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrFailure, validatorInfo.LeaderFailure)
-	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NrSuccess, validatorInfo.LeaderSuccess)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumFailure, validatorInfo.ValidatorFailure)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumSuccess, validatorInfo.ValidatorSuccess)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumFailure, validatorInfo.LeaderFailure)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumSuccess, validatorInfo.LeaderSuccess)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumFailure, validatorInfo.TotalValidatorFailure)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumSuccess, validatorInfo.TotalValidatorSuccess)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumFailure, validatorInfo.TotalLeaderFailure)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumSuccess, validatorInfo.TotalLeaderSuccess)
 	assert.Equal(t, "list", validatorInfo.List)
 	assert.Equal(t, uint32(0), validatorInfo.Index)
 	assert.Equal(t, peerAccount.GetRewardAddress(), validatorInfo.RewardAddress)
@@ -1772,12 +1963,20 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		NodeInWaitingList: false,
 		UnStakedNonce:     7,
 		ValidatorSuccessRate: state.SignRate{
-			NrSuccess: 1,
-			NrFailure: 2,
+			NumSuccess: 1,
+			NumFailure: 2,
 		},
 		LeaderSuccessRate: state.SignRate{
-			NrSuccess: 3,
-			NrFailure: 4,
+			NumSuccess: 3,
+			NumFailure: 4,
+		},
+		TotalValidatorSuccessRate: state.SignRate{
+			NumSuccess: 10,
+			NumFailure: 20,
+		},
+		TotalLeaderSuccessRate: state.SignRate{
+			NumSuccess: 30,
+			NumFailure: 40,
 		},
 		NumSelectedInSuccessBlocks: 5,
 		Rating:                     51,
@@ -1808,12 +2007,12 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		NodeInWaitingList: true,
 		UnStakedNonce:     2,
 		ValidatorSuccessRate: state.SignRate{
-			NrSuccess: 11,
-			NrFailure: 21,
+			NumSuccess: 11,
+			NumFailure: 21,
 		},
 		LeaderSuccessRate: state.SignRate{
-			NrSuccess: 31,
-			NrFailure: 41,
+			NumSuccess: 31,
+			NumFailure: 41,
 		},
 		NumSelectedInSuccessBlocks: 3,
 		Rating:                     511,
@@ -1821,4 +2020,26 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Nonce:                      8,
 	}
 	return pa0, paMeta
+}
+
+func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
+	addrBytes0 := []byte("addr1")
+	addrBytesMeta := []byte("addrMeta")
+
+	pa0, paMeta := createPeerAccounts(addrBytes0, addrBytesMeta)
+
+	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
+	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
+
+	validatorInfoMap := make(map[string][]byte)
+	validatorInfoMap[string(addrBytes0)] = marshalizedPa0
+	validatorInfoMap[string(addrBytesMeta)] = marshalizedPaMeta
+	peerAdapter := getAccountsMock()
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
+		return validatorInfoMap, nil
+	}
+	peerAdapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+		return pa0, nil
+	}
+	arguments.PeerAdapter = peerAdapter
 }

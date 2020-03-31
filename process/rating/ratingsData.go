@@ -9,12 +9,13 @@ import (
 
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
-	startRating          uint32
-	maxRating            uint32
-	minRating            uint32
-	metaRatingsStepData  process.RatingsStepHandler
-	shardRatingsStepData process.RatingsStepHandler
-	selectionChances     []process.SelectionChance
+	startRating           uint32
+	maxRating             uint32
+	minRating             uint32
+	signedBlocksThreshold float32
+	metaRatingsStepData   process.RatingsStepHandler
+	shardRatingsStepData  process.RatingsStepHandler
+	selectionChances      []process.SelectionChance
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -35,6 +36,34 @@ func NewRatingsData(settings config.RatingsConfig) (*RatingsData, error) {
 			settings.General.StartRating,
 			settings.General.MaxRating)
 	}
+	if settings.General.SignedBlocksThreshold > 1 || settings.General.SignedBlocksThreshold < 0 {
+		return nil, fmt.Errorf("%w signedBlocksThreshold: %v",
+			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
+			settings.General.SignedBlocksThreshold)
+	}
+	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 {
+		return nil, fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			settings.MetaChain.ConsecutiveMissedBlocksPenalty)
+	}
+	if settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
+		return nil, fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			settings.ShardChain.ConsecutiveMissedBlocksPenalty)
+	}
+	if settings.ShardChain.ProposerDecreaseRatingStep > 0 || settings.ShardChain.ValidatorDecreaseRatingStep > 0 {
+		return nil, fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			settings.ShardChain.ProposerDecreaseRatingStep,
+			settings.ShardChain.ValidatorDecreaseRatingStep)
+	}
+
+	if settings.MetaChain.ProposerDecreaseRatingStep > 0 || settings.MetaChain.ValidatorDecreaseRatingStep > 0 {
+		return nil, fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepPositive,
+			settings.MetaChain.ProposerDecreaseRatingStep,
+			settings.MetaChain.ValidatorDecreaseRatingStep)
+	}
 
 	chances := make([]process.SelectionChance, 0)
 	for _, chance := range settings.General.SelectionChances {
@@ -45,12 +74,13 @@ func NewRatingsData(settings config.RatingsConfig) (*RatingsData, error) {
 	}
 
 	return &RatingsData{
-		startRating:          settings.General.StartRating,
-		maxRating:            settings.General.MaxRating,
-		minRating:            settings.General.MinRating,
-		metaRatingsStepData:  NewRatingStepData(settings.MetaChain.RatingSteps),
-		shardRatingsStepData: NewRatingStepData(settings.ShardChain.RatingSteps),
-		selectionChances:     chances,
+		startRating:           settings.General.StartRating,
+		maxRating:             settings.General.MaxRating,
+		minRating:             settings.General.MinRating,
+		signedBlocksThreshold: settings.General.SignedBlocksThreshold,
+		metaRatingsStepData:   NewRatingStepData(settings.MetaChain.RatingSteps),
+		shardRatingsStepData:  NewRatingStepData(settings.ShardChain.RatingSteps),
+		selectionChances:      chances,
 	}, nil
 }
 
@@ -67,6 +97,11 @@ func (rd *RatingsData) MaxRating() uint32 {
 // MinRating will return the min rating
 func (rd *RatingsData) MinRating() uint32 {
 	return rd.minRating
+}
+
+// SignedBlocksThreshold will return the signed blocks threshold
+func (rd *RatingsData) SignedBlocksThreshold() float32 {
+	return rd.signedBlocksThreshold
 }
 
 // SelectionChances will return the array of selectionChances and thresholds

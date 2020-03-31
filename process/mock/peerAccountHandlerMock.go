@@ -17,6 +17,8 @@ type PeerAccountHandlerMock struct {
 	GetTempRatingCalled                func() uint32
 	SetAccumulatedFeesCalled           func(*big.Int)
 	GetAccumulatedFeesCalled           func() *big.Int
+	GetConsecutiveProposerMissesCalled func() uint32
+	SetConsecutiveProposerMissesCalled func(rating uint32)
 }
 
 // GetBLSPublicKey -
@@ -172,6 +174,16 @@ func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
+// GetValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
 // GetRating -
 func (p *PeerAccountHandlerMock) GetRating() uint32 {
 	return 0
@@ -259,6 +271,21 @@ func (p *PeerAccountHandlerMock) DataTrie() data.Trie {
 // DataTrieTracker -
 func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
+}
+
+// GetConsecutiveProposerMisses -
+func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
+	if pahm.GetConsecutiveProposerMissesCalled != nil {
+		return pahm.GetConsecutiveProposerMissesCalled()
+	}
+	return 0
+}
+
+// SetConsecutiveProposerMissesWithJournal -
+func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
+	if pahm.SetConsecutiveProposerMissesCalled != nil {
+		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+	}
 }
 
 // IsInterfaceNil -

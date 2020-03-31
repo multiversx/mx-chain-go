@@ -80,10 +80,14 @@ type RaterHandler interface {
 	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
+	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
+	GetSignedBlocksThreshold() float32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
 	ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
-	ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32
+	ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32
+	//RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
+	RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32
 	//ComputeIncreaseValidator computes the new rating for the increaseValidator
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator

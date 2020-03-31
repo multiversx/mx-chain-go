@@ -4,10 +4,12 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 
 // RaterMock -
 type RaterMock struct {
-	GetRatingCalled                  func(string) uint32
+	GetRatingCalled                func(string) uint32
 	GetStartRatingCalled           func() uint32
+	GetSignedBlocksThresholdCalled func() float32
 	ComputeIncreaseProposerCalled  func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
+	RevertIncreaseProposerCalled   func(shardId uint32, rating uint32, nrReverts uint32) uint32
 	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32) uint32
 	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32) uint32
 	GetChanceCalled                func(rating uint32) uint32
@@ -24,14 +26,24 @@ func (rm *RaterMock) GetStartRating() uint32 {
 	return rm.GetStartRatingCalled()
 }
 
+// GetSignedBlocksThreshold -
+func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
+	return rm.GetSignedBlocksThresholdCalled()
+}
+
 // ComputeIncreaseProposer -
 func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
 	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32) uint32 {
-	return rm.ComputeDecreaseProposerCalled(shardId, currentRating)
+func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
+}
+
+// RevertIncreaseValidator -
+func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+	return rm.RevertIncreaseProposerCalled(shardId, currentRating, nrReverts)
 }
 
 // ComputeIncreaseValidator -

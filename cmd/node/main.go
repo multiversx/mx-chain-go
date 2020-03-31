@@ -745,6 +745,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		[]string{
 			configurationFileName,
 			configurationEconomicsFileName,
+			configurationRatingsFileName,
 			configurationPreferencesFileName,
 			p2pConfigurationFileName,
 			configurationFileName,
@@ -824,6 +825,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Antiflood.NumConcurrentResolverJobs,
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
+		ratingsConfig.General.MaxRating,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -836,7 +838,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
 	}
-
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1105,13 +1106,13 @@ func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 }
 
 func loadRatingsConfig(filepath string) (config.RatingsConfig, error) {
-	cfg := config.RatingsConfig{}
+	cfg := &config.RatingsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
-		return cfg, err
+		return config.RatingsConfig{}, err
 	}
 
-	return cfg, nil
+	return *cfg, nil
 }
 
 func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
@@ -1434,6 +1435,7 @@ func createNode(
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
