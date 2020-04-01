@@ -313,19 +313,19 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	t.updateTriggerFromMeta(metaHdr, metaBlockHash)
+	if metaHdr.IsStartOfEpochBlock() {
+		t.newEpochHdrReceived = true
+		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
+	}
+
+	t.mapHashHdr[string(metaBlockHash)] = metaHdr
+	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(metaBlockHash))
+
+	t.updateTriggerFromMeta()
 }
 
 // call only if mutex is locked before
-func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte) {
-	if metaHdr.IsStartOfEpochBlock() {
-		t.newEpochHdrReceived = true
-		t.mapEpochStartHdrs[string(hdrHash)] = metaHdr
-	}
-
-	t.mapHashHdr[string(hdrHash)] = metaHdr
-	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
-
+func (t *trigger) updateTriggerFromMeta() {
 	sortedMetaInfo := make([]*metaInfo, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
 		currMetaInfo := &metaInfo{
