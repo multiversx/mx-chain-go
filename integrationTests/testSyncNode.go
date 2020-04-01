@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -67,6 +69,13 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.InterceptorResolverDebugger, _ = debugFactory.NewInterceptorResolverFactory(
+		config.DebugConfig{
+			Enabled:     true,
+			CachersSize: 10000,
+		},
+	)
+
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()

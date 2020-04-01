@@ -3,7 +3,9 @@ package integrationTests
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -59,6 +61,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	tpn.InterceptorResolverDebugger, _ = debugFactory.NewInterceptorResolverFactory(
+		config.DebugConfig{
+			Enabled:     true,
+			CachersSize: 10000,
+		},
+	)
+
 	tpn.initDataPools()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
