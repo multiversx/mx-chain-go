@@ -217,7 +217,8 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		EpochStartMeta:              metaBlock,
 	}
 
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), []byte(fmt.Sprint(metaBlock.Round))...)
+	bootstrapKey := []byte(fmt.Sprint(metaBlock.Round))
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), bootstrapKey...)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {
@@ -230,7 +231,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, errPut
 	}
 
-	return []byte(core.TriggerRegistryKeyPrefix), nil
+	return bootstrapKey, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
