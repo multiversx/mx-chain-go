@@ -295,7 +295,7 @@
 
 [IndexerPubkeyConverter]
     Length = 32
-    Type = "hex"
+    Type = "bech32"
 
 [GenesisPubkeyConverter]
     Length = 32
