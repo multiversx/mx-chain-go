@@ -40,6 +40,8 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.shardHdrStorage = t.shardHdrStorage
 	rt.validatorInfoProcessor = t.validatorInfoProcessor
 	rt.appStatusHandler = t.appStatusHandler
+	rt.miniBlocksPool = t.miniBlocksPool
+	rt.mapMisingMiniblocks = t.mapMisingMiniblocks
 	return rt
 }
 

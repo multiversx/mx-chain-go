@@ -120,7 +120,7 @@ func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t
 	previousHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
-	processError := validatorInfoProcessor.ProcessMetaBlock(previousHeader99, previousHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(previousHeader99, previousHeaderHash)
 
 	require.Nil(t, processError)
 }
@@ -136,7 +136,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoResolvedPeerMiniblocksSh
 	previousHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
-	processError := validatorInfoProcessor.ProcessMetaBlock(previousHeader99, previousHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(previousHeader99, previousHeaderHash)
 
 	require.Nil(t, processError)
 }
@@ -189,7 +189,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork
 	}
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
-	processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
 
 	require.Nil(t, processError)
 	require.False(t, processCalled)
@@ -267,7 +267,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
 
-	processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
 
 	require.Nil(t, processError)
 	require.True(t, processCalled)
@@ -364,7 +364,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
 
-	processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
 
 	require.Nil(t, processError)
 	require.True(t, processCalled)
@@ -430,7 +430,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
-				time.Sleep(1100 * time.Millisecond)
+				time.Sleep(5100 * time.Millisecond)
 				args.MiniBlocksPool.Put(peerMiniBlockHash, miniBlockHeader)
 			}
 		},
@@ -438,7 +438,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 
 	validatorInfoProcessor, _ := NewValidatorInfoProcessor(args)
 
-	processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
+	_, processError := validatorInfoProcessor.ProcessMetaBlock(epochStartHeader, epochStartHeaderHash)
 
 	require.Equal(t, process.ErrTimeIsOut, processError)
 }
