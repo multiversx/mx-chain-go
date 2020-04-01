@@ -28,6 +28,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.metaHeaderStorage = t.metaHeaderStorage
 	rt.marshalizer = t.marshalizer
 	rt.hasher = t.hasher
+	rt.appStatusHandler = t.appStatusHandler
 
 	return rt
 }
