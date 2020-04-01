@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -8,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/blocks/interceptedblocks")
 
 // InterceptedTxBlockBody is a wrapper over a slice of miniblocks which contains transactions.
 type InterceptedTxBlockBody struct {
@@ -127,6 +130,25 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 // Type returns the type of this intercepted data
 func (inTxBody *InterceptedTxBlockBody) Type() string {
 	return "intercepted block body"
+}
+
+// Identifiers returns the identifiers used in requests
+func (inTxBody *InterceptedTxBlockBody) Identifiers() [][]byte {
+	hashes := make([][]byte, 0, len(inTxBody.txBlockBody.MiniBlocks))
+
+	for _, mb := range inTxBody.txBlockBody.MiniBlocks {
+		hash, err := core.CalculateHash(inTxBody.marshalizer, inTxBody.hasher, mb)
+		if err != nil {
+			log.Debug("can not calculate hash for miniblock",
+				"error", err,
+			)
+			continue
+		}
+
+		hashes = append(hashes, hash)
+	}
+
+	return hashes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

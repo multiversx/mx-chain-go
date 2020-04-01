@@ -21,5 +21,6 @@ type FactoryArgs struct {
 	SizeCheckDelta             uint32
 	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	RequestDebugHandler        dataRetriever.RequestDebugHandler
 	NumConcurrentResolvingJobs int32
 }

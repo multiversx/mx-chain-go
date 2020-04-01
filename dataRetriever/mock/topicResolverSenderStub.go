@@ -7,7 +7,7 @@ import (
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData) error
+	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, hashes [][]byte) error
 	SendCalled               func(buff []byte, peer p2p.PeerID) error
 	TargetShardIDCalled      func() uint32
 }
@@ -18,9 +18,9 @@ func (trss *TopicResolverSenderStub) RequestTopic() string {
 }
 
 // SendOnRequestTopic -
-func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData) error {
+func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData, hashes [][]byte) error {
 	if trss.SendOnRequestTopicCalled != nil {
-		return trss.SendOnRequestTopicCalled(rd)
+		return trss.SendOnRequestTopicCalled(rd, hashes)
 	}
 
 	return nil

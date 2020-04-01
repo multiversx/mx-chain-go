@@ -40,7 +40,9 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
+	handler process.InterceptedDebugHandler,
 	data process.InterceptedData,
+	topic string,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
@@ -54,6 +56,8 @@ func processInterceptedData(
 			"error", err.Error(),
 		)
 		wgProcess.Done()
+		processDebugInterceptedData(handler, data, topic, err)
+
 		return
 	}
 
@@ -67,6 +71,8 @@ func processInterceptedData(
 			"error", err.Error(),
 		)
 		wgProcess.Done()
+		processDebugInterceptedData(handler, data, topic, err)
+
 		return
 	}
 
@@ -76,6 +82,39 @@ func processInterceptedData(
 		"pid", p2p.MessageOriginatorPid(msg),
 		"seq no", p2p.MessageOriginatorSeq(msg),
 	)
+	processDebugInterceptedData(handler, data, topic, err)
 
 	wgProcess.Done()
+}
+
+//TODO(iulian, now) add tests
+func processDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+	err error,
+) {
+	if !debugHandler.Enabled() {
+		return
+	}
+
+	identifiers := interceptedData.Identifiers()
+	for _, identifier := range identifiers {
+		debugHandler.ProcessedHash(topic, identifier, err)
+	}
+}
+
+func receivedDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+) {
+	if !debugHandler.Enabled() {
+		return
+	}
+
+	identifiers := interceptedData.Identifiers()
+	for _, identifier := range identifiers {
+		debugHandler.ReceivedHash(topic, identifier)
+	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -30,6 +31,7 @@ type NodeMock struct {
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
+	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 }
 
 // Address -
@@ -122,6 +124,15 @@ func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 // ValidatorStatisticsApi -
 func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return nm.ValidatorStatisticsApiCalled()
+}
+
+// GetQueryHandler -
+func (nm *NodeMock) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	if nm.GetQueryHandlerCalled != nil {
+		return nm.GetQueryHandlerCalled(name)
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

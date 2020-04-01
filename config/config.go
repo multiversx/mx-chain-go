@@ -132,6 +132,7 @@ type Config struct {
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
+	Debug                   DebugConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -222,4 +223,10 @@ type AntifloodConfig struct {
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
+}
+
+// DebugConfig will hold debugging configuration
+type DebugConfig struct {
+	Enabled     bool
+	CachersSize int
 }

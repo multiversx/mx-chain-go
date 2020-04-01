@@ -173,11 +173,14 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
 func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return txRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
@@ -187,11 +190,14 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32)
 		return err
 	}
 
-	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: buffHashes,
-		Epoch: epoch,
-	})
+	return txRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffHashes,
+			Epoch: epoch,
+		},
+		hashes,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -79,7 +79,7 @@ type MiniBlocksResolver interface {
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData) error
+	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
@@ -297,5 +297,12 @@ type RequestedItemsHandler interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// RequestDebugHandler defines an interface for debugging the reqested-resolved data
+type RequestDebugHandler interface {
+	RequestedData(topic string, hash []byte, numReqIntra int, numReqCross int)
+	Enabled() bool
 	IsInterfaceNil() bool
 }

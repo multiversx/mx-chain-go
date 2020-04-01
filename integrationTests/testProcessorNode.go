@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -220,6 +221,8 @@ type TestProcessorNode struct {
 	InitialNodes []*sharding.InitialNode
 
 	ChainID []byte
+
+	InterceptorResolverDebugger debugFactory.InterceptorResolverDebugHandler
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
@@ -347,6 +350,13 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.InterceptorResolverDebugger, _ = debugFactory.NewInterceptorResolverFactory(
+		config.DebugConfig{
+			Enabled:     true,
+			CachersSize: 10000,
+		},
+	)
+
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
@@ -466,7 +476,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 	return economicsData
 }
 
-// CreateEconomicsData creates a mock EconomicsData object
+// CreateRatingsData creates a mock RatingsData object
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
@@ -568,30 +578,32 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-			ShardCoordinator:       tpn.ShardCoordinator,
-			NodesCoordinator:       tpn.NodesCoordinator,
-			Messenger:              tpn.Messenger,
-			Store:                  tpn.Storage,
-			ProtoMarshalizer:       TestMarshalizer,
-			TxSignMarshalizer:      TestTxSignMarshalizer,
-			Hasher:                 TestHasher,
-			MultiSigner:            TestMultiSig,
-			DataPool:               tpn.DataPool,
-			Accounts:               tpn.AccntState,
-			AddrConverter:          TestAddressConverter,
-			SingleSigner:           tpn.OwnAccount.SingleSigner,
-			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
-			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
-			BlockKeyGen:            tpn.OwnAccount.KeygenBlockSign,
-			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlackListHandler,
-			HeaderSigVerifier:      tpn.HeaderSigVerifier,
-			ChainID:                tpn.ChainID,
-			SizeCheckDelta:         sizeCheckDelta,
-			ValidityAttester:       tpn.BlockTracker,
-			EpochStartTrigger:      tpn.EpochStartTrigger,
-			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			ShardCoordinator:        tpn.ShardCoordinator,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			Messenger:               tpn.Messenger,
+			Store:                   tpn.Storage,
+			ProtoMarshalizer:        TestMarshalizer,
+			TxSignMarshalizer:       TestTxSignMarshalizer,
+			Hasher:                  TestHasher,
+			MultiSigner:             TestMultiSig,
+			DataPool:                tpn.DataPool,
+			Accounts:                tpn.AccntState,
+			AddrConverter:           TestAddressConverter,
+			SingleSigner:            tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:       tpn.OwnAccount.BlockSingleSigner,
+			KeyGen:                  tpn.OwnAccount.KeygenTxSign,
+			BlockKeyGen:             tpn.OwnAccount.KeygenBlockSign,
+			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+			TxFeeHandler:            tpn.EconomicsData,
+			BlackList:               tpn.BlackListHandler,
+			HeaderSigVerifier:       tpn.HeaderSigVerifier,
+			ChainID:                 tpn.ChainID,
+			SizeCheckDelta:          sizeCheckDelta,
+			ValidityAttester:        tpn.BlockTracker,
+			EpochStartTrigger:       tpn.EpochStartTrigger,
+			AntifloodHandler:        &mock.NilAntifloodHandler{},
+			NonceConverter:          TestUint64Converter,
+			InterceptedDebugHandler: tpn.InterceptorResolverDebugger,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -619,30 +631,32 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
 		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-			Accounts:               tpn.AccntState,
-			ShardCoordinator:       tpn.ShardCoordinator,
-			NodesCoordinator:       tpn.NodesCoordinator,
-			Messenger:              tpn.Messenger,
-			Store:                  tpn.Storage,
-			ProtoMarshalizer:       TestMarshalizer,
-			TxSignMarshalizer:      TestTxSignMarshalizer,
-			Hasher:                 TestHasher,
-			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
-			BlockSignKeyGen:        tpn.OwnAccount.KeygenBlockSign,
-			SingleSigner:           tpn.OwnAccount.SingleSigner,
-			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
-			MultiSigner:            TestMultiSig,
-			DataPool:               tpn.DataPool,
-			AddrConverter:          TestAddressConverter,
-			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlackListHandler,
-			HeaderSigVerifier:      tpn.HeaderSigVerifier,
-			ChainID:                tpn.ChainID,
-			SizeCheckDelta:         sizeCheckDelta,
-			ValidityAttester:       tpn.BlockTracker,
-			EpochStartTrigger:      tpn.EpochStartTrigger,
-			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			Accounts:                tpn.AccntState,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			Messenger:               tpn.Messenger,
+			Store:                   tpn.Storage,
+			ProtoMarshalizer:        TestMarshalizer,
+			TxSignMarshalizer:       TestTxSignMarshalizer,
+			Hasher:                  TestHasher,
+			KeyGen:                  tpn.OwnAccount.KeygenTxSign,
+			BlockSignKeyGen:         tpn.OwnAccount.KeygenBlockSign,
+			SingleSigner:            tpn.OwnAccount.SingleSigner,
+			BlockSingleSigner:       tpn.OwnAccount.BlockSingleSigner,
+			MultiSigner:             TestMultiSig,
+			DataPool:                tpn.DataPool,
+			AddrConverter:           TestAddressConverter,
+			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+			TxFeeHandler:            tpn.EconomicsData,
+			BlackList:               tpn.BlackListHandler,
+			HeaderSigVerifier:       tpn.HeaderSigVerifier,
+			ChainID:                 tpn.ChainID,
+			SizeCheckDelta:          sizeCheckDelta,
+			ValidityAttester:        tpn.BlockTracker,
+			EpochStartTrigger:       tpn.EpochStartTrigger,
+			AntifloodHandler:        &mock.NilAntifloodHandler{},
+			NonceConverter:          TestUint64Converter,
+			InterceptedDebugHandler: tpn.InterceptorResolverDebugger,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -669,6 +683,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs: 10,
+		RequestDebugHandler:        tpn.InterceptorResolverDebugger,
 	}
 
 	var err error

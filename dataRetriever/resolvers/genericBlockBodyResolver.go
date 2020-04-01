@@ -144,25 +144,31 @@ func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestDa
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
 func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return gbbRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return gbbRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
 func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
-	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
+	marshalizedHashes, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 
 	if err != nil {
 		return err
 	}
 
-	return gbbRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: hash,
-	})
+	return gbbRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: marshalizedHashes,
+		},
+		hashes,
+	)
 }
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage

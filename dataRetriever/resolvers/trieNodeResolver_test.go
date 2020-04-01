@@ -256,7 +256,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, _ [][]byte) error {
 		requested = rd
 		return nil
 	}

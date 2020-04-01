@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -125,14 +126,15 @@ type Network struct {
 
 // Core struct holds the core components of the Elrond protocol
 type Core struct {
-	Hasher                   hashing.Hasher
-	InternalMarshalizer      marshal.Marshalizer
-	VmMarshalizer            marshal.Marshalizer
-	TxSignMarshalizer        marshal.Marshalizer
-	TriesContainer           state.TriesHolder
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
+	Hasher                          hashing.Hasher
+	InternalMarshalizer             marshal.Marshalizer
+	VmMarshalizer                   marshal.Marshalizer
+	TxSignMarshalizer               marshal.Marshalizer
+	TriesContainer                  state.TriesHolder
+	Uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
+	StatusHandler                   core.AppStatusHandler
+	ChainID                         []byte
+	InterceptorResolverDebugHandler debugFactory.InterceptorResolverDebugHandler
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -222,20 +224,25 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
 	trieContainer, err := createTries(args, internalMarshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
 
+	interceptorRequesterDebugHandler, err := debugFactory.NewInterceptorResolverFactory(args.config.Debug)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Core{
-		Hasher:                   hasher,
-		InternalMarshalizer:      internalMarshalizer,
-		VmMarshalizer:            vmMarshalizer,
-		TxSignMarshalizer:        txSignMarshalizer,
-		TriesContainer:           trieContainer,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  args.chainID,
+		Hasher:                          hasher,
+		InternalMarshalizer:             internalMarshalizer,
+		VmMarshalizer:                   vmMarshalizer,
+		TxSignMarshalizer:               txSignMarshalizer,
+		TriesContainer:                  trieContainer,
+		Uint64ByteSliceConverter:        uint64ByteSliceConverter,
+		StatusHandler:                   statusHandler.NewNilStatusHandler(),
+		ChainID:                         args.chainID,
+		InterceptorResolverDebugHandler: interceptorRequesterDebugHandler,
 	}, nil
 }
 
@@ -1283,30 +1290,32 @@ func newShardInterceptorContainerFactory(
 
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		Accounts:               state.AccountsAdapter,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer,
-		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
-		Hasher:                 dataCore.Hasher,
-		KeyGen:                 crypto.TxSignKeyGen,
-		BlockSignKeyGen:        crypto.BlockSignKeyGen,
-		SingleSigner:           crypto.TxSingleSigner,
-		BlockSingleSigner:      crypto.SingleSigner,
-		MultiSigner:            crypto.MultiSigner,
-		DataPool:               data.Datapool,
-		AddrConverter:          state.AddressConverter,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           economics,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                dataCore.ChainID,
-		SizeCheckDelta:         sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		AntifloodHandler:       network.InputAntifloodHandler,
+		Accounts:                state.AccountsAdapter,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               network.NetMessenger,
+		Store:                   data.Store,
+		ProtoMarshalizer:        dataCore.InternalMarshalizer,
+		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
+		Hasher:                  dataCore.Hasher,
+		KeyGen:                  crypto.TxSignKeyGen,
+		BlockSignKeyGen:         crypto.BlockSignKeyGen,
+		SingleSigner:            crypto.TxSingleSigner,
+		BlockSingleSigner:       crypto.SingleSigner,
+		MultiSigner:             crypto.MultiSigner,
+		DataPool:                data.Datapool,
+		AddrConverter:           state.AddressConverter,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            economics,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		ChainID:                 dataCore.ChainID,
+		SizeCheckDelta:          sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		AntifloodHandler:        network.InputAntifloodHandler,
+		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		InterceptedDebugHandler: dataCore.InterceptorResolverDebugHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1332,30 +1341,32 @@ func newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer,
-		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
-		Hasher:                 dataCore.Hasher,
-		MultiSigner:            crypto.MultiSigner,
-		DataPool:               data.Datapool,
-		Accounts:               state.AccountsAdapter,
-		AddrConverter:          state.AddressConverter,
-		SingleSigner:           crypto.TxSingleSigner,
-		BlockSingleSigner:      crypto.SingleSigner,
-		KeyGen:                 crypto.TxSignKeyGen,
-		BlockKeyGen:            crypto.BlockSignKeyGen,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           economics,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                dataCore.ChainID,
-		SizeCheckDelta:         sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		AntifloodHandler:       network.InputAntifloodHandler,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               network.NetMessenger,
+		Store:                   data.Store,
+		ProtoMarshalizer:        dataCore.InternalMarshalizer,
+		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
+		Hasher:                  dataCore.Hasher,
+		MultiSigner:             crypto.MultiSigner,
+		DataPool:                data.Datapool,
+		Accounts:                state.AccountsAdapter,
+		AddrConverter:           state.AddressConverter,
+		SingleSigner:            crypto.TxSingleSigner,
+		BlockSingleSigner:       crypto.SingleSigner,
+		KeyGen:                  crypto.TxSignKeyGen,
+		BlockKeyGen:             crypto.BlockSignKeyGen,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            economics,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		ChainID:                 dataCore.ChainID,
+		SizeCheckDelta:          sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		AntifloodHandler:        network.InputAntifloodHandler,
+		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		InterceptedDebugHandler: dataCore.InterceptorResolverDebugHandler,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1392,6 +1403,7 @@ func newShardResolverContainerFactory(
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
+		RequestDebugHandler:        core.InterceptorResolverDebugHandler,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1427,6 +1439,7 @@ func newMetaResolverContainerFactory(
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
+		RequestDebugHandler:        core.InterceptorResolverDebugHandler,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

@@ -5,6 +5,7 @@ type InterceptedDataStub struct {
 	CheckValidityCalled     func() error
 	IsForCurrentShardCalled func() bool
 	HashCalled              func() []byte
+	IdentifiersCalled       func() [][]byte
 }
 
 // Hash -
@@ -29,6 +30,15 @@ func (ids *InterceptedDataStub) IsForCurrentShard() bool {
 // Type -
 func (ids *InterceptedDataStub) Type() string {
 	return "intercepted data stub"
+}
+
+// Identifiers -
+func (ids *InterceptedDataStub) Identifiers() [][]byte {
+	if ids.IdentifiersCalled != nil {
+		return ids.IdentifiersCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

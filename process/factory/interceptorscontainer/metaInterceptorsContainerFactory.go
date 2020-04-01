@@ -42,6 +42,8 @@ func NewMetaInterceptorsContainerFactory(
 		args.NodesCoordinator,
 		args.BlackList,
 		args.AntifloodHandler,
+		args.InterceptedDebugHandler,
+		args.NonceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -94,24 +96,26 @@ func NewMetaInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		NonceConverter:    args.NonceConverter,
 	}
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		marshalizer:            args.ProtoMarshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		blackList:              args.BlackList,
-		argInterceptorFactory:  argInterceptorFactory,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		accounts:               args.Accounts,
-		antifloodHandler:       args.AntifloodHandler,
+		container:               container,
+		shardCoordinator:        args.ShardCoordinator,
+		messenger:               args.Messenger,
+		store:                   args.Store,
+		marshalizer:             args.ProtoMarshalizer,
+		hasher:                  args.Hasher,
+		multiSigner:             args.MultiSigner,
+		dataPool:                args.DataPool,
+		nodesCoordinator:        args.NodesCoordinator,
+		blackList:               args.BlackList,
+		argInterceptorFactory:   argInterceptorFactory,
+		maxTxNonceDeltaAllowed:  args.MaxTxNonceDeltaAllowed,
+		accounts:                args.Accounts,
+		antifloodHandler:        args.AntifloodHandler,
+		interceptedDebugHandler: args.InterceptedDebugHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -200,6 +204,7 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() er
 		hdrProcessor,
 		micf.globalThrottler,
 		micf.antifloodHandler,
+		micf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return err
@@ -265,6 +270,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		hdrProcessor,
 		micf.globalThrottler,
 		micf.antifloodHandler,
+		micf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err

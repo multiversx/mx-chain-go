@@ -46,6 +46,7 @@ func NewMetaResolversContainerFactory(
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		throttler:                thr,
+		requestDebugHandler:      args.RequestDebugHandler,
 	}
 
 	err = base.checkParams()

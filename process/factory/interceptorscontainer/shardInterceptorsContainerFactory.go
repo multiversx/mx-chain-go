@@ -43,6 +43,8 @@ func NewShardInterceptorsContainerFactory(
 		args.NodesCoordinator,
 		args.BlackList,
 		args.AntifloodHandler,
+		args.InterceptedDebugHandler,
+		args.NonceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -96,24 +98,26 @@ func NewShardInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		NonceConverter:    args.NonceConverter,
 	}
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		accounts:               args.Accounts,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		marshalizer:            args.ProtoMarshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		argInterceptorFactory:  argInterceptorFactory,
-		blackList:              args.BlackList,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		antifloodHandler:       args.AntifloodHandler,
+		container:               container,
+		accounts:                args.Accounts,
+		shardCoordinator:        args.ShardCoordinator,
+		messenger:               args.Messenger,
+		store:                   args.Store,
+		marshalizer:             args.ProtoMarshalizer,
+		hasher:                  args.Hasher,
+		multiSigner:             args.MultiSigner,
+		dataPool:                args.DataPool,
+		nodesCoordinator:        args.NodesCoordinator,
+		argInterceptorFactory:   argInterceptorFactory,
+		blackList:               args.BlackList,
+		maxTxNonceDeltaAllowed:  args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:        args.AntifloodHandler,
+		interceptedDebugHandler: args.InterceptedDebugHandler,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

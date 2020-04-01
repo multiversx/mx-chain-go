@@ -50,6 +50,7 @@ func TestNewSingleDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -65,6 +66,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -80,6 +82,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testin
 		nil,
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -95,6 +98,7 @@ func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T)
 		&mock.InterceptorProcessorStub{},
 		nil,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -110,6 +114,7 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		nil,
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -126,6 +131,7 @@ func TestNewSingleDataInterceptor(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	require.False(t, check.IfNil(sdi))
@@ -144,6 +150,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId)
@@ -169,6 +176,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 			},
 		},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -205,6 +213,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -246,6 +255,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -287,6 +297,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.InterceptedDebugHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{

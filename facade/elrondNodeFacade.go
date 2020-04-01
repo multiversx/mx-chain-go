@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -268,6 +269,12 @@ func (ef *ElrondNodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 // PprofEnabled returns if profiling mode should be active or not on the application
 func (ef *ElrondNodeFacade) PprofEnabled() bool {
 	return ef.config.PprofEnabled
+}
+
+// GetQueryHandler returns the query handler if existing
+//TODO(iulian, now) add tests
+func (ef *ElrondNodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	return ef.node.GetQueryHandler(name)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

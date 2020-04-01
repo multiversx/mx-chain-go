@@ -3,10 +3,12 @@ package interceptedBlocks
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -16,6 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("integrationtests/block/interceptedblocks")
 
 // TestHeaderAndMiniBlocksAreRoutedCorrectly tests what happens if a shard node broadcasts a header and a
 // body with 3 miniblocks. One miniblock will be an intra-shard type and the other 2 will be cross-shard type.
@@ -170,6 +174,9 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 
 	retrievedHeader = requestAndRetrieveMetaHeader(node1Shard0Requester, metaHdrFromShardHash, chanReceived)
 	assert.Nil(t, retrievedHeader)
+
+	debugInfo := strings.Join(node1Shard0Requester.InterceptorResolverDebugger.Query("*"), "\r\n")
+	log.Info("requested debug info", "info", debugInfo)
 }
 
 // TestMetaHeadersAreRequstedByAMetachainNode tests the metaheader request is served by a metachain node and

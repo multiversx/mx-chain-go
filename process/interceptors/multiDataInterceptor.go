@@ -15,12 +15,13 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	topic            string
-	marshalizer      marshal.Marshalizer
-	factory          process.InterceptedDataFactory
-	processor        process.InterceptorProcessor
-	throttler        process.InterceptorThrottler
-	antifloodHandler process.P2PAntifloodHandler
+	topic                   string
+	marshalizer             marshal.Marshalizer
+	factory                 process.InterceptedDataFactory
+	processor               process.InterceptorProcessor
+	throttler               process.InterceptorThrottler
+	antifloodHandler        process.P2PAntifloodHandler
+	interceptedDebugHandler process.InterceptedDebugHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -31,6 +32,7 @@ func NewMultiDataInterceptor(
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
+	interceptedDebugHandler process.InterceptedDebugHandler,
 ) (*MultiDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -50,14 +52,18 @@ func NewMultiDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(interceptedDebugHandler) {
+		return nil, process.ErrNilInterceptedDataFactory
+	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		topic:            topic,
-		marshalizer:      marshalizer,
-		factory:          factory,
-		processor:        processor,
-		throttler:        throttler,
-		antifloodHandler: antifloodHandler,
+		topic:                   topic,
+		marshalizer:             marshalizer,
+		factory:                 factory,
+		processor:               processor,
+		throttler:               throttler,
+		antifloodHandler:        antifloodHandler,
+		interceptedDebugHandler: interceptedDebugHandler,
 	}
 
 	return multiDataIntercept, nil
@@ -116,7 +122,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
+		go processInterceptedData(mdi.processor, mdi.interceptedDebugHandler, interceptedData, mdi.topic, wgProcess, message)
 	}
 
 	return lastErrEncountered
@@ -128,8 +134,11 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 		return nil, err
 	}
 
+	receivedDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic)
+
 	err = interceptedData.CheckValidity()
 	if err != nil {
+		processDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic, err)
 		return nil, err
 	}
 

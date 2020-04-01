@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -21,21 +22,22 @@ import (
 const numGoRoutines = 2000
 
 type baseInterceptorsContainerFactory struct {
-	container              process.InterceptorsContainer
-	shardCoordinator       sharding.Coordinator
-	accounts               state.AccountsAdapter
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.PoolsHolder
-	messenger              process.TopicHandler
-	multiSigner            crypto.MultiSigner
-	nodesCoordinator       sharding.NodesCoordinator
-	blackList              process.BlackListHandler
-	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler        process.InterceptorThrottler
-	maxTxNonceDeltaAllowed int
-	antifloodHandler       process.P2PAntifloodHandler
+	container               process.InterceptorsContainer
+	shardCoordinator        sharding.Coordinator
+	accounts                state.AccountsAdapter
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	store                   dataRetriever.StorageService
+	dataPool                dataRetriever.PoolsHolder
+	messenger               process.TopicHandler
+	multiSigner             crypto.MultiSigner
+	nodesCoordinator        sharding.NodesCoordinator
+	blackList               process.BlackListHandler
+	argInterceptorFactory   *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler         process.InterceptorThrottler
+	maxTxNonceDeltaAllowed  int
+	antifloodHandler        process.P2PAntifloodHandler
+	interceptedDebugHandler process.InterceptedDebugHandler
 }
 
 func checkBaseParams(
@@ -51,6 +53,8 @@ func checkBaseParams(
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
+	interceptedDebugHandler process.InterceptedDebugHandler,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -84,6 +88,12 @@ func checkBaseParams(
 	}
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
+	}
+	if check.IfNil(interceptedDebugHandler) {
+		return process.ErrNilInterceptedDebugHandler
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil
@@ -166,6 +176,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		txProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -202,6 +213,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		txProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -238,6 +250,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		txProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -282,6 +295,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		hdrProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return err
@@ -361,6 +375,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		txBlockBodyProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -402,6 +417,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		hdrProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return err
@@ -433,6 +449,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		trieNodesProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
+		bicf.interceptedDebugHandler,
 	)
 	if err != nil {
 		return nil, err

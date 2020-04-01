@@ -89,6 +89,7 @@ type InterceptedData interface {
 	IsInterfaceNil() bool
 	Hash() []byte
 	Type() string
+	Identifiers() [][]byte
 }
 
 // InterceptorProcessor further validates and saves received data
@@ -776,5 +777,13 @@ type RatingChanceHandler interface {
 	//GetChancePercentage returns the percentage for the RatingChanceHandler
 	GetChancePercentage() uint32
 	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+// InterceptedDebugHandler defines an interface for debugging the intercepted data
+type InterceptedDebugHandler interface {
+	ReceivedHash(topic string, hash []byte)
+	ProcessedHash(topic string, hash []byte, err error)
+	Enabled() bool
 	IsInterfaceNil() bool
 }

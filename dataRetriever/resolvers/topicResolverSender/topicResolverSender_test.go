@@ -14,17 +14,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var defaultHashes = [][]byte{[]byte("hash")}
+
 func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
 	return topicResolverSender.ArgTopicResolverSender{
-		Messenger:          &mock.MessageHandlerStub{},
-		TopicName:          "topic",
-		PeerListCreator:    &mock.PeerListCreatorStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
-		Randomizer:         &mock.IntRandomizerStub{},
-		TargetShardId:      0,
-		OutputAntiflooder:  &mock.P2PAntifloodHandlerStub{},
-		NumIntraShardPeers: 2,
-		NumCrossShardPeers: 2,
+		Messenger:           &mock.MessageHandlerStub{},
+		TopicName:           "topic",
+		PeerListCreator:     &mock.PeerListCreatorStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Randomizer:          &mock.IntRandomizerStub{},
+		TargetShardId:       0,
+		OutputAntiflooder:   &mock.P2PAntifloodHandlerStub{},
+		NumIntraShardPeers:  2,
+		NumCrossShardPeers:  2,
+		RequestDebugHandler: &mock.RequestDebugHandlerStub{},
 	}
 }
 
@@ -159,7 +162,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -178,7 +181,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 }
@@ -214,7 +217,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
@@ -245,7 +248,7 @@ func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumCrossShardPeers+arg.NumIntraShardPeers, numSent)
@@ -280,7 +283,7 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumCrossShardPeers, numSent)
@@ -315,7 +318,7 @@ func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumIntraShardPeers, numSent)
@@ -348,11 +351,13 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 	assert.True(t, sentToPid1)
 }
+
+//TODO(iulian, now) add tests for debug handler
 
 //------- Send
 

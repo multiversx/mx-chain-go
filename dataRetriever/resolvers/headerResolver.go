@@ -232,28 +232,38 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
 func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce
 func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.NonceType,
-		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
-		Epoch: epoch,
-	})
+	byteVal := hdrRes.nonceConverter.ToByteSlice(nonce)
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.NonceType,
+			Value: byteVal,
+			Epoch: epoch,
+		},
+		[][]byte{byteVal},
+	)
 }
 
 // RequestDataFromEpoch requests a header from other peers having input the epoch
 func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.EpochType,
-		Value: identifier,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.EpochType,
+			Value: identifier,
+		},
+		[][]byte{identifier},
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

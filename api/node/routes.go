@@ -1,11 +1,14 @@
 package node
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-gonic/gin"
@@ -18,6 +21,7 @@ type FacadeHandler interface {
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
+	GetQueryHandler(name string) (debug.QueryHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -45,6 +49,12 @@ type shardStatisticsResponse struct {
 	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 }
 
+// QueryDebugRequest represents the structure on which user input for querying a debug info will validate against
+type QueryDebugRequest struct {
+	Name   string `form:"name" json:"name"`
+	Search string `form:"search" json:"search"`
+}
+
 // Routes defines node related routes
 func Routes(router *gin.RouterGroup) {
 	router.GET("/epoch", EpochData)
@@ -52,6 +62,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
 	router.GET("/p2pstatus", P2pStatusMetrics)
+	router.POST("/debug", QueryDebug)
 	// placeholder for custom routes
 }
 
@@ -120,6 +131,38 @@ func P2pStatusMetrics(c *gin.Context) {
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
 
 	c.JSON(http.StatusOK, gin.H{"details": details})
+}
+
+// QueryDebug returns the debug information after the query has been interpreted
+//TODO(iulian, now) add tests
+func QueryDebug(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx = QueryDebugRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	qh, err := ef.GetQueryHandler(gtx.Name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error())})
+		return
+	}
+
+	if !qh.Enabled() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: name %s", errors.ErrQueryDisabled.Error(), gtx.Name)})
+		return
+	}
+
+	strResult := strings.Join(qh.Query(gtx.Search), "\r\n")
+
+	c.JSON(http.StatusOK, gin.H{"result": strResult})
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {

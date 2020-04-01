@@ -734,3 +734,6 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
+var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")

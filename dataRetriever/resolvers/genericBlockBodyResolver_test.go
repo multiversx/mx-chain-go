@@ -125,7 +125,7 @@ func TestRequestDataFromHashArray(t *testing.T) {
 	called := false
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, _ [][]byte) error {
 			called = true
 			return nil
 		},
@@ -385,7 +385,7 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 
 	arg := createMockArgGenericBlockBodyResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, _ [][]byte) error {
 			wasCalled = true
 			return nil
 		},

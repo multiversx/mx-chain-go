@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -53,6 +54,8 @@ type NodeWrapper interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+
+	GetQueryHandler(name string) (debug.QueryHandler, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

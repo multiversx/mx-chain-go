@@ -1446,6 +1446,11 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
+	err = nd.AddQueryHandler("interceptor", coreData.InterceptorResolverDebugHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences.NodeDisplayName)
 	if err != nil {
 		return nil, err
