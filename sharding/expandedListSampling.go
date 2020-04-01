@@ -8,11 +8,10 @@ import (
 var _ RandomSelector = (*selectorExpandedList)(nil)
 
 type selectorExpandedList struct {
-	validator         []Validator
-	expandedList      []uint32
-	hasher            hashing.Hasher
-	uniqueItems       uint32
-	consensusSelector *SelectionBasedProvider
+	validator    []Validator
+	expandedList []uint32
+	hasher       hashing.Hasher
+	uniqueItems  uint32
 }
 
 const minWeight = 1
@@ -31,12 +30,10 @@ func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher
 	}
 
 	uniqueItems := uint32(len(weightList))
-	selectorConsensus := NewSelectionBasedProvider(hasher, uniqueItems)
 	selector := &selectorExpandedList{
-		validator:         validators,
-		hasher:            hasher,
-		uniqueItems:       uniqueItems,
-		consensusSelector: selectorConsensus,
+		validator:   validators,
+		hasher:      hasher,
+		uniqueItems: uniqueItems,
 	}
 
 	var err error
@@ -56,8 +53,8 @@ func (s *selectorExpandedList) Select(randSeed []byte, sampleSize uint32) ([]uin
 	if sampleSize == 0 || sampleSize > s.uniqueItems {
 		return nil, ErrInvalidSampleSize
 	}
-
-	return s.consensusSelector.Get(randSeed, int64(sampleSize), s.expandedList)
+	selectorConsensus := NewSelectionBasedProvider(s.hasher, s.uniqueItems)
+	return selectorConsensus.Get(randSeed, int64(sampleSize), s.expandedList)
 }
 
 func (s *selectorExpandedList) expandList(validators []Validator, weightList []uint32) ([]uint32, error) {

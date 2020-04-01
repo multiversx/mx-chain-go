@@ -549,12 +549,15 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	waitingMap := make(map[uint32][]Validator)
 	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		EpochStartSubscriber:    epochStartSubscriber,
 		Shuffler:                nodeShuffler,
+		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           nodesMap,
 		WaitingNodes:            waitingMap,
@@ -579,19 +582,23 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	waitingMap := make(map[uint32][]Validator)
 	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		EpochStartSubscriber:    epochStartSubscriber,
 		Shuffler:                nodeShuffler,
+		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           nodesMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     consensusGroupCache,
 	}
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(b, err)
 
 	m := runtime.MemStats{}
 	runtime.ReadMemStats(&m)

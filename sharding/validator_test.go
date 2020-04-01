@@ -7,8 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const defaultSelectionChances = 1
-
 func TestValidator_NewValidatorShouldFailOnNilPublickKey(t *testing.T) {
 	t.Parallel()
 
@@ -34,7 +32,7 @@ func TestValidator_NewValidatorShouldWork(t *testing.T) {
 
 	assert.NotNil(t, v)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(validator))
+	assert.False(t, check.IfNil(v))
 }
 
 func TestValidator_PubKeyShouldWork(t *testing.T) {
