@@ -173,13 +173,19 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 		}
 
 		vip.allPeerMiniblocks[string(mb.Hash)] = &miniBlockInfo{}
+
 		mbObjectFound, ok := vip.miniBlocksPool.Peek(mb.Hash)
 		if !ok {
 			missingNumber++
 			continue
 		}
 
-		mbFound := mbObjectFound.(*block.MiniBlock)
+		mbFound, ok := mbObjectFound.(*block.MiniBlock)
+		if !ok {
+			missingNumber++
+			continue
+		}
+
 		vip.allPeerMiniblocks[string(mb.Hash)] = &miniBlockInfo{mb: mbFound}
 	}
 
