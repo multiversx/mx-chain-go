@@ -216,6 +216,7 @@ func (t *trigger) requestMissingMiniblocks() {
 		missingMiniblocks := make([][]byte, len(t.mapMisingMiniblocks))
 		for hash := range t.mapMisingMiniblocks {
 			missingMiniblocks = append(missingMiniblocks, []byte(hash))
+			log.Debug("trigger.requestMissingMiniblocks", "hash", []byte(hash))
 		}
 		t.mutMissingMiniblocks.RUnlock()
 
@@ -236,6 +237,7 @@ func (t *trigger) updateMissingMiniblocks() {
 	}
 
 	if len(t.mapMisingMiniblocks) == 0 {
+		log.Debug("trigger.updateMissingMiniblocks -> updateTriggerFromMeta")
 		t.updateTriggerFromMeta()
 	}
 }
@@ -510,6 +512,7 @@ func (t *trigger) addMissingMiniblocks(missingMiniblocks map[string]*block.MiniB
 
 	for hash, mb := range missingMiniblocks {
 		t.mapMisingMiniblocks[hash] = mb
+		log.Debug("trigger.addMissingMiniblocks", "hash", []byte(hash))
 	}
 }
 
