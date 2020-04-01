@@ -13,13 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	validatorIncreaseRatingStep = uint32(2)
-	validatorDecreaseRatingStep = uint32(4)
-	proposerIncreaseRatingStep  = uint32(1)
-	proposerDecreaseRatingStep  = uint32(2)
-)
-
 func createDummyEconomicsConfig() *config.EconomicsConfig {
 	return &config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
@@ -38,7 +31,7 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
-			GenesisNodePrice: 		  "500000000",
+			GenesisNodePrice:         "500000000",
 			UnBondPeriod:             "100000",
 			TotalSupply:              "200000000000",
 			MinStepValue:             "100000",
@@ -49,15 +42,6 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			MaximumPercentageToBleed: "0.5",
 			BleedPercentagePerRound:  "0.00001",
 			UnJailValue:              "1000",
-		},
-		RatingSettings: config.RatingSettings{
-			StartRating:                 50,
-			MaxRating:                   100,
-			MinRating:                   1,
-			ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
-			ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
-			ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
-			ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
 		},
 	}
 }
@@ -309,83 +293,4 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
-}
-
-func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = 10
-	economicsConfig.RatingSettings.MaxRating = 8
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
-}
-
-func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = 0
-	economicsConfig.RatingSettings.MaxRating = 8
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
-}
-
-func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = 10
-	economicsConfig.RatingSettings.MaxRating = 100
-	economicsConfig.RatingSettings.StartRating = 110
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
-}
-
-func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = 10
-	economicsConfig.RatingSettings.MaxRating = 100
-	economicsConfig.RatingSettings.StartRating = 5
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
-}
-
-func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
-	t.Parallel()
-
-	minRating := uint32(10)
-	maxRating := uint32(100)
-	startRating := uint32(50)
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = minRating
-	economicsConfig.RatingSettings.MaxRating = maxRating
-	economicsConfig.RatingSettings.StartRating = startRating
-	economicsConfig.RatingSettings.ProposerDecreaseRatingStep = proposerDecreaseRatingStep
-	economicsConfig.RatingSettings.ProposerIncreaseRatingStep = proposerIncreaseRatingStep
-	economicsConfig.RatingSettings.ValidatorIncreaseRatingStep = validatorIncreaseRatingStep
-	economicsConfig.RatingSettings.ValidatorDecreaseRatingStep = validatorDecreaseRatingStep
-
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, economicsData)
-	assert.Equal(t, startRating, economicsData.RatingsData().StartRating())
-	assert.Equal(t, minRating, economicsData.RatingsData().MinRating())
-	assert.Equal(t, maxRating, economicsData.RatingsData().MaxRating())
-	assert.Equal(t, validatorIncreaseRatingStep, economicsData.RatingsData().ValidatorIncreaseRatingStep())
-	assert.Equal(t, validatorDecreaseRatingStep, economicsData.RatingsData().ValidatorDecreaseRatingStep())
-	assert.Equal(t, proposerIncreaseRatingStep, economicsData.RatingsData().ProposerIncreaseRatingStep())
-	assert.Equal(t, proposerDecreaseRatingStep, economicsData.RatingsData().ProposerDecreaseRatingStep())
 }

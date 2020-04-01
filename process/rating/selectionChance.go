@@ -1,4 +1,4 @@
-package economics
+package rating
 
 // Selection data contains the threshold and chancePercent to be selected
 type SelectionChance struct {
