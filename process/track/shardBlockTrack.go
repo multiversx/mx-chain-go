@@ -122,4 +122,8 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 			"shard", shardID,
 			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	}
+
+	log.Debug("pending miniblocks",
+		"shard", core.AllShardId,
+		"num", sbt.blockBalancer.GetNumPendingMiniBlocks(core.AllShardId))
 }

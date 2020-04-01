@@ -2,11 +2,10 @@ package mock
 
 // RaterMock -
 type RaterMock struct {
-	ComputeRatingCalled              func(string, uint32) uint32
-	GetRatingCalled                  func(string) uint32
-	UpdateRatingFromTempRatingCalled func([]string) error
-	GetStartRatingCalled             func() uint32
-	GetChancesCalled                 func(uint32) uint32
+	ComputeRatingCalled  func(string, uint32) uint32
+	GetRatingCalled      func(string) uint32
+	GetStartRatingCalled func() uint32
+	GetChancesCalled     func(uint32) uint32
 }
 
 // ComputeRating -
@@ -23,14 +22,6 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 		return rm.GetRatingCalled(pk)
 	}
 	return 1
-}
-
-// UpdateRatingFromTempRating -
-func (rm *RaterMock) UpdateRatingFromTempRating(pks []string) error {
-	if rm.UpdateRatingFromTempRatingCalled != nil {
-		return rm.UpdateRatingFromTempRatingCalled(pks)
-	}
-	return nil
 }
 
 // IsInterfaceNil -
