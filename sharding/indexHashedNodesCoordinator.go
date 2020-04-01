@@ -711,7 +711,7 @@ func (ihgs *indexHashedNodesCoordinator) createSelectors(
 			return nil, err
 		}
 
-		selectors[shard], err = NewSelectorExpandedList(weights, ihgs.hasher)
+		selectors[shard], err = NewSelectorWRS(weights, ihgs.hasher)
 		if err != nil {
 			return nil, err
 		}
