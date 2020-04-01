@@ -6,3 +6,8 @@ package state
 func (vi *ValidatorInfo) IsInterfaceNil() bool {
 	return vi == nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (svi *ShardValidatorInfo) IsInterfaceNil() bool {
+	return svi == nil
+}

@@ -428,7 +428,7 @@ func TestElrondNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
 	mapToRet := make(map[string]*state.ValidatorApiResponse)
-	mapToRet["test"] = &state.ValidatorApiResponse{NrLeaderFailure: 5}
+	mapToRet["test"] = &state.ValidatorApiResponse{NumLeaderFailure: 5}
 	node := &mock.NodeMock{
 		ValidatorStatisticsApiCalled: func() (map[string]*state.ValidatorApiResponse, error) {
 			return mapToRet, nil

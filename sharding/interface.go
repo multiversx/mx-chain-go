@@ -80,22 +80,24 @@ type RaterHandler interface {
 	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
+	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
+	GetSignedBlocksThreshold() float32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
-	ComputeIncreaseProposer(val uint32) uint32
+	ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
-	ComputeDecreaseProposer(val uint32) uint32
+	ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32
+	//RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
+	RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32
 	//ComputeIncreaseValidator computes the new rating for the increaseValidator
-	ComputeIncreaseValidator(val uint32) uint32
+	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
-	ComputeDecreaseValidator(val uint32) uint32
+	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
 }
 
 //RatingReader provides rating reading capabilities for the ratingHandler
 type RatingReader interface {
 	//GetRating gets the rating for the public key
 	GetRating(string) uint32
-	//UpdateRatingFromTempRating sets the rating to the value of the tempRating for the public keys
-	UpdateRatingFromTempRating([]string) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
@@ -128,16 +130,6 @@ type Cacher interface {
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
-}
-
-//RatingChance provides the methods needed for the computation of chances from the Rating
-type RatingChance interface {
-	//GetMaxThreshold returns the threshold until this ChancePercentage holds
-	GetMaxThreshold() uint32
-	//GetChancePercentage returns the percentage for the RatingChance
-	GetChancePercentage() uint32
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
 }
 
 // EpochHandler defines a struct able to output current epoch
