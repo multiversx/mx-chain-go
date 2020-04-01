@@ -15,13 +15,14 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // Transaction holds all the data needed for a value transfer or SC call
 message Transaction {
-	uint64   Nonce       = 1 [(gogoproto.jsontag) = "nonce"];
-	bytes    Value       = 2 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes    RcvAddr     = 3 [(gogoproto.jsontag) = "receiver"];
-	bytes    RcvUserName = 4 [(gogoproto.jsontag) = "rcvUserName"];
-	bytes    SndAddr     = 5 [(gogoproto.jsontag) = "sender"];
-	uint64   GasPrice    = 6 [(gogoproto.jsontag) = "gasPrice,omitempty"];
-	uint64   GasLimit    = 7 [(gogoproto.jsontag) = "gasLimit,omitempty"];
-	bytes    Data        = 8 [(gogoproto.jsontag) = "data,omitempty"];
-	bytes    Signature   = 9 [(gogoproto.jsontag) = "signature,omitempty"];
+	uint64   Nonce       = 1  [(gogoproto.jsontag) = "nonce"];
+	bytes    Value       = 2  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes    RcvAddr     = 3  [(gogoproto.jsontag) = "receiver"];
+	bytes    RcvUserName = 4  [(gogoproto.jsontag) = "rcvUserName,omitempty"];
+	bytes    SndAddr     = 5  [(gogoproto.jsontag) = "sender"];
+	bytes    SndUserName = 6  [(gogoproto.jsontag) = "sndUserName,omitempty"];
+	uint64   GasPrice    = 7  [(gogoproto.jsontag) = "gasPrice,omitempty"];
+	uint64   GasLimit    = 8  [(gogoproto.jsontag) = "gasLimit,omitempty"];
+	bytes    Data        = 9  [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    Signature   = 10 [(gogoproto.jsontag) = "signature,omitempty"];
 }
