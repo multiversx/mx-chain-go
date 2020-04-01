@@ -705,6 +705,7 @@ func (ihgs *indexHashedNodesCoordinator) createSelectors(
 	selectors := make(map[uint32]RandomSelector)
 	// weights for validators are computed according to each validator rating
 	for shard, vList := range nodesConfig.eligibleMap {
+		log.Debug("create selectors", "shard", shard)
 		weights, err = ihgs.nodesPerShardSetter.ValidatorsWeights(vList)
 		if err != nil {
 			return nil, err

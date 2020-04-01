@@ -145,6 +145,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
+		log.Debug("registry to nodes coordinator", "epoch", epoch32)
 		result[epoch32].selectors, err = ihgs.createSelectors(nodesConfig)
 		if err != nil {
 			return nil, err
