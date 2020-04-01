@@ -333,7 +333,9 @@ func (rc *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body 
 	}
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		_ = rc.miniBlockStorage.Remove(mbHeader.Hash)
+		if mbHeader.Type == block.RewardsBlock {
+			_ = rc.miniBlockStorage.Remove(mbHeader.Hash)
+		}
 	}
 }
 
@@ -354,13 +356,16 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 		return
 	}
 
+	transactionsPool := rc.dataPool.Transactions()
+	miniBlocksPool := rc.dataPool.MiniBlocks()
+
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		rc.dataPool.Transactions().RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
+		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 	}
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
@@ -368,7 +373,7 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 			continue
 		}
 
-		rc.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+		miniBlocksPool.Remove(mbHeader.Hash)
 
 		log.Trace("RemoveBlockDataFromPools",
 			"hash", mbHeader.Hash,

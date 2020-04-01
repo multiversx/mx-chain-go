@@ -66,6 +66,7 @@ type baseProcessor struct {
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
+	txCounter              *transactionCounter
 }
 
 type bootStorerDataArgs struct {
@@ -620,7 +621,8 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	nonces := bp.dataPool.Headers().Nonces(shardId)
+	headersPool := bp.dataPool.Headers()
+	nonces := headersPool.Nonces(shardId)
 	for _, nonceFromCache := range nonces {
 		if nonceFromCache >= nonce {
 			continue
@@ -630,12 +632,13 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 			bp.removeBlocksBody(nonceFromCache, shardId)
 		}
 
-		bp.dataPool.Headers().RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
+		headersPool.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
 	}
 }
 
 func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
-	headers, _, err := bp.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardId)
+	headersPool := bp.dataPool.Headers()
+	headers, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		return
 	}
@@ -1008,8 +1011,10 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 }
 
 func (bp *baseProcessor) displayMiniBlocksPool() {
-	for _, hash := range bp.dataPool.MiniBlocks().Keys() {
-		value, ok := bp.dataPool.MiniBlocks().Get(hash)
+	miniBlocksPool := bp.dataPool.MiniBlocks()
+
+	for _, hash := range miniBlocksPool.Keys() {
+		value, ok := miniBlocksPool.Get(hash)
 		if !ok {
 			log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
 			continue
@@ -1021,7 +1026,7 @@ func (bp *baseProcessor) displayMiniBlocksPool() {
 			continue
 		}
 
-		log.Debug("mini block in pool",
+		log.Trace("mini block in pool",
 			"hash", logger.DisplayByteSlice(hash),
 			"type", miniBlock.Type,
 			"sender", miniBlock.SenderShardID,

@@ -6,17 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
 
+const percentAllowed = 0.8
+
 // miniBlocksPoolsCleaner represents a pools cleaner that check and clean miniblocks which should not be in pool anymore
 type miniBlocksPoolsCleaner struct {
 	blockTracker     BlockTracker
-	miniBlocksPool   storage.Cacher
+	dataPool         dataRetriever.PoolsHolder
 	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
 
@@ -27,7 +29,7 @@ type miniBlocksPoolsCleaner struct {
 // NewMiniBlocksPoolsCleaner will return a new miniblocks pools cleaner
 func NewMiniBlocksPoolsCleaner(
 	blockTracker BlockTracker,
-	miniBlocksPool storage.Cacher,
+	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
 ) (*miniBlocksPoolsCleaner, error) {
@@ -35,8 +37,14 @@ func NewMiniBlocksPoolsCleaner(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
-	if check.IfNil(miniBlocksPool) {
-		return nil, process.ErrNilCacher
+	if check.IfNil(dataPool) {
+		return nil, process.ErrNilPoolsHolder
+	}
+	if check.IfNil(dataPool.MiniBlocks()) {
+		return nil, process.ErrNilMiniBlockPool
+	}
+	if check.IfNil(dataPool.Transactions()) {
+		return nil, process.ErrNilTransactionPool
 	}
 	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
@@ -47,13 +55,14 @@ func NewMiniBlocksPoolsCleaner(
 
 	mbpc := miniBlocksPoolsCleaner{
 		blockTracker:     blockTracker,
-		miniBlocksPool:   miniBlocksPool,
+		dataPool:         dataPool,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 	}
 
 	mbpc.mapMiniBlocksRounds = make(map[string]int64)
-	mbpc.miniBlocksPool.RegisterHandler(mbpc.receivedMiniBlock)
+	miniBlocksPool := mbpc.dataPool.MiniBlocks()
+	miniBlocksPool.RegisterHandler(mbpc.receivedMiniBlock)
 
 	return &mbpc, nil
 }
@@ -66,20 +75,24 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
 	log.Trace("miniBlocksPoolsCleaner.receivedMiniBlock", "hash", key)
 
 	mbpc.mutMapMiniBlocksRounds.Lock()
+	defer mbpc.mutMapMiniBlocksRounds.Unlock()
+
 	if _, ok := mbpc.mapMiniBlocksRounds[string(key)]; !ok {
 		mbpc.mapMiniBlocksRounds[string(key)] = mbpc.rounder.Index()
 	}
-	mbpc.cleanPoolIfNeeded()
-	mbpc.mutMapMiniBlocksRounds.Unlock()
 
+	mbpc.cleanPoolIfNeeded()
 }
 
 func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 	selfShard := mbpc.shardCoordinator.SelfId()
 	numPendingMiniBlocks := mbpc.blockTracker.GetNumPendingMiniBlocks(selfShard)
+	miniBlocksPool := mbpc.dataPool.MiniBlocks()
+	transactionsPool := mbpc.dataPool.Transactions()
+	percentUsed := float64(miniBlocksPool.Len()) / float64(miniBlocksPool.MaxSize())
 
 	for hash, round := range mbpc.mapMiniBlocksRounds {
-		value, ok := mbpc.miniBlocksPool.Get([]byte(hash))
+		value, ok := miniBlocksPool.Get([]byte(hash))
 		if !ok {
 			log.Trace("miniblock not found in pool",
 				"hash", hash,
@@ -97,7 +110,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		}
 
 		if miniBlock.SenderShardID != selfShard {
-			if numPendingMiniBlocks > 0 {
+			if numPendingMiniBlocks > 0 && percentUsed < percentAllowed {
 				log.Trace("cleaning cross miniblock not yet allowed",
 					"hash", hash,
 					"round", round,
@@ -122,7 +135,9 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 			continue
 		}
 
-		mbpc.miniBlocksPool.Remove([]byte(hash))
+		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
+		miniBlocksPool.Remove([]byte(hash))
 		delete(mbpc.mapMiniBlocksRounds, hash)
 
 		log.Debug("miniblock has been cleaned",

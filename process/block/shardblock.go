@@ -31,7 +31,6 @@ type shardProcessor struct {
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
-	txCounter           *transactionCounter
 	txsPoolsCleaner     process.PoolsCleaner
 
 	lowestNonceInSelfNotarizedHeaders uint64
@@ -49,6 +48,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 	if check.IfNil(arguments.DataPool.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.DataPool.Transactions()) {
+		return nil, process.ErrNilTransactionPool
 	}
 
 	base := &baseProcessor{
@@ -83,28 +85,20 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp := shardProcessor{
 		core:            arguments.Core,
 		baseProcessor:   base,
-		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 
-	sp.baseProcessor.requestBlockBodyHandler = &sp
-	sp.baseProcessor.blockProcessor = &sp
+	sp.txCounter = NewTransactionCounter()
+	sp.requestBlockBodyHandler = &sp
+	sp.blockProcessor = &sp
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
-
-	transactionPool := sp.dataPool.Transactions()
-	if check.IfNil(transactionPool) {
-		return nil, process.ErrNilTransactionPool
-	}
 
 	sp.hdrsForCurrBlock = newHdrForBlock()
 	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
-	metaBlockPool := sp.dataPool.Headers()
-	if check.IfNil(metaBlockPool) {
-		return nil, process.ErrNilMetaBlocksPool
-	}
-	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
+	headersPool := sp.dataPool.Headers()
+	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
 
@@ -187,7 +181,7 @@ func (sp *shardProcessor) ProcessBlock(
 			"num headers", requestedMetaHdrs,
 		)
 		log.Debug("requested missing finality attesting meta headers",
-			"num finality shard headers", requestedFinalityAttestingMetaHdrs,
+			"num finality meta headers", requestedFinalityAttestingMetaHdrs,
 		)
 
 		err = sp.waitForMetaHdrHashes(haveTime())
@@ -596,10 +590,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 }
 
 func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
-	metaBlockPool := sp.dataPool.Headers()
-	if metaBlockPool == nil {
-		return process.ErrNilMetaBlocksPool
-	}
+	headersPool := sp.dataPool.Headers()
 
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, len(metaBlockHashes))
 
@@ -616,7 +607,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
 		}
 
-		metaBlockPool.AddHeader(metaBlockHash, metaBlock)
+		headersPool.AddHeader(metaBlockHash, metaBlock)
 
 		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {
@@ -912,23 +903,26 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 func (sp *shardProcessor) displayPoolsInfo() {
+	headersPool := sp.dataPool.Headers()
+	miniBlocksPool := sp.dataPool.MiniBlocks()
+
 	log.Trace("pools info",
 		"shard", sp.shardCoordinator.SelfId(),
-		"num headers", sp.dataPool.Headers().GetNumHeaders(sp.shardCoordinator.SelfId()))
+		"num headers", headersPool.GetNumHeaders(sp.shardCoordinator.SelfId()))
 
 	log.Trace("pools info",
 		"shard", core.MetachainShardId,
-		"num headers", sp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+		"num headers", headersPool.GetNumHeaders(core.MetachainShardId))
 
 	// numShardsToKeepHeaders represents the total number of shards for which shard node would keep tracking headers
 	// (in this case this number is equal with: self shard + metachain)
 	numShardsToKeepHeaders := 2
-	capacity := sp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
+	capacity := headersPool.MaxSize() * numShardsToKeepHeaders
 	log.Debug("pools info",
-		"total headers", sp.dataPool.Headers().Len(),
+		"total headers", headersPool.Len(),
 		"headers pool capacity", capacity,
-		"total miniblocks", sp.dataPool.MiniBlocks().Len(),
-		"miniblocks pool capacity", sp.dataPool.MiniBlocks().MaxSize(),
+		"total miniblocks", miniBlocksPool.Len(),
+		"miniblocks pool capacity", miniBlocksPool.MaxSize(),
 	)
 
 	sp.displayMiniBlocksPool()
@@ -1758,10 +1752,11 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	miniBlocksPool := sp.dataPool.MiniBlocks()
 	var miniBlocks block.MiniBlockSlice
 
 	for _, mbHeader := range header.MiniBlockHeaders {
-		obj, hashInPool := sp.dataPool.MiniBlocks().Get(mbHeader.Hash)
+		obj, hashInPool := miniBlocksPool.Get(mbHeader.Hash)
 		if !hashInPool {
 			continue
 		}

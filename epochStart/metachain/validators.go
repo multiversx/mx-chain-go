@@ -232,12 +232,14 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaB
 		return
 	}
 
+	miniBlocksPool := vic.dataPool.MiniBlocks()
+
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
 		if mbHeader.Type != block.PeerBlock {
 			continue
 		}
 
-		vic.dataPool.MiniBlocks().Remove(mbHeader.Hash)
+		miniBlocksPool.Remove(mbHeader.Hash)
 
 		log.Trace("RemoveBlockDataFromPools",
 			"hash", mbHeader.Hash,

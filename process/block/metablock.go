@@ -38,7 +38,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	txCounter                    *transactionCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -107,7 +106,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		core:                         arguments.Core,
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
-		txCounter:                    NewTransactionCounter(),
 		scDataGetter:                 arguments.SCDataGetter,
 		scToProtocol:                 arguments.SCToProtocol,
 		pendingMiniBlocksHandler:     arguments.PendingMiniBlocksHandler,
@@ -118,13 +116,14 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 	}
 
-	mp.baseProcessor.requestBlockBodyHandler = &mp
-	mp.baseProcessor.blockProcessor = &mp
+	mp.txCounter = NewTransactionCounter()
+	mp.requestBlockBodyHandler = &mp
+	mp.blockProcessor = &mp
 
 	mp.hdrsForCurrBlock = newHdrForBlock()
 
-	headerPool := mp.dataPool.Headers()
-	headerPool.RegisterHandler(mp.receivedShardHeader)
+	headersPool := mp.dataPool.Headers()
+	headersPool.RegisterHandler(mp.receivedShardHeader)
 
 	mp.chRcvAllHdrs = make(chan bool)
 
@@ -182,9 +181,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	headersPool := mp.dataPool.Headers()
 	numShardHeadersFromPool := 0
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
 	counts := mp.txCounter.getTxPoolCounts(mp.dataPool)
@@ -557,6 +557,8 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return err
 	}
 
+	headersPool := mp.dataPool.Headers()
+
 	for _, hdrHash := range hdrHashes {
 		shardHeader, errNotCritical := process.GetShardHeaderFromStorage(hdrHash, mp.marshalizer, mp.store)
 		if errNotCritical != nil {
@@ -566,7 +568,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		mp.dataPool.Headers().AddHeader(hdrHash, shardHeader)
+		headersPool.AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
@@ -1060,9 +1062,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
+	headersPool := mp.dataPool.Headers()
 	numShardHeadersFromPool := 0
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		numShardHeadersFromPool += mp.dataPool.Headers().GetNumHeaders(shardID)
+		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
 	go mp.headersCounter.displayLogInfo(
@@ -1135,25 +1138,28 @@ func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) error 
 }
 
 func (mp *metaProcessor) displayPoolsInfo() {
+	headersPool := mp.dataPool.Headers()
+	miniBlocksPool := mp.dataPool.MiniBlocks()
+
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		log.Trace("pools info",
 			"shard", shardID,
-			"num headers", mp.dataPool.Headers().GetNumHeaders(shardID))
+			"num headers", headersPool.GetNumHeaders(shardID))
 	}
 
 	log.Trace("pools info",
 		"shard", core.MetachainShardId,
-		"num headers", mp.dataPool.Headers().GetNumHeaders(core.MetachainShardId))
+		"num headers", headersPool.GetNumHeaders(core.MetachainShardId))
 
 	// numShardsToKeepHeaders represents the total number of shards for which meta node would keep tracking headers
 	// (in this case this number is equal with: number of shards + metachain (self shard))
 	numShardsToKeepHeaders := int(mp.shardCoordinator.NumberOfShards()) + 1
-	capacity := mp.dataPool.Headers().MaxSize() * numShardsToKeepHeaders
+	capacity := headersPool.MaxSize() * numShardsToKeepHeaders
 	log.Debug("pools info",
-		"total headers", mp.dataPool.Headers().Len(),
+		"total headers", headersPool.Len(),
 		"headers pool capacity", capacity,
-		"total miniblocks", mp.dataPool.MiniBlocks().Len(),
-		"miniblocks pool capacity", mp.dataPool.MiniBlocks().MaxSize(),
+		"total miniblocks", miniBlocksPool.Len(),
+		"miniblocks pool capacity", miniBlocksPool.MaxSize(),
 	)
 
 	mp.displayMiniBlocksPool()
@@ -1856,10 +1862,11 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	miniBlocksPool := mp.dataPool.MiniBlocks()
 	var miniBlocks block.MiniBlockSlice
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		obj, hashInPool := mp.dataPool.MiniBlocks().Get(mbHeader.Hash)
+		obj, hashInPool := miniBlocksPool.Get(mbHeader.Hash)
 		if !hashInPool {
 			continue
 		}
