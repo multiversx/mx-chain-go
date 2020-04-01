@@ -320,6 +320,9 @@ func getInitialNodes(nodes []*integrationTests.TestProcessorNode) []*sharding.In
 
 func getGeneralConfig() config.Config {
 	return config.Config{
+		GeneralSettings: config.GeneralSettingsConfig{
+			StartInEpochEnabled: true,
+		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 5,
 			RoundsPerEpoch:         10,

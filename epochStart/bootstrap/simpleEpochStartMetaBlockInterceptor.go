@@ -117,7 +117,7 @@ func (s *simpleEpochStartMetaBlockInterceptor) isMapEntryOk(
 	epochCheckNotRequired := epoch == math.MaxUint32
 	isEpochOk := epochCheckNotRequired || mb.Epoch == epoch
 	if len(peersList) >= target && isEpochOk {
-		log.Info("got consensus for epoch start metablock", "len", len(peersList))
+		log.Debug("got consensus for epoch start metablock", "len", len(peersList))
 		return true
 	}
 

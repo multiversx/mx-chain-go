@@ -1303,19 +1303,6 @@ func newMetaResolverContainerFactory(
 }
 
 func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactoryArgs) (map[uint32]data.HeaderHandler, error) {
-	//TODO change this rudimentary startup for metachain nodes
-	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
-	// --------------------------------------------------------------------
-	// Adrian: "This looks like a workaround as the metchain should not deal with individual accounts, but shards data.
-	// What I was thinking was that the genesis on metachain (or pre-genesis block) is the nodes allocation to shards,
-	// with 0 state root for every shard, as there is no balance yet.
-	// Then the shards start operating as they get the initial node allocation, maybe we can do consensus on the
-	// genesis as well, I think this would be actually good as then everything is signed and agreed upon.
-	// The genesis shard blocks need to be then just the state root, I think we already have that in genesis,
-	// so shard nodes can go ahead with individually creating the block, but then run consensus on this.
-	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
-	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
-
 	coreComponents := args.coreData
 	stateComponents := args.state
 	dataComponents := args.data
@@ -1332,20 +1319,22 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	}
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		isCurrentShard := shardId == shardCoordinator.SelfId()
-		if isCurrentShard {
-			continue
-		}
-
 		var newShardCoordinator sharding.Coordinator
 		var accountsAdapter state.AccountsAdapter
-		newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
-			coreComponents,
-			shardCoordinator.NumberOfShards(),
-			shardId,
-		)
-		if err != nil {
-			return nil, err
+
+		isCurrentShard := shardId == shardCoordinator.SelfId()
+		if isCurrentShard && args.startEpochNum == 0 {
+			accountsAdapter = stateComponents.AccountsAdapter
+			newShardCoordinator = shardCoordinator
+		} else {
+			newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
+				coreComponents,
+				shardCoordinator.NumberOfShards(),
+				shardId,
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		var genesisBlock data.HeaderHandler
@@ -1355,30 +1344,12 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 			stateComponents.AddressConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
-			validatorStatsRootHash,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		genesisBlocks[shardId] = genesisBlock
-	}
-
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		var genesisBlockForCurrentShard data.HeaderHandler
-		genesisBlockForCurrentShard, err = createGenesisBlockAndApplyInitialBalances(
-			stateComponents.AccountsAdapter,
-			shardCoordinator,
-			stateComponents.AddressConverter,
-			genesisConfig,
-			uint64(nodesSetup.StartTime),
-			validatorStatsRootHash,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		genesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 	}
 
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
@@ -1398,7 +1369,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		GasMap:                   args.gasSchedule,
 	}
 
-	if shardCoordinator.SelfId() != core.MetachainShardId {
+	if shardCoordinator.SelfId() != core.MetachainShardId || args.startEpochNum > 0 {
 		var newShardCoordinator sharding.Coordinator
 		var newAccounts state.AccountsAdapter
 		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
@@ -1439,7 +1410,6 @@ func createGenesisBlockAndApplyInitialBalances(
 	addressConverter state.AddressConverter,
 	genesisConfig *sharding.Genesis,
 	startTime uint64,
-	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
@@ -1453,7 +1423,6 @@ func createGenesisBlockAndApplyInitialBalances(
 		addressConverter,
 		initialBalances,
 		startTime,
-		validatorStatsRootHash,
 	)
 }
 

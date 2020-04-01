@@ -76,9 +76,6 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
-// ErrNilListIndexUpdater signals that a nil list index updater was provided
-var ErrNilListIndexUpdater = errors.New("nil list index updater")
-
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")
 

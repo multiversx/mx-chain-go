@@ -664,6 +664,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
+
 	currentEpoch := bootstrapParameters.Epoch
 	if !generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0

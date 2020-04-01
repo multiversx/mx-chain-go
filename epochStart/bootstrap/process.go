@@ -227,7 +227,18 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 	e.computedEpoch = uint32(elaspedTimeInSeconds / timeForOneEpochInSeconds)
 }
 
+// Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
+	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
+		log.Warn("fast bootstrap is disabled")
+
+		return Parameters{
+			Epoch:       0,
+			SelfShardId: e.genesisShardCoordinator.SelfId(),
+			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+		}, nil
+	}
+
 	defer func() {
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
 		log.LogIfError(errMessenger, "error on unregistering message processor")
@@ -264,6 +275,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Debug("start in epoch boostrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 
 	err = e.createSyncers()
 	if err != nil {
@@ -418,8 +430,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	log.Debug("start in epoch bootstrap: createTrieStorageManagers")
-
 	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
@@ -438,7 +448,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch bootstrap: shardCoordinator")
+	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
 		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())

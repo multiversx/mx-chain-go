@@ -154,7 +154,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	log.Info("saved bootstrap data to storage")
+	log.Debug("saved bootstrap data to storage", "round", roundToUseAsKey)
 	return nil
 }
 

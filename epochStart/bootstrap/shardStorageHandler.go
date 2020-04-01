@@ -140,7 +140,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	log.Info("saved bootstrap data to storage")
+	log.Info("saved bootstrap data to storage", "round", roundToUseAsKey)
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
 	err = bootStorer.Put(key, bootStrapDataBytes)
 	if err != nil {
