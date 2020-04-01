@@ -667,10 +667,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
 
 	currentEpoch := bootstrapParameters.Epoch
+	storerEpoch := currentEpoch
 	if !generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
-		currentEpoch = 0
+		storerEpoch = 0
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
@@ -697,7 +698,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, storerEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err

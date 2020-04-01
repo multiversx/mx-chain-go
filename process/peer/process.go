@@ -127,13 +127,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
-
-	if arguments.StartEpoch == 0 {
-		// late start - trie is already synced
-		err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
-		if err != nil {
-			return nil, err
-		}
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), 0)
+	if err != nil {
+		return nil, err
 	}
 
 	return vs, nil
