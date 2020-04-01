@@ -8,7 +8,6 @@ import (
 var _ RandomSelector = (*selectorExpandedList)(nil)
 
 type selectorExpandedList struct {
-	validator    []Validator
 	expandedList []uint32
 	hasher       hashing.Hasher
 	uniqueItems  uint32
@@ -18,10 +17,7 @@ const minWeight = 1
 
 // NewSelectorExpandedList creates a new selector initializing selection set to the given lists of validators
 // and expanding it according to each validator weight.
-func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher hashing.Hasher) (*selectorExpandedList, error) {
-	if len(validators) == 0 {
-		return nil, ErrNilValidators
-	}
+func NewSelectorExpandedList(weightList []uint32, hasher hashing.Hasher) (*selectorExpandedList, error) {
 	if len(weightList) == 0 {
 		return nil, ErrNilWeights
 	}
@@ -31,13 +27,12 @@ func NewSelectorExpandedList(validators []Validator, weightList []uint32, hasher
 
 	uniqueItems := uint32(len(weightList))
 	selector := &selectorExpandedList{
-		validator:   validators,
 		hasher:      hasher,
 		uniqueItems: uniqueItems,
 	}
 
 	var err error
-	selector.expandedList, err = selector.expandList(validators, weightList)
+	selector.expandedList, err = selector.expandList(weightList)
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +52,11 @@ func (s *selectorExpandedList) Select(randSeed []byte, sampleSize uint32) ([]uin
 	return selectorConsensus.Get(randSeed, int64(sampleSize), s.expandedList)
 }
 
-func (s *selectorExpandedList) expandList(validators []Validator, weightList []uint32) ([]uint32, error) {
-	minSize := len(validators)
+func (s *selectorExpandedList) expandList(weightList []uint32) ([]uint32, error) {
+	minSize := len(weightList)
 	validatorList := make([]uint32, 0, minSize)
 
-	for i := 0; i < len(validators); i++ {
+	for i := 0; i < len(weightList); i++ {
 		if weightList[i] < minWeight {
 			return nil, ErrInvalidWeight
 		}
@@ -70,8 +65,6 @@ func (s *selectorExpandedList) expandList(validators []Validator, weightList []u
 			validatorList = append(validatorList, uint32(i))
 		}
 	}
-
-	s.expandedList = validatorList
 
 	return validatorList, nil
 }

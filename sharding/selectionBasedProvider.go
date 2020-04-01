@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"encoding/binary"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
@@ -14,9 +15,10 @@ type validatorEntry struct {
 // SelectionBasedProvider will handle the returning of the consensus group by simulating a reslicing of the expanded
 // eligible list. A comparison between a real reslicing and this can be found in common_test.go
 type SelectionBasedProvider struct {
-	hasher      hashing.Hasher
-	sortedSlice []*validatorEntry
-	size        int64
+	hasher       hashing.Hasher
+	sortedSlice  []*validatorEntry
+	size         int64
+	mutSelection sync.Mutex
 }
 
 // NewSelectionBasedProvider will return a new instance of SelectionBasedProvider
@@ -58,12 +60,23 @@ func (sbp *SelectionBasedProvider) Get(randomness []byte, numValidators int64, e
 	if len(randomness) == 0 {
 		return nil, ErrNilRandomness
 	}
+	if numValidators > int64(len(expandedEligibleList)) {
+		return nil, ErrInvalidSampleSize
+	}
+
 	validators := make([]uint32, 0, numValidators)
 	var index uint64
 	lenExpandedList := int64(len(expandedEligibleList))
 
+	sbp.mutSelection.Lock()
+	defer sbp.mutSelection.Unlock()
+	defer sbp.clean()
+
 	for i := int64(0); i < numValidators; i++ {
 		newRandomness := sbp.computeRandomnessAsUint64(randomness, int(i))
+		if sbp.size >= lenExpandedList {
+			return nil, ErrInvalidSampleSize
+		}
 		index = newRandomness % uint64(lenExpandedList-sbp.size)
 		index = sbp.adjustIndex(index)
 		validators = append(validators, expandedEligibleList[index])
@@ -71,6 +84,11 @@ func (sbp *SelectionBasedProvider) Get(randomness []byte, numValidators int64, e
 	}
 
 	return validators, nil
+}
+
+func (sbp *SelectionBasedProvider) clean() {
+	sbp.size = 0
+	sbp.sortedSlice = make([]*validatorEntry, 0, len(sbp.sortedSlice))
 }
 
 func (sbp *SelectionBasedProvider) computeRandomnessAsUint64(randomness []byte, index int) uint64 {

@@ -85,9 +85,6 @@ var ErrNilAddress = errors.New("nil address")
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
-// ErrNilValidators signals that nil validators list was provided
-var ErrNilValidators = errors.New("nil validators")
-
 // ErrNilWeights signals that nil weights list was provided
 var ErrNilWeights = errors.New("nil weights")
 
@@ -99,9 +96,6 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilEpochHandler signals that a nil epoch handler has been provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
-
-// ErrNilParam signals that a nil parameter was provided
-var ErrNilParam = errors.New("nil parameter")
 
 // ErrInvalidSampleSize signals that an invalid sample size was provided
 var ErrInvalidSampleSize = errors.New("invalid sample size")

@@ -8,24 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSelectorExpandedListNilValidatorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
-
-	selector, err := NewSelectorExpandedList(nil, weights, hasher)
-	require.Equal(t, ErrNilValidators, err)
-	require.Nil(t, selector)
-}
-
 func TestNewSelectorExpandedListNilWeightsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	hasher := &sha256.Sha256{}
 
-	selector, err := NewSelectorExpandedList(validators, nil, hasher)
+	selector, err := NewSelectorExpandedList(nil, hasher)
 	require.Equal(t, ErrNilWeights, err)
 	require.Nil(t, selector)
 }
@@ -33,10 +21,9 @@ func TestNewSelectorExpandedListNilWeightsShouldErr(t *testing.T) {
 func TestNewSelectorExpandedListNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 
-	selector, err := NewSelectorExpandedList(validators, weights, nil)
+	selector, err := NewSelectorExpandedList(weights, nil)
 	require.Equal(t, ErrNilHasher, err)
 	require.Nil(t, selector)
 }
@@ -44,12 +31,11 @@ func TestNewSelectorExpandedListNilHasherShouldErr(t *testing.T) {
 func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	weights[1] = 0
 	hasher := &sha256.Sha256{}
 
-	selector, err := NewSelectorExpandedList(validators, weights, hasher)
+	selector, err := NewSelectorExpandedList(weights, hasher)
 	require.Equal(t, ErrInvalidWeight, err)
 	require.Nil(t, selector)
 }
@@ -57,15 +43,14 @@ func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
 func TestNewSelectorExpandedListOK(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightArithmeticProgression)
 	hasher := &sha256.Sha256{}
 
-	selector, err := NewSelectorExpandedList(validators, weights, hasher)
+	selector, err := NewSelectorExpandedList(weights, hasher)
 	require.Nil(t, err)
 	require.NotNil(t, selector)
 
-	for i := uint32(0); i < uint32(len(validators)); i++ {
+	for i := uint32(0); i < uint32(len(weights)); i++ {
 		offset := uint32(0)
 		if i > 0 {
 			offset = weights[i-1]
@@ -82,22 +67,20 @@ func TestSelectorExpandedList_IsInterfaceNil(t *testing.T) {
 	var selector RandomSelector
 	require.True(t, check.IfNil(selector))
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 
-	selector, _ = NewSelectorExpandedList(validators, weights, hasher)
+	selector, _ = NewSelectorExpandedList(weights, hasher)
 	require.False(t, check.IfNil(selector))
 }
 
 func TestSelectorExpandedList_SelectNilRandomessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 
-	selector, _ := NewSelectorExpandedList(validators, weights, hasher)
+	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select(nil, 5)
 
 	require.Equal(t, ErrNilRandomness, err)
@@ -107,11 +90,10 @@ func TestSelectorExpandedList_SelectNilRandomessShouldErr(t *testing.T) {
 func TestSelectorExpandedList_Select0SampleSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 
-	selector, _ := NewSelectorExpandedList(validators, weights, hasher)
+	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select([]byte("random"), 0)
 
 	require.Equal(t, ErrInvalidSampleSize, err)
@@ -122,11 +104,10 @@ func TestSelectorExpandedList_SelectSampleSizeGreaterThanSetShouldErr(t *testing
 	t.Parallel()
 
 	setSize := uint32(10)
-	validators := createDummyNodesList(setSize, "shard_0")
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 
-	selector, _ := NewSelectorExpandedList(validators, weights, hasher)
+	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select([]byte("random"), setSize+1)
 
 	require.Equal(t, ErrInvalidSampleSize, err)
@@ -137,12 +118,11 @@ func TestSelectorExpandedList_SelectOK(t *testing.T) {
 	t.Parallel()
 
 	setSize := uint32(10)
-	validators := createDummyNodesList(setSize, "shard_0")
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 	sampleSize := setSize / 2
 
-	selector, _ := NewSelectorExpandedList(validators, weights, hasher)
+	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select([]byte("random"), sampleSize)
 	require.Nil(t, err)
 	require.NotNil(t, indexes)
