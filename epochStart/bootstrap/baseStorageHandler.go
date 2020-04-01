@@ -42,23 +42,6 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	return sliceToRet, nil
 }
 
-func (bsh *baseStorageHandler) saveMiniBlocksToStorage(miniBlocks map[string]*block.MiniBlock) error {
-	miniBlockStorage := bsh.storageService.GetStorer(dataRetriever.MiniBlockUnit)
-	for hash, miniBlock := range miniBlocks {
-		marshalledData, err := bsh.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return err
-		}
-
-		err = miniBlockStorage.Put([]byte(hash), marshalledData)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesCoordinatorRegistry,

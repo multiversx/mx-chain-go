@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -147,7 +146,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
 
-	_ = logger.SetLogLevel("*:DEBUG")
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	shardIDStr := fmt.Sprintf("%d", shardID)
 	if shardID == core.MetachainShardId {

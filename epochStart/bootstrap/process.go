@@ -463,21 +463,25 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) saveSelfShardId() {
-	if e.baseData.shardId == core.AllShardId {
-		destShardID := core.MetachainShardId
-		if e.destinationShardAsObserver != "metachain" {
-			var destShardIDUint64 uint64
-			destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
-			if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
-				destShardID = uint32(destShardIDUint64)
-				destShardID = e.genesisShardCoordinator.SelfId()
-			} else {
-				destShardID = e.genesisShardCoordinator.SelfId()
-			}
-		}
-
-		e.baseData.shardId = destShardID
+	if e.baseData.shardId != core.AllShardId {
+		return
 	}
+
+	destShardID := core.MetachainShardId
+	if e.destinationShardAsObserver == "metachain" {
+		e.baseData.shardId = destShardID
+		return
+	}
+
+	var destShardIDUint64 uint64
+	destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
+	if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
+		destShardID = uint32(destShardIDUint64)
+	} else {
+		destShardID = e.genesisShardCoordinator.SelfId()
+	}
+
+	e.baseData.shardId = destShardID
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
