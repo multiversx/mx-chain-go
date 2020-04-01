@@ -60,7 +60,7 @@ func (s *selectorWRS) Select(randSeed []byte, sampleSize uint32) ([]uint32, erro
 		indexHash := s.hasher.Compute(string(buffIndex) + string(randSeed))
 		randomUint64 := binary.BigEndian.Uint64(indexHash)
 		pow := 1.0 / float64(w)
-		key := math.Pow((float64(randomUint64) / maxUint64), pow)
+		key := math.Pow(float64(randomUint64)/maxUint64, pow)
 		keyIndexList[i] = &keyIndex{
 			key:   key,
 			index: uint32(i),
