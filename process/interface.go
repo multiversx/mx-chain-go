@@ -93,8 +93,8 @@ type InterceptedData interface {
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
-	Validate(data InterceptedData) error
-	Save(data InterceptedData) error
+	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }

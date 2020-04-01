@@ -56,6 +56,9 @@ var ErrMetaHdrNotFound = errors.New("meta header not found")
 // ErrNilHasher signals that nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
+// ErrNilInvalidConsensusThreshold signals that an invalid consensus threshold has been provided
+var ErrNilInvalidConsensusThreshold = errors.New("invalid consensus threshold")
+
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
@@ -131,9 +134,6 @@ var ErrNilValidatorInfo = errors.New("validator info is nil")
 // ErrEpochStartDataForShardNotFound signals that epoch start shard data was not found for current shard id
 var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current shard not found")
 
-// ErrNumTriesExceeded signals that number of tries has exceeded
-var ErrNumTriesExceeded = errors.New("number of tries exceeded")
-
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
 
@@ -193,3 +193,6 @@ var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
 
 // ErrInvalidWorkingDir signals that an invalid working directory has been provided
 var ErrInvalidWorkingDir = errors.New("invalid working directory")
+
+// ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
+var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")

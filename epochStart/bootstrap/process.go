@@ -297,10 +297,18 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler: e.requestHandler,
-		Messenger:      e.messenger,
-		Marshalizer:    e.marshalizer,
-		Hasher:         e.hasher,
+		RequestHandler:    e.requestHandler,
+		Messenger:         e.messenger,
+		Marshalizer:       e.marshalizer,
+		TxSignMarshalizer: e.txSignMarshalizer,
+		ShardCoordinator:  e.shardCoordinator,
+		Hasher:            e.hasher,
+		ChainID:           []byte(e.genesisNodesConfig.ChainID),
+		EconomicsData:     e.economicsData,
+		KeyGen:            e.keyGen,
+		BlockKeyGen:       e.blockKeyGen,
+		Signer:            e.singleSigner,
+		BlockSigner:       e.blockSingleSigner,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

@@ -1,38 +1,53 @@
 package bootstrap
 
 import (
-	"math"
+	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type epochStartMetaSyncer struct {
-	requestHandler                 epochStart.RequestHandler
+	requestHandler                 process.RequestHandler
 	messenger                      p2p.Messenger
 	epochStartMetaBlockInterceptor EpochStartInterceptor
 	marshalizer                    marshal.Marshalizer
 	hasher                         hashing.Hasher
+	singleDataInterceptor          process.Interceptor
+	metaBlockProcessor             *epochStartMetaBlockProcessor
 }
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler epochStart.RequestHandler
-	Messenger      p2p.Messenger
-	Marshalizer    marshal.Marshalizer
-	Hasher         hashing.Hasher
+	RequestHandler    process.RequestHandler
+	Messenger         p2p.Messenger
+	Marshalizer       marshal.Marshalizer
+	TxSignMarshalizer marshal.Marshalizer
+	ShardCoordinator  sharding.Coordinator
+	KeyGen            crypto.KeyGenerator
+	BlockKeyGen       crypto.KeyGenerator
+	Hasher            hashing.Hasher
+	Signer            crypto.SingleSigner
+	BlockSigner       crypto.SingleSigner
+	ChainID           []byte
+	EconomicsData     *economics.EconomicsData
 }
 
-const delayBetweenRequests = 1 * time.Second
 const thresholdForConsideringMetaBlockCorrect = 0.2
-const numRequestsToSendOnce = 4
-const maxNumTimesToRetry = 100
 
+// NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
 	e := &epochStartMetaSyncer{
 		requestHandler: args.RequestHandler,
@@ -41,8 +56,54 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		hasher:         args.Hasher,
 	}
 
-	var err error
-	e.epochStartMetaBlockInterceptor, err = NewSimpleEpochStartMetaBlockInterceptor(e.marshalizer, e.hasher)
+	processor, err := NewEpochStartMetaBlockProcessor(
+		args.Messenger,
+		args.RequestHandler,
+		args.Marshalizer,
+		args.Hasher,
+		thresholdForConsideringMetaBlockCorrect,
+	)
+	if err != nil {
+		return nil, err
+	}
+	e.metaBlockProcessor = processor.(*epochStartMetaBlockProcessor)
+
+	addrConv, err := addressConverters.NewPlainAddressConverter(32, "")
+	if err != nil {
+		return nil, err
+	}
+
+	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
+		ProtoMarshalizer:  args.Marshalizer,
+		TxSignMarshalizer: args.TxSignMarshalizer,
+		Hasher:            args.Hasher,
+		ShardCoordinator:  args.ShardCoordinator,
+		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
+		NodesCoordinator:  disabled.NewNodesCoordinator(),
+		KeyGen:            args.KeyGen,
+		BlockKeyGen:       args.BlockKeyGen,
+		Signer:            args.Signer,
+		BlockSigner:       args.BlockSigner,
+		AddrConv:          addrConv,
+		FeeHandler:        args.EconomicsData,
+		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
+		ChainID:           args.ChainID,
+		ValidityAttester:  disabled.NewValidityAttester(),
+		EpochStartTrigger: disabled.NewEpochStartTrigger(),
+	}
+
+	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
+		factory.MetachainBlocksTopic,
+		interceptedMetaHdrDataFactory,
+		processor,
+		disabled.NewThrottler(),
+		disabled.NewAntiFloodHandler(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -60,36 +121,15 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(_ time.Duration) (*block.MetaB
 		e.resetTopicsAndInterceptors()
 	}()
 
-	e.requestEpochStartMetaBlock()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	mb, errConsensusNotReached := e.metaBlockProcessor.GetEpochStartMetaBlock(ctx)
+	cancel()
 
-	unknownEpoch := uint32(math.MaxUint32)
-	count := 0
-	for {
-		if count > maxNumTimesToRetry {
-			return nil, epochStart.ErrNumTriesExceeded
-		}
-
-		count++
-		numConnectedPeers := len(e.messenger.ConnectedPeers())
-		threshold := int(thresholdForConsideringMetaBlockCorrect * float64(numConnectedPeers))
-
-		mb, errConsensusNotReached := e.epochStartMetaBlockInterceptor.GetEpochStartMetaBlock(threshold, unknownEpoch)
-		if errConsensusNotReached == nil {
-			return mb, nil
-		}
-
-		log.Info("consensus not reached for meta block. re-requesting and trying again...")
-		e.requestEpochStartMetaBlock()
+	if errConsensusNotReached != nil {
+		return nil, errConsensusNotReached
 	}
-}
 
-func (e *epochStartMetaSyncer) requestEpochStartMetaBlock() {
-	// send more requests
-	unknownEpoch := uint32(math.MaxUint32)
-	for i := 0; i < numRequestsToSendOnce; i++ {
-		time.Sleep(delayBetweenRequests)
-		e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
-	}
+	return mb, nil
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
@@ -106,7 +146,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 		return err
 	}
 
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.epochStartMetaBlockInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}
