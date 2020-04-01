@@ -1045,8 +1045,13 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader(_ uint64, _ uint64) data.HeaderHandler {
-	header := &block.Header{AccumulatedFees: big.NewInt(0)}
+func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	header := &block.Header{
+		Nonce:           nonce,
+		Round:           round,
+		AccumulatedFees: big.NewInt(0),
+	}
+
 	return header
 }
 

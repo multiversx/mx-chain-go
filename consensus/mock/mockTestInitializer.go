@@ -40,7 +40,10 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) data.HeaderHandler {
-		return &block.Header{}
+		return &block.Header{
+			Round: round,
+			Nonce: nonce,
+		}
 	}
 
 	return blockProcessorMock

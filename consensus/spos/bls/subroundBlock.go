@@ -282,7 +282,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	round := uint64(sr.Rounder().Index())
 	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
-	hdr.SetNonce(nonce)
 	hdr.SetPrevHash(prevHash)
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
@@ -291,7 +290,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)

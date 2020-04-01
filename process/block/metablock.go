@@ -1807,6 +1807,8 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
+		Nonce:                  nonce,
+		Round:                  round,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}

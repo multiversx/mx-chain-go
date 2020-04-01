@@ -134,8 +134,6 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	blockHeader := node.BlockProcessor.CreateNewHeader(round, nonce)
 
 	blockHeader.SetShardID(0)
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap(bitmap)
 	currHdr := node.BlockChain.GetCurrentBlockHeader()
 	if check.IfNil(currHdr) {

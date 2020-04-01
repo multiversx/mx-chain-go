@@ -99,7 +99,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
 
-	trigger := &trigger{
+	trig := &trigger{
 		triggerStateKey:             []byte(trigStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
@@ -117,12 +117,12 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartMeta:              &block.MetaBlock{},
 	}
 
-	err := trigger.saveState(trigger.triggerStateKey)
+	err := trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return trigger, nil
+	return trig, nil
 }
 
 // IsEpochStart return true if conditions are fulfilled for start of epoch
@@ -191,9 +191,9 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		return
 	}
 
-	isStartEdgeCase := nonce < minimumNonceToStartEpoch
+	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
 	isEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
-	shouldTriggerEpochStart := isEpochStart && !isStartEdgeCase
+	shouldTriggerEpochStart := isEpochStart && !isZeroEpochEdgeCase
 	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
