@@ -35,6 +35,18 @@ func (tx *Transaction) SetSndAddr(addr []byte) {
 	tx.SndAddr = addr
 }
 
+type transactionJson struct {
+	Nonce       uint64 `json:"nonce"`
+	Value       string `json:"value"`
+	RcvAddr     []byte `json:"receiver"`
+	RcvUserName []byte `json:"rcvUserName"`
+	SndAddr     []byte `json:"sender"`
+	GasPrice    uint64 `json:"gasPrice,omitempty"`
+	GasLimit    uint64 `json:"gasLimit,omitempty"`
+	Data        []byte `json:"data,omitempty"`
+	Signature   []byte `json:"signature,omitempty"`
+}
+
 // MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
 // Note that Value data type is converted in a string
 func (tx *Transaction) MarshalJSON() ([]byte, error) {
@@ -42,52 +54,40 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	if tx.Value != nil {
 		valAsString = tx.Value.String()
 	}
-	return json.Marshal(&struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      []byte `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{
-		Nonce:     tx.Nonce,
-		Value:     valAsString,
-		RcvAddr:   tx.RcvAddr,
-		SndAddr:   tx.SndAddr,
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: tx.Signature,
-	})
+
+	txAsJsonStruct := &transactionJson{
+		Nonce:       tx.Nonce,
+		Value:       valAsString,
+		RcvAddr:     tx.RcvAddr,
+		RcvUserName: tx.RcvUserName,
+		SndAddr:     tx.SndAddr,
+		GasPrice:    tx.GasPrice,
+		GasLimit:    tx.GasLimit,
+		Data:        tx.Data,
+		Signature:   tx.Signature,
+	}
+	return json.Marshal(txAsJsonStruct)
 }
 
 // UnmarshalJSON converts the provided bytes into a Transaction data type.
 func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
-	aux := &struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      []byte `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{}
-	if err := json.Unmarshal(dataBuff, &aux); err != nil {
+
+	txAsJsonStruct := &transactionJson{}
+	err := json.Unmarshal(dataBuff, txAsJsonStruct)
+	if err != nil {
 		return err
 	}
-	tx.Nonce = aux.Nonce
-	tx.RcvAddr = aux.RcvAddr
-	tx.SndAddr = aux.SndAddr
-	tx.GasPrice = aux.GasPrice
-	tx.GasLimit = aux.GasLimit
-	tx.Data = aux.Data
-	tx.Signature = aux.Signature
+
+	tx.Nonce = txAsJsonStruct.Nonce
+	tx.RcvAddr = txAsJsonStruct.RcvAddr
+	tx.SndAddr = txAsJsonStruct.SndAddr
+	tx.GasPrice = txAsJsonStruct.GasPrice
+	tx.GasLimit = txAsJsonStruct.GasLimit
+	tx.Data = txAsJsonStruct.Data
+	tx.Signature = txAsJsonStruct.Signature
 
 	var ok bool
-	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
+	tx.Value, ok = big.NewInt(0).SetString(txAsJsonStruct.Value, 10)
 	if !ok {
 		tx.Value = nil
 	}

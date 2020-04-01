@@ -15,4 +15,5 @@ message UserAccountData {
     bytes  Address         = 5;
     bytes  DeveloperReward = 6 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes  OwnerAddress    = 7;
+    bytes  UserName        = 8;
 }
