@@ -120,6 +120,8 @@ type UserAccountHandler interface {
 	ChangeOwnerAddress([]byte, []byte) error
 	SetOwnerAddress([]byte)
 	GetOwnerAddress() []byte
+	SetUserName(userName []byte)
+	GetUserName() []byte
 	AccountHandler
 }
 
