@@ -184,10 +184,10 @@ func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 	decreaseVal := uint32(3)
 
 	acc.IncreaseLeaderSuccessRate(increaseVal)
-	assert.Equal(t, increaseVal, acc.GetLeaderSuccessRate().NrSuccess)
+	assert.Equal(t, increaseVal, acc.GetLeaderSuccessRate().NumSuccess)
 
 	acc.DecreaseLeaderSuccessRate(decreaseVal)
-	assert.Equal(t, decreaseVal, acc.GetLeaderSuccessRate().NrFailure)
+	assert.Equal(t, decreaseVal, acc.GetLeaderSuccessRate().NumFailure)
 }
 
 func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
@@ -198,10 +198,10 @@ func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
 	decreaseVal := uint32(3)
 
 	acc.IncreaseValidatorSuccessRate(increaseVal)
-	assert.Equal(t, increaseVal, acc.GetValidatorSuccessRate().NrSuccess)
+	assert.Equal(t, increaseVal, acc.GetValidatorSuccessRate().NumSuccess)
 
 	acc.DecreaseValidatorSuccessRate(decreaseVal)
-	assert.Equal(t, decreaseVal, acc.GetValidatorSuccessRate().NrFailure)
+	assert.Equal(t, decreaseVal, acc.GetValidatorSuccessRate().NumFailure)
 }
 
 func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
@@ -249,10 +249,10 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	acc.ResetAtNewEpoch()
 	assert.Equal(t, big.NewInt(0), acc.GetAccumulatedFees())
 	assert.Equal(t, tempRating, acc.GetRating())
-	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NrFailure)
-	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NrSuccess)
-	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NrFailure)
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumFailure)
 	assert.Equal(t, uint32(0), acc.GetNumSelectedInSuccessBlocks())
 }
 

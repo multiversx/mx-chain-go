@@ -184,3 +184,11 @@ type ValidatorInfoHandler interface {
 	String() string
 	IsInterfaceNil() bool
 }
+
+// ShardValidatorInfoHandler is used to store multiple validatorInfo properties required in shards
+type ShardValidatorInfoHandler interface {
+	GetPublicKey() []byte
+	GetTempRating() uint32
+	String() string
+	IsInterfaceNil() bool
+}

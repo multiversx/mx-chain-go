@@ -201,6 +201,57 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMetaBlocksPool, err)
 }
 
+func TestNewEpochStartTrigger_NilValidatorInfoProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.ValidatorInfoProcessor = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilValidatorInfoProcessor, err)
+}
+
+func TestNewEpochStartTrigger_NiBootstrapUnitStorageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Storage = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.BootstrapUnit:
+				return nil
+			default:
+				return &mock.StorerStub{}
+			}
+		},
+	}
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilTriggerStorage, err)
+}
+
+func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Storage = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.BlockHeaderUnit:
+				return nil
+			default:
+				return &mock.StorerStub{}
+			}
+		},
+	}
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilShardHeaderStorage, err)
+}
+
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	t.Parallel()
 

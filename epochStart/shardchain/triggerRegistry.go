@@ -64,6 +64,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.EpochStartShardHeader = t.epochStartShardHeader
 
+	//TODO: change to protoMarshalizer
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err

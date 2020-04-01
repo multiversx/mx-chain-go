@@ -201,13 +201,13 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	return nil
 }
 
-// ComputeLeaving -
+// ComputeLeaving - computes leaving validators
 func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator {
 	return make([]Validator, 0)
 }
 
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list
-// by weighted random sampling
+// and each eligible validator weight/chance
 func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness []byte,
 	round uint64,
@@ -494,7 +494,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining)
+	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining, nodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
