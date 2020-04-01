@@ -425,19 +425,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
-	if e.baseData.shardId == core.AllShardId {
-		destShardID := core.MetachainShardId
-		if e.destinationShardAsObserver != "metachain" {
-			var destShardIDUint64 uint64
-			destShardIDUint64, err = strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
-			if err != nil {
-				return Parameters{}, nil
-			}
-			destShardID = uint32(destShardIDUint64)
-		}
-
-		e.baseData.shardId = destShardID
-	}
+	e.saveSelfShardId()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, err
@@ -469,6 +457,24 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		NumOfShards: e.baseData.numberOfShards,
 	}
 	return parameters, nil
+}
+
+func (e *epochStartBootstrap) saveSelfShardId() {
+	if e.baseData.shardId == core.AllShardId {
+		destShardID := core.MetachainShardId
+		if e.destinationShardAsObserver != "metachain" {
+			var destShardIDUint64 uint64
+			destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
+			if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
+				destShardID = uint32(destShardIDUint64)
+				destShardID = e.genesisShardCoordinator.SelfId()
+			} else {
+				destShardID = e.genesisShardCoordinator.SelfId()
+			}
+		}
+
+		e.baseData.shardId = destShardID
+	}
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
