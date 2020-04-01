@@ -640,7 +640,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultEpochString:         defaultEpochString,
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
-		DestinationShardAsObserver: ctx.GlobalString(destinationShardAsObserver.Name),
+		DestinationShardAsObserver: preferencesConfig.Preferences.DestinationShardAsObserver,
 		TrieContainer:              coreComponents.TriesContainer,
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
