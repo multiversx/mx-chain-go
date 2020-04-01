@@ -683,7 +683,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
-		generalConfig.EpochStartConfig.RoundsPerEpoch,
+		generalConfig.EpochStartConfig,
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 	)
@@ -1206,7 +1206,7 @@ func createNodesCoordinator(
 	hasher hashing.Hasher,
 	rater sharding.RaterHandler,
 	bootStorer storage.Storer,
-	roundsPerEpoch int64,
+	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
 	chanStopNodeProcess chan bool,
 ) (sharding.NodesCoordinator, error) {
@@ -1247,15 +1247,18 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	thresholdEpochDuration := 0.25
-	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * roundsPerEpoch
+	thresholdEpochDuration := epochConfig.ShuffledOutRestartThreshold
+	if !(thresholdEpochDuration >= 0.0 && thresholdEpochDuration <= 1.0) {
+		return nil, fmt.Errorf("invalid threshold for shuffled out handler")
+	}
+	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
 	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
 	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
 	endOfProcessingHandler := func() error {
 		go func() {
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
-			fmt.Println(fmt.Sprintf("the application stopped after waiting %d miliseconds because the node was "+
+			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
 				"shuffled out", randDurationBeforeStop))
 			chanStopNodeProcess <- true
 		}()
