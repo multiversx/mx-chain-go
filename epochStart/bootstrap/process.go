@@ -228,6 +228,11 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 }
 
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
+	defer func() {
+		errMessenger := e.messenger.UnregisterAllMessageProcessors()
+		log.LogIfError(errMessenger, "error on unregistering message processor")
+	}()
+
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
@@ -621,7 +626,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
-	log.Debug("reached maximum tested point from integration test")
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
