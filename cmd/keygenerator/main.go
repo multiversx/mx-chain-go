@@ -48,7 +48,7 @@ VERSION:
 
 	// numKeys defines a flag for setting how many keys should generate
 	numKeys = cli.IntFlag{
-		Name:        "numKeys",
+		Name:        "num-keys",
 		Usage:       "How many keys should generate. Example: 1",
 		Value:       1,
 		Destination: &argsConfig.numKeys,
@@ -56,7 +56,7 @@ VERSION:
 
 	// keyType defines a flag for setting what keys should generate
 	keyType = cli.StringFlag{
-		Name:        "keyType",
+		Name:        "key-type",
 		Usage:       "What king of keys should generate. Available options: block, tx, both",
 		Value:       "both",
 		Destination: &argsConfig.keyType,
@@ -64,7 +64,7 @@ VERSION:
 
 	// keyFormat defines a flag for setting the format for the keys to generate
 	keyFormat = cli.StringFlag{
-		Name:        "keyFormat",
+		Name:        "key-format",
 		Usage:       "Defines the key format. Available options: hex and bech32",
 		Value:       "hex",
 		Destination: &argsConfig.keyFormat,

@@ -7,11 +7,19 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 )
 
-const prefix = "erd"
-const fromBits = byte(8)
-const toBits = byte(5)
-const pad = true
-const invertedPad = false
+type config struct {
+	prefix   string
+	fromBits byte
+	toBits   byte
+	pad      bool
+}
+
+var bech32Config = config{
+	prefix:   "erd",
+	fromBits: byte(8),
+	toBits:   byte(5),
+	pad:      true,
+}
 
 // bech32PubkeyConverter encodes or decodes provided public key as/from bech32 format
 type bech32PubkeyConverter struct {
@@ -45,12 +53,12 @@ func (bpc *bech32PubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if decodedPrefix != prefix {
+	if decodedPrefix != bech32Config.prefix {
 		return nil, state.ErrInvalidErdAddress
 	}
 
 	// warning: mind the order of the parameters, those should be inverted
-	decodedBytes, err := bech32.ConvertBits(buff, toBits, fromBits, invertedPad)
+	decodedBytes, err := bech32.ConvertBits(buff, bech32Config.toBits, bech32Config.fromBits, !bech32Config.pad)
 	if err != nil {
 		return nil, state.ErrBech32ConvertError
 	}
@@ -65,12 +73,12 @@ func (bpc *bech32PubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 
 // String converts the provided bytes in a bech32 form
 func (bpc *bech32PubkeyConverter) String(pkBytes []byte) (string, error) {
-	conv, err := bech32.ConvertBits(pkBytes, 8, 5, pad)
+	conv, err := bech32.ConvertBits(pkBytes, 8, 5, bech32Config.pad)
 	if err != nil {
 		return "", err
 	}
 
-	return bech32.Encode(prefix, conv)
+	return bech32.Encode(bech32Config.prefix, conv)
 }
 
 // CreateAddressFromString creates an address container based on the provided string

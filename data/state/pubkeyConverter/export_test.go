@@ -1,3 +1,3 @@
 package pubkeyConverter
 
-const Prefix = prefix
+var Prefix = bech32Config.prefix
