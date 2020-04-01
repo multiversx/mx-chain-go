@@ -74,6 +74,10 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 	}
 
 	probableHighestNonce := psh.GetProbableHighestNonce()
+	if probableHighestNonce < currentBlock || speed == 0 {
+		return ""
+	}
+
 	remainingBlocksToSynchronize := probableHighestNonce - currentBlock
 	timeEstimationSeconds := float64(remainingBlocksToSynchronize) / speed
 	remainingTime := core.SecondsToHourMinSec(int(timeEstimationSeconds))

@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 // EpochStartTriggerStub -
 type EpochStartTriggerStub struct {
@@ -56,6 +59,11 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 
 // Revert -
 func (e *EpochStartTriggerStub) Revert(_ data.HeaderHandler) {
+}
+
+// SetAppStatusHandler -
+func (e *EpochStartTriggerStub) SetAppStatusHandler(_ core.AppStatusHandler) error {
+	return nil
 }
 
 // EpochStartRound -

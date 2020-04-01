@@ -119,6 +119,9 @@ func (r *validatorInfoCreator) createMiniBlock(validators []*state.ValidatorInfo
 func createShardValidatorInfo(validator *state.ValidatorInfo) *state.ShardValidatorInfo {
 	return &state.ShardValidatorInfo{
 		PublicKey:  validator.PublicKey,
+		ShardId:    validator.ShardId,
+		List:       validator.List,
+		Index:      validator.Index,
 		TempRating: validator.TempRating,
 	}
 }

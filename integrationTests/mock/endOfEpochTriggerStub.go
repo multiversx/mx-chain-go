@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -68,6 +69,11 @@ func (e *EpochStartTriggerStub) SetTrigger(_ epochStart.TriggerHandler) {
 
 // Revert -
 func (e *EpochStartTriggerStub) Revert(_ data.HeaderHandler) {
+}
+
+// SetAppStatusHandler -
+func (e *EpochStartTriggerStub) SetAppStatusHandler(_ core.AppStatusHandler) error {
+	return nil
 }
 
 // EpochStartRound -
