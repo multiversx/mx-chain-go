@@ -179,14 +179,14 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	for _, pks := range nodesMap {
+	for shardId, pks := range nodesMap {
 		for _, pk := range pks {
 			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
 			if err != nil {
 				return err
 			}
 
-			err = vs.initializeNode(node, stakeValue, startRating)
+			err = vs.initializeNode(node, stakeValue, startRating, shardId)
 			if err != nil {
 				return err
 			}
@@ -588,13 +588,14 @@ func (vs *validatorStatistics) initializeNode(
 	node sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
+	shardId uint32,
 ) error {
 	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardId)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
@@ -602,6 +603,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	data sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
+	shardId uint32,
 ) error {
 	err := peerAccount.SetRewardAddress(data.Address())
 	if err != nil {
@@ -625,6 +627,8 @@ func (vs *validatorStatistics) savePeerAccountData(
 
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
+	peerAccount.SetCurrentShardId(shardId)
+	peerAccount.SetNextShardId(shardId)
 
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
