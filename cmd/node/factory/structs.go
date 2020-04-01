@@ -737,6 +737,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+		blockTracker,
+		args.data.Datapool,
+		rounder,
+		args.shardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -2223,6 +2233,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -2234,6 +2245,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
