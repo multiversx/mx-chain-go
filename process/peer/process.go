@@ -137,6 +137,79 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	return vs, nil
 }
 
+// saveNodesCoordinatorUpdates is called at the first block after start in epoch to update the state trie according to
+// the shuffling and changes done by the nodesCoordinator at the end of the epoch
+func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
+	if err != nil {
+		return err
+	}
+
+	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
+	if err != nil {
+		return err
+	}
+
+	nodesList, err := vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForList(nodesList, 0, core.LeavingList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) saveUpdatesForNodesMap(
+	nodesMap map[uint32][][]byte,
+	peerType core.PeerType,
+) error {
+	for shardId, pks := range nodesMap {
+		err := vs.saveUpdatesForList(pks, shardId, peerType)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) saveUpdatesForList(
+	pks [][]byte,
+	shardId uint32,
+	peerType core.PeerType,
+) error {
+	for index, pubKey := range pks {
+		peerAcc, err := vs.GetPeerAccount(pubKey)
+		if err != nil {
+			log.Debug("error getting peer account", "error", err, "key", pubKey)
+			return err
+		}
+
+		peerAcc.SetListAndIndex(shardId, string(peerType), uint32(index))
+
+		err = vs.peerAdapter.SaveAccount(peerAcc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(
 	stakeValue *big.Int,
@@ -148,7 +221,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.EligibleList)
 	if err != nil {
 		return err
 	}
@@ -158,7 +231,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -178,20 +251,22 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	startEpoch uint32,
 	stakeValue *big.Int,
 	startRating uint32,
+	peerType core.PeerType,
 ) error {
 	for shardId, pks := range nodesMap {
-		for _, pk := range pks {
+		for index, pk := range pks {
 			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
 			if err != nil {
 				return err
 			}
 
-			err = vs.initializeNode(node, stakeValue, startRating, shardId)
+			err = vs.initializeNode(node, stakeValue, startRating, shardId, uint32(index), peerType)
 			if err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -212,10 +287,19 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		epoch = epoch - 1
 	}
 
-	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
-	if err != nil {
-		log.Warn("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
-		return nil, err
+	previousHeader, ok := cache[string(header.GetPrevHash())]
+	if !ok {
+		log.Warn("UpdatePeerState could not get meta header from cache", "error", process.ErrMissingHeader.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		return nil, process.ErrMissingHeader
+	}
+
+	var err error
+	if previousHeader.IsStartOfEpochBlock() {
+		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
+		if err != nil {
+			log.Warn("could not update info from nodesCoordinator")
+			return nil, err
+		}
 	}
 
 	err = vs.checkForMissedBlocks(
@@ -313,7 +397,6 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 
 		currentShardId := peerAccount.GetCurrentShardId()
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
-
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
@@ -589,13 +672,15 @@ func (vs *validatorStatistics) initializeNode(
 	stakeValue *big.Int,
 	startRating uint32,
 	shardId uint32,
+	index uint32,
+	peerType core.PeerType,
 ) error {
 	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardId)
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardId, index, peerType)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
@@ -604,6 +689,8 @@ func (vs *validatorStatistics) savePeerAccountData(
 	stakeValue *big.Int,
 	startRating uint32,
 	shardId uint32,
+	index uint32,
+	peerType core.PeerType,
 ) error {
 	err := peerAccount.SetRewardAddress(data.Address())
 	if err != nil {
@@ -627,8 +714,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
-	peerAccount.SetCurrentShardId(shardId)
-	peerAccount.SetNextShardId(shardId)
+	peerAccount.SetListAndIndex(shardId, string(peerType), index)
 
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
@@ -811,18 +897,6 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 	}
 
 	log.Trace("updateRatingFromTempRating after", "rootHash", rootHash)
-	return nil
-}
-
-// updateListAndIndex updates the list and the index for a given public key
-func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
-	peer, err := vs.GetPeerAccount([]byte(pubKey))
-	if err != nil {
-		log.Debug("error getting peer account", "error", err, "key", pubKey)
-		return err
-	}
-
-	peer.SetListAndIndex(shardID, list, index)
 	return nil
 }
 

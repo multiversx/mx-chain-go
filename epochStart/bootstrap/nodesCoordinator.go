@@ -29,6 +29,7 @@ type epochNodesConfig struct {
 	eligibleMap         map[uint32][]sharding.Validator
 	waitingMap          map[uint32][]sharding.Validator
 	expandedEligibleMap map[uint32][]sharding.Validator
+	leavingList         []sharding.Validator
 }
 
 // ArgsNewStartInEpochNodesCoordinator -
@@ -67,7 +68,7 @@ func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.No
 		return nil, err
 	}
 
-	err = n.setNodesPerShards(eligibleValidators, waitingValidators, 0)
+	err = n.setNodesPerShards(eligibleValidators, waitingValidators, nil, 0)
 	epochValidators := epochNodesConfigToEpochValidators(n.nodesConfig[0])
 
 	return epochValidators, nil
@@ -135,9 +136,9 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		NbShards: n.numShards[newEpoch],
 	}
 
-	newEligibleMap, newWaitingMap, _ := n.shuffler.UpdateNodeLists(shufflerArgs)
-
-	err = n.setNodesPerShards(newEligibleMap, newWaitingMap, newEpoch)
+	newEligibleMap, newWaitingMap, stillRemaining := n.shuffler.UpdateNodeLists(shufflerArgs)
+	actualLeaving := sharding.ComputeActuallyLeaving(leaving, stillRemaining)
+	err = n.setNodesPerShards(newEligibleMap, newWaitingMap, actualLeaving, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err)
 		return nil, err
@@ -174,6 +175,7 @@ func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) 
 func (n *nodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	waiting map[uint32][]sharding.Validator,
+	leaving []sharding.Validator,
 	epoch uint32,
 ) error {
 	nodesConfig, ok := n.nodesConfig[epoch]
@@ -183,13 +185,13 @@ func (n *nodesCoordinator) setNodesPerShards(
 
 	nodesList, ok := eligible[core.MetachainShardId]
 	if !ok || uint32(len(nodesList)) < n.metaConsensusGroupSize {
-		return epochStart.ErrSmallMetachainEligibleListSize
+		return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallShardEligibleListSize, uint32(len(nodesList)), n.metaConsensusGroupSize)
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
 		nbNodesShard := uint32(len(eligible[shardId]))
 		if nbNodesShard < n.shardConsensusGroupSize {
-			return epochStart.ErrSmallShardEligibleListSize
+			return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallShardEligibleListSize, nbNodesShard, n.shardConsensusGroupSize)
 		}
 	}
 
@@ -197,6 +199,11 @@ func (n *nodesCoordinator) setNodesPerShards(
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
+
+	nodesConfig.leavingList = make([]sharding.Validator, 0, len(leaving))
+	for _, validator := range leaving {
+		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
+	}
 
 	n.nodesConfig[epoch] = nodesConfig
 	return nil
@@ -279,6 +286,7 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 	result := &sharding.EpochValidators{
 		EligibleValidators: make(map[string][]*sharding.SerializableValidator, len(config.eligibleMap)),
 		WaitingValidators:  make(map[string][]*sharding.SerializableValidator, len(config.waitingMap)),
+		LeavingValidators:  make([]*sharding.SerializableValidator, 0),
 	}
 
 	for k, v := range config.eligibleMap {
@@ -287,6 +295,13 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 
 	for k, v := range config.waitingMap {
 		result.WaitingValidators[fmt.Sprint(k)] = sharding.ValidatorArrayToSerializableValidatorArray(v)
+	}
+
+	for _, v := range config.leavingList {
+		result.LeavingValidators = append(result.LeavingValidators, &sharding.SerializableValidator{
+			PubKey:  v.PubKey(),
+			Address: v.Address(),
+		})
 	}
 
 	return result

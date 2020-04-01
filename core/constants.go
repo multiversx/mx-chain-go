@@ -9,6 +9,9 @@ const EligibleList PeerType = "eligible"
 // WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
 const WaitingList PeerType = "waiting"
 
+// LeavingList represents the list of peers who were taken out of eligible and waiting because of rating
+const LeavingList PeerType = "leaving"
+
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
 

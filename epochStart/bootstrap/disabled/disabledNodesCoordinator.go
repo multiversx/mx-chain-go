@@ -13,12 +13,13 @@ func NewNodesCoordinator() *nodesCoordinator {
 	return &nodesCoordinator{}
 }
 
+// GetAllLeavingValidatorsPublicKeys -
+func (n *nodesCoordinator) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
+}
+
 // SetNodesPerShards -
-func (n *nodesCoordinator) SetNodesPerShards(
-	_ map[uint32][]sharding.Validator,
-	_ map[uint32][]sharding.Validator,
-	_ uint32,
-) error {
+func (n *nodesCoordinator) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, _ uint32) error {
 	return nil
 }
 

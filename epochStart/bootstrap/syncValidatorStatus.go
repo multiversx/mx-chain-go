@@ -33,6 +33,7 @@ type ArgsNewSyncValidatorStatus struct {
 	RequestHandler     process.RequestHandler
 	Rater              sharding.ChanceComputer
 	GenesisNodesConfig *sharding.NodesSetup
+	NodeShuffler       sharding.NodesShuffler
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -55,15 +56,8 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
-		args.GenesisNodesConfig.MinNodesPerShard,
-		args.GenesisNodesConfig.MetaChainMinNodes,
-		args.GenesisNodesConfig.Hysteresis,
-		args.GenesisNodesConfig.Adaptivity,
-	)
-
 	argsNodesCoordinator := ArgsNewStartInEpochNodesCoordinator{
-		Shuffler:                nodeShuffler,
+		Shuffler:                args.NodeShuffler,
 		Chance:                  args.Rater,
 		ShardConsensusGroupSize: args.GenesisNodesConfig.ConsensusGroupSize,
 		MetaConsensusGroupSize:  args.GenesisNodesConfig.MetaChainConsensusGroupSize,

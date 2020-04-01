@@ -620,6 +620,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	nodesShuffler := sharding.NewXorValidatorsShuffler(
+		genesisNodesConfig.MinNodesPerShard,
+		genesisNodesConfig.MetaChainMinNodes,
+		genesisNodesConfig.Hysteresis,
+		genesisNodesConfig.Adaptivity,
+	)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  pubKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -644,6 +651,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TrieContainer:              coreComponents.TriesContainer,
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
+		NodeShuffler:               nodesShuffler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -720,6 +728,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
+		nodesShuffler,
 	)
 	if err != nil {
 		return err
@@ -1236,6 +1245,7 @@ func createNodesCoordinator(
 	hasher hashing.Hasher,
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
+	nodeShuffler sharding.NodesShuffler,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1261,13 +1271,6 @@ func createNodesCoordinator(
 	if err != nil {
 		return nil, err
 	}
-
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
-		nodesConfig.MinNodesPerShard,
-		nodesConfig.MetaChainMinNodes,
-		nodesConfig.Hysteresis,
-		nodesConfig.Adaptivity,
-	)
 
 	consensusGroupCache, err := lrucache.NewCache(25000)
 	if err != nil {

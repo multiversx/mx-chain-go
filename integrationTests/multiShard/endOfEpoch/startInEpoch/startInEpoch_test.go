@@ -185,6 +185,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,
+		NodeShuffler:               &mock.NodeShufflerMock{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

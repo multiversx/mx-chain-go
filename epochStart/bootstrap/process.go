@@ -92,6 +92,7 @@ type epochStartBootstrap struct {
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
+	nodeShuffler               sharding.NodesShuffler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -147,6 +148,7 @@ type ArgsEpochStartBootstrap struct {
 	TrieContainer              state.TriesHolder
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
+	NodeShuffler               sharding.NodesShuffler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -180,6 +182,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieContainer:              args.TrieContainer,
 		trieStorageManagers:        args.TrieStorageManagers,
 		uint64Converter:            args.Uint64Converter,
+		nodeShuffler:               args.NodeShuffler,
 	}
 
 	return epochStartProvider, nil
@@ -485,6 +488,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		RequestHandler:     e.requestHandler,
 		Rater:              e.rater,
 		GenesisNodesConfig: e.genesisNodesConfig,
+		NodeShuffler:       e.nodeShuffler,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
