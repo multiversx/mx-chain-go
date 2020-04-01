@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,6 +33,10 @@ func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
 				LeaderFailure:              2,
 				ValidatorSuccess:           3,
 				ValidatorFailure:           4,
+				TotalLeaderSuccess:         10,
+				TotalLeaderFailure:         20,
+				TotalValidatorSuccess:      30,
+				TotalValidatorFailure:      40,
 				NumSelectedInSuccessBlocks: 5,
 				AccumulatedFees:            big.NewInt(100),
 			},
@@ -47,6 +52,10 @@ func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
 				LeaderFailure:              7,
 				ValidatorSuccess:           8,
 				ValidatorFailure:           9,
+				TotalLeaderSuccess:         60,
+				TotalLeaderFailure:         70,
+				TotalValidatorSuccess:      80,
+				TotalValidatorFailure:      90,
 				NumSelectedInSuccessBlocks: 10,
 				AccumulatedFees:            big.NewInt(101),
 			},
@@ -64,6 +73,10 @@ func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
 				LeaderFailure:              2,
 				ValidatorSuccess:           3,
 				ValidatorFailure:           4,
+				TotalLeaderSuccess:         10,
+				TotalLeaderFailure:         20,
+				TotalValidatorSuccess:      30,
+				TotalValidatorFailure:      40,
 				NumSelectedInSuccessBlocks: 5,
 				AccumulatedFees:            big.NewInt(100),
 			},
@@ -79,6 +92,10 @@ func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
 				LeaderFailure:              7,
 				ValidatorSuccess:           8,
 				ValidatorFailure:           9,
+				TotalLeaderSuccess:         60,
+				TotalLeaderFailure:         70,
+				TotalValidatorSuccess:      80,
+				TotalValidatorFailure:      90,
 				NumSelectedInSuccessBlocks: 10,
 				AccumulatedFees:            big.NewInt(101),
 			},
@@ -96,6 +113,13 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		MiniBlockStorage: createMemUnit(),
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
+		DataPool: &mock.PoolsHolderStub{
+			MiniBlocksCalled: func() storage.Cacher {
+				return &mock.CacherStub{
+					RemoveCalled: func(key []byte) {},
+				}
+			},
+		},
 	}
 	return argsNewEpochEconomics
 }
@@ -115,8 +139,8 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 	})
 
 	for i, txHash := range bl.TxHashes {
-		vi := validatorCopy[i]
-		unmarshaledVi := &state.ValidatorInfo{}
+		vi := createShardValidatorInfo(validatorCopy[i])
+		unmarshaledVi := &state.ShardValidatorInfo{}
 		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
@@ -168,6 +192,17 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilShardCoordinator(t 
 
 	require.Nil(t, vic)
 	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
+}
+
+func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilDataPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.DataPool = nil
+	vic, err := NewValidatorInfoCreator(arguments)
+
+	require.Nil(t, vic)
+	require.Equal(t, epochStart.ErrNilDataPoolsHolder, err)
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
@@ -329,7 +364,8 @@ func createValidatorInfoMiniBlocks(
 		})
 
 		for index, validator := range validatorCopy {
-			marshalizedValidator, _ := arguments.Marshalizer.Marshal(validator)
+			shardValidator := createShardValidatorInfo(validator)
+			marshalizedValidator, _ := arguments.Marshalizer.Marshal(shardValidator)
 			miniBlock.TxHashes[index] = marshalizedValidator
 		}
 
@@ -349,7 +385,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 
 	hasher := arguments.Hasher
 	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
+	miniBlockStorage := arguments.MiniBlockStorage
 
 	for _, mb := range miniblocks {
 		mMb, _ := marshalizer.Marshal(mb)
@@ -391,7 +427,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	vic.SaveValidatorInfoBlocksToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
+		mb, err := miniBlockStorage.Get(mbHeader.Hash)
 		require.Nil(t, err)
 
 		unmarshaledMiniblock := &block.MiniBlock{}

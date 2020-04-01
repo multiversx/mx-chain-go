@@ -430,6 +430,11 @@ func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.Head
 	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
 }
 
+// GetNumPendingMiniBlocks returns the number of pending miniblocks for a given shard
+func (bbt *baseBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	return bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+}
+
 // GetTrackedHeaders returns tracked headers for a given shard
 func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	return bbt.SortHeadersFromNonce(shardID, 0)
