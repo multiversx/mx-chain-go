@@ -272,7 +272,6 @@ func (ef *ElrondNodeFacade) PprofEnabled() bool {
 }
 
 // GetQueryHandler returns the query handler if existing
-//TODO(iulian, now) add tests
 func (ef *ElrondNodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return ef.node.GetQueryHandler(name)
 }

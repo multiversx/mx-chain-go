@@ -43,7 +43,7 @@ func NewSingleDataInterceptor(
 		return nil, process.ErrNilAntifloodHandler
 	}
 	if check.IfNil(interceptedDebugHandler) {
-		return nil, process.ErrNilInterceptedDataFactory
+		return nil, process.ErrNilInterceptedDebugHandler
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{

@@ -122,6 +122,23 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
 }
 
+func TestNewMultiDataInterceptor_NilInterceptedDebugHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		&mock.MarshalizerMock{},
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, mdi)
+	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+}
+
 func TestNewMultiDataInterceptor(t *testing.T) {
 	t.Parallel()
 

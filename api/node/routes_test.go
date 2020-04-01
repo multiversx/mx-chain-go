@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"bytes"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -12,16 +13,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +36,11 @@ type GeneralResponse struct {
 type StatusResponse struct {
 	GeneralResponse
 	Running bool `json:"running"`
+}
+
+type QueryResponse struct {
+	GeneralResponse
+	Result string `json:"result"`
 }
 
 type StatisticsResponse struct {
@@ -95,7 +103,7 @@ func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	loadResponse(resp.Body, &statusRsp)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+	assert.Equal(t, statusRsp.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
@@ -170,7 +178,7 @@ func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statisticsRsp := StatisticsResponse{}
 	loadResponse(resp.Body, &statisticsRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statisticsRsp.Error, errors.ErrInvalidAppContext.Error())
+	assert.Equal(t, statisticsRsp.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestStatistics_ReturnsSuccessfully(t *testing.T) {
@@ -274,6 +282,123 @@ func TestEpochMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestQueryDebug_WrongFacadeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("POST", "/node/debug", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), queryResponse.Error)
+}
+
+func TestQueryDebug_BindErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWithFacade(&mock.Facade{})
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer([]byte("not a valid buffer")))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+}
+
+func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return nil, expectedErr
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, queryResponse.Error, expectedErr.Error())
+}
+
+func TestQueryDebug_GetQueryDisabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return &mock.QueryHandlerStub{
+					EnabledCalled: func() bool {
+						return false
+					},
+				},
+				nil
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, queryResponse.Error, apiErrors.ErrQueryDisabled.Error())
+}
+
+func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
+	t.Parallel()
+
+	str1 := "aaa"
+	str2 := "bbb"
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return &mock.QueryHandlerStub{
+					EnabledCalled: func() bool {
+						return true
+					},
+					QueryCalled: func(search string) []string {
+						return []string{str1, str2}
+					},
+				},
+				nil
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &QueryResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, queryResponse.Result, str1)
+	assert.Contains(t, queryResponse.Result, str2)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

@@ -121,6 +121,22 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
 }
 
+func TestNewSingleDataInterceptor_NilInterceptedDebugHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sdi, err := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+}
+
 func TestNewSingleDataInterceptor(t *testing.T) {
 	t.Parallel()
 

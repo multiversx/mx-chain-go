@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -538,4 +539,25 @@ func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
 	_, _, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
 
 	assert.True(t, nodeCreateTxWasCalled)
+}
+
+func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nodeMock := &mock.NodeMock{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			wasCalled = true
+
+			return nil, nil
+		},
+	}
+
+	ef := createElrondNodeFacadeWithMockResolver(nodeMock)
+
+	qh, err := ef.GetQueryHandler("")
+
+	assert.Nil(t, qh)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
 }

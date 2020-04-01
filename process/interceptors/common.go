@@ -87,7 +87,6 @@ func processInterceptedData(
 	wgProcess.Done()
 }
 
-//TODO(iulian, now) add tests
 func processDebugInterceptedData(
 	debugHandler process.InterceptedDebugHandler,
 	interceptedData process.InterceptedData,

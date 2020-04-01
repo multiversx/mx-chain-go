@@ -124,6 +124,17 @@ func TestNewTopicResolverSender_InvalidNumberOfPeersShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
+func TestNewTopicResolverSender_NilRequestDebugHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.RequestDebugHandler = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilRequestDebugHandler))
+}
+
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -193,6 +204,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	pID2 := p2p.PeerID("peer2")
 	sentToPid1 := false
 	sentToPid2 := false
+	numRequested := 0
 
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
@@ -215,13 +227,23 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 			return []p2p.PeerID{pID2}
 		},
 	}
+	arg.RequestDebugHandler = &mock.RequestDebugHandlerStub{
+		RequestedDataCalled: func(hash []byte, topic string, numReqIntra int, numReqCross int) {
+			numRequested++
+		},
+		EnabledCalled: func() bool {
+			return true
+		},
+	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	numOriginalHashes := 3
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, make([][]byte, numOriginalHashes))
 
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
 	assert.True(t, sentToPid2)
+	assert.Equal(t, numOriginalHashes, numRequested)
 }
 
 func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t *testing.T) {
@@ -356,8 +378,6 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 	assert.True(t, sentToPid1)
 }
-
-//TODO(iulian, now) add tests for debug handler
 
 //------- Send
 

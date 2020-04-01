@@ -43,7 +43,7 @@ type shardStatisticsResponse struct {
 	AverageTPS            *big.Int `json:"averageTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
-	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProce	assert.Equal(t, queryResponse.Error, apiErrors.ErrInvalidAppContext.Error())ssedTxCount"`
 	ShardID               uint32   `json:"shardID"`
 	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
 	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
@@ -134,7 +134,6 @@ func P2pStatusMetrics(c *gin.Context) {
 }
 
 // QueryDebug returns the debug information after the query has been interpreted
-//TODO(iulian, now) add tests
 func QueryDebug(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {

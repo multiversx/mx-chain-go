@@ -1066,7 +1066,6 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // AddQueryHandler adds a query handler in cache
-//TODO(iulian, now) add tests
 func (n *Node) AddQueryHandler(name string, handler debug.QueryHandler) error {
 	if check.IfNil(handler) {
 		return ErrNilQueryHandler

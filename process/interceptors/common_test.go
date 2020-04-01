@@ -233,3 +233,71 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
 }
+
+//------- debug
+
+func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		EnabledCalled: func() bool {
+			return true
+		},
+		ProcessedHashCalled: func(topic string, hash []byte, err error) {
+			numCalled++
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	processDebugInterceptedData(dh, ids, "", nil)
+	assert.Equal(t, numCalls, numCalled)
+
+	//disabled should not call
+	dh.EnabledCalled = func() bool {
+		return false
+	}
+	numCalled = 0
+
+	processDebugInterceptedData(dh, ids, "", nil)
+	assert.Equal(t, 0, numCalled)
+}
+
+func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		EnabledCalled: func() bool {
+			return true
+		},
+		ReceivedHashCalled: func(topic string, hash []byte) {
+			numCalled++
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	receivedDebugInterceptedData(dh, ids, "")
+	assert.Equal(t, numCalls, numCalled)
+
+	//disabled should not call
+	dh.EnabledCalled = func() bool {
+		return false
+	}
+	numCalled = 0
+
+	receivedDebugInterceptedData(dh, ids, "")
+	assert.Equal(t, 0, numCalled)
+}
