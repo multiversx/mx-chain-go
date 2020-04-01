@@ -188,8 +188,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
-	_, err = epochStartBootstrap.Bootstrap()
+	bootstrapParams, err := epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
+	assert.Equal(t, bootstrapParams.SelfShardId, shardID)
+	assert.Equal(t, bootstrapParams.Epoch, epoch)
 
 	shardC, _ := sharding.NewMultiShardCoordinator(2, shardID)
 

@@ -470,8 +470,8 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 
 	parameters := Parameters{
-		Epoch:       e.baseData.shardId,
-		SelfShardId: core.MetachainShardId,
+		Epoch:       e.baseData.lastEpoch,
+		SelfShardId: e.baseData.shardId,
 		NumOfShards: e.baseData.numberOfShards,
 	}
 	return parameters, nil
