@@ -86,7 +86,7 @@ var ErrNilAddress = errors.New("nil address")
 var ErrValidatorNotFound = errors.New("validator not found")
 
 // ErrNilValidators signals that nil validators list was provided
-var ErrNilValidators = errors.New("nil validators ")
+var ErrNilValidators = errors.New("nil validators")
 
 // ErrNilWeights signals that nil weights list was provided
 var ErrNilWeights = errors.New("nil weights")

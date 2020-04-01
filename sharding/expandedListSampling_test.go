@@ -9,6 +9,8 @@ import (
 )
 
 func TestNewSelectorExpandedListNilValidatorsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
 
@@ -18,6 +20,8 @@ func TestNewSelectorExpandedListNilValidatorsShouldErr(t *testing.T) {
 }
 
 func TestNewSelectorExpandedListNilWeightsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	hasher := &sha256.Sha256{}
 
@@ -27,6 +31,8 @@ func TestNewSelectorExpandedListNilWeightsShouldErr(t *testing.T) {
 }
 
 func TestNewSelectorExpandedListNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 
@@ -36,6 +42,8 @@ func TestNewSelectorExpandedListNilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	weights[1] = 0
@@ -47,6 +55,8 @@ func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
 }
 
 func TestNewSelectorExpandedListOK(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightArithmeticProgression)
 	hasher := &sha256.Sha256{}
@@ -67,8 +77,9 @@ func TestNewSelectorExpandedListOK(t *testing.T) {
 }
 
 func TestSelectorExpandedList_IsInterfaceNil(t *testing.T) {
-	var selector RandomSelector
+	t.Parallel()
 
+	var selector RandomSelector
 	require.True(t, check.IfNil(selector))
 
 	validators := createDummyNodesList(10, "shard_0")
@@ -80,6 +91,8 @@ func TestSelectorExpandedList_IsInterfaceNil(t *testing.T) {
 }
 
 func TestSelectorExpandedList_SelectNilRandomessShouldErr(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
@@ -92,6 +105,8 @@ func TestSelectorExpandedList_SelectNilRandomessShouldErr(t *testing.T) {
 }
 
 func TestSelectorExpandedList_Select0SampleSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
 	validators := createDummyNodesList(10, "shard_0")
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	hasher := &sha256.Sha256{}
@@ -104,6 +119,8 @@ func TestSelectorExpandedList_Select0SampleSizeShouldErr(t *testing.T) {
 }
 
 func TestSelectorExpandedList_SelectSampleSizeGreaterThanSetShouldErr(t *testing.T) {
+	t.Parallel()
+
 	setSize := uint32(10)
 	validators := createDummyNodesList(setSize, "shard_0")
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
@@ -117,6 +134,8 @@ func TestSelectorExpandedList_SelectSampleSizeGreaterThanSetShouldErr(t *testing
 }
 
 func TestSelectorExpandedList_SelectOK(t *testing.T) {
+	t.Parallel()
+
 	setSize := uint32(10)
 	validators := createDummyNodesList(setSize, "shard_0")
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)

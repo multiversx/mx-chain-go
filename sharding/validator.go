@@ -40,8 +40,8 @@ func (v *validator) Address() []byte {
 func (v *validator) Chances() uint32 {
 	v.mutChances.RLock()
 	defer v.mutChances.RUnlock()
-	return v.chances
 
+	return v.chances
 }
 
 // SetChances sets the validator's chances

@@ -242,6 +242,8 @@ func TestSelectorWRS_SelectOKSameParametersSameResult(t *testing.T) {
 }
 
 func TestSelectorWRS_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	var selector RandomSelector
 	var err error
 

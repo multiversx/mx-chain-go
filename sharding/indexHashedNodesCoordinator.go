@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	keyFormat = "%s_%v_%v_%v"
+	keyFormat               = "%s_%v_%v_%v"
+	defaultSelectionChances = uint32(1)
 )
 
 // TODO: move this to config parameters
@@ -718,11 +719,11 @@ func (ihgs *indexHashedNodesCoordinator) createSelectors(
 	return selectors, nil
 }
 
-// ValidatorsWeights returns the
+// ValidatorsWeights returns the weights/chances for each of the given validators
 func (ihgs *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validator) ([]uint32, error) {
 	weights := make([]uint32, len(validators))
 	for i := range validators {
-		weights[i] = 1
+		weights[i] = defaultSelectionChances
 	}
 
 	return weights, nil
@@ -755,40 +756,4 @@ func selectValidators(
 	displayValidatorsForRandomness(consensusGroup, randomness)
 
 	return consensusGroup, nil
-}
-
-func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
-	strValidators := ""
-
-	for _, v := range validators {
-		strValidators += "\n" + core.ToHex(v.PubKey())
-	}
-
-	log.Debug("selectValidators", "randomness", randomness, "validators", strValidators)
-}
-
-func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, actualLeaving []Validator) {
-	for shardID, validators := range eligible {
-		for _, v := range validators {
-			pk := v.PubKey()
-			log.Debug("eligible", "pk", pk, "shardID", shardID)
-		}
-	}
-
-	for shardID, validators := range waiting {
-		for _, v := range validators {
-			pk := v.PubKey()
-			log.Debug("waiting", "pk", pk, "shardID", shardID)
-		}
-	}
-
-	for _, v := range leaving {
-		pk := v.PubKey()
-		log.Debug("computed leaving", "pk", pk)
-	}
-
-	for _, v := range actualLeaving {
-		pk := v.PubKey()
-		log.Debug("actually remaining", "pk", pk)
-	}
 }
