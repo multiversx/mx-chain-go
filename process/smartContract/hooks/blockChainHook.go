@@ -24,7 +24,7 @@ var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
 	accounts         state.AccountsAdapter
-	addrConv         state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	storageService   dataRetriever.StorageService
 	blockChain       data.ChainHandler
 	shardCoordinator sharding.Coordinator
@@ -49,7 +49,7 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl := &BlockChainHookImpl{
 		accounts:         args.Accounts,
-		addrConv:         args.AddrConv,
+		pubkeyConv:       args.PubkeyConv,
 		storageService:   args.StorageService,
 		blockChain:       args.BlockChain,
 		shardCoordinator: args.ShardCoordinator,
@@ -64,25 +64,25 @@ func NewBlockChainHookImpl(
 }
 
 func checkForNil(args ArgBlockChainHook) error {
-	if args.Accounts == nil || args.Accounts.IsInterfaceNil() {
+	if check.IfNil(args.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if args.AddrConv == nil || args.AddrConv.IsInterfaceNil() {
-		return process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return process.ErrNilPubkeyConverter
 	}
-	if args.StorageService == nil || args.StorageService.IsInterfaceNil() {
+	if check.IfNil(args.StorageService) {
 		return process.ErrNilStorage
 	}
-	if args.BlockChain == nil || args.BlockChain.IsInterfaceNil() {
+	if check.IfNil(args.BlockChain) {
 		return process.ErrNilBlockChain
 	}
-	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(args.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if args.Uint64Converter == nil || args.Uint64Converter.IsInterfaceNil() {
+	if check.IfNil(args.Uint64Converter) {
 		return process.ErrNilUint64Converter
 	}
 
@@ -324,7 +324,7 @@ func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
 // Prefix mask is applied for first 8 bytes 0, and for bytes 9-10 - VM type
 // Suffix mask is applied - last 2 bytes are for the shard ID - mask is applied as suffix mask
 func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-	addressLength := bh.addrConv.AddressLen()
+	addressLength := bh.pubkeyConv.Len()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
 	}
@@ -369,7 +369,7 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 		return tempAcc, nil
 	}
 
-	addr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(address)
+	addr, err := bh.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}

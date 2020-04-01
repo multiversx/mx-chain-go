@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -19,15 +20,17 @@ import (
 
 // elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
 type elasticSearchDatabaseArgs struct {
-	url         string
-	userName    string
-	password    string
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	url             string
+	userName        string
+	password        string
+	marshalizer     marshal.Marshalizer
+	hasher          hashing.Hasher
+	pubkeyConverter state.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
+	*commonProcessor
 	dbWriter    databaseWriterHandler
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -49,6 +52,9 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		dbWriter:    es,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
+	}
+	esdb.commonProcessor = &commonProcessor{
+		pubkeyConverter: arguments.pubkeyConverter,
 	}
 
 	err = esdb.createIndexes()
@@ -200,9 +206,9 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 				continue
 			}
 
-			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
-			if currentTx == nil {
-				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
+			currentTx, err := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if err != nil {
+				log.Debug("indexer: elasticsearch found tx in pool but of wrong type", "error", err)
 				continue
 			}
 

@@ -40,6 +40,7 @@ func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &mock.HasherMock{},
 		Options:          &indexer.Options{},
+		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
 	}
 }
 

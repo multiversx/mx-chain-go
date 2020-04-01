@@ -127,16 +127,16 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	if numOfTxs == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
-	if n.txSingleSigner == nil {
+	if check.IfNil(n.txSingleSigner) {
 		return ErrNilSingleSig
 	}
-	if n.addrConverter == nil {
-		return ErrNilAddressConverter
+	if check.IfNil(n.pubkeyConverter) {
+		return ErrNilPubkeyConverter
 	}
-	if n.shardCoordinator == nil {
+	if check.IfNil(n.shardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if n.accounts == nil {
+	if check.IfNil(n.accounts) {
 		return ErrNilAccountsAdapter
 	}
 
@@ -149,12 +149,12 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, err
 	}
 
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	senderAddress, err := n.pubkeyConverter.CreateAddressFromBytes(senderAddressBytes)
 	if err != nil {
 		return 0, nil, nil, 0, err
 	}
 
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	receiverAddress, err := n.pubkeyConverter.CreateAddressFromString(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
 	}
@@ -250,21 +250,21 @@ func (n *Node) generateAndSignTxBuffArray(
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
 func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey) (*transaction.Transaction, error) {
-	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
-		return nil, ErrNilAddressConverter
+	if check.IfNil(n.pubkeyConverter) {
+		return nil, ErrNilPubkeyConverter
 	}
-	if n.accounts == nil || n.accounts.IsInterfaceNil() {
+	if check.IfNil(n.accounts) {
 		return nil, ErrNilAccountsAdapter
 	}
-	if privateKey == nil {
+	if check.IfNil(privateKey) {
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	receiverAddress, err := n.pubkeyConverter.CreateAddressFromString(receiverHex)
 	if err != nil {
 		return nil, errors.New("could not create receiver address from provided param")
 	}
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
+	senderAddress, err := n.pubkeyConverter.CreateAddressFromString(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}

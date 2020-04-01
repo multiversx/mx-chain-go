@@ -233,7 +233,7 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 	return 0, errors.New("no such node in list")
 }
 
-func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal *big.Int) {
+func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, _ *big.Int) {
 	expectedValue := big.NewInt(0).SetUint64(9999954880)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
@@ -248,7 +248,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 	}
 }
 
-func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal *big.Int) {
+func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode, _ *big.Int) {
 	expectedValue := big.NewInt(0).SetUint64(9499982750)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
@@ -278,7 +278,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
+	addrCont, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)

@@ -21,7 +21,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -288,7 +288,7 @@ func createConsensusOnlyNode(
 
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
-	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	testPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
@@ -415,7 +415,7 @@ func createConsensusOnlyNode(
 		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),
-		node.WithAddressConverter(testAddressConverter),
+		node.WithPubkeyConverter(testPubkeyConverter),
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithKeyGen(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),

@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -497,7 +498,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
+	genesisPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.GenesisPubkeyConverter)
+	if err != nil {
+		return fmt.Errorf("%w for GenesisPubkeyConverter", err)
+	}
+
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), genesisPubkeyConverter)
 	if err != nil {
 		return err
 	}
@@ -769,6 +775,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	indexerPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.IndexerPubkeyConverter)
+	if err != nil {
+		return fmt.Errorf("%w for IndexerPubkeyConverter", err)
+	}
+
 	if externalConfig.ElasticSearchConnector.Enabled {
 		log.Trace("creating elastic search components")
 		dbIndexer, err = createElasticIndexer(
@@ -778,6 +789,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			shardCoordinator,
 			coreComponents.InternalMarshalizer,
 			coreComponents.Hasher,
+			indexerPubkeyConverter,
 		)
 		if err != nil {
 			return err
@@ -882,7 +894,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
@@ -1308,6 +1320,7 @@ func createElasticIndexer(
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
+	pubkeyConverter state.PubkeyConverter,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
 		Url:              url,
@@ -1316,6 +1329,7 @@ func createElasticIndexer(
 		ShardCoordinator: coordinator,
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
+		PubkeyConverter:  pubkeyConverter,
 		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 	}
 
@@ -1399,7 +1413,7 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
-		node.WithAddressConverter(state.AddressConverter),
+		node.WithPubkeyConverter(state.AddressPubkeyConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
@@ -1552,7 +1566,7 @@ func startStatisticsMonitor(
 
 func createApiResolver(
 	accnts state.AccountsAdapter,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
@@ -1568,7 +1582,7 @@ func createApiResolver(
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
-		AddrConv:         addrConv,
+		PubkeyConv:       pubkeyConv,
 		StorageService:   storageService,
 		BlockChain:       blockChain,
 		ShardCoordinator: shardCoordinator,
@@ -1598,7 +1612,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accnts)
+	txTypeHandler, err := coordinator.NewTxTypeHandler(pubkeyConv, shardCoordinator, accnts)
 	if err != nil {
 		return nil, err
 	}

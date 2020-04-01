@@ -29,7 +29,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -137,11 +136,11 @@ type Core struct {
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressConverter    state.AddressConverter
-	BLSAddressConverter state.AddressConverter
-	PeerAccounts        state.AccountsAdapter
-	AccountsAdapter     state.AccountsAdapter
-	InBalanceForShard   map[string]*big.Int
+	AddressPubkeyConverter state.PubkeyConverter
+	BLSPubkeyConverter     state.PubkeyConverter
+	PeerAccounts           state.AccountsAdapter
+	AccountsAdapter        state.AccountsAdapter
+	InBalanceForShard      map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -304,20 +303,14 @@ func NewStateComponentsFactoryArgs(
 
 // StateComponentsFactory creates the state components
 func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
-	addressConverter, err := addressConverters.NewPlainAddressConverter(
-		args.config.Address.Length,
-		args.config.Address.Prefix,
-	)
+	processPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.AddressPubkeyConverter)
 	if err != nil {
-		return nil, errors.New("could not create address converter: " + err.Error())
+		return nil, fmt.Errorf("%w for ProcessPubkeyConverter", err)
 	}
 
-	blsAddressConverter, err := addressConverters.NewPlainAddressConverter(
-		args.config.BLSPublicKey.Length,
-		args.config.BLSPublicKey.Prefix,
-	)
+	blsPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.BLSPubkeyConverter)
 	if err != nil {
-		return nil, errors.New("could not create bls address converter: " + err.Error())
+		return nil, fmt.Errorf("%w for BLSPubkeyConverter", err)
 	}
 
 	accountFactory := factoryState.NewAccountCreator()
@@ -327,7 +320,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator, addressConverter)
+	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -340,11 +333,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	}
 
 	return &State{
-		PeerAccounts:        peerAdapter,
-		AddressConverter:    addressConverter,
-		BLSAddressConverter: blsAddressConverter,
-		AccountsAdapter:     accountsAdapter,
-		InBalanceForShard:   inBalanceForShard,
+		PeerAccounts:           peerAdapter,
+		AddressPubkeyConverter: processPubkeyConverter,
+		BLSPubkeyConverter:     blsPubkeyConverter,
+		AccountsAdapter:        accountsAdapter,
+		InBalanceForShard:      inBalanceForShard,
 	}, nil
 }
 
@@ -1279,7 +1272,7 @@ func newShardInterceptorContainerFactory(
 		BlockSingleSigner:      crypto.SingleSigner,
 		MultiSigner:            crypto.MultiSigner,
 		DataPool:               data.Datapool,
-		AddrConverter:          state.AddressConverter,
+		PubkeyConverter:        state.AddressPubkeyConverter,
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           economics,
 		BlackList:              headerBlackList,
@@ -1324,7 +1317,7 @@ func newMetaInterceptorContainerFactory(
 		MultiSigner:            crypto.MultiSigner,
 		DataPool:               data.Datapool,
 		Accounts:               state.AccountsAdapter,
-		AddrConverter:          state.AddressConverter,
+		PubkeyConverter:        state.AddressPubkeyConverter,
 		SingleSigner:           crypto.TxSingleSigner,
 		BlockSingleSigner:      crypto.SingleSigner,
 		KeyGen:                 crypto.TxSignKeyGen,
@@ -1467,7 +1460,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
 			accountsAdapter,
 			newShardCoordinator,
-			stateComponents.AddressConverter,
+			stateComponents.AddressPubkeyConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
 			validatorStatsRootHash,
@@ -1484,7 +1477,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		genesisBlockForCurrentShard, err = createGenesisBlockAndApplyInitialBalances(
 			stateComponents.AccountsAdapter,
 			shardCoordinator,
-			stateComponents.AddressConverter,
+			stateComponents.AddressPubkeyConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
 			validatorStatsRootHash,
@@ -1499,7 +1492,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		Accounts:                 stateComponents.AccountsAdapter,
-		AddrConv:                 stateComponents.AddressConverter,
+		PubkeyConv:               stateComponents.AddressPubkeyConverter,
 		NodesSetup:               nodesSetup,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    dataComponents.Store,
@@ -1578,13 +1571,13 @@ func createInMemoryStoreBlkc(
 func createGenesisBlockAndApplyInitialBalances(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	genesisConfig *sharding.Genesis,
 	startTime uint64,
 	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
-	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1592,7 +1585,7 @@ func createGenesisBlockAndApplyInitialBalances(
 	return genesis.CreateShardGenesisBlockFromInitialBalances(
 		accounts,
 		shardCoordinator,
-		addressConverter,
+		pubkeyConverter,
 		initialBalances,
 		startTime,
 		validatorStatsRootHash,
@@ -1769,7 +1762,7 @@ func newShardBlockProcessor(
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
-		AddrConv:         stateComponents.AddressConverter,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		StorageService:   data.Store,
 		BlockChain:       data.Blkc,
 		ShardCoordinator: shardCoordinator,
@@ -1790,7 +1783,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		core.InternalMarshalizer,
 		core.Hasher,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
 		economics,
@@ -1829,7 +1822,7 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressPubkeyConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -1841,7 +1834,7 @@ func newShardBlockProcessor(
 		Marshalizer:   core.InternalMarshalizer,
 		AccountsDB:    stateComponents.AccountsAdapter,
 		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
+		PubkeyConv:    stateComponents.AddressPubkeyConverter,
 		Coordinator:   shardCoordinator,
 		ScrForwarder:  scForwarder,
 		TxFeeHandler:  txFeeHandler,
@@ -1857,7 +1850,7 @@ func newShardBlockProcessor(
 
 	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
 		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		shardCoordinator,
 	)
 	if err != nil {
@@ -1867,7 +1860,7 @@ func newShardBlockProcessor(
 	transactionProcessor, err := transaction.NewTxProcessor(
 		stateComponents.AccountsAdapter,
 		core.Hasher,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		core.InternalMarshalizer,
 		shardCoordinator,
 		scProcessor,
@@ -1897,7 +1890,7 @@ func newShardBlockProcessor(
 		core.InternalMarshalizer,
 		core.Hasher,
 		data.Datapool,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		stateComponents.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -1938,7 +1931,7 @@ func newShardBlockProcessor(
 		stateComponents.AccountsAdapter,
 		shardCoordinator,
 		data.Datapool,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		economics,
 	)
 	if err != nil {
@@ -2016,7 +2009,7 @@ func newMetaBlockProcessor(
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
-		AddrConv:         stateComponents.AddressConverter,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		StorageService:   data.Store,
 		BlockChain:       data.Blkc,
 		ShardCoordinator: shardCoordinator,
@@ -2039,7 +2032,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		core.InternalMarshalizer,
 		core.Hasher,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
 	)
@@ -2067,7 +2060,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressPubkeyConverter, shardCoordinator, stateComponents.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2079,7 +2072,7 @@ func newMetaBlockProcessor(
 		Marshalizer:   core.InternalMarshalizer,
 		AccountsDB:    stateComponents.AccountsAdapter,
 		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
+		PubkeyConv:    stateComponents.AddressPubkeyConverter,
 		Coordinator:   shardCoordinator,
 		ScrForwarder:  scForwarder,
 		TxFeeHandler:  txFeeHandler,
@@ -2097,7 +2090,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
@@ -2130,7 +2123,7 @@ func newMetaBlockProcessor(
 		economicsData,
 		gasHandler,
 		blockTracker,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		blockSizeComputationHandler,
 	)
 	if err != nil {
@@ -2164,7 +2157,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:          stateComponents.BLSAddressConverter,
+		PubkeyConv:       stateComponents.BLSPubkeyConverter,
 		Hasher:           core.Hasher,
 		ProtoMarshalizer: core.InternalMarshalizer,
 		VmMarshalizer:    core.VmMarshalizer,
@@ -2210,7 +2203,7 @@ func newMetaBlockProcessor(
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
 		ShardCoordinator: shardCoordinator,
-		AddrConverter:    stateComponents.AddressConverter,
+		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		RewardsStorage:   rewardsStorage,
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
@@ -2298,7 +2291,7 @@ func newValidatorStatisticsProcessor(
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         processComponents.state.PeerAccounts,
-		AdrConv:             processComponents.state.BLSAddressConverter,
+		PubkeyConv:          processComponents.state.BLSPubkeyConverter,
 		NodesCoordinator:    processComponents.nodesCoordinator,
 		ShardCoordinator:    processComponents.shardCoordinator,
 		DataPool:            peerDataPool,

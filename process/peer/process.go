@@ -40,7 +40,7 @@ type ArgValidatorStatisticsProcessor struct {
 	ShardCoordinator    sharding.Coordinator
 	DataPool            DataPool
 	StorageService      dataRetriever.StorageService
-	AdrConv             state.AddressConverter
+	PubkeyConv          state.PubkeyConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.RaterHandler
 	RewardsHandler      process.RewardsHandler
@@ -54,7 +54,7 @@ type validatorStatistics struct {
 	storageService          dataRetriever.StorageService
 	nodesCoordinator        sharding.NodesCoordinator
 	shardCoordinator        sharding.Coordinator
-	adrConv                 state.AddressConverter
+	pubkeyConv              state.PubkeyConverter
 	peerAdapter             state.AccountsAdapter
 	rater                   sharding.RaterHandler
 	rewardsHandler          process.RewardsHandler
@@ -69,8 +69,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
-	if check.IfNil(arguments.AdrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(arguments.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
@@ -102,7 +102,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	vs := &validatorStatistics{
 		peerAdapter:          arguments.PeerAdapter,
-		adrConv:              arguments.AdrConv,
+		pubkeyConv:           arguments.PubkeyConv,
 		nodesCoordinator:     arguments.NodesCoordinator,
 		shardCoordinator:     arguments.ShardCoordinator,
 		dataPool:             arguments.DataPool,
@@ -440,7 +440,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 
 	for _, validators := range vInfos {
 		for _, validator := range validators {
-			addrContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+			addrContainer, err := vs.pubkeyConv.CreateAddressFromBytes(validator.GetPublicKey())
 			if err != nil {
 				return err
 			}
@@ -723,7 +723,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 
 // GetPeerAccount will return a PeerAccountHandler for a given address
 func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
-	addressContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := vs.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -854,13 +854,13 @@ func (vs *validatorStatistics) display(validatorKey string) {
 }
 
 func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, epoch uint32) error {
-
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
 	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
+
 	shardValidators := validators[shardId]
 	validatorsCount := len(shardValidators)
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)

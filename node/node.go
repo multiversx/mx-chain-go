@@ -72,7 +72,7 @@ type Node struct {
 	epochStartTrigger        epochStart.TriggerHandler
 	epochStartSubscriber     epochStart.EpochStartSubscriber
 	accounts                 state.AccountsAdapter
-	addrConverter            state.AddressConverter
+	pubkeyConverter          state.PubkeyConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
 	resolversFinder          dataRetriever.ResolversFinder
@@ -371,11 +371,11 @@ func (n *Node) StartConsensus() error {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
-	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() || n.accounts == nil || n.accounts.IsInterfaceNil() {
+	if check.IfNil(n.pubkeyConverter) || check.IfNil(n.accounts) {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
 
-	address, err := n.addrConverter.CreateAddressFromHex(addressHex)
+	address, err := n.pubkeyConverter.CreateAddressFromString(addressHex)
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
@@ -703,7 +703,7 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 }
 
 func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	senderBytes, err := n.pubkeyConverter.CreateAddressFromBytes(tx.SndAddr)
 	if err != nil {
 		return 0, err
 	}
@@ -715,7 +715,7 @@ func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
 
 	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
 	//traverse the network only once
-	recvBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	recvBytes, err := n.pubkeyConverter.CreateAddressFromBytes(tx.RcvAddr)
 	if err != nil {
 		return 0, err
 	}
@@ -742,7 +742,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.hasher,
 		n.keyGenForAccounts,
 		n.txSingleSigner,
-		n.addrConverter,
+		n.pubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
 	)
@@ -809,19 +809,19 @@ func (n *Node) CreateTransaction(
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
-	if check.IfNil(n.addrConverter) {
-		return nil, nil, ErrNilAddressConverter
+	if check.IfNil(n.pubkeyConverter) {
+		return nil, nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.accounts) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
 
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	receiverAddress, err := n.pubkeyConverter.CreateAddressFromString(receiverHex)
 	if err != nil {
 		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
+	senderAddress, err := n.pubkeyConverter.CreateAddressFromString(senderHex)
 	if err != nil {
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
@@ -863,14 +863,14 @@ func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
-	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
-		return nil, ErrNilAddressConverter
+	if check.IfNil(n.pubkeyConverter) {
+		return nil, ErrNilPubkeyConverter
 	}
-	if n.accounts == nil || n.accounts.IsInterfaceNil() {
+	if check.IfNil(n.accounts) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	addr, err := n.addrConverter.CreateAddressFromHex(address)
+	addr, err := n.pubkeyConverter.CreateAddressFromString(address)
 	if err != nil {
 		return nil, err
 	}

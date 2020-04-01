@@ -18,9 +18,9 @@ var _ process.InterceptorsContainerFactory = (*shardInterceptorsContainerFactory
 // shardInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type shardInterceptorsContainerFactory struct {
 	*baseInterceptorsContainerFactory
-	keyGen        crypto.KeyGenerator
-	singleSigner  crypto.SingleSigner
-	addrConverter state.AddressConverter
+	keyGen          crypto.KeyGenerator
+	singleSigner    crypto.SingleSigner
+	pubkeyConverter state.PubkeyConverter
 }
 
 // NewShardInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -54,8 +54,8 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -90,7 +90,7 @@ func NewShardInterceptorsContainerFactory(
 		BlockKeyGen:       args.BlockSignKeyGen,
 		Signer:            args.SingleSigner,
 		BlockSigner:       args.BlockSingleSigner,
-		AddrConv:          args.AddrConverter,
+		PubkeyConv:        args.PubkeyConverter,
 		FeeHandler:        args.TxFeeHandler,
 		HeaderSigVerifier: args.HeaderSigVerifier,
 		ChainID:           args.ChainID,
@@ -120,7 +120,7 @@ func NewShardInterceptorsContainerFactory(
 		baseInterceptorsContainerFactory: base,
 		keyGen:                           args.KeyGen,
 		singleSigner:                     args.SingleSigner,
-		addrConverter:                    args.AddrConverter,
+		pubkeyConverter:                  args.PubkeyConverter,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)

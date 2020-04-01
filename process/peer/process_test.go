@@ -37,6 +37,10 @@ const (
 	startRating                     = uint32(50)
 )
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
@@ -81,7 +85,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		StorageService:      &mock.ChainStorerMock{},
 		NodesCoordinator:    &mock.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		AdrConv:             &mock.AddressConverterMock{},
+		PubkeyConv:          createMockPubkeyConverter(),
 		PeerAdapter:         getAccountsMock(),
 		StakeValue:          economicsData.GenesisNodePrice(),
 		Rater:               createMockRater(),
@@ -127,11 +131,11 @@ func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing
 	t.Parallel()
 
 	arguments := createMockArguments()
-	arguments.AdrConv = nil
+	arguments.PubkeyConv = nil
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Nil(t, validatorStatistics)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
@@ -245,10 +249,10 @@ func TestNewValidatorStatisticsProcessor(t *testing.T) {
 func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter(t *testing.T) {
 	t.Parallel()
 
-	addressErr := errors.New("hex address error")
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return nil, addressErr
+	expectedErr := errors.New("hex address error")
+	pubkeyConverter := &mock.PubkeyConverterStub{
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+			return nil, expectedErr
 		},
 	}
 
@@ -266,10 +270,10 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 		},
 	}
 
-	arguments.AdrConv = addressConverter
+	arguments.PubkeyConv = pubkeyConverter
 	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
 
-	assert.Equal(t, addressErr, err)
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, validatorStatistics)
 }
 
@@ -280,12 +284,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	peerAdapters := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, adapterError
-		},
-	}
-
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
 		},
 	}
 
@@ -304,7 +302,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	}
 
 	arguments.PeerAdapter = peerAdapters
-	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Equal(t, adapterError, err)
@@ -316,12 +313,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	peerAdapter := &mock.AccountsStub{
 		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
-		},
-	}
-
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
 		},
 	}
 
@@ -340,7 +331,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	}
 
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Equal(t, process.ErrInvalidPeerAccount, err)
@@ -360,12 +350,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 		},
 	}
 
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
-
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -381,7 +365,6 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	}
 
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Equal(t, saveAccountError, err)
@@ -404,15 +387,8 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 		},
 	}
 
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
-
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Equal(t, commitError, err)
@@ -434,15 +410,8 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 		},
 	}
 
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
-
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = addressConverter
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
 
 	assert.Nil(t, err)
@@ -551,8 +520,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+	arguments.PubkeyConv = &mock.PubkeyConverterStub{
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 			return nil, createAddressErr
 		},
 	}
@@ -589,11 +558,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
 	arguments.DataPool = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
@@ -624,11 +588,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
-		},
-	}
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
 		},
 	}
 	arguments.DataPool = &mock.PoolsHolderStub{
@@ -683,11 +642,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
 	arguments.PeerAdapter = adapter
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -737,11 +691,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
 	arguments.PeerAdapter = adapter
 	arguments.Rater = mock.GetNewMockRater()
 
@@ -799,11 +748,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
 	arguments.PeerAdapter = adapter
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -884,11 +828,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
 	arguments.PeerAdapter = adapter
 	arguments.Marshalizer = marshalizer
 	arguments.Rater = mock.GetNewMockRater()
@@ -937,7 +876,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -970,7 +908,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -996,8 +933,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
+	arguments.PubkeyConv = &mock.PubkeyConverterStub{
+		CreateAddressFromBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
 			return nil, peerAccErr
 		},
 	}
@@ -1031,11 +968,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return nil, nil
-		},
-	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1074,11 +1006,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return nil, nil
-		},
-	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1133,11 +1060,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return nil, nil
-		},
-	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = mock.GetNewMockRater()
 	arguments.MaxComputableRounds = 5
@@ -1197,11 +1119,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return nil, nil
-		},
-	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = mock.GetNewMockRater()
 	arguments.MaxComputableRounds = 5
@@ -1404,11 +1321,6 @@ func DoComputeMissingBlocks(
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return mock.NewAddressMock(pubKey), nil
-		},
-	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.Rater = rater
 
@@ -1594,17 +1506,7 @@ func createCustomArgumentsForSaveInitialState() (peer.ArgValidatorStatisticsProc
 		},
 	}
 
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-			return mock.NewAddressMock([]byte(hexAddress)), nil
-		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-			return mock.NewAddressMock(pubKey), nil
-		},
-	}
-
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = addressConverter
 	return arguments, waitingMap, eligibleMap, actualMap
 }
 
@@ -1656,7 +1558,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		return nil, expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
-	arguments.AdrConv = mock.NewAddressConverterFake(4, "")
+	arguments.PubkeyConv = mock.NewPubkeyConverterMock(4)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	validatorInfos, _ := validatorStatistics.GetValidatorInfoForRootHash(hash)
 

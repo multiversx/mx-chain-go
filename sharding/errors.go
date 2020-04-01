@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrMissingMetachainNodes signals that metachain nodes were not configured
-var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
-
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -28,9 +25,6 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilChanceComputer signals that the chanceComputer is nil
-var ErrNilChanceComputer = errors.New("nil chance computer")
-
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -40,8 +34,8 @@ var ErrPublicKeyNotFoundInGenesis = errors.New("public key is not valid, it is m
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
@@ -72,15 +66,6 @@ var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does 
 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
-
-// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
-var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
-
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
-var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
-
-// ErrEligibleTooFewSelections signals an invalid selection for consensus group
-var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
 
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")

@@ -18,10 +18,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
+type commonProcessor struct {
+	pubkeyConverter state.PubkeyConverter
+}
+
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
+	if check.IfNil(arguments.PubkeyConverter) {
+		return ErrNilPubkeyConverter
+	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
 	}
@@ -117,7 +125,7 @@ func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func getTransactionByType(
+func (cm *commonProcessor) getTransactionByType(
 	tx data.TransactionHandler,
 	txHash []byte,
 	mbHash []byte,
@@ -125,22 +133,22 @@ func getTransactionByType(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
-) *Transaction {
+) (*Transaction, error) {
 	switch currentType := tx.(type) {
 	case *transaction.Transaction:
-		return buildTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
+		return cm.buildTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
 	case *smartContractResult.SmartContractResult:
-		return buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
+		return cm.buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
 	case *rewardTx.RewardTx:
-		return buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header)
+		return cm.buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header)
 	case *receipt.Receipt:
-		return buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
+		return cm.buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
 	default:
-		return nil
+		return nil, fmt.Errorf("%w, type %v", ErrUnknownTransactionHandler, currentType)
 	}
 }
 
-func buildTransaction(
+func (cm *commonProcessor) buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
 	mbHash []byte,
@@ -148,16 +156,14 @@ func buildTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
-) *Transaction {
-	return &Transaction{
+) (*Transaction, error) {
+	indexedTx := &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
 		Value:         tx.Value.String(),
-		Receiver:      hex.EncodeToString(tx.RcvAddr),
-		Sender:        hex.EncodeToString(tx.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      tx.GasPrice,
@@ -167,25 +173,36 @@ func buildTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
 	}
+
+	var err error
+	indexedTx.Receiver, err = cm.pubkeyConverter.String(tx.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	indexedTx.Sender, err = cm.pubkeyConverter.String(tx.SndAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexedTx, nil
 }
 
-func buildSmartContractResult(
+func (cm *commonProcessor) buildSmartContractResult(
 	scr *smartContractResult.SmartContractResult,
 	txHash []byte,
 	mbHash []byte,
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
+) (*Transaction, error) {
+	indexedTx := &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         scr.Nonce,
 		Round:         header.GetRound(),
 		Value:         scr.Value.String(),
-		Receiver:      hex.EncodeToString(scr.RcvAddr),
-		Sender:        hex.EncodeToString(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      scr.GasPrice,
@@ -195,24 +212,36 @@ func buildSmartContractResult(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
+
+	var err error
+	indexedTx.Receiver, err = cm.pubkeyConverter.String(scr.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	indexedTx.Sender, err = cm.pubkeyConverter.String(scr.SndAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexedTx, nil
 }
 
-func buildRewardTransaction(
+func (cm *commonProcessor) buildRewardTransaction(
 	rTx *rewardTx.RewardTx,
 	txHash []byte,
 	mbHash []byte,
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
+) (*Transaction, error) {
+	indexedTx := &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
-		Receiver:      hex.EncodeToString(rTx.RcvAddr),
 		Sender:        metachainTpsDocID,
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
@@ -223,25 +252,31 @@ func buildRewardTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
+
+	var err error
+	indexedTx.Receiver, err = cm.pubkeyConverter.String(rTx.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexedTx, nil
 }
 
-func buildReceiptTransaction(
+func (cm *commonProcessor) buildReceiptTransaction(
 	rpt *receipt.Receipt,
 	txHash []byte,
 	mbHash []byte,
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
+) (*Transaction, error) {
+	indexedTx := &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         rpt.GetNonce(),
 		Round:         header.GetRound(),
 		Value:         rpt.Value.String(),
-		Receiver:      hex.EncodeToString(rpt.GetRcvAddr()),
-		Sender:        hex.EncodeToString(rpt.GetSndAddr()),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
@@ -251,4 +286,17 @@ func buildReceiptTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
+
+	var err error
+	indexedTx.Receiver, err = cm.pubkeyConverter.String(rpt.GetRcvAddr())
+	if err != nil {
+		return nil, err
+	}
+
+	indexedTx.Sender, err = cm.pubkeyConverter.String(rpt.GetSndAddr())
+	if err != nil {
+		return nil, err
+	}
+
+	return indexedTx, nil
 }

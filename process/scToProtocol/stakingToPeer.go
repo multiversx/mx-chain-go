@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,7 +23,7 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	AdrConv          state.AddressConverter
+	PubkeyConv       state.PubkeyConverter
 	Hasher           hashing.Hasher
 	ProtoMarshalizer marshal.Marshalizer
 	VmMarshalizer    marshal.Marshalizer
@@ -37,7 +38,7 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	hasher           hashing.Hasher
 	protoMarshalizer marshal.Marshalizer
 	vmMarshalizer    marshal.Marshalizer
@@ -57,7 +58,7 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		adrConv:          args.AdrConv,
+		pubkeyConv:       args.PubkeyConv,
 		hasher:           args.Hasher,
 		protoMarshalizer: args.ProtoMarshalizer,
 		vmMarshalizer:    args.VmMarshalizer,
@@ -72,31 +73,31 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 }
 
 func checkIfNil(args ArgStakingToPeer) error {
-	if args.AdrConv == nil || args.AdrConv.IsInterfaceNil() {
-		return process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return process.ErrNilPubkeyConverter
 	}
-	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
+	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
-	if args.ProtoMarshalizer == nil || args.ProtoMarshalizer.IsInterfaceNil() {
+	if check.IfNil(args.ProtoMarshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if args.VmMarshalizer == nil || args.VmMarshalizer.IsInterfaceNil() {
+	if check.IfNil(args.VmMarshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if args.PeerState == nil || args.PeerState.IsInterfaceNil() {
+	if check.IfNil(args.PeerState) {
 		return process.ErrNilPeerAccountsAdapter
 	}
-	if args.BaseState == nil || args.BaseState.IsInterfaceNil() {
+	if check.IfNil(args.BaseState) {
 		return process.ErrNilAccountsAdapter
 	}
-	if args.ArgParser == nil || args.ArgParser.IsInterfaceNil() {
+	if check.IfNil(args.ArgParser) {
 		return process.ErrNilArgumentParser
 	}
-	if args.CurrTxs == nil || args.CurrTxs.IsInterfaceNil() {
+	if check.IfNil(args.CurrTxs) {
 		return process.ErrNilTxForCurrentBlockHandler
 	}
-	if args.ScQuery == nil || args.ScQuery.IsInterfaceNil() {
+	if check.IfNil(args.ScQuery) {
 		return process.ErrNilSCDataGetter
 	}
 
@@ -104,7 +105,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
-	adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes(key)
+	adrSrc, err := stp.pubkeyConv.CreateAddressFromBytes(key)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +158,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, _ uint64) error {
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			var adrSrc state.AddressContainer
-			adrSrc, err = stp.adrConv.CreateAddressFromPublicKeyBytes(blsPubKey)
+			adrSrc, err = stp.pubkeyConv.CreateAddressFromBytes(blsPubKey)
 			if err != nil {
 				return err
 			}
