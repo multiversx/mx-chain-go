@@ -366,13 +366,17 @@ func (t *trigger) isMetaBlockValid(_ string, metaHdr *block.MetaBlock) bool {
 	for i := metaHdr.Nonce - 1; i >= metaHdr.Nonce-t.validity; i-- {
 		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.PrevHash)
 		if err != nil {
+			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash", "error", err.Error())
 			return false
 		}
 
 		err = t.headerValidator.IsHeaderConstructionValid(currHdr, neededHdr)
 		if err != nil {
+			log.Debug("isMetaBlockValid.IsHeaderConstructionValid", "error", err.Error())
 			return false
 		}
+
+		currHdr = neededHdr
 	}
 
 	return true
@@ -405,6 +409,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 	}
 
 	if nextBlocksVerified < t.finality {
+		log.Debug("isMetaBlockFinal", "nextBlocksVerified", nextBlocksVerified, "finality", t.finality)
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
 			go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}

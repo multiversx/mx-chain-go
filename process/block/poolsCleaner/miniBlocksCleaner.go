@@ -95,7 +95,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		value, ok := miniBlocksPool.Get([]byte(hash))
 		if !ok {
 			log.Trace("miniblock not found in pool",
-				"hash", hash,
+				"hash", []byte(hash),
 				"round", round)
 			delete(mbpc.mapMiniBlocksRounds, hash)
 			continue
@@ -104,7 +104,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		miniBlock, ok := value.(*block.MiniBlock)
 		if !ok {
 			log.Debug("cleanPoolIfNeeded", "error", process.ErrWrongTypeAssertion,
-				"hash", hash,
+				"hash", []byte(hash),
 				"round", round)
 			continue
 		}
@@ -112,8 +112,10 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		if miniBlock.SenderShardID != selfShard {
 			if numPendingMiniBlocks > 0 && percentUsed < percentAllowed {
 				log.Trace("cleaning cross miniblock not yet allowed",
-					"hash", hash,
+					"hash", []byte(hash),
 					"round", round,
+					"num pending miniblocks", numPendingMiniBlocks,
+					"miniblocks pool percent used", percentUsed,
 					"type", miniBlock.Type,
 					"sender", miniBlock.SenderShardID,
 					"receiver", miniBlock.ReceiverShardID,
@@ -125,7 +127,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		roundDif := mbpc.rounder.Index() - round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedMiniBlocks {
 			log.Trace("cleaning miniblock not yet allowed",
-				"hash", hash,
+				"hash", []byte(hash),
 				"round", round,
 				"round dif", roundDif,
 				"type", miniBlock.Type,
@@ -141,7 +143,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		delete(mbpc.mapMiniBlocksRounds, hash)
 
 		log.Debug("miniblock has been cleaned",
-			"hash", hash,
+			"hash", []byte(hash),
 			"round", round,
 			"type", miniBlock.Type,
 			"sender", miniBlock.SenderShardID,
