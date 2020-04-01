@@ -39,6 +39,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartMeta = t.epochStartMeta
 	rt.shardHdrStorage = t.shardHdrStorage
 	rt.validatorInfoProcessor = t.validatorInfoProcessor
+	rt.appStatusHandler = t.appStatusHandler
 	return rt
 }
 

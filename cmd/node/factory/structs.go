@@ -951,6 +951,10 @@ func newEpochStartTrigger(
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
 		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
+		}
 
 		return epochStartTrigger, nil
 	}
@@ -968,6 +972,10 @@ func newEpochStartTrigger(
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
+		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
 		}
 
 		return epochStartTrigger, nil
