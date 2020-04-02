@@ -40,6 +40,9 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
 	}
+	if arguments.EpochStartNotifier == nil {
+		return core.ErrNilEpochStartNotifier
+	}
 
 	return nil
 }
@@ -266,7 +269,7 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buff
 			if err != nil {
 				log.Debug("indexer: marshal",
 					"error", "could not serialize miniblock, will skip indexing",
-					"tx hash", mb.Hash)
+					"mb hash", mb.Hash)
 				continue
 			}
 		} else {
@@ -275,7 +278,7 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buff
 			serializedData = []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
 		}
 
-		// append a newline foreach element
+		// append a newline for each element
 		serializedData = append(serializedData, "\n"...)
 		buff.Grow(len(meta) + len(serializedData))
 		_, err = buff.Write(meta)
@@ -291,7 +294,7 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buff
 	return buff
 }
 
-func serializeBulkTx(bulk []*Transaction) bytes.Buffer {
+func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
 	var buff bytes.Buffer
 	for _, tx := range bulk {
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
@@ -302,7 +305,7 @@ func serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 				"tx hash", tx.Hash)
 			continue
 		}
-		// append a newline foreach element
+		// append a newline for each element
 		serializedTx = append(serializedTx, "\n"...)
 
 		buff.Grow(len(meta) + len(serializedTx))

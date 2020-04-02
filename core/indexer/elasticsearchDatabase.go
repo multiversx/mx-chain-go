@@ -100,7 +100,12 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 }
 
 // SaveHeader will prepare and save information about a header in elasticsearch server
-func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string) {
+func (esd *elasticSearchDatabase) SaveHeader(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+) {
 	var buff bytes.Buffer
 
 	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes)
@@ -185,7 +190,7 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 ) {
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
 	for _, bulk := range bulks {
-		buff := serializeBulkTx(bulk)
+		buff := serializeBulkTxs(bulk)
 		err := esd.dbWriter.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
@@ -257,8 +262,7 @@ func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body
 	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
 	err := esd.dbWriter.DoBulkRequest(&buff, miniblocksIndex)
 	if err != nil {
-		log.Warn("indexer", "error1", "indexing bulk of miniblocks",
-			"error2", err.Error())
+		log.Warn("indexing bulk of miniblock", "error", err.Error())
 	}
 }
 
@@ -362,7 +366,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint
 }
 
 // SaveValidatorsRating will save validators rating
-func (esd *elasticSearchDatabase) SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo) {
+func (esd *elasticSearchDatabase) SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) {
 	var buff bytes.Buffer
 
 	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
@@ -381,7 +385,7 @@ func (esd *elasticSearchDatabase) SaveValidatorsRating(Index string, validatorsR
 
 	req := &esapi.IndexRequest{
 		Index:      ratingIndex,
-		DocumentID: Index,
+		DocumentID: index,
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}

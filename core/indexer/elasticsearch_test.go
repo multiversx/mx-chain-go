@@ -2,12 +2,14 @@ package indexer_test
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -33,13 +35,14 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 	return indexer.ElasticIndexerArgs{
-		Url:              "url",
-		UserName:         "user",
-		Password:         "password",
-		Marshalizer:      &mock.MarshalizerMock{},
-		Hasher:           &mock.HasherMock{},
-		Options:          &indexer.Options{},
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
+		Url:                "url",
+		UserName:           "user",
+		Password:           "password",
+		Marshalizer:        &mock.MarshalizerMock{},
+		Hasher:             &mock.HasherMock{},
+		Options:            &indexer.Options{},
+		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 	}
 }
 
@@ -250,4 +253,39 @@ func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	}()
 
 	require.Empty(t, output.String())
+}
+
+func TestElasticIndexer_EpochChange(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	getEligibleValidatorsCalled := false
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	arguments.ShardId = core.MetachainShardId
+	epochChangeNotifier := &mock.EpochStartNotifierStub{}
+	arguments.EpochStartNotifier = epochChangeNotifier
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func() (m map[uint32][][]byte, err error) {
+			defer wg.Done()
+			getEligibleValidatorsCalled = true
+			return nil, nil
+		},
+	}
+
+	ei, _ := indexer.NewElasticIndexer(arguments)
+	assert.NotNil(t, ei)
+
+	epochChangeNotifier.NotifyAll(&block.Header{Nonce: 1})
+	wg.Wait()
+
+	assert.True(t, getEligibleValidatorsCalled)
 }

@@ -120,7 +120,7 @@ func (ei *elasticIndexer) epochStartEventHandler() epochStart.EpochStartHandler 
 		currentEpoch := hdr.GetEpoch()
 		validatorsPubKeys, err := ei.coordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)
 		if err != nil {
-			log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+			log.Warn("GetAllEligibleValidatorPublicKeys for current epoch failed", "error", err)
 		}
 
 		ei.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)

@@ -10,7 +10,7 @@ var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher provided")
 
-// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+// ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
 // ErrInvalidValue signals that a nil value has been provided
@@ -49,3 +49,6 @@ var ErrNilStatusTagProvider = errors.New("nil status tag provider")
 // ErrInvalidIdentifierForEpochStartBlockRequest signals that an invalid identifier for epoch start block request
 // has been provided
 var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifier for epoch start block request")
+
+// ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
