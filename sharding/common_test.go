@@ -2,7 +2,6 @@ package sharding
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -12,18 +11,12 @@ import (
 )
 
 func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
-	v1 := mock.NewValidatorMock([]byte("pk1"), []byte("addr1"))
-	v2 := mock.NewValidatorMock([]byte("pk2"), []byte("addr2"))
-	v3 := mock.NewValidatorMock([]byte("pk3"), []byte("addr3"))
-	v4 := mock.NewValidatorMock([]byte("pk4"), []byte("addr4"))
-	v5 := mock.NewValidatorMock([]byte("pk5"), []byte("addr5"))
-
-	elList := make([]Validator, 0)
-	elList = append(elList, v1, v1, v1)     // starts at 0 - count 3
-	elList = append(elList, v2, v2, v2, v2) // starts at 3 - count 4
-	elList = append(elList, v3, v3, v3)     // starts at 7 - count 3
-	elList = append(elList, v4, v4, v4, v4) // starts at 10 - count 4
-	elList = append(elList, v5)             // starts at 14 - count 1
+	elList := make([]uint32, 0)
+	elList = append(elList, 0, 0, 0)    // starts at 0 - count 3
+	elList = append(elList, 1, 1, 1, 1) // starts at 3 - count 4
+	elList = append(elList, 2, 2, 2)    // starts at 7 - count 3
+	elList = append(elList, 3, 3, 3, 3) // starts at 10 - count 4
+	elList = append(elList, 4)          // starts at 14 - count 1
 
 	type result struct {
 		start int64
@@ -69,11 +62,11 @@ func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
 
 // ------------- comparison between the selection algorithm and an algorithm which actually does reslicing
 
-func GetValidatorsByReslicing(randomness []byte, numVal int64, expEligibleList []Validator) ([]Validator, error) {
-	expEligibleListClone := make([]Validator, len(expEligibleList))
+func GetValidatorsByReslicing(randomness []byte, numVal int64, expEligibleList []uint32) ([]uint32, error) {
+	expEligibleListClone := make([]uint32, len(expEligibleList))
 	copy(expEligibleListClone, expEligibleList)
 
-	valSlice := make([]Validator, 0, numVal)
+	valSlice := make([]uint32, 0, numVal)
 	for i := int64(0); i < numVal; i++ {
 		rndmnss := computeRandomnessAsUint64(randomness, int(i))
 		randomIdx := rndmnss % uint64(len(expEligibleListClone))
@@ -96,7 +89,7 @@ func computeRandomnessAsUint64(randomness []byte, index int) uint64 {
 	return randomnessAsUint64
 }
 
-func reslice(slice []Validator, idx int64) []Validator {
+func reslice(slice []uint32, idx int64) []uint32 {
 	startIdx, nbEntries := computeStartIndexAndNumAppearancesForValidator(slice, idx)
 	endIdx := startIdx + nbEntries - 1
 
@@ -115,42 +108,38 @@ func TestBoth(t *testing.T) {
 	}
 }
 
-func testWithReslicing(rand []byte, numVals int, expElList []Validator) []Validator {
+func testWithReslicing(rand []byte, numVals int, expElList []uint32) []uint32 {
 	res1, _ := GetValidatorsByReslicing(rand, int64(numVals), expElList)
 	return res1
 }
 
-func testWithSelection(rand []byte, numVals int, expElList []Validator) []Validator {
+func testWithSelection(rand []byte, numVals int, expElList []uint32) []uint32 {
 	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, uint32(numVals))
 	res1, _ := sbp.Get(rand, int64(numVals), expElList)
 	return res1
 }
 
-func testBothAlgorithmsHaveTheSameOutput(t *testing.T, rand []byte, numVals int, expElList []Validator) {
+func testBothAlgorithmsHaveTheSameOutput(t *testing.T, rand []byte, numVals int, expElList []uint32) {
 	resReslicing := testWithReslicing(rand, numVals, expElList)
 	resSelection := testWithSelection(rand, numVals, expElList)
 
 	assert.Equal(t, resReslicing, resSelection)
 }
 
-func displayVals(vals []Validator) {
-	for _, val := range vals {
-		fmt.Println(hex.EncodeToString(val.PubKey()))
+func displayVals(vals []uint32) {
+	for _, v := range vals {
+		fmt.Println(v)
 	}
 	fmt.Println()
 }
 
-func getExpandedEligibleList(num int) []Validator {
-	sliceToRet := make([]Validator, 0)
+func getExpandedEligibleList(num int) []uint32 {
+	sliceToRet := make([]uint32, 0)
 
 	for i := 1; i <= num; i++ {
 		randRat := rand.Intn(5) + 8
-		pubkey := make([]byte, 32)
-		_, _ = rand.Read(pubkey)
-		address := make([]byte, 32)
-		_, _ = rand.Read(address)
 		for j := 0; j < randRat; j++ {
-			sliceToRet = append(sliceToRet, mock.NewValidatorMock(pubkey, address))
+			sliceToRet = append(sliceToRet, uint32(i))
 		}
 	}
 
