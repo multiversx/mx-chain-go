@@ -239,6 +239,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("prepare smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -246,6 +247,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
@@ -253,6 +255,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var executed bool
 	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("processed built in functions error", "error", err.Error())
 		return nil
 	}
@@ -263,6 +266,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vm vmcommon.VMExecutionHandler
 	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
@@ -270,6 +274,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -283,12 +288,14 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
 	}
@@ -298,6 +305,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	acntDst, err = sc.reloadLocalAccount(acntDst)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return nil
 	}
@@ -307,6 +315,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
+		sc.setSilentError(err)
 		log.Debug("error saving account")
 	}
 

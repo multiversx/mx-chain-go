@@ -2,13 +2,14 @@ package arwen
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"io/ioutil"
 	"math"
 	"math/big"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -271,6 +272,12 @@ func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
 func (context *TestContext) QuerySCString(function string, args [][]byte) string {
 	bytes := context.querySC(function, args)
 	return string(bytes)
+}
+
+// QuerySCBytes -
+func (context *TestContext) QuerySCBytes(function string, args [][]byte) []byte {
+	bytes := context.querySC(function, args)
+	return bytes
 }
 
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
