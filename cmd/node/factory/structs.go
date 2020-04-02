@@ -1505,6 +1505,10 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		}
 
 		genesisBlocks[shardId] = genesisBlock
+		err = saveGenesisBlock(genesisBlock, coreComponents, dataComponents)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1577,8 +1581,27 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	)
 
 	genesisBlocks[core.MetachainShardId] = genesisBlock
+	err = saveGenesisBlock(genesisBlock, coreComponents, dataComponents)
+	if err != nil {
+		return nil, err
+	}
 
 	return genesisBlocks, nil
+}
+
+func saveGenesisBlock(header data.HeaderHandler, coreComponents *Core, dataComponents *Data) error {
+	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	hash := coreComponents.Hasher.Compute(string(blockBuff))
+	unitType := dataRetriever.BlockHeaderUnit
+	if header.GetShardID() == core.MetachainShardId {
+		unitType = dataRetriever.MetaBlockUnit
+	}
+
+	return dataComponents.Store.Put(unitType, hash, blockBuff)
 }
 
 func createInMemoryStoreBlkc(
