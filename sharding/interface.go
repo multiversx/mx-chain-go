@@ -20,11 +20,13 @@ type Coordinator interface {
 type Validator interface {
 	PubKey() []byte
 	Address() []byte
+	Chances() uint32
+	SetChances(chances uint32)
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
-	NodesPerShardSetter
+	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
@@ -70,9 +72,9 @@ type NodesShuffler interface {
 	IsInterfaceNil() bool
 }
 
-// NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
-type NodesPerShardSetter interface {
-	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, epoch uint32) error
+// NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
+type NodesCoordinatorHelper interface {
+	ValidatorsWeights(validators []Validator) ([]uint32, error)
 	ComputeLeaving(allValidators []Validator) []Validator
 }
 
@@ -85,14 +87,18 @@ type PeerAccountListAndRatingHandler interface {
 	UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
+	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
+	GetSignedBlocksThreshold() float32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
-	ComputeIncreaseProposer(val uint32) uint32
+	ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
-	ComputeDecreaseProposer(val uint32) uint32
+	ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32
+	//RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
+	RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32
 	//ComputeIncreaseValidator computes the new rating for the increaseValidator
-	ComputeIncreaseValidator(val uint32) uint32
+	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
-	ComputeDecreaseValidator(val uint32) uint32
+	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
 }
 
 // ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
@@ -115,8 +121,6 @@ type ListIndexUpdaterSetter interface {
 type RatingReader interface {
 	//GetRating gets the rating for the public key
 	GetRating(string) uint32
-	//UpdateRatingFromTempRating sets the rating to the value of the tempRating for the public keys
-	UpdateRatingFromTempRating([]string) error
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
@@ -151,13 +155,15 @@ type Cacher interface {
 	Get(key []byte) (value interface{}, ok bool)
 }
 
-//RatingChance provides the methods needed for the computation of chances from the Rating
-type RatingChance interface {
-	//GetMaxThreshold returns the threshold until this ChancePercentage holds
-	GetMaxThreshold() uint32
-	//GetChancePercentage returns the percentage for the RatingChance
-	GetChancePercentage() uint32
-	//IsInterfaceNil verifies if the interface is nil
+// EpochHandler defines a struct able to output current epoch
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// RandomSelector selects randomly a subset of elements from a set of data
+type RandomSelector interface {
+	Select(randSeed []byte, sampleSize uint32) ([]uint32, error)
 	IsInterfaceNil() bool
 }
 

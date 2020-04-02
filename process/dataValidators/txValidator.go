@@ -52,10 +52,11 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return fmt.Errorf("%w for address %s and shard %d",
-			process.ErrAddressNotInThisShard,
+		return fmt.Errorf("%w for address %s and shard %d, err: %s",
+			process.ErrAccountNotFound,
 			hex.EncodeToString(senderAddress.Bytes()),
 			shardID,
+			err.Error(),
 		)
 	}
 

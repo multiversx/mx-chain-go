@@ -39,6 +39,9 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartMeta = t.epochStartMeta
 	rt.shardHdrStorage = t.shardHdrStorage
 	rt.validatorInfoProcessor = t.validatorInfoProcessor
+	rt.appStatusHandler = t.appStatusHandler
+	rt.miniBlocksPool = t.miniBlocksPool
+	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
 	return rt
 }
 
