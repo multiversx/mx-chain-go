@@ -17,11 +17,9 @@ func cloneValidatorsMap(validatorsMap map[uint32][]Validator) (map[uint32][]Vali
 }
 
 func cloneValidatorsList(validatorsList []Validator) ([]Validator, error) {
-	var err error
-	var clone interface{}
 	resultList := make([]Validator, len(validatorsList))
 	for i, v := range validatorsList {
-		clone, err = v.Clone()
+		clone, err := v.Clone()
 		if err != nil {
 			return nil, err
 		}
