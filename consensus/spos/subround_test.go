@@ -589,7 +589,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 	testDoWork(t, true, true)
 }
 
-func testDoWork(t *testing.T, checkDone, shouldWork bool) {
+func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()

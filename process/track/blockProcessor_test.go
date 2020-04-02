@@ -799,7 +799,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHea
 	testRequestHeaders(t, 14, 13, 13)
 }
 
-func testRequestHeaders(t *testing.T, roundIndex, round, nonce uint64) {
+func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uint64) {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false

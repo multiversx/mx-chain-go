@@ -445,7 +445,7 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 	testDeleteValidatorInfoBlock(t, block.TxBlock, true)
 }
 
-func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExit bool) {
+func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExist bool) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -456,7 +456,7 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExit
 
 	hasher := arguments.Hasher
 	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
+	mbStorage := arguments.MiniBlockStorage
 
 	for _, mb := range miniblocks {
 		mMb, _ := marshalizer.Marshal(mb)
@@ -469,7 +469,7 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExit
 			Type:            blockType,
 		}
 		miniblockHeaders = append(miniblockHeaders, mbHeader)
-		_ = storage.Put(hash, mMb)
+		_ = mbStorage.Put(hash, mMb)
 	}
 
 	meta := &block.MetaBlock{
@@ -496,22 +496,19 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExit
 	}
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
+		mb, err := mbStorage.Get(mbHeader.Hash)
 		require.NotNil(t, mb)
 		require.Nil(t, err)
 	}
 
 	vic.DeleteValidatorInfoBlocksFromStorage(meta)
 
-	if shouldExit {
-		for _, mbHeader := range meta.MiniBlockHeaders {
-			mb, err := storage.Get(mbHeader.Hash)
+	for _, mbHeader := range meta.MiniBlockHeaders {
+		mb, err := mbStorage.Get(mbHeader.Hash)
+		if shouldExist {
 			require.NotNil(t, mb)
 			require.Nil(t, err)
-		}
-	} else {
-		for _, mbHeader := range meta.MiniBlockHeaders {
-			mb, err := storage.Get(mbHeader.Hash)
+		} else {
 			require.Nil(t, mb)
 			require.NotNil(t, err)
 		}
