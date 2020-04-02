@@ -31,7 +31,7 @@ func parseVMTypeFromContractAddress(contractAddress []byte) ([]byte, error) {
 		return nil, vmcommon.ErrInvalidVMType
 	}
 
-	startIndex := core.NumInitCharactersForScAddress - vmcommon.VMTypeLen
+	startIndex := core.NumInitCharactersForScAddress - core.VMTypeLen
 	endIndex := core.NumInitCharactersForScAddress
 	return contractAddress[startIndex:endIndex], nil
 }

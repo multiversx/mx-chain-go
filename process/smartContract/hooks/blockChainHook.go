@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartContract/blockChainHook")
@@ -330,7 +329,7 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 		return nil, ErrAddressLengthNotCorrect
 	}
 
-	if len(vmType) != vmcommon.VMTypeLen {
+	if len(vmType) != core.VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
@@ -354,7 +353,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 }
 
 func createPrefixMask(vmType []byte) []byte {
-	prefixMask := make([]byte, core.NumInitCharactersForScAddress-vmcommon.VMTypeLen)
+	prefixMask := make([]byte, core.NumInitCharactersForScAddress-core.VMTypeLen)
 	prefixMask = append(prefixMask, vmType...)
 
 	return prefixMask
