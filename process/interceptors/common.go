@@ -53,6 +53,7 @@ func processInterceptedData(
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
 			"seq no", p2p.MessageOriginatorSeq(msg),
+			"data", data.String(),
 			"error", err.Error(),
 		)
 		wgProcess.Done()
@@ -68,6 +69,7 @@ func processInterceptedData(
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
 			"seq no", p2p.MessageOriginatorSeq(msg),
+			"data", data.String(),
 			"error", err.Error(),
 		)
 		wgProcess.Done()
@@ -81,6 +83,7 @@ func processInterceptedData(
 		"type", data.Type(),
 		"pid", p2p.MessageOriginatorPid(msg),
 		"seq no", p2p.MessageOriginatorSeq(msg),
+		"data", data.String(),
 	)
 	processDebugInterceptedData(handler, data, topic, err)
 

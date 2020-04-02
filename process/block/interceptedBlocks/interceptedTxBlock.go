@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -130,6 +132,13 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 // Type returns the type of this intercepted data
 func (inTxBody *InterceptedTxBlockBody) Type() string {
 	return "intercepted block body"
+}
+
+// String returns the transactions body's most important fields as string
+func (inTxBody *InterceptedTxBlockBody) String() string {
+	return fmt.Sprintf("numMiniblocks=%d",
+		len(inTxBody.txBlockBody.MiniBlocks),
+	)
 }
 
 // Identifiers returns the identifiers used in requests

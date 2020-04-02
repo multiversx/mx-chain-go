@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
@@ -62,13 +62,14 @@ import (
 )
 
 const (
-	defaultStatsPath      = "stats"
-	defaultLogsPath       = "logs"
-	defaultDBPath         = "db"
-	defaultEpochString    = "Epoch"
-	defaultStaticDbString = "Static"
-	defaultShardString    = "Shard"
-	metachainShardName    = "metachain"
+	defaultStatsPath        = "stats"
+	defaultLogsPath         = "logs"
+	defaultDBPath           = "db"
+	defaultEpochString      = "Epoch"
+	defaultStaticDbString   = "Static"
+	defaultShardString      = "Shard"
+	metachainShardName      = "metachain"
+	defaultChancesSelection = 1
 )
 
 var (
@@ -1269,7 +1270,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
+			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address(), defaultChancesSelection)
 			if err != nil {
 				return nil, err
 			}

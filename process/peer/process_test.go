@@ -35,6 +35,7 @@ const (
 	minRating                       = uint32(1)
 	maxRating                       = uint32(100)
 	startRating                     = uint32(50)
+	defaultChancesSelection         = uint32(1)
 )
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
@@ -261,7 +262,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -298,7 +299,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -334,7 +335,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -375,7 +376,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1128,7 +1129,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1192,7 +1193,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1399,7 +1400,7 @@ func DoComputeMissingBlocks(
 			return consensusGroupSize
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey)
+			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}

@@ -89,6 +89,7 @@ type InterceptedData interface {
 	IsInterfaceNil() bool
 	Hash() []byte
 	Type() string
+	String() string
 	Identifiers() [][]byte
 }
 

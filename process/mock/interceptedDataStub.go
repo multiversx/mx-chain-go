@@ -32,6 +32,11 @@ func (ids *InterceptedDataStub) Type() string {
 	return "intercepted data stub"
 }
 
+// String -
+func (ids *InterceptedDataStub) String() string {
+	return "intercepted data stub string"
+}
+
 // Identifiers -
 func (ids *InterceptedDataStub) Identifiers() [][]byte {
 	if ids.IdentifiersCalled != nil {

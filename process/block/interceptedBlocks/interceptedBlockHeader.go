@@ -3,6 +3,7 @@ package interceptedBlocks
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -124,7 +125,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"shardRound=%v, "+
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
-			core.ToHex(inHdr.hash),
+			logger.DisplayByteSlice(inHdr.hash),
 			inHdr.hdr.ShardID,
 			inHdr.epochStartTrigger.Epoch(),
 			inHdr.hdr.Epoch,
@@ -173,6 +174,17 @@ func (inHdr *InterceptedHeader) IsForCurrentShard() bool {
 // Type returns the type of this intercepted data
 func (inHdr *InterceptedHeader) Type() string {
 	return "intercepted header"
+}
+
+// String returns the header's most important fields as string
+func (inHdr *InterceptedHeader) String() string {
+	return fmt.Sprintf("shardId=%d, metaEpoch=%d, shardEpoch=%d, round=%d, nonce=%d",
+		inHdr.hdr.ShardID,
+		inHdr.epochStartTrigger.Epoch(),
+		inHdr.hdr.Epoch,
+		inHdr.hdr.Round,
+		inHdr.hdr.Nonce,
+	)
 }
 
 // Identifiers returns the identifiers used in requests

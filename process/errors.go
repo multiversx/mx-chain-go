@@ -720,14 +720,14 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
+// ErrAccountNotFound signals that the account was not found for the provided address
+var ErrAccountNotFound = errors.New("account not found")
+
 // ErrMaxRatingZero signals that maxrating with a value of zero has been provided
 var ErrMaxRatingZero = errors.New("max rating is zero")
 
 // ErrNilValidatorInfos signals that a nil validator infos has been provided
 var ErrNilValidatorInfos = errors.New("nil validator infos")
-
-// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
-var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
 
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
