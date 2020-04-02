@@ -320,7 +320,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
-				time.Sleep(1100 * time.Millisecond)
+				time.Sleep(5100 * time.Millisecond)
 				args.MiniBlocksPool.Put(peerMiniBlockHash, miniBlockHeader)
 			}
 		},

@@ -29,7 +29,7 @@ func NewTestSyncNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			validator := mock.NewValidatorMock([]byte("add"), []byte("add"))
+			validator := mock.NewValidatorMock([]byte("add"))
 			return []sharding.Validator{validator}, nil
 		},
 	}

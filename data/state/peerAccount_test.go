@@ -57,27 +57,6 @@ func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 	assert.Equal(t, pubKey, acc.GetBLSPublicKey())
 }
 
-func TestPeerAccount_SetInvalidSchnorrPublicKey(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	pubKey := []byte("")
-
-	err := acc.SetSchnorrPublicKey(pubKey)
-	assert.Equal(t, state.ErrNilSchnorrPublicKey, err)
-}
-
-func TestPeerAccount_SetAndGetSchnorrPublicKey(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	pubKey := []byte("SchnorrPubKey")
-
-	err := acc.SetSchnorrPublicKey(pubKey)
-	assert.Nil(t, err)
-	assert.Equal(t, pubKey, acc.GetSchnorrPublicKey())
-}
-
 func TestPeerAccount_SetRewardAddressInvalidAddress(t *testing.T) {
 	t.Parallel()
 

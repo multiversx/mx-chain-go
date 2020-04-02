@@ -99,15 +99,15 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	}
 
 	return &NodesWithRater{
-		NodesCoordinator:                nodesCoordinator,
-		PeerAccountListAndRatingHandler: ihncrf.PeerAccountListAndRatingHandler,
+		NodesCoordinator: nodesCoordinator,
+		rater:            ihncrf.PeerAccountListAndRatingHandler,
 	}
 }
 
 // NodesWithRater -
 type NodesWithRater struct {
 	sharding.NodesCoordinator
-	sharding.PeerAccountListAndRatingHandler
+	rater sharding.PeerAccountListAndRatingHandler
 }
 
 // IsInterfaceNil -

@@ -92,7 +92,7 @@ func (e *EpochStartTriggerStub) Update(round uint64) {
 }
 
 // SetProcessed -
-func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler, body data.BodyHandler) {
+func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	if e.ProcessedCalled != nil {
 		e.ProcessedCalled(header)
 	}

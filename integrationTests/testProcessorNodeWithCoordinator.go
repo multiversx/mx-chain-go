@@ -77,7 +77,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				NbShards:                numShards,
 				EligibleNodes:           validatorsMap,
 				WaitingNodes:            waitingMap,
-				SelfPublicKey:           v.Address(),
+				SelfPublicKey:           v.PubKey(),
 				ConsensusGroupCache:     cache,
 			}
 

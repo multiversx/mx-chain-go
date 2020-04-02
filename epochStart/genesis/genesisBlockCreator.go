@@ -163,7 +163,7 @@ func CreateMetaGenesisBlock(
 	}
 
 	eligible, waiting := args.NodesSetup.InitialNodesInfo()
-	allNodes := make(map[uint32][]*sharding.NodeInfo)
+	allNodes := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 
 	for shard := range eligible {
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
@@ -382,7 +382,7 @@ func deploySystemSmartContracts(
 // setStakedData sets the initial staked values to the staking smart contract
 func setStakedData(
 	txProcessor process.TransactionProcessor,
-	initialNodeInfo map[uint32][]*sharding.NodeInfo,
+	initialNodeInfo map[uint32][]sharding.GenesisNodeInfoHandler,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all

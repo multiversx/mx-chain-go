@@ -154,6 +154,7 @@ type CryptoParams struct {
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
+	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
 	OwnAccount *TestWalletAccount
@@ -245,11 +246,9 @@ func NewTestProcessorNode(
 
 	pkBytes := make([]byte, 128)
 	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, address, defaultChancesSelection)
+			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -259,7 +258,7 @@ func NewTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, address, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -337,6 +336,10 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
+	if check.IfNil(tpn.NodesSetup) {
+		tpn.NodesSetup = &mock.NodesSetupStub{}
+	}
+
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         tpn.PeerState,
 		AdrConv:             TestAddressConverterBLS,
@@ -350,6 +353,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
 		StartEpoch:          0,
+		NodesSetup:          tpn.NodesSetup,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)

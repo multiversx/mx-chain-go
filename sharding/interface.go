@@ -96,6 +96,7 @@ type PeerAccountListAndRatingHandler interface {
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
+	IsInterfaceNil() bool
 }
 
 //ChanceComputer provides chance computation capabilities based on a rating
@@ -127,7 +128,17 @@ type EpochStartActionHandler interface {
 	NotifyOrder() uint32
 }
 
-// BodyToValidatorInfoHandler
-type BodyToValidatorInfoHandler interface {
+// GenesisNodesSetupHandler
+type GenesisNodesSetupHandler interface {
+	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
+	IsInterfaceNil() bool
+}
+
+// GenesisNodeInfoHandler
+type GenesisNodeInfoHandler interface {
+	AssignedShard() uint32
+	Address() []byte
+	PubKey() []byte
 	IsInterfaceNil() bool
 }

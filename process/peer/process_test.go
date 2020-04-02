@@ -89,6 +89,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
 		StartEpoch:          0,
+		NodesSetup:          &mock.NodesSetupStub{},
 	}
 	return arguments
 }
@@ -262,7 +263,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -299,7 +300,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -335,7 +336,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -376,7 +377,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1055,7 +1056,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1119,7 +1120,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1326,7 +1327,7 @@ func DoComputeMissingBlocks(
 			return consensusGroupSize
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, publicKey, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -1341,10 +1342,7 @@ func DoComputeMissingBlocks(
 
 	arguments.MaxComputableRounds = maxComputableRounds
 
-	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(currentHeaderRounds, previousHeaderRound, []byte("prev"), 0, 0)
 
 	firstKey := "testpk_0"
@@ -1390,17 +1388,12 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *test
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *testing.T) {
 	pubKeyCalled := false
-	addressCalled := false
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{
 				PubKeyCalled: func() []byte {
 					pubKeyCalled = true
-					return make([]byte, 0)
-				},
-				AddressCalled: func() []byte {
-					addressCalled = true
 					return make([]byte, 0)
 				},
 			}, &mock.ValidatorMock{}}, nil
@@ -1424,7 +1417,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 	_, _ = validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.True(t, pubKeyCalled)
-	assert.False(t, addressCalled)
 }
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
@@ -1464,22 +1456,22 @@ func createCustomArgumentsForSaveInitialState() (peer.ArgValidatorStatisticsProc
 
 	waitingMap := make(map[uint32][]sharding.Validator)
 	waitingMap[core.MetachainShardId] = []sharding.Validator{
-		mock.NewValidatorMock(eligibleValidatorsPubKeys[core.MetachainShardId][0], []byte("e_addr0_meta")),
-		mock.NewValidatorMock(eligibleValidatorsPubKeys[core.MetachainShardId][1], []byte("e_addr1_meta")),
+		mock.NewValidatorMock(eligibleValidatorsPubKeys[core.MetachainShardId][0]),
+		mock.NewValidatorMock(eligibleValidatorsPubKeys[core.MetachainShardId][1]),
 	}
 	waitingMap[shardZeroId] = []sharding.Validator{
-		mock.NewValidatorMock(eligibleValidatorsPubKeys[shardZeroId][0], []byte("e_addr0_shard0")),
-		mock.NewValidatorMock(eligibleValidatorsPubKeys[shardZeroId][1], []byte("e_addr1_shard0")),
+		mock.NewValidatorMock(eligibleValidatorsPubKeys[shardZeroId][0]),
+		mock.NewValidatorMock(eligibleValidatorsPubKeys[shardZeroId][1]),
 	}
 
 	eligibleMap := make(map[uint32][]sharding.Validator)
 	eligibleMap[core.MetachainShardId] = []sharding.Validator{
-		mock.NewValidatorMock(waitingValidatorsPubKeys[core.MetachainShardId][0], []byte("w_addr0_meta")),
-		mock.NewValidatorMock(waitingValidatorsPubKeys[core.MetachainShardId][1], []byte("w_addr1_meta")),
+		mock.NewValidatorMock(waitingValidatorsPubKeys[core.MetachainShardId][0]),
+		mock.NewValidatorMock(waitingValidatorsPubKeys[core.MetachainShardId][1]),
 	}
 	eligibleMap[shardZeroId] = []sharding.Validator{
-		mock.NewValidatorMock(waitingValidatorsPubKeys[shardZeroId][0], []byte("w_addr0_shard0")),
-		mock.NewValidatorMock(waitingValidatorsPubKeys[shardZeroId][1], []byte("w_addr1_shard0")),
+		mock.NewValidatorMock(waitingValidatorsPubKeys[shardZeroId][0]),
+		mock.NewValidatorMock(waitingValidatorsPubKeys[shardZeroId][1]),
 	}
 
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
@@ -1875,11 +1867,10 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	addr := mock.NewAddressMock(addrBytes0)
 	pa0, _ := state.NewPeerAccount(addr)
 	pa0.PeerAccountData = state.PeerAccountData{
-		BLSPublicKey:     []byte("bls0"),
-		SchnorrPublicKey: []byte("schnorr0"),
-		RewardAddress:    []byte("reward0"),
-		Stake:            big.NewInt(10),
-		AccumulatedFees:  big.NewInt(11),
+		BLSPublicKey:    []byte("bls0"),
+		RewardAddress:   []byte("reward0"),
+		Stake:           big.NewInt(10),
+		AccumulatedFees: big.NewInt(11),
 		JailTime: state.TimePeriod{
 			StartTime: state.TimeStamp{Epoch: 1, Round: 10},
 			EndTime:   state.TimeStamp{Epoch: 2, Round: 2},
@@ -1919,11 +1910,10 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	addr = mock.NewAddressMock(addrBytesMeta)
 	paMeta, _ := state.NewPeerAccount(addr)
 	paMeta.PeerAccountData = state.PeerAccountData{
-		BLSPublicKey:     []byte("blsM"),
-		SchnorrPublicKey: []byte("schnorrM"),
-		RewardAddress:    []byte("rewardM"),
-		Stake:            big.NewInt(110),
-		AccumulatedFees:  big.NewInt(111),
+		BLSPublicKey:    []byte("blsM"),
+		RewardAddress:   []byte("rewardM"),
+		Stake:           big.NewInt(110),
+		AccumulatedFees: big.NewInt(111),
 		JailTime: state.TimePeriod{
 			StartTime: state.TimeStamp{Epoch: 11, Round: 101},
 			EndTime:   state.TimeStamp{Epoch: 21, Round: 21},

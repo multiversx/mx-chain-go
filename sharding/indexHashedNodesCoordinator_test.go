@@ -23,8 +23,7 @@ func createDummyNodesList(nbNodes uint32, suffix string) []Validator {
 
 	for j := uint32(0); j < nbNodes; j++ {
 		pk := hasher.Compute(fmt.Sprintf("pk%s_%d", suffix, j))
-		addr := []byte(fmt.Sprintf("addr%s_%d", suffix, j))
-		list = append(list, mock.NewValidatorMock(pk, addr, defaultSelectionChances))
+		list = append(list, mock.NewValidatorMock(pk, 1, defaultSelectionChances))
 	}
 
 	return list
@@ -295,7 +294,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), []byte("addr0"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 	tmp := createDummyNodesMap(2, 1, "meta")
 	nodesMap := make(map[uint32][]Validator)
@@ -684,19 +683,19 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	t.Parallel()
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pk0_meta"), []byte("addr0_meta"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_meta"), []byte("addr1_meta"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_meta"), []byte("addr2_meta"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard0"), []byte("addr0_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard0"), []byte("addr1_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard0"), []byte("addr2_shard0"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard1"), []byte("addr0_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard1"), []byte("addr1_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard1"), []byte("addr2_shard1"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -725,17 +724,17 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	v, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"), 0)
 	require.Nil(t, err)
 	require.Equal(t, core.MetachainShardId, shardId)
-	require.Equal(t, []byte("addr0_meta"), v.Address())
+	require.Equal(t, []byte("pk0_meta"), v.PubKey())
 
 	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"), 0)
 	require.Nil(t, err)
 	require.Equal(t, uint32(0), shardId)
-	require.Equal(t, []byte("addr1_shard0"), v.Address())
+	require.Equal(t, []byte("pk1_shard0"), v.PubKey())
 
 	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"), 0)
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), shardId)
-	require.Equal(t, []byte("addr2_shard1"), v.Address())
+	require.Equal(t, []byte("pk2_shard1"), v.PubKey())
 }
 
 func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoch(t *testing.T) {
@@ -760,19 +759,19 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], []byte("addr0_meta"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], []byte("addr1_meta"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], []byte("addr2_meta"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], []byte("addr0_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], []byte("addr1_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], []byte("addr2_shard0"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], []byte("addr0_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], []byte("addr1_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], []byte("addr2_shard1"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -817,19 +816,19 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], []byte("addr0_meta"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], []byte("addr1_meta"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], []byte("addr2_meta"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], []byte("addr0_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], []byte("addr1_shard0"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], []byte("addr2_shard0"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], []byte("addr0_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], []byte("addr1_shard1"), defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], []byte("addr2_shard1"), defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	waitingMap := make(map[uint32][]Validator)

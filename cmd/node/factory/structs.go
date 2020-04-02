@@ -696,7 +696,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler, validatorStatisticsProcessor)
+	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +880,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 func newEpochStartTrigger(
 	args *processComponentsFactoryArgs,
 	requestHandler process.RequestHandler,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
@@ -892,15 +891,12 @@ func newEpochStartTrigger(
 			return nil, err
 		}
 
-		argsValidatorInfoProcessor := shardchain.ArgValidatorInfoProcessor{
-			MiniBlocksPool:               args.data.Datapool.MiniBlocks(),
-			Marshalizer:                  args.coreData.InternalMarshalizer,
-			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-			Requesthandler:               requestHandler,
-			Hasher:                       args.coreData.Hasher,
+		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
+			MiniBlocksPool: args.data.Datapool.MiniBlocks(),
+			Requesthandler: requestHandler,
 		}
 
-		validatorInfoProcessor, err := shardchain.NewValidatorInfoProcessor(argsValidatorInfoProcessor)
+		peerMiniBlockSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlockSyncer)
 		if err != nil {
 			return nil, err
 		}
@@ -917,7 +913,7 @@ func newEpochStartTrigger(
 			EpochStartNotifier:     args.epochStartNotifier,
 			Validity:               process.MetaBlockValidity,
 			Finality:               process.BlockFinality,
-			ValidatorInfoProcessor: validatorInfoProcessor,
+			ValidatorInfoProcessor: peerMiniBlockSyncer,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -2167,6 +2163,7 @@ func newValidatorStatisticsProcessor(
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,
 		StartEpoch:          processComponents.startEpochNum,
+		NodesSetup:          processComponents.nodesConfig,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

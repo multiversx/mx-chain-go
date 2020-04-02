@@ -50,16 +50,6 @@ func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
 	return nil
 }
 
-// SetSchnorrPublicKey sets the account's public key, saving the old key before changing
-func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) error {
-	if len(pubKey) < 1 {
-		return ErrNilSchnorrPublicKey
-	}
-
-	pa.SchnorrPublicKey = pubKey
-	return nil
-}
-
 // SetRewardAddress sets the account's reward address, saving the old address before changing
 func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	if len(address) < 1 {

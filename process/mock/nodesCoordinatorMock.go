@@ -38,7 +38,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = sharding.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
-				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+				1,
 				1,
 			)
 		}
@@ -49,7 +49,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	for v := 0; v < nodesPerShard; v++ {
 		validatorsList[v], _ = sharding.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
-			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
+			1,
 			1,
 		)
 	}
@@ -63,6 +63,11 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		NbShards:           nbShards,
 		Validators:         validatorsMap,
 	}
+}
+
+// GetChance -
+func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
+	return 1
 }
 
 // GetAllLeavingValidatorsPublicKeys -
@@ -138,30 +143,6 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	}
 
 	return valGrStr, nil
-}
-
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
 }
 
 // SetNodesPerShards -

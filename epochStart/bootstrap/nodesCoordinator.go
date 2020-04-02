@@ -87,10 +87,6 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, val
 	newEpoch := metaBlock.GetEpoch()
 	n.numShards[newEpoch] = uint32(len(metaBlock.EpochStart.LastFinalizedHeaders))
 
-	sort.Slice(validatorInfos, func(i, j int) bool {
-		return bytes.Compare(validatorInfos[i].PublicKey, validatorInfos[j].PublicKey) < 0
-	})
-
 	leaving, err := n.computeLeaving(validatorInfos)
 	if err != nil {
 		return nil, err
@@ -155,7 +151,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, val
 	return epochValidators, nil
 }
 
-func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) ([]sharding.Validator, error) {
+func (n *nodesCoordinator) computeLeaving(allValidators []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	leavingValidators := make([]sharding.Validator, 0)
 	minChances := n.chance.GetChance(0)
 	for _, validator := range allValidators {
@@ -230,58 +226,6 @@ func (n *nodesCoordinator) ComputeShardForSelfPublicKey(epoch uint32, pubKey []b
 	return core.AllShardId
 }
 
-func (n *nodesCoordinator) expandSavedNodes(
-	mapValidatorInfo map[string]*state.ValidatorInfo,
-	epoch uint32,
-) error {
-	nodesConfig := n.nodesConfig[epoch]
-	nodesConfig.expandedEligibleMap = make(map[uint32][]sharding.Validator)
-
-	nrShards := len(nodesConfig.eligibleMap)
-	var err error
-	nodesConfig.expandedEligibleMap[core.MetachainShardId], err = n.expandEligibleList(nodesConfig.eligibleMap[core.MetachainShardId], mapValidatorInfo)
-	if err != nil {
-		return err
-	}
-
-	for shardId := uint32(0); shardId < uint32(nrShards-1); shardId++ {
-		nodesConfig.expandedEligibleMap[shardId], err = n.expandEligibleList(nodesConfig.eligibleMap[shardId], mapValidatorInfo)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (n *nodesCoordinator) expandEligibleList(
-	validators []sharding.Validator,
-	mapValidatorInfo map[string]*state.ValidatorInfo,
-) ([]sharding.Validator, error) {
-	minChance := n.chance.GetChance(0)
-	minSize := len(validators) * int(minChance)
-	validatorList := make([]sharding.Validator, 0, minSize)
-
-	for _, validatorInShard := range validators {
-		pk := validatorInShard.PubKey()
-		validatorInfo, ok := mapValidatorInfo[string(pk)]
-		if !ok {
-			return nil, epochStart.ErrNilValidatorInfo
-		}
-
-		chances := n.chance.GetChance(validatorInfo.TempRating)
-		if chances < minChance {
-			chances = minChance
-		}
-
-		for i := uint32(0); i < chances; i++ {
-			validatorList = append(validatorList, validatorInShard)
-		}
-	}
-
-	return validatorList, nil
-}
-
 func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.EpochValidators {
 	result := &sharding.EpochValidators{
 		EligibleValidators: make(map[string][]*sharding.SerializableValidator, len(config.eligibleMap)),
@@ -301,6 +245,7 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 		result.LeavingValidators = append(result.LeavingValidators, &sharding.SerializableValidator{
 			PubKey:  v.PubKey(),
 			Chances: v.Chances(),
+			Index:   v.Index(),
 		})
 	}
 

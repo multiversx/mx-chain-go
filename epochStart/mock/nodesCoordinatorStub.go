@@ -1,7 +1,7 @@
 package mock
 
 import (
-	state2 "github.com/ElrondNetwork/elrond-go/data/state"
+	state "github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -12,6 +12,11 @@ type NodesCoordinatorStub struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
+}
+
+// GetChance -
+func (ncm *NodesCoordinatorStub) GetChance(uint32) uint32 {
+	return 1
 }
 
 // ValidatorsWeights -
@@ -30,7 +35,7 @@ func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry)
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorStub) ComputeLeaving(allValidators []*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+func (ncm *NodesCoordinatorStub) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	return nil, nil
 }
 
