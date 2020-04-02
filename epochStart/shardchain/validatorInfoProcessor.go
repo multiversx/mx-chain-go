@@ -88,22 +88,22 @@ func (vip *ValidatorInfoProcessor) init(metaBlock *block.MetaBlock, metablockHas
 }
 
 // ProcessMetaBlock processes an epochstart block asyncrhonous, processing the PeerMiniblocks
-func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) (map[string]*block.MiniBlock, error) {
+func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error) {
 	vip.init(metaBlock, metablockHash)
 
 	vip.computeMissingPeerBlocks(metaBlock)
 
-	allMissingPeerMiniblocks, err := vip.retrieveMissingBlocks()
+	allMissingPeerMiniblocksHashes, err := vip.retrieveMissingBlocks()
 	if err != nil {
-		return allMissingPeerMiniblocks, err
+		return allMissingPeerMiniblocksHashes, err
 	}
 
 	err = vip.processAllPeerMiniBlocks(metaBlock)
 	if err != nil {
-		return allMissingPeerMiniblocks, err
+		return allMissingPeerMiniblocksHashes, err
 	}
 
-	return allMissingPeerMiniblocks, nil
+	return allMissingPeerMiniblocksHashes, nil
 }
 
 func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte) {
@@ -192,7 +192,7 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 	vip.mutMiniBlocksForBlock.Unlock()
 }
 
-func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() (map[string]*block.MiniBlock, error) {
+func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() ([][]byte, error) {
 	vip.mutMiniBlocksForBlock.Lock()
 	missingMiniblocks := make([][]byte, 0)
 	for mbHash, mb := range vip.mapAllPeerMiniblocks {
@@ -213,22 +213,22 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() (map[string]*block.Mi
 	case <-vip.chRcvAllMiniblocks:
 		return nil, nil
 	case <-time.After(waitTime):
-		return vip.getAllMissingPeerMiniblocks(), process.ErrTimeIsOut
+		return vip.getAllMissingPeerMiniblocksHashes(), process.ErrTimeIsOut
 	}
 }
 
-func (vip *ValidatorInfoProcessor) getAllMissingPeerMiniblocks() map[string]*block.MiniBlock {
+func (vip *ValidatorInfoProcessor) getAllMissingPeerMiniblocksHashes() [][]byte {
 	vip.mutMiniBlocksForBlock.RLock()
 	defer vip.mutMiniBlocksForBlock.RUnlock()
 
-	mapMissingPeerMiniBlocks := make(map[string]*block.MiniBlock)
+	missingPeerMiniBlocksHashes := make([][]byte, 0)
 	for hash, mb := range vip.mapAllPeerMiniblocks {
 		if mb == nil {
-			mapMissingPeerMiniBlocks[hash] = mb
+			missingPeerMiniBlocksHashes = append(missingPeerMiniBlocksHashes, []byte(hash))
 		}
 	}
 
-	return mapMissingPeerMiniBlocks
+	return missingPeerMiniBlocksHashes
 }
 
 // IsInterfaceNil returns true if underlying object is nil

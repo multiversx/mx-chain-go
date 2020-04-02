@@ -506,9 +506,9 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocks, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
+		missingMiniblocksHashes, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
 		if err != nil {
-			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocks)
+			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)
 			return false, 0
 		}
@@ -520,13 +520,13 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	return isMetaHdrFinal, finalityAttestingRound
 }
 
-func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocks map[string]*block.MiniBlock) {
+func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocksHashes [][]byte) {
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
-	for hash := range missingMiniblocks {
-		t.mapMissingMiniblocks[hash] = epoch
-		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", []byte(hash))
+	for hash := range missingMiniblocksHashes {
+		t.mapMissingMiniblocks[string(hash)] = epoch
+		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", hash)
 	}
 }
 

@@ -7,7 +7,7 @@ type ValidatorInfoProcessorStub struct {
 }
 
 // ProcessMetaBlock -
-func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte) (map[string]*block.MiniBlock, error) {
+func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte) ([][]byte, error) {
 	return nil, nil
 }
 
