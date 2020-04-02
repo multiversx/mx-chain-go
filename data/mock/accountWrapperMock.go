@@ -16,9 +16,9 @@ type AccountWrapMock struct {
 	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
-	codeMetadata      []byte
-	codeHash          []byte
-	rootHash          []byte
+	CodeHash          []byte
+	CodeMetadata      []byte
+	RootHash          []byte
 	address           state.AddressContainer
 	trackableDataTrie state.DataTrieTracker
 
@@ -87,12 +87,12 @@ func (awm *AccountWrapMock) IsInterfaceNil() bool {
 
 // GetCodeHash -
 func (awm *AccountWrapMock) GetCodeHash() []byte {
-	return awm.codeHash
+	return awm.CodeHash
 }
 
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
-	awm.codeHash = codeHash
+	awm.CodeHash = codeHash
 }
 
 // SetCode -
@@ -107,22 +107,22 @@ func (awm *AccountWrapMock) GetCode() []byte {
 
 // SetCodeMetadata -
 func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
-	awm.codeMetadata = codeMetadata
+	awm.CodeMetadata = codeMetadata
 }
 
 // GetCodeMetadata -
 func (awm *AccountWrapMock) GetCodeMetadata() []byte {
-	return awm.codeMetadata
+	return awm.CodeMetadata
 }
 
 // GetRootHash -
 func (awm *AccountWrapMock) GetRootHash() []byte {
-	return awm.rootHash
+	return awm.RootHash
 }
 
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
-	awm.rootHash = rootHash
+	awm.RootHash = rootHash
 }
 
 // AddressContainer -

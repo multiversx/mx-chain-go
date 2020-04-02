@@ -1,4 +1,4 @@
-#Econimics config of the node
+#Economics config of the node
 [GlobalSettings]
     TotalSupply = "20000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
@@ -28,45 +28,3 @@
     MaximumPercentageToBleed = "0.5"
     BleedPercentagePerRound = "0.00001"
     UnJailValue = "1000"
-
-[RatingSettings]
-    StartRating = 500000
-    MaxRating = 1000000
-    MinRating = 1
-    ProposerIncreaseRatingStep = 405
-    ProposerDecreaseRatingStep = 810
-    ValidatorIncreaseRatingStep = 81
-    ValidatorDecreaseRatingStep = 162
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 0
-    ChancePercent = 5
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 100000
-    ChancePercent = 0
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 200000
-    ChancePercent = 16
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 300000
-    ChancePercent = 17
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 400000
-    ChancePercent = 18
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 500000
-    ChancePercent = 19
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 600000
-    ChancePercent = 20
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 700000
-    ChancePercent = 21
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 800000
-    ChancePercent = 22
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 900000
-    ChancePercent = 23
-    [[RatingSettings.SelectionChance]]
-    MaxThreshold = 1000000
-    ChancePercent = 24

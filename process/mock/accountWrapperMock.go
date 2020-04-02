@@ -12,6 +12,9 @@ type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          data.Trie
 	nonce             uint64
+	rating            uint32
+	tempRating        uint32
+	consecutiveMisses uint32
 	code              []byte
 	codeMetadata      []byte
 	codeHash          []byte
@@ -146,6 +149,16 @@ func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 // GetNonce -
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
+}
+
+// GetConsecutiveProposerMisses -
+func (awm *AccountWrapMock) GetConsecutiveProposerMisses() uint32 {
+	return awm.consecutiveMisses
+}
+
+// SetConsecutiveProposerMissesWithJournal -
+func (awm *AccountWrapMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
+	awm.consecutiveMisses = consecutiveMisses
 }
 
 // IsInterfaceNil -

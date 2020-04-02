@@ -1,10 +1,14 @@
 package state
 
-func (adb *AccountsDB) LoadCode(accountHandler UserAccountHandler) error {
+func NewEmptyBaseAccount(container AddressContainer, tracker DataTrieTracker) *baseAccount {
+	return &baseAccount{addressContainer: container, dataTrieTracker: tracker}
+}
+
+func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
-func (adb *AccountsDB) LoadDataTrie(accountHandler UserAccountHandler) error {
+func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
 	return adb.loadDataTrie(accountHandler)
 }
 
