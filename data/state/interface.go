@@ -89,12 +89,16 @@ type PeerAccountHandler interface {
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
+	GetTotalLeaderSuccessRate() SignRate
+	GetTotalValidatorSuccessRate() SignRate
 	SetListAndIndex(shardID uint32, list string, index uint32)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
 	SetTempRating(uint32)
-	ResetAtNewEpoch() error
+	GetConsecutiveProposerMisses() uint32
+	SetConsecutiveProposerMisses(uint322 uint32)
+	ResetAtNewEpoch()
 	AccountHandler
 }
 

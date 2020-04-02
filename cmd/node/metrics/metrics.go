@@ -25,6 +25,7 @@ func InitMetrics(
 	nodesConfig *sharding.NodesSetup,
 	version string,
 	economicsConfig *config.EconomicsConfig,
+	roundsPerEpoch int64,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration
@@ -37,6 +38,7 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
@@ -56,6 +58,8 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
 	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)

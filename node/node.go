@@ -81,6 +81,7 @@ type Node struct {
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
+	validatorsProvider       	  process.ValidatorsProvider
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -741,7 +742,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	}
 
 	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAddressNotInThisShard) {
+	if errors.Is(err, process.ErrAccountNotFound) {
 		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
 		return nil
 	}
@@ -945,7 +946,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
 
-	allValidators, _, err := n.getLatestValidators()
+	allValidators, _, _ := n.getLatestValidators()
 	pubKeysMap := make(map[uint32][]string)
 	for shardID, valsInShard := range allValidators {
 		for _, val := range valsInShard {
@@ -1033,27 +1034,7 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
-	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	validators, m, err := n.getLatestValidators()
-	if err != nil {
-		return m, err
-	}
-
-	for _, validatorInfosInShard := range validators {
-		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString(validatorInfo.PublicKey)
-			mapToReturn[strKey] = &state.ValidatorApiResponse{
-				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
-				NrLeaderFailure:    validatorInfo.LeaderFailure,
-				NrValidatorSuccess: validatorInfo.ValidatorSuccess,
-				NrValidatorFailure: validatorInfo.ValidatorFailure,
-				Rating:             float32(validatorInfo.Rating) * 100 / 1000000,
-				TempRating:         float32(validatorInfo.TempRating) * 100 / 1000000,
-			}
-		}
-	}
-
-	return mapToReturn, nil
+	return n.validatorsProvider.GetLatestValidators(), nil
 }
 
 func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {

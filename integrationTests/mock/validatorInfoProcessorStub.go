@@ -7,8 +7,8 @@ type ValidatorInfoProcessorStub struct {
 }
 
 // ProcessMetaBlock -
-func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte) error {
-	return nil
+func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte) ([][]byte, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -

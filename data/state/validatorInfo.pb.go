@@ -42,6 +42,10 @@ type ValidatorInfo struct {
 	ValidatorFailure           uint32        `protobuf:"varint,11,opt,name=ValidatorFailure,proto3" json:"ValidatorFailure,omitempty"`
 	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,12,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
 	AccumulatedFees            *math_big.Int `protobuf:"bytes,13,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	TotalLeaderSuccess         uint32        `protobuf:"varint,14,opt,name=TotalLeaderSuccess,proto3" json:"TotalLeaderSuccess,omitempty"`
+	TotalLeaderFailure         uint32        `protobuf:"varint,15,opt,name=TotalLeaderFailure,proto3" json:"TotalLeaderFailure,omitempty"`
+	TotalValidatorSuccess      uint32        `protobuf:"varint,16,opt,name=TotalValidatorSuccess,proto3" json:"TotalValidatorSuccess,omitempty"`
+	TotalValidatorFailure      uint32        `protobuf:"varint,17,opt,name=TotalValidatorFailure,proto3" json:"TotalValidatorFailure,omitempty"`
 }
 
 func (m *ValidatorInfo) Reset()      { *m = ValidatorInfo{} }
@@ -163,42 +167,145 @@ func (m *ValidatorInfo) GetAccumulatedFees() *math_big.Int {
 	return nil
 }
 
+func (m *ValidatorInfo) GetTotalLeaderSuccess() uint32 {
+	if m != nil {
+		return m.TotalLeaderSuccess
+	}
+	return 0
+}
+
+func (m *ValidatorInfo) GetTotalLeaderFailure() uint32 {
+	if m != nil {
+		return m.TotalLeaderFailure
+	}
+	return 0
+}
+
+func (m *ValidatorInfo) GetTotalValidatorSuccess() uint32 {
+	if m != nil {
+		return m.TotalValidatorSuccess
+	}
+	return 0
+}
+
+func (m *ValidatorInfo) GetTotalValidatorFailure() uint32 {
+	if m != nil {
+		return m.TotalValidatorFailure
+	}
+	return 0
+}
+
+type ShardValidatorInfo struct {
+	PublicKey  []byte `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
+	ShardId    uint32 `protobuf:"varint,2,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
+	List       string `protobuf:"bytes,3,opt,name=List,proto3" json:"List,omitempty"`
+	Index      uint32 `protobuf:"varint,4,opt,name=Index,proto3" json:"Index,omitempty"`
+	TempRating uint32 `protobuf:"varint,5,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
+}
+
+func (m *ShardValidatorInfo) Reset()      { *m = ShardValidatorInfo{} }
+func (*ShardValidatorInfo) ProtoMessage() {}
+func (*ShardValidatorInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bf9cdc082f0b2ec2, []int{1}
+}
+func (m *ShardValidatorInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ShardValidatorInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ShardValidatorInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ShardValidatorInfo.Merge(m, src)
+}
+func (m *ShardValidatorInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *ShardValidatorInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_ShardValidatorInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ShardValidatorInfo proto.InternalMessageInfo
+
+func (m *ShardValidatorInfo) GetPublicKey() []byte {
+	if m != nil {
+		return m.PublicKey
+	}
+	return nil
+}
+
+func (m *ShardValidatorInfo) GetShardId() uint32 {
+	if m != nil {
+		return m.ShardId
+	}
+	return 0
+}
+
+func (m *ShardValidatorInfo) GetList() string {
+	if m != nil {
+		return m.List
+	}
+	return ""
+}
+
+func (m *ShardValidatorInfo) GetIndex() uint32 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *ShardValidatorInfo) GetTempRating() uint32 {
+	if m != nil {
+		return m.TempRating
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*ValidatorInfo)(nil), "proto.ValidatorInfo")
+	proto.RegisterType((*ShardValidatorInfo)(nil), "proto.ShardValidatorInfo")
 }
 
 func init() { proto.RegisterFile("validatorInfo.proto", fileDescriptor_bf9cdc082f0b2ec2) }
 
 var fileDescriptor_bf9cdc082f0b2ec2 = []byte{
-	// 439 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x92, 0x41, 0x8b, 0x13, 0x31,
-	0x14, 0xc7, 0x27, 0xda, 0x76, 0x6d, 0xdc, 0xa2, 0x44, 0x91, 0xb0, 0x48, 0x2c, 0xe2, 0xa1, 0x08,
-	0xdb, 0x39, 0x78, 0x14, 0x94, 0x56, 0x76, 0x61, 0x70, 0x59, 0x64, 0x2a, 0x1e, 0xbc, 0x65, 0x92,
-	0xb7, 0xd3, 0xb0, 0x33, 0x93, 0x25, 0x93, 0xb8, 0x7a, 0xf3, 0x23, 0xf8, 0x21, 0x3c, 0x88, 0x9f,
-	0xc4, 0x63, 0x8f, 0xbd, 0x69, 0xd3, 0x8b, 0xc7, 0xfd, 0x08, 0xd2, 0x6c, 0xeb, 0x4e, 0x57, 0xf0,
-	0x94, 0xf7, 0xff, 0xbf, 0xdf, 0xfb, 0x13, 0x1e, 0x0f, 0xdf, 0xfb, 0xc0, 0x0b, 0x25, 0xb9, 0xd5,
-	0x26, 0xa9, 0x4e, 0xf4, 0xf0, 0xcc, 0x68, 0xab, 0x49, 0x3b, 0x3c, 0x7b, 0xfb, 0xb9, 0xb2, 0x53,
-	0x97, 0x0d, 0x85, 0x2e, 0xe3, 0x5c, 0xe7, 0x3a, 0x0e, 0x76, 0xe6, 0x4e, 0x82, 0x0a, 0x22, 0x54,
-	0x97, 0x53, 0x8f, 0xbf, 0xb6, 0x70, 0xef, 0x5d, 0x33, 0x8d, 0x3c, 0xc4, 0xdd, 0x37, 0x2e, 0x2b,
-	0x94, 0x78, 0x0d, 0x9f, 0x28, 0xea, 0xa3, 0xc1, 0x6e, 0x7a, 0x65, 0x10, 0x8a, 0x77, 0x26, 0x53,
-	0x6e, 0x64, 0x22, 0xe9, 0x8d, 0x3e, 0x1a, 0xf4, 0xd2, 0x8d, 0x24, 0x04, 0xb7, 0x8e, 0x54, 0x6d,
-	0xe9, 0xcd, 0x3e, 0x1a, 0x74, 0xd3, 0x50, 0x93, 0xfb, 0xb8, 0x9d, 0x54, 0x12, 0x3e, 0xd2, 0x56,
-	0x60, 0x2f, 0x05, 0x61, 0x18, 0xbf, 0x85, 0xf2, 0x2c, 0xe5, 0x56, 0x55, 0x39, 0x6d, 0x87, 0x56,
-	0xc3, 0x21, 0x0f, 0x70, 0x67, 0xdd, 0xeb, 0x84, 0xde, 0x5a, 0x91, 0x27, 0xb8, 0x97, 0xc2, 0x39,
-	0x37, 0x72, 0x24, 0xa5, 0x81, 0xba, 0xa6, 0x3b, 0xe1, 0x77, 0xdb, 0xe6, 0x8a, 0x3a, 0x02, 0x2e,
-	0xc1, 0x4c, 0x9c, 0x10, 0x2b, 0xea, 0x56, 0x08, 0xd9, 0x36, 0xaf, 0xa8, 0x43, 0xae, 0x0a, 0x67,
-	0x80, 0x76, 0x9b, 0xd4, 0xda, 0x24, 0x4f, 0xf1, 0xdd, 0xbf, 0xcb, 0xd9, 0xc4, 0xe1, 0x00, 0xfe,
-	0xe3, 0x6f, 0xb1, 0x9b, 0xd0, 0xdb, 0xd7, 0xd8, 0x4d, 0xee, 0x0b, 0xbc, 0x77, 0xec, 0xca, 0x09,
-	0x14, 0x20, 0x2c, 0xc8, 0xa4, 0x5a, 0x67, 0x8c, 0x0b, 0x2d, 0x4e, 0x6b, 0xba, 0x1b, 0xa6, 0xfe,
-	0x43, 0x10, 0x8d, 0xef, 0x8c, 0x84, 0x70, 0xa5, 0x2b, 0xb8, 0x05, 0x79, 0x08, 0x50, 0xd3, 0xde,
-	0x6a, 0x17, 0xe3, 0x83, 0xef, 0x3f, 0x1f, 0x8d, 0x4a, 0x6e, 0xa7, 0x71, 0xa6, 0xf2, 0x61, 0x52,
-	0xd9, 0xe7, 0x8d, 0x73, 0x38, 0x28, 0x8c, 0xae, 0xe4, 0x31, 0xd8, 0x73, 0x6d, 0x4e, 0x63, 0x08,
-	0x6a, 0x3f, 0xd7, 0xb1, 0xe4, 0x96, 0x0f, 0xc7, 0x2a, 0x4f, 0x2a, 0xfb, 0x8a, 0xd7, 0x16, 0x4c,
-	0x7a, 0x3d, 0x7d, 0xfc, 0x72, 0xb6, 0x60, 0xd1, 0x7c, 0xc1, 0xa2, 0x8b, 0x05, 0x43, 0x9f, 0x3d,
-	0x43, 0xdf, 0x3c, 0x43, 0x3f, 0x3c, 0x43, 0x33, 0xcf, 0xd0, 0xdc, 0x33, 0xf4, 0xcb, 0x33, 0xf4,
-	0xdb, 0xb3, 0xe8, 0xc2, 0x33, 0xf4, 0x65, 0xc9, 0xa2, 0xd9, 0x92, 0x45, 0xf3, 0x25, 0x8b, 0xde,
-	0xb7, 0x6b, 0xcb, 0x2d, 0x64, 0x9d, 0x70, 0x6e, 0xcf, 0xfe, 0x04, 0x00, 0x00, 0xff, 0xff, 0x86,
-	0x05, 0x36, 0x66, 0xbb, 0x02, 0x00, 0x00,
+	// 492 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x53, 0x3d, 0x6f, 0xd3, 0x40,
+	0x18, 0xf6, 0x41, 0x9d, 0x92, 0xa3, 0xa1, 0xe5, 0xf8, 0xd0, 0xa9, 0x42, 0x47, 0x54, 0x31, 0x44,
+	0x48, 0xb5, 0x07, 0xd8, 0x90, 0x40, 0x09, 0x6a, 0x25, 0x8b, 0xaa, 0x42, 0x4e, 0xc5, 0xc0, 0x76,
+	0xf6, 0x5d, 0x1d, 0xab, 0xb6, 0xaf, 0x3a, 0x9f, 0x29, 0x6c, 0xfc, 0x04, 0x26, 0x7e, 0x03, 0xe2,
+	0x97, 0x30, 0x66, 0xcc, 0x06, 0x71, 0x16, 0xc6, 0xfc, 0x04, 0x94, 0xb7, 0x36, 0xf9, 0x14, 0x33,
+	0x93, 0xef, 0xf9, 0x78, 0x1f, 0x9f, 0x1e, 0xbd, 0x87, 0xef, 0x7d, 0xe0, 0x49, 0x2c, 0xb8, 0x51,
+	0xda, 0xcb, 0xce, 0x95, 0x73, 0xa9, 0x95, 0x51, 0xc4, 0x86, 0xcf, 0xfe, 0x61, 0x14, 0x9b, 0x41,
+	0x11, 0x38, 0xa1, 0x4a, 0xdd, 0x48, 0x45, 0xca, 0x05, 0x3a, 0x28, 0xce, 0x01, 0x01, 0x80, 0xd3,
+	0xf5, 0xd4, 0xc1, 0xd4, 0xc6, 0xad, 0x77, 0x8b, 0x69, 0xe4, 0x11, 0x6e, 0xbe, 0x2d, 0x82, 0x24,
+	0x0e, 0xdf, 0xc8, 0x4f, 0x14, 0xb5, 0x51, 0x67, 0xc7, 0x9f, 0x13, 0x84, 0xe2, 0xed, 0xfe, 0x80,
+	0x6b, 0xe1, 0x09, 0x7a, 0xa3, 0x8d, 0x3a, 0x2d, 0xbf, 0x86, 0x84, 0xe0, 0xad, 0x93, 0x38, 0x37,
+	0xf4, 0x66, 0x1b, 0x75, 0x9a, 0x3e, 0x9c, 0xc9, 0x7d, 0x6c, 0x7b, 0x99, 0x90, 0x1f, 0xe9, 0x16,
+	0x78, 0xaf, 0x01, 0x61, 0x18, 0x9f, 0xc9, 0xf4, 0xd2, 0xe7, 0x26, 0xce, 0x22, 0x6a, 0x83, 0xb4,
+	0xc0, 0x90, 0x87, 0xb8, 0x51, 0x69, 0x0d, 0xd0, 0x2a, 0x44, 0x9e, 0xe0, 0x96, 0x2f, 0xaf, 0xb8,
+	0x16, 0x5d, 0x21, 0xb4, 0xcc, 0x73, 0xba, 0x0d, 0xb7, 0x5b, 0x26, 0x67, 0xae, 0x13, 0xc9, 0x85,
+	0xd4, 0xfd, 0x22, 0x0c, 0x67, 0xae, 0x5b, 0x10, 0xb2, 0x4c, 0xce, 0x5d, 0xc7, 0x3c, 0x4e, 0x0a,
+	0x2d, 0x69, 0x73, 0xd1, 0x55, 0x91, 0xe4, 0x29, 0xde, 0xfb, 0x5b, 0x4e, 0x1d, 0x87, 0xc1, 0xb8,
+	0xc6, 0x2f, 0x79, 0xeb, 0xd0, 0xdb, 0x2b, 0xde, 0x3a, 0xf7, 0x25, 0xde, 0x3f, 0x2d, 0xd2, 0xbe,
+	0x4c, 0x64, 0x68, 0xa4, 0xf0, 0xb2, 0x2a, 0xa3, 0x97, 0xa8, 0xf0, 0x22, 0xa7, 0x3b, 0x30, 0xf5,
+	0x0f, 0x07, 0x51, 0x78, 0xb7, 0x1b, 0x86, 0x45, 0x5a, 0x24, 0xdc, 0x48, 0x71, 0x2c, 0x65, 0x4e,
+	0x5b, 0xb3, 0x2e, 0x7a, 0x47, 0xdf, 0x7f, 0x3e, 0xee, 0xa6, 0xdc, 0x0c, 0xdc, 0x20, 0x8e, 0x1c,
+	0x2f, 0x33, 0x2f, 0x16, 0xd6, 0xe1, 0x28, 0xd1, 0x2a, 0x13, 0xa7, 0xd2, 0x5c, 0x29, 0x7d, 0xe1,
+	0x4a, 0x40, 0x87, 0x91, 0x72, 0x05, 0x37, 0xdc, 0xe9, 0xc5, 0x91, 0x97, 0x99, 0xd7, 0x3c, 0x37,
+	0x52, 0xfb, 0xab, 0xe9, 0xc4, 0xc1, 0xe4, 0x4c, 0x19, 0x9e, 0x2c, 0x37, 0x7b, 0x07, 0x2e, 0xba,
+	0x41, 0x59, 0xf1, 0xd7, 0x75, 0xec, 0xae, 0xf9, 0xeb, 0x42, 0x9e, 0xe3, 0x07, 0xc0, 0xae, 0xb5,
+	0xbd, 0x07, 0x23, 0x9b, 0xc5, 0xf5, 0xa9, 0xfa, 0x47, 0x77, 0x37, 0x4d, 0x55, 0xe2, 0xc1, 0x57,
+	0x84, 0x09, 0x2c, 0xed, 0x7f, 0xb6, 0xf7, 0xbd, 0x57, 0xc3, 0x31, 0xb3, 0x46, 0x63, 0x66, 0x4d,
+	0xc7, 0x0c, 0x7d, 0x2e, 0x19, 0xfa, 0x56, 0x32, 0xf4, 0xa3, 0x64, 0x68, 0x58, 0x32, 0x34, 0x2a,
+	0x19, 0xfa, 0x55, 0x32, 0xf4, 0xbb, 0x64, 0xd6, 0xb4, 0x64, 0xe8, 0xcb, 0x84, 0x59, 0xc3, 0x09,
+	0xb3, 0x46, 0x13, 0x66, 0xbd, 0xb7, 0x73, 0xc3, 0x8d, 0x0c, 0x1a, 0xf0, 0xa6, 0x9f, 0xfd, 0x09,
+	0x00, 0x00, 0xff, 0xff, 0xff, 0xeb, 0x04, 0x3c, 0x20, 0x04, 0x00, 0x00,
 }
 
 func (this *ValidatorInfo) Equal(that interface{}) bool {
@@ -262,13 +369,61 @@ func (this *ValidatorInfo) Equal(that interface{}) bool {
 			return false
 		}
 	}
+	if this.TotalLeaderSuccess != that1.TotalLeaderSuccess {
+		return false
+	}
+	if this.TotalLeaderFailure != that1.TotalLeaderFailure {
+		return false
+	}
+	if this.TotalValidatorSuccess != that1.TotalValidatorSuccess {
+		return false
+	}
+	if this.TotalValidatorFailure != that1.TotalValidatorFailure {
+		return false
+	}
+	return true
+}
+func (this *ShardValidatorInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ShardValidatorInfo)
+	if !ok {
+		that2, ok := that.(ShardValidatorInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.PublicKey, that1.PublicKey) {
+		return false
+	}
+	if this.ShardId != that1.ShardId {
+		return false
+	}
+	if this.List != that1.List {
+		return false
+	}
+	if this.Index != that1.Index {
+		return false
+	}
+	if this.TempRating != that1.TempRating {
+		return false
+	}
 	return true
 }
 func (this *ValidatorInfo) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 17)
+	s := make([]string, 0, 21)
 	s = append(s, "&state.ValidatorInfo{")
 	s = append(s, "PublicKey: "+fmt.Sprintf("%#v", this.PublicKey)+",\n")
 	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
@@ -283,6 +438,24 @@ func (this *ValidatorInfo) GoString() string {
 	s = append(s, "ValidatorFailure: "+fmt.Sprintf("%#v", this.ValidatorFailure)+",\n")
 	s = append(s, "NumSelectedInSuccessBlocks: "+fmt.Sprintf("%#v", this.NumSelectedInSuccessBlocks)+",\n")
 	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
+	s = append(s, "TotalLeaderSuccess: "+fmt.Sprintf("%#v", this.TotalLeaderSuccess)+",\n")
+	s = append(s, "TotalLeaderFailure: "+fmt.Sprintf("%#v", this.TotalLeaderFailure)+",\n")
+	s = append(s, "TotalValidatorSuccess: "+fmt.Sprintf("%#v", this.TotalValidatorSuccess)+",\n")
+	s = append(s, "TotalValidatorFailure: "+fmt.Sprintf("%#v", this.TotalValidatorFailure)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ShardValidatorInfo) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&state.ShardValidatorInfo{")
+	s = append(s, "PublicKey: "+fmt.Sprintf("%#v", this.PublicKey)+",\n")
+	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
+	s = append(s, "List: "+fmt.Sprintf("%#v", this.List)+",\n")
+	s = append(s, "Index: "+fmt.Sprintf("%#v", this.Index)+",\n")
+	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -314,6 +487,30 @@ func (m *ValidatorInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.TotalValidatorFailure != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TotalValidatorFailure))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.TotalValidatorSuccess != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TotalValidatorSuccess))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.TotalLeaderFailure != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TotalLeaderFailure))
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.TotalLeaderSuccess != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TotalLeaderSuccess))
+		i--
+		dAtA[i] = 0x70
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		size := __caster.Size(m.AccumulatedFees)
@@ -362,6 +559,58 @@ func (m *ValidatorInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
+	if m.TempRating != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TempRating))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Index != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.List) > 0 {
+		i -= len(m.List)
+		copy(dAtA[i:], m.List)
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(len(m.List)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ShardId != 0 {
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.ShardId))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintValidatorInfo(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ShardValidatorInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ShardValidatorInfo) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ShardValidatorInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
 	if m.TempRating != 0 {
 		i = encodeVarintValidatorInfo(dAtA, i, uint64(m.TempRating))
 		i--
@@ -455,6 +704,44 @@ func (m *ValidatorInfo) Size() (n int) {
 		l = __caster.Size(m.AccumulatedFees)
 		n += 1 + l + sovValidatorInfo(uint64(l))
 	}
+	if m.TotalLeaderSuccess != 0 {
+		n += 1 + sovValidatorInfo(uint64(m.TotalLeaderSuccess))
+	}
+	if m.TotalLeaderFailure != 0 {
+		n += 1 + sovValidatorInfo(uint64(m.TotalLeaderFailure))
+	}
+	if m.TotalValidatorSuccess != 0 {
+		n += 2 + sovValidatorInfo(uint64(m.TotalValidatorSuccess))
+	}
+	if m.TotalValidatorFailure != 0 {
+		n += 2 + sovValidatorInfo(uint64(m.TotalValidatorFailure))
+	}
+	return n
+}
+
+func (m *ShardValidatorInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PublicKey)
+	if l > 0 {
+		n += 1 + l + sovValidatorInfo(uint64(l))
+	}
+	if m.ShardId != 0 {
+		n += 1 + sovValidatorInfo(uint64(m.ShardId))
+	}
+	l = len(m.List)
+	if l > 0 {
+		n += 1 + l + sovValidatorInfo(uint64(l))
+	}
+	if m.Index != 0 {
+		n += 1 + sovValidatorInfo(uint64(m.Index))
+	}
+	if m.TempRating != 0 {
+		n += 1 + sovValidatorInfo(uint64(m.TempRating))
+	}
 	return n
 }
 
@@ -482,6 +769,24 @@ func (this *ValidatorInfo) String() string {
 		`ValidatorFailure:` + fmt.Sprintf("%v", this.ValidatorFailure) + `,`,
 		`NumSelectedInSuccessBlocks:` + fmt.Sprintf("%v", this.NumSelectedInSuccessBlocks) + `,`,
 		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
+		`TotalLeaderSuccess:` + fmt.Sprintf("%v", this.TotalLeaderSuccess) + `,`,
+		`TotalLeaderFailure:` + fmt.Sprintf("%v", this.TotalLeaderFailure) + `,`,
+		`TotalValidatorSuccess:` + fmt.Sprintf("%v", this.TotalValidatorSuccess) + `,`,
+		`TotalValidatorFailure:` + fmt.Sprintf("%v", this.TotalValidatorFailure) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ShardValidatorInfo) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ShardValidatorInfo{`,
+		`PublicKey:` + fmt.Sprintf("%v", this.PublicKey) + `,`,
+		`ShardId:` + fmt.Sprintf("%v", this.ShardId) + `,`,
+		`List:` + fmt.Sprintf("%v", this.List) + `,`,
+		`Index:` + fmt.Sprintf("%v", this.Index) + `,`,
+		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -832,6 +1137,258 @@ func (m *ValidatorInfo) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalLeaderSuccess", wireType)
+			}
+			m.TotalLeaderSuccess = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalLeaderSuccess |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalLeaderFailure", wireType)
+			}
+			m.TotalLeaderFailure = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalLeaderFailure |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalValidatorSuccess", wireType)
+			}
+			m.TotalValidatorSuccess = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalValidatorSuccess |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalValidatorFailure", wireType)
+			}
+			m.TotalValidatorFailure = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalValidatorFailure |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipValidatorInfo(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ShardValidatorInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowValidatorInfo
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ShardValidatorInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ShardValidatorInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PublicKey = append(m.PublicKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.PublicKey == nil {
+				m.PublicKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardId", wireType)
+			}
+			m.ShardId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field List", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthValidatorInfo
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.List = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
+			}
+			m.TempRating = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowValidatorInfo
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TempRating |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipValidatorInfo(dAtA[iNdEx:])

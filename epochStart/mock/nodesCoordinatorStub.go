@@ -13,6 +13,11 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorStub) ValidatorsWeights(_ []sharding.Validator) ([]uint32, error) {
+	return nil, nil
+}
+
 // GetAllLeavingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
 	return nil, nil

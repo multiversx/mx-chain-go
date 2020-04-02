@@ -416,5 +416,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		MiniBlockStorage: &mock.StorerStub{},
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
+		DataPool:         &mock.PoolsHolderStub{},
 	}
 }

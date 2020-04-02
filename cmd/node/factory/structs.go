@@ -172,6 +172,7 @@ type Process struct {
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
 	ValidatorsStatistics     process.ValidatorStatisticsProcessor
+	ValidatorsProvider       process.ValidatorsProvider
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
@@ -563,6 +564,7 @@ type processComponentsFactoryArgs struct {
 	numConcurrentResolverJobs int32
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
+	maxRating                 uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -593,6 +595,7 @@ func NewProcessComponentsFactoryArgs(
 	numConcurrentResolverJobs int32,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
+	maxRating uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -621,6 +624,7 @@ func NewProcessComponentsFactoryArgs(
 		numConcurrentResolverJobs: numConcurrentResolverJobs,
 		minSizeInBytes:            minSizeInBytes,
 		maxSizeInBytes:            maxSizeInBytes,
+		maxRating:                 maxRating,
 	}
 }
 
@@ -687,6 +691,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	validatorsProvider, err := peer.NewValidatorsProvider(validatorStatisticsProcessor, args.maxRating)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler, validatorStatisticsProcessor)
 	if err != nil {
 		return nil, err
@@ -737,6 +746,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		requestHandler,
 		rounder,
 		genesisBlocks,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+		blockTracker,
+		args.data.Datapool,
+		rounder,
+		args.shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -813,6 +832,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BootStorer:               bootStorer,
 		HeaderSigVerifier:        headerSigVerifier,
 		ValidatorsStatistics:     validatorStatisticsProcessor,
+		ValidatorsProvider:       validatorsProvider,
 		BlockTracker:             blockTracker,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
@@ -903,6 +923,10 @@ func newEpochStartTrigger(
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
 		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
+		}
 
 		return epochStartTrigger, nil
 	}
@@ -920,6 +944,10 @@ func newEpochStartTrigger(
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
+		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
 		}
 
 		return epochStartTrigger, nil
@@ -2043,6 +2071,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -2054,6 +2083,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

@@ -111,7 +111,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	mapValidatorInfo := make(map[string]*state.ValidatorInfo, len(validatorInfos))
 	for _, validatorInfo := range validatorInfos {
-		validator, err := sharding.NewValidator(validatorInfo.PublicKey, validatorInfo.RewardAddress)
+		validator, err := sharding.NewValidator(validatorInfo.PublicKey, validatorInfo.RewardAddress, validatorInfo.TempRating)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +161,7 @@ func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) 
 
 		chances := n.chance.GetChance(validator.TempRating)
 		if chances < minChances {
-			val, err := sharding.NewValidator(validator.PublicKey, validator.RewardAddress)
+			val, err := sharding.NewValidator(validator.PublicKey, validator.RewardAddress, chances)
 			if err != nil {
 				return nil, err
 			}

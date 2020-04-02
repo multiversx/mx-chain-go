@@ -1,6 +1,8 @@
 package networksharding_test
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import (
+	"github.com/ElrondNetwork/elrond-go/sharding"
+)
 
 // NodesCoordinatorStub can not be moved inside mock package as it generates cyclic imports.
 //TODO refactor mock package & sharding package & remove this file. Put tests in sharding_test package
@@ -95,6 +97,16 @@ func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte, epo
 	}
 
 	return nil, 0, sharding.ErrValidatorNotFound
+}
+
+// ValidatorsWeights -
+func (ncs *nodesCoordinatorStub) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
 }
 
 // IsInterfaceNil -
