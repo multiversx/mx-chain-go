@@ -1053,11 +1053,7 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		hdrs, err := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
-		if err != nil {
-			return nil, nil, err
-		}
-
+		hdrs := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
 	}
 
@@ -1072,10 +1068,9 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) []data.HeaderHandler {
 	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.ShardInfo))
 
-	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
 		if shardInfo.ShardID != shardId {
@@ -1091,18 +1086,13 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 				"shard", shardInfo.ShardID,
 			)
 
-			errFound = err
 			continue
 		}
 
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	if errFound != nil {
-		return nil, errFound
-	}
-
-	return data.TrimHeaderHandlerSlice(ownShIdHdr), nil
+	return data.TrimHeaderHandlerSlice(ownShIdHdr)
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
