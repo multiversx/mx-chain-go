@@ -766,7 +766,7 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
 type ValidatorInfoProcessorHandler interface {
-	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

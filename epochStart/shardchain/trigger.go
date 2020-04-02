@@ -6,6 +6,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -25,6 +26,9 @@ import (
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
+
+// sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniblocks method
+const sleepTime = 1 * time.Second
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
@@ -62,6 +66,7 @@ type trigger struct {
 	mapEpochStartHdrs map[string]*block.MetaBlock
 
 	headersPool         dataRetriever.HeadersPool
+	miniBlocksPool      storage.Cacher
 	shardHdrStorage     storage.Storer
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
@@ -84,6 +89,9 @@ type trigger struct {
 	validatorInfoProcessor process.ValidatorInfoProcessorHandler
 
 	appStatusHandler core.AppStatusHandler
+
+	mapMissingMiniblocks map[string]uint32
+	mutMissingMiniblocks sync.RWMutex
 }
 
 type metaInfo struct {
@@ -149,7 +157,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
 
-	newTrigger := &trigger{
+	t := &trigger{
 		triggerStateKey:             []byte(trigStateKey),
 		epoch:                       args.Epoch,
 		currentRoundIndex:           0,
@@ -164,6 +172,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapNonceHashes:              make(map[uint64][]string),
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
 		headersPool:                 args.DataPool.Headers(),
+		miniBlocksPool:              args.DataPool.MiniBlocks(),
 		metaHdrStorage:              metaHdrStorage,
 		shardHdrStorage:             shardHdrStorage,
 		triggerStorage:              triggerStorage,
@@ -181,14 +190,69 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
-	newTrigger.headersPool.RegisterHandler(newTrigger.receivedMetaBlock)
+	t.headersPool.RegisterHandler(t.receivedMetaBlock)
 
-	err := newTrigger.saveState(newTrigger.triggerStateKey)
+	err := t.saveState(t.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return newTrigger, nil
+	t.mapMissingMiniblocks = make(map[string]uint32)
+	go t.requestMissingMiniblocks()
+
+	return t, nil
+}
+
+func (t *trigger) clearMissingMiniblocksMap(epoch uint32) {
+	t.mutMissingMiniblocks.Lock()
+	defer t.mutMissingMiniblocks.Unlock()
+
+	for hash, epochOfMissingMb := range t.mapMissingMiniblocks {
+		if epochOfMissingMb <= epoch {
+			delete(t.mapMissingMiniblocks, hash)
+		}
+	}
+}
+
+func (t *trigger) requestMissingMiniblocks() {
+	for {
+		time.Sleep(sleepTime)
+
+		t.mutMissingMiniblocks.RLock()
+		if len(t.mapMissingMiniblocks) == 0 {
+			t.mutMissingMiniblocks.RUnlock()
+			continue
+		}
+
+		missingMiniblocks := make([][]byte, len(t.mapMissingMiniblocks))
+		for hash := range t.mapMissingMiniblocks {
+			missingMiniblocks = append(missingMiniblocks, []byte(hash))
+			log.Debug("trigger.requestMissingMiniblocks", "hash", []byte(hash))
+		}
+		t.mutMissingMiniblocks.RUnlock()
+
+		go t.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
+		time.Sleep(waitTime)
+		t.updateMissingMiniblocks()
+	}
+}
+
+func (t *trigger) updateMissingMiniblocks() {
+	t.mutMissingMiniblocks.Lock()
+	for hash := range t.mapMissingMiniblocks {
+		if t.miniBlocksPool.Has([]byte(hash)) {
+			delete(t.mapMissingMiniblocks, hash)
+		}
+	}
+	numMissingMiniblocks := len(t.mapMissingMiniblocks)
+	t.mutMissingMiniblocks.Unlock()
+
+	if numMissingMiniblocks == 0 {
+		log.Debug("trigger.updateMissingMiniblocks -> updateTriggerFromMeta")
+		t.mutTrigger.Lock()
+		t.updateTriggerFromMeta()
+		t.mutTrigger.Unlock()
+	}
 }
 
 // IsEpochStart returns true if conditions are fulfilled for start of epoch
@@ -313,19 +377,19 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	t.updateTriggerFromMeta(metaHdr, metaBlockHash)
+	if metaHdr.IsStartOfEpochBlock() {
+		t.newEpochHdrReceived = true
+		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
+	}
+
+	t.mapHashHdr[string(metaBlockHash)] = metaHdr
+	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(metaBlockHash))
+
+	t.updateTriggerFromMeta()
 }
 
 // call only if mutex is locked before
-func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte) {
-	if metaHdr.IsStartOfEpochBlock() {
-		t.newEpochHdrReceived = true
-		t.mapEpochStartHdrs[string(hdrHash)] = metaHdr
-	}
-
-	t.mapHashHdr[string(hdrHash)] = metaHdr
-	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
-
+func (t *trigger) updateTriggerFromMeta() {
 	sortedMetaInfo := make([]*metaInfo, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
 		currMetaInfo := &metaInfo{
@@ -354,6 +418,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.epoch)
+			t.clearMissingMiniblocksMap(t.epoch)
 		}
 
 		// save all final-valid epoch start blocks
@@ -441,8 +506,9 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
+		missingMiniblocksHashes, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
 		if err != nil {
+			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)
 			return false, 0
 		}
@@ -452,6 +518,16 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
+}
+
+func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocksHashes [][]byte) {
+	t.mutMissingMiniblocks.Lock()
+	defer t.mutMissingMiniblocks.Unlock()
+
+	for hash := range missingMiniblocksHashes {
+		t.mapMissingMiniblocks[string(hash)] = epoch
+		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", hash)
+	}
 }
 
 // call only if mutex is locked before
