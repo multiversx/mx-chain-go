@@ -29,7 +29,7 @@ type crossTxInfo struct {
 // crossTxsPoolsCleaner represents a pools cleaner that check and clean cross txs which should not be in pool anymore
 type crossTxsPoolsCleaner struct {
 	blockTracker             BlockTracker
-	transactionsPool         dataRetriever.ShardedDataCacherNotifier
+	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
 	rounder                  process.Rounder
@@ -71,7 +71,7 @@ func NewCrossTxsPoolsCleaner(
 
 	ctpc := crossTxsPoolsCleaner{
 		blockTracker:             blockTracker,
-		transactionsPool:         dataPool.Transactions(),
+		blockTransactionsPool:    dataPool.Transactions(),
 		rewardTransactionsPool:   dataPool.RewardTransactions(),
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
 		rounder:                  rounder,
@@ -80,7 +80,7 @@ func NewCrossTxsPoolsCleaner(
 
 	ctpc.mapCrossTxsRounds = make(map[string]*crossTxInfo)
 
-	ctpc.transactionsPool.RegisterHandler(ctpc.receivedBlockTx)
+	ctpc.blockTransactionsPool.RegisterHandler(ctpc.receivedBlockTx)
 	ctpc.rewardTransactionsPool.RegisterHandler(ctpc.receivedRewardTx)
 	ctpc.unsignedTransactionsPool.RegisterHandler(ctpc.receivedUnsignedTx)
 
@@ -92,7 +92,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedBlockTx(key []byte) {
 		return
 	}
 
-	log.Debug("crossTxsPoolsCleaner.receivedBlockTx", "hash", key)
+	log.Trace("crossTxsPoolsCleaner.receivedBlockTx", "hash", key)
 	ctpc.processReceivedTx(key, blockTx)
 }
 
@@ -101,7 +101,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte) {
 		return
 	}
 
-	log.Debug("crossTxsPoolsCleaner.receivedRewardTx", "hash", key)
+	log.Trace("crossTxsPoolsCleaner.receivedRewardTx", "hash", key)
 	ctpc.processReceivedTx(key, rewardTx)
 }
 
@@ -110,7 +110,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedUnsignedTx(key []byte) {
 		return
 	}
 
-	log.Debug("crossTxsPoolsCleaner.receivedUnsignedTx", "hash", key)
+	log.Trace("crossTxsPoolsCleaner.receivedUnsignedTx", "hash", key)
 	ctpc.processReceivedTx(key, unsignedTx)
 }
 
@@ -118,14 +118,14 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 	isCrossTx := false
 	var crossTxInfo *crossTxInfo
 	for shardID := uint32(0); shardID < ctpc.shardCoordinator.NumberOfShards(); shardID++ {
-		isCrossTx, crossTxInfo = ctpc.isCrossTxFromShard(key, shardID)
+		isCrossTx, crossTxInfo = ctpc.isCrossTxFromShard(key, shardID, txType)
 		if isCrossTx {
 			break
 		}
 	}
 
 	if !isCrossTx {
-		isCrossTx, crossTxInfo = ctpc.isCrossTxFromShard(key, core.MetachainShardId)
+		isCrossTx, crossTxInfo = ctpc.isCrossTxFromShard(key, core.MetachainShardId, txType)
 		if !isCrossTx {
 			return
 		}
@@ -139,7 +139,7 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 		crossTxInfo.txType = txType
 		ctpc.mapCrossTxsRounds[string(key)] = crossTxInfo
 
-		log.Debug("transaction has been added",
+		log.Trace("transaction has been added",
 			"hash", key,
 			"round", crossTxInfo.round,
 			"sender shard", crossTxInfo.senderShardID,
@@ -150,14 +150,19 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 	ctpc.cleanCrossTxsPoolsIfNeeded()
 }
 
-func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint32) (bool, *crossTxInfo) {
+func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint32, txType int8) (bool, *crossTxInfo) {
+	transactionPool := ctpc.getTransactionPool(txType)
+	if transactionPool == nil {
+		return false, nil
+	}
+
 	selfShardID := ctpc.shardCoordinator.SelfId()
 	if shardID == selfShardID {
 		return false, nil
 	}
 
 	strCache := process.ShardCacherIdentifier(shardID, selfShardID)
-	txStore := ctpc.transactionsPool.ShardDataStore(strCache)
+	txStore := transactionPool.ShardDataStore(strCache)
 	if txStore == nil {
 		return false, nil
 	}
@@ -236,7 +241,7 @@ func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() {
 		delete(ctpc.mapCrossTxsRounds, hash)
 		numTxsCleaned++
 
-		log.Debug("transaction has been cleaned",
+		log.Trace("transaction has been cleaned",
 			"hash", []byte(hash),
 			"round", crossTxInfo.round,
 			"sender shard", crossTxInfo.senderShardID,
@@ -251,6 +256,19 @@ func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() {
 	if numTxsCleaned > 0 {
 		log.Debug("crossTxsPoolsCleaner.cleanCrossTxsPoolsIfNeeded", "num txs cleaned", numTxsCleaned)
 	}
+}
+
+func (ctpc *crossTxsPoolsCleaner) getTransactionPool(txType int8) dataRetriever.ShardedDataCacherNotifier {
+	switch txType {
+	case blockTx:
+		return ctpc.blockTransactionsPool
+	case rewardTx:
+		return ctpc.rewardTransactionsPool
+	case unsignedTx:
+		return ctpc.unsignedTransactionsPool
+	}
+
+	return nil
 }
 
 func getTxTypeName(txType int8) string {
