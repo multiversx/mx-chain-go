@@ -18,7 +18,7 @@ func (n *NodesSetupStub) InitialNodesInfoForShard(shardId uint32) ([]sharding.Ge
 // InitialNodesInfo -
 func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
 	if n.InitialNodesInfoCalled != nil {
-		return n.InitialNodesInfo()
+		return n.InitialNodesInfoCalled()
 	}
 
 	return nil, nil
