@@ -69,8 +69,18 @@ type ValidatorsRatingInfo struct {
 
 // ValidatorRatingInfo is a structure containing validator rating information
 type ValidatorRatingInfo struct {
-	PubKeyIndex uint64  `json:"pubKeyIndex"`
-	Rating      float32 `json:"rating"`
+	PublicKey string  `json:"publicKey"`
+	Rating    float32 `json:"rating"`
+}
+
+// Miniblock is a structure containing miniblock information
+type Miniblock struct {
+	Hash              string `json:"-"`
+	SenderShardID     uint32 `json:"senderShard"`
+	ReceiverShardID   uint32 `json:"receiverShard"`
+	SenderBlockHash   string `json:"senderBlockHash"`
+	ReceiverBlockHash string `json:"receiverBlockHash"`
+	Type              string `json:"type"`
 }
 
 // TPS is a structure containing all the fields that need to

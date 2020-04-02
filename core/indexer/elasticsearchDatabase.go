@@ -85,7 +85,13 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 	if err != nil {
 		return err
 	}
+
 	err = esd.dbWriter.CheckAndCreateIndex(ratingIndex, nil)
+	if err != nil {
+		return err
+	}
+
+	err = esd.dbWriter.CheckAndCreateIndex(miniblocksIndex, nil)
 	if err != nil {
 		return err
 	}
@@ -179,7 +185,7 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 ) {
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
 	for _, bulk := range bulks {
-		buff := esd.serializeBulkTx(bulk)
+		buff := serializeBulkTx(bulk)
 		err := esd.dbWriter.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
@@ -237,32 +243,60 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	return bulks
 }
 
-func (esd *elasticSearchDatabase) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
-	var buff bytes.Buffer
-	for _, tx := range bulk {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		serializedTx, err := json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			continue
-		}
-		// append a newline foreach element
-		serializedTx = append(serializedTx, "\n"...)
-
-		buff.Grow(len(meta) + len(serializedTx))
-		_, err = buff.Write(meta)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
-		}
-		_, err = buff.Write(serializedTx)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
-		}
+// SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
+func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body *block.Body) {
+	miniblocks := esd.getMiniblocks(header, body)
+	if miniblocks == nil {
+		log.Warn("indexer: could not index miniblocks")
+		return
+	}
+	if len(miniblocks) == 0 {
+		return
 	}
 
-	return buff
+	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
+	err := esd.dbWriter.DoBulkRequest(&buff, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexer", "error1", "indexing bulk of miniblocks",
+			"error2", err.Error())
+	}
+}
+
+func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
+	headerHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, header)
+	if err != nil {
+		log.Warn("indexer: could not calculate header hash", "error", err.Error())
+		return nil
+	}
+
+	encodedHeaderHash := hex.EncodeToString(headerHash)
+
+	miniblocks := make([]*Miniblock, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if err != nil {
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+
+		mb := &Miniblock{
+			Hash:            encodedMbHash,
+			SenderShardID:   miniblock.SenderShardID,
+			ReceiverShardID: miniblock.ReceiverShardID,
+			Type:            miniblock.Type.String(),
+		}
+
+		if mb.SenderShardID == header.GetShardID() {
+			mb.SenderBlockHash = encodedHeaderHash
+		} else {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		miniblocks = append(miniblocks, mb)
+	}
+
+	return miniblocks
 }
 
 // SaveRoundInfo will prepare and save information about a round in elasticsearch server
@@ -297,7 +331,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId, epoch uint32, shardValidatorsPubKeys []string) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys []string) {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
@@ -315,7 +349,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId, epoch uint
 
 	req := &esapi.IndexRequest{
 		Index:      validatorsIndex,
-		DocumentID: fmt.Sprintf("%d_%d", epoch, shardId),
+		DocumentID: fmt.Sprintf("%d_%d", shardID, epoch),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}

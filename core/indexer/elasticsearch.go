@@ -103,6 +103,8 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
+	go ei.database.SaveMiniblocks(headerHandler, body)
+
 	if ei.options.TxIndexingEnabled {
 		go ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
 	}

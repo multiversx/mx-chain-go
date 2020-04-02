@@ -3,6 +3,7 @@ package indexer
 const txBulkSize = 1000
 const txIndex = "transactions"
 const blockIndex = "blocks"
+const miniblocksIndex = "miniblocks"
 const tpsIndex = "tps"
 const validatorsIndex = "validators"
 const roundIndex = "rounds"

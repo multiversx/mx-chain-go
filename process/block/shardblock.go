@@ -549,7 +549,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
 
-	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools

@@ -11,7 +11,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -528,10 +527,10 @@ func (mp *metaProcessor) indexBlock(
 
 	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
-	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
 	if metaBlock.GetNonce() == 1 {
-		mp.indexValidatorsRating(publicKeys, metaBlock)
+		indexValidatorsRating(mp.core.Indexer(), mp.validatorStatisticsProcessor, metaBlock)
 		return
 	}
 
@@ -539,49 +538,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	mp.indexValidatorsRating(publicKeys, metaBlock)
-}
-
-func (mp *metaProcessor) indexValidatorsRating(publicKeys []string, metaBlock data.HeaderHandler) {
-
-	latestHash, err := mp.validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return
-	}
-
-	validators, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(latestHash)
-	if err != nil {
-		return
-	}
-
-	for shardID, validatorInfosInShard := range validators {
-		pKeys := make([]string, 0)
-		rating := make([]float32, 0)
-		for _, validatorInfo := range validatorInfosInShard {
-			pKeys = append(pKeys, string(validatorInfo.PublicKey))
-			rating = append(rating, float32(validatorInfo.Rating)*100/1000000)
-		}
-
-		validatorsIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
-		if err != nil {
-			continue
-		}
-
-		if len(rating) == 0 {
-			continue
-		}
-
-		validatorsInfos := make([]indexer.ValidatorRatingInfo, 0)
-		for idx, index := range validatorsIndexes {
-			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
-				PubKeyIndex: index,
-				Rating:      rating[idx],
-			})
-		}
-
-		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
-		mp.core.Indexer().SaveValidatorsRating(indexID, validatorsInfos)
-	}
+	indexValidatorsRating(mp.core.Indexer(), mp.validatorStatisticsProcessor, metaBlock)
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
@@ -1069,10 +1026,7 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", header.Nonce,
 		"hash", headerHash)
 
-	notarizedHeadersHashes := make([]string, 0)
-	notarizedHeadersHashes = append(notarizedHeadersHashes, hex.EncodeToString(shardHeaderHash))
-
-	errNotCritical := mp.updateCrossShardInfo(header)
+	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
@@ -1164,36 +1118,39 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) error {
+func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) ([]string, error) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
+	notarizedHeadersHashes := make([]string, 0)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardHeaderHash := metaBlock.ShardInfo[i].HeaderHash
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
-			return fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
+			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardHeader, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
 		mp.updateShardHeadersNonce(shardHeader.ShardID, shardHeader.Nonce)
 
 		marshalizedShardHeader, err := mp.marshalizer.Marshal(shardHeader)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		notarizedHeadersHashes = append(notarizedHeadersHashes, hex.EncodeToString(shardHeaderHash))
 
 		mp.saveShardHeader(shardHeader, shardHeaderHash, marshalizedShardHeader)
 	}
 
 	mp.saveMetricCrossCheckBlockHeight()
 
-	return nil
+	return notarizedHeadersHashes, nil
 }
 
 func (mp *metaProcessor) displayPoolsInfo() {

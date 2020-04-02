@@ -252,3 +252,69 @@ func buildReceiptTransaction(
 		Status:        "Success",
 	}
 }
+
+func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
+	var buff bytes.Buffer
+
+	for _, mb := range bulkMbs {
+		var err error
+		var meta, serializedData []byte
+		if hdrShardID == mb.SenderShardID {
+			//insert miniblock
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData, err = json.Marshal(mb)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize miniblock, will skip indexing",
+					"tx hash", mb.Hash)
+				continue
+			}
+		} else {
+			// update miniblock
+			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
+			serializedData = []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+		}
+
+		// append a newline foreach element
+		serializedData = append(serializedData, "\n"...)
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+		}
+	}
+
+	return buff
+}
+
+func serializeBulkTx(bulk []*Transaction) bytes.Buffer {
+	var buff bytes.Buffer
+	for _, tx := range bulk {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		serializedTx, err := json.Marshal(tx)
+		if err != nil {
+			log.Debug("indexer: marshal",
+				"error", "could not serialize transaction, will skip indexing",
+				"tx hash", tx.Hash)
+			continue
+		}
+		// append a newline foreach element
+		serializedTx = append(serializedTx, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedTx))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedTx)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
+	}
+
+	return buff
+}
