@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrMissingMetachainNodes signals that metachain nodes were not configured
-var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
-
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -27,9 +24,6 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
-
-// ErrNilChanceComputer signals that the chanceComputer is nil
-var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
@@ -73,15 +67,6 @@ var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
 
-// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
-var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
-
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
-var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
-
-// ErrEligibleTooFewSelections signals an invalid selection for consensus group
-var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
-
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")
 
@@ -100,6 +85,9 @@ var ErrNilAddress = errors.New("nil address")
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
+// ErrNilWeights signals that nil weights list was provided
+var ErrNilWeights = errors.New("nil weights")
+
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
@@ -108,3 +96,12 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilEpochHandler signals that a nil epoch handler has been provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrInvalidSampleSize signals that an invalid sample size was provided
+var ErrInvalidSampleSize = errors.New("invalid sample size")
+
+// ErrInvalidWeight signals an invalid weight was provided
+var ErrInvalidWeight = errors.New("invalid weight")
+
+// ErrNilRandomSelector signals that a nil selector was provided
+var ErrNilRandomSelector = errors.New("nil selector")
