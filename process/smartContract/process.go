@@ -341,7 +341,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, process.ErrNilBuiltInFunction
 	}
 
-	valueToSend, err := builtIn.ProcessBuiltinFunction(tx, acntSnd, acntDst, vmInput)
+	valueToSend, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		return true, err
 	}

@@ -713,11 +713,7 @@ type MiniBlocksResolver interface {
 
 // BuiltinFunction defines the methods for the built-in protocol smart contract functions
 type BuiltinFunction interface {
-	ProcessBuiltinFunction(
-		tx data.TransactionHandler,
-		acntSnd, acntDst state.UserAccountHandler,
-		vmInput *vmcommon.ContractCallInput,
-	) (*big.Int, error)
+	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error)
 	GasUsed() uint64
 	IsInterfaceNil() bool
 }

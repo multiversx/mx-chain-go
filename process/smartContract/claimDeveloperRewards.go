@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -16,23 +15,19 @@ type claimDeveloperRewards struct {
 }
 
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
-func (c *claimDeveloperRewards) ProcessBuiltinFunction(
-	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
-	_ *vmcommon.ContractCallInput,
-) (*big.Int, error) {
-	if check.IfNil(tx) {
-		return nil, process.ErrNilTransaction
+func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
+	if vmInput == nil {
+		return nil, process.ErrNilVmInput
 	}
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	if !bytes.Equal(tx.GetSndAddr(), acntDst.GetOwnerAddress()) {
+	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
 		return nil, process.ErrOperationNotPermitted
 	}
 
-	value, err := acntDst.ClaimDeveloperRewards(tx.GetSndAddr())
+	value, err := acntDst.ClaimDeveloperRewards(vmInput.CallerAddr)
 	if err != nil {
 		return nil, err
 	}
