@@ -90,7 +90,7 @@ type trigger struct {
 
 	appStatusHandler core.AppStatusHandler
 
-	mapMisingMiniblocks  map[string]*block.MiniBlock
+	mapMisingMiniblocks  map[string]uint32
 	mutMissingMiniblocks sync.RWMutex
 }
 
@@ -197,10 +197,21 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	t.mapMisingMiniblocks = make(map[string]*block.MiniBlock)
+	t.mapMisingMiniblocks = make(map[string]uint32)
 	go t.requestMissingMiniblocks()
 
 	return t, nil
+}
+
+func (t *trigger) clearMissingMiniblocksMap(epoch uint32) {
+	t.mutMissingMiniblocks.Lock()
+	defer t.mutMissingMiniblocks.Unlock()
+
+	for hash, epochOfMissingMb := range t.mapMisingMiniblocks {
+		if epoch == epochOfMissingMb {
+			delete(t.mapMisingMiniblocks, hash)
+		}
+	}
 }
 
 func (t *trigger) requestMissingMiniblocks() {
@@ -228,17 +239,19 @@ func (t *trigger) requestMissingMiniblocks() {
 
 func (t *trigger) updateMissingMiniblocks() {
 	t.mutMissingMiniblocks.Lock()
-	defer t.mutMissingMiniblocks.Unlock()
-
 	for hash := range t.mapMisingMiniblocks {
 		if t.miniBlocksPool.Has([]byte(hash)) {
 			delete(t.mapMisingMiniblocks, hash)
 		}
 	}
+	numMissingMiniblocks := len(t.mapMisingMiniblocks)
+	t.mutMissingMiniblocks.Unlock()
 
-	if len(t.mapMisingMiniblocks) == 0 {
+	if numMissingMiniblocks == 0 {
 		log.Debug("trigger.updateMissingMiniblocks -> updateTriggerFromMeta")
+		t.mutTrigger.Lock()
 		t.updateTriggerFromMeta()
+		t.mutTrigger.Unlock()
 	}
 }
 
@@ -405,6 +418,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.epoch)
+			t.clearMissingMiniblocksMap(t.epoch)
 		}
 
 		// save all final-valid epoch start blocks
@@ -494,7 +508,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	if metaHdr.IsStartOfEpochBlock() {
 		missingMiniblocks, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
 		if err != nil {
-			t.addMissingMiniblocks(missingMiniblocks)
+			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocks)
 			log.Warn("processMetablock failed", "error", err)
 			return false, 0
 		}
@@ -506,13 +520,13 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	return isMetaHdrFinal, finalityAttestingRound
 }
 
-func (t *trigger) addMissingMiniblocks(missingMiniblocks map[string]*block.MiniBlock) {
+func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocks map[string]*block.MiniBlock) {
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
-	for hash, mb := range missingMiniblocks {
-		t.mapMisingMiniblocks[hash] = mb
-		log.Debug("trigger.addMissingMiniblocks", "hash", []byte(hash))
+	for hash := range missingMiniblocks {
+		t.mapMisingMiniblocks[hash] = epoch
+		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", []byte(hash))
 	}
 }
 

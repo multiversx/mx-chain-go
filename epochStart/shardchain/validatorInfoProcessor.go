@@ -37,12 +37,12 @@ type ValidatorInfoProcessor struct {
 	validatorStatisticsProcessor epochStart.ValidatorStatisticsProcessorHandler
 	requestHandler               epochStart.RequestHandler
 
-	mapAllMisingPeerMiniblocks  map[string]*block.MiniBlock
-	headerHash                  []byte
-	metaHeader                  data.HeaderHandler
-	chRcvAllMiniblocks          chan struct{}
-	mutAllMissingPeerMiniblocks sync.RWMutex
-	numMissingPeerMiniblocks    uint32
+	mapAllPeerMiniblocks     map[string]*block.MiniBlock
+	headerHash               []byte
+	metaHeader               data.HeaderHandler
+	chRcvAllMiniblocks       chan struct{}
+	mutMiniBlocksForBlock    sync.RWMutex
+	numMissingPeerMiniblocks uint32
 }
 
 // NewValidatorInfoProcessor creates a new ValidatorInfoProcessor object
@@ -79,12 +79,12 @@ func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorI
 }
 
 func (vip *ValidatorInfoProcessor) init(metaBlock *block.MetaBlock, metablockHash []byte) {
-	vip.mutAllMissingPeerMiniblocks.Lock()
+	vip.mutMiniBlocksForBlock.Lock()
 	vip.metaHeader = metaBlock
-	vip.mapAllMisingPeerMiniblocks = make(map[string]*block.MiniBlock)
+	vip.mapAllPeerMiniblocks = make(map[string]*block.MiniBlock)
 	vip.headerHash = metablockHash
 	vip.chRcvAllMiniblocks = make(chan struct{})
-	vip.mutAllMissingPeerMiniblocks.Unlock()
+	vip.mutMiniBlocksForBlock.Unlock()
 }
 
 // ProcessMetaBlock processes an epochstart block asyncrhonous, processing the PeerMiniblocks
@@ -119,17 +119,17 @@ func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte) {
 
 	log.Trace(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
 
-	vip.mutAllMissingPeerMiniblocks.Lock()
-	havingPeerMb, ok := vip.mapAllMisingPeerMiniblocks[string(key)]
+	vip.mutMiniBlocksForBlock.Lock()
+	havingPeerMb, ok := vip.mapAllPeerMiniblocks[string(key)]
 	if !ok || havingPeerMb != nil {
-		vip.mutAllMissingPeerMiniblocks.Unlock()
+		vip.mutMiniBlocksForBlock.Unlock()
 		return
 	}
 
-	vip.mapAllMisingPeerMiniblocks[string(key)] = peerMb
+	vip.mapAllPeerMiniblocks[string(key)] = peerMb
 	vip.numMissingPeerMiniblocks--
 	numMissingPeerMiniblocks := vip.numMissingPeerMiniblocks
-	vip.mutAllMissingPeerMiniblocks.Unlock()
+	vip.mutMiniBlocksForBlock.Unlock()
 
 	if numMissingPeerMiniblocks == 0 {
 		vip.chRcvAllMiniblocks <- struct{}{}
@@ -142,7 +142,7 @@ func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.Met
 			continue
 		}
 
-		mb := vip.mapAllMisingPeerMiniblocks[string(peerMiniBlock.Hash)]
+		mb := vip.mapAllPeerMiniblocks[string(peerMiniBlock.Hash)]
 		for _, txHash := range mb.TxHashes {
 			vid := &state.ShardValidatorInfo{}
 			err := vip.marshalizer.Unmarshal(vid, txHash)
@@ -164,14 +164,14 @@ func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.Met
 
 func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {
 	numMissingPeerMiniblocks := uint32(0)
-	vip.mutAllMissingPeerMiniblocks.Lock()
+	vip.mutMiniBlocksForBlock.Lock()
 
 	for _, mb := range metaBlock.MiniBlockHeaders {
 		if mb.Type != block.PeerBlock {
 			continue
 		}
 
-		vip.mapAllMisingPeerMiniblocks[string(mb.Hash)] = nil
+		vip.mapAllPeerMiniblocks[string(mb.Hash)] = nil
 
 		mbObjectFound, ok := vip.miniBlocksPool.Peek(mb.Hash)
 		if !ok {
@@ -185,23 +185,23 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 			continue
 		}
 
-		vip.mapAllMisingPeerMiniblocks[string(mb.Hash)] = mbFound
+		vip.mapAllPeerMiniblocks[string(mb.Hash)] = mbFound
 	}
 
 	vip.numMissingPeerMiniblocks = numMissingPeerMiniblocks
-	vip.mutAllMissingPeerMiniblocks.Unlock()
+	vip.mutMiniBlocksForBlock.Unlock()
 }
 
 func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() (map[string]*block.MiniBlock, error) {
-	vip.mutAllMissingPeerMiniblocks.Lock()
+	vip.mutMiniBlocksForBlock.Lock()
 	missingMiniblocks := make([][]byte, 0)
-	for mbHash, mb := range vip.mapAllMisingPeerMiniblocks {
+	for mbHash, mb := range vip.mapAllPeerMiniblocks {
 		if mb == nil {
 			missingMiniblocks = append(missingMiniblocks, []byte(mbHash))
 		}
 	}
 	vip.numMissingPeerMiniblocks = uint32(len(missingMiniblocks))
-	vip.mutAllMissingPeerMiniblocks.Unlock()
+	vip.mutMiniBlocksForBlock.Unlock()
 
 	if len(missingMiniblocks) == 0 {
 		return nil, nil
@@ -213,20 +213,22 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() (map[string]*block.Mi
 	case <-vip.chRcvAllMiniblocks:
 		return nil, nil
 	case <-time.After(waitTime):
-		return vip.getCopyOfAllMissingPeerMiniblocks(), process.ErrTimeIsOut
+		return vip.getAllMissingPeerMiniblocks(), process.ErrTimeIsOut
 	}
 }
 
-func (vip *ValidatorInfoProcessor) getCopyOfAllMissingPeerMiniblocks() map[string]*block.MiniBlock {
-	vip.mutAllMissingPeerMiniblocks.RLock()
-	defer vip.mutAllMissingPeerMiniblocks.RUnlock()
+func (vip *ValidatorInfoProcessor) getAllMissingPeerMiniblocks() map[string]*block.MiniBlock {
+	vip.mutMiniBlocksForBlock.RLock()
+	defer vip.mutMiniBlocksForBlock.RUnlock()
 
-	mapMiniBlocks := make(map[string]*block.MiniBlock, len(vip.mapAllMisingPeerMiniblocks))
-	for hash, mb := range vip.mapAllMisingPeerMiniblocks {
-		mapMiniBlocks[hash] = mb
+	mapMissingPeerMiniBlocks := make(map[string]*block.MiniBlock)
+	for hash, mb := range vip.mapAllPeerMiniblocks {
+		if mb == nil {
+			mapMissingPeerMiniBlocks[hash] = mb
+		}
 	}
 
-	return mapMiniBlocks
+	return mapMissingPeerMiniBlocks
 }
 
 // IsInterfaceNil returns true if underlying object is nil
