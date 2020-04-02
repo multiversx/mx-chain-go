@@ -1261,11 +1261,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := tpn.BlockProcessor.CreateNewHeader(round)
+	blockHeader := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 
 	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
 
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
