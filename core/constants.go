@@ -1,5 +1,17 @@
 package core
 
+// PeerType represents the type of a peer
+type PeerType string
+
+// EligibleList represents the list of peers who participate in consensus inside a shard
+const EligibleList PeerType = "eligible"
+
+// WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
+const WaitingList PeerType = "waiting"
+
+// ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
+const ObserverList PeerType = "observer"
+
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
 const UnVersionedAppString = "undefined"
@@ -192,11 +204,23 @@ const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
 
+// MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
+const MetricPeerType = "erd_peer_type"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
+
+// MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
+const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
+
+// MetricRoundsPerEpoch is the metric that tells the number of rounds in an epoch
+const MetricRoundsPerEpoch = "erd_rounds_per_epoch"
+
+// MetricRoundsPassedInCurrentEpoch is the metric that tells the number of rounds passed in current epoch
+const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
 
 //MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
 //current node. The value is provided in percent (0 meaning it has been received just after the round started and
@@ -244,6 +268,8 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
 )
 
 // NodeState specifies what type of state a node could have

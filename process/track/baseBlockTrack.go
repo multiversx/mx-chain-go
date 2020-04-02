@@ -6,13 +6,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -457,6 +457,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 // GetLastSelfNotarizedHeader returns last self notarized header for a given shard
 func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
+}
+
+// GetNumPendingMiniBlocks returns the number of pending miniblocks for a given shard
+func (bbt *baseBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	return bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
 }
 
 // GetTrackedHeaders returns tracked headers for a given shard

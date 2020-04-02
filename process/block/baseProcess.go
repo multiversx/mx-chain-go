@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -65,6 +65,8 @@ type baseProcessor struct {
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
+	blockProcessor         blockProcessor
+	txCounter              *transactionCounter
 }
 
 type bootStorerDataArgs struct {
@@ -257,7 +259,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
-			display.DisplayByteSlice(headerHandler.GetChainID())}),
+			logger.DisplayByteSlice(headerHandler.GetChainID())}),
 		display.NewLineData(false, []string{
 			"",
 			"Epoch",
@@ -277,15 +279,15 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Prev hash",
-			display.DisplayByteSlice(headerHandler.GetPrevHash())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Prev rand seed",
-			display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Rand seed",
-			display.DisplayByteSlice(headerHandler.GetRandSeed())}),
+			logger.DisplayByteSlice(headerHandler.GetRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
 			"Pub keys bitmap",
@@ -293,27 +295,27 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Signature",
-			display.DisplayByteSlice(headerHandler.GetSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Leader's Signature",
-			display.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Root hash",
-			display.DisplayByteSlice(headerHandler.GetRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
-			display.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
+			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			display.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
 	}
 }
 
@@ -572,27 +574,26 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
-	headersPool := bp.dataPool.Headers()
+	bp.cleanupBlockTrackerPools(headerHandler)
+
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
 	bp.removeHeadersBehindNonceFromPools(
 		true,
-		headersPool,
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
+			bp.cleanupPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
 func (bp *baseProcessor) cleanupPoolsForShard(
 	shardID uint32,
-	headersPool dataRetriever.HeadersPool,
 	noncesToFinal uint64,
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
@@ -606,7 +607,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
-		headersPool,
 		shardID,
 		crossNotarizedHeader.GetNonce(),
 	)
@@ -614,7 +614,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	shouldRemoveBlockBody bool,
-	headersPool dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) {
@@ -622,10 +621,7 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	if check.IfNil(headersPool) {
-		return
-	}
-
+	headersPool := bp.dataPool.Headers()
 	nonces := headersPool.Nonces(shardId)
 	for _, nonceFromCache := range nonces {
 		if nonceFromCache >= nonce {
@@ -633,14 +629,15 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		}
 
 		if shouldRemoveBlockBody {
-			bp.removeBlocksBody(nonceFromCache, shardId, headersPool)
+			bp.removeBlocksBody(nonceFromCache, shardId)
 		}
 
 		headersPool.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
 	}
 }
 
-func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32, headersPool dataRetriever.HeadersPool) {
+func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
+	headersPool := bp.dataPool.Headers()
 	headers, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		return
@@ -666,6 +663,11 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	}
 
 	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	err = bp.blockProcessor.removeStartOfEpochBlockDataFromPools(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -1005,5 +1007,30 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
+	}
+}
+
+func (bp *baseProcessor) displayMiniBlocksPool() {
+	miniBlocksPool := bp.dataPool.MiniBlocks()
+
+	for _, hash := range miniBlocksPool.Keys() {
+		value, ok := miniBlocksPool.Get(hash)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: wrong type assertion", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		log.Trace("mini block in pool",
+			"hash", logger.DisplayByteSlice(hash),
+			"type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes))
 	}
 }

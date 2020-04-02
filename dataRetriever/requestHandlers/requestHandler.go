@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -97,7 +97,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting transactions from network",
+	log.Debug("requesting transactions from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -116,6 +116,10 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	if !ok {
 		log.Warn("wrong assertion type when creating transaction resolver")
 		return
+	}
+
+	for _, txHash := range hashes {
+		log.Trace("requestByHashes", "hash", txHash)
 	}
 
 	go func() {
@@ -164,7 +168,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	log.Trace("requesting miniblock from network",
+	log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"hash", miniblockHash,
@@ -199,7 +203,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting miniblocks from network",
+	log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -345,7 +349,7 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 		return
 	}
 
-	log.Trace("requesting trie from network",
+	log.Debug("requesting trie from network",
 		"topic", baseTopic,
 		"shard", destShardID,
 		"hash", hash,
@@ -499,7 +503,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	}
 
 	baseTopic := factory.MetachainBlocksTopic
-	log.Trace("requesting header by epoch",
+	log.Debug("requesting header by epoch",
 		"topic", baseTopic,
 		"epoch", epoch,
 		"hash", epochStartIdentifier,

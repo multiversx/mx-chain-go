@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -80,6 +80,7 @@ type Node struct {
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
 	validatorStatistics      process.ValidatorStatisticsProcessor
+	validatorsProvider       process.ValidatorsProvider
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -456,6 +457,9 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
@@ -527,6 +531,9 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
@@ -755,7 +762,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	}
 
 	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAddressNotInThisShard) {
+	if errors.Is(err, process.ErrAccountNotFound) {
 		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
 		return nil
 	}
@@ -912,6 +919,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartSubscriber)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
@@ -919,6 +931,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.internalMarshalizer,
 		core.HeartbeatTopic,
 		n.shardCoordinator,
+		peerTypeProvider,
+		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
 	)
@@ -948,13 +962,23 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
+
+	allValidators, _, _ := n.getLatestValidators()
+	pubKeysMap := make(map[uint32][]string)
+	for shardID, valsInShard := range allValidators {
+		for _, val := range valsInShard {
+			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
+		}
+	}
+
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		netInputMarshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		n.initialNodesPubkeys,
+		pubKeysMap,
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
+		peerTypeProvider,
 		timer,
 		n.inputAntifloodHandler,
 	)
@@ -1025,27 +1049,7 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
-	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	validators, m, err := n.getLatestValidators()
-	if err != nil {
-		return m, err
-	}
-
-	for _, validatorInfosInShard := range validators {
-		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString([]byte(validatorInfo.PublicKey))
-			mapToReturn[strKey] = &state.ValidatorApiResponse{
-				NrLeaderSuccess:    validatorInfo.LeaderSuccess,
-				NrLeaderFailure:    validatorInfo.LeaderFailure,
-				NrValidatorSuccess: validatorInfo.ValidatorSuccess,
-				NrValidatorFailure: validatorInfo.ValidatorFailure,
-				Rating:             float32(validatorInfo.Rating) * 100 / 1000000,
-				TempRating:         float32(validatorInfo.TempRating) * 100 / 1000000,
-			}
-		}
-	}
-
-	return mapToReturn, nil
+	return n.validatorsProvider.GetLatestValidators(), nil
 }
 
 func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {

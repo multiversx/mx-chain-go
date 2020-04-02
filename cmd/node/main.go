@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -31,13 +33,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -63,13 +62,14 @@ import (
 )
 
 const (
-	defaultStatsPath      = "stats"
-	defaultLogsPath       = "logs"
-	defaultDBPath         = "db"
-	defaultEpochString    = "Epoch"
-	defaultStaticDbString = "Static"
-	defaultShardString    = "Shard"
-	metachainShardName    = "metachain"
+	defaultStatsPath        = "stats"
+	defaultLogsPath         = "logs"
+	defaultDBPath           = "db"
+	defaultEpochString      = "Epoch"
+	defaultStaticDbString   = "Static"
+	defaultShardString      = "Shard"
+	metachainShardName      = "metachain"
+	defaultChancesSelection = 1
 )
 
 var (
@@ -123,6 +123,12 @@ VERSION:
 		Usage: "The `" + filePathPlaceholder + "` for the economics configuration file. This TOML file contains " +
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
+	}
+	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	configurationRatingsFile = cli.StringFlag{
+		Name:  "config-ratings",
+		Usage: "The ratings configuration file to load",
+		Value: "./config/ratings.toml",
 	}
 	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
 	configurationPreferencesFile = cli.StringFlag{
@@ -329,7 +335,7 @@ var coreServiceContainer serviceContainer.Core
 var appVersion = core.UnVersionedAppString
 
 func main() {
-	_ = display.SetDisplayByteSlice(display.ToHexShort)
+	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
 	app := cli.NewApp()
@@ -342,6 +348,7 @@ func main() {
 		nodesFile,
 		configurationFile,
 		configurationEconomicsFile,
+		configurationRatingsFile,
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
@@ -458,6 +465,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
+	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationRatingsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
 	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
@@ -608,7 +622,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	log.Trace("creating ratings data components")
+	ratingsData, err := rating.NewRatingsData(ratingsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(ratingsData)
 	if err != nil {
 		return err
 	}
@@ -636,7 +656,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
+	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig, generalConfig.EpochStartConfig.RoundsPerEpoch)
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -726,6 +746,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		[]string{
 			configurationFileName,
 			configurationEconomicsFileName,
+			configurationRatingsFileName,
 			configurationPreferencesFileName,
 			p2pConfigurationFileName,
 			configurationFileName,
@@ -805,6 +826,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.Antiflood.NumConcurrentResolverJobs,
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
+		ratingsConfig.General.MaxRating,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -817,7 +839,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
 	}
-
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1085,6 +1106,16 @@ func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 	return cfg, nil
 }
 
+func loadRatingsConfig(filepath string) (config.RatingsConfig, error) {
+	cfg := &config.RatingsConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return config.RatingsConfig{}, err
+	}
+
+	return *cfg, nil
+}
+
 func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
 	cfg := &config.Preferences{}
 	err := core.LoadTomlFile(cfg, filepath)
@@ -1239,7 +1270,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
+			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address(), defaultChancesSelection)
 			if err != nil {
 				return nil, err
 			}
@@ -1354,7 +1385,8 @@ func createNode(
 		config,
 		nodesCoordinator,
 		shardCoordinator,
-		process.EpochStartTrigger,
+		epochStartSubscriber,
+		process.EpochStartTrigger.Epoch(),
 	)
 	if err != nil {
 		return nil, err
@@ -1405,6 +1437,7 @@ func createNode(
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),

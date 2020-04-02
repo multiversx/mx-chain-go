@@ -2,9 +2,11 @@ package process
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -13,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
@@ -168,21 +169,22 @@ func GetMarshalizedHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) ([]byte, error) {
 
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if storageService == nil || storageService.IsInterfaceNil() {
+	if check.IfNil(storageService) {
 		return nil, ErrNilStorage
 	}
 
 	hdrStore := storageService.GetStorer(blockUnit)
-	if hdrStore == nil || hdrStore.IsInterfaceNil() {
+	if check.IfNil(hdrStore) {
 		return nil, ErrNilHeadersStorage
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : GetMarshalizedHeaderFromStorage hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return buffHdr, nil
@@ -510,7 +512,8 @@ func getHeaderFromPool(
 
 	obj, err := headersCacher.GetHeaderByHash(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : getHeaderFromPool hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return obj, nil
@@ -528,7 +531,8 @@ func getHeaderFromPoolWithNonce(
 
 	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
-		return nil, nil, ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w : getHeaderFromPoolWithNonce shard = %d nonce = %d",
+			ErrMissingHeader, shardId, nonce)
 	}
 
 	//TODO what should we do when we get from pool more than one header with same nonce and shardId

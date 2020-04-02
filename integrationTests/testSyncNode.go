@@ -75,6 +75,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initAccountDBs()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData()
+	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initBlockTracker()

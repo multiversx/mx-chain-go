@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -671,12 +671,12 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniblock := body.MiniBlocks[i]
-		receiverShardId := miniblock.ReceiverShardID
-		if receiverShardId == tc.shardCoordinator.SelfId() {
+		if miniblock.SenderShardID != tc.shardCoordinator.SelfId() ||
+			miniblock.ReceiverShardID == tc.shardCoordinator.SelfId() {
 			continue
 		}
 
-		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, receiverShardId, miniblock.Type)
+		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniblock.ReceiverShardID, miniblock.Type)
 		if err != nil {
 			log.Trace("createBroadcastTopic", "error", err.Error())
 			continue
