@@ -762,7 +762,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	}
 
 	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAddressNotInThisShard) {
+	if errors.Is(err, process.ErrAccountNotFound) {
 		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
 		return nil
 	}

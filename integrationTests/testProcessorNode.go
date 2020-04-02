@@ -241,7 +241,7 @@ func NewTestProcessorNode(
 	address = []byte("afafafafafafafafafafafafafafafaf")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address, defaultChancesSelection)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -251,7 +251,7 @@ func NewTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, address)
+			validator, _ := sharding.NewValidator(publicKey, address, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
