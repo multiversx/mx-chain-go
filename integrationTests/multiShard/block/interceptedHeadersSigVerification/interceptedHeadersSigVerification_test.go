@@ -215,10 +215,8 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	round := uint64(1)
 	nonce := uint64(1)
 
-	// for current randomness, the first selected index will be 2
-	nodeToSendFrom := nodesMap[0][2]
-
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
+	body, header, _, consensusNodes := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
+	nodeToSendFrom := consensusNodes[0]
 	header.SetPrevRandSeed(randomness)
 	header = fillHeaderFields(nodeToSendFrom, header, singleSigner)
 	nodeToSendFrom.BroadcastBlock(body, header)

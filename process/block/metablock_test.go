@@ -35,8 +35,16 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 
 	startHeaders := createGenesisBlocks(shardCoordinator)
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
-	accountsDb[state.PeerAccountsState] = &mock.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &mock.AccountsStub{
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
+	accountsDb[state.PeerAccountsState] = &mock.AccountsStub{
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
 
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
@@ -685,6 +693,9 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 	fd := &mock.ForkDetectorMock{}
 	hasher := &mock.HasherStub{}
@@ -762,18 +773,12 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.BlockTracker = blockTrackerMock
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	removeHdrWasCalled := false
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
 		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{}, nil
-		}
-		cs.RemoveHeaderByHashCalled = func(key []byte) {
-			if bytes.Equal(key, []byte("hdr_hash1")) {
-				removeHdrWasCalled = true
-			}
 		}
 		cs.LenCalled = func() int {
 			return 0
@@ -790,7 +795,6 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
 	err := mp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
-	assert.True(t, removeHdrWasCalled)
 	assert.True(t, forkDetectorAddCalled)
 	//this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
@@ -822,33 +826,6 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	header := createMetaBlockHeader()
 	hdrsRequested, _ := mp.RequestBlockHeaders(header)
 	assert.Equal(t, uint32(1), hdrsRequested)
-}
-
-func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.DataPool = initDataPool([]byte("tx_hash"))
-	arguments.Store = initStore()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	err := mp.RemoveBlockInfoFromPool(nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilMetaBlockHeader)
-}
-
-func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.DataPool = initDataPool([]byte("tx_hash"))
-	arguments.Store = initStore()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	header := createMetaBlockHeader()
-	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.RemoveBlockInfoFromPool(header)
-	assert.Nil(t, err)
 }
 
 func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
@@ -2494,12 +2471,13 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
+	nonce := uint64(5)
 
 	metaHdr := &block.MetaBlock{Round: round}
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader(round)
+	headerHandler := mp.CreateNewHeader(round, nonce)
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)

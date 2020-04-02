@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,6 +113,13 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		MiniBlockStorage: createMemUnit(),
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
+		DataPool: &mock.PoolsHolderStub{
+			MiniBlocksCalled: func() storage.Cacher {
+				return &mock.CacherStub{
+					RemoveCalled: func(key []byte) {},
+				}
+			},
+		},
 	}
 	return argsNewEpochEconomics
 }
@@ -184,6 +192,17 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilShardCoordinator(t 
 
 	require.Nil(t, vic)
 	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
+}
+
+func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilDataPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.DataPool = nil
+	vic, err := NewValidatorInfoCreator(arguments)
+
+	require.Nil(t, vic)
+	require.Equal(t, epochStart.ErrNilDataPoolsHolder, err)
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
@@ -366,7 +385,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 
 	hasher := arguments.Hasher
 	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
+	miniBlockStorage := arguments.MiniBlockStorage
 
 	for _, mb := range miniblocks {
 		mMb, _ := marshalizer.Marshal(mb)
@@ -408,7 +427,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	vic.SaveValidatorInfoBlocksToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
+		mb, err := miniBlockStorage.Get(mbHeader.Hash)
 		require.Nil(t, err)
 
 		unmarshaledMiniblock := &block.MiniBlock{}
