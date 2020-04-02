@@ -524,12 +524,17 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 		return nil
 	}
 
+	if en.child == nil {
+		log.Debug("extension node edge case", "encodedChild", en.EncodedChild, "dirty", en.isDirty())
+		return nil
+	}
+
 	err = en.child.getDirtyHashes(hashes)
 	if err != nil {
 		return err
 	}
-
 	hashes[hex.EncodeToString(en.getHash())] = struct{}{}
+
 	return nil
 }
 
