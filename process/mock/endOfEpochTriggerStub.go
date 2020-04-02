@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 // EpochStartTriggerStub -
 type EpochStartTriggerStub struct {
@@ -55,6 +58,11 @@ func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
 
 // LoadState -
 func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
+	return nil
+}
+
+// SetAppStatusHandler -
+func (e *EpochStartTriggerStub) SetAppStatusHandler(_ core.AppStatusHandler) error {
 	return nil
 }
 

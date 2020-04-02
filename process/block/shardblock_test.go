@@ -3223,7 +3223,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
@@ -3244,7 +3244,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
@@ -3269,7 +3269,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
@@ -3425,7 +3425,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&putCalledNr))
@@ -3568,7 +3568,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))

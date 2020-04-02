@@ -112,3 +112,6 @@ var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil app status handler")

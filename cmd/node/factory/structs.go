@@ -737,6 +737,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+		blockTracker,
+		args.data.Datapool,
+		rounder,
+		args.shardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -941,6 +951,10 @@ func newEpochStartTrigger(
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
 		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
+		}
 
 		return epochStartTrigger, nil
 	}
@@ -958,6 +972,10 @@ func newEpochStartTrigger(
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
+		}
+		err = epochStartTrigger.SetAppStatusHandler(args.coreData.StatusHandler)
+		if err != nil {
+			return nil, err
 		}
 
 		return epochStartTrigger, nil
@@ -2215,6 +2233,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -2226,6 +2245,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
+		DataPool:         data.Datapool,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
