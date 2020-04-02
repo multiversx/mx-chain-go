@@ -17,6 +17,15 @@ type HeaderResolverStub struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (hrs *HeaderResolverStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (hrs *HeaderResolverStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestDataFromEpoch -
 func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	if hrs.RequestDataFromEpochCalled != nil {

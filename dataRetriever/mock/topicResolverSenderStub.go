@@ -12,6 +12,15 @@ type TopicResolverSenderStub struct {
 	TargetShardIDCalled      func() uint32
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (trss *TopicResolverSenderStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (trss *TopicResolverSenderStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestTopic -
 func (trss *TopicResolverSenderStub) RequestTopic() string {
 	return "topic_REQUEST"

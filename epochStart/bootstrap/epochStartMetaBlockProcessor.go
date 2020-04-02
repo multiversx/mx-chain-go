@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 const timeToWaitBeforeCheckingReceivedHeaders = 200 * time.Millisecond
@@ -82,18 +83,21 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	log.Info("received header", "type", data.Type(), "hash", data.Hash())
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion)
+		return nil
 	}
 
 	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
 
 	if !metaBlock.IsStartOfEpochBlock() {
-		return epochStart.ErrNotEpochStartBlock
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrNotEpochStartBlock)
+		return nil
 	}
 
 	mbHash, err := core.CalculateHash(e.marshalizer, e.hasher, metaBlock)
 	if err != nil {
-		return err
+		log.Warn("saving epoch start meta block error", "error", err)
+		return nil
 	}
 
 	e.mutReceivedMetaBlocks.Lock()
@@ -117,8 +121,10 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer p2p.PeerI
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error) {
-	unknownEpoch := uint32(math.MaxUint32)
-	e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
+	err := e.requestMetaBlock()
+	if err != nil {
+		return nil, err
+	}
 
 	for {
 		select {
@@ -127,11 +133,41 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		case <-ctx.Done():
 			return nil, epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-time.After(durationBetweenReRequests):
-			e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
+			err = e.requestMetaBlock()
+			if err != nil {
+				return nil, err
+			}
 		default:
 			e.checkMaps()
 		}
 	}
+}
+
+func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
+	originalIntra, originalCross, err := e.requestHandler.GetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = e.requestHandler.SetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic, originalIntra, originalCross)
+		if err != nil {
+			log.Warn("epoch bootstrapper: error setting num of peers intra/cross for resolver",
+				"resolver", factory.MetachainBlocksTopic,
+				"error", err)
+		}
+	}()
+
+	numConnectedPeers := len(e.messenger.ConnectedPeers())
+	err = e.requestHandler.SetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic, numConnectedPeers, numConnectedPeers)
+	if err != nil {
+		return err
+	}
+
+	unknownEpoch := uint32(math.MaxUint32)
+	e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
+
+	return nil
 }
 
 func (e *epochStartMetaBlockProcessor) checkMaps() {

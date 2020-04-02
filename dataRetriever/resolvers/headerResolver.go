@@ -256,6 +256,16 @@ func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
 	})
 }
 
+// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+	hdrRes.TopicResolverSender.SetIntraAndCrossShardNumPeersToQuery(intra, cross)
+}
+
+// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return hdrRes.TopicResolverSender.GetIntraAndCrossShardNumPeersToQuery()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
 	return hdrRes == nil

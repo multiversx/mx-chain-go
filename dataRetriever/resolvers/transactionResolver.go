@@ -194,6 +194,16 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32)
 	})
 }
 
+// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (txRes *TxResolver) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+	txRes.TopicResolverSender.SetIntraAndCrossShardNumPeersToQuery(intra, cross)
+}
+
+// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (txRes *TxResolver) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return txRes.TopicResolverSender.GetIntraAndCrossShardNumPeersToQuery()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txRes *TxResolver) IsInterfaceNil() bool {
 	return txRes == nil

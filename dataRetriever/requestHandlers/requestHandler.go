@@ -544,3 +544,27 @@ func (rrh *resolverRequestHandler) sweepIfNeeded() {
 	rrh.sweepTime = time.Now()
 	rrh.requestedItemsHandler.Sweep()
 }
+
+// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return err
+	}
+
+	resolver.SetIntraAndCrossShardNumPeersToQuery(intra, cross)
+	return nil
+}
+
+// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error) {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	intra, cross := resolver.GetIntraAndCrossShardNumPeersToQuery()
+	return intra, cross, nil
+}

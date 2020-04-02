@@ -190,6 +190,17 @@ func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) [
 	return newIndexes
 }
 
+// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+func (trs *topicResolverSender) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+	trs.numIntraShardPeers = intra
+	trs.numCrossShardPeers = cross
+}
+
+// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (trs *topicResolverSender) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return trs.numIntraShardPeers, trs.numCrossShardPeers
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (trs *topicResolverSender) IsInterfaceNil() bool {
 	return trs == nil

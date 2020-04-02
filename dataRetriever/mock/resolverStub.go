@@ -10,6 +10,15 @@ type ResolverStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (rs *ResolverStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (rs *ResolverStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestDataFromHash -
 func (rs *ResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return rs.RequestDataFromHashCalled(hash, epoch)

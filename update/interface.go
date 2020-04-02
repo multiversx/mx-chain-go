@@ -90,6 +90,8 @@ type RequestHandler interface {
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	RequestInterval() time.Duration
+	SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error
+	GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 

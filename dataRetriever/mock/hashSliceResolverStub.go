@@ -9,6 +9,15 @@ type HashSliceResolverStub struct {
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (hsrs *HashSliceResolverStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (hsrs *HashSliceResolverStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestDataFromHash -
 func (hsrs *HashSliceResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hsrs.RequestDataFromHashCalled != nil {

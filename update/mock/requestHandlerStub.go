@@ -15,6 +15,16 @@ type RequestHandlerStub struct {
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (rhs *RequestHandlerStub) SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error {
+	return nil
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (rhs *RequestHandlerStub) GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error) {
+	return 2, 2, nil
+}
+
 // RequestInterval -
 func (rhs *RequestHandlerStub) RequestInterval() time.Duration {
 	return time.Second

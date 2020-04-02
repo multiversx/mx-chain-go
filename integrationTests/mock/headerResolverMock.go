@@ -14,6 +14,15 @@ type HeaderResolverMock struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (hrm *HeaderResolverMock) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (hrm *HeaderResolverMock) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestDataFromEpoch -
 func (hrm *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
 	if hrm.RequestDataFromEpochCalled != nil {

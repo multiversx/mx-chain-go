@@ -14,6 +14,15 @@ type MiniBlocksResolverStub struct {
 	GetMiniBlocksFromPoolCalled    func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
+// SetIntraAndCrossShardNumPeersToQuery -
+func (hrm *MiniBlocksResolverStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+}
+
+// GetIntraAndCrossShardNumPeersToQuery -
+func (hrm *MiniBlocksResolverStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return 2, 2
+}
+
 // RequestDataFromHash -
 func (hrm *MiniBlocksResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return hrm.RequestDataFromHashCalled(hash, epoch)

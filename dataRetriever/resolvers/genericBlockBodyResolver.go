@@ -237,6 +237,16 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 	return miniBlocks, missingMiniBlocksHashes
 }
 
+// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (gbbRes *genericBlockBodyResolver) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+	gbbRes.TopicResolverSender.SetIntraAndCrossShardNumPeersToQuery(intra, cross)
+}
+
+// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (gbbRes *genericBlockBodyResolver) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+	return gbbRes.TopicResolverSender.GetIntraAndCrossShardNumPeersToQuery()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (gbbRes *genericBlockBodyResolver) IsInterfaceNil() bool {
 	return gbbRes == nil

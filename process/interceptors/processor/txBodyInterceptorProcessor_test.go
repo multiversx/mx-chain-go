@@ -107,7 +107,7 @@ func TestTxBodyInterceptorProcessor_ValidateShouldWork(t *testing.T) {
 
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(createMockTxBodyArgument())
 
-	assert.Nil(t, tbip.Validate(nil))
+	assert.Nil(t, tbip.Validate(nil, ""))
 }
 
 //------- Save
@@ -117,7 +117,7 @@ func TestTxBodyInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(createMockTxBodyArgument())
 
-	err := tbip.Save(nil)
+	err := tbip.Save(nil, "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -134,7 +134,7 @@ func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedTxBlockBody(&block.Body{})
 
-	err := tbip.Save(inTxBlkBdy)
+	err := tbip.Save(inTxBlkBdy, "")
 
 	assert.Nil(t, err)
 }
@@ -205,7 +205,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedTxBlockBody(txBlockBody)
 
-	err := tbip.Save(inTxBlkBdy)
+	err := tbip.Save(inTxBlkBdy, "")
 
 	assert.Nil(t, err)
 }
@@ -245,7 +245,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testi
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedTxBlockBody(txBlockBody)
 
-	err := tbip.Save(inTxBlkBdy)
+	err := tbip.Save(inTxBlkBdy, "")
 
 	assert.Nil(t, err)
 }
@@ -286,7 +286,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t 
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedTxBlockBody(txBlockBody)
 
-	err := tbip.Save(inTxBlkBdy)
+	err := tbip.Save(inTxBlkBdy, "")
 
 	assert.Equal(t, errExpected, err)
 }
